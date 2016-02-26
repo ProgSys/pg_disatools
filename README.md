@@ -1,10 +1,11 @@
-# Modding tools for Disgaea PC
+# Unofficial tools for Disgaea PC
 
-Currently under construction
+Currently under construction.
 
-# License
+# Disclaimer && License
+This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
 
-The MIT License (MIT)
+## The MIT License (MIT)
 
 	Copyright (c) 2016 ProgSys
 
