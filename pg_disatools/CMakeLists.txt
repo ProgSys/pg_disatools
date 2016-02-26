@@ -19,10 +19,10 @@ endif()
 
 
 message (STATUS "Modul path: ${CMAKE_MODULE_PATH}")
-#find_package(GLM REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-std=gnu++0x) #-std=gnu++0x
+	#add_definitions(-std=gnu++11)
 	#add_definitions(-DGLEW_STATIC=TRUE) -std=gnu++0x
 else()
 	#add_definitions(-DPG_LOADERS_EXPORTS)
@@ -32,7 +32,6 @@ endif()
 # where the include files are located
 include_directories(
 	"${PROJECT_SOURCE_DIR}/include"
-	#${GLM_INCLUDE_PATH}
 )
 
 
@@ -43,7 +42,7 @@ link_directories(
 
 message (STATUS "Project binary dir: ${PROJECT_BINARY_DIR}")
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
-message (STATUS ${ADDITIONAL_CCP})
+
 #===============================================
 #   PG_LOADERS
 #===============================================
@@ -83,6 +82,7 @@ GroupSources("src/pg")
 #source_group(source FILES ${PG_ENGINE_SRC})
 
 message (${PG_LOADERS_SRC})
+
 add_library(
 	#static lib
 	pg_disatools SHARED

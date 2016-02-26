@@ -22,6 +22,7 @@
  *	SOFTWARE.
  */
 
+
 #include <iostream>
 #include <string>
 
@@ -30,26 +31,16 @@
 #include <pg/util/PG_BinaryFileTokenizer.h>
 #include <pg/util/PG_Colors.h>
 
-//using namespace PG;
 
-#define OUT(x) std::cout << x << std::endl
+#define OUTSTR(x) std::cout << x << std::endl
 
 /*!
  * @brief Testing main method, just for testing.
  */
-int main(){
-	OUT("Start");
+int main(int argc, char* argv[]){
+	OUTSTR("Start");
 
-	unsigned char c[2];
-	c[0] = 0xDB;
-	c[1] = 0xAD;
 
-	OUT( "c[0]: "<<(int)c[0]<< " c[1]: "<<(int)c[1]<<" A "<< (int)(c[1]>>7)<<" B "<< (int)((c[0]<<1) & 0x07) <<" m: "<< (int)(((c[0]<<1) & 0x07) | (c[1]>>7)) );
-
-	PG::UTIL::RGBA r(255,255,255,255);
-	PG::UTIL::RGBA r2(255,255,255,255);
-
-	OUT( interpolate(r,r2, 0.5) );
 
 	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.TX2";
 	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.tga";
@@ -71,10 +62,8 @@ int main(){
 	PG::FILE::S3File file(target);
 	file.save(out, PG::FILE::S3File::TGA);
 
-
-	OUT("Done");
+	OUTSTR("Done");
 
 
 	return 0;
 }
-
