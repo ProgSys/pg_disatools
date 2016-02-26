@@ -155,27 +155,48 @@ bool S3File::readVTF(std::vector<RGBA>& outRGBAData) const{
 	reader.read((char*)&blocks[0], number_of_blocks_4x4*sizeof(DXT1block) );
 	reader.close();
 
-	PG::FILE::uncompressS3<PG::FILE::DXT1block>(m_width,m_height, blocks, outRGBAData);
-	//uncompressDXT1(m_width,m_height, blocks, outRGBAData);
+	uncompressDXT1(m_width,m_height, blocks, outRGBAData);
 
 	return true;
 }
 
 bool S3File::readTX2(std::vector<RGBA>& outRGBAData) const{
 	PG::UTIL::BinaryFileTokenizer reader(m_filename);
-	if(m_width != reader.getUnsignedShort() || m_height != reader.getUnsignedShort()){
+
+	if( m_width != reader.getUnsignedShort() || m_height != reader.getUnsignedShort()){
 		PG_ERROR_STREAM("The image has different size then expected!");
 		return false;
 	}
 
+	//? not shure
 	//0 = no compression
 	//2 = DXT5
 	const unsigned short compressiontype = reader.getUnsignedShort();
-	reader.skip(10);
+	const unsigned short noidear = reader.getUnsignedShort(); //seams always to be 2056
+	//well it used for a gradient?
+	const unsigned short color_table_size = reader.getUnsignedShort();
+	const unsigned short noidear2 = reader.getUnsignedShort();
+	const unsigned int total_texture_bytes = reader.getUnsignedInt(); //without the header and midmap
 
-	if(compressiontype == 0){
+	PG_INFO_STREAM(compressiontype<<" m: "<<color_table_size<<" "<<noidear2 <<" total: "<<total_texture_bytes );
+
+
+
+
+	if(compressiontype == 256){
+
+		std::vector<PG::UTIL::simpleRGBA> colortable(color_table_size);
+		reader.read((char*)&colortable[0], colortable.size()*sizeof(simpleRGBA));
+
+		outRGBAData.resize(total_texture_bytes);
+		for(unsigned int i = 0; i < total_texture_bytes; i++){
+			outRGBAData[i] = colortable[reader.getUnsignedChar()];
+		}
+
 
 	}else if(compressiontype == 2){
+		reader.skip(color_table_size*4);
+
 		const unsigned int number_of_blocks_width = (m_width/4);
 		const unsigned int number_of_blocks_height = (m_height/4);
 		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
@@ -185,6 +206,9 @@ bool S3File::readTX2(std::vector<RGBA>& outRGBAData) const{
 		reader.close();
 
 		uncompressDXT5(m_width,m_height, blocks, outRGBAData);
+
+	}else{
+		PG_ERROR_STREAM("TX2 compression is not supported!");
 	}
 
 	return true;
@@ -192,6 +216,7 @@ bool S3File::readTX2(std::vector<RGBA>& outRGBAData) const{
 
 }
 
+/*
 bool S3File::readMPP(std::vector<PG::UTIL::RGBA>& outRGBAData) const{
 	PG::UTIL::BinaryFileTokenizer reader(m_filename);
 
@@ -214,7 +239,7 @@ bool S3File::readMPP(std::vector<PG::UTIL::RGBA>& outRGBAData) const{
 	}
 
 	return true;
-}
+}*/
 
 S3File::~S3File() {
 	// TODO Auto-generated destructor stub

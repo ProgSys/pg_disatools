@@ -87,6 +87,9 @@ RGBA::RGBA(unsigned char _r, unsigned char _g, unsigned char _b, unsigned char _
 RGBA::RGBA(const RGB& rgb, unsigned char _a):
 		RGBColor(rgb.r,rgb.g,rgb.b),a(_a){}
 
+RGBA::RGBA(const simpleRGBA& rgba):
+	RGBColor(rgba.r,rgba.g,rgba.b),a(rgba.a){}
+
 RGBA RGBA::operator+(const RGBA& rgba) const{
 	return RGBA(r+rgba.r, g+rgba.g, b+rgba.b, a+rgba.a);
 }
@@ -122,6 +125,13 @@ bool RGBA::operator==(const RGBA& rgba) const{
 }
 
 void RGBA::operator=(const RGBA& rgba){
+	r = rgba.r;
+	g = rgba.g;
+	b = rgba.b;
+	a = rgba.a;
+}
+
+void RGBA::operator=(const simpleRGBA& rgba){
 	r = rgba.r;
 	g = rgba.g;
 	b = rgba.b;

@@ -30,6 +30,13 @@
 namespace PG {
 namespace UTIL {
 
+struct simpleRGBA{
+	unsigned char r = 0;
+	unsigned char g = 0;
+	unsigned char b = 0;
+	unsigned char a = 0;
+};
+
 //forward deceleration
 struct RGBA;
 
@@ -89,6 +96,7 @@ struct RGBA: public RGBColor{
 	RGBA(const RGBA& rgba) = default;
 	RGBA(unsigned char _r, unsigned char _g, unsigned char _b, unsigned char _a = 255);
 	RGBA(const RGB& rgb, unsigned char _a = 255);
+	RGBA(const simpleRGBA& rgba);
 
 	RGBA operator+(const RGBA& rgba) const;
 
@@ -104,8 +112,9 @@ struct RGBA: public RGBColor{
 
 	bool operator==(const RGBA& rgba) const;
 
-	void operator=(const RGBA& rgba);
 
+	void operator=(const RGBA& rgba);
+	void operator=(const simpleRGBA& rgba);
 
 	friend std::ostream& operator<<(std::ostream& o,const RGBA& rgba){
 		return o<<"("<<(int)rgba.r<<", "<<(int)rgba.g<<", "<<(int)rgba.b<<", "<<(int)rgba.a<<")";

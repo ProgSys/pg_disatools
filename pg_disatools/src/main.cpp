@@ -54,8 +54,8 @@ int main(){
 	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.TX2";
 	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.tga";
 
-	std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/MP00604.MPP";
-	std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/MP00604.tga";
+	std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/mppTex.tx2";
+	std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/mppTex.tga";
 
 
 	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/alphatest.TX2";
