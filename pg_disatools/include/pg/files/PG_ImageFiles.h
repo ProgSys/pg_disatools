@@ -21,9 +21,8 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-
-#ifndef INCLUDE_PG_FILES_PG_S3FILE_H_
-#define INCLUDE_PG_FILES_PG_S3FILE_H_
+#ifndef INCLUDE_PG_FILES_PG_IMAGEFILES_H_
+#define INCLUDE_PG_FILES_PG_IMAGEFILES_H_
 
 #include <string>
 #include <vector>
@@ -32,34 +31,18 @@
 namespace PG {
 namespace FILE {
 
+/*!
+ * @brief Will create a very simple TGA8888 image.
+ */
+void saveTGA(const std::string& filepath, unsigned int width, unsigned int height, const std::vector<PG::UTIL::RGBA>& rgba);
 
-class S3File {
-public:
-enum inFormat: unsigned int{
-	INVALID = 0, VTF, TX2
-};
-enum outFormat: unsigned int{
-	PGM, TGA
-};
 
-	S3File(const std::string& filepath);
-	bool save(const std::string& outfilepath, outFormat out) const;
-
-	unsigned int getWidth() const;
-	unsigned int getHeight() const;
-
-	virtual ~S3File();
-private:
-	bool readVTF(std::vector<PG::UTIL::RGBA>& outRGBAData) const;
-	bool readTX2(std::vector<PG::UTIL::RGBA>& outRGBAData) const;
-	//bool savePPM(const std::string& outfilepath) const;
-	std::string m_filename;
-	inFormat m_filetype;
-	unsigned int m_width;
-	unsigned int m_height;
-};
+/*!
+ * @brief Will create a very simple PGM P6 (RGB888 no alpha) image.
+ */
+void savePGM(const std::string& filepath, unsigned int width, unsigned int height, const std::vector<PG::UTIL::RGBA>& rgba);
 
 } /* namespace FILE */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_FILES_PG_S3FILE_H_ */
+#endif /* INCLUDE_PG_FILES_PG_IMAGEFILES_H_ */
