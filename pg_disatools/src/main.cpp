@@ -34,6 +34,9 @@
 
 #define OUT(x) std::cout << x << std::endl
 
+/*!
+ * @brief Testing main method, just for testing.
+ */
 int main(){
 	OUT("Start");
 

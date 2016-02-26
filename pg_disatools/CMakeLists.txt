@@ -17,7 +17,6 @@ if(UNIX)
 	add_definitions(-fPIC)
 endif()
 
-SET(ADDITIONAL_CCP  "${LODEPNG_INCLUDE_PATH}/*.cpp")
 
 message (STATUS "Modul path: ${CMAKE_MODULE_PATH}")
 #find_package(GLM REQUIRED)
@@ -49,9 +48,6 @@ message (STATUS ${ADDITIONAL_CCP})
 #   PG_LOADERS
 #===============================================
 file(GLOB PG_LOADERS_SRC
-	"${ADDITIONAL_CCP}"
-
-    "src/*.cpp"
 	
 	"src/pg/test/*.cpp"
 	
@@ -66,7 +62,6 @@ file(GLOB PG_LOADERS_SRC
 )
 
 file(GLOB PG_LOADERS_HEADERS
-	"${DEBUG_LEAK_H}"
 	"include/*.h"
 	
 	"include/pg/*.h"
@@ -113,20 +108,29 @@ target_link_libraries(
 )
 
 #===============================================
+# TX2andMPPConverter
+#===============================================
+
+add_executable(
+	TX2andMPPConverter
+		"src/TX2andMPPConverter.cpp"
+)
+
+target_link_libraries(
+	TX2andMPPConverter
+		pg_disatools
+)
+
+#===============================================
 # install
 #===============================================
 install(
-	TARGETS pg_disatools disa_tools_test
+	TARGETS pg_disatools disa_tools_test TX2andMPPConverter
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static
 )
-install(
-	TARGETS pg_disatools disa_tools_test
-		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static
-)
+
 # install include files
 install(
 	DIRECTORY include
