@@ -80,6 +80,8 @@ S3File::S3File(const std::string& filename): m_filename(filename) {
 			return;
 		}
 		m_filetype = TX2;
+	}else if(extention == "mpp"){
+		PG_ERROR_STREAM("*.mpp is a achieve containing multiple files.")
 	}else{
 		PG_ERROR_STREAM("Unknown file extension'"<<extention<< "'. Only vtf and tx2 (Disgaea) is supported.")
 	}
@@ -166,23 +168,53 @@ bool S3File::readTX2(std::vector<RGBA>& outRGBAData) const{
 		return false;
 	}
 
-	reader.skip(12);
+	//0 = no compression
+	//2 = DXT5
+	const unsigned short compressiontype = reader.getUnsignedShort();
+	reader.skip(10);
 
-	const unsigned int number_of_blocks_width = (m_width/4);
-	const unsigned int number_of_blocks_height = (m_height/4);
-	const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+	if(compressiontype == 0){
 
-	std::vector<DXT5block> blocks(number_of_blocks_4x4);
-	reader.read((char*)&blocks[0], number_of_blocks_4x4*sizeof(DXT5block));
-	reader.close();
+	}else if(compressiontype == 2){
+		const unsigned int number_of_blocks_width = (m_width/4);
+		const unsigned int number_of_blocks_height = (m_height/4);
+		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
 
-	uncompressDXT5(m_width,m_height, blocks, outRGBAData);
+		std::vector<DXT5block> blocks(number_of_blocks_4x4);
+		reader.read((char*)&blocks[0], number_of_blocks_4x4*sizeof(DXT5block));
+		reader.close();
+
+		uncompressDXT5(m_width,m_height, blocks, outRGBAData);
+	}
 
 	return true;
 
 
 }
 
+bool S3File::readMPP(std::vector<PG::UTIL::RGBA>& outRGBAData) const{
+	PG::UTIL::BinaryFileTokenizer reader(m_filename);
+
+	unsigned int unknown1 = reader.getUnsignedInt();
+	unsigned int unknown2 = reader.getUnsignedInt();
+	unsigned int fileSize = reader.getUnsignedInt();
+
+
+	outRGBAData.resize(m_width*m_height);
+	reader.skip(96);
+	std::vector<unsigned char> dat(outRGBAData.size()*4);
+	reader.read((char*)&dat[0], dat.size());
+
+	for(unsigned int i = 0; i < dat.size(); i+=4){
+		RGBA& rgba = outRGBAData[i/4];
+		rgba.r = dat[i];
+		rgba.g = dat[i+1];
+		rgba.b = dat[i+2];
+		rgba.a = dat[i+3];
+	}
+
+	return true;
+}
 
 S3File::~S3File() {
 	// TODO Auto-generated destructor stub

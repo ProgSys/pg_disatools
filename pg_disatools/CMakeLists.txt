@@ -112,12 +112,12 @@ target_link_libraries(
 #===============================================
 
 add_executable(
-	TX2andMPPConverter
-		"src/TX2andMPPConverter.cpp"
+	TX2Converter
+		"src/TX2Converter.cpp"
 )
 
 target_link_libraries(
-	TX2andMPPConverter
+	TX2Converter
 		pg_disatools
 )
 
@@ -125,7 +125,7 @@ target_link_libraries(
 # install
 #===============================================
 install(
-	TARGETS pg_disatools disa_tools_test TX2andMPPConverter
+	TARGETS pg_disatools disa_tools_test TX2Converter
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static

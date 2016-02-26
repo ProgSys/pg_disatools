@@ -51,8 +51,11 @@ int main(){
 
 	OUT( interpolate(r,r2, 0.5) );
 
-	std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.TX2";
-	std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.tga";
+	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.TX2";
+	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.tga";
+
+	std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/MP00604.MPP";
+	std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/MP00604.tga";
 
 
 	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/alphatest.TX2";

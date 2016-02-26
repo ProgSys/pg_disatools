@@ -52,6 +52,7 @@ enum outFormat: unsigned int{
 private:
 	bool readVTF(std::vector<PG::UTIL::RGBA>& outRGBAData) const;
 	bool readTX2(std::vector<PG::UTIL::RGBA>& outRGBAData) const;
+	bool readMPP(std::vector<PG::UTIL::RGBA>& outRGBAData) const;
 	//bool savePPM(const std::string& outfilepath) const;
 	std::string m_filename;
 	inFormat m_filetype;
