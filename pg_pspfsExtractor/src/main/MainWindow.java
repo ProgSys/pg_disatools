@@ -30,6 +30,7 @@ import javax.swing.JFrame;
 import java.awt.FlowLayout;
 
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.JTree;
 import javax.swing.JButton;
 
@@ -122,7 +123,7 @@ public class MainWindow {
 		frmDisgaeaPcFile = new JFrame();
 		frmDisgaeaPcFile.setTitle("Disgaea PC File extractor");
 		frmDisgaeaPcFile.setResizable(false);
-		frmDisgaeaPcFile.setBounds(100, 100, 440, 560);
+		frmDisgaeaPcFile.setBounds(100, 100, 440, 590);
 		frmDisgaeaPcFile.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmDisgaeaPcFile.getContentPane().setLayout(null);
 		
@@ -155,12 +156,12 @@ public class MainWindow {
 			}
 
 		});
-		btnExtract.setBounds(277, 267, 150, 23);
+		btnExtract.setBounds(277, 293, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnExtract);
 		
 		JButton btnInsertFiles = new JButton("Insert files");
 		btnInsertFiles.setEnabled(false);
-		btnInsertFiles.setBounds(277, 301, 150, 23);
+		btnInsertFiles.setBounds(277, 319, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnInsertFiles);
 		
 		JLabel lblFilters = new JLabel("Filters:");
@@ -191,7 +192,7 @@ public class MainWindow {
 		frmDisgaeaPcFile.getContentPane().add(btnOpenData);
 		
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(10, 10, 255, 511);
+		scrollPane.setBounds(10, 10, 255, 540);
 		frmDisgaeaPcFile.getContentPane().add(scrollPane);
 		
 		file_tree = new JTree();
@@ -217,12 +218,12 @@ public class MainWindow {
 		
 		JButton btnDeleteSelected = new JButton("Delete selected");
 		btnDeleteSelected.setEnabled(false);
-		btnDeleteSelected.setBounds(277, 335, 150, 23);
+		btnDeleteSelected.setBounds(277, 371, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnDeleteSelected);
 		
 		Panel priview = new Panel();
 		priview.setBackground(Color.GRAY);
-		priview.setBounds(277, 371, 150, 150);
+		priview.setBounds(277, 400, 150, 150);
 		frmDisgaeaPcFile.getContentPane().add(priview);
 		
 		JPanel panel = new JPanel();
@@ -384,8 +385,37 @@ public class MainWindow {
 		
 		lbInfo = new JLabel("No data archive open");
 		lbInfo.setVerticalAlignment(SwingConstants.TOP);
-		lbInfo.setBounds(277, 35, 150, 34);
+		lbInfo.setBounds(277, 35, 150, 14);
 		frmDisgaeaPcFile.getContentPane().add(lbInfo);
+		
+		JButton btnAbout = new JButton("About");
+		btnAbout.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				JOptionPane.showMessageDialog(null, 
+						"This tool allows you to add and extract files form the Disgaea PC pspfs_v1 archive. \n"
+						+ "\nThe MIT License (MIT)"
+						+ "\nCopyright (c) 2016 ProgSys\n"
+						+ "\nPermission is hereby granted, free of charge, to any person obtaining a copy"
+						+ "\nof this software and associated documentation files (the \"Software\"), to deal"
+						+ "\nin the Software without restriction, including without limitation the rights"
+						+ "\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell"
+						+ "\ncopies of the Software, and to permit persons to whom the Software is"
+						+ "\nfurnished to do so, subject to the following conditions:"
+						
+						+ "\nThe above copyright notice and this permission notice shall be included in all"
+						+ "\ncopies or substantial portions of the Software.\n"
+						
+						+ "\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR"
+						+ "\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,"
+						+ "\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE"
+						+ "\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER"
+						+ "\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,"
+						+ "\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE"
+						+ "\nSOFTWARE.");
+			}
+		});
+		btnAbout.setBounds(277, 267, 150, 23);
+		frmDisgaeaPcFile.getContentPane().add(btnAbout);
 	}
 	
 	private void buildFileTree(){
