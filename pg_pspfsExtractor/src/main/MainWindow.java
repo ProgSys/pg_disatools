@@ -65,6 +65,7 @@ import javax.swing.BoxLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import java.awt.Insets;
+import java.io.File;
 
 import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
@@ -90,6 +91,7 @@ public class MainWindow {
 	JCheckBox chckbxphd;
 	
 	JButton btnExtract;
+	JButton btnInsertFiles;
 	
 	/**
 	 * Launch the application.
@@ -121,7 +123,7 @@ public class MainWindow {
 	 */
 	private void initialize() {
 		frmDisgaeaPcFile = new JFrame();
-		frmDisgaeaPcFile.setTitle("Disgaea PC File extractor");
+		frmDisgaeaPcFile.setTitle("Disgaea PC File extractor v0.1");
 		frmDisgaeaPcFile.setResizable(false);
 		frmDisgaeaPcFile.setBounds(100, 100, 440, 590);
 		frmDisgaeaPcFile.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -159,7 +161,32 @@ public class MainWindow {
 		btnExtract.setBounds(277, 293, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnExtract);
 		
-		JButton btnInsertFiles = new JButton("Insert files");
+		btnInsertFiles = new JButton("Insert files");
+		btnInsertFiles.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if (nis != null){
+					
+					//open Data file
+					 JFileChooser openFile = new JFileChooser();
+					 openFile.setMultiSelectionEnabled(true);
+					 openFile.showOpenDialog(null);
+					 File[] files = openFile.getSelectedFiles();
+					 
+					 if(files.length == 0){
+						 lbInfo.setText("No files selected!");
+						 return;
+					 }else{
+						 for(File f: files){
+							 System.out.println("File to insert: "+ f.getPath());
+						 }
+						 nis.add(files);
+					 }
+		             
+				}else{
+					 lbInfo.setText("Please open a data file first!");
+				}
+			}
+		});
 		btnInsertFiles.setEnabled(false);
 		btnInsertFiles.setBounds(277, 319, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnInsertFiles);
@@ -181,11 +208,23 @@ public class MainWindow {
 	            	 //display error
 	            	 nis = null;
 	            	 lbInfo.setText("Couldn't read file!");
+	            	 
+	            	 file_tree.setEnabled(false);
+	            	 btnInsertFiles.setEnabled(false);
+	            	 file_tree.setModel(new DefaultTreeModel(
+	            				new DefaultMutableTreeNode("Please open a DATA.DAT archive") {
+	            					{
+	            					}
+	            				}
+	            			));
+	            	 
+	            	 return;
 	             }else{
 	            	 lbInfo.setText(nis.getNumberOfFiles()+" files inside.");
 	             }
 	             buildFileTree();	 
-	             
+	             file_tree.setEnabled(true);
+	             btnInsertFiles.setEnabled(true);
 			}
 		});
 		btnOpenData.setBounds(277, 10, 150, 23);
@@ -214,6 +253,7 @@ public class MainWindow {
 			}
 		));
 		file_tree.setBorder(null);
+		file_tree.setEnabled(false);
 		scrollPane.setViewportView(file_tree);
 		
 		JButton btnDeleteSelected = new JButton("Delete selected");

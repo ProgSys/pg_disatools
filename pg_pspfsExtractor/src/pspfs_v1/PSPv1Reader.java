@@ -27,10 +27,13 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.nio.BufferUnderflowException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -169,6 +172,7 @@ public class PSPv1Reader {
 	}
 	
 	private boolean extract(PSPv1FileInfo info,String path){
+		//TODO make this more nice, and sleep a bit more
 		if(info.name.length() == 0 ){
 			System.out.println("[WARNING] File has no name!");
 			return false;
@@ -192,11 +196,138 @@ public class PSPv1Reader {
 		}catch(IndexOutOfBoundsException e){
 			System.out.println (e.toString());
 			System.out.println("[ERROR] Something went wrong with the array size!");
+			return true;
 		}catch(IOException e){
 			System.out.println (e.toString());
 			System.out.println("[ERROR] Could not save file: "+fullPath);
-			return false;
+			return true;
 		}
+		
+		return false;
+	}
+	
+	public boolean add(File[] filesarray){
+		if(filesarray.length <= 0 || m_fileInfos == null) return true;
+		
+		List<File> files = new ArrayList<File>(Arrays.asList(filesarray));
+		
+		//calculate number of files
+		int numberOfFiles = 0;
+		int numberOfFilesToAdd = files.size();
+		for(PSPv1FileInfo info: m_fileInfos){
+			numberOfFiles++;
+			for(File file: files){
+				if(file.getName().equals(info.name)){
+					info.size = -1; //mark for easyer searching
+					numberOfFilesToAdd--;
+					break;
+				}
+			}
+		}
+		numberOfFiles += numberOfFilesToAdd;
+		
+		File f = new File(m_path);
+		//System.out.println("t: "+ f.getParent());
+		try {
+			LittleEndianOutputStream out = new LittleEndianOutputStream(new FileOutputStream(f.getParent()+"\\DATA_BUFFER.DAT"));
+			out.writeBytes("PSPFS_V1");
+			out.writeInt(numberOfFiles); // size
+			out.writeInt(0); // NULL
+			
+			//reserve space
+			byte b[] = new byte[52];
+			for(int i = 0; i < numberOfFiles; i++){
+				out.write(b);
+			}
+			
+			
+			List<PSPv1FileInfo> newfileInfos = new ArrayList<PSPv1FileInfo>(numberOfFiles);
+			LittleEndianDataInputStream in = new LittleEndianDataInputStream(new FileInputStream(m_path));
+			int lastOffset = 16+numberOfFiles*52;
+			in.skip(16+m_fileInfos.size()*52);
+			System.out.println("numberOfFiles: "+numberOfFiles+" Start offfset: "+lastOffset);
+			for(PSPv1FileInfo info: m_fileInfos){
+				if(info.size == -1){
+					
+					//find file
+					File fileToAdd = null;
+					for(File file: files){
+						if(file.getName().equals(info.name)){
+							fileToAdd = file;
+							files.remove(file);
+							break;
+						}
+					}
+					
+					if(fileToAdd != null){
+						LittleEndianDataInputStream filein = new LittleEndianDataInputStream(new FileInputStream(fileToAdd));
+						int size = filein.available();
+						System.out.println("replace: " + info.name+ " with: "+fileToAdd.getName().toUpperCase()+ " original size: "+info.size+" new size: "+size);
+						byte filebytes[] = new byte[size];
+						filein.readFully(filebytes);
+						filein.close();
+						out.write(filebytes);
+						
+						newfileInfos.add( new PSPv1FileInfo( fileToAdd.getName().toUpperCase().getBytes(), size, lastOffset ));
+						lastOffset = lastOffset+info.size;
+					}
+					
+				}else{
+					byte filebytes[] = new byte[info.size];
+					in.read(filebytes);
+					out.write(filebytes);
+					
+					info.offset = lastOffset;
+					lastOffset = lastOffset+info.size;
+					newfileInfos.add(info);
+				}
+				
+			}
+			in.close();
+			out.close();
+			m_fileInfos = newfileInfos;
+			
+			 System.out.println("Write file table");
+			 
+			 
+			RandomAccessFile writerFileTable = new RandomAccessFile(f.getParent()+"\\DATA_BUFFER.DAT","rw");
+			
+			writerFileTable.seek(0);
+			writerFileTable.skipBytes(16);
+			for(PSPv1FileInfo info: m_fileInfos){
+				writerFileTable.write(info.name.getBytes());
+				writerFileTable.skipBytes(44-info.name.length());
+				
+				byte intbytes[] = new byte[4];
+				intbytes[0] = (byte) (info.size & 0xFF);
+				intbytes[1] = (byte) ((info.size >>> 8) & 0xFF);
+				intbytes[2] = (byte) ((info.size >>> 16) & 0xFF);
+				intbytes[3] = (byte) ((info.size >>> 24) & 0xFF);
+				
+				writerFileTable.write(intbytes);
+			    
+				intbytes[0] = (byte) (info.offset & 0xFF);
+				intbytes[1] = (byte) ((info.offset >>> 8) & 0xFF);
+				intbytes[2] = (byte) ((info.offset >>> 16) & 0xFF);
+				intbytes[3] = (byte) ((info.offset >>> 24) & 0xFF);
+				
+				writerFileTable.write(intbytes);
+			}
+			writerFileTable.close();
+			
+			//write filetable
+			//out.flush();
+			
+		}catch(IndexOutOfBoundsException e){
+			System.out.println (e.toString());
+			System.out.println("[ERROR] Something went wrong with the array size!");
+			return true;
+		}catch(IOException e){
+			System.out.println (e.toString());
+			System.out.println("[ERROR] Couldn't extract files! ");
+			return true;
+		}
+		
 		
 		return false;
 	}
@@ -264,6 +395,7 @@ public class PSPv1Reader {
          
          return extension.toLowerCase();
 	}
+
 	
 	
 	
