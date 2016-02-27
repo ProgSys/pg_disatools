@@ -227,10 +227,8 @@ public class PSPv1Reader {
 		numberOfFiles += numberOfFilesToAdd;
 		
 		File f = new File(m_path);
-		//System.out.println("t: "+ f.getParent());
+		
 		try {
-			
-			//LittleEndianOutputStream out = new LittleEndianOutputStream(new FileOutputStream(f.getParent()+"\\DATA_BUFFER.DAT"));
 			RandomAccessFile writer = new RandomAccessFile(f.getParent()+"\\DATA_BUFFER.DAT","rw");
 			writer.writeBytes("PSPFS_V1");
 			
@@ -257,9 +255,10 @@ public class PSPv1Reader {
 			int lastOffset = 16+numberOfFiles*52;
 			//reader.skip(16+m_fileInfos.size()*52);
 			System.out.println("numberOfFiles: "+numberOfFiles+" Start offfset: "+lastOffset);
+			//go over the old files
 			for(PSPv1FileInfo info: m_fileInfos){
 				if(info.size == -1){
-					
+					//replace a file
 					//find file
 					File fileToAdd = null;
 					for(File file: files){
@@ -271,7 +270,7 @@ public class PSPv1Reader {
 					}
 					
 					if(fileToAdd != null){
-						LittleEndianDataInputStream filein = new LittleEndianDataInputStream(new FileInputStream(fileToAdd));
+						DataInputStream filein = new DataInputStream(new FileInputStream(fileToAdd));
 						int size = filein.available();
 						System.out.println("replace: " + info.name+ " with: "+fileToAdd.getName().toUpperCase()+ " original size: "+info.size+" new size: "+size+ " offset: "+lastOffset);
 						byte filebytes[] = new byte[size];
@@ -285,6 +284,7 @@ public class PSPv1Reader {
 					
 				}else{
 					if(info.name.equals("DUMMY.DAT")){
+						//write the dummy, it is at the wrong place though
 						byte filebytes[] = new byte[1396];
 						filebytes[876] = 'D';
 						filebytes[877] = 'U';
@@ -296,6 +296,7 @@ public class PSPv1Reader {
 						lastOffset = lastOffset+1396;
 						newfileInfos.add(info);
 					}else{
+						//just copy old file
 						byte filebytes[] = new byte[info.size];
 						reader.seek(info.offset);
 						reader.read(filebytes);
@@ -308,11 +309,25 @@ public class PSPv1Reader {
 				}
 				
 			}
+			//add new files at back
+			for(File file: files){
+				DataInputStream filein = new DataInputStream(new FileInputStream(file));
+				int size = filein.available();
+				byte filebytes[] = new byte[size];
+				filein.readFully(filebytes);
+				filein.close();
+				writer.write(filebytes);
+				
+				newfileInfos.add(new PSPv1FileInfo( file.getName().toUpperCase().getBytes(), size, lastOffset ));
+				lastOffset = lastOffset+size;
+			}
+			
 			reader.close();
 			m_fileInfos = newfileInfos;
 			
 			 System.out.println("Write file table");
 
+			 //write file table
 			writer.seek(0);
 			writer.skipBytes(16);
 			for(PSPv1FileInfo info: m_fileInfos){
@@ -334,9 +349,6 @@ public class PSPv1Reader {
 				writer.write(intbytes);
 			}
 			writer.close();
-			
-			//write filetable
-			//out.flush();
 			
 		}catch(IndexOutOfBoundsException e){
 			System.out.println (e.toString());
