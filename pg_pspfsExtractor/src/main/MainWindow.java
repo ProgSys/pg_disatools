@@ -165,7 +165,7 @@ public class MainWindow {
 		btnInsertFiles.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (nis != null){
-					
+					lbInfo.setText("Please Wait!");
 					//open Data file
 					 JFileChooser openFile = new JFileChooser();
 					 openFile.setMultiSelectionEnabled(true);
@@ -180,6 +180,7 @@ public class MainWindow {
 							 System.out.println("File to insert: "+ f.getPath());
 						 }
 						 nis.add(files);
+						 lbInfo.setText(nis.getNumberOfFiles()+" files inside.");
 					 }
 		             
 				}else{

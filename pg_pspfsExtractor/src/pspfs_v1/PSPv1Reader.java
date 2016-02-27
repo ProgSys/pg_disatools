@@ -229,22 +229,33 @@ public class PSPv1Reader {
 		File f = new File(m_path);
 		//System.out.println("t: "+ f.getParent());
 		try {
-			LittleEndianOutputStream out = new LittleEndianOutputStream(new FileOutputStream(f.getParent()+"\\DATA_BUFFER.DAT"));
-			out.writeBytes("PSPFS_V1");
-			out.writeInt(numberOfFiles); // size
-			out.writeInt(0); // NULL
+			
+			//LittleEndianOutputStream out = new LittleEndianOutputStream(new FileOutputStream(f.getParent()+"\\DATA_BUFFER.DAT"));
+			RandomAccessFile writer = new RandomAccessFile(f.getParent()+"\\DATA_BUFFER.DAT","rw");
+			writer.writeBytes("PSPFS_V1");
+			
+			byte intbytes[] = new byte[4];
+			
+			intbytes[0] = (byte) (numberOfFiles & 0xFF);
+			intbytes[1] = (byte) ((numberOfFiles >>> 8) & 0xFF);
+			intbytes[2] = (byte) ((numberOfFiles >>> 16) & 0xFF);
+			intbytes[3] = (byte) ((numberOfFiles >>> 24) & 0xFF);
+			writer.write(intbytes); // size
+			
+			writer.writeInt(0); // NULL
 			
 			//reserve space
 			byte b[] = new byte[52];
 			for(int i = 0; i < numberOfFiles; i++){
-				out.write(b);
+				writer.write(b);
 			}
 			
 			
 			List<PSPv1FileInfo> newfileInfos = new ArrayList<PSPv1FileInfo>(numberOfFiles);
-			LittleEndianDataInputStream in = new LittleEndianDataInputStream(new FileInputStream(m_path));
+			RandomAccessFile reader = new RandomAccessFile(m_path,"r");
+
 			int lastOffset = 16+numberOfFiles*52;
-			in.skip(16+m_fileInfos.size()*52);
+			//reader.skip(16+m_fileInfos.size()*52);
 			System.out.println("numberOfFiles: "+numberOfFiles+" Start offfset: "+lastOffset);
 			for(PSPv1FileInfo info: m_fileInfos){
 				if(info.size == -1){
@@ -262,58 +273,67 @@ public class PSPv1Reader {
 					if(fileToAdd != null){
 						LittleEndianDataInputStream filein = new LittleEndianDataInputStream(new FileInputStream(fileToAdd));
 						int size = filein.available();
-						System.out.println("replace: " + info.name+ " with: "+fileToAdd.getName().toUpperCase()+ " original size: "+info.size+" new size: "+size);
+						System.out.println("replace: " + info.name+ " with: "+fileToAdd.getName().toUpperCase()+ " original size: "+info.size+" new size: "+size+ " offset: "+lastOffset);
 						byte filebytes[] = new byte[size];
 						filein.readFully(filebytes);
 						filein.close();
-						out.write(filebytes);
+						writer.write(filebytes);
 						
 						newfileInfos.add( new PSPv1FileInfo( fileToAdd.getName().toUpperCase().getBytes(), size, lastOffset ));
-						lastOffset = lastOffset+info.size;
+						lastOffset = lastOffset+size;
 					}
 					
 				}else{
-					byte filebytes[] = new byte[info.size];
-					in.read(filebytes);
-					out.write(filebytes);
-					
-					info.offset = lastOffset;
-					lastOffset = lastOffset+info.size;
-					newfileInfos.add(info);
+					if(info.name.equals("DUMMY.DAT")){
+						byte filebytes[] = new byte[1396];
+						filebytes[876] = 'D';
+						filebytes[877] = 'U';
+						filebytes[878] = 'M';
+						filebytes[879] = 'M';
+						filebytes[880] = 'Y';
+						writer.write(filebytes);
+						
+						lastOffset = lastOffset+1396;
+						newfileInfos.add(info);
+					}else{
+						byte filebytes[] = new byte[info.size];
+						reader.seek(info.offset);
+						reader.read(filebytes);
+						writer.write(filebytes);
+						
+						info.offset = lastOffset;
+						lastOffset = lastOffset+info.size;
+						newfileInfos.add(info);
+					}
 				}
 				
 			}
-			in.close();
-			out.close();
+			reader.close();
 			m_fileInfos = newfileInfos;
 			
 			 System.out.println("Write file table");
-			 
-			 
-			RandomAccessFile writerFileTable = new RandomAccessFile(f.getParent()+"\\DATA_BUFFER.DAT","rw");
-			
-			writerFileTable.seek(0);
-			writerFileTable.skipBytes(16);
+
+			writer.seek(0);
+			writer.skipBytes(16);
 			for(PSPv1FileInfo info: m_fileInfos){
-				writerFileTable.write(info.name.getBytes());
-				writerFileTable.skipBytes(44-info.name.length());
+				writer.write(info.name.getBytes());
+				writer.skipBytes(44-info.name.length());
 				
-				byte intbytes[] = new byte[4];
 				intbytes[0] = (byte) (info.size & 0xFF);
 				intbytes[1] = (byte) ((info.size >>> 8) & 0xFF);
 				intbytes[2] = (byte) ((info.size >>> 16) & 0xFF);
 				intbytes[3] = (byte) ((info.size >>> 24) & 0xFF);
 				
-				writerFileTable.write(intbytes);
+				writer.write(intbytes);
 			    
 				intbytes[0] = (byte) (info.offset & 0xFF);
 				intbytes[1] = (byte) ((info.offset >>> 8) & 0xFF);
 				intbytes[2] = (byte) ((info.offset >>> 16) & 0xFF);
 				intbytes[3] = (byte) ((info.offset >>> 24) & 0xFF);
 				
-				writerFileTable.write(intbytes);
+				writer.write(intbytes);
 			}
-			writerFileTable.close();
+			writer.close();
 			
 			//write filetable
 			//out.flush();
