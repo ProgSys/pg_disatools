@@ -64,6 +64,7 @@ install_manifest.txt
 /PG_Storage_build
 /PG_FileFormats_build
 /PG_Util_build
+/pg_pspfsExtractor/bin
 
 *~
 
