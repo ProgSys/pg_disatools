@@ -32,8 +32,13 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.nio.BufferUnderflowException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.tree.DefaultMutableTreeNode;
@@ -226,10 +231,11 @@ public class PSPv1Reader {
 		}
 		numberOfFiles += numberOfFilesToAdd;
 		
-		File f = new File(m_path);
+		File fold = new File(m_path);
+		File fnew = new File(fold.getParent()+"\\DATA_BUFFER.DAT");
 		
 		try {
-			RandomAccessFile writer = new RandomAccessFile(f.getParent()+"\\DATA_BUFFER.DAT","rw");
+			RandomAccessFile writer = new RandomAccessFile(fnew,"rw");
 			writer.writeBytes("PSPFS_V1");
 			
 			byte intbytes[] = new byte[4];
@@ -250,7 +256,7 @@ public class PSPv1Reader {
 			
 			
 			List<PSPv1FileInfo> newfileInfos = new ArrayList<PSPv1FileInfo>(numberOfFiles);
-			RandomAccessFile reader = new RandomAccessFile(m_path,"r");
+			RandomAccessFile reader = new RandomAccessFile(fold,"r");
 
 			int lastOffset = 16+numberOfFiles*52;
 			//reader.skip(16+m_fileInfos.size()*52);
@@ -353,17 +359,148 @@ public class PSPv1Reader {
 		}catch(IndexOutOfBoundsException e){
 			System.out.println (e.toString());
 			System.out.println("[ERROR] Something went wrong with the array size!");
+			fnew.delete();
 			return true;
 		}catch(IOException e){
 			System.out.println (e.toString());
 			System.out.println("[ERROR] Couldn't extract files! ");
+			fnew.delete();
 			return true;
 		}
 		
+		//replace old file
+		if(fnew.exists()){
+			fold.delete();
+			fnew.renameTo(fold);
+		}
 		
 		return false;
 	}
 	
+	
+	public boolean delete(TreePath[] tree){
+		if(tree.length <= 0 || m_fileInfos == null) return true;
+		
+		int startFileNumber = m_fileInfos.size();
+		for(TreePath node: tree){
+			System.out.println("Remove: "+node.getLastPathComponent().toString());
+			
+			//System.out.println("[INFO] Found no file to remove!");
+			Iterator<PSPv1FileInfo> i = m_fileInfos.iterator();
+			while (i.hasNext()) {
+				PSPv1FileInfo s = i.next();
+				if(s.name.equals(node.getLastPathComponent().toString()))
+					i.remove();
+			}
+			
+		}
+		if(startFileNumber == m_fileInfos.size()){
+			System.out.println("[INFO] Found no file to remove!");
+			return true;
+		}
+		
+		int filetablebytes = m_fileInfos.size()*52;
+		
+		File fold = new File(m_path);
+		File fnew = new File(fold.getParent()+"\\DATA_BUFFER.DAT");
+		
+		try{
+			RandomAccessFile writer = new RandomAccessFile(fnew,"rw");
+			
+			writer.writeBytes("PSPFS_V1");
+	
+			byte intbytes[] = new byte[4];
+			intbytes[0] = (byte) (m_fileInfos.size() & 0xFF);
+			intbytes[1] = (byte) ((m_fileInfos.size() >>> 8) & 0xFF);
+			intbytes[2] = (byte) ((m_fileInfos.size() >>> 16) & 0xFF);
+			intbytes[3] = (byte) ((m_fileInfos.size() >>> 24) & 0xFF);
+			writer.write(intbytes); // size
+			
+			writer.writeInt(0); // NULL
+			
+			//reserve space
+			byte b[] = new byte[52];
+			for(int i = 0; i < m_fileInfos.size(); i++){
+				writer.write(b);
+			}
+			
+			
+			List<PSPv1FileInfo> newfileInfos = new ArrayList<PSPv1FileInfo>(m_fileInfos.size());
+			RandomAccessFile reader = new RandomAccessFile(fold,"r");
+			
+			int lastOffset = 16+filetablebytes;
+			for(PSPv1FileInfo info: m_fileInfos){
+				if(info.name.equals("DUMMY.DAT")){
+					//write the dummy, it is at the wrong place though
+					byte filebytes[] = new byte[1396];
+					filebytes[876] = 'D';
+					filebytes[877] = 'U';
+					filebytes[878] = 'M';
+					filebytes[879] = 'M';
+					filebytes[880] = 'Y';
+					writer.write(filebytes);
+					
+					lastOffset = lastOffset+1396;
+					newfileInfos.add(info);
+				}else{
+					//just copy old file
+					byte filebytes[] = new byte[info.size];
+					reader.seek(info.offset);
+					reader.read(filebytes);
+					writer.write(filebytes);
+					
+					info.offset = lastOffset;
+					lastOffset = lastOffset+info.size;
+					newfileInfos.add(info);
+				}
+			}
+			reader.close();
+			
+			System.out.println("Write file table");
+
+			 //write file table
+			writer.seek(0);
+			writer.skipBytes(16);
+			for(PSPv1FileInfo info: m_fileInfos){
+				writer.write(info.name.getBytes());
+				writer.skipBytes(44-info.name.length());
+				
+				intbytes[0] = (byte) (info.size & 0xFF);
+				intbytes[1] = (byte) ((info.size >>> 8) & 0xFF);
+				intbytes[2] = (byte) ((info.size >>> 16) & 0xFF);
+				intbytes[3] = (byte) ((info.size >>> 24) & 0xFF);
+				
+				writer.write(intbytes);
+			    
+				intbytes[0] = (byte) (info.offset & 0xFF);
+				intbytes[1] = (byte) ((info.offset >>> 8) & 0xFF);
+				intbytes[2] = (byte) ((info.offset >>> 16) & 0xFF);
+				intbytes[3] = (byte) ((info.offset >>> 24) & 0xFF);
+				
+				writer.write(intbytes);
+			}
+			writer.close();
+		
+		}catch(IndexOutOfBoundsException e){
+			System.out.println (e.toString());
+			System.out.println("[ERROR] Something went wrong with the array size!");
+			fnew.delete();
+			return true;
+		}catch(IOException e){
+			System.out.println (e.toString());
+			System.out.println("[ERROR] Couldn't extract files! ");
+			fnew.delete();
+			return true;
+		}
+		
+		//replace old file
+		if(fnew.exists()){
+			fold.delete();
+			fnew.renameTo(fold);
+		}
+		
+		return false;
+	}
 	/**
 	 * Create tree.
 	 * @param top

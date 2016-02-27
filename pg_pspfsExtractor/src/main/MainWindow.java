@@ -92,6 +92,7 @@ public class MainWindow {
 	
 	JButton btnExtract;
 	JButton btnInsertFiles;
+	JButton btnDeleteSelected;
 	
 	/**
 	 * Launch the application.
@@ -165,12 +166,12 @@ public class MainWindow {
 		btnInsertFiles.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if (nis != null){
-					lbInfo.setText("Please Wait!");
 					//open Data file
 					 JFileChooser openFile = new JFileChooser();
 					 openFile.setMultiSelectionEnabled(true);
 					 openFile.showOpenDialog(null);
 					 File[] files = openFile.getSelectedFiles();
+					 lbInfo.setText("Please Wait!");
 					 
 					 if(files.length == 0){
 						 lbInfo.setText("No files selected!");
@@ -180,6 +181,7 @@ public class MainWindow {
 							 System.out.println("File to insert: "+ f.getPath());
 						 }
 						 nis.add(files);
+						 buildFileTree();
 						 lbInfo.setText(nis.getNumberOfFiles()+" files inside.");
 					 }
 		             
@@ -212,6 +214,7 @@ public class MainWindow {
 	            	 
 	            	 file_tree.setEnabled(false);
 	            	 btnInsertFiles.setEnabled(false);
+	            	 btnDeleteSelected.setEnabled(false);
 	            	 file_tree.setModel(new DefaultTreeModel(
 	            				new DefaultMutableTreeNode("Please open a DATA.DAT archive") {
 	            					{
@@ -242,8 +245,10 @@ public class MainWindow {
 				    
 				    if (nodes == null || nodes.length == 0){  //Nothing is selected.  
 				    	btnExtract.setEnabled(false);
+				    	btnDeleteSelected.setEnabled(false);
 				    }else{
 				    	btnExtract.setEnabled(true);
+				    	btnDeleteSelected.setEnabled(true);
 				    }
 			}
 		});
@@ -257,8 +262,21 @@ public class MainWindow {
 		file_tree.setEnabled(false);
 		scrollPane.setViewportView(file_tree);
 		
-		JButton btnDeleteSelected = new JButton("Delete selected");
+		btnDeleteSelected = new JButton("Delete selected");
 		btnDeleteSelected.setEnabled(false);
+		btnDeleteSelected.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				TreePath[] nodes = file_tree.getSelectionPaths();
+			    
+			    if (nis != null && nodes != null & nodes.length > 0){
+			    	lbInfo.setText("Please Wait!");
+			    	nis.delete(nodes);
+			    	buildFileTree();
+			    }
+			    lbInfo.setText(nis.getNumberOfFiles()+" files inside.");
+			}
+
+		});
 		btnDeleteSelected.setBounds(277, 371, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnDeleteSelected);
 		
