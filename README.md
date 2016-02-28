@@ -4,9 +4,9 @@
 
 Please make a backup of your files before using this tools!
 
-You can download the latest version (v0.1) of the tools here:
+You can download the latest version of the tools here:
 
-[https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.1.zip](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.1.zip)
+[Version v0.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.1.zip)
 
 ###Content
 #### PSPfsExtractor
@@ -14,8 +14,6 @@ You can download the latest version (v0.1) of the tools here:
 Java application for extracting and packing files from a Disgaea PC DATA.DAT archive.
 
 To run it you need to have Java installed: https://www.java.com/en/download/
-
-#### Preview
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview3.png)
 
