@@ -6,7 +6,7 @@ Please make a backup of your files before using this tools!
 
 You can download the latest version of the tools here:
 
-[Version v0.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.1.zip)
+* [Version v0.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.1.zip)
 
 ###Content
 #### PSPfsExtractor
