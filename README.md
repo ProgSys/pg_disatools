@@ -15,6 +15,10 @@ Java application for extracting and packing files from a Disgaea PC DATA.DAT arc
 
 To run it you need to have Java installed: https://www.java.com/en/download/
 
+#### Preview
+
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview3.png)
+
 #### TX2Converter.exe
 
 A command line tool which allows you to convert Disgaea PC *.TX2 and *.MPP textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).
