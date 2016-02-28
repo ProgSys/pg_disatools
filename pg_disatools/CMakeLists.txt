@@ -21,8 +21,8 @@ endif()
 message (STATUS "Modul path: ${CMAKE_MODULE_PATH}")
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    add_definitions(-std=gnu++0x) #-std=gnu++0x
-	#add_definitions(-std=gnu++11)
+    #add_definitions(-std=g++0x) #-std=gnu++0x
+	add_definitions(-std=gnu++11)
 	#add_definitions(-DGLEW_STATIC=TRUE) -std=gnu++0x
 else()
 	#add_definitions(-DPG_LOADERS_EXPORTS)

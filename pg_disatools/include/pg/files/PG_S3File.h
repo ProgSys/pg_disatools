@@ -42,13 +42,13 @@ enum outFormat: unsigned int{
 	PGM, TGA
 };
 
-	S3File(const std::string& filepath);
-	bool save(const std::string& outfilepath, outFormat out) const;
+	__declspec(dllexport) S3File(const std::string& filepath);
+	__declspec(dllexport) bool save(const std::string& outfilepath, outFormat out) const;
 
-	unsigned int getWidth() const;
-	unsigned int getHeight() const;
+	__declspec(dllexport) unsigned int getWidth() const;
+	__declspec(dllexport) unsigned int getHeight() const;
 
-	virtual ~S3File();
+	__declspec(dllexport) virtual ~S3File();
 private:
 	bool readVTF(std::vector<PG::UTIL::RGBA>& outRGBAData) const;
 	bool readTX2(std::vector<PG::UTIL::RGBA>& outRGBAData) const;
