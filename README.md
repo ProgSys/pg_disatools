@@ -24,6 +24,10 @@ Make a backup before using this tool!
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
 
+#### Known problems/TODOS:
+
+* The positioning of the DUMMY files inside the DATA.DAT is wrong.
+
 ## The MIT License (MIT)
 
 	Copyright (c) 2016 ProgSys
