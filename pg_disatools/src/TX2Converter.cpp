@@ -63,13 +63,13 @@ inline bool changeFileExtrention(std::string& str, PG::FILE::S3File::outFormat f
 }
 
 void printInfo(){
-	STROUT("\nAllows you to convert Disgaea PC *.TX2 and *.MPP textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).");
+	STROUT("\nAllows you to convert Disgaea PC *.TX2 textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).");
 	STROUT("Sadly the other way around is not supported yet.");
 	STROUT("Make a backup before using this tool!");
 	STROUT("Version: 0.0.00000000000000000000001 (early access pre alpha thingy dood) \n");
 
 	STROUT("Usage: ");
-	STROUT("  * '-in': Target path to the *.TX2 or *.MPP.");
+	STROUT("  * '-in': Target path to the *.TX2 file.");
 	STROUT("  * '-format (-f)':   (Optional) Output file format can be TGA or PGM. Default TGA.");
 
 	STROUT("  * '-folder (-dir)': (Optional) Target output folder.");

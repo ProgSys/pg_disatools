@@ -71,6 +71,10 @@ import javax.swing.event.TreeSelectionListener;
 import javax.swing.event.TreeSelectionEvent;
 import javax.swing.SwingConstants;
 
+import com.sun.jna.Memory;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.PointerByReference;
+
 public class MainWindow {
 
 	private PSPv1Reader nis;
@@ -93,6 +97,9 @@ public class MainWindow {
 	JButton btnExtract;
 	JButton btnInsertFiles;
 	JButton btnDeleteSelected;
+	
+	ImagePanel preview;
+	private JLabel lbdllError;
 	
 	/**
 	 * Launch the application.
@@ -203,7 +210,10 @@ public class MainWindow {
 			public void actionPerformed(ActionEvent arg0) {
 				//open Data file
 				 JFileChooser openFile = new JFileChooser();
-				 openFile.showOpenDialog(null);
+				 int success = openFile.showOpenDialog(null);
+				 if(success != JFileChooser.APPROVE_OPTION)
+					 return;
+				 
 	             String filepath = openFile.getSelectedFile().getPath();
 	             
 	             nis = new PSPv1Reader(filepath);
@@ -247,8 +257,28 @@ public class MainWindow {
 				    	btnExtract.setEnabled(false);
 				    	btnDeleteSelected.setEnabled(false);
 				    }else{
-				    	btnExtract.setEnabled(true);
-				    	btnDeleteSelected.setEnabled(true);
+				    	if(nis != null){
+				    		btnExtract.setEnabled(true);
+				    		btnDeleteSelected.setEnabled(true);
+				    	
+					    	String name = nodes[0].getLastPathComponent().toString();
+					    	String ext = name.substring(name.lastIndexOf('.'));
+					    	if(ext.equals(".TX2")){
+					    		PointerByReference p = new PointerByReference();
+					    		int size = nis.extractMemory(name, p);
+					    		if(size > 16){
+					    			preview.displayTX2Image(p.getValue(), size);
+					    		}else{
+					    			preview.clearImage();
+					    		}	
+					    	}else{
+					    		preview.clearImage();
+					    	}
+					    	
+			    			preview.validate();
+			    			preview.repaint();
+				    	}
+				    	
 				    }
 			}
 		});
@@ -280,10 +310,13 @@ public class MainWindow {
 		btnDeleteSelected.setBounds(277, 371, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnDeleteSelected);
 		
-		ImagePanel priview = new ImagePanel();
-		priview.setBackground(Color.GRAY);
-		priview.setBounds(277, 400, 150, 150);
-		frmDisgaeaPcFile.getContentPane().add(priview);
+		lbdllError = new JLabel("");
+		
+		preview = new ImagePanel(lbdllError);
+		preview.setBackground(Color.GRAY);
+		preview.setBounds(277, 400, 150, 150);
+		frmDisgaeaPcFile.getContentPane().add(preview);
+		preview.add(lbdllError);
 		
 		JPanel panel = new JPanel();
 		panel.setBounds(277, 87, 153, 169);

@@ -30,7 +30,7 @@
 #include <pg/files/PG_S3File.h>
 #include <pg/util/PG_BinaryFileTokenizer.h>
 #include <pg/util/PG_Colors.h>
-
+#include <pg/util/PG_ByteStream.h>
 
 #define OUTSTR(x) std::cout << x << std::endl
 
@@ -40,8 +40,25 @@
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
+	char* data = new char[10];
+	for(unsigned int i = 0; i < 10; i++){
+		data[i] = 10;
+	}
+	data[0] = 0;
+	data[1] = 1;
 
+	data[2] = 0;
+	data[3] = 0;
 
+	data[4] = 80;
+	data[5] = 1;
+
+	PG::UTIL::ByteStream stream(data, 10);
+	OUTSTR(stream.readInt());
+	OUTSTR(stream.readShort());
+
+	delete[] data;
+	/*
 	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.TX2";
 	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.tga";
 
@@ -62,8 +79,8 @@ int main(int argc, char* argv[]){
 	PG::FILE::S3File file(target);
 	file.save(out, PG::FILE::S3File::TGA);
 
+	*/
 	OUTSTR("Done");
-
 
 	return 0;
 }

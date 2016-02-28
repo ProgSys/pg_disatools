@@ -23,6 +23,7 @@
  */
 package pspfs_v1;
 
+import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,6 +44,10 @@ import java.util.List;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreePath;
+
+import com.sun.jna.Memory;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.PointerByReference;
 
 import pspfs_v1.PSPv1FileInfo;
 
@@ -82,7 +87,7 @@ public class PSPv1Reader {
 			
 			//magic number 8Byte
 			if(!readString(stream,8).equals("PSPFS_V1")){
-				System.out.println("[ERROR] Magic number does not equal 'PSPFS_V1'!");
+				System.err.println("[ERROR] Magic number does not equal 'PSPFS_V1'!");
 				return;
 			}
 
@@ -104,14 +109,14 @@ public class PSPv1Reader {
 			stream.close();
 			
 		} catch (BufferUnderflowException e) {
-			System.out.println (e.toString());
-			System.out.println("[ERROR] Could not open file: "+path);
+			System.err.println (e.toString());
+			System.err.println("[ERROR] Could not open file: "+path);
 		}catch(UnsupportedEncodingException e){
-			System.out.println (e.toString());
-			System.out.println("[ERROR] Couldn't convert filename into UTF-8!");
+			System.err.println (e.toString());
+			System.err.println("[ERROR] Couldn't convert filename into UTF-8!");
 		}catch(IOException e){
-			System.out.println (e.toString());
-			System.out.println("[ERROR] Couldn't raed file table!");
+			System.err.println (e.toString());
+			System.err.println("[ERROR] Couldn't raed file table!");
 		}
 	}
 	
@@ -132,7 +137,7 @@ public class PSPv1Reader {
 		
 		//Find file
 		if(name.length() == 0){
-			System.out.println("[WARNING] Filename is empty, so I can't find the file!");
+			System.err.println("[WARNING] Filename is empty, so I can't find the file!");
 			return false;
 		}
 		
@@ -199,17 +204,51 @@ public class PSPv1Reader {
 			out.close();
 			
 		}catch(IndexOutOfBoundsException e){
-			System.out.println (e.toString());
-			System.out.println("[ERROR] Something went wrong with the array size!");
+			System.err.println (e.toString());
+			System.err.println("[ERROR] Something went wrong with the array size!");
 			return true;
 		}catch(IOException e){
-			System.out.println (e.toString());
-			System.out.println("[ERROR] Could not save file: "+fullPath);
+			System.err.println (e.toString());
+			System.err.println("[ERROR] Could not save file: "+fullPath);
 			return true;
 		}
 		
 		return false;
 	}
+	
+	
+	public int extractMemory(String name,PointerByReference memout){
+		for(PSPv1FileInfo info: m_fileInfos){
+			if(info.name.equals(name)){
+				File file = new File(m_path);
+				try {
+					Pointer p = new Memory(info.size);
+					memout.setValue(p);
+					DataInputStream stream = new DataInputStream(new FileInputStream(file));
+					stream.skip(info.offset);
+					
+					byte b[] = new byte[info.size];
+					stream.read(b);
+					stream.close();
+					memout.getValue().write(0, b, 0, info.size);
+							
+				}catch(IndexOutOfBoundsException e){
+					System.err.println (e.toString());
+					System.err.println("[ERROR] Something went wrong with the array size!");
+					return 0;
+				}catch(IOException e){
+					System.err.println (e.toString());
+					return 0;
+				}
+				
+				
+				return info.size;
+			}
+		}
+		
+		return 0;
+	}
+	
 	
 	public boolean add(File[] filesarray){
 		if(filesarray.length <= 0 || m_fileInfos == null) return true;

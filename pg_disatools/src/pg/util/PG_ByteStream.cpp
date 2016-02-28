@@ -27,6 +27,18 @@ char ByteStream::readUnsignedChar(){
 	return c;
 }
 
+short ByteStream::readShort(){
+	short s;
+	read( (char*)&s, sizeof(short));
+	return s;
+}
+
+unsigned short ByteStream::readUnsignedShort(){
+	unsigned short s;
+	read( (char*)&s, sizeof(unsigned short));
+	return s;
+}
+
 int ByteStream::readInt(){
 	int i;
 	read( (char*)&i, sizeof(int));
@@ -42,6 +54,10 @@ unsigned int ByteStream::readUnsignedInt(){
 void ByteStream::read(char* data, unsigned int length){
 	memcpy((void*) data, (void*) &m_bytes[m_pos], length);
 	m_pos += length;
+}
+
+void ByteStream::skip(unsigned int skip){
+	m_pos+=skip;
 }
 
 void ByteStream::seek(unsigned int position){

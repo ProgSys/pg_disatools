@@ -6,6 +6,7 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.ptr.PointerByReference;
 
 public class DLLBridge {
 
@@ -20,22 +21,40 @@ public class DLLBridge {
 	
 	public static float multiply(float a, float b) {
 		FloatByReference r = new FloatByReference (0);
- 
+		
+
 		int rc = DllInterface.INSTANCE.multiply (a, b, r);
  
 		return r.getValue ();
 	}
 	
-	
-	public static void uncompressTX2Image(Pointer bytes, int size, int witdthOUT, int heightOut, Pointer rgbaOut) {
+	/**
+	 * Uses the dll to uncompress a .tx2 image.
+	 * @param bytes
+	 * @param size
+	 * @param sizeOut
+	 * @param rgbaOut
+	 * @return true, if dll not found.
+	 */
+	public static boolean uncompressTX2Image(Pointer bytes, int size, Size sizeOut, PointerByReference rgbaOut) {
 		IntByReference width = new IntByReference (0);
 		IntByReference height = new IntByReference (0);
 		
-		rgbaOut = DllInterface.INSTANCE.uncompressTX2Image (bytes, 10,width,height );
-		witdthOUT = width.getValue();
-		heightOut = height.getValue();
+		try{
+			rgbaOut.setValue(DllInterface.INSTANCE.uncompressTX2Image (bytes, 10,width,height ));
+		}catch(UnsatisfiedLinkError e){
+			System.err.println("[ERROR] Couldn't load DLL! "+e.toString());
+			return true;
+		}catch(NoClassDefFoundError e){
+			System.err.println("[ERROR] Couldn't load DLL! "+e.toString());
+			return true;
+		}
 		
-		System.out.println("width: "+width.getValue()+" height: "+height.getValue());
+		sizeOut.x = width.getValue();
+		sizeOut.y = height.getValue();
+		
+		System.out.println("width: "+sizeOut.x+" height: "+sizeOut.y);
+		return false;
 	}
 	
 	
