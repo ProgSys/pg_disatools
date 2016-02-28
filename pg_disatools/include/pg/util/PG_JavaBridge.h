@@ -17,7 +17,7 @@ extern "C" {
 
 void __declspec(dllexport) simpleCall();
 int __declspec(dllexport) multiply (float a, float b, float & result);
-char* __declspec(dllexport) uncompressTX2Image (const char* bytes, int lengh, int& width, int& height);
+char* __declspec(dllexport) uncompressTX2Image (const char* bytes, int length, int& width, int& height);
 
 
 }

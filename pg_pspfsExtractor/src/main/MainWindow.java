@@ -280,7 +280,7 @@ public class MainWindow {
 		btnDeleteSelected.setBounds(277, 371, 150, 23);
 		frmDisgaeaPcFile.getContentPane().add(btnDeleteSelected);
 		
-		Panel priview = new Panel();
+		ImagePanel priview = new ImagePanel();
 		priview.setBackground(Color.GRAY);
 		priview.setBounds(277, 400, 150, 150);
 		frmDisgaeaPcFile.getContentPane().add(priview);

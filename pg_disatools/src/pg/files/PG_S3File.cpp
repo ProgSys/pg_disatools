@@ -163,8 +163,13 @@ bool S3File::readVTF(std::vector<RGBA>& outRGBAData) const{
 bool S3File::readTX2(std::vector<RGBA>& outRGBAData) const{
 	PG::UTIL::BinaryFileTokenizer reader(m_filename);
 
-	if( m_width != reader.getUnsignedShort() || m_height != reader.getUnsignedShort()){
-		PG_ERROR_STREAM("The image has different size then expected!");
+	if( m_width != reader.getUnsignedShort()){
+		PG_ERROR_STREAM("The image width has different size then expected!");
+		return false;
+	}
+
+	if(m_height != reader.getUnsignedShort()){
+		PG_ERROR_STREAM("The image height has different size then expected!");
 		return false;
 	}
 
