@@ -31,11 +31,12 @@
 #include <pg/files/PG_TX2.h>
 #include <pg/files/PG_VTF.h>
 #include <pg/files/PG_ImageFiles.h>
+#include <pg/util/PG_BinaryFileWriter.h>
 
 namespace PG {
 namespace FILE {
 
-bool convertDSATexture(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, outFileFormat formatOut){
+bool convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, outFileFormat formatOut){
 	std::string extension = fileIn.getFileExtension();
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
@@ -99,8 +100,35 @@ bool convertDSATexture(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileO
 }
 
 
-bool convertDSATexture(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut){
-	return convertDSATexture(PG::UTIL::File(fileIn),PG::UTIL::File(fileOut),formatOut);
+bool convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut){
+	return convertTX2ToImage(PG::UTIL::File(fileIn),PG::UTIL::File(fileOut),formatOut);
+}
+
+bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut){
+	std::vector<char> bytes;
+	PG::UTIL::RGBAImage image;
+	PG::UTIL::File file(fileIn);
+	std::string extension = file.getFileExtension();
+	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+
+
+	if(extension == "tga"){
+		loadTGA(fileIn, image);
+	}else{
+		PG_INFO_STREAM("File format "<<extension<<" not supported.");
+		return true;
+	}
+
+	if(compressTX2(image, DXT1, bytes)){
+		PG_INFO_STREAM("Couldn't compress image to DXT1.");
+		return true;
+	}
+
+	PG::UTIL::BinaryFileWriter writer(fileOut);
+	writer.write((char*)&bytes[0], bytes.size());
+
+	return false;
 }
 
 } /* namespace FILE */

@@ -177,5 +177,44 @@ bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAIma
 	return s;
 }
 
+
+
+
+
+
+bool compressTX2(PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut){
+
+	if(compressionTypeIn == DXT1){
+		const unsigned short width =  imageIn.getWidth();
+		const unsigned short height =  imageIn.getHeight();
+		const unsigned int number_of_blocks_width = (width/4);
+		const unsigned int number_of_blocks_height = (height/4);
+		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+
+		bytesOut.resize(16+number_of_blocks_4x4*8);
+
+		memcpy(&bytesOut[0], &width, 2);
+		memcpy(&bytesOut[2], &height, 2);
+
+		bytesOut[6] = 0x08;
+		bytesOut[7] = 0x08;
+		const unsigned int size = width*height;
+		memcpy(&bytesOut[12], &size, 4);
+		std::vector<DXT1block> blocks;
+
+		if(PG::FILE::compressS3(imageIn,blocks)){
+			PG_ERROR_STREAM("Couldn't compress image.");
+			return true;
+		}
+		memcpy(&bytesOut[16], &blocks[0], number_of_blocks_4x4*8);
+
+	}else{
+		PG_ERROR_STREAM("Compression type not supported, please choose another one.");
+		return true;
+	}
+
+	return false;
+}
+
 } /* namespace FILE */
 } /* namespace PG */

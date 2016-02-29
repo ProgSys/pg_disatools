@@ -24,6 +24,7 @@
 #include <pg/files/PG_ImageFiles.h>
 #include <sstream>
 #include <pg/util/PG_BinaryFileWriter.h>
+#include <pg/util/PG_ByteInFileStream.h>
 
 namespace PG {
 namespace FILE {
@@ -53,6 +54,42 @@ void saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 	writer.writeLongLong(0);
 	writer.writeLongLong(0);
 	writer.writeString("TRUEVISION-XFILE.");
+}
+
+/*!
+ * @brief Will load a simple TGA8888 image.
+ */
+void loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
+	PG::UTIL::ByteInFileStream reader(filepath);
+
+	if(reader.readUnsignedInt() != 131072){
+		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
+		return;
+	}
+	reader.readUnsignedInt();
+	reader.readUnsignedInt();
+	const unsigned int width = reader.readUnsignedShort();
+	const unsigned int height = reader.readUnsignedShort();
+
+	if(reader.readUnsignedShort() != 2080){
+		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
+		return;
+	}
+
+	imageOut.resize(width, height);
+
+	for(unsigned int y = 0; y < height; ++y ){
+		for(unsigned int x = 0; x < width; ++x ){
+			const unsigned int index = ((height-y-1)*width+x); //y-flip
+			PG::UTIL::rgba& pix = imageOut[index];
+
+			pix.b = reader.readUnsignedChar();
+			pix.g = reader.readUnsignedChar();
+			pix.r = reader.readUnsignedChar();
+			pix.a = reader.readUnsignedChar();
+		}
+	}
+
 }
 
 void savePGM(const std::string& filepath, const PG::UTIL::RGBAImage& image){

@@ -37,6 +37,11 @@ namespace FILE {
  */
 void saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image);
 
+/*!
+ * @brief Will load a simple TGA8888 image.
+ */
+void loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
+
 
 /*!
  * @brief Will create a very simple PGM P6 (RGB888 no alpha) image.

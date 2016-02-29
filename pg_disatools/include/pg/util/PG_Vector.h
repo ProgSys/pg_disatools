@@ -175,6 +175,11 @@ struct tVector4{
 
 	bool operator==(const tVector4<T>& tvec) const;
 
+	T const& max() const;
+	T const& maxRGB() const;
+
+	T const& min() const;
+	T const& minRGB() const;
 
 	void dump(std::ostream& o) const;
 
@@ -274,7 +279,7 @@ void tVector2<T>::operator=(const tVector4<T>& tvec){
 
 template<typename T>
 void tVector2<T>::dump(std::ostream& o) const{
-	//o<<"("<<x<<", "<<y<<")";
+	o<<"("<<x<<", "<<y<<")";
 }
 
 
@@ -370,7 +375,7 @@ void tVector3<T>::operator=(const tVector4<T>& tvec){
 
 template<typename T>
 void tVector3<T>::dump(std::ostream& o) const{
-	//o<<"("<<x<<", "<<y<<", "<<z<<")";
+	o<<"("<<x<<", "<<y<<", "<<z<<")";
 }
 
 
@@ -469,9 +474,93 @@ void tVector4<T>::operator=(const tVector4<T>& tvec){
 }
 
 template<typename T>
-void tVector4<T>::dump(std::ostream& o) const{
-	//o<<"("<<x<<", "<<y<<", "<<z<<", "<<w<<")";
+T const& tVector4<T>::max() const{
+	if(x > y){
+		if(x > z){
+			if(x > a){
+				return x;
+			}else
+				return a;
+		}else{
+			if(z > a){
+				return z;
+			}else
+				return a;
+		}
+	}else{
+		if(y > z){
+			if(y > a){
+				return y;
+			}else
+				return a;
+		}else{
+			if(z > a){
+				return z;
+			}else
+				return a;
+		}
+	}
 }
+
+template<typename T>
+T const& tVector4<T>::maxRGB() const{
+	if(x > y){
+		if(x > z){
+			return x;
+		}else
+			return z;
+	}else{
+		if(y > z){
+			return y;
+		}else
+			return z;
+	}
+}
+
+template<typename T>
+T const& tVector4<T>::min() const{
+	if(x < y){
+		if(x < z){
+			if(x < a){
+				return x;
+			}else
+				return a;
+		}else{
+			if(z < a){
+				return z;
+			}else
+				return a;
+		}
+	}else{
+		if(y < z){
+			if(y < a){
+				return y;
+			}else
+				return a;
+		}else{
+			if(z < a){
+				return z;
+			}else
+				return a;
+		}
+	}
+}
+
+template<typename T>
+T const& tVector4<T>::minRGB() const{
+	if(x < y){
+		if(x < z){
+			return x;
+		}else
+			return z;
+	}else{
+		if(y < z){
+			return y;
+		}else
+			return z;
+	}
+}
+
 
 typedef tVector2<unsigned char> uv;
 typedef tVector3<unsigned char> rgb;

@@ -107,7 +107,7 @@ public:
 
 
 	void getWindow(const PG::UTIL::uvec2& start, const PG::UTIL::uvec2& size, Image<T>& windowOut) const{
-		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+size.x) >= m_width) || ((start.y+size.y)>= m_height));
+		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+size.x) > m_width) || ((start.y+size.y)> m_height));
 
 		windowOut.resize(size);
 		for(unsigned int y = 0; y < size.y; ++y)
@@ -116,7 +116,7 @@ public:
 	}
 
 	void getWindow(const PG::UTIL::uvec2& start, const PG::UTIL::uvec2& size, std::vector<T>& windowOut) const{
-		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+size.x) >= m_width) || ((start.y+size.y)>= m_height));
+		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+size.x) > m_width) || ((start.y+size.y)> m_height));
 
 		windowOut.resize(size.x*size.y);
 		for(unsigned int y = 0; y < size.y; ++y)
@@ -125,7 +125,7 @@ public:
 	}
 
 	void setWindow(const PG::UTIL::uvec2& start, const Image<T>& windowIn){
-		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+windowIn.getWidth()) >= m_width) || ((start.y+windowIn.getHeight())>= m_height));
+		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+windowIn.getWidth()) > m_width) || ((start.y+windowIn.getHeight())> m_height));
 
 		for(unsigned int y = 0; y < windowIn.getHeight(); ++y)
 			memcpy(&get(start+uvec2(0,y)), &windowIn.getRow(y) , windowIn.getWidth()*sizeof(T) );
@@ -133,7 +133,7 @@ public:
 
 	void setWindow(const PG::UTIL::uvec2& start, const PG::UTIL::uvec2& size, const std::vector<T>& windowIn){
 		assert_Test("Window has wrong size!", windowIn.size() < (size.x*size.y));
-		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+size.x) >= m_width) || ((start.y+size.y)>= m_height));
+		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+size.x) > m_width) || ((start.y+size.y)> m_height));
 
 		for(unsigned int y = 0; y < size.y; ++y)
 			memcpy(&get(start+uvec2(0,y)), &windowIn[y*size.x] , size.x*sizeof(T) );

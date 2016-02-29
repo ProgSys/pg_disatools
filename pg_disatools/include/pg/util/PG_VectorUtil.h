@@ -24,6 +24,7 @@
 #ifndef INCLUDE_PG_UTIL_PG_VECTORUTIL_H_
 #define INCLUDE_PG_UTIL_PG_VECTORUTIL_H_
 
+#include <cmath>
 #include <pg/util/PG_Vector.h>
 
 namespace PG {
@@ -48,29 +49,74 @@ tVector4<T> interpolate(const tVector4<T>& A,const tVector4<T>& B, float v){
 }
 
 template<typename T>
+float length(const tVector2<T>& A){
+	return  std::sqrt(std::pow(A.x, 2.0)+std::pow(A.y, 2.0));
+}
+
+template<typename T>
+float length(const tVector3<T>& A){
+	return  std::sqrt(std::pow(A.x, 2.0)+std::pow(A.y, 2.0)+std::pow(A.z, 2.0));
+}
+
+template<typename T>
+float length(const tVector4<T>& A){
+	return  std::sqrt(std::pow(A.x, 2.0)+std::pow(A.y, 2.0)+std::pow(A.z, 2.0)+std::pow(A.a, 2.0));
+}
+
+template<typename T>
+float distance(const tVector2<T>& A,const tVector2<T>& B){
+	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0));
+}
+
+template<typename T>
+float distance(const tVector3<T>& A,const tVector3<T>& B){
+	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0)+std::pow(A.z-B.z, 2.0));
+}
+
+template<typename T>
+float distance(const tVector4<T>& A,const tVector4<T>& B){
+	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0)+std::pow(A.z-B.z, 2.0)+std::pow(A.a-B.a, 2.0));
+}
+
+template<typename T>
 T interpolate(T a, T b, float v){
 	return a*(1-v)+b*v;
 }
 
-inline void scaleRGB565(tVector3<char>& vec){
+
+
+template<typename T>
+T grayscale(const tVector3<T>& A){
+	return  A.r*0.2126+A.g*0.7152+A.b*0.0722;
+}
+
+template<typename T>
+float grayscale(const tVector4<T>& A){
+	return  A.r*0.2126+A.g*0.7152+A.b*0.0722;
+}
+
+
+
+
+inline void scaleRGB565to888(tVector3<char>& vec){
 	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
 	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
 	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );
 }
 
-inline void scaleRGB565(tVector4<char>& vec){
+inline void scaleRGB565to888(tVector4<char>& vec){
 	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
 	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
 	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );
 }
 
-inline void scaleRGB565(tVector3<unsigned char>& vec){
+inline void scaleRGB565to888(tVector3<unsigned char>& vec){
 	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
 	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
 	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );
 }
 
-inline void scaleRGB565(tVector4<unsigned char>& vec){
+inline void scaleRGB565to888(tVector4<unsigned char>& vec){
 	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
 	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
 	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );

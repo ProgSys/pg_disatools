@@ -40,9 +40,11 @@ enum outFileFormat: unsigned int{
 	PGM, TGA
 };
 
-bool PG_UTIL_API convertDSATexture(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, outFileFormat formatOut);
+bool PG_UTIL_API convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, outFileFormat formatOut);
 
-bool PG_UTIL_API convertDSATexture(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut);
+bool PG_UTIL_API convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut);
+
+bool PG_UTIL_API convertImageToTX2(const std::string& fileIn, const std::string& fileOut);
 
 } /* namespace FILE */
 } /* namespace PG */

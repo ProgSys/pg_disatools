@@ -77,6 +77,10 @@ bool PG_UTIL_API decompressTX2(const std::vector<char>& bytesIn, PG::UTIL::RGBAI
  */
 bool PG_UTIL_API decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAImage& imageOut );
 
+
+
+bool PG_UTIL_API compressTX2(PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
+
 } /* namespace FILE */
 } /* namespace PG */
 

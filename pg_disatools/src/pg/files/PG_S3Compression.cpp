@@ -43,7 +43,7 @@ inline int getColor(unsigned char a, unsigned char b, rgba& outRGBA){
 	outRGBA.r = (b >> 3) & 0x1F;
 	outRGBA.g = ((b << 3) & 0x38) + ((a >> 5) & 0x07);
 	outRGBA.b = (a) & 0x1F;
-	scaleRGB565(outRGBA);
+	scaleRGB565to888(outRGBA);
 	return (b << 8) + a;
 }
 
@@ -72,6 +72,31 @@ void DXT1block::decompress(std::vector<PG::UTIL::rgba>& outRGBAData) const{
 
 
 }
+
+
+unsigned int DXT1block::setColorA(const rgba& color888A){
+    // RGB565=(((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3));
+	char g = color888A.g & 0xFC;
+	color[0] = ((color888A.b & 0xF8) >> 3) | (g << 3);
+	color[1] = (color888A.r & 0xF8) | (g >> 5);
+	return (color[1] << 8) + color[0];
+}
+unsigned int DXT1block::setColorB(const rgba& color888B){
+    // RGB565=(((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3));
+	char g = color888B.g & 0xFC;
+	color[2] = ((color888B.b & 0xF8) >> 3) | (g << 3);
+	color[3] = (color888B.r & 0xF8) | (g >> 5);
+	return (color[3] << 8) + color[2];
+}
+
+void DXT1block::setColorLookUpValue(unsigned char index, unsigned char value){
+	const unsigned char i = index/4.0f ;
+	const unsigned char move = (index-i*4);
+
+	color[i+ 4] = color[i+ 4] | ((value & 0x03) << move*2);
+	//PG_INFO_STREAM("Setting value "<<(int)(value & 0x03)<<" to index "<<(int)index<< " at color "<< (i+ 4)<<" offset "<< (move*2)<< " fin: "<<(int)color[i+ 4]);
+}
+
 
 void DXT5block::decompress(std::vector<PG::UTIL::rgba>& outRGBAData) const{
 	Array<rgba,4> c; // the 4 interpolated colors
@@ -131,23 +156,19 @@ void DXT5block::decompress(std::vector<PG::UTIL::rgba>& outRGBAData) const{
 
 		if(t1 == t2){ //is the value between two chars?
 			const unsigned int u = (alpha[t1]>>start_bit_rel) & 0x07;
-			std::cout << u <<" ";
 			outRGBAData[i].a = a[u];
 		}else{
 			if(start_bit_rel == 6){
 				const unsigned int u = (alpha[t1]>>6) | ( (alpha[t2]<<2) & 0x04);
-				std::cout << "!"<< u <<" ";
 				outRGBAData[i].a = a[u];
 			}else{
 				const unsigned int u = (alpha[t1]>>7) | (alpha[t2]<<1 & 0x06);
-				std::cout <<"?"<< u <<" ";
 				outRGBAData[i].a = a[u];
 			}
 
 		}
 		start_bit+=3;
 	}
-	std::cout << std::endl;
 }
 
 } /* namespace FILE */

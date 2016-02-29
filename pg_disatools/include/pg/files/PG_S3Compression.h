@@ -30,11 +30,14 @@
 #include <type_traits>
 
 #include <pg/util/PG_Vector.h>
+#include <pg/util/PG_VectorUtil.h>
 #include <pg/util/PG_Array.h>
 #include <pg/util/PG_Image.h>
 
 namespace PG {
 namespace FILE {
+
+using namespace UTIL;
 
 struct S3Base{};
 
@@ -44,6 +47,10 @@ struct DXT1block: public S3Base{
 	 * @brief Returns a block of 4x4 RGBA pixels.
 	 */
 	void decompress(std::vector<PG::UTIL::rgba>& outRGBAData) const;
+
+	unsigned int setColorA(const rgba& color888A);
+	unsigned int setColorB(const rgba& color888B);
+	void setColorLookUpValue(unsigned char index, unsigned char value);
 };
 
 struct DXT5block: public S3Base{
@@ -97,49 +104,160 @@ template<class blockType>
 static bool decompressS3(unsigned int width, unsigned int height, const std::vector<blockType>& inData, std::vector<PG::UTIL::rgba>& outRGBAData){
 	outRGBAData.resize(width*height);
 	return uncompressS3(width, height, inData, (char*) &outRGBAData[0].r);
-	/*
-	static_assert(std::is_base_of<PG::FILE::S3Base, blockType>::value, "blockType must inherit from S3Base");
-
-	if(width == 0 || height == 0){
-		PG_ERROR_STREAM("Image width or height is zero!");
-		return true;
-	}
-
-	const unsigned int block_width = width/4.0;
-	const unsigned int block_height = height/4.0;
-
-	if(inData.size() < block_width*block_height){
-		PG_ERROR_STREAM("Not enough blocks given! Expected "<<block_width*block_height<<" given "<<inData.size()<<" .");
-		return true;
-	}
-
-	outRGBAData.resize(width*height);
-	for(unsigned int y = 0; y < block_height; ++y)
-		for(unsigned int x = 0; x < block_width; ++x){
-			const unsigned int current_block = y*block_width+x;
-			assert_Test("current_block is out if bound!", current_block > block_width*block_height);
-			const unsigned int current_start_index = y*block_width*4*4+x*4;
-			assert_Test("current_start_index is out if bound!", current_start_index > width*height);
-			std::vector<PG::UTIL::rgba> RGBAData;
-			const blockType& block = inData[current_block];
-			block.uncompress(RGBAData);
-
-			for(unsigned int by = 0; by < 4; ++by)
-			{
-				const unsigned int current_index = current_start_index+by*width;
-				memcpy(&outRGBAData[current_index].r, &RGBAData[by*4].r, 16);
-			}
-
-		}
-
-	return false;
-	*/
 }
 
 template<class blockType>
 static bool decompressS3(unsigned int width, unsigned int height, const std::vector<blockType>& inData, PG::UTIL::RGBAImage& outRGBAData){
 	outRGBAData.resize(width, height);
 	return decompressS3(width, height, inData, (char*)&outRGBAData[0].r);
+}
+
+//template<class blockType>
+static bool compressS3(const PG::UTIL::RGBAImage& imageIn, std::vector<DXT1block>& blocksOut){
+	PG_INFO_STREAM(imageIn.getWidth() << " "<<imageIn.getHeight());
+
+
+	if( imageIn.size() == 0 ||  imageIn.getWidth() % 4 != 0 || imageIn.getHeight() % 4 != 0){
+		PG_ERROR_STREAM("Image dimensions need to mod 4!");
+		return true;
+	}
+
+	const unsigned int block_width = imageIn.getWidth()/4.0;
+	const unsigned int block_height = imageIn.getHeight()/4.0;
+	//read this http://stackoverflow.com/questions/470690/how-to-automatically-generate-n-distinct-colors
+	blocksOut.resize(block_width*block_height);
+	//extract 4x4 blocks and compress them
+	for(unsigned int y = 0; y < block_height; ++y)
+			for(unsigned int x = 0; x < block_width; ++x){
+				PG::UTIL::RGBAImage window;
+				//PG_INFO_STREAM("window start: "<<uvec2(x*4,y*4)<<" size: "<<uvec2(4,4));
+				imageIn.getWindow(uvec2(x*4,y*4), uvec2(4,4),window);
+
+				//find the max and min color
+				Array<rgba,4> points; // min max interpolateA interpolateB or alpha
+				points[0] = rgba(255,255,255,255);
+				points[1] = rgba(0,0,0,0);
+				bool isalpha = false;
+
+				for(const rgba& pixel: window){
+					unsigned char light = grayscale(pixel);
+					//min test
+					if(points[0].a > light){
+						points[0] = pixel;
+						points[0].a = light;
+					}
+					//test max
+					if(points[1].a < light){
+						points[1] = pixel;
+						points[1].a = light;
+					}
+					//test alpha
+					if(pixel.a < 128)
+						isalpha = true;
+				}
+
+				//PG_INFO_STREAM("Found: "<<points[0] << points[1]);
+
+				DXT1block& block = blocksOut[y*block_width+x];
+				const unsigned int a = block.setColorA(points[0]);
+				const unsigned int b = block.setColorB(points[1]);
+				//set correct order
+				/*
+				if(isalpha){
+					if(a > b){
+						rgba b = points[0];
+						points[0] = points[1];
+						points[1] = b;
+
+						block.setColorA(points[0]);
+						block.setColorB(points[1]);
+					}
+				}else{*/
+					if(a < b){
+						rgba b = points[0];
+						points[0] = points[1];
+						points[1] = b;
+
+						block.setColorA(points[0]);
+						block.setColorB(points[1]);
+					}
+				//}
+
+
+				//PG_INFO_STREAM("rgba1: "<<points[0]<< " rgba2: "<<points[1]);
+
+
+				//build look up table
+				std::vector<char> lookup;
+				lookup.reserve(16);
+
+				/*
+				if(isalpha){
+					//PG_INFO_STREAM("ALPHA");
+					points[2] = interpolate(points[0],points[1], 0.5 );
+					points[3] = rgba(0,0,0,0);
+					//PG_INFO_STREAM("rgba3: "<<points[2]<< " rgba4: "<<points[3]);
+
+					DXT1block& block = blocksOut[y*block_width+x];
+					block.setColorA(points[0]);
+					block.setColorB(points[1]);
+
+					for(unsigned char i = 0; i < 16; ++i){
+						const rgba& pixel = window[i];
+						if(pixel.a < 128){
+							block.setColorLookUpValue(i,3);
+							continue;
+						}
+
+						struct s{
+							float pixelDistance = 900; //big number
+							char index = 0;
+						} nearest;
+
+						for(unsigned char i = 0; i < 3; i++){
+							float dista = PG::UTIL::distance(pixel,points[i]);
+							if(nearest.pixelDistance >  dista){
+								nearest.pixelDistance = dista;
+								nearest.index = i;
+							}
+						}
+						block.setColorLookUpValue(i,nearest.index);
+					}
+
+				}else{
+				*/
+
+					//get the other colors
+					points[2] = interpolate(points[0],points[1], 1.0/3.0 );
+					points[3] = interpolate(points[0],points[1], 2.0/3.0 );
+
+					//PG_INFO_STREAM(points[0] << points[1]<<points[2] << points[3]);
+
+					for(unsigned char i = 0; i < 16; ++i){
+						const rgba& pixel = window[i];
+						struct s{
+							float pixelDistance = 900; //big number
+							char index = 0;
+						} nearest;
+
+						for(unsigned char i = 0; i < 4; i++){
+							float dista = PG::UTIL::distance(pixel,points[i]);
+							//PG_INFO_STREAM(nearest.pixelDistance << " dista: "<<dista<<" i: "<<(int)nearest.index)
+							if(nearest.pixelDistance >  dista){
+								nearest.pixelDistance = dista;
+								nearest.index = i;
+								if(dista == 0) break;
+							}
+						}
+						block.setColorLookUpValue(i,nearest.index);
+					}
+
+				//}
+
+
+			}
+
+	return false;
 }
 
 } /* namespace FILE */
