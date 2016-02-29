@@ -131,20 +131,23 @@ void DXT5block::decompress(std::vector<PG::UTIL::rgba>& outRGBAData) const{
 
 		if(t1 == t2){ //is the value between two chars?
 			const unsigned int u = (alpha[t1]>>start_bit_rel) & 0x07;
+			std::cout << u <<" ";
 			outRGBAData[i].a = a[u];
 		}else{
 			if(start_bit_rel == 6){
-				const unsigned int u = (alpha[t1]>>6) | ( (alpha[t2]<<2) & 0x01);
+				const unsigned int u = (alpha[t1]>>6) | ( (alpha[t2]<<2) & 0x04);
+				std::cout << "!"<< u <<" ";
 				outRGBAData[i].a = a[u];
 			}else{
 				const unsigned int u = (alpha[t1]>>7) | (alpha[t2]<<1 & 0x06);
+				std::cout <<"?"<< u <<" ";
 				outRGBAData[i].a = a[u];
 			}
 
 		}
 		start_bit+=3;
 	}
-
+	std::cout << std::endl;
 }
 
 } /* namespace FILE */

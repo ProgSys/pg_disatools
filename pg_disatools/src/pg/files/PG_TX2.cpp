@@ -101,6 +101,7 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 		std::vector<PG::FILE::DXT5block> blocks(number_of_blocks_4x4);
 		instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT5block));
 
+
 		PG::FILE::decompressS3(widthOut,heightOut, blocks, imageOut);
 
 	}else if(compressiontype == tx2Type::BGRA){

@@ -42,25 +42,47 @@ bool decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut )
 	instream->skip(13);
 	unsigned int width = instream->readShort();
 	unsigned int height = instream->readShort();
+	//DXT1 768 //DXT5 8960
+	unsigned short type = instream->readShort();
 
 	if(width == 0 || width > 15000 || height == 0 || height > 15000)
 		return true;
 
-	instream->skip(60);
+	instream->skip(58);
 
 	if(width >= 32 || height >= 32)
 		instream->skip(4 * 4 *8 );
 
+	if(type == 768){
+		//DXT1
+		const unsigned int number_of_blocks_width = (width/4);
+		const unsigned int number_of_blocks_height =(height/4);
+		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
 
-	const unsigned int number_of_blocks_width = (width/4);
-	const unsigned int number_of_blocks_height =(height/4);
-	const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+		std::vector<DXT1block> blocks(number_of_blocks_4x4);
+		instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(DXT1block) );
+		instream->close();
 
-	std::vector<DXT1block> blocks(number_of_blocks_4x4);
-	instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(DXT1block) );
-	instream->close();
+		PG::FILE::decompressS3(width,height, blocks, imageOut);
 
-	PG::FILE::decompressS3(width,height, blocks, imageOut);
+	}else if(type ==  8960){
+		//DXT5
+		const unsigned int number_of_blocks_width = (width/4);
+		const unsigned int number_of_blocks_height = (height/4);
+		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+
+		//wrong file size?
+		if( instream->size() < (number_of_blocks_4x4*16+16))
+			return true;
+
+		std::vector<PG::FILE::DXT5block> blocks(number_of_blocks_4x4);
+		instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT5block));
+
+		PG::FILE::decompressS3(width,height, blocks, imageOut);
+	}else{
+		PG_ERROR_STREAM("Unsupported VTF format!");
+		return true;
+	}
 
 	return false;
 }
