@@ -23,14 +23,37 @@ A command line tool which allows you to convert Disgaea PC *.TX2 and *.MPP textu
 Sadly the other way around is not supported yet.
 Make a backup before using this tool!
 
-# Disclaimer && License
-This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
-
 #### Known problems/TODOS:
 
 * The positioning of the DUMMY files inside the DATA.DAT is wrong.
 
-## The MIT License (MIT)
+# Disclaimer && License
+This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
+
+## PSPfsExtractor
+This project uses the JNI (Java Native Interface) Library, which requires a different license.
+
+### GNU General Public License
+
+	Copyright (C) 2016  ProgSys
+
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ 
+## TX2Converter.exe && libpg_disatools.dll
+My libraries and command line tools use the MIT License.
+
+### The MIT License (MIT)
 
 	Copyright (c) 2016 ProgSys
 
