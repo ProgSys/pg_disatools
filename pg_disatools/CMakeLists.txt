@@ -12,6 +12,10 @@ include(macros)
 #Set default path
 Setup_defaults(${CMAKE_PROJECT_NAME})
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	message (STATUS "DEBUG is ON")
+	add_definitions(-DDEBUG)
+endif()
 
 if(UNIX)
 	add_definitions(-fPIC)

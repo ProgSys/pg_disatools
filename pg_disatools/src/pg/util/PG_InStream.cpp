@@ -21,43 +21,18 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-
-
-#include <pg/util/PG_Vector.h>
+#include <pg/util/PG_InStream.h>
 
 namespace PG {
 namespace UTIL {
 
-template<>
-void tVector2<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
+InStream::InStream() {
+	// TODO Auto-generated constructor stub
+
 }
 
-template<>
-void tVector2<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
-}
-
-
-template<>
-void tVector3<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
-
-template<>
-void tVector3<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
-
-
-template<>
-void tVector4<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
-}
-
-template<>
-void tVector4<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
+InStream::~InStream() {
+	// TODO Auto-generated destructor stub
 }
 
 } /* namespace UTIL */

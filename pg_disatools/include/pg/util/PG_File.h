@@ -21,44 +21,48 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
+#ifndef INCLUDE_PG_UTIL_PG_FILE_H_
+#define INCLUDE_PG_UTIL_PG_FILE_H_
 
-
-#include <pg/util/PG_Vector.h>
+#include <string>
 
 namespace PG {
 namespace UTIL {
 
-template<>
-void tVector2<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
-}
+/*!
+ * @brief A simple file wrapper class, containing many useful operations.
+ */
+class File {
+	std::string m_path;
+public:
+	File(const std::string& path);
+	/*!
+	 * @brief Get the full path to file.
+	 */
+	std::string const& getPath() const;
+	/*!
+	 * @brief Get the file extension.
+	 */
+	std::string getFileExtension() const;
+	/*!
+	 * @brief Get the name of the file with the file file extension.
+	 */
+	std::string getFile() const;
+	/*!
+	 * @brief Get the name of the file without the file file extension.
+	 */
+	std::string getName() const;
 
-template<>
-void tVector2<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
-}
+	void set(const std::string& path);
 
+	bool exists() const;
+	bool rename(const std::string& name) const;
+	bool remove() const;
 
-template<>
-void tVector3<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
-
-template<>
-void tVector3<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
-
-
-template<>
-void tVector4<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
-}
-
-template<>
-void tVector4<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
-}
+	virtual ~File();
+};
 
 } /* namespace UTIL */
 } /* namespace PG */
+
+#endif /* INCLUDE_PG_UTIL_PG_FILE_H_ */

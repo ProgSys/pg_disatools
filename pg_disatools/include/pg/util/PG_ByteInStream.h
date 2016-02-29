@@ -21,24 +21,66 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_UTIL_PG_JAVABRIDGE_H_
-#define INCLUDE_PG_UTIL_PG_JAVABRIDGE_H_
+#ifndef INCLUDE_PG_UTIL_PG_BYTEINSTREAM_H_
+#define INCLUDE_PG_UTIL_PG_BYTEINSTREAM_H_
 
+#include <pg/util/PG_ApiUtil.h>
+#include <pg/util/PG_InStream.h>
+#include <string>
 namespace PG {
 namespace UTIL {
 
-//void  simpleCall();
+/*!
+ * @brief Allows you to read different values form a byte array.
+ * @see OutByteInStream
+ */
+class ByteInStream: public InStream {
+public:
+	ByteInStream(const char* bytes, unsigned int length);
 
-extern "C" {
+	char readChar() final;
+	unsigned char readUnsignedChar() final;
 
-void __declspec(dllexport) simpleCall();
-int __declspec(dllexport) multiply (float a, float b, float & result);
-char* __declspec(dllexport) uncompressTX2Image (const char* bytes, int length, int& width, int& height);
+	short readShort() final;
+	unsigned short readUnsignedShort() final;
 
 
-}
+	int readInt() final;
+	unsigned int readUnsignedInt() final;
+
+
+	long readLong() final;
+	unsigned long readUnsignedLong() final;
+
+	long long readLongLong() final;
+	unsigned long long readUnsignedLongLong() final;
+
+	float readFloat() final;
+	double readDouble() final;
+
+	std::string readString(unsigned int length) final;
+
+	void read(char* data, unsigned int length) final;
+
+	void skip(unsigned int skip) final;
+
+
+	void seek(unsigned int position) final;
+	unsigned int pos() final;
+	void rewind() final;
+
+	bool eof() const final;
+
+	unsigned int size() const final;
+
+	virtual ~ByteInStream();
+private:
+	const char* m_bytes;
+	unsigned int m_length;
+	unsigned int m_pos;
+};
 
 } /* namespace UTIL */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_UTIL_PG_JAVABRIDGE_H_ */
+#endif /* INCLUDE_PG_UTIL_PG_BYTEINSTREAM_H_ */

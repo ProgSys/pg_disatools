@@ -1,20 +1,25 @@
 /*
- * Functions to save rgba data as different files.
+ * The MIT License (MIT)
  *
- *  Copyright (C) 2016  ProgSys
+ *	Copyright (c) 2016 ProgSys
  *
- *    This program is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *	Permission is hereby granted, free of charge, to any person obtaining a copy
+ *	of this software and associated documentation files (the "Software"), to deal
+ *	in the Software without restriction, including without limitation the rights
+ *	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *	copies of the Software, and to permit persons to whom the Software is
+ *	furnished to do so, subject to the following conditions:
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
+ *	The above copyright notice and this permission notice shall be included in all
+ *	copies or substantial portions of the Software.
  *
- *    You should have received a copy of the GNU General Public License
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *	SOFTWARE.
  */
 #include <pg/files/PG_ImageFiles.h>
 #include <sstream>
@@ -23,20 +28,20 @@
 namespace PG {
 namespace FILE {
 
-void saveTGA(const std::string& filepath, unsigned int width, unsigned int height, const std::vector<PG::UTIL::rgba>& rgba){
+void saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 	PG::UTIL::BinaryFileWriter writer(filepath);
 	writer.writeInt(131072);
 	writer.writeInt(0);
 	writer.writeInt(0);
-	writer.writeShort(width);
-	writer.writeShort(height);
+	writer.writeShort(image.getWidth());
+	writer.writeShort(image.getHeight());
 	writer.writeShort(2080);
 
 
-	for(unsigned int y = 0; y < height; ++y ){
-		for(unsigned int x = 0; x < width; ++x ){
-			const unsigned int index = ((height-y-1)*width+x); //y-flip
-			const PG::UTIL::rgba& pix = rgba[index];
+	for(unsigned int y = 0; y < image.getHeight(); ++y ){
+		for(unsigned int x = 0; x < image.getWidth(); ++x ){
+			const unsigned int index = ((image.getHeight()-y-1)*image.getWidth()+x); //y-flip
+			const PG::UTIL::rgba& pix = image[index];
 
 			writer.writeChar(pix.b);
 			writer.writeChar(pix.g);
@@ -50,14 +55,14 @@ void saveTGA(const std::string& filepath, unsigned int width, unsigned int heigh
 	writer.writeString("TRUEVISION-XFILE.");
 }
 
-void savePGM(const std::string& filepath, unsigned int width, unsigned int height, const std::vector<PG::UTIL::rgba>& rgba){
+void savePGM(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 	//return savePPM(outfilename);
 	PG::UTIL::BinaryFileWriter writer(filepath);
 	std::stringstream o;
-	o<<"P6\n"<<width<<"\n"<<height<<"\n255\n";
+	o<<"P6\n"<<image.getWidth()<<"\n"<<image.getHeight()<<"\n255\n";
 	writer.writeString(o.str());
 
-	for(const PG::UTIL::rgba& pix: rgba){
+	for(const PG::UTIL::rgba& pix: image){
 		writer.writeChar(pix.r);
 		writer.writeChar(pix.g);
 		writer.writeChar(pix.b);

@@ -1,20 +1,25 @@
 /*
- * Allows you to convert Disgaea PC *.TX2 textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).
+ * The MIT License (MIT)
  *
- *  Copyright (C) 2016  ProgSys
+ *	Copyright (c) 2016 ProgSys
  *
- *    This program is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *	Permission is hereby granted, free of charge, to any person obtaining a copy
+ *	of this software and associated documentation files (the "Software"), to deal
+ *	in the Software without restriction, including without limitation the rights
+ *	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *	copies of the Software, and to permit persons to whom the Software is
+ *	furnished to do so, subject to the following conditions:
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
+ *	The above copyright notice and this permission notice shall be included in all
+ *	copies or substantial portions of the Software.
  *
- *    You should have received a copy of the GNU General Public License
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *	SOFTWARE.
  */
 
 #include <iostream>
@@ -22,8 +27,8 @@
 #include <algorithm>
 
 
-#include <pg/files/PG_S3File.h>
-#include <pg/util/PG_BinaryFileTokenizer.h>
+#include <pg/files/PG_Convert.h>
+#include <pg/util/PG_ByteInFileStream.h>
 #include <pg/util/PG_Exception.h>
 
 using namespace PG;
@@ -31,7 +36,7 @@ using namespace PG;
 #define STROUT(x) std::cout << x << std::endl
 #define STRERR(x) std::cout <<"["<<__LINE__ <<":ERROR]"<< x << std::endl
 
-inline bool changeFileExtrention(std::string& str, PG::FILE::S3File::outFormat format){
+inline bool changeFileExtrention(std::string& str, PG::FILE::outFileFormat format){
 	auto it = str.find_last_of(".");
 	str = str.substr(0, it+1);
 
@@ -41,10 +46,10 @@ inline bool changeFileExtrention(std::string& str, PG::FILE::S3File::outFormat f
 	}
 
 	switch (format) {
-		case PG::FILE::S3File::TGA:
+		case PG::FILE::outFileFormat::TGA:
 			str += "tga";
 			break;
-		case PG::FILE::S3File::PGM:
+		case PG::FILE::outFileFormat::PGM:
 			str += "pgm";
 			break;
 		default:
@@ -82,10 +87,24 @@ void printInfo(){
 	STROUT("License: ");
 	STROUT("\n\nGNU General Public License (GPL): \n");
 
-	STROUT("Copyright (C) 2016  ProgSys\n\n"
-	    " This program comes with ABSOLUTELY NO WARRANTY; for details type 'show1'.\n"
-	    " This is free software, and you are welcome to redistribute it\n"
-	    " under certain conditions; type 'show2' for details.\n");
+	STROUT(" The MIT License (MIT)\n\n"
+			" Copyright (c) 2016 ProgSys\n\n Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+			" of this software and associated documentation files (the \"Software\"), to deal\n"
+			" in the Software without restriction, including without limitation the rights\n"
+			" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+			" copies of the Software, and to permit persons to whom the Software is\n"
+			" furnished to do so, subject to the following conditions:\n\n"
+
+			" The above copyright notice and this permission notice shall be included in all\n"
+			" copies or substantial portions of the Software.\n\n"
+			" THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+			" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+			" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+			" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+			" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
+			" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
+			" SOFTWARE."
+			);
 }
 
 int main(int argc, char* argv[]){
@@ -98,7 +117,7 @@ int main(int argc, char* argv[]){
 	std::string target = "";
 	std::string dir = "";
 	std::string out = "";
-	PG::FILE::S3File::outFormat format = PG::FILE::S3File::TGA;
+	PG::FILE::outFileFormat format = PG::FILE::outFileFormat::TGA;
 
 	//read arguments
 	for(unsigned int i = 1; i < argc; i++){
@@ -109,9 +128,9 @@ int main(int argc, char* argv[]){
 			std::string f(argv[i+1]);
 			std::transform(f.begin(), f.end(), f.begin(), ::tolower);
 			if(f == "tga" || f == ".tga" || f == "*.tga"){
-				format = PG::FILE::S3File::TGA;
+				format = PG::FILE::outFileFormat::TGA;
 			}else if(f == "pgm" || f == ".pgm" || f == "*.pgm"){
-				format = PG::FILE::S3File::PGM;
+				format = PG::FILE::outFileFormat::PGM;
 			}else{
 				STRERR("Unknown file format given: '"<<f<<"'! Can only be 'tga' or 'pgm'.");
 				return 1;
@@ -123,21 +142,7 @@ int main(int argc, char* argv[]){
 		}else if( (std::strcmp(argv[i],"-out") == 0 || std::strcmp(argv[i],"-output") == 0) && (i+1)<argc){
 			out = std::string(argv[i+1]);
 			i += 1;
-		}else if( (std::strcmp(argv[i],"show1")) == 0 ){
-			STROUT("This program is distributed in the hope that it will be useful,\n"
-					"but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
-					"MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n"
-					"GNU General Public License for more details.");
-			return 0;
-		}else if( (std::strcmp(argv[i],"show2")) == 0 ){
-			STROUT("This program is free software: you can redistribute it and/or modify\n"
-					"it under the terms of the GNU General Public License as published by\n"
-					"the Free Software Foundation, either version 3 of the License, or\n"
-					"(at your option) any later version.");
-			return 0;
 		}
-
-
 	}
 
 	if(target.empty()){
@@ -166,8 +171,10 @@ int main(int argc, char* argv[]){
 	}
 
 	try {
-		PG::FILE::S3File file(target);
-		file.save(out, format);
+		if(PG::FILE::convertDSATexture(target, out, format)){
+			STRERR("Couldn't save texture! ");
+			return 1;
+		}
 	} catch (PG::UTIL::Exception& e) {
 		STRERR("Couldn't save texture: "<<e.what());
 		return 1;

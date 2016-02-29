@@ -21,44 +21,45 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
+#ifndef INCLUDE_PG_FILES_PG_VTF_H_
+#define INCLUDE_PG_FILES_PG_VTF_H_
 
-
+#include <string>
+#include <vector>
 #include <pg/util/PG_Vector.h>
+#include <pg/util/PG_Image.h>
+#include <pg/util/PG_File.h>
+
+#include <pg/util/PG_InStream.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
-namespace UTIL {
+namespace FILE {
 
-template<>
-void tVector2<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
-}
+/*!
+ * @brief Decompresses a Valve Texture Format image.
+ * @param imageOut output rgba image
+ * @return true if decompression was unsuccessful.
+ */
+bool PG_UTIL_API decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut );
 
-template<>
-void tVector2<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
-}
+/*!
+ * @brief Decompresses a Valve Texture Format image file.
+ * @param file Path to file.
+ * @param imageOut output rgba image
+ * @return true if decompression was unsuccessful.
+ */
+bool PG_UTIL_API decompressVTF(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
 
+/*!
+ * @brief Decompresses a Valve Texture Format image file.
+ * @param file Path to file.
+ * @param imageOut output rgba image
+ * @return true if decompression was unsuccessful.
+ */
+bool PG_UTIL_API decompressVTF(const std::string& file, PG::UTIL::RGBAImage& imageOut );
 
-template<>
-void tVector3<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
-
-template<>
-void tVector3<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
-
-
-template<>
-void tVector4<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
-}
-
-template<>
-void tVector4<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
-}
-
-} /* namespace UTIL */
+} /* namespace FILE */
 } /* namespace PG */
+
+#endif /* INCLUDE_PG_FILES_PG_VTF_H_ */

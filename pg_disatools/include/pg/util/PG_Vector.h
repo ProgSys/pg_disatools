@@ -1,26 +1,31 @@
 /*
- * Simple vector classes.
+ * The MIT License (MIT)
  *
- *  Copyright (C) 2016  ProgSys
+ *	Copyright (c) 2016 ProgSys
  *
- *    This program is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ *	Permission is hereby granted, free of charge, to any person obtaining a copy
+ *	of this software and associated documentation files (the "Software"), to deal
+ *	in the Software without restriction, including without limitation the rights
+ *	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *	copies of the Software, and to permit persons to whom the Software is
+ *	furnished to do so, subject to the following conditions:
  *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
+ *	The above copyright notice and this permission notice shall be included in all
+ *	copies or substantial portions of the Software.
  *
- *    You should have received a copy of the GNU General Public License
- *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *	SOFTWARE.
  */
-
 #ifndef INCLUDE_PG_UTIL_PG_VECTOR_H_
 #define INCLUDE_PG_UTIL_PG_VECTOR_H_
 
 #include <ostream>
+#include <pg/util/PG_Exception.h>
 
 namespace PG {
 namespace UTIL {
@@ -50,6 +55,14 @@ struct tVector2{
 	tVector2(const tVector3<T>& tvec);
 	tVector2(const tVector4<T>& tvec);
 
+	unsigned int length() const;
+	T& operator[](unsigned int index);
+	T const& operator[](unsigned int index) const;
+
+	void operator=(const tVector2<T>& tvec);
+	void operator=(const tVector3<T>& tvec);
+	void operator=(const tVector4<T>& tvec);
+
 	tVector2<T> operator+(const tVector2<T>& tvec) const;
 
 	tVector2<T> operator-(const tVector2<T>& tvec) const;
@@ -64,10 +77,6 @@ struct tVector2{
 
 	bool operator==(const tVector2<T>& tvec) const;
 
-	void operator=(const tVector2<T>& tvec);
-	void operator=(const tVector3<T>& tvec);
-	void operator=(const tVector4<T>& tvec);
-
 	void dump(std::ostream& o) const;
 
 	friend std::ostream& operator<<(std::ostream& o,const tVector2<T>& tvec){
@@ -75,7 +84,7 @@ struct tVector2{
 		return o;
 	}
 
-	virtual ~tVector2() = default;
+	//virtual ~tVector2() = default;
 };
 
 /*!
@@ -94,6 +103,14 @@ struct tVector3{
 	tVector3(const tVector3<T>& tvec);
 	tVector3(const tVector4<T>& tvec);
 
+	unsigned int length() const;
+	T& operator[](unsigned int index);
+	T const& operator[](unsigned int index) const;
+
+	void operator=(const tVector2<T>& tvec);
+	void operator=(const tVector3<T>& tvec);
+	void operator=(const tVector4<T>& tvec);
+
 	tVector3<T> operator+(const tVector3<T>& tvec) const;
 
 	tVector3<T> operator-(const tVector3<T>& tvec) const;
@@ -108,10 +125,6 @@ struct tVector3{
 
 	bool operator==(const tVector3<T>& tvec) const;
 
-	void operator=(const tVector2<T>& tvec);
-	void operator=(const tVector3<T>& tvec);
-	void operator=(const tVector4<T>& tvec);
-
 	void dump(std::ostream& o) const;
 
 	friend std::ostream& operator<<(std::ostream& o,const tVector3<T>& tvec){
@@ -119,7 +132,7 @@ struct tVector3{
 		return o;
 	}
 
-	virtual ~tVector3() = default;
+	//virtual ~tVector3() = default;
 };
 
 /*!
@@ -140,6 +153,14 @@ struct tVector4{
 	tVector4(const tVector3<T>& tvec);
 	tVector4(const tVector4<T>& tvec);
 
+	unsigned int length() const;
+	T& operator[](unsigned int index);
+	T const& operator[](unsigned int index) const;
+
+	void operator=(const tVector2<T>& tvec);
+	void operator=(const tVector3<T>& tvec);
+	void operator=(const tVector4<T>& tvec);
+
 	tVector4<T> operator+(const tVector4<T>& tvec) const;
 
 	tVector4<T> operator-(const tVector4<T>& tvec) const;
@@ -154,9 +175,6 @@ struct tVector4{
 
 	bool operator==(const tVector4<T>& tvec) const;
 
-	void operator=(const tVector2<T>& tvec);
-	void operator=(const tVector3<T>& tvec);
-	void operator=(const tVector4<T>& tvec);
 
 	void dump(std::ostream& o) const;
 
@@ -165,7 +183,7 @@ struct tVector4{
 		return o;
 	}
 
-	virtual ~tVector4() = default;
+	//virtual ~tVector4() = default;
 };
 
 /////////////////////// VECTOR 2 DEFINITIONS ///////////////////////
@@ -180,6 +198,24 @@ tVector2<T>::tVector2(const tVector3<T>& tvec): x(tvec.x),y(tvec.y){};
 
 template<typename T>
 tVector2<T>::tVector2(const tVector4<T>& tvec): x(tvec.x),y(tvec.y) {};
+
+
+template<typename T>
+unsigned int tVector2<T>::length() const{
+	return 2;
+}
+
+template<typename T>
+T& tVector2<T>::operator[](unsigned int index){
+	assert_Test("Out of bounds!", (index >= length()) );
+	return (&x)[index];
+}
+
+template<typename T>
+T const& tVector2<T>::operator[](unsigned int index) const{
+	assert_Test("Out of bounds!", (index >= length()) );
+	return (&x)[index];
+}
 
 template<typename T>
 tVector2<T> tVector2<T>::operator+(const tVector2<T>& tvec) const{
@@ -255,6 +291,23 @@ tVector3<T>::tVector3(const tVector3<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z){}
 
 template<typename T>
 tVector3<T>::tVector3(const tVector4<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z) {};
+
+template<typename T>
+unsigned int tVector3<T>::length() const{
+	return 3;
+}
+
+template<typename T>
+T& tVector3<T>::operator[](unsigned int index){
+	assert_Test("Out of bounds!", (index >= length()) );
+	return (&x)[index];
+}
+
+template<typename T>
+T const& tVector3<T>::operator[](unsigned int index) const{
+	assert_Test("Out of bounds!", (index >= length()) );
+	return (&x)[index];
+}
 
 template<typename T>
 tVector3<T> tVector3<T>::operator+(const tVector3<T>& tvec) const{
@@ -335,6 +388,23 @@ tVector4<T>::tVector4(const tVector3<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z), 
 
 template<typename T>
 tVector4<T>::tVector4(const tVector4<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z), w(tvec.w) {};
+
+template<typename T>
+unsigned int tVector4<T>::length() const{
+	return 4;
+}
+
+template<typename T>
+T& tVector4<T>::operator[](unsigned int index){
+	assert_Test("Out of bounds!", (index >= length()) );
+	return (&x)[index];
+}
+
+template<typename T>
+T const& tVector4<T>::operator[](unsigned int index) const{
+	assert_Test("Out of bounds!", (index >= length()) );
+	return (&x)[index];
+}
 
 template<typename T>
 tVector4<T> tVector4<T>::operator+(const tVector4<T>& tvec) const{

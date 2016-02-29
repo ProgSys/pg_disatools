@@ -22,43 +22,29 @@
  *	SOFTWARE.
  */
 
+#ifndef INCLUDE_PG_FILES_PG_CONVERT_H_
+#define INCLUDE_PG_FILES_PG_CONVERT_H_
 
-#include <pg/util/PG_Vector.h>
+#include <string>
+#include <pg/util/PG_File.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
-namespace UTIL {
+namespace FILE {
 
-template<>
-void tVector2<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
-}
+enum inFileFormat: unsigned int{
+	TX2, VTF
+};
 
-template<>
-void tVector2<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
-}
+enum outFileFormat: unsigned int{
+	PGM, TGA
+};
 
+bool PG_UTIL_API convertDSATexture(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, outFileFormat formatOut);
 
-template<>
-void tVector3<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
+bool PG_UTIL_API convertDSATexture(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut);
 
-template<>
-void tVector3<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
-}
-
-
-template<>
-void tVector4<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
-}
-
-template<>
-void tVector4<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
-}
-
-} /* namespace UTIL */
+} /* namespace FILE */
 } /* namespace PG */
+
+#endif /* INCLUDE_PG_FILES_PG_CONVERT_H_ */

@@ -22,42 +22,60 @@
  *	SOFTWARE.
  */
 
+#include <pg/util/PG_File.h>
 
-#include <pg/util/PG_Vector.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <cstdio>
+#include <pg/util/PG_Exception.h>
 
 namespace PG {
 namespace UTIL {
 
-template<>
-void tVector2<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
+
+File::File(const std::string& path): m_path(path){
+
 }
 
-template<>
-void tVector2<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<")";
+std::string const& File::getPath() const{
+	return m_path;
 }
 
-
-template<>
-void tVector3<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
+std::string File::getFileExtension() const{
+	return m_path.substr(m_path.find_last_of(".")+1);
 }
 
-template<>
-void tVector3<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
+std::string  File::getFile() const{
+	return m_path.substr(m_path.find_last_of("\\/")+1);
 }
 
 
-template<>
-void tVector4<char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
+std::string File::getName() const{
+	const unsigned int start = m_path.find_last_of("\\/")+1;
+	const unsigned int end = m_path.find_last_of(".");
+	if(end < start){
+		return "";
+	}else
+		return m_path.substr(start, end);
 }
 
-template<>
-void tVector4<unsigned char>::dump(std::ostream& o) const{
-	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
+void File::set(const std::string& path){
+	m_path = path;
+}
+
+bool File::exists() const{
+	  struct stat buffer;
+	  return (stat (m_path.c_str(), &buffer) == 0);
+}
+bool File::rename(const std::string& name) const{
+	return std::rename( m_path.c_str(), name.c_str() );
+}
+bool File::remove() const{
+	return std::remove( m_path.c_str() );
+}
+
+File::~File() {
+	// TODO Auto-generated destructor stub
 }
 
 } /* namespace UTIL */
