@@ -1,5 +1,5 @@
 /*
- * Some definitions.
+ * Some helper function for vectors.
  *
  *  Copyright (C) 2016  ProgSys
  *
@@ -17,10 +17,11 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <pg/util/PG_Base.h>
+#include <pg/util/PG_VectorUtil.h>
 
 namespace PG {
 namespace UTIL {
+
 
 
 } /* namespace UTIL */

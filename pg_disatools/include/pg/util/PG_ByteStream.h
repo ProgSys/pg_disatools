@@ -1,36 +1,68 @@
 /*
- * PG_ByteStream.h
+ * Wrapper class around const char* (bytes).
  *
- *  Created on: 28.02.2016
- *      Author: ProgSys
+ *  Copyright (C) 2016  ProgSys
+ *
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU General Public License for more details.
+ *
+ *    You should have received a copy of the GNU General Public License
+ *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #ifndef INCLUDE_PG_UTIL_PG_BYTESTREAM_H_
 #define INCLUDE_PG_UTIL_PG_BYTESTREAM_H_
 
 #include <pg/util/PG_ApiUtil.h>
+#include <string>
 namespace PG {
 namespace UTIL {
 
 class ByteStream {
 public:
-	PG_UTIL_API ByteStream(const char* bytes, unsigned int length);
+	ByteStream(const char* bytes, unsigned int length);
 
-	char PG_UTIL_API readChar();
-	char PG_UTIL_API readUnsignedChar();
+	char readChar();
+	char readUnsignedChar();
 
-	short PG_UTIL_API readShort();
-	unsigned short PG_UTIL_API readUnsignedShort();
+	short readShort();
+	unsigned short readUnsignedShort();
 
-	int PG_UTIL_API readInt();
-	unsigned int PG_UTIL_API readUnsignedInt();
+	int readInt();
+	unsigned int readUnsignedInt();
 
-	void PG_UTIL_API read(char* data, unsigned int length);
+	long readLong();
+	unsigned long readUnsignedLong();
 
-	void PG_UTIL_API skip(unsigned int skip);
-	void PG_UTIL_API seek(unsigned int position);
+	long long readLongLong();
+	unsigned long long readUnsignedLongLong();
 
-	virtual PG_UTIL_API ~ByteStream();
+	std::string readString(unsigned int length);
+
+	void read(char* data, unsigned int length);
+
+	/*!
+	 * Get the number of bytes.
+	 */
+	unsigned int getSize() const;
+
+	void skip(unsigned int skip);
+	void seek(unsigned int position);
+	void reset();
+
+	/*!
+	 * @return true if position is at end.
+	 */
+	bool eof() const;
+
+	virtual ~ByteStream();
 private:
 	const char* m_bytes;
 	unsigned int m_length;

@@ -1,5 +1,5 @@
 /*
- * Some definitions.
+ * Simple vector classes.
  *
  *  Copyright (C) 2016  ProgSys
  *
@@ -17,11 +17,42 @@
  *    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <pg/util/PG_Base.h>
+#include <pg/util/PG_Vector.h>
 
 namespace PG {
 namespace UTIL {
 
+template<>
+void tVector2<char>::dump(std::ostream& o) const{
+	o<<"("<<(int)x<<", "<<(int)y<<")";
+}
+
+template<>
+void tVector2<unsigned char>::dump(std::ostream& o) const{
+	o<<"("<<(int)x<<", "<<(int)y<<")";
+}
+
+
+template<>
+void tVector3<char>::dump(std::ostream& o) const{
+	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
+}
+
+template<>
+void tVector3<unsigned char>::dump(std::ostream& o) const{
+	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
+}
+
+
+template<>
+void tVector4<char>::dump(std::ostream& o) const{
+	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
+}
+
+template<>
+void tVector4<unsigned char>::dump(std::ostream& o) const{
+	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<", "<<(int)w<<")";
+}
 
 } /* namespace UTIL */
 } /* namespace PG */

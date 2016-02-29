@@ -52,7 +52,7 @@ public class ImagePanel extends JPanel{
     	}
     	
     	Pointer p = rgbaImage.getValue();
-    	image = new BufferedImage(imageSize.x, imageSize.y, BufferedImage.TYPE_INT_RGB);
+    	image = new BufferedImage(imageSize.x, imageSize.y, BufferedImage.TYPE_INT_ARGB);
     	for(int y = 0; y < imageSize.y ; y++)
 	    	for(int x = 0; x < imageSize.x; x++){
 	    		int index = ((imageSize.x*y)+x)*4;
@@ -69,6 +69,37 @@ public class ImagePanel extends JPanel{
     public void clearImage(){
     	image = null;
     }
+    
+    public void saveImage(File outfile, String type){
+    	if(image == null) return;
+    	
+    	if(type == "jpg"){
+    		BufferedImage buffimage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+        	for(int y = 0; y < image.getHeight() ; y++)
+    	    	for(int x = 0; x < image.getWidth(); x++){
+    	    		int rgb = image.getRGB(x, y) & 0x00FFFFFF;
+    	    		
+    	    		buffimage.setRGB(x, y, rgb);
+    	    	}
+        	try {
+        		ImageIO.write(buffimage, type, outfile);
+    		} catch (IOException e) {
+    			e.printStackTrace();
+    		}
+        	return;
+    	}
+    	
+    	try {
+			ImageIO.write(image, type, outfile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+    }
+
+    public boolean hasImage(){
+    	return image != null;
+    }
+    
     
     @Override
     protected void paintComponent(Graphics g) {

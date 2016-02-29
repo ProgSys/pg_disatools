@@ -317,6 +317,7 @@ public class MainWindow {
 		preview.setBounds(277, 400, 150, 150);
 		frmDisgaeaPcFile.getContentPane().add(preview);
 		preview.add(lbdllError);
+		preview.addMouseListener(new PopClickListener(preview));
 		
 		JPanel panel = new JPanel();
 		panel.setBounds(277, 87, 153, 169);
