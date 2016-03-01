@@ -38,10 +38,12 @@ public class ImagePanel extends JPanel{
 	 */
 	private static final long serialVersionUID = 1L;
 	private BufferedImage image;
+	private BufferedImage imageRGB;
 	private JLabel lbdllError;
 	
     public ImagePanel(JLabel lbError) {
     	image = null;
+    	imageRGB = null;
     	lbdllError = lbError;
     }
     
@@ -49,6 +51,7 @@ public class ImagePanel extends JPanel{
 	public void displayTX2Image(Pointer dxt, int size){
     	if(dxt == null || size == 0) {
     		image = null;
+    		imageRGB = null;
     		return;
     	}
     	
@@ -59,16 +62,19 @@ public class ImagePanel extends JPanel{
     	if(DLLBridge.uncompressTX2Image(dxt,size,imageSize,rgbaImage )){
     		lbdllError.setText("<html>libpg_disatools.dll<br>not found!</html>");
     		image = null;
+    		imageRGB = null;
     		return;
     	}
     	
     	if(imageSize.isZero()){
     		image = null;
+    		imageRGB = null;
     		return;
     	}
     	
     	Pointer p = rgbaImage.getValue();
     	image = new BufferedImage(imageSize.x, imageSize.y, BufferedImage.TYPE_INT_ARGB);
+    	imageRGB = new BufferedImage(imageSize.x, imageSize.y, BufferedImage.TYPE_INT_RGB);
     	for(int y = 0; y < imageSize.y ; y++)
 	    	for(int x = 0; x < imageSize.x; x++){
 	    		int index = ((imageSize.x*y)+x)*4;
@@ -78,27 +84,22 @@ public class ImagePanel extends JPanel{
 	    		int a = p.getChar(index+3) & 0xFF;
 	    		int rgb = (a << 24) | (r << 16) | (g << 8) | b;
 	    		image.setRGB(x, y, rgb);
+	    		imageRGB.setRGB(x, y, rgb);
 	    	}
   
     }
 
     public void clearImage(){
     	image = null;
+    	imageRGB = null;
     }
     
     public void saveImage(File outfile, String type){
-    	if(image == null) return;
+    	if(image == null || imageRGB == null) return;
     	
     	if(type == "jpg"){
-    		BufferedImage buffimage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
-        	for(int y = 0; y < image.getHeight() ; y++)
-    	    	for(int x = 0; x < image.getWidth(); x++){
-    	    		int rgb = image.getRGB(x, y) & 0x00FFFFFF;
-    	    		
-    	    		buffimage.setRGB(x, y, rgb);
-    	    	}
         	try {
-        		ImageIO.write(buffimage, type, outfile);
+        		ImageIO.write(imageRGB, type, outfile);
     		} catch (IOException e) {
     			e.printStackTrace();
     		}
@@ -120,7 +121,7 @@ public class ImagePanel extends JPanel{
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        g.drawImage(image, 0, 0, this.getWidth(),this.getHeight(), null); // see javadoc for more info on the parameters            
+        g.drawImage(imageRGB, 0, 0, this.getWidth(),this.getHeight(), null); // see javadoc for more info on the parameters            
     }
 
 }

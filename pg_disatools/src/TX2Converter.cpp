@@ -64,23 +64,25 @@ inline bool changeFileExtrention(std::string& str, PG::FILE::outFileFormat forma
 
 void printInfo(){
 	STROUT("\nAllows you to convert Disgaea PC *.TX2 textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).");
-	STROUT("Sadly the other way around is not supported yet.");
+	STROUT("Sadly the other way around is broken right now.");
 	STROUT("Make a backup before using this tool!");
-	STROUT("Version: 0.0.00000000000000000000001 (early access pre alpha thingy dood) \n");
+	STROUT("Version: 0.2 (early access pre alpha thingy dood) \n");
 
 	STROUT("Usage: ");
-	STROUT("  * '-in': Target path to the *.TX2 file.");
-	STROUT("  * '-format (-f)':   (Optional) Output file format can be TGA or PGM. Default TGA.");
+	STROUT("  * '-tx2 <path_to_TX2>': Decompress a *.TX2 file to a *.TGA image.");
+	STROUT("  * '-tx2to <path_to_TX2> <TGA | PGM>': Decompress a *.TX2 file to a *.TGA or *.PGM image.");
 
-	STROUT("  * '-folder (-dir)': (Optional) Target output folder.");
+	STROUT("  * '-tga <path_to_TGA>': (Doesn't work properly) Compresses a BGRA8888 *.TGA file to a DXT1 *.TX2 file.");
+
+	STROUT("  * '-folder <path_to_folder> (-dir)': (Optional) Target output folder.");
 	STROUT("                      On default the file will be save into the same folder as the input file, just with a different file extension. ");
 
-	STROUT("  * '-output (-out)': (Optional) Target output path and filename. Overwrites the -folder command.");
+	STROUT("  * '-output <file_name> (-out)': (Optional) Target output path and filename. Overwrites the -folder command.");
 	STROUT("                      On default the file will be save into the same folder as the input file, just with a different file extension. ");
 
 	STROUT("Examples: ");
-	STROUT("  *  '.\\TX2andMPPConverter.exe -in 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2' ");
-	STROUT("  *  '.\\TX2andMPPConverter.exe -in 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2' -dir 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texturesout' -f pgm");
+	STROUT("  *  '.\\TX2Converter.exe -tx2 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2'' ");
+	STROUT("  *  '.\\TX2Converter.exe -tx2to 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2' PGM -dir 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texturesout''");
 
 
 	STROUT("\n");
@@ -131,12 +133,10 @@ int main(int argc, char* argv[]){
 			targetfile = std::string(argv[i+1]);
 			compress = false;
 			i += 1;
-		}else if(std::strcmp(argv[i],"-tga") == 0  && (i+1)<argc){
+		}else if(std::strcmp(argv[i],"-tx2to") == 0  && (i+2)<argc){
 			targetfile = std::string(argv[i+1]);
-			compress = true;
-			i += 1;
-		}else if( (std::strcmp(argv[i],"-f") == 0 || std::strcmp(argv[i],"-format") == 0) && (i+1)<argc){
-			std::string f(argv[i+1]);
+
+			std::string f(argv[i+2]);
 			std::transform(f.begin(), f.end(), f.begin(), ::tolower);
 			if(f == "tga" || f == ".tga" || f == "*.tga"){
 				format = PG::FILE::outFileFormat::TGA;
@@ -146,6 +146,13 @@ int main(int argc, char* argv[]){
 				STRERR("Unknown file format given: '"<<f<<"'! Can only be 'tga' or 'pgm'.");
 				return 1;
 			}
+			i += 1;
+
+			compress = false;
+			i += 1;
+		}else if(std::strcmp(argv[i],"-tga") == 0  && (i+1)<argc){
+			targetfile = std::string(argv[i+1]);
+			compress = true;
 			i += 1;
 		}else if( (std::strcmp(argv[i],"-c") == 0 || std::strcmp(argv[i],"-compression") == 0) && (i+1)<argc){
 			std::string f(argv[i+1]);

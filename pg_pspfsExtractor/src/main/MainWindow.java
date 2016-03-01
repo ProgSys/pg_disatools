@@ -124,7 +124,7 @@ public class MainWindow {
 	 */
 	private void initialize() {
 		frmDisgaeaPcFile = new JFrame();
-		frmDisgaeaPcFile.setTitle("Disgaea PC File extractor v0.1 alpha");
+		frmDisgaeaPcFile.setTitle("Disgaea PC File extractor v0.2 alpha");
 		frmDisgaeaPcFile.setResizable(false);
 		frmDisgaeaPcFile.setBounds(100, 100, 440, 590);
 		frmDisgaeaPcFile.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

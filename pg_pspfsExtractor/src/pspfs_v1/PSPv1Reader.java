@@ -91,9 +91,10 @@ public class PSPv1Reader {
 			//read file infos
 			m_fileInfos = new ArrayList<PSPv1FileInfo>(m_numberoffiles);
 			
-			byte b[] = new byte[44];
+			byte b[] = new byte[40];
 			for(int i = 0; i < m_numberoffiles;i++){
 				stream.read(b);
+				int noIdear = stream.readInt(); //Unknown value used for DAT files
 				int filesize = stream.readInt();
 				int fileoffset = stream.readInt();
 				m_fileInfos.add(new PSPv1FileInfo(b,filesize,fileoffset));

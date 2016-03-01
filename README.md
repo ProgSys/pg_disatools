@@ -7,6 +7,7 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 * [Version v0.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.1%20alpha.zip)
+* [Version v0.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.2%20alpha.zip)
 
 ###Content
 #### PSPfsExtractor
@@ -15,7 +16,7 @@ Java application for extracting and packing files from a Disgaea PC DATA.DAT arc
 
 To run it you need to have Java installed: https://www.java.com/en/download/
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview3.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview5.png)
 
 #### TX2Converter.exe
 
