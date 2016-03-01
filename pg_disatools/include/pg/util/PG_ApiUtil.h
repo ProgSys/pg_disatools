@@ -32,7 +32,7 @@
 	#define PG_UTIL_API __declspec(dllimport)
 #endif
 #else
-	#define PG_UTIL_API __declspec(dllexport)
+	#define PG_UTIL_API
 #endif
 
 #endif /* INCLUDE_PG_UTIL_PG_APIUTIL_H_ */

@@ -41,7 +41,7 @@ namespace FILE {
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut );
+bool decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a Valve Texture Format image file.
@@ -49,7 +49,7 @@ bool PG_UTIL_API decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressVTF(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
+bool decompressVTF(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a Valve Texture Format image file.
@@ -57,7 +57,7 @@ bool PG_UTIL_API decompressVTF(const PG::UTIL::File& file, PG::UTIL::RGBAImage& 
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressVTF(const std::string& file, PG::UTIL::RGBAImage& imageOut );
+bool decompressVTF(const std::string& file, PG::UTIL::RGBAImage& imageOut );
 
 } /* namespace FILE */
 } /* namespace PG */

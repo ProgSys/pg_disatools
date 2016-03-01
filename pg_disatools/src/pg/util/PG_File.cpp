@@ -59,18 +59,37 @@ std::string File::getName() const{
 		return m_path.substr(start, end);
 }
 
+
+void File::clear(){
+	m_path = "";
+}
+
+bool File::isEmpty() const{
+	return m_path.empty();
+}
+
 void File::set(const std::string& path){
 	m_path = path;
 }
 
+unsigned int File::size() const{
+	if(isEmpty()) return 0;
+    struct stat stat_buf;
+    int rc = stat(m_path.c_str(), &stat_buf);
+    return rc == 0 ? stat_buf.st_size : -1;
+}
+
 bool File::exists() const{
+	  if(isEmpty()) return false;
 	  struct stat buffer;
 	  return (stat (m_path.c_str(), &buffer) == 0);
 }
 bool File::rename(const std::string& name) const{
+	if(isEmpty()) return false;
 	return std::rename( m_path.c_str(), name.c_str() );
 }
 bool File::remove() const{
+	if(isEmpty()) return false;
 	return std::remove( m_path.c_str() );
 }
 

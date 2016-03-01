@@ -25,6 +25,8 @@
 #define INCLUDE_PG_UTIL_PG_FILE_H_
 
 #include <string>
+#include <ostream>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
 namespace UTIL {
@@ -35,7 +37,7 @@ namespace UTIL {
 class File {
 	std::string m_path;
 public:
-	File(const std::string& path);
+	File(const std::string& path = "");
 	/*!
 	 * @brief Get the full path to file.
 	 */
@@ -53,11 +55,20 @@ public:
 	 */
 	std::string getName() const;
 
+	void clear();
+	bool isEmpty() const;
+
 	void set(const std::string& path);
 
+	unsigned int size() const;
 	bool exists() const;
 	bool rename(const std::string& name) const;
 	bool remove() const;
+
+
+	friend std::ostream& operator<<(std::ostream& o,const File& file){
+		return o<<file.getPath();
+	}
 
 	virtual ~File();
 };

@@ -45,7 +45,7 @@ enum tx2Type: unsigned short {
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut );
+bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image file.
@@ -53,7 +53,7 @@ bool PG_UTIL_API decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
+bool decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image file.
@@ -61,25 +61,25 @@ bool PG_UTIL_API decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& 
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressTX2(const std::string& file, PG::UTIL::RGBAImage& imageOut );
+bool decompressTX2(const std::string& file, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image bytes.
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressTX2(const std::vector<char>& bytesIn, PG::UTIL::RGBAImage& imageOut );
+bool decompressTX2(const std::vector<char>& bytesIn, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image bytes.
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool PG_UTIL_API decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAImage& imageOut );
+bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAImage& imageOut );
 
 
 
-bool PG_UTIL_API compressTX2(PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
+bool compressTX2(PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
 
 } /* namespace FILE */
 } /* namespace PG */
