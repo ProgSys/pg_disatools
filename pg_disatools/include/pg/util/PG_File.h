@@ -55,6 +55,12 @@ public:
 	 */
 	std::string getName() const;
 
+	void operator=(const std::string& path);
+	void operator=(const File& file);
+
+	bool operator==(const std::string& path) const;
+	bool operator==(const File& file) const;
+
 	void clear();
 	bool isEmpty() const;
 

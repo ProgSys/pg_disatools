@@ -59,13 +59,9 @@ install_manifest.txt
 \dependencies
 \documentation
 \build
-/PG_EngineCore_build
-/PG_Loaders_build
-/PG_Storage_build
-/PG_FileFormats_build
-/PG_Util_build
+/*_build
 /pg_pspfsExtractor/bin
-
+/build-*
 *~
 
 !.gitignore

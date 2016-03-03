@@ -25,17 +25,26 @@
 
 #include <iostream>
 #include <string>
+#include <pg/files/PG_PSPFS.h>
 
 
 #define OUTSTR(x) std::cout << x << std::endl
 
 
+void doSomething(){
+	PG::FILE::PSPFS("file");
+}
 
 /*!
  * @brief Testing main method, just for testing.
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
+	PG::FILE::PSPFS pspfs("C:/Users/ProgSys/Desktop/Disgaea/PC/DATA.DAT");
+
+	for(const PG::FILE::filePSPFSInfo& info: pspfs.getFileInfos()){
+		OUTSTR("'"<<info.name <<"'  "<<info.size);
+	}
 	/*
 	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.TX2";
 	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.tga";

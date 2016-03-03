@@ -59,6 +59,20 @@ std::string File::getName() const{
 		return m_path.substr(start, end);
 }
 
+void File::operator=(const std::string& path){
+	m_path = path;
+}
+void File::operator=(const File& file){
+	m_path = file.getPath();
+}
+
+bool File::operator==(const std::string& path) const{
+	return m_path == path;
+}
+bool File::operator==(const File& file) const{
+	return m_path == file.getPath();
+}
+
 
 void File::clear(){
 	m_path = "";

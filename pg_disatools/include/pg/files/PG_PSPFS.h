@@ -12,6 +12,7 @@
 #include <vector>
 #include <pg/util/PG_File.h>
 #include <pg/util/PG_ApiUtil.h>
+#include <pg/util/PG_Image.h>
 
 namespace PG {
 namespace FILE {
@@ -27,9 +28,9 @@ struct filePSPFSInfo{
 	//extra info
 	PG::UTIL::File externalFile;
 
-	bool isExternalFile() const{
-		return !externalFile.isEmpty();
-	}
+	bool isExternalFile() const;
+
+	std::string getFileExtention() const;
 };
 
 class PSPFS {
@@ -54,8 +55,11 @@ public:
 	 * @brief Extract a file into the given target file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile);
+	PG_UTIL_API bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
+	PG_UTIL_API bool extract(const std::string& file, const std::string& targetFile) const;
 
+
+	PG_UTIL_API bool extractImage(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
 	/*!
 	 * @brief Add a file into the archive. Changes will only be applied when you save.
 	 * @return true on error
@@ -74,9 +78,25 @@ public:
 	 * @return true on error
 	 */
 	PG_UTIL_API bool save();
+	PG_UTIL_API bool save(const PG::UTIL::File& targetfile);
+
+	PG_UTIL_API void clear();
+
+	PG_UTIL_API bool isChanged() const;
+
+	PG_UTIL_API unsigned int size() const;
+
+	PG::UTIL::File getFile() const{
+		return m_file;
+	}
 
 	std::vector<filePSPFSInfo> const& getFileInfos() const{
 		return m_filePSPFSInfos;
+	}
+
+	filePSPFSInfo* getDataPointer(unsigned int index) const{
+		const filePSPFSInfo* f = &m_filePSPFSInfos[index];
+		return const_cast<filePSPFSInfo*>(f);
 	}
 
 	PG_UTIL_API virtual ~PSPFS();
@@ -86,6 +106,7 @@ private:
 	PG::UTIL::File m_file_buffer;
 
 	std::vector<filePSPFSInfo> m_filePSPFSInfos;
+	bool m_changed = false;
 
 	bool findfilePSPFSInfo(const PG::UTIL::File& file, filePSPFSInfo& infoOut) const;
 

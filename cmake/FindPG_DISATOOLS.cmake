@@ -1,0 +1,80 @@
+#
+# Try to find PG_DISATOOLS library and include path.
+# Once done this will define
+#
+# PG_DISATOOLS_FOUND
+# PG_DISATOOLS_INCLUDE_PATH
+# PG_DISATOOLS_LIBRARY
+# 
+
+if (MINGW)
+    FIND_PATH( PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h
+        ${DEPENDENCIES_PATH}/pg_disatools/mingw/include
+    )
+
+    FIND_LIBRARY( PG_DISATOOLS_LIBRARY
+        NAMES pg_disatools
+        PATHS
+        ${DEPENDENCIES_PATH}/pg_disatools/mingw/lib/static
+    )
+	
+	INSTALL(
+		DIRECTORY ${DEPENDENCIES_PATH}/pg_disatools/mingw/bin/
+		DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+		#FILES_MATCHING PATTERN "*.dll"
+	)
+
+elseif (MSVC)
+    FIND_PATH( PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h
+        ${DEPENDENCIES_PATH}/pg_disatools/msvc/include
+    )
+
+    FIND_LIBRARY( PG_DISATOOLS_LIBRARY
+        NAMES pg_disatools
+        PATHS
+        ${DEPENDENCIES_PATH}/pg_disatools/msvc/lib/static
+    )
+	
+	INSTALL(
+		DIRECTORY ${DEPENDENCIES_PATH}/pg_disatools/msvc/bin/
+		DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+		#FILES_MATCHING PATTERN "*.dll"
+	)
+elseif(UNIX)
+    FIND_PATH( PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h
+        ${DEPENDENCIES_PATH}/pg_disatools/unix/include
+    )
+
+    FIND_LIBRARY( PG_DISATOOLS_LIBRARY
+        NAMES pg_disatools
+        PATHS
+        ${DEPENDENCIES_PATH}/pg_disatools/unix/lib/static
+    )
+	
+	INSTALL(
+		DIRECTORY ${DEPENDENCIES_PATH}/pg_disatools/unix/bin/
+		DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+		#FILES_MATCHING PATTERN "*.dll"
+	)
+
+else()
+
+    FIND_PATH(PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h)
+    FIND_LIBRARY(PG_DISATOOLS_LIBRARY
+        NAMES pg_disatools
+    PATH_SUFFIXES dynamic)
+
+endif ()
+
+
+
+SET(PG_DISATOOLS_FOUND "NO")
+if (PG_DISATOOLS_INCLUDE_PATH AND PG_DISATOOLS_LIBRARY)
+	SET(PG_DISATOOLS_LIBRARIES ${PG_DISATOOLS_LIBRARY})
+	SET(PG_DISATOOLS_FOUND "YES")
+    message("EXTERNAL LIBRARY 'PG_DISATOOLS' FOUND")
+    message("PG_DISATOOLS_LIBRARY: " ${PG_DISATOOLS_LIBRARY})
+    message("PG_DISATOOLS_INCLUDE_PATH: " ${PG_DISATOOLS_INCLUDE_PATH})
+else()
+    message(SEND_ERROR "ERROR: EXTERNAL LIBRARY 'PG_DISATOOLS' NOT FOUND")
+endif (PG_DISATOOLS_INCLUDE_PATH AND PG_DISATOOLS_LIBRARY)
