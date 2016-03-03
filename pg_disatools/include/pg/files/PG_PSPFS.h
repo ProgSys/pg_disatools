@@ -56,8 +56,6 @@ public:
 	 * @return true on error
 	 */
 	PG_UTIL_API bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
-	PG_UTIL_API bool extract(const std::string& file, const std::string& targetFile) const;
-
 
 	PG_UTIL_API bool extractImage(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
 	/*!
