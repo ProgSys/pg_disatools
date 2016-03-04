@@ -21,30 +21,45 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
+#ifndef INCLUDE_PG_FILES_PG_MPP_H_
+#define INCLUDE_PG_FILES_PG_MPP_H_
 
-
-#include <iostream>
 #include <string>
-#include <pg/files/PG_IMY.h>
-#include <pg/files/PG_ImageFiles.h>
-#include <pg/files/PG_PSPFS.h>
+#include <vector>
+#include <pg/util/PG_File.h>
+#include <pg/util/PG_ApiUtil.h>
+#include <pg/util/PG_Exception.h>
 
-#define OUTSTR(x) std::cout << x << std::endl
+namespace PG {
+namespace FILE {
 
+struct fileMPPinfo{
+	PG::UTIL::File file;
+	bool isexternal = false;
 
-/*!
- * @brief Testing main method, just for testing.
- */
-int main(int argc, char* argv[]){
-	OUTSTR("Start");
+	unsigned int size = 0;
+	unsigned int offset = 0;
+};
 
-	//PG::UTIL::RGBAImage image;
-	//PG::FILE::uncompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.imy",image);
-	//PG::FILE::saveTGA("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.tga", image);
+class MPP {
+public:
+	MPP();
+	MPP(const PG::UTIL::File& file);
 
-	PG::FILE::PSPFS pspfile;
+	/*!
+	 * @brief Opens the given MPP file.
+	 * @return true on error
+	 */
+	PG_UTIL_API bool open(const PG::UTIL::File& file);
 
-	OUTSTR("Done");
+	virtual ~MPP();
+private:
+	PG::UTIL::File m_file;
+	std::vector<fileMPPinfo> m_fileMPPinfos;
+	bool m_changed = false;
+};
 
-	return 0;
-}
+} /* namespace FILE */
+} /* namespace PG */
+
+#endif /* INCLUDE_PG_FILES_PG_MPP_H_ */

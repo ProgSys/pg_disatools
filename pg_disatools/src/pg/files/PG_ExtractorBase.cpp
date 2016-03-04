@@ -22,29 +22,35 @@
  *	SOFTWARE.
  */
 
+#include <pg/files/PG_ExtractorBase.h>
 
-#include <iostream>
-#include <string>
-#include <pg/files/PG_IMY.h>
-#include <pg/files/PG_ImageFiles.h>
-#include <pg/files/PG_PSPFS.h>
+namespace PG {
+namespace FILE {
 
-#define OUTSTR(x) std::cout << x << std::endl
+fileInfo::fileInfo(){}
+fileInfo::fileInfo(const std::string& _name,unsigned int _size,unsigned int _offset):
+		name(_name),size(_size),offset(_offset){}
+fileInfo::fileInfo(const PG::UTIL::File& _name,unsigned int _size,unsigned int _offset):
+		name(_name),size(_size),offset(_offset){}
 
+ExtractorBase::ExtractorBase() {
+	// TODO Auto-generated constructor stub
 
-/*!
- * @brief Testing main method, just for testing.
- */
-int main(int argc, char* argv[]){
-	OUTSTR("Start");
-
-	//PG::UTIL::RGBAImage image;
-	//PG::FILE::uncompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.imy",image);
-	//PG::FILE::saveTGA("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.tga", image);
-
-	PG::FILE::PSPFS pspfile;
-
-	OUTSTR("Done");
-
-	return 0;
 }
+
+bool ExtractorBase::isChanged() const{
+	return m_changed;
+}
+
+const fileInfo& ExtractorBase::operator[](unsigned int index) const{
+	return get(index);
+}
+fileInfo* ExtractorBase::getDataPointer(unsigned int index) const{
+	return const_cast<fileInfo*>(&get(index));
+}
+
+ExtractorBase::~ExtractorBase() {
+}
+
+} /* namespace FILE */
+} /* namespace PG */

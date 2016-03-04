@@ -1,14 +1,4 @@
 /*
- * TX2.cpp
- *
- *  Created on: 29.02.2016
- *      Author: ProgSys
- */
-
-#include <pg/files/PG_TX2.h>
-#include <pg/files/PG_S3Compression.h>
-#include <pg/util/PG_Exception.h>
-/*
  * The MIT License (MIT)
  *
  *	Copyright (c) 2016 ProgSys
@@ -31,6 +21,10 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
+#include <pg/files/PG_TX2.h>
+#include <pg/files/PG_S3Compression.h>
+#include <pg/util/PG_Exception.h>
+
 
 #include <pg/util/PG_InStream.h>
 #include <pg/util/PG_ByteInFileStream.h>

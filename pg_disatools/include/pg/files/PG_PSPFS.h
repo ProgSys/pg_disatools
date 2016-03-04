@@ -1,8 +1,25 @@
 /*
- * PG_PSPFS.h
+ * The MIT License (MIT)
  *
- *  Created on: 01.03.2016
- *      Author: ProgSys
+ *	Copyright (c) 2016 ProgSys
+ *
+ *	Permission is hereby granted, free of charge, to any person obtaining a copy
+ *	of this software and associated documentation files (the "Software"), to deal
+ *	in the Software without restriction, including without limitation the rights
+ *	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *	copies of the Software, and to permit persons to whom the Software is
+ *	furnished to do so, subject to the following conditions:
+ *
+ *	The above copyright notice and this permission notice shall be included in all
+ *	copies or substantial portions of the Software.
+ *
+ *	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *	SOFTWARE.
  */
 
 #ifndef INCLUDE_PG_FILES_PG_PSPFS_H_
@@ -12,21 +29,51 @@
 #include <vector>
 #include <pg/util/PG_File.h>
 #include <pg/util/PG_ApiUtil.h>
-#include <pg/util/PG_Image.h>
+#include <pg/files/PG_ExtractorBase.h>
+#include <iostream>
 
 namespace PG {
 namespace FILE {
 
 struct filePSPFSInfo{
-	std::string name;
+
+	fileInfo baseInfo;
 	unsigned int unknown = 0; //TODO used for dat files witch are inside SUBDATA.DAT
-	unsigned int size = 0; //size in byte
-	unsigned int offset = 0; //offset from file beginning in byte
+
+
 	PG::UTIL::File externalFile; //extra info
 
 	filePSPFSInfo();
 
 	filePSPFSInfo(const filePSPFSInfo& info);
+
+	const PG::UTIL::File& getName() const{
+		return baseInfo.name;
+	}
+	unsigned int getSize() const{
+		return baseInfo.size;
+	}
+	unsigned int getOffset() const{
+		return baseInfo.offset;
+	}
+	const PG::UTIL::File& getExternalFile() const{
+		return externalFile;
+	}
+
+	void setName(const PG::UTIL::File& file){
+		baseInfo.name = file;
+	}
+	void setNameUnclean(std::string file);
+
+	void setSize(unsigned int size){
+		baseInfo.size = size;
+	}
+	void setOffset(unsigned int offset){
+		baseInfo.offset = offset;
+	}
+
+	void setAsDummy(unsigned int offset = 0);
+
 
 	bool isExternalFile() const;
 
@@ -35,7 +82,7 @@ struct filePSPFSInfo{
     bool operator < (const filePSPFSInfo& str) const;
 };
 
-class PSPFS {
+class PSPFS: public ExtractorBase {
 public:
 	PG_UTIL_API PSPFS();
 	PG_UTIL_API PSPFS(const PG::UTIL::File& file);
@@ -59,7 +106,7 @@ public:
 	 */
 	PG_UTIL_API bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
 
-	PG_UTIL_API bool extractImage(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
+	PG_UTIL_API unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const;
 	/*!
 	 * @brief Add a file into the archive. Changes will only be applied when you save.
 	 * @return true on error
@@ -82,22 +129,14 @@ public:
 
 	PG_UTIL_API void clear();
 
-	PG_UTIL_API bool isChanged() const;
 
 	PG_UTIL_API unsigned int size() const;
 
-	PG::UTIL::File getFile() const{
-		return m_file;
-	}
+	PG_UTIL_API PG::UTIL::File getOpendFile() const;
 
-	std::vector<filePSPFSInfo> const& getFileInfos() const{
-		return m_filePSPFSInfos;
-	}
+	PG_UTIL_API bool isEmpty() const;
 
-	filePSPFSInfo* getDataPointer(unsigned int index) const{
-		const filePSPFSInfo* f = &m_filePSPFSInfos[index];
-		return const_cast<filePSPFSInfo*>(f);
-	}
+	PG_UTIL_API const fileInfo& get(unsigned int index) const;
 
 	PG_UTIL_API virtual ~PSPFS();
 
@@ -107,7 +146,6 @@ private:
 
 	std::vector<filePSPFSInfo> m_filePSPFSInfos;
 	unsigned int m_originalFileSize = 0;
-	bool m_changed = false;
 
 	bool findfilePSPFSInfo(const PG::UTIL::File& file, filePSPFSInfo& infoOut) const;
 

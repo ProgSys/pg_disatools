@@ -1,8 +1,25 @@
 /*
- * PG_PSPFS.cpp
+ * The MIT License (MIT)
  *
- *  Created on: 01.03.2016
- *      Author: ProgSys
+ *	Copyright (c) 2016 ProgSys
+ *
+ *	Permission is hereby granted, free of charge, to any person obtaining a copy
+ *	of this software and associated documentation files (the "Software"), to deal
+ *	in the Software without restriction, including without limitation the rights
+ *	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *	copies of the Software, and to permit persons to whom the Software is
+ *	furnished to do so, subject to the following conditions:
+ *
+ *	The above copyright notice and this permission notice shall be included in all
+ *	copies or substantial portions of the Software.
+ *
+ *	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *	SOFTWARE.
  */
 
 #include <pg/files/PG_PSPFS.h>
@@ -20,19 +37,34 @@ namespace FILE {
 filePSPFSInfo::filePSPFSInfo(){}
 
 filePSPFSInfo::filePSPFSInfo(const filePSPFSInfo& info):
-		name(info.name), unknown(info.unknown), size(info.size), offset(info.offset), externalFile(info.externalFile)
+		baseInfo(info.baseInfo), unknown(info.unknown), externalFile(info.externalFile)
 {}
 
 bool filePSPFSInfo::isExternalFile() const{
 	return !externalFile.isEmpty();
 }
 
+void filePSPFSInfo::setNameUnclean(std::string file){
+	file = file.substr(0,file.find_first_of(char(0x00)));
+	std::transform(file.begin(), file.end(), file.begin(), ::toupper);
+	baseInfo.name = file;
+}
+
 std::string filePSPFSInfo::getFileExtention() const{
-	return PG::UTIL::File(name).getFileExtension();
+	return baseInfo.name.getFileExtension();
+}
+
+void filePSPFSInfo::setAsDummy(unsigned int offset){
+	externalFile.clear();
+	unknown = 0;
+	baseInfo.name = "DUMMY.DAT";
+	baseInfo.size = 5;
+	baseInfo.offset = offset;
+
 }
 
 bool filePSPFSInfo::operator< (const filePSPFSInfo& str) const{
-        return (size < str.size);
+        return (baseInfo.size < str.baseInfo.size);
 }
 
 
@@ -49,11 +81,8 @@ PSPFS::PSPFS(const std::string& file):
 
 
 bool PSPFS::open(const PG::UTIL::File& file){
-	 if(m_file_buffer.exists())
-		m_file_buffer.remove();
+	 clear();
 
-	 m_filePSPFSInfos.clear();
-	 m_changed = false;
 	 m_file = file;
 	 m_file_buffer = PG::UTIL::File(file.getPath()+"_buffer");
 
@@ -89,20 +118,17 @@ bool PSPFS::open(const PG::UTIL::File& file){
 		 //read the file infos
 		 for(unsigned int i = 0; i < number_of_files; ++i){
 			 filePSPFSInfo info;
-			 info.name = reader.readString(40);
-			 info.name = info.name.substr(0,info.name.find_first_of(char(0x00)));
-			 //PG::UTIL::trim(info.name);
-			 std::transform(info.name.begin(), info.name.end(), info.name.begin(), ::toupper);
-
+			 info.setNameUnclean(reader.readString(40));
 			 info.unknown  = reader.readUnsignedInt();
-			 info.size  = reader.readUnsignedInt();
-			 info.offset  = reader.readUnsignedInt();
+			 info.setSize(reader.readUnsignedInt());
+			 info.setOffset(reader.readUnsignedInt());
 
 			 //if(info.name != "DUMMY.DAT")
 			 m_filePSPFSInfos.push_back(info);
 		 }
 
 		 reader.close();
+		 m_originalFileSize = m_filePSPFSInfos.size();
 
 	 }catch (PG::UTIL::Exception& e) {
 		 PG_ERROR_STREAM("Couldn't read given PSPFS file '"<<file<<"': "<<e.what());
@@ -114,7 +140,6 @@ bool PSPFS::open(const PG::UTIL::File& file){
 		 return true;
 	 }
 
-	 m_originalFileSize = m_filePSPFSInfos.size();
 	 return false;
 
 }
@@ -124,7 +149,7 @@ bool PSPFS::exists(const PG::UTIL::File& file) const{
 	std::transform(name.begin(), name.end(), name.begin(), ::toupper);
 
 	auto it = std::find_if(m_filePSPFSInfos.begin(), m_filePSPFSInfos.end(), [name](const filePSPFSInfo& info){
-		return info.name == name;
+		return info.getName() == name;
 	});
 
 	if(it != m_filePSPFSInfos.end()){
@@ -139,7 +164,7 @@ bool PSPFS::findfilePSPFSInfo(const PG::UTIL::File& file, filePSPFSInfo& infoOut
 	std::transform(name.begin(), name.end(), name.begin(), ::toupper);
 	//PG_INFO_STREAM("Searching for '"<<name<<"'")
 	auto it = std::find_if(m_filePSPFSInfos.begin(), m_filePSPFSInfos.end(), [name](const filePSPFSInfo& info){
-		return info.name == name;
+		return info.getName() == name;
 	});
 
 	if(it != m_filePSPFSInfos.end()){
@@ -167,7 +192,7 @@ bool PSPFS::extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile
 		return true;
 	}
 
-	if(info.size == 0 || (info.offset < 16 && !info.isExternalFile())){
+	if(info.getSize() == 0 || (info.getOffset() < 16 && !info.isExternalFile())){
 		PG_ERROR_STREAM("File info is wrong!");
 		return true;
 	}
@@ -185,9 +210,9 @@ bool PSPFS::extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile
 
 			const unsigned file_size = reader.size();
 
-			if(info.size != file_size){
-				PG_WARN_STREAM("File '"<<info.externalFile<<"' size is different than expected! ("<<info.size<<" != "<<file_size<<")");
-				info.size = file_size;
+			if(info.getSize() != file_size){
+				PG_WARN_STREAM("File '"<<info.externalFile<<"' size is different than expected! ("<<info.getSize()<<" != "<<file_size<<")");
+				info.setSize(file_size);
 			}
 
 			if(file_size == 0){
@@ -195,12 +220,12 @@ bool PSPFS::extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile
 				return true;
 			}
 
-			c = new char[info.size];
-			reader.read(c, info.size);
+			c = new char[info.getSize()];
+			reader.read(c, info.getSize());
 			reader.close();
 
 			PG::UTIL::BinaryFileWriter writer(targetFile);
-			writer.write(c,info.size );
+			writer.write(c,info.getSize() );
 			writer.close();
 
 			delete[] c;
@@ -210,13 +235,13 @@ bool PSPFS::extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile
 		}else{
 			PG::UTIL::ByteInFileStream reader(m_file);
 
-			c = new char[info.size];
-			reader.seek(info.offset);
-			reader.read(c,info.size );
+			c = new char[info.getSize()];
+			reader.seek(info.getOffset());
+			reader.read(c,info.getSize() );
 			reader.close();
 
 			PG::UTIL::BinaryFileWriter writer(targetFile);
-			writer.write(c,info.size );
+			writer.write(c,info.getSize() );
 			writer.close();
 
 			delete[] c;
@@ -238,82 +263,46 @@ bool PSPFS::extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile
 
 }
 
-bool PSPFS::extractImage(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut, bool alpha) const{
+unsigned int PSPFS::extract(const PG::UTIL::File& file, char* (&data) ) const{
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No PSPFS file opened.");
-		return true;
-	}
-
-
-	if(file.getFileExtension() != "TX2"){
-		PG_ERROR_STREAM("Target file '"<<file<<"' is not a image!");
-		return true;
+		return 0;
 	}
 
 	filePSPFSInfo info;
 	if(findfilePSPFSInfo(file, info)){
 		PG_ERROR_STREAM("File '"<<file<<"' not found in archive!");
-		return true;
+		return 0;
 	}
 
-
-
-	char* c = nullptr;
+	data = nullptr;
 	try{
-
 		if(info.isExternalFile()){
 			PG::UTIL::ByteInFileStream reader(info.externalFile);
 			const unsigned int filesize = reader.size();
-			c = new char[filesize];
-			reader.read(c,filesize);
+			data = new char[filesize];
+			reader.read(data,filesize);
 			reader.close();
-
-			if(PG::FILE::decompressTX2(c,filesize, imageOut)){
-				PG_ERROR_STREAM("Coudn't load '"<<file<<"'!");
-				delete[] c;
-				c = nullptr;
-				return true;
-			}
-
-			delete[] c;
-			c = nullptr;
-
+			return filesize;
 		}else{
 			PG::UTIL::ByteInFileStream reader(m_file);
 
-			c = new char[info.size];
-			reader.seek(info.offset);
-			reader.read(c,info.size );
+			data = new char[info.getSize()];
+			reader.seek(info.getOffset());
+			reader.read(data,info.getSize() );
 			reader.close();
-
-			if(PG::FILE::decompressTX2(c,info.size ,imageOut)){
-				PG_ERROR_STREAM("Coudn't load '"<<file<<"'!");
-				delete[] c;
-				c = nullptr;
-				return true;
-			}
-
-			delete[] c;
-			c = nullptr;
+			return info.getSize();
 		}
 	}catch (PG::UTIL::Exception& e) {
 		PG_ERROR_STREAM("Couldn't write file '"<<file<<"': "<<e.what());
-		if(c) delete[] c;
-		return true;
+		if(data) delete[] data;
+		return 0;
 	}catch (...) {
 		PG_ERROR_STREAM("Couldn't write file '"<<file<<"'!");
-		if(c) delete[] c;
-		return true;
+		if(data) delete[] data;
+		return 0;
 	}
-
-	if(!alpha){
-		for(PG::UTIL::rgba& rgba: imageOut){
-			rgba.a = 255;
-		}
-	}
-
-	return false;
-
+	return 0;
 }
 
 bool PSPFS::insert(const PG::UTIL::File& file){
@@ -328,25 +317,26 @@ bool PSPFS::insert(const PG::UTIL::File& file){
 	}
 
 	filePSPFSInfo addFile;
-	addFile.name = file.getFile();
-	if(addFile.name.size() > 40){
+	std::string name = file.getFile();
+	if(name.size() > 40){
 		PG_ERROR_STREAM("File name is too big, max 28 chars!");
 		return true;
 	}
-	std::transform(addFile.name.begin(), addFile.name.end(), addFile.name.begin(), ::toupper);
+	std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+	addFile.setName(name);
 
-	if(m_file.getFile() == "DUMMY.DAT"){
+	if(name == "DUMMY.DAT"){
 		PG_ERROR_STREAM("You can't add a file with the name DUMMY.DAT.");
 		return true;
 	}
 
 
 	addFile.externalFile = file;
-	addFile.size = file.size();
+	addFile.setSize(file.size());
 
 	//file is already inside?
 	auto it = std::find_if(m_filePSPFSInfos.begin(), m_filePSPFSInfos.end(), [addFile](const filePSPFSInfo& info){
-		return info.name == addFile.name;
+		return info.getName() == addFile.getName();
 	});
 
 
@@ -355,7 +345,7 @@ bool PSPFS::insert(const PG::UTIL::File& file){
 	}else{
 		//replace a dummy file or add at end
 		it = std::find_if(m_filePSPFSInfos.begin(), m_filePSPFSInfos.end(), [addFile](const filePSPFSInfo& info){
-			return info.name == "DUMMY.DAT";
+			return info.getName() == "DUMMY.DAT";
 		});
 
 		if(it != m_filePSPFSInfos.end()){
@@ -382,7 +372,7 @@ bool PSPFS::remove(const PG::UTIL::File& file){
 	}
 
 	auto it = std::find_if(m_filePSPFSInfos.begin(), m_filePSPFSInfos.end(), [name](const filePSPFSInfo& info){
-		return info.name == name;
+		return info.getName() == name;
 	});
 
 	if(it != m_filePSPFSInfos.end()){
@@ -390,9 +380,7 @@ bool PSPFS::remove(const PG::UTIL::File& file){
 		if(std::distance(m_filePSPFSInfos.begin(), it) > m_originalFileSize){
 			m_filePSPFSInfos.erase(it);
 		}else{
-			(*it).name = "DUMMY.DAT";
-			(*it).size = 5;
-			(*it).externalFile.clear();
+			(*it).setAsDummy();
 		}
 
 		m_changed = true;
@@ -491,12 +479,9 @@ bool PSPFS::save(const PG::UTIL::File& targetfile){
 			filePSPFSInfo current_info = info; //copy info
 
 			if(current_info.isExternalFile()){
-				if(current_info.size == 0 || current_info.name.empty() ||!current_info.externalFile.exists()){
+				if(current_info.getSize() == 0 || current_info.getName().isEmpty() ||!current_info.externalFile.exists()){
 					PG_WARN_STREAM("External file '"<<current_info.externalFile<<"' doesn't exist! Writing empty dummy file instead!");
-					current_info.name = "DUMMY.DAT";
-					current_info.offset = next_file_offset;
-					current_info.size = 5;
-					current_info.externalFile.clear();
+					current_info.setAsDummy(next_file_offset);
 					writeDUMMY(writer,next_header_offset,next_file_offset, dummy_traget_offset );
 				}else{
 					PG_INFO_STREAM("Adding external file '"<<current_info.externalFile<<"'.");
@@ -508,66 +493,63 @@ bool PSPFS::save(const PG::UTIL::File& targetfile){
 					if(file_size == 0)
 						PG_WARN_STREAM("File '"<<current_info.externalFile<<"' has a size of zero!");
 
-					if(info.size != file_size){
-						PG_WARN_STREAM("File '"<<current_info.externalFile<<"' size is different than expected! ("<<current_info.size<<" != "<<file_size<<")");
-						current_info.size = file_size;
+					if(info.getSize() != file_size){
+						PG_WARN_STREAM("File '"<<current_info.externalFile<<"' size is different than expected! ("<<current_info.getSize()<<" != "<<file_size<<")");
+						current_info.setSize(file_size);
 					}
 
 					//write header
 					writer.setPosition(next_header_offset);
-					writer.writeString(current_info.name);
-					for(unsigned short i = (unsigned short)current_info.name.size(); i < 40; ++i) //fill rest with 0
+					writer.writeString(current_info.getName().getPath());
+					for(unsigned short i = (unsigned short)current_info.getName().getPath().size(); i < 40; ++i) //fill rest with 0
 						writer.writeChar(0);
 
 					writer.writeInt(current_info.unknown);
-					writer.writeInt(current_info.size);
+					writer.writeInt(current_info.getSize());
 					writer.writeInt(next_file_offset);
-					current_info.offset = next_file_offset;
+					current_info.setOffset(next_file_offset);
 					next_header_offset += 52;
 
 					//write file
 					writer.setPosition(next_file_offset);
-					c = new char[current_info.size];
-					reader_file.read(c,current_info.size);
+					c = new char[current_info.getSize()];
+					reader_file.read(c,current_info.getSize());
 					reader_file.close();
-					writer.write(c, current_info.size);
+					writer.write(c, current_info.getSize());
 					delete[] c;
 					c = nullptr;
-					next_file_offset += current_info.size;
+					next_file_offset += current_info.getSize();
 					current_info.externalFile.clear();
 				}
 
 			}else{
-
-				if(current_info.size == 0 || current_info.name.empty() || current_info.name == "DUMMY.DAT"){
-					current_info.name = "DUMMY.DAT";
-					current_info.offset = next_file_offset;
-					current_info.size = 5;
-					current_info.externalFile.clear();
+				//PG_INFO_STREAM(current_info.getName()<<" o: "<<current_info.getOffset()<<" s: "<<current_info.getSize());
+				if(current_info.getSize() == 0 || current_info.getName().isEmpty() || current_info.getName() == "DUMMY.DAT"){
+					current_info.setAsDummy(next_file_offset);
 					writeDUMMY(writer,next_header_offset,next_file_offset,dummy_traget_offset );
 				}else{
 
 					//write header
 					writer.setPosition(next_header_offset);
-					writer.writeString(current_info.name);
-					for(unsigned short i = (unsigned short)current_info.name.size(); i < 40; ++i) //fill rest with 0
+					writer.writeString(current_info.getName().getFile());
+					for(unsigned short i = (unsigned short)current_info.getName().getPath().size(); i < 40; ++i) //fill rest with 0
 						writer.writeChar(0);
 
 					writer.writeInt(current_info.unknown);
-					writer.writeInt(current_info.size);
+					writer.writeInt(current_info.getSize());
 					writer.writeInt(next_file_offset);
 					next_header_offset += 52;
 
 					//write file
 					writer.setPosition(next_file_offset);
-					reader_dat.seek(current_info.offset);
-					current_info.offset = next_file_offset;
-					c = new char[current_info.size];
-					reader_dat.read(c,current_info.size);
-					writer.write(c, current_info.size);
+					reader_dat.seek(current_info.getOffset());
+					current_info.setOffset(next_file_offset);
+					c = new char[current_info.getSize()];
+					reader_dat.read(c,current_info.getSize());
+					writer.write(c, current_info.getSize());
 					delete[] c;
 					c = nullptr;
-					next_file_offset += current_info.size;
+					next_file_offset += current_info.getSize();
 				}
 
 				file_infos.push_back(current_info);
@@ -599,193 +581,6 @@ bool PSPFS::save(const PG::UTIL::File& targetfile){
 
 	return false;
 
-	/*
-	if(m_file.isEmpty()){
-		PG_ERROR_STREAM("No PSPFS file opened.");
-		return true;
-	}
-
-	//do we overwrite the old file or do we create a new one
-	PG::UTIL::File target;
-	bool overwrite = false;
-	if(targetfile == m_file){
-		overwrite = true;
-		target = m_file_buffer;
-	}else{
-		target = targetfile;
-	}
-
-	//create a butter for file infos
-	std::vector<filePSPFSInfo> fileinfos;
-	fileinfos.reserve((unsigned int)m_filePSPFSInfos.size());
-
-	char* c = nullptr;
-
-	try{
-		PG::UTIL::BinaryFileWriter writer(target);
-		writer.writeString("PSPFS_V1"); //write magic number
-
-		writer.writeInt(m_filePSPFSInfos.size()); //number of files - this number gets letter rewritten my filePSPFSInfos.size()
-		writer.writeInt(0); // mystery int
-
-		unsigned int headerOffset = writer.getPosition(); //get the first header position
-
-		c = new char[52](); // each header is exactly 52 byte long
-		//allocate header space
-		for(unsigned int i = 0; i < m_filePSPFSInfos.size()+40; ++i){
-			writer.write(c,52);
-		}
-		delete[] c;
-		c = nullptr;
-
-		unsigned int fileOffset = writer.getPosition(); // the position where we start to write the data of the files
-
-		//open the .DAT file
-		PG::UTIL::ByteInFileStream reader(m_file);
-
-		//DUMMY FILE Counter, we add a Empty DUMMY file every ~260 files, because the game needs them
-		//for what ever reason
-		int dummy_add_count = 0;
-		unsigned int dummy_files_added = 0;
-
-		//write header
-		for(const filePSPFSInfo& fileinfo: m_filePSPFSInfos){
-
-			dummy_add_count--;
-			if(dummy_add_count <= 0){
-				dummy_add_count = 275;
-				//we are adding a dummy file!
-				writer.setPosition(headerOffset);
-				writer.writeString("DUMMY.DAT");
-				for(unsigned short i = 9; i < 40; ++i) //fill rest with 0
-					writer.writeChar(0);
-				writer.writeInt(0);
-				writer.writeInt(5); //we set the size to 5 even thogh the size itself is bigger
-				writer.writeInt(fileOffset+876);
-				headerOffset += 52;
-
-				writer.setPosition(fileOffset);
-
-				c = new char[1396]();
-				c[876] = 'D';
-				c[877] = 'U';
-				c[878] = 'M';
-				c[879] = 'M';
-				c[880] = 'Y';
-				writer.write(c,1396);
-				fileOffset += 1396;
-
-				delete[] c;
-				c = nullptr;
-
-				dummy_files_added++;
-			}
-
-			writer.setPosition(headerOffset);
-			//copy the fileinfo
-			filePSPFSInfo infoCopy = fileinfo;
-
-			// There are two cases A the file comes from a external file witch was insert or B it comes from the original DATA.DAT file
-			if(infoCopy.isExternalFile()){
-				//copy from a file
-				if(!infoCopy.externalFile.exists()){ //test if file exists else just skip it
-						PG_WARN_STREAM("External file '"<<infoCopy.externalFile<<"' doesn't exist! Skipping it!");
-						continue;
-					}
-
-				PG::UTIL::ByteInFileStream fileReader(infoCopy.externalFile);
-				const unsigned file_size = fileReader.size();
-
-				// check if valid
-				if(file_size == 0){
-					PG_WARN_STREAM("File '"<<infoCopy.externalFile<<"' has a size of zero! Skipping it!");
-					continue;
-				}
-
-				if(infoCopy.size != file_size){
-					PG_WARN_STREAM("File '"<<infoCopy.externalFile<<"' size is different than expected! ("<<infoCopy.size<<" != "<<file_size<<")");
-					infoCopy.size = file_size;
-				}
-
-
-				//write header
-				writer.writeString(infoCopy.name);
-				for(unsigned short i = (unsigned short)infoCopy.name.size(); i < 40; ++i) //fill rest with 0
-					writer.writeChar(0);
-				writer.writeInt(infoCopy.unknown);
-				writer.writeInt(infoCopy.size);
-				writer.writeInt(fileOffset);
-				infoCopy.offset = fileOffset;
-
-				writer.setPosition(fileOffset);
-				fileOffset += infoCopy.size;
-				headerOffset += 52;
-
-				c = new char[infoCopy.size];
-				fileReader.read(c, infoCopy.size);
-				fileReader.close();
-				writer.write(c, infoCopy.size);
-
-				delete[] c;
-				c = nullptr;
-
-				infoCopy.externalFile.clear();
-
-			}else{
-				//copy from original .DAT
-
-				writer.writeString(infoCopy.name);
-				for(unsigned short i = (unsigned short)infoCopy.name.size(); i < 40; ++i) //fill rest with 0
-					writer.writeChar(0);
-
-				writer.writeInt(infoCopy.unknown);
-				writer.writeInt(infoCopy.size);
-				writer.writeInt(fileOffset);
-
-				reader.seek(infoCopy.offset);
-				writer.setPosition(fileOffset);
-
-				infoCopy.offset = fileOffset;
-
-				fileOffset += infoCopy.size;
-				headerOffset += 52;
-
-				c = new char[infoCopy.size];
-				reader.read(c, infoCopy.size);
-				writer.write(c, infoCopy.size);
-
-				delete[] c;
-				c = nullptr;
-			}
-
-			fileinfos.push_back(infoCopy);
-		}
-
-		writer.setPosition(8);
-
-		writer.writeInt(fileinfos.size()+dummy_files_added);
-		PG_INFO_STREAM("dummy_files_added: "<<dummy_files_added);
-		reader.close();
-		writer.close();
-	 }catch (PG::UTIL::Exception& e) {
-		 PG_ERROR_STREAM("Couldn't save PSPFS archive! : "<<e.what());
-		 target.remove();
-		 return true;
-	 }catch (...) {
-		 PG_ERROR_STREAM("Couldn't save PSPFS archive!");
-		 target.remove();
-		 return true;
-	}
-
-	 if(overwrite){
-		 m_file.remove();
-		 target.rename(m_file.getPath());
-		 m_filePSPFSInfos = fileinfos;
-	 }
-
-	 m_changed = false;
-	 return false;
-	 */
 }
 
 void PSPFS::clear(){
@@ -795,14 +590,23 @@ void PSPFS::clear(){
 	m_file.clear();
 	m_filePSPFSInfos.clear();
 	m_changed = false;
-}
-
-bool PSPFS::isChanged() const{
-	return m_changed;
+	m_originalFileSize = 0;
 }
 
 unsigned int PSPFS::size() const{
 	return m_filePSPFSInfos.size();
+}
+
+PG::UTIL::File PSPFS::getOpendFile() const{
+	return m_file;
+}
+
+bool PSPFS::isEmpty() const{
+	return m_filePSPFSInfos.empty();
+}
+
+const fileInfo& PSPFS::get(unsigned int index) const{
+	return m_filePSPFSInfos[index].baseInfo;
 }
 
 PSPFS::~PSPFS(){

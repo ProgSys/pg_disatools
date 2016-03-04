@@ -27,7 +27,7 @@
 #include <pg/files/PG_PSPFS.h>
 #include <string>
 #include <vector>
-
+#include <pg/util/PG_Image.h>
 
 class TreeModel : public QAbstractItemModel
 {
@@ -69,6 +69,8 @@ private:
 
     std::vector<std::string> m_hideExtentions;
 
+
+    bool getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
 
 };
 

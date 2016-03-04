@@ -22,8 +22,8 @@
 #include <iostream>
 #include <QGraphicsPixmapItem>
 #include <QFileInfo>
-#include <pg/util/PG_Image.h>
 #include <pg/files/PG_ImageFiles.h>
+#include <pg/files/PG_TX2.h>
 
 TreeModel::TreeModel(QObject *parent)
     :QAbstractItemModel(parent){
@@ -104,21 +104,51 @@ bool TreeModel::save(){
 	else{
 		//if saving faled try to reopen it
 		QAbstractItemModel::layoutAboutToBeChanged();
-		PG::UTIL::File file = m_pspfsFile.getFile();
+		PG::UTIL::File file = m_pspfsFile.getOpendFile();
 		return m_pspfsFile.open(file);
 		QAbstractItemModel::layoutChanged();
 	}
 }
 
-bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) const{
-	PG::UTIL::RGBAImage img;
-	if(m_pspfsFile.extractImage(file.toStdString(), img, false)){
+bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha) const{
+	QFileInfo info(file);
+	if(info.suffix() != "TX2"){
+		qInfo() << "File is not a TX2: '"<<file<<"'";
+		return true;
+	}
+
+	char * c = nullptr;
+	unsigned int sile_size = 0;
+	if( (sile_size = m_pspfsFile.extract(file.toStdString(), c)) == 0){
 		qInfo() << "Couldn't extract image file: '"<<file<<"'";
 		return true;
 	}
 
-	if(img.getWidth() == 0 || img.getHeight() == 0){
-		qInfo() << "PG_Image width or height is zero!";
+	if(PG::FILE::decompressTX2(c, sile_size, imageOut)){
+		qInfo() << "Couldn't decompress TX2 image file: '"<<file<<"'";
+		if(c) delete[] c;
+		return true;
+	}
+	if(c) delete[] c;
+
+	if(imageOut.getWidth() == 0 || imageOut.getHeight() == 0){
+		qInfo() << "Image has width or height is zero!";
+		return true;
+	}
+
+	if(!alpha){
+		for(PG::UTIL::rgba& rgba: imageOut){
+			rgba.a = 255;
+		}
+	}
+
+	return false;
+}
+
+bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) const{
+	PG::UTIL::RGBAImage img;
+	if(getImage(file, img, false)){
+		qInfo() << "Couldn't open image file: '"<<file<<"'";
 		return true;
 	}
 
@@ -157,20 +187,20 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
     if (role != Qt::DisplayRole)
         return QVariant();
 
-    const PG::FILE::filePSPFSInfo *item = static_cast<const PG::FILE::filePSPFSInfo*>(index.internalPointer());
+    const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
 
     if(item == nullptr)
     	 return QVariant();
 
     switch (index.column()) {
     		case 0:
-    				return QVariant(QString::fromStdString(item->name));
+    				return QVariant(QString::fromStdString(item->name.getPath()));
     			break;
     		case 1:
     				return QVariant(item->size);
     			break;
     		case 2:
-    				return QVariant(QString::fromStdString(item->getFileExtention()));
+    				return QVariant(QString::fromStdString(item->name.getFileExtension()));
     			break;
     		default:
     			return QModelIndex();
@@ -211,10 +241,10 @@ QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) con
     if (!hasIndex(row, column, parent))
         return QModelIndex();
 
-    if(row >= m_pspfsFile.getFileInfos().size())
+    if(row >= m_pspfsFile.size())
     	return QModelIndex();
 
-    PG::FILE::filePSPFSInfo* info = m_pspfsFile.getDataPointer(row);
+    PG::FILE::fileInfo* info = m_pspfsFile.getDataPointer(row);
 
     return createIndex(row, column, info); //QModelIndex( file );
 
@@ -232,7 +262,7 @@ int TreeModel::rowCount(const QModelIndex &parent) const{
 	if (parent.isValid())
 		 return 0;
 
-	return m_pspfsFile.getFileInfos().size();
+	return m_pspfsFile.size();
 }
 
 bool TreeModel::saveFile(){
@@ -245,7 +275,7 @@ bool TreeModel::saveFileAs(const QString& filepath){
     else{
         //if saving faled try to reopen it
         QAbstractItemModel::layoutAboutToBeChanged();
-        PG::UTIL::File file = m_pspfsFile.getFile();
+        PG::UTIL::File file = m_pspfsFile.getOpendFile();
         return m_pspfsFile.open(file);
         QAbstractItemModel::layoutChanged();
     }
@@ -255,13 +285,8 @@ bool TreeModel::saveFileAs(const QString& filepath){
 
 bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
 	PG::UTIL::RGBAImage img;
-	if(m_pspfsFile.extractImage(imagename.toStdString(), img, true)){
+	if(getImage(imagename, img, true)){
 		qInfo() << "Couldn't extract image file: '"<<imagename<<"'";
-		return false;
-	}
-
-	if(img.getWidth() == 0 || img.getHeight() == 0){
-		qInfo() << "PG_Image width or height is zero!";
 		return false;
 	}
 
