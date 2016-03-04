@@ -29,42 +29,48 @@
 namespace PG {
 namespace FILE {
 
-void saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image){
-	PG::UTIL::BinaryFileWriter writer(filepath);
-	writer.writeInt(131072);
-	writer.writeInt(0);
-	writer.writeInt(0);
-	writer.writeShort(image.getWidth());
-	writer.writeShort(image.getHeight());
-	writer.writeShort(2080);
+bool saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image){
+	try{
+		PG::UTIL::BinaryFileWriter writer(filepath);
+		writer.writeInt(131072);
+		writer.writeInt(0);
+		writer.writeInt(0);
+		writer.writeShort(image.getWidth());
+		writer.writeShort(image.getHeight());
+		writer.writeShort(2080);
 
 
-	for(unsigned int y = 0; y < image.getHeight(); ++y ){
-		for(unsigned int x = 0; x < image.getWidth(); ++x ){
-			const unsigned int index = ((image.getHeight()-y-1)*image.getWidth()+x); //y-flip
-			const PG::UTIL::rgba& pix = image[index];
+		for(unsigned int y = 0; y < image.getHeight(); ++y ){
+			for(unsigned int x = 0; x < image.getWidth(); ++x ){
+				const unsigned int index = ((image.getHeight()-y-1)*image.getWidth()+x); //y-flip
+				const PG::UTIL::rgba& pix = image[index];
 
-			writer.writeChar(pix.b);
-			writer.writeChar(pix.g);
-			writer.writeChar(pix.r);
-			writer.writeChar(pix.a);
+				writer.writeChar(pix.b);
+				writer.writeChar(pix.g);
+				writer.writeChar(pix.r);
+				writer.writeChar(pix.a);
+			}
 		}
-	}
 
-	writer.writeLongLong(0);
-	writer.writeLongLong(0);
-	writer.writeString("TRUEVISION-XFILE.");
+		writer.writeLongLong(0);
+		writer.writeLongLong(0);
+		writer.writeString("TRUEVISION-XFILE.");
+	}catch (PG::UTIL::Exception& e) {
+		 PG_ERROR_STREAM("Couldn't save TGA Image! : "<<e.what());
+		 return false;
+	}catch (...) {
+		 PG_ERROR_STREAM("Couldn't save TGA Image!");
+		 return false;
+	}
+	return true;
 }
 
-/*!
- * @brief Will load a simple TGA8888 image.
- */
-void loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
+bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 	PG::UTIL::ByteInFileStream reader(filepath);
 
 	if(reader.readUnsignedInt() != 131072){
 		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
-		return;
+		return false;
 	}
 	reader.readUnsignedInt();
 	reader.readUnsignedInt();
@@ -73,7 +79,7 @@ void loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 
 	if(reader.readUnsignedShort() != 2080){
 		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
-		return;
+		return false;
 	}
 
 	imageOut.resize(width, height);
@@ -90,9 +96,10 @@ void loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 		}
 	}
 
+	return true;
 }
 
-void savePGM(const std::string& filepath, const PG::UTIL::RGBAImage& image){
+bool savePGM(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 	//return savePPM(outfilename);
 	PG::UTIL::BinaryFileWriter writer(filepath);
 	std::stringstream o;
@@ -104,6 +111,7 @@ void savePGM(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 		writer.writeChar(pix.g);
 		writer.writeChar(pix.b);
 	}
+	return true;
 }
 
 } /* namespace FILE */

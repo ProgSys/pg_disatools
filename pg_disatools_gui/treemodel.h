@@ -61,6 +61,7 @@ public:
 public slots:
     bool saveFile();
     bool saveFileAs(const QString& filepath);
+    bool saveImage(const QString& imagename, const QString& targetfile);
 
 private:
 

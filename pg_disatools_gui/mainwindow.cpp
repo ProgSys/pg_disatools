@@ -72,9 +72,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     scene = new QGraphicsScene(this);
     ui->imagePreview->setScene(scene);
-    //ui->imagePreview->fitInView(scene->itemsBoundingRect() ,Qt::KeepAspectRatio);
+    QAction* save_image = new QAction("Save Image...",  ui->imagePreview);
+    ui->imagePreview->addAction(save_image);
+
+    connect(save_image, SIGNAL(triggered()), this, SLOT(saveSelectedImage()));
 
     ui->statusBar->showMessage("Please open a .DAT or .MPP.");
+
+
+    connect(this, SIGNAL(saveImage(const QString&, const QString&)), m_treeModel, SLOT(saveImage(const QString&, const QString&)));
+    connect(ui->btnExtractImage, SIGNAL(clicked()), this, SLOT(saveSelectedImage()));
 }
 
 MainWindow::~MainWindow()
@@ -193,25 +200,62 @@ void MainWindow::on_checkBox_TX2_clicked(bool checked)
 }
 
 void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel){
-
-
 	QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
 	//qDebug() << selected.size();
 	if(selected.isEmpty() || !selected[0].isValid()){
 		 ui->btnExtract->setEnabled(false);
 		 ui->btnDelete->setEnabled(false);
+		 scene->clear();
+		 ui->imagePreview->setShowsImage(false);
 		return;
 	}
 
 	 ui->btnExtract->setEnabled(true);
 	 ui->btnDelete->setEnabled(true);
 
+
+		QMap<int, QVariant> item = m_treeSort->itemData(selected[0]);
+        QString itemName = item[0].toString();
+        if( itemName.contains(".TX2")){
+            ui->btnExtractImage->setEnabled(true);
+            ui->btnExtractImage->setText(QString("Export %1").arg(itemName));
+            if(ui->imagePreview->isPreviewEnabled()){
+                qDebug() << "Trying to open image preview: "<<itemName;
+                m_treeModel->setGraphicsScene(itemName,scene);
+                ui->imagePreview->fitInView(scene->itemsBoundingRect() ,Qt::KeepAspectRatio);
+                ui->imagePreview->setShowsImage(true);
+            }else{
+                scene->clear();
+            }
+		}else{
+			scene->clear();
+            ui->btnExtractImage->setEnabled(false);
+		}
+
+}
+
+void MainWindow::saveSelectedImage(){
+	QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
+	if(selected.isEmpty() || !selected[0].isValid()) return;
 	QMap<int, QVariant> item = m_treeSort->itemData(selected[0]);
-	if( item[0].toString().contains(".TX2")){
-		qDebug() << "Trying to open image preview: "<<item[0].toString();
-		m_treeModel->setGraphicsScene(item[0].toString(),scene);
-		ui->imagePreview->fitInView(scene->itemsBoundingRect() ,Qt::KeepAspectRatio);
+
+	QString image = item[0].toString();
+	if(!image.contains(".TX2")) return;
+
+
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save Image"),
+	                                   "",
+	                                   tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif);;TGA (*.tga);;PGM (*.pgm)"));
+
+	if (fileName.isEmpty()) return;
+
+
+	if(emit saveImage(image, fileName)){
+		ui->statusBar->showMessage(QString("Image saved to %1").arg(fileName));
+	}else{
+		ui->statusBar->showMessage("Coudn't export image!");
 	}
+
 }
 
 void MainWindow::on_treeView_clicked(const QModelIndex &index)
@@ -374,3 +418,8 @@ void MainWindow::on_btnDelete_clicked()
 	}
 }
 
+
+void MainWindow::on_btnExtractImage_clicked()
+{
+	//saveSelectedImage();
+}

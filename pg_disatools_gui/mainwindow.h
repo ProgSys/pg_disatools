@@ -99,6 +99,13 @@ public slots:
 signals:
 	bool saveFile();
 	bool saveFileAs(const QString& filepath);
+	bool saveImage(const QString& imagename, const QString& targetfile);
+
+private slots:
+    void on_btnExtractImage_clicked();
+
+private slots:
+	void saveSelectedImage();
 
 private slots:
     void on_btnAboutQt_clicked();

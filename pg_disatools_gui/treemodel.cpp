@@ -21,7 +21,9 @@
 
 #include <iostream>
 #include <QGraphicsPixmapItem>
+#include <QFileInfo>
 #include <pg/util/PG_Image.h>
+#include <pg/files/PG_ImageFiles.h>
 
 TreeModel::TreeModel(QObject *parent)
     :QAbstractItemModel(parent){
@@ -116,7 +118,7 @@ bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) con
 	}
 
 	if(img.getWidth() == 0 || img.getHeight() == 0){
-		qInfo() << "PG_Image width ot height is zero!";
+		qInfo() << "PG_Image width or height is zero!";
 		return true;
 	}
 
@@ -249,6 +251,34 @@ bool TreeModel::saveFileAs(const QString& filepath){
     }
 
     return false;
+}
+
+bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
+	PG::UTIL::RGBAImage img;
+	if(m_pspfsFile.extractImage(imagename.toStdString(), img, true)){
+		qInfo() << "Couldn't extract image file: '"<<imagename<<"'";
+		return false;
+	}
+
+	if(img.getWidth() == 0 || img.getHeight() == 0){
+		qInfo() << "PG_Image width or height is zero!";
+		return false;
+	}
+
+	qDebug() <<" Trying to export image '"<<imagename<<"' to '"<<targetfile<<"'.";
+
+	QFileInfo fInfo(targetfile);
+	QString ext = fInfo.suffix();
+	if( ext == "tga"){
+		return PG::FILE::saveTGA(targetfile.toStdString(), img);
+	}else if(ext == "pgm"){
+		return PG::FILE::savePGM(targetfile.toStdString(), img);
+	}else{
+		QImage qimg( &(img[0].r), img.getWidth() , img.getHeight(), QImage::Format_RGBA8888 );
+		return qimg.save(targetfile, 0, 100);
+	}
+
+
 }
 
 int TreeModel::columnCount(const QModelIndex &parent) const{
