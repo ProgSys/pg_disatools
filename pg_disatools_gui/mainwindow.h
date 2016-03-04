@@ -100,6 +100,9 @@ signals:
 	bool saveFileAs(const QString& filepath);
 
 private slots:
+    void on_btnAboutQt_clicked();
+
+private slots:
     void on_btnSaveAs_clicked();
 
 private:

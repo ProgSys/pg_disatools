@@ -25,48 +25,24 @@
 
 #include <iostream>
 #include <string>
-#include <pg/files/PG_PSPFS.h>
+#include <pg/files/PG_IMY.h>
+#include <pg/files/PG_ImageFiles.h>
 
 
 #define OUTSTR(x) std::cout << x << std::endl
 
-
-void doSomething(){
-	PG::FILE::PSPFS("file");
-}
 
 /*!
  * @brief Testing main method, just for testing.
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
-	PG::FILE::PSPFS pspfs("C:/Users/ProgSys/Desktop/Disgaea/PC/DATA.DAT");
 
-	for(const PG::FILE::filePSPFSInfo& info: pspfs.getFileInfos()){
-		OUTSTR("'"<<info.name <<"'  "<<info.size);
-	}
-	/*
-	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.TX2";
-	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/BU3202.tga";
+	PG::UTIL::RGBAImage image;
+	PG_MARK;
+	PG::FILE::uncompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.imy",image);
+	PG::FILE::saveTGA("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.tga", image);
 
-	std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/mppTex.tx2";
-	std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/mppTex.tga";
-
-
-	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/alphatest.TX2";
-	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/alphatest.tga";
-
-
-	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/32gradDXT1.vtf";
-	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/32gradDXT1.ppm";
-
-	//std::string target = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/2BlockDXT1.vtf";
-	//std::string out = "C:/Users/ProgSys/Desktop/Disgaea/texture_analys/2BlockDXT1.ppm";
-
-	PG::FILE::S3File file(target);
-	file.save(out, PG::FILE::S3File::TGA);
-
-	*/
 	OUTSTR("Done");
 
 	return 0;

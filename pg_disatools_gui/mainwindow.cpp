@@ -72,6 +72,8 @@ MainWindow::MainWindow(QWidget *parent) :
     scene = new QGraphicsScene(this);
     ui->imagePreview->setScene(scene);
     //ui->imagePreview->fitInView(scene->itemsBoundingRect() ,Qt::KeepAspectRatio);
+
+    ui->statusBar->showMessage("Please open a .DAT or .MPP.");
 }
 
 MainWindow::~MainWindow()
@@ -85,25 +87,33 @@ void MainWindow::on_btnAbout_clicked()
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setWindowTitle("About");
     //msgBox.setWindowIcon(QMessageBox::Information);
-    msgBox.setText("About");
-    msgBox.setInformativeText(
-                "This tool allows you to add and extract files form the Disgaea PC pspfs_v1 archive. \n" \
-                "\nCopyright (C) 2016  ProgSys"\
-                "\n\nThis program is free software: you can redistribute it and/or modify"\
-                "\nit under the terms of the GNU General Public License as published by"\
-                "\nthe Free Software Foundation, either version 3 of the License, or"\
-                "\n(at your option) any later version."\
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setText(
+                "This tool allows you to add and extract files form the Disgaea PC pspfs_v1 archive. <br>" \
+				"You can find the source code here: <a href='https://github.com/ProgSys/pg_disatools/'>https://github.com/ProgSys/pg_disatools</a><br>"
+                "<br><b>GNU Lesser General Public License (LGPL):</b> <br>"
+				"<br>Copyright (C) 2016  ProgSys"\
+                "<br><br>This program is free software: you can redistribute it and/or modify"\
+                "<br>it under the terms of the GNU Lesser General Public License as published by"\
+                "<br>the Free Software Foundation, version 3 of the License."\
 
-                "\n\nThis program is distributed in the hope that it will be useful,"\
-                "\nbut WITHOUT ANY WARRANTY; without even the implied warranty of"\
-                "\nMERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"\
-                "\nGNU General Public License for more details."\
+                "<br><br>This program is distributed in the hope that it will be useful,"\
+                "<br>but WITHOUT ANY WARRANTY; without even the implied warranty of"\
+                "<br>MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the"\
+                "<br>GNU Lesser General Public License for more details."\
 
-                "\n\nYou should have received a copy of the GNU General Public License"\
-                "\nalong with this program.  If not, see <http://www.gnu.org/licenses/>."\
+                "<br><br>You should have received a copy of the GNU Lesser General Public License"\
+                "<br>along with this program.  If not, see <a href='http://doc.qt.io/qt-5/lgpl.html'> http://doc.qt.io/qt-5/lgpl.html</a>"\
+				"<br>or <a href='http://www.gnu.org/licenses/'> http://www.gnu.org/licenses/ </a>."\
                 );
+
     msgBox.exec();
 
+}
+
+void MainWindow::on_btnAboutQt_clicked()
+{
+    QMessageBox::aboutQt(this);
 }
 
 void MainWindow::on_btnOpen_clicked()
@@ -118,7 +128,7 @@ void MainWindow::on_btnOpen_clicked()
         	std::cout <<"Opening file '"<< fileNames[0].toStdString() <<"' "<< std::endl;
         	m_treeModel->openFile(fileNames[0]);
 
-        	ui->labelInfo->setText( QString("Found %1 files.").arg(m_treeModel->rowCount()) );
+        	ui->statusBar->showMessage(QString("Found %1 files.").arg(m_treeModel->rowCount()));
             ui->btnInsert->setEnabled(true);
             ui->btnSaveAs->setEnabled(true);
         }
@@ -223,7 +233,7 @@ void MainWindow::on_btnExtract_clicked()
 	                                             | QFileDialog::DontResolveSymlinks);
 
 	if(dir.isEmpty() || dir.isNull()){
-		ui->labelInfo->setText("Invalid extract directory.");
+		ui->statusBar->showMessage("Invalid extract directory.");
 		return;
 	}
 
@@ -236,7 +246,7 @@ void MainWindow::on_btnExtract_clicked()
     	QMap<int, QVariant> item = m_treeSort->itemData(index);
     	qDebug() << item[0].toString();
     	m_treeModel->extractFile(item[0].toString(), dir);
-    	ui->labelInfo->setText(QString("Extracted selected to: %1").arg(dir));
+    	ui->statusBar->showMessage(QString("Extracted selected to: %1").arg(dir));
     }
 }
 
@@ -250,11 +260,11 @@ void MainWindow::on_btnInsert_clicked()
         int added = m_treeModel->addFiles(fileNames);
 
         if(added <= 0){
-        	 ui->labelInfo->setText( QString("No files added!"));
+        	 ui->statusBar->showMessage("No files added!");
         }else if( added == 1){
-        	 ui->labelInfo->setText( QString("Added %1.").arg(fileNames[0]) );
+        	 ui->statusBar->showMessage(QString("Added %1.").arg(fileNames[0]));
         }else{
-        	 ui->labelInfo->setText( QString("Added %1 files.").arg(added) );
+        	 ui->statusBar->showMessage(QString("Added %1 files.").arg(added));
         }
 
         if(m_treeModel->hasDataChanged()){
@@ -268,7 +278,10 @@ void MainWindow::on_btnInsert_clicked()
 void MainWindow::on_btnSave_clicked()
 {
     if(m_treeModel->hasDataChanged()){
+    	setEnabled(false);
     	QProgressDialog progress;
+    	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    	progress.setWindowTitle("Please wait.");
     	progress.setWindowModality(Qt::WindowModal);
     	progress.setLabelText("Saving in progress.");
     	progress.setCancelButton(0);
@@ -287,6 +300,7 @@ void MainWindow::on_btnSave_clicked()
 
         progress.close();
         ui->btnSave->setEnabled(false);
+        setEnabled(true);
     }
 }
 
@@ -298,8 +312,11 @@ void MainWindow::on_btnSaveAs_clicked()
 
     	if (fileName.isEmpty()) return;
 
+    	setEnabled(false); //disable main window
+
     	QProgressDialog progress;
-    	setEnabled(false);
+    	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    	progress.setWindowTitle("Please wait.");
     	progress.setWindowModality(Qt::WindowModal);
     	progress.setLabelText("Saving in progress.");
     	progress.setCancelButton(0);
@@ -322,29 +339,37 @@ void MainWindow::on_btnSaveAs_clicked()
 
 void MainWindow::on_btnDelete_clicked()
 {
-    QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
 
-    QStringList fileNames;
-    for(const QModelIndex& index: selected){
-       		//m_treeModel->extractFile(index);
-       	QMap<int, QVariant> item = m_treeSort->itemData(index);
-       	fileNames.push_back(item[0].toString());
-    }
+	QMessageBox::StandardButton reply = QMessageBox::warning(this, "You are sure you want to delete the selected files?",
+			"The position of most files (like .TX2) is hardcoded ingame, deleting items could destroy the file order and break the archive! Continue?",
+			 QMessageBox::Yes|QMessageBox::No);
 
-    int removed = m_treeModel->removeFiles(fileNames);
+	if(reply == QMessageBox::Yes){
+		QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
 
-    if(removed <= 0){
-    	 ui->labelInfo->setText( QString("No files removed!"));
-    }else if( removed == 1){
-    	 ui->labelInfo->setText( QString("Removed %1.").arg(fileNames[0]) );
-    }else{
-    	 ui->labelInfo->setText( QString("%1 files removed.").arg(removed) );
-    }
+		QStringList fileNames;
+		for(const QModelIndex& index: selected){
+				//m_treeModel->extractFile(index);
+			QMap<int, QVariant> item = m_treeSort->itemData(index);
+			fileNames.push_back(item[0].toString());
+		}
 
-    if(m_treeModel->hasDataChanged()){
-    	ui->btnSave->setEnabled(true);
-    	ui->btnSaveAs->setEnabled(true);
-    }
+		int removed = m_treeModel->removeFiles(fileNames);
 
-    ui->btnDelete->setEnabled(false);
+		if(removed <= 0){
+			 ui->statusBar->showMessage("No files removed!");
+		}else if( removed == 1){
+			 ui->statusBar->showMessage(QString("Removed %1.").arg(fileNames[0]));
+		}else{
+			 ui->statusBar->showMessage(QString("%1 files removed.").arg(fileNames[0]));
+		}
+
+		if(m_treeModel->hasDataChanged()){
+			ui->btnSave->setEnabled(true);
+			ui->btnSaveAs->setEnabled(true);
+		}
+
+		ui->btnDelete->setEnabled(false);
+	}
 }
+

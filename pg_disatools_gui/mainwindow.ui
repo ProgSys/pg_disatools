@@ -101,7 +101,7 @@ QPushButton:!enabled
            <rect>
             <x>0</x>
             <y>250</y>
-            <width>181</width>
+            <width>81</width>
             <height>23</height>
            </rect>
           </property>
@@ -333,22 +333,22 @@ QPushButton:!enabled
            <string>Save As</string>
           </property>
          </widget>
+         <widget class="QPushButton" name="btnAboutQt">
+          <property name="geometry">
+           <rect>
+            <x>100</x>
+            <y>250</y>
+            <width>81</width>
+            <height>23</height>
+           </rect>
+          </property>
+          <property name="text">
+           <string>About Qt</string>
+          </property>
+         </widget>
         </widget>
        </item>
       </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QLabel" name="labelInfo">
-      <property name="maximumSize">
-       <size>
-        <width>16777215</width>
-        <height>20</height>
-       </size>
-      </property>
-      <property name="text">
-       <string>Please open a .DAT file</string>
-      </property>
      </widget>
     </item>
    </layout>

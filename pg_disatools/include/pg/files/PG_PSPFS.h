@@ -19,18 +19,20 @@ namespace FILE {
 
 struct filePSPFSInfo{
 	std::string name;
-
 	unsigned int unknown = 0; //TODO used for dat files witch are inside SUBDATA.DAT
-
 	unsigned int size = 0; //size in byte
 	unsigned int offset = 0; //offset from file beginning in byte
+	PG::UTIL::File externalFile; //extra info
 
-	//extra info
-	PG::UTIL::File externalFile;
+	filePSPFSInfo();
+
+	filePSPFSInfo(const filePSPFSInfo& info);
 
 	bool isExternalFile() const;
 
 	std::string getFileExtention() const;
+
+    bool operator < (const filePSPFSInfo& str) const;
 };
 
 class PSPFS {
@@ -104,6 +106,7 @@ private:
 	PG::UTIL::File m_file_buffer;
 
 	std::vector<filePSPFSInfo> m_filePSPFSInfos;
+	unsigned int m_originalFileSize = 0;
 	bool m_changed = false;
 
 	bool findfilePSPFSInfo(const PG::UTIL::File& file, filePSPFSInfo& infoOut) const;
