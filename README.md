@@ -31,28 +31,30 @@ Make a backup before using this tool!
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
 
-## PSPfsExtractor
-This project uses the JNI (Java Native Interface) Library, which requires a different license.
+## Disa PC File Manager
+This project uses the Qt Library, which requires the GNU LESSER GENERAL PUBLIC LICENSE.
+The source code is located in the folder 'pg_disatools_gui'
 
-### GNU General Public License
+### GNU Lesser General Public License (LGPL)
 
 	Copyright (C) 2016  ProgSys
 
 	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version.
+	it under the terms of the GNU Lesser General Public License as published by
+	the Free Software Foundation, version 3 of the License.
 
 	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+	GNU Lesser General Public License for more details.
 
-	You should have received a copy of the GNU General Public License
-	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU Lesser General Public License
+	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
+	or http://www.gnu.org/licenses/
+
  
 ## TX2Converter.exe && libpg_disatools.dll
 My libraries and command line tools use the MIT License.
+The source code is located in the folder 'pg_disatools'
 
 ### The MIT License (MIT)
 
