@@ -233,9 +233,9 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
 
     if(index.column() == 0 && role == Qt::DecorationRole){
     	if(exp == "PNG" || exp == "TX2")
-    		return QPixmap("recourses/image.png");
+    		return QPixmap("resources/image.png");
     	else if(exp == "OGG")
-    		return QPixmap("recourses/note.png");
+    		return QPixmap("resources/note.png");
     }
 
     if (role != Qt::DisplayRole)
