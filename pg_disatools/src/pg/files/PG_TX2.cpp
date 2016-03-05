@@ -112,20 +112,51 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 			rgba.r = rgba.b;
 			rgba.b = r;
 		}
-	}else if(compressiontype == tx2Type::UNKNOWN1){
-		PG_ERROR_STREAM("Format not supported!");
-		return true;
-	}else if(compressiontype == tx2Type::COLORTABLERGBA){
-		//lookup table RGBA
+	}else if(compressiontype == tx2Type::COLORTABLERGBA16){
+		//lookup table RGBA with max 16 values
 
-		if( instream->size() < (total_texture_bytes+color_table_size+16))
+		if(color_table_size > 16){
+			PG_ERROR_STREAM("Color table is too big!");
+			return true;
+		}
+
+		const unsigned int total_number_of_bytes = total_texture_bytes/2; // every byte holds two table values
+		if( instream->size() < (total_number_of_bytes+color_table_size+16))
 			return true;
 
-		std::vector<PG::UTIL::rgba> colortable(color_table_size);
-		instream->read((char*)&colortable[0], colortable.size()*sizeof(PG::UTIL::rgba));
+		std::vector<PG::UTIL::rgba> colortable(16);
+		instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
 
 		imageOut.resize(widthOut,heightOut);
-		for(unsigned int i = 0; i < total_texture_bytes; i++){
+
+
+		for(unsigned int i = 0; i < total_number_of_bytes; i+=2){
+			const char c = instream->readUnsignedChar();
+
+			imageOut[i] = colortable[ c & 0x0F];
+			imageOut[i+1] = colortable[ (c >> 4) & 0x0F ];
+		}
+
+
+	}else if(compressiontype == tx2Type::COLORTABLERGBA256){
+		//lookup table RGBA
+
+		if(color_table_size > 256){
+			PG_ERROR_STREAM("Color table is too big!");
+			return true;
+		}
+
+		const unsigned int total_number_of_bytes = total_texture_bytes/4;
+		if( instream->size() < (total_number_of_bytes+color_table_size+16))
+			return true;
+
+		std::vector<PG::UTIL::rgba> colortable(256);
+		PG_INFO_STREAM("tablesize: "<<color_table_size<<" "<<instream->size());
+		instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
+
+		imageOut.resize(widthOut,heightOut);
+		PG_INFO_STREAM(total_texture_bytes<<" left "<<(instream->size()-instream->pos()));
+		for(unsigned int i = 0; i < total_number_of_bytes; i++){
 			imageOut[i] = colortable[instream->readUnsignedChar()];
 		}
 

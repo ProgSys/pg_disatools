@@ -82,6 +82,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, SIGNAL(saveImage(const QString&, const QString&)), m_treeModel, SLOT(saveImage(const QString&, const QString&)));
     connect(ui->btnExtractImage, SIGNAL(clicked()), this, SLOT(saveSelectedImage()));
+    connect(this, SIGNAL(openFile(const QString&)), m_treeModel, SLOT(openFile(const QString&)));
 }
 
 MainWindow::~MainWindow()
@@ -127,18 +128,22 @@ void MainWindow::on_btnAboutQt_clicked()
 void MainWindow::on_btnOpen_clicked()
 {
     QFileDialog openDialog(this);
-    openDialog.setNameFilter(tr("DATA (*.dat)"));
+    openDialog.setNameFilter(tr("ARCHIVE (*.dat *.mpp);;DATA (*.dat);;Map File (*.mpp)"));
 
     QStringList fileNames;
     if (openDialog.exec()){
         fileNames = openDialog.selectedFiles();
         if(fileNames.size() > 0){
-        	std::cout <<"Opening file '"<< fileNames[0].toStdString() <<"' "<< std::endl;
-        	m_treeModel->openFile(fileNames[0]);
-
-        	ui->statusBar->showMessage(QString("Found %1 files.").arg(m_treeModel->rowCount()));
-            ui->btnInsert->setEnabled(true);
-            ui->btnSaveAs->setEnabled(true);
+        	qInfo() <<"Opening file '"<< fileNames[0] <<"' ";
+        	if(emit openFile(fileNames[0])){
+            	ui->statusBar->showMessage(QString("Found %1 files.").arg(m_treeModel->rowCount()));
+                ui->btnInsert->setEnabled(true);
+                ui->btnSaveAs->setEnabled(true);
+        	}else{
+            	ui->statusBar->showMessage(QString("Couldn't open %1").arg(fileNames[0]));
+                ui->btnInsert->setEnabled(false);
+                ui->btnSaveAs->setEnabled(false);
+        	}
         }
     }
 

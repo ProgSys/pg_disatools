@@ -38,10 +38,7 @@ namespace FILE {
 struct filePSPFSInfo{
 
 	fileInfo baseInfo;
-	unsigned int unknown = 0; //TODO used for dat files witch are inside SUBDATA.DAT
-
-
-	PG::UTIL::File externalFile; //extra info
+	unsigned int unknown = 0;
 
 	filePSPFSInfo();
 
@@ -57,8 +54,9 @@ struct filePSPFSInfo{
 		return baseInfo.offset;
 	}
 	const PG::UTIL::File& getExternalFile() const{
-		return externalFile;
+		return baseInfo.externalFile;
 	}
+
 
 	void setName(const PG::UTIL::File& file){
 		baseInfo.name = file;
@@ -71,6 +69,9 @@ struct filePSPFSInfo{
 	void setOffset(unsigned int offset){
 		baseInfo.offset = offset;
 	}
+	void setExternalFile(const PG::UTIL::File& file){
+		baseInfo.externalFile = file;
+	}
 
 	void setAsDummy(unsigned int offset = 0);
 
@@ -78,6 +79,7 @@ struct filePSPFSInfo{
 	bool isExternalFile() const;
 
 	std::string getFileExtention() const;
+	void clearExternalFile();
 
     bool operator < (const filePSPFSInfo& str) const;
 };
@@ -94,19 +96,6 @@ public:
 	 */
 	PG_UTIL_API bool open(const PG::UTIL::File& file);
 
-	/*!
-	 * @brief Is the given file inside the archive.
-	 * @return true if file is inside the archive.
-	 */
-	PG_UTIL_API bool exists(const PG::UTIL::File& file) const;
-
-	/*!
-	 * @brief Extract a file into the given target file.
-	 * @return true on error
-	 */
-	PG_UTIL_API bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
-
-	PG_UTIL_API unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const;
 	/*!
 	 * @brief Add a file into the archive. Changes will only be applied when you save.
 	 * @return true on error
@@ -132,10 +121,11 @@ public:
 
 	PG_UTIL_API unsigned int size() const;
 
-	PG_UTIL_API PG::UTIL::File getOpendFile() const;
+	PG_UTIL_API const PG::UTIL::File& getOpendFile() const;
 
 	PG_UTIL_API bool isEmpty() const;
 
+	PG_UTIL_API bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
 	PG_UTIL_API const fileInfo& get(unsigned int index) const;
 
 	PG_UTIL_API virtual ~PSPFS();

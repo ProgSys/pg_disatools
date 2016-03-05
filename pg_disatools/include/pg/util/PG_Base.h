@@ -24,6 +24,7 @@
 #ifndef INCLUDE_PG_UTIL_PG_BASE_H_
 #define INCLUDE_PG_UTIL_PG_BASE_H_
 
+#include <string>
 #include <iostream>
 /// Colors
 #define FONT_RESET "\033[0m"
@@ -97,11 +98,5 @@
 #define SSTR( x ) dynamic_cast< std::ostringstream & >( \
         ( std::ostringstream() << std::dec << x ) ).str()
 
-namespace PG {
-namespace UTIL {
-
-
-} /* namespace UTIL */
-} /* namespace PG */
 
 #endif /* INCLUDE_PG_UTIL_PG_BASE_H_ */

@@ -24,6 +24,7 @@
 
 #include <pg/files/PG_MPP.h>
 
+#include <vector>
 #include <pg/util/PG_ByteInFileStream.h>
 #include <pg/util/PG_BinaryFileWriter.h>
 #include <pg/util/PG_StringUtil.h>
@@ -49,15 +50,14 @@ bool MPP::open(const PG::UTIL::File& file){
 	 try{
 		 PG::UTIL::ByteInFileStream reader(m_file);
 
-		 const unsigned int number_of_tx2_files = reader.readUnsignedInt();
+		 const unsigned int number_of_offsets_set1 = reader.readUnsignedInt();
+		 const unsigned int number_of_offsets_set2 = reader.readUnsignedInt();
 
-		 if(number_of_tx2_files > 1000){
-			 PG_ERROR_STREAM("Number of tx2 files is to big '"<<file<<"'!");
+		 if(number_of_offsets_set1 > 25 || number_of_offsets_set2 > 25) {
+			 PG_ERROR_STREAM("Number of files is too big '"<<file<<"'!");
 			 m_file.clear();
 			 return true;
 		 }
-
-		 const unsigned int number_of_something_files = reader.readUnsignedInt();
 
 		 const unsigned int file_size = reader.readUnsignedInt();
 
@@ -67,23 +67,52 @@ bool MPP::open(const PG::UTIL::File& file){
 			 return true;
 		 }
 
-		 for(unsigned int i = 0; i < number_of_something_files; ++i){
 
-			 fileMPPinfo info;
-			 info.offset = reader.readUnsignedInt();
-			 info.size = reader.readUnsignedInt();
+		 std::vector<unsigned int> file_offsets_set1(number_of_offsets_set1);
+		 std::vector<unsigned int> file_offsets_set2(number_of_offsets_set2);
 
-			 if(info.offset == 0 || info.size == 0){
-				 break;
-			 }
+		 reader.read((char*) &file_offsets_set1[0],number_of_offsets_set1*sizeof(unsigned int) );
+		 reader.read((char*) &file_offsets_set2[0],number_of_offsets_set2*sizeof(unsigned int) );
 
-			 if(info.offset < m_fileMPPinfos.back().offset){
+		 for(unsigned int i = 0; i < number_of_offsets_set1; i++){
+			 const unsigned file_start_offset = file_offsets_set1[i];
+			 const unsigned file_end_offset =
+					 ((i+1) >= number_of_offsets_set1)?
+					 ((file_offsets_set2.empty())? file_size : file_offsets_set2.front())
+					: file_offsets_set1[i+1];
+
+
+			 if(file_start_offset == 0 || file_end_offset == 0) break;
+
+			 if( file_start_offset >= file_end_offset)
 				 throw_Exception("File order is wrong!");
-			 }
+
+			 fileInfo info;
+			 info.setOffset(file_start_offset); //start offset
+			 info.setSize(file_end_offset-info.getOffset()); //end offset
 
 			 std::stringstream o;
-			 o << "MPPFILE"<<i<<".TX2";
-			 info.file = o.str();
+				 o << "MPPSET1FILE"<<i/2<<".TX2";
+			 info.setName(o.str());
+			 m_fileMPPinfos.push_back(info);
+		 }
+
+		 for(unsigned int i = 0; i < number_of_offsets_set2; i++){
+			 const unsigned file_start_offset = file_offsets_set2[i];
+			 const unsigned file_end_offset = ((i+1) >= number_of_offsets_set2)? file_size : file_offsets_set2[i+1];
+
+			 if(file_start_offset == 0 || file_end_offset == 0) break;
+
+			 if( file_start_offset >= file_end_offset)
+				 throw_Exception("File order is wrong!");
+
+			 fileInfo info;
+			 info.setOffset(file_start_offset); //start offset
+			 info.setSize(file_end_offset-info.getOffset()); //end offset
+
+			 std::stringstream o;
+				 o << "MPPSET2FILE"<<i/2<<".UNKNOWN";
+			 info.setName(o.str());
 			 m_fileMPPinfos.push_back(info);
 		 }
 
@@ -105,10 +134,63 @@ bool MPP::open(const PG::UTIL::File& file){
 		 m_fileMPPinfos.clear();
 		 return true;
 	 }
-
+	 PG_INFO_STREAM("Opening done");
 
 	return false;
 }
+
+
+bool MPP::insert(const PG::UTIL::File& file){
+	return true;
+}
+bool MPP::remove(const PG::UTIL::File& file){
+	return true;
+}
+bool MPP::save(){
+	return save(m_file);
+}
+bool MPP::save(const PG::UTIL::File& targetfile){
+	return true;
+}
+void MPP::clear(){
+	m_fileMPPinfos.clear();
+	m_file.clear();
+	m_changed = false;
+}
+
+bool MPP::isEmpty() const{
+	return m_fileMPPinfos.empty();
+}
+
+const PG::UTIL::File& MPP::getOpendFile() const{
+	return m_file;
+}
+
+unsigned int MPP::size() const{
+	return m_fileMPPinfos.size();
+}
+
+bool MPP::find(const PG::UTIL::File& file, fileInfo& infoOut) const{
+	std::string name = file.getFile();
+	std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+	//PG_INFO_STREAM("Searching for '"<<name<<"'")
+	auto it = std::find_if(m_fileMPPinfos.begin(), m_fileMPPinfos.end(), [name](const fileInfo& info){
+		return info.getName() == name;
+	});
+
+	if(it != m_fileMPPinfos.end()){
+		infoOut = (*it);
+		return true;
+	}
+
+	return false;
+}
+
+const fileInfo& MPP::get(unsigned int index) const{
+	return m_fileMPPinfos[index];
+}
+
+
 
 MPP::~MPP() {
 	// TODO Auto-generated destructor stub

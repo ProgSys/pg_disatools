@@ -24,7 +24,7 @@
 #include <QtCore>
 #include <QGraphicsScene>
 
-#include <pg/files/PG_PSPFS.h>
+#include <pg/files/PG_ExtractorBase.h>
 #include <string>
 #include <vector>
 #include <pg/util/PG_Image.h>
@@ -35,9 +35,8 @@ class TreeModel : public QAbstractItemModel
 public:
 	explicit TreeModel(QObject *parent = 0);
     explicit TreeModel(const QString &file, QObject *parent = 0);
-    ~TreeModel();
 
-    void openFile(const QString &file);
+
     void extractFile(const QString &file, const QString &dir) const;
     bool addFile(const QString &file);
     int addFiles(const QStringList &files);
@@ -46,7 +45,7 @@ public:
     bool save();
     bool setGraphicsScene(const QString &file, QGraphicsScene* scene) const;
 
-    void hideFiles(const QString &extention, bool hide);
+    //void hideFiles(const QString &extention, bool hide);
 
     QVariant data(const QModelIndex &index, int role) const Q_DECL_OVERRIDE;
     Qt::ItemFlags flags(const QModelIndex &index) const Q_DECL_OVERRIDE;
@@ -58,19 +57,23 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
     int columnCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
 
+
+    virtual ~TreeModel();
 public slots:
+    bool openFile(const QString& file);
     bool saveFile();
     bool saveFileAs(const QString& filepath);
     bool saveImage(const QString& imagename, const QString& targetfile);
 
 private:
 
-    PG::FILE::PSPFS m_pspfsFile;
+    PG::FILE::ExtractorBase* m_fileExtractor;
 
     std::vector<std::string> m_hideExtentions;
 
 
     bool getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
+    bool open(const QString &file);
 
 };
 

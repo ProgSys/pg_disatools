@@ -25,40 +25,73 @@
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/files/PG_TX2.h>
 
+#include <pg/files/PG_MPP.h>
+#include <pg/files/PG_PSPFS.h>
+
+
+
 TreeModel::TreeModel(QObject *parent)
-    :QAbstractItemModel(parent){
+    :QAbstractItemModel(parent), m_fileExtractor(nullptr){
 
 }
 
 TreeModel::TreeModel(const QString &data, QObject *parent)
-    :QAbstractItemModel(parent){
+    :QAbstractItemModel(parent), m_fileExtractor(nullptr){
 
-	m_pspfsFile = PG::FILE::PSPFS(data.toStdString());
-
-}
-
-TreeModel::~TreeModel(){
+	m_fileExtractor = nullptr;
+	open(data);
 
 }
 
-void TreeModel::openFile(const QString &file){
+
+bool TreeModel::open(const QString &file){
+	if(m_fileExtractor) delete m_fileExtractor;
+
+	QFileInfo fileInfo(file);
+	const QString ext = fileInfo.suffix().toUpper();
+	if(ext == "DAT"){
+		m_fileExtractor = new PG::FILE::PSPFS();
+	}else if(ext == "MPP"){
+		m_fileExtractor = new PG::FILE::MPP();
+	}else{
+		qInfo() << "Unknown file format: '"<<ext<<"' file: '"<< file<<"'!";
+		return false;
+	}
+
+	if(m_fileExtractor->open(file.toStdString())){
+		qInfo() << "Couldn't open: '"<<file<<"'!";
+		delete m_fileExtractor;
+		m_fileExtractor = nullptr;
+		return false;
+	}
+
+	return true;
+
+}
+
+bool TreeModel::openFile(const QString &file){
 	QAbstractItemModel::layoutAboutToBeChanged();
-	m_pspfsFile.open(file.toStdString());
+	const bool result = open(file);
 	QAbstractItemModel::layoutChanged();
+	return result;
 
 }
 
 void TreeModel::extractFile(const QString &file, const QString &dir) const{
+	if(!m_fileExtractor) return;
+
 	const std::string targetFile = dir.toStdString() +"/"+file.toStdString();
-	if(m_pspfsFile.extract(file.toStdString(), targetFile)){
+	if(m_fileExtractor->extract(file.toStdString(), targetFile)){
 		qInfo() << "Couldn't extract "<<file;
 	}
 }
 
 bool TreeModel::addFile(const QString &file){
+	if(!m_fileExtractor) return false;
+
 	bool added = false;
 	QAbstractItemModel::layoutAboutToBeChanged();
-	if(m_pspfsFile.insert(file.toStdString())){
+	if(m_fileExtractor->insert(file.toStdString())){
 		qInfo() << "Couldn't add file '"<<file<<"'";
 	}else
 		added = true;
@@ -67,11 +100,11 @@ bool TreeModel::addFile(const QString &file){
 }
 
 int TreeModel::addFiles(const QStringList &files){
-	if(files.empty()) return 0;
+	if(!m_fileExtractor || files.empty()) return 0;
 	QAbstractItemModel::layoutAboutToBeChanged();
 	int filesAddedOrChanged = 0;
 	 for(const QString& str: files){
-		 if(m_pspfsFile.insert(str.toStdString())){
+		 if(m_fileExtractor->insert(str.toStdString())){
 		 		qInfo() << "Couldn't add file: '"<<str<<"'";
 		 }else
 			 filesAddedOrChanged++;
@@ -81,11 +114,11 @@ int TreeModel::addFiles(const QStringList &files){
 }
 
 int TreeModel::removeFiles(const QStringList &files){
-	if(files.empty()) return 0;
+	if(!m_fileExtractor || files.empty()) return 0;
 	QAbstractItemModel::layoutAboutToBeChanged();
 	int filesRemoved = 0;
 	for(const QString& str: files){
-		 if(m_pspfsFile.remove(str.toStdString())){
+		 if(m_fileExtractor->remove(str.toStdString())){
 		 		qInfo() << "Couldn't remove file: '"<<str<<"'";
 		 }else
 			 filesRemoved++;
@@ -95,22 +128,25 @@ int TreeModel::removeFiles(const QStringList &files){
 }
 
 bool TreeModel::hasDataChanged() const{
-	return m_pspfsFile.isChanged();
+	return m_fileExtractor->isChanged();
 }
 
 bool TreeModel::save(){
-	if(!m_pspfsFile.save())
+	if(!m_fileExtractor) return false;
+	if(!m_fileExtractor->save())
 		return true;
 	else{
 		//if saving faled try to reopen it
 		QAbstractItemModel::layoutAboutToBeChanged();
-		PG::UTIL::File file = m_pspfsFile.getOpendFile();
-		return m_pspfsFile.open(file);
+		PG::UTIL::File file = m_fileExtractor->getOpendFile();
+		return open(QString::fromStdString(file.getPath()));
 		QAbstractItemModel::layoutChanged();
 	}
 }
 
 bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha) const{
+	if(!m_fileExtractor) return false;
+
 	QFileInfo info(file);
 	if(info.suffix() != "TX2"){
 		qInfo() << "File is not a TX2: '"<<file<<"'";
@@ -119,7 +155,7 @@ bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, boo
 
 	char * c = nullptr;
 	unsigned int sile_size = 0;
-	if( (sile_size = m_pspfsFile.extract(file.toStdString(), c)) == 0){
+	if( (sile_size = m_fileExtractor->extract(file.toStdString(), c)) == 0){
 		qInfo() << "Couldn't extract image file: '"<<file<<"'";
 		return true;
 	}
@@ -146,6 +182,8 @@ bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, boo
 }
 
 bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) const{
+	if(!m_fileExtractor) return false;
+
 	PG::UTIL::RGBAImage img;
 	if(getImage(file, img, false)){
 		qInfo() << "Couldn't open image file: '"<<file<<"'";
@@ -164,7 +202,10 @@ bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) con
 
 }
 
+/*
 void TreeModel::hideFiles(const QString &extention, bool hide){
+	if(!m_fileExtractor) return false;
+
 	if(hide){
 		auto it = std::find(m_hideExtentions.begin(), m_hideExtentions.end(), extention.toStdString());
 		if(it == m_hideExtentions.end()){
@@ -178,19 +219,27 @@ void TreeModel::hideFiles(const QString &extention, bool hide){
 			QAbstractItemModel::layoutChanged();
 		}
 	}
-}
+}*/
 
 QVariant TreeModel::data(const QModelIndex &index, int role) const{
-    if (!index.isValid())
+    if (!m_fileExtractor || !index.isValid())
         return QVariant();
+
+
+    const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
+    if(item == nullptr) return QVariant();
+
+    QString exp = QString::fromStdString(item->getEileExtension());
+
+    if(index.column() == 0 && role == Qt::DecorationRole){
+    	if(exp == "PNG" || exp == "TX2")
+    		return QPixmap("recourses/image.png");
+    	else if(exp == "OGG")
+    		return QPixmap("recourses/note.png");
+    }
 
     if (role != Qt::DisplayRole)
         return QVariant();
-
-    const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
-
-    if(item == nullptr)
-    	 return QVariant();
 
     switch (index.column()) {
     		case 0:
@@ -200,7 +249,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
     				return QVariant(item->size);
     			break;
     		case 2:
-    				return QVariant(QString::fromStdString(item->name.getFileExtension()));
+    				return QVariant(exp);
     			break;
     		default:
     			return QModelIndex();
@@ -238,13 +287,13 @@ QVariant TreeModel::headerData(int section, Qt::Orientation orientation, int rol
 }
 
 QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) const{
-    if (!hasIndex(row, column, parent))
+    if (!m_fileExtractor || !hasIndex(row, column, parent))
         return QModelIndex();
 
-    if(row >= m_pspfsFile.size())
+    if(row >= m_fileExtractor->size())
     	return QModelIndex();
 
-    PG::FILE::fileInfo* info = m_pspfsFile.getDataPointer(row);
+    PG::FILE::fileInfo* info = m_fileExtractor->getDataPointer(row);
 
     return createIndex(row, column, info); //QModelIndex( file );
 
@@ -259,10 +308,10 @@ QModelIndex TreeModel::parent(const QModelIndex &index) const{
 }
 
 int TreeModel::rowCount(const QModelIndex &parent) const{
-	if (parent.isValid())
+	if (!m_fileExtractor || parent.isValid())
 		 return 0;
 
-	return m_pspfsFile.size();
+	return m_fileExtractor->size();
 }
 
 bool TreeModel::saveFile(){
@@ -270,13 +319,14 @@ bool TreeModel::saveFile(){
 }
 
 bool TreeModel::saveFileAs(const QString& filepath){
-    if(!m_pspfsFile.save(filepath.toStdString()))
+	if(!m_fileExtractor) return false;
+    if(!m_fileExtractor->save(filepath.toStdString()))
         return true;
     else{
         //if saving faled try to reopen it
         QAbstractItemModel::layoutAboutToBeChanged();
-        PG::UTIL::File file = m_pspfsFile.getOpendFile();
-        return m_pspfsFile.open(file);
+        PG::UTIL::File file = m_fileExtractor->getOpendFile();
+        return open(QString::fromStdString(file.getPath()));
         QAbstractItemModel::layoutChanged();
     }
 
@@ -284,6 +334,7 @@ bool TreeModel::saveFileAs(const QString& filepath){
 }
 
 bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
+	if(!m_fileExtractor) return false;
 	PG::UTIL::RGBAImage img;
 	if(getImage(imagename, img, true)){
 		qInfo() << "Couldn't extract image file: '"<<imagename<<"'";
@@ -312,4 +363,9 @@ int TreeModel::columnCount(const QModelIndex &parent) const{
 	return 3;
 
 }
+
+TreeModel::~TreeModel(){
+	if(m_fileExtractor) delete m_fileExtractor;
+}
+
 

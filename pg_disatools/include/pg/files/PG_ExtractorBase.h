@@ -37,9 +37,26 @@ struct fileInfo{
 	unsigned int size = 0; //size in byte
 	unsigned int offset = 0; //offset from file beginning in byte
 
+	PG::UTIL::File externalFile;
+
 	fileInfo();
 	fileInfo(const std::string& name,unsigned int size,unsigned int offset);
 	fileInfo(const PG::UTIL::File& name,unsigned int size,unsigned int offset);
+
+	const PG::UTIL::File& getName() const;
+	unsigned int getSize() const;
+	unsigned int getOffset() const;
+	const PG::UTIL::File& getExternalName() const;
+	std::string getEileExtension() const;
+
+	void setName(const PG::UTIL::File& name);
+	void setSize(unsigned int size);
+	void setOffset(unsigned int offset);
+	void setExternalName(const PG::UTIL::File& externalFile);
+
+	bool isExternalFile() const;
+	void clearExternalFile();
+	void clear();
 };
 
 class ExtractorBase {
@@ -47,9 +64,17 @@ public:
 	ExtractorBase();
 
 	virtual bool open(const PG::UTIL::File& file) = 0;
-	virtual bool exists(const PG::UTIL::File& file) const = 0;
-	virtual bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const = 0;
-	virtual unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const = 0;
+	/*!
+	 * @brief Is the given file inside the archive.
+	 * @return true if file is inside the archive.
+	 */
+	virtual bool exists(const PG::UTIL::File& file) const;
+	/*!
+	 * @brief Extract a file into the given target file.
+	 * @return true on error
+	 */
+	virtual bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
+	virtual unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const;
 	virtual bool insert(const PG::UTIL::File& file) = 0;
 	virtual bool remove(const PG::UTIL::File& file) = 0;
 	virtual bool save() = 0;
@@ -57,9 +82,15 @@ public:
 	virtual void clear() = 0;
 	virtual bool isEmpty() const = 0;
 	virtual bool isChanged() const;
+	virtual const PG::UTIL::File& getOpendFile() const = 0;
 	virtual unsigned int size() const = 0;
 
 	virtual const fileInfo& get(unsigned int index) const = 0;
+	/*!
+	 * @brief Find a file info with the given name.
+	 * @returns true if file info found
+	 */
+	virtual bool find(const PG::UTIL::File& file, fileInfo& infoOut) const = 0;
 	const fileInfo& operator[](unsigned int index) const;
 	fileInfo* getDataPointer(unsigned int index) const;
 
@@ -67,6 +98,8 @@ public:
 protected:
 
 	bool m_changed = false;
+
+
 };
 
 } /* namespace FILE */

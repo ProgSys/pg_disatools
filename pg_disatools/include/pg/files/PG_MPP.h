@@ -29,19 +29,12 @@
 #include <pg/util/PG_File.h>
 #include <pg/util/PG_ApiUtil.h>
 #include <pg/util/PG_Exception.h>
+#include <pg/files/PG_ExtractorBase.h>
 
 namespace PG {
 namespace FILE {
 
-struct fileMPPinfo{
-	PG::UTIL::File file;
-	bool isexternal = false;
-
-	unsigned int size = 0;
-	unsigned int offset = 0;
-};
-
-class MPP {
+class MPP: public ExtractorBase  {
 public:
 	MPP();
 	MPP(const PG::UTIL::File& file);
@@ -52,11 +45,26 @@ public:
 	 */
 	PG_UTIL_API bool open(const PG::UTIL::File& file);
 
+	bool insert(const PG::UTIL::File& file);
+	bool remove(const PG::UTIL::File& file);
+	bool save();
+	bool save(const PG::UTIL::File& targetfile);
+	void clear();
+	bool isEmpty() const;
+	const PG::UTIL::File& getOpendFile() const;
+	unsigned int size() const;
+
+	bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
+	const fileInfo& get(unsigned int index) const;
+
+
+
 	virtual ~MPP();
 private:
 	PG::UTIL::File m_file;
-	std::vector<fileMPPinfo> m_fileMPPinfos;
-	bool m_changed = false;
+	std::vector<fileInfo> m_fileMPPinfos;
+
+	bool findFileInfo(const PG::UTIL::File& file, fileInfo& infoOut) const;
 };
 
 } /* namespace FILE */

@@ -97,6 +97,7 @@ public slots:
     void treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel);
 
 signals:
+    bool openFile(const QString& filepath);
 	bool saveFile();
 	bool saveFileAs(const QString& filepath);
 	bool saveImage(const QString& imagename, const QString& targetfile);
