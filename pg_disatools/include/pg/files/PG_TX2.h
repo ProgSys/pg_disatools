@@ -37,7 +37,7 @@ namespace PG {
 namespace FILE {
 
 enum tx2Type: unsigned short {
-	DXT1 = 0, DXT5 = 2, BGRA = 3, COLORTABLERGBA16 = 16, COLORTABLERGBA256 = 256
+	DXT1 = 0, DXT5 = 2, BGRA = 3, COLORTABLERGBA16 = 16, COLORTABLEBGRA16 = 17, COLORTABLERGBA256 = 256
 };
 
 /*!

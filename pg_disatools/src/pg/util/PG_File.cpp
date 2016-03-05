@@ -27,6 +27,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cstdio>
+#include <algorithm>
 #include <pg/util/PG_Exception.h>
 
 namespace PG {
@@ -57,6 +58,18 @@ std::string File::getName() const{
 		return "";
 	}else
 		return m_path.substr(start, end);
+}
+
+File File::toUpper() const{
+	std::string path = m_path;
+	std::transform(path.begin(), path.end(), path.begin(), ::toupper);
+	return File(path);
+}
+
+File File::toLower() const{
+	std::string path = m_path;
+	std::transform(path.begin(), path.end(), path.begin(),  ::tolower);
+	return File(path);
 }
 
 void File::operator=(const std::string& path){

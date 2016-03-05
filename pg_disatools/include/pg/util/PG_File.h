@@ -55,6 +55,9 @@ public:
 	 */
 	std::string getName() const;
 
+	File toUpper() const;
+	File toLower() const;
+
 	void operator=(const std::string& path);
 	void operator=(const File& file);
 

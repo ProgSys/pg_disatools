@@ -53,7 +53,7 @@ const PG::UTIL::File& fileInfo::getExternalName() const{
 	return externalFile;
 }
 
-std::string fileInfo::getEileExtension() const{
+std::string fileInfo::getFileExtension() const{
 	return name.getFileExtension();
 }
 

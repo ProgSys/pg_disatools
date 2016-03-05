@@ -229,32 +229,33 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
     const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
     if(item == nullptr) return QVariant();
 
-    QString exp = QString::fromStdString(item->getEileExtension());
+    QString exp = QString::fromStdString(item->getFileExtension());
 
-    if(index.column() == 0 && role == Qt::DecorationRole){
-    	if(exp == "PNG" || exp == "TX2")
-    		return QPixmap("resources/image.png");
-    	else if(exp == "OGG")
-    		return QPixmap("resources/note.png");
-    }
-
-    if (role != Qt::DisplayRole)
-        return QVariant();
-
-    switch (index.column()) {
-    		case 0:
-    				return QVariant(QString::fromStdString(item->name.getPath()));
-    			break;
-    		case 1:
-    				return QVariant(item->size);
-    			break;
-    		case 2:
-    				return QVariant(exp);
-    			break;
-    		default:
-    			return QModelIndex();
-    			break;
-    	}
+    if(role == Qt::DecorationRole && index.column() == 0){
+			if(exp == "PNG" || exp == "TX2")
+				return QPixmap("resources/image.png");
+			else if(exp == "OGG")
+				return QPixmap("resources/note.png");
+			else if(exp == "GEO")
+				return QPixmap("resources/geometry.png");
+			return QVariant();
+    }else if(role == Qt::DisplayRole){
+		switch (index.column()) {
+				case 0:
+						return QVariant(QString::fromStdString(item->name.getPath()));
+					break;
+				case 1:
+						return QVariant(item->size);
+					break;
+				case 2:
+						return QVariant(exp);
+					break;
+				default:
+					return QVariant();
+					break;
+			}
+    }else
+    	return QVariant();
 }
 
 Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const{

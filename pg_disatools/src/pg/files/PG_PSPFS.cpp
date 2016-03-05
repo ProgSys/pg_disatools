@@ -336,6 +336,8 @@ bool PSPFS::save(const PG::UTIL::File& targetfile){
 		unsigned int dummy_traget_offset = 0;
 
 		PG::UTIL::ByteInFileStream reader_dat(m_file);
+		if(!reader_dat.isopen()) return true;
+
 		for(const filePSPFSInfo& info: m_filePSPFSInfos){
 			filePSPFSInfo current_info = info; //copy info
 

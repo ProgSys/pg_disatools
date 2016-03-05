@@ -47,7 +47,7 @@ struct fileInfo{
 	unsigned int getSize() const;
 	unsigned int getOffset() const;
 	const PG::UTIL::File& getExternalName() const;
-	std::string getEileExtension() const;
+	std::string getFileExtension() const;
 
 	void setName(const PG::UTIL::File& name);
 	void setSize(unsigned int size);

@@ -52,6 +52,10 @@ BinaryFileWriter::BinaryFileWriter(const File& file, bool append):
 		BinaryFileWriter(file.getPath(), append)
 {}
 
+bool BinaryFileWriter::isopen() const{
+	return m_outFile.is_open();
+}
+
 long BinaryFileWriter::getPosition(){
 	return m_outFile.tellp();
 }

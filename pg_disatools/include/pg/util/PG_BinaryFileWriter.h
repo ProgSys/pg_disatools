@@ -41,6 +41,7 @@ public:
 	 BinaryFileWriter(const std::string& path, bool append = false);
 	 BinaryFileWriter(const File& file, bool append = false);
 
+	 bool isopen() const;
 	 long getPosition();
 	 void setPosition(long  position);
 	 void goEnd(int i = 0);
