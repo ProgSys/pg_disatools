@@ -62,6 +62,7 @@ public:
 	virtual ~MPP();
 private:
 	PG::UTIL::File m_file;
+	bool m_isNew = false; // remastered maps with better textures
 	std::vector<fileInfo> m_fileMPPinfos;
 
 	bool findFileInfo(const PG::UTIL::File& file, fileInfo& infoOut) const;

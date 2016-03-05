@@ -43,18 +43,27 @@ MPP::MPP(const PG::UTIL::File& file){
 }
 
 bool MPP::open(const PG::UTIL::File& file){
-		m_file = file;
-		m_fileMPPinfos.clear();
-		m_changed = false;
+	clear();
+	m_file = file;
+
+	 if(!m_file.exists() ){
+		 PG_ERROR_STREAM("Target file '"<<file<<"' does not exist!");
+		 m_file.clear();
+		 return true;
+	 }
 
 	 try{
 		 PG::UTIL::ByteInFileStream reader(m_file);
+		 if(!reader.isopen()) return true;
 
-		 const unsigned int number_of_offsets_set1 = reader.readUnsignedInt();
-		 const unsigned int number_of_offsets_set2 = reader.readUnsignedInt();
+		 const unsigned short number_of_offsets_set1 = reader.readUnsignedShort();
+		 m_isNew = reader.readShort();
+		 const unsigned short number_of_offsets_set2 = reader.readUnsignedShort();
+		 reader.skip(2);
+
 
 		 if(number_of_offsets_set1 > 25 || number_of_offsets_set2 > 25) {
-			 PG_ERROR_STREAM("Number of files is too big '"<<file<<"'!");
+			 PG_ERROR_STREAM("Number of files is too big '"<<file<<"'! ("<<number_of_offsets_set1<<", "<<m_isNew<<", "<<number_of_offsets_set2<<")");
 			 m_file.clear();
 			 return true;
 		 }
@@ -156,6 +165,7 @@ void MPP::clear(){
 	m_fileMPPinfos.clear();
 	m_file.clear();
 	m_changed = false;
+	m_isNew = false;
 }
 
 bool MPP::isEmpty() const{

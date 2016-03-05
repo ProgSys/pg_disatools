@@ -98,6 +98,7 @@ bool PSPFS::open(const PG::UTIL::File& file){
 
 	 try{
 		 PG::UTIL::ByteInFileStream reader(m_file);
+		 if(!reader.isopen()) return true;
 
 		 //Check magic number
 		 {

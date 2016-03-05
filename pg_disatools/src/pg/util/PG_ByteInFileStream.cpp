@@ -68,14 +68,14 @@ char ByteInFileStream::readChar(){
 }
 
 unsigned short ByteInFileStream::readUnsignedShort(){
-	short s;
-	m_inFile.read( (char*)&s, sizeof(short)  );
+	unsigned short s;
+	m_inFile.read( (char*)&s, sizeof(unsigned short)  );
 	return s;
 }
 
 short ByteInFileStream::readShort(){
-	unsigned short us;
-	m_inFile.read( (char*)&us, sizeof(unsigned short) );
+	short us;
+	m_inFile.read( (char*)&us, sizeof(short) );
 	return us;
 }
 
