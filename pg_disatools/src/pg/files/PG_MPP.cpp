@@ -92,7 +92,7 @@ bool MPP::open(const PG::UTIL::File& file){
 			 info.setSize(file_end_offset-info.getOffset()); //end offset
 
 			 std::stringstream o;
-				 o << "MPPSET1FILE"<<i/2<<".TX2";
+				 o << "MPPSET1FILE"<<i<<".TX2";
 			 info.setName(o.str());
 			 m_fileMPPinfos.push_back(info);
 		 }
@@ -111,7 +111,7 @@ bool MPP::open(const PG::UTIL::File& file){
 			 info.setSize(file_end_offset-info.getOffset()); //end offset
 
 			 std::stringstream o;
-				 o << "MPPSET2FILE"<<i/2<<".UNKNOWN";
+				 o << "MPPSET2FILE"<<i<<".UNKNOWN";
 			 info.setName(o.str());
 			 m_fileMPPinfos.push_back(info);
 		 }
