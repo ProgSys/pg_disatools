@@ -28,15 +28,35 @@
 #include <pg/files/PG_IMY.h>
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/files/PG_PSPFS.h>
+#include <algorithm>
 
 #define OUTSTR(x) std::cout << x << std::endl
 
+struct testStr{
+	testStr(const std::string& str): name(str){}
+	std::string name;
+};
 
 /*!
  * @brief Testing main method, just for testing.
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
+
+	std::vector<testStr> vec;
+	vec.push_back(testStr("NA03"));
+	vec.push_back(testStr("NA02"));
+	vec.push_back(testStr("NA01"));
+	vec.push_back(testStr("NA04"));
+	vec.push_back(testStr("NA00"));
+
+	std::sort(vec.begin(), vec.end(), [](const testStr& A, const testStr& B){
+		return A.name < B.name;
+	});
+
+	for(const testStr& s: vec){
+		OUTSTR(s.name);
+	}
 
 	//PG::UTIL::RGBAImage image;
 	//PG::FILE::uncompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.imy",image);

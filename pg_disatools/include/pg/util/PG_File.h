@@ -64,6 +64,8 @@ public:
 	bool operator==(const std::string& path) const;
 	bool operator==(const File& file) const;
 
+	bool operator<(const File& file) const;
+
 	void clear();
 	bool isEmpty() const;
 

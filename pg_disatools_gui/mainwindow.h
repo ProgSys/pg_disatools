@@ -103,6 +103,9 @@ signals:
 	bool saveImage(const QString& imagename, const QString& targetfile);
 
 private slots:
+    void on_checkBox_GEO_clicked(bool checked);
+
+private slots:
     void on_btnExtractImage_clicked();
 
 private slots:
@@ -121,6 +124,8 @@ private:
     TreeSort* m_treeSort;
     QGraphicsScene* scene;
     QItemSelectionModel* selectionModel;
+
+    bool checkFileAndAsk();
 };
 
 #endif // MAINWINDOW_H

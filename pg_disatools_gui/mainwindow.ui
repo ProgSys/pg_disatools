@@ -235,6 +235,16 @@ QPushButton:!enabled
              </property>
             </widget>
            </item>
+           <item row="5" column="1">
+            <widget class="QCheckBox" name="checkBox_GEO">
+             <property name="text">
+              <string>*.GEO</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
           </layout>
          </widget>
          <widget class="QPushButton" name="btnOpen">

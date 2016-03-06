@@ -65,9 +65,15 @@ public slots:
     bool saveFileAs(const QString& filepath);
     bool saveImage(const QString& imagename, const QString& targetfile);
 
+    bool checkIsValid(QString& outMessage) const;
+
+    QString getOpenedFileName() const;
+    const QString& getOpenedType() const;
+
 private:
 
     PG::FILE::ExtractorBase* m_fileExtractor;
+    QString m_openedFileType;
 
     std::vector<std::string> m_hideExtentions;
 

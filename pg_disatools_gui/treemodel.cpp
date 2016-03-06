@@ -50,8 +50,10 @@ bool TreeModel::open(const QString &file){
 	QFileInfo fileInfo(file);
 	const QString ext = fileInfo.suffix().toUpper();
 	if(ext == "DAT"){
+		m_openedFileType = "DAT";
 		m_fileExtractor = new PG::FILE::PSPFS();
 	}else if(ext == "MPP"){
+		m_openedFileType = "MPP";
 		m_fileExtractor = new PG::FILE::MPP();
 	}else{
 		qInfo() << "Unknown file format: '"<<ext<<"' file: '"<< file<<"'!";
@@ -133,15 +135,19 @@ bool TreeModel::hasDataChanged() const{
 
 bool TreeModel::save(){
 	if(!m_fileExtractor) return false;
-	if(!m_fileExtractor->save())
-		return true;
-	else{
-		//if saving faled try to reopen it
-		QAbstractItemModel::layoutAboutToBeChanged();
-		PG::UTIL::File file = m_fileExtractor->getOpendFile();
-		return open(QString::fromStdString(file.getPath()));
+
+	QAbstractItemModel::layoutAboutToBeChanged();
+	PG::UTIL::File file = m_fileExtractor->getOpendFile();
+	if(m_fileExtractor->save()){
+		delete m_fileExtractor;
+		m_fileExtractor = nullptr;
 		QAbstractItemModel::layoutChanged();
+		return false;
 	}
+	bool success = open(QString::fromStdString(file.getPath()));
+	QAbstractItemModel::layoutChanged();
+
+	return success;
 }
 
 bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha) const{
@@ -236,7 +242,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
 				return QPixmap("resources/image.png");
 			else if(exp == "OGG")
 				return QPixmap("resources/note.png");
-			else if(exp == "GEO")
+			else if(exp == "GEO" || exp == "MPP")
 				return QPixmap("resources/geometry.png");
 			return QVariant();
     }else if(role == Qt::DisplayRole){
@@ -356,6 +362,32 @@ bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
 	}
 
 
+}
+
+bool TreeModel::checkIsValid(QString& outMessage) const{
+	if(m_fileExtractor){
+		std::string errorMSG;
+		if(!m_fileExtractor->checkValid(errorMSG)){
+			outMessage = QString::fromStdString(errorMSG);
+			return false;
+		}
+		return true;
+	}else{
+		outMessage = "There is no file opened!";
+		return false;
+	}
+}
+
+QString TreeModel::getOpenedFileName() const{
+	if(m_fileExtractor){
+		return QString::fromStdString(m_fileExtractor->getOpendFile().getName());
+	}else{
+		return "";
+	}
+}
+
+const QString& TreeModel::getOpenedType() const{
+	return m_openedFileType;
 }
 
 int TreeModel::columnCount(const QModelIndex &parent) const{

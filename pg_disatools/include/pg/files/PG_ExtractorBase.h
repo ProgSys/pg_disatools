@@ -42,6 +42,9 @@ struct fileInfo{
 	fileInfo();
 	fileInfo(const std::string& name,unsigned int size,unsigned int offset);
 	fileInfo(const PG::UTIL::File& name,unsigned int size,unsigned int offset);
+	fileInfo(const fileInfo& info);
+
+	void operator=(const fileInfo& info);
 
 	const PG::UTIL::File& getName() const;
 	unsigned int getSize() const;
@@ -91,6 +94,12 @@ public:
 	 * @returns true if file info found
 	 */
 	virtual bool find(const PG::UTIL::File& file, fileInfo& infoOut) const = 0;
+
+	/*!
+	 * @returns true if archive is correct, otherwise will return false and a error message.
+	 */
+	virtual bool checkValid(std::string& errorMessageOut) const;
+
 	const fileInfo& operator[](unsigned int index) const;
 	fileInfo* getDataPointer(unsigned int index) const;
 

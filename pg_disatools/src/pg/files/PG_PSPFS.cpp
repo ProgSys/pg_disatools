@@ -41,7 +41,7 @@ filePSPFSInfo::filePSPFSInfo(const filePSPFSInfo& info):
 {}
 
 bool filePSPFSInfo::isExternalFile() const{
-	return !baseInfo.isExternalFile();
+	return baseInfo.isExternalFile();
 }
 
 void filePSPFSInfo::setNameUnclean(std::string file){

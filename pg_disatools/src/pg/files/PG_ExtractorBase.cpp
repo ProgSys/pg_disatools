@@ -38,7 +38,16 @@ fileInfo::fileInfo(const std::string& _name,unsigned int _size,unsigned int _off
 		name(_name),size(_size),offset(_offset){}
 fileInfo::fileInfo(const PG::UTIL::File& _name,unsigned int _size,unsigned int _offset):
 		name(_name),size(_size),offset(_offset){}
+fileInfo::fileInfo(const fileInfo& info):
+		name(info.name),size(info.size),offset(info.offset),externalFile(info.externalFile)
+{}
 
+void fileInfo::operator=(const fileInfo& info){
+	name = info.name;
+	size = info.size;
+	offset = info.offset;
+	externalFile = info.externalFile;
+}
 
 const PG::UTIL::File& fileInfo::getName() const{
 	return name;
@@ -234,6 +243,10 @@ unsigned int ExtractorBase::extract(const PG::UTIL::File& file, char* (&data) ) 
 
 bool ExtractorBase::isChanged() const{
 	return m_changed;
+}
+
+bool ExtractorBase::checkValid(std::string& errorMessageOut) const{
+	return true;
 }
 
 const fileInfo& ExtractorBase::operator[](unsigned int index) const{

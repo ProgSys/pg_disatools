@@ -86,6 +86,9 @@ bool File::operator==(const File& file) const{
 	return m_path == file.getPath();
 }
 
+bool File::operator<(const File& file) const{
+	return m_path < file.getPath();
+}
 
 void File::clear(){
 	m_path = "";

@@ -57,13 +57,14 @@ public:
 	bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
 	const fileInfo& get(unsigned int index) const;
 
-
+	bool checkValid(std::string& errorMessageOut) const;
 
 	virtual ~MPP();
 private:
 	PG::UTIL::File m_file;
-	bool m_isNew = false; // remastered maps with better textures
+	bool m_hasNormals = false; // remastered maps with better textures
 	std::vector<fileInfo> m_fileTextureInfos;
+	std::vector<fileInfo> m_fileNormalsInfos;
 	std::vector<fileInfo> m_fileGeometryInfos;
 
 	bool findFileInfo(const PG::UTIL::File& file, fileInfo& infoOut) const;

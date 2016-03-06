@@ -204,6 +204,11 @@ void MainWindow::on_checkBox_TX2_clicked(bool checked)
      m_treeSort->setFilterFileExtention("TX2", !checked);
 }
 
+void MainWindow::on_checkBox_GEO_clicked(bool checked)
+{
+    m_treeSort->setFilterFileExtention("GEO", !checked);
+}
+
 void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel){
 	QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
 	//qDebug() << selected.size();
@@ -249,7 +254,7 @@ void MainWindow::saveSelectedImage(){
 
 
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Save Image"),
-	                                   "",
+										image.replace(".TX2",""),
 	                                   tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif);;TGA (*.tga);;PGM (*.pgm)"));
 
 	if (fileName.isEmpty()) return;
@@ -328,6 +333,10 @@ void MainWindow::on_btnInsert_clicked()
 void MainWindow::on_btnSave_clicked()
 {
     if(m_treeModel->hasDataChanged()){
+
+		if(checkFileAndAsk())
+			return;
+
     	setEnabled(false);
     	QProgressDialog progress;
     	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
@@ -356,9 +365,24 @@ void MainWindow::on_btnSave_clicked()
 
 void MainWindow::on_btnSaveAs_clicked()
 {
-    	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
-    	                                   "",
-    	                                   tr("Data (*.DAT)"));
+
+		if(checkFileAndAsk())
+			return;
+
+		QString fileName;
+		if(m_treeModel->getOpenedType() == "DAT"){
+	    	fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+	    										m_treeModel->getOpenedFileName(),
+	    	                                   tr("Data (*.DAT)"));
+		}else if(m_treeModel->getOpenedType() == "MPP"){
+	    	fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+	    										m_treeModel->getOpenedFileName(),
+	    	                                   tr("MPP (*.MPP)"));
+		}else{
+			return;
+		}
+
+
 
     	if (fileName.isEmpty()) return;
 
@@ -390,41 +414,59 @@ void MainWindow::on_btnSaveAs_clicked()
 void MainWindow::on_btnDelete_clicked()
 {
 
-	QMessageBox::StandardButton reply = QMessageBox::warning(this, "You are sure you want to delete the selected files?",
-			"The position of most files (like .TX2) is hardcoded ingame, deleting items could destroy the file order and break the archive! Continue?",
-			 QMessageBox::Yes|QMessageBox::No);
-
-	if(reply == QMessageBox::Yes){
-		QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
-
-		QStringList fileNames;
-		for(const QModelIndex& index: selected){
-				//m_treeModel->extractFile(index);
-			QMap<int, QVariant> item = m_treeSort->itemData(index);
-			fileNames.push_back(item[0].toString());
-		}
-
-		int removed = m_treeModel->removeFiles(fileNames);
-
-		if(removed <= 0){
-			 ui->statusBar->showMessage("No files removed!");
-		}else if( removed == 1){
-			 ui->statusBar->showMessage(QString("Removed %1.").arg(fileNames[0]));
-		}else{
-			 ui->statusBar->showMessage(QString("%1 files removed.").arg(fileNames[0]));
-		}
-
-		if(m_treeModel->hasDataChanged()){
-			ui->btnSave->setEnabled(true);
-			ui->btnSaveAs->setEnabled(true);
-		}
-
-		ui->btnDelete->setEnabled(false);
+	if(m_treeModel->getOpenedType() == "DAT"){
+		QMessageBox::StandardButton reply = QMessageBox::warning(this, "You are sure you want to delete the selected files?",
+				"The position of most files (like .TX2) is hardcoded ingame, deleting items could destroy the file order and break the archive! Continue?",
+				 QMessageBox::Yes|QMessageBox::No);
+		if(reply == QMessageBox::No) return;
 	}
-}
 
+	QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
+
+	QStringList fileNames;
+	for(const QModelIndex& index: selected){
+			//m_treeModel->extractFile(index);
+		QMap<int, QVariant> item = m_treeSort->itemData(index);
+		fileNames.push_back(item[0].toString());
+	}
+
+	int removed = m_treeModel->removeFiles(fileNames);
+
+	if(removed <= 0){
+		 ui->statusBar->showMessage("No files removed!");
+	}else if( removed == 1){
+		 ui->statusBar->showMessage(QString("Removed %1.").arg(fileNames[0]));
+	}else{
+		 ui->statusBar->showMessage(QString("%1 files removed.").arg(fileNames[0]));
+	}
+
+	if(m_treeModel->hasDataChanged()){
+		ui->btnSave->setEnabled(true);
+		ui->btnSaveAs->setEnabled(true);
+	}
+
+	ui->btnDelete->setEnabled(false);
+
+}
 
 void MainWindow::on_btnExtractImage_clicked()
 {
 	//saveSelectedImage();
 }
+
+bool MainWindow::checkFileAndAsk(){
+	QString msg;
+	if(!m_treeModel->checkIsValid(msg)){
+		QMessageBox::StandardButton reply = QMessageBox::warning(this, "Do you want to continue?",
+						msg,
+					 QMessageBox::Yes|QMessageBox::Cancel);
+
+			if(reply == QMessageBox::Yes){
+				return false;
+			}
+			return true;
+	}
+
+	return false;
+}
+
