@@ -6,27 +6,21 @@ Please make a backup of your files before using this tools!
 
 You can download the latest version of the tools here:
 
-* [Version v0.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.1%20alpha.zip)
-* [Version v0.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.2%20alpha.zip)
+* [Version v0.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.2%20alpha.zip)
 
 ###Content
-#### PSPfsExtractor
+#### Disa PC File Manager
 
-Java application for extracting and packing files from a Disgaea PC DATA.DAT archive.
+This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.
+Note that the position of most files in .DAT is hardcoded, deleting files could break the file order and so the archive itself.
 
-To run it you need to have Java installed: https://www.java.com/en/download/
-
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview5.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview6.png)
 
 #### TX2Converter.exe
 
 A command line tool which allows you to convert Disgaea PC *.TX2 and *.MPP textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).
 Sadly the other way around is not supported yet.
 Make a backup before using this tool!
-
-#### Known problems/TODOS:
-
-* The positioning of the DUMMY files inside the DATA.DAT is wrong.
 
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 

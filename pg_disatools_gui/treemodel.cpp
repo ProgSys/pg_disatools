@@ -348,7 +348,7 @@ bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
 		return false;
 	}
 
-	qDebug() <<" Trying to export image '"<<imagename<<"' to '"<<targetfile<<"'.";
+	qInfo() <<" Trying to export image '"<<imagename<<"' to '"<<targetfile<<"'.";
 
 	QFileInfo fInfo(targetfile);
 	QString ext = fInfo.suffix();

@@ -172,11 +172,11 @@ public:
 	}
 
 	T* end(){
-		return &m_pixels[m_pixels.size()-1];
+		return &m_pixels[0] + m_pixels.size();
 	}
 
 	const T* end() const{
-		return &m_pixels[m_pixels.size()-1];
+		return &m_pixels[0] + m_pixels.size();
 	}
 
 	T& front(){

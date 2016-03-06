@@ -43,6 +43,7 @@ inline int getColor(unsigned char a, unsigned char b, rgba& outRGBA){
 	outRGBA.r = (b >> 3) & 0x1F;
 	outRGBA.g = ((b << 3) & 0x38) + ((a >> 5) & 0x07);
 	outRGBA.b = (a) & 0x1F;
+	outRGBA.a = 255;
 	scaleRGB565to888(outRGBA);
 	return (b << 8) + a;
 }
@@ -59,6 +60,8 @@ void DXT1block::decompress(std::vector<PG::UTIL::rgba>& outRGBAData) const{
 		c[2] = interpolate(c[0],c[1], 0.5 );
 		c[3].a = 0;
 	}
+
+	//PG_INFO_STREAM(c[0]<<c[1]<<c[2]<<c[3]);
 
 	//read lookup table and insert RGBA
 	outRGBAData.resize(16); // block size 4x4
@@ -78,15 +81,28 @@ unsigned int DXT1block::setColorA(const rgba& color888A){
     // RGB565=(((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3));
 	char g = color888A.g & 0xFC;
 	color[0] = ((color888A.b & 0xF8) >> 3) | (g << 3);
-	color[1] = (color888A.r & 0xF8) | (g >> 5);
+	color[1] = (color888A.r & 0xF8) | ((g >> 5) & 0x07);
 	return (color[1] << 8) + color[0];
 }
+
+rgba DXT1block::getColorA() const{
+	rgba c;
+	getColor(color[0], color[1], c);
+	return c;
+}
+
 unsigned int DXT1block::setColorB(const rgba& color888B){
     // RGB565=(((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3));
 	char g = color888B.g & 0xFC;
 	color[2] = ((color888B.b & 0xF8) >> 3) | (g << 3);
-	color[3] = (color888B.r & 0xF8) | (g >> 5);
+	color[3] = (color888B.r & 0xF8) | ((g >> 5) & 0x07);
 	return (color[3] << 8) + color[2];
+}
+
+rgba DXT1block::getColorB() const{
+	rgba c;
+	getColor(color[2], color[3], c);
+	return c;
 }
 
 void DXT1block::setColorLookUpValue(unsigned char index, unsigned char value){

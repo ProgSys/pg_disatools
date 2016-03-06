@@ -98,7 +98,8 @@ void MainWindow::on_btnAbout_clicked()
     //msgBox.setWindowIcon(QMessageBox::Information);
     msgBox.setTextFormat(Qt::RichText);
     msgBox.setText(
-                "This tool allows you to add and extract files form the Disgaea PC pspfs_v1 archive. <br>" \
+    			"This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.<br>"\
+    			"Note that the position of most files in .DAT is hardcoded,<br> deleting files could break the file order and so the archive itself.<br>"\
 				"You can find the source code here: <a href='https://github.com/ProgSys/pg_disatools/'>https://github.com/ProgSys/pg_disatools</a><br>"
                 "<br><b>GNU Lesser General Public License (LGPL):</b> <br>"
 				"<br>Copyright (C) 2016  ProgSys"\
@@ -245,6 +246,7 @@ void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSe
 }
 
 void MainWindow::saveSelectedImage(){
+
 	QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
 	if(selected.isEmpty() || !selected[0].isValid()) return;
 	QMap<int, QVariant> item = m_treeSort->itemData(selected[0]);
@@ -252,9 +254,10 @@ void MainWindow::saveSelectedImage(){
 	QString image = item[0].toString();
 	if(!image.contains(".TX2")) return;
 
-
+	QString imageFileName = image;
+	imageFileName.replace(".TX2","");
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Save Image"),
-										image.replace(".TX2",""),
+									imageFileName,
 	                                   tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif);;TGA (*.tga);;PGM (*.pgm)"));
 
 	if (fileName.isEmpty()) return;

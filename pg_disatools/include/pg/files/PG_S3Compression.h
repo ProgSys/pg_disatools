@@ -49,7 +49,9 @@ struct DXT1block: public S3Base{
 	void decompress(std::vector<PG::UTIL::rgba>& outRGBAData) const;
 
 	unsigned int setColorA(const rgba& color888A);
+	rgba getColorA() const;
 	unsigned int setColorB(const rgba& color888B);
+	rgba getColorB() const;
 	void setColorLookUpValue(unsigned char index, unsigned char value);
 };
 
@@ -135,21 +137,24 @@ static bool compressS3(const PG::UTIL::RGBAImage& imageIn, std::vector<DXT1block
 
 				//find the max and min color
 				Array<rgba,4> points; // min max interpolateA interpolateB or alpha
-				points[0] = rgba(255,255,255,255);
-				points[1] = rgba(0,0,0,0);
+				points[0] = rgba(255,255,255,255); // min
+				unsigned int distanceC0 = 255*255*3;
+				points[1] = rgba(0,0,0,0); //max
+				unsigned int distanceC1 = 0;
+
 				bool isalpha = false;
 
 				for(const rgba& pixel: window){
-					unsigned char light = grayscale(pixel);
+					const unsigned int distancePix = pixel.r*pixel.r + pixel.g*pixel.g + pixel.b*pixel.b;
 					//min test
-					if(points[0].a > light){
+					if(distanceC0 > distancePix){
 						points[0] = pixel;
-						points[0].a = light;
+						distanceC0  = distancePix;
 					}
 					//test max
-					if(points[1].a < light){
+					if(distanceC1 < distancePix){
 						points[1] = pixel;
-						points[1].a = light;
+						distanceC1  = distancePix;
 					}
 					//test alpha
 					if(pixel.a < 128)
@@ -161,31 +166,36 @@ static bool compressS3(const PG::UTIL::RGBAImage& imageIn, std::vector<DXT1block
 				DXT1block& block = blocksOut[y*block_width+x];
 				const unsigned int a = block.setColorA(points[0]);
 				const unsigned int b = block.setColorB(points[1]);
+
 				//set correct order
-				/*
-				if(isalpha){
-					if(a > b){
+				if((isalpha && a > b)){
 						rgba b = points[0];
 						points[0] = points[1];
 						points[1] = b;
 
 						block.setColorA(points[0]);
 						block.setColorB(points[1]);
-					}
-				}else{*/
-					if(a < b){
+				}else if(a < b){
 						rgba b = points[0];
 						points[0] = points[1];
 						points[1] = b;
 
 						block.setColorA(points[0]);
 						block.setColorB(points[1]);
-					}
-				//}
+				}else if( a == b ){
+					block.setColorA(points[0]);
+					block.setColorB(points[1]);
+				}
 
 
-				//PG_INFO_STREAM("rgba1: "<<points[0]<< " rgba2: "<<points[1]);
-
+					/*
+				PG_INFO_STREAM("INT:      rgba1: "<<a<< " rgba2: "<<b);
+				PG_INFO_STREAM("DIS:      rgba1: "<<distanceC0<< " rgba2: "<<distanceC1);
+				PG_INFO_STREAM("ORIGINAL: rgba1: "<<points[0]<< " rgba2: "<<points[1]);
+				PG_INFO_STREAM("DATA:     rgba1: "<<block.getColorA()<< " rgba2: "<<block.getColorB());
+				const rgba& co = window[4*4-1];
+				PG_INFO_STREAM("WINDOW:   rgba1: "<< co << " d: "<<co.r*co.r+co.g*co.g+co.b*co.b);
+				*/
 
 				//build look up table
 				std::vector<char> lookup;

@@ -4,18 +4,24 @@ project(pg_disatools)
 
 SET(DEPENDENCIES_PATH "${PROJECT_SOURCE_DIR}/../dependencies" CACHE FILEPATH "Path to the dependencies folder, which contains the include and lib files." )
 SET(CMAKE_CONFIGURATION_TYPES Debug;Release)
-SET(CMAKE_BUILD_TYPE Debug)
+option(DEBUG_COMPILE "Compile in debug mode" true)
+SET(CMAKE_SHARED_LINKER_FLAGS "-static-libgcc -static-libstdc++ -static")
+#set(GCC_CXX_FLAGS ${GCC_CXX_FLAGS} "-static-libgcc -static-libstdc++ -static")
+
+if(DEBUG_COMPILE)
+	SET(CMAKE_BUILD_TYPE Debug)
+	message (STATUS "DEBUG is ON")
+	add_definitions(-DDEBUG)
+else()
+	SET(CMAKE_BUILD_TYPE Release)
+endif()
+
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../cmake")
 
 include(macros)
 
 #Set default path
 Setup_defaults(${CMAKE_PROJECT_NAME})
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	message (STATUS "DEBUG is ON")
-	add_definitions(-DDEBUG)
-endif()
 
 if(UNIX)
 	add_definitions(-fPIC)
@@ -32,6 +38,13 @@ else()
 	#add_definitions(-DPG_LOADERS_EXPORTS)
 	#add_definitions(-DPG_LOADERS_DLL_CONFIG)
 endif()
+
+#windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
+SET(sim_EXE_SRCS "")
+if(MINGW)
+SET(sim_EXE_SRCS ${sim_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/disa_tools_cmd_icon.res")
+message (STATUS "Icon File: ${sim_EXE_SRCS} ")
+endif(MINGW)
 
 # where the include files are located
 include_directories(
@@ -109,6 +122,7 @@ add_executable(
 target_link_libraries(
 	disa_tools_test
 		pg_disatools
+		${sim_EXE_SRCS}
 )
 
 #===============================================
@@ -123,6 +137,7 @@ add_executable(
 target_link_libraries(
 	TX2Converter
 		pg_disatools
+		${sim_EXE_SRCS}
 )
 
 #===============================================

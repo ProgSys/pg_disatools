@@ -6,53 +6,62 @@
 # PG_DISATOOLS_INCLUDE_PATH
 # PG_DISATOOLS_LIBRARY
 # 
-
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+	SET(PG_DISATOOLS_PROJECT_DIR "pg_disatools_release" )
+else()
+	SET(PG_DISATOOLS_PROJECT_DIR "pg_disatools" )
+endif()
+	
 if (MINGW)
-    FIND_PATH( PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h
-        ${DEPENDENCIES_PATH}/pg_disatools/mingw/include
-    )
 
-    FIND_LIBRARY( PG_DISATOOLS_LIBRARY
-        NAMES pg_disatools
-        PATHS
-        ${DEPENDENCIES_PATH}/pg_disatools/mingw/lib/static
-    )
+	
+	
+	FIND_PATH( PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h
+		${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/mingw/include
+	)
+
+	FIND_LIBRARY( PG_DISATOOLS_LIBRARY
+		NAMES pg_disatools
+		PATHS
+		${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/mingw/lib/static
+	)
 	
 	INSTALL(
-		DIRECTORY ${DEPENDENCIES_PATH}/pg_disatools/mingw/bin/
+		DIRECTORY ${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/mingw/bin/
 		DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		#FILES_MATCHING PATTERN "*.dll"
 	)
+	
 
 elseif (MSVC)
     FIND_PATH( PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h
-        ${DEPENDENCIES_PATH}/pg_disatools/msvc/include
+        ${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/msvc/include
     )
 
     FIND_LIBRARY( PG_DISATOOLS_LIBRARY
         NAMES pg_disatools
         PATHS
-        ${DEPENDENCIES_PATH}/pg_disatools/msvc/lib/static
+        ${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/msvc/lib/static
     )
 	
 	INSTALL(
-		DIRECTORY ${DEPENDENCIES_PATH}/pg_disatools/msvc/bin/
+		DIRECTORY ${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/msvc/bin/
 		DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		#FILES_MATCHING PATTERN "*.dll"
 	)
 elseif(UNIX)
     FIND_PATH( PG_DISATOOLS_INCLUDE_PATH pg/files/PG_PSPFS.h
-        ${DEPENDENCIES_PATH}/pg_disatools/unix/include
+        ${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/unix/include
     )
 
     FIND_LIBRARY( PG_DISATOOLS_LIBRARY
         NAMES pg_disatools
         PATHS
-        ${DEPENDENCIES_PATH}/pg_disatools/unix/lib/static
+        ${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/unix/lib/static
     )
 	
 	INSTALL(
-		DIRECTORY ${DEPENDENCIES_PATH}/pg_disatools/unix/bin/
+		DIRECTORY ${DEPENDENCIES_PATH}/${PG_DISATOOLS_PROJECT_DIR}/unix/bin/
 		DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		#FILES_MATCHING PATTERN "*.dll"
 	)

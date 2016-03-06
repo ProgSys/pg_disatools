@@ -4,13 +4,27 @@ project(pg_disatools_gui)
 
 SET(DEPENDENCIES_PATH "${PROJECT_SOURCE_DIR}/../dependencies" CACHE FILEPATH "Path to the dependencies folder, which contains the include and lib files." )
 SET(CMAKE_CONFIGURATION_TYPES Debug;Release)
-SET(CMAKE_BUILD_TYPE Debug)
+#SET(CMAKE_BUILD_TYPE Debug)
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../cmake")
+option(DEBUG_COMPILE "Compile in debug mode" true)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake") 
+
+
+if(DEBUG_COMPILE)
+	SET(CMAKE_BUILD_TYPE Debug)
+	message (STATUS "DEBUG is ON")
+	add_definitions(-DDEBUG)
+else()
+	SET(CMAKE_BUILD_TYPE Release)
+endif()
+
+include(macros)
+#Set default path
+Setup_defaults(${CMAKE_PROJECT_NAME})
 
 find_package(Qt5 COMPONENTS Widgets Declarative)
 find_package(PG_DISATOOLS REQUIRED)
@@ -20,10 +34,14 @@ find_package(PG_DISATOOLS REQUIRED)
 QT5_WRAP_UI(UISrcs mainwindow.ui)
 #QT5_WRAP_CPP(MOCSrcs ui_mainwindow.h)
 
-include(macros)
+#windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
+SET(sim_EXE_SRCS "")
+if(MINGW)
+SET(sim_EXE_SRCS ${sim_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/disa_tools_icon.res")
+message (STATUS "Icon File: ${sim_EXE_SRCS} ")
+endif(MINGW)
 
-#Set default path
-Setup_defaults(${CMAKE_PROJECT_NAME})
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	message (STATUS "DEBUG is ON")
@@ -122,7 +140,7 @@ target_link_libraries(
 	pg_disatools_gui
 	${Qt5Widgets_LIBRARIES}
 	${PG_DISATOOLS_LIBRARY}
-	
+	${sim_EXE_SRCS}
 )
 
 #===============================================
