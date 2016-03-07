@@ -28,7 +28,10 @@
 #include <pg/files/PG_IMY.h>
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/files/PG_PSPFS.h>
+#include <pg/util/PG_ByteInFileStream.h>
 #include <algorithm>
+#include <pg/util/PG_BinaryFileWriter.h>
+#include <fstream>
 
 #define OUTSTR(x) std::cout << x << std::endl
 
@@ -43,20 +46,42 @@ struct testStr{
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
-	std::vector<testStr> vec;
-	vec.push_back(testStr("NA03"));
-	vec.push_back(testStr("NA02"));
-	vec.push_back(testStr("NA01"));
-	vec.push_back(testStr("NA04"));
-	vec.push_back(testStr("NA00"));
 
-	std::sort(vec.begin(), vec.end(), [](const testStr& A, const testStr& B){
-		return A.name < B.name;
-	});
+	PG::UTIL::ByteInFileStream reader("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.GEO");
+	//PG::UTIL::BinaryFileWriter writer("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.obj");
 
-	for(const testStr& s: vec){
-		OUTSTR(s.name);
+	 ofstream writer;
+	 writer.open ("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.obj");
+
+	reader.skip(304);
+
+	std::vector<unsigned int> index;
+
+	for(unsigned int i = 0; i < (103*3*3); i+=3){
+		writer << "v " << reader.readFloat();
+		writer << " ";
+		writer << reader.readFloat();
+		writer << " ";
+		writer << reader.readFloat();
+		writer << "\n";
+
+		index.push_back(i/3 +1);
 	}
+
+	//OUTSTR("# "<<i);
+	OUTSTR("");
+	for(unsigned int i = 0; i < index.size(); i+=3){
+		writer << "f ";
+		writer << index[i];
+		writer << " ";
+		writer << index[i+1];
+		writer << " ";
+		writer << index[i+2];
+		writer << "\n";
+
+		//OUTSTR("f "<<index[i]<<" "<<index[i+1]<<" "<<index[i+2]);
+	}
+
 
 	//PG::UTIL::RGBAImage image;
 	//PG::FILE::uncompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/test.imy",image);

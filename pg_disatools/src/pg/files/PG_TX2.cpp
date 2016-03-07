@@ -182,7 +182,7 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 			return true;
 		}
 
-		const unsigned int total_number_of_bytes = (widthOut*heightOut)/4;
+		const unsigned int total_number_of_bytes = (widthOut*heightOut);
 		if( instream->size() < (total_number_of_bytes+color_table_size+16)){
 			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < " << (total_number_of_bytes+color_table_size+16)<<") ");
 			return true;
