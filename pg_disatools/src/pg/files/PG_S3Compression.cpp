@@ -611,9 +611,9 @@ void DXT5block::compress(const PG::UTIL::RGBAImage& window, S3CompressionMethod 
 unsigned int DXT5block::setColorA(const rgba& color888A){
 	rgba rgb565 = color888A;
 	scaleRGB888to565(rgb565);
-	//(g0) gggbbbbb rrrrrggg (g1)
-	color[0] = rgb565.b | rgb565.g << 5;
-	color[1] = rgb565.r << 3 | rgb565.g >> 3;
+	//(g1) gggbbbbb rrrrrggg (g0)
+	color[0] = rgb565.b | ((rgb565.g & 0x38)<< 2);
+	color[1] = rgb565.r << 3 | (rgb565.g & 0x07);
     // RGB565=(((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3));
 	//char g = color888A.g & 0xFC;
 	//color[0] = ((color888A.b & 0xF8) >> 3) | (g << 3);
@@ -630,9 +630,9 @@ rgba DXT5block::getColorA() const{
 unsigned int DXT5block::setColorB(const rgba& color888B){
 	rgba rgb565 = color888B;
 	scaleRGB888to565(rgb565);
-	//(g0) gggbbbbb rrrrrggg (g1)
-	color[2] = rgb565.b | rgb565.g << 5;
-	color[3] = rgb565.r << 3 | rgb565.g >> 3;
+	//(g1) gggbbbbb rrrrrggg (g0)
+	color[2] = rgb565.b | ((rgb565.g & 0x38)<< 2);
+	color[3] = rgb565.r << 3 | (rgb565.g & 0x07);
 	/*
 	char g = color888B.g & 0xFC;
 	color[2] = ((color888B.b & 0xF8) >> 3) | (g << 3);

@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <pg/util/PG_BinaryFileWriter.h>
 #include <fstream>
+#include <pg/util/PG_Vector.h>
 
 #define OUTSTR(x) std::cout << x << std::endl
 
@@ -47,15 +48,23 @@ int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
 	char a[2];
-	a[0] = 0;
-	a[1] = 0;
+	a[0] = 0x0B;
+	a[1] = 0x89;
+	OUTSTR("Start: "<<(int)a[0]<<" "<<(int)a[1]);
+
+	PG::UTIL::rgb pix;
+	pix.r =  a[0] << 3;
+	pix.g = ((a[1] & 0x07)<<5) | (a[0] >> 3);
+	pix.b =  a[1] & 0xF8;
+	//scaleRGB565to888(pix);
+	OUTSTR("rgb: "<<pix);
 
 
-	char* array = &a[0];
 
-	array[0] = (array[0]) | (0x01 << 5);
+	a[0] = (pix.r >> 3) | ((pix.g & 0x1C)<<3);
+	a[1] = (pix.b & 0xF8) | (pix.g >> 5);
 
-	OUTSTR((int)a[0] <<(int) a[1]);
+	OUTSTR("back: "<<(int)a[0]<<" "<<(int)a[1]);
 
 	return 0;
 

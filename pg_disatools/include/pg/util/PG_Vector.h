@@ -393,14 +393,6 @@ void tVector3<T>::clear(T value){
 }
 
 
-template<typename T>
-void tVector3<T>::dump(std::ostream& o) const{
-	o<<"("<<x<<", "<<y<<", "<<z<<")";
-}
-
-
-
-
 /////////////////////// VECTOR 4 DEFINITIONS ///////////////////////
 template<typename T>
 tVector4<T>::tVector4(T x, T y, T z, T w): x(x),y(y), z(z), w(w) {};
