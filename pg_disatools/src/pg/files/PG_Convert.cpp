@@ -104,7 +104,7 @@ bool convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, ou
 	return convertTX2ToImage(PG::UTIL::File(fileIn),PG::UTIL::File(fileOut),formatOut);
 }
 
-bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut){
+bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG::FILE::tx2Type compression){
 	std::vector<char> bytes;
 	PG::UTIL::RGBAImage image;
 	PG::UTIL::File file(fileIn);
@@ -120,7 +120,7 @@ bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut){
 		return true;
 	}
 
-	if(compressTX2(image, DXT1, bytes)){
+	if(compressTX2(image, compression, bytes)){
 		PG_INFO_STREAM("Couldn't compress image to DXT1.");
 		return true;
 	}

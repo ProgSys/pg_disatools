@@ -77,6 +77,8 @@ struct tVector2{
 
 	bool operator==(const tVector2<T>& tvec) const;
 
+	void clear(T value = 0);
+
 	void dump(std::ostream& o) const;
 
 	friend std::ostream& operator<<(std::ostream& o,const tVector2<T>& tvec){
@@ -124,6 +126,8 @@ struct tVector3{
 	void operator-=(const tVector3<T>& tvec);
 
 	bool operator==(const tVector3<T>& tvec) const;
+
+	void clear(T value = 0);
 
 	void dump(std::ostream& o) const;
 
@@ -174,6 +178,8 @@ struct tVector4{
 	void operator-=(const tVector4<T>& tvec);
 
 	bool operator==(const tVector4<T>& tvec) const;
+
+	void clear(T value = 0);
 
 	T const& max() const;
 	T const& maxRGB() const;
@@ -278,6 +284,12 @@ void tVector2<T>::operator=(const tVector4<T>& tvec){
 }
 
 template<typename T>
+void tVector2<T>::clear(T value){
+	x = value;
+	y = value;
+}
+
+template<typename T>
 void tVector2<T>::dump(std::ostream& o) const{
 	o<<"("<<x<<", "<<y<<")";
 }
@@ -372,6 +384,14 @@ void tVector3<T>::operator=(const tVector4<T>& tvec){
 	y = tvec.y;
 	z = tvec.z;
 }
+
+template<typename T>
+void tVector3<T>::clear(T value){
+	x = value;
+	y = value;
+	z = value;
+}
+
 
 template<typename T>
 void tVector3<T>::dump(std::ostream& o) const{
@@ -471,6 +491,14 @@ void tVector4<T>::operator=(const tVector4<T>& tvec){
 	y = tvec.y;
 	z = tvec.z;
 	w = tvec.w;
+}
+
+template<typename T>
+void tVector4<T>::clear(T value){
+	x = value;
+	y = value;
+	z = value;
+	w = value;
 }
 
 template<typename T>

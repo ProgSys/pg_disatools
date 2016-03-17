@@ -78,8 +78,7 @@ bool decompressTX2(const std::vector<char>& bytesIn, PG::UTIL::RGBAImage& imageO
 bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAImage& imageOut );
 
 
-
-bool compressTX2(PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
+bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
 
 } /* namespace FILE */
 } /* namespace PG */

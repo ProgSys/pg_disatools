@@ -46,6 +46,18 @@ struct testStr{
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
+	char a[2];
+	a[0] = 0;
+	a[1] = 0;
+
+
+	char* array = &a[0];
+
+	array[0] = (array[0]) | (0x01 << 5);
+
+	OUTSTR((int)a[0] <<(int) a[1]);
+
+	return 0;
 
 	PG::UTIL::ByteInFileStream reader("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.GEO");
 	//PG::UTIL::BinaryFileWriter writer("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.obj");
@@ -53,30 +65,69 @@ int main(int argc, char* argv[]){
 	 ofstream writer;
 	 writer.open ("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.obj");
 
-	reader.skip(304);
+	//reader.skip(304);
+	reader.skip(10192);
 
 	std::vector<unsigned int> index;
 
-	for(unsigned int i = 0; i < (103*3*3); i+=3){
-		writer << "v " << reader.readFloat();
-		writer << " ";
-		writer << reader.readFloat();
-		writer << " ";
-		writer << reader.readFloat();
-		writer << "\n";
+	//103;
+	unsigned int tryangles = 103;
 
-		index.push_back(i/3 +1);
+	for(unsigned int i = 0; i < (tryangles*3); i++){
+		PG::UTIL::vec3 vertex;
+		reader.read((char*)&vertex.x, sizeof(float)*3);
+
+		writer << "v " << vertex.x<<" "<<vertex.y<<" "<<vertex.z<<"\n"; // openGl swap z and y
+
+		index.push_back(i +1);
 	}
 
+	for(unsigned int i = 0; i < (tryangles); i++){
+		PG::UTIL::vec3 normal;
+		reader.read((char*)&normal.x, sizeof(PG::UTIL::vec3));
+
+		writer << "vn " << normal.x<<" "<<normal.y<<" "<<normal.z<<"\n";
+		writer << "vn " << normal.x<<" "<<normal.y<<" "<<normal.z<<"\n";
+		writer << "vn " << normal.x<<" "<<normal.y<<" "<<normal.z<<"\n";
+		//index.push_back(i/3 +1);
+	}
+
+	OUTSTR(index.size());
+	for(unsigned int i = 0; i < (tryangles*3); i++){
+		PG::UTIL::vec2 uv;
+		reader.read((char*)&uv.x, sizeof(float)*2);
+
+		writer << "vt " << uv.x<<" "<<uv.y<<" 0.0\n"; // openGl swap z and y
+		//writer << "vt 0.000000 0.000000 0.000000\n";
+
+		//index.push_back(i/3 +1);
+	}
+
+
+
+
+
+
+
+
+
 	//OUTSTR("# "<<i);
-	OUTSTR("");
 	for(unsigned int i = 0; i < index.size(); i+=3){
 		writer << "f ";
-		writer << index[i];
+		writer << index[i]<<"/"<<index[i]<<"/"<<index[i];
+		//writer << index[i]<<"/"<<index[i];
+		//writer << index[i]<<"//"<<index[i];
+		//writer << index[i];
 		writer << " ";
-		writer << index[i+1];
+		writer << index[i+1]<<"/"<<index[i+1]<<"/"<<index[i+1];
+		//writer << index[i+1]<<"/"<<index[i+1];
+		//writer << index[i+1]<<"//"<<index[i+1];
+		//writer << index[i+1];
 		writer << " ";
-		writer << index[i+2];
+		writer << index[i+2]<<"/"<<index[i+2]<<"/"<<index[i+2];
+		//writer << index[i+2]<<"/"<<index[i+2];
+		//writer << index[i+2]<<"//"<<index[i+2];
+		//writer << index[i+2];
 		writer << "\n";
 
 		//OUTSTR("f "<<index[i]<<" "<<index[i+1]<<" "<<index[i+2]);

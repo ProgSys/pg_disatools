@@ -43,7 +43,6 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 		return true;
 	}
 
-
 	int widthOut = instream->readUnsignedShort();
 	int heightOut = instream->readUnsignedShort();
 
@@ -72,8 +71,10 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
 
 		//wrong file size?
-		if( instream->size() < (number_of_blocks_4x4*8+16))
+		if( instream->size() < (number_of_blocks_4x4*8+16)){
+			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(number_of_blocks_4x4*8+16)<<")");
 			return true;
+		}
 
 		std::vector<PG::FILE::DXT1block> blocks(number_of_blocks_4x4);
 		instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT1block));
@@ -89,8 +90,10 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
 
 		//wrong file size?
-		if( instream->size() < (number_of_blocks_4x4*16+16))
+		if( instream->size() < (number_of_blocks_4x4*16+16)){
+			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(number_of_blocks_4x4*16+16)<<")");
 			return true;
+		}
 
 		std::vector<PG::FILE::DXT5block> blocks(number_of_blocks_4x4);
 		instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT5block));
@@ -100,8 +103,10 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 
 	}else if(compressiontype == tx2Type::BGRA){
 		//BGRA
-		if( instream->size() < (widthOut*heightOut*4+16))
+		if( instream->size() < (widthOut*heightOut*4+16)){
+			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(widthOut*heightOut*4+16)<<")");
 			return true;
+		}
 
 		imageOut.resize(widthOut,heightOut);
 		instream->read((char*)&imageOut[0], imageOut.size()*sizeof(PG::UTIL::rgba));
@@ -243,7 +248,7 @@ bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAIma
 
 
 
-bool compressTX2(PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut){
+bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut){
 
 	if(compressionTypeIn == DXT1){
 		const unsigned short width =  imageIn.getWidth();
@@ -268,6 +273,51 @@ bool compressTX2(PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::v
 			return true;
 		}
 		memcpy(&bytesOut[16], &blocks[0], number_of_blocks_4x4*8);
+	}else if(compressionTypeIn == DXT5){
+			const unsigned short width =  imageIn.getWidth();
+			const unsigned short height =  imageIn.getHeight();
+			const unsigned int number_of_blocks_width = (width/4);
+			const unsigned int number_of_blocks_height = (height/4);
+			const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+
+			bytesOut.resize(16+number_of_blocks_4x4*16);
+
+			memcpy(&bytesOut[0], &width, 2);
+			memcpy(&bytesOut[2], &height, 2);
+			bytesOut[4] = 0x02;
+			bytesOut[6] = 0x08;
+			bytesOut[7] = 0x08;
+			const unsigned int size = width*height;
+			memcpy(&bytesOut[12], &size, 4);
+			std::vector<DXT5block> blocks;
+
+			if(PG::FILE::compressS3(imageIn,blocks)){
+				PG_ERROR_STREAM("Couldn't compress image.");
+				return true;
+			}
+			memcpy(&bytesOut[16], &blocks[0], number_of_blocks_4x4*16);
+	}else if(compressionTypeIn == BGRA){
+			const unsigned short width =  imageIn.getWidth();
+			const unsigned short height =  imageIn.getHeight();
+			const unsigned int size = width*height*4;
+			bytesOut.resize(16+size);
+
+			memcpy(&bytesOut[0], &width, 2);
+			memcpy(&bytesOut[2], &height, 2);
+			bytesOut[4] = 0x03;
+			bytesOut[6] = 0x08;
+			bytesOut[7] = 0x08;
+			const unsigned int dimantion = width*height;
+			memcpy(&bytesOut[12], &dimantion, 4);
+
+			unsigned int i = 16;
+			for(const PG::UTIL::rgba& color: imageIn){
+				bytesOut[i] = color.b;
+				bytesOut[i+1] = color.g;
+				bytesOut[i+2] = color.r;
+				bytesOut[i+3] = color.a;
+				i += 4;
+			}
 
 	}else{
 		PG_ERROR_STREAM("Compression type not supported, please choose another one.");

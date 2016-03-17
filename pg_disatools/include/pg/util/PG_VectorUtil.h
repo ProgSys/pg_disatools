@@ -31,19 +31,24 @@ namespace PG {
 namespace UTIL {
 
 template<typename T>
-tVector2<T> interpolate(const tVector2<T>& A,const tVector2<T>& B, float v){
+T interpolate(T a, T b, double v){
+	return a*(1-v)+b*v;
+}
+
+template<typename T>
+tVector2<T> interpolate(const tVector2<T>& A,const tVector2<T>& B, double v){
 	const float a = (1.0f-v);
 	return tVector2<T>(A.x*a+B.x*v, A.y*a+B.y*v);
 }
 
 template<typename T>
-tVector3<T> interpolate(const tVector3<T>& A,const tVector3<T>& B, float v){
+tVector3<T> interpolate(const tVector3<T>& A,const tVector3<T>& B, double v){
 	const float a = (1.0f-v);
 	return tVector3<T>(A.x*a+B.x*v, A.y*a+B.y*v, A.z*a+B.z*v);
 }
 
 template<typename T>
-tVector4<T> interpolate(const tVector4<T>& A,const tVector4<T>& B, float v){
+tVector4<T> interpolate(const tVector4<T>& A,const tVector4<T>& B, double v){
 	const float a = (1.0f-v);
 	return tVector4<T>(A.x*a+B.x*v, A.y*a+B.y*v, A.z*a+B.z*v, A.w*a+B.w*v);
 }
@@ -64,6 +69,11 @@ float length(const tVector4<T>& A){
 }
 
 template<typename T>
+float distance(T a, T b){
+	return  std::sqrt(std::pow(a-b, 2.0));
+}
+
+template<typename T>
 float distance(const tVector2<T>& A,const tVector2<T>& B){
 	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0));
 }
@@ -79,10 +89,14 @@ float distance(const tVector4<T>& A,const tVector4<T>& B){
 }
 
 template<typename T>
-T interpolate(T a, T b, float v){
-	return a*(1-v)+b*v;
+float distanceRGB(const tVector4<T>& A,const tVector4<T>& B){
+	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0)+std::pow(A.z-B.z, 2.0));
 }
 
+template<typename T>
+float distanceXYZ(const tVector4<T>& A,const tVector4<T>& B){
+	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0)+std::pow(A.z-B.z, 2.0));
+}
 
 
 template<typename T>
@@ -99,28 +113,60 @@ float grayscale(const tVector4<T>& A){
 
 
 inline void scaleRGB565to888(tVector3<char>& vec){
+	/*
 	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
 	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
 	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );
+	*/
+
+	vec.r = ( vec.r << 3 );
+	vec.g = ( vec.g << 2 );
+	vec.b = ( vec.b << 3 );
 }
 
 inline void scaleRGB565to888(tVector4<char>& vec){
-	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
-	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
-	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );
+	vec.r = ( vec.r << 3 );
+	vec.g = ( vec.g << 2 );
+	vec.b = ( vec.b << 3 );
 }
 
+inline void scaleRGB888to565(tVector3<char>& vec){
+	vec.r = ( vec.r >> 3 );
+	vec.g = ( vec.g >> 2 );
+	vec.b = ( vec.b >> 3 );
+}
+
+inline void scaleRGB888to565(tVector4<char>& vec){
+	vec.r = ( vec.r >> 3 );
+	vec.g = ( vec.g >> 2 );
+	vec.b = ( vec.b >> 3 );
+}
+
+
 inline void scaleRGB565to888(tVector3<unsigned char>& vec){
-	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
-	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
-	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );
+	vec.r = ( vec.r << 3 );
+	vec.g = ( vec.g << 2 );
+	vec.b = ( vec.b << 3 );
 }
 
 inline void scaleRGB565to888(tVector4<unsigned char>& vec){
-	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
-	vec.g = ( vec.g << 2 ) | ( vec.g >> 4 );
-	vec.b = ( vec.b << 3 ) | ( vec.b >> 2 );
+	vec.r = ( vec.r << 3 );
+	vec.g = ( vec.g << 2 );
+	vec.b = ( vec.b << 3 );
 }
+
+inline void scaleRGB888to565(tVector3<unsigned char>& vec){
+	vec.r = ( vec.r >> 3 );
+	vec.g = ( vec.g >> 2 );
+	vec.b = ( vec.b >> 3 );
+}
+
+inline void scaleRGB888to565(tVector4<unsigned char>& vec){
+	vec.r = ( vec.r >> 3 );
+	vec.g = ( vec.g >> 2 );
+	vec.b = ( vec.b >> 3 );
+}
+
 
 
 } /* namespace UTIL */

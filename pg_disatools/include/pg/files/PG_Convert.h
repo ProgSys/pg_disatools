@@ -28,6 +28,7 @@
 #include <string>
 #include <pg/util/PG_File.h>
 #include <pg/util/PG_ApiUtil.h>
+#include <pg/files/PG_TX2.h>
 
 namespace PG {
 namespace FILE {
@@ -44,7 +45,7 @@ bool PG_UTIL_API convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL:
 
 bool PG_UTIL_API convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut);
 
-bool PG_UTIL_API convertImageToTX2(const std::string& fileIn, const std::string& fileOut);
+bool PG_UTIL_API convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG::FILE::tx2Type compression = PG::FILE::DXT5);
 
 } /* namespace FILE */
 } /* namespace PG */

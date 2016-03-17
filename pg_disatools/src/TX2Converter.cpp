@@ -35,7 +35,7 @@
 using namespace PG;
 
 #define STROUT(x) std::cout << x << std::endl
-#define STRERR(x) std::cout <<"["<<__LINE__ <<":ERROR]"<< x << std::endl
+#define STRERR(x) std::cout <<"["<<__LINE__ <<":ERROR] "<< x << std::endl
 
 inline bool changeFileExtrention(std::string& str, PG::FILE::outFileFormat format){
 	auto it = str.find_last_of(".");
@@ -66,13 +66,13 @@ void printInfo(){
 	STROUT("\nAllows you to convert Disgaea PC *.TX2 textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).");
 	STROUT("Sadly the other way around is broken right now.");
 	STROUT("Make a backup before using this tool!");
-	STROUT("Version: 0.2 (early access pre alpha thingy dood) \n");
+	STROUT("Version: 0.3 (early access pre alpha thingy dood) \n");
 
 	STROUT("Usage: ");
 	STROUT("  * '-tx2 <path_to_TX2>': Decompress a *.TX2 file to a *.TGA image.");
 	STROUT("  * '-tx2to <path_to_TX2> <TGA | PGM>': Decompress a *.TX2 file to a *.TGA or *.PGM image.");
 
-	STROUT("  * '-tga <path_to_TGA>': (Doesn't work properly) Compresses a BGRA8888 *.TGA file to a DXT1 *.TX2 file.");
+	STROUT("  * '-tga <path_to_TGA> <compression>': Compresses a BGRA8888 *.TGA file into to a DXT1, DXT5 or BGRA *.TX2 file.");
 
 	STROUT("  * '-folder <path_to_folder> (-dir)': (Optional) Target output folder.");
 	STROUT("                      On default the file will be save into the same folder as the input file, just with a different file extension. ");
@@ -83,7 +83,7 @@ void printInfo(){
 	STROUT("Examples: ");
 	STROUT("  *  '.\\TX2Converter.exe -tx2 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2'' ");
 	STROUT("  *  '.\\TX2Converter.exe -tx2to 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2' PGM -dir 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texturesout''");
-
+	STROUT("  *  '.\\TX2Converter.exe -tga 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\image.tga' DXT5'");
 
 	STROUT("\n");
 
@@ -150,19 +150,35 @@ int main(int argc, char* argv[]){
 
 			compress = false;
 			i += 1;
-		}else if(std::strcmp(argv[i],"-tga") == 0  && (i+1)<argc){
+		}else if(std::strcmp(argv[i],"-tga") == 0  && (i+2)<argc){
 			targetfile = std::string(argv[i+1]);
+
+			std::string f(argv[i+2]);
+			std::transform(f.begin(), f.end(), f.begin(), ::tolower);
+			if(f == "dxt1"){
+				comressionType = PG::FILE::tx2Type::DXT1;
+			}else if(f == "dxt5"){
+				comressionType = PG::FILE::tx2Type::DXT5;
+			}else if(f == "bgra"){
+				comressionType = PG::FILE::tx2Type::BGRA;
+			}else{
+				STRERR("Unknown compression type '"<<f<<"'! Only 'DXT1', 'DXT5' and 'BGRA' are supported!");
+				return 1;
+			}
+
 			compress = true;
-			i += 1;
+			i += 2;
 		}else if( (std::strcmp(argv[i],"-c") == 0 || std::strcmp(argv[i],"-compression") == 0) && (i+1)<argc){
 			std::string f(argv[i+1]);
 			std::transform(f.begin(), f.end(), f.begin(), ::tolower);
 			if(f == "dxt1"){
-					comressionType = PG::FILE::tx2Type::DXT1;
+				comressionType = PG::FILE::tx2Type::DXT1;
 			}else if(f == "dxt5"){
-					comressionType = PG::FILE::tx2Type::DXT5;
+				comressionType = PG::FILE::tx2Type::DXT5;
+			}else if(f == "bgra"){
+				comressionType = PG::FILE::tx2Type::BGRA;
 			}else{
-				STRERR("Unknown compression type '"<<f<<"'!");
+				STRERR("Unknown compression type '"<<f<<"'! Only 'DXT1', 'DXT5' and 'BGRA' are supported!");
 				return 1;
 			}
 			i += 1;
@@ -202,7 +218,8 @@ int main(int argc, char* argv[]){
 
 		}
 
-		if(PG::FILE::convertImageToTX2(targetfile, out)){
+		STROUT("Converting to TX2. Please wait...");
+		if(PG::FILE::convertImageToTX2(targetfile, out, comressionType)){
 			STRERR("Couldn't save image! ");
 			return 1;
 		}
