@@ -33,17 +33,13 @@
 namespace PG {
 namespace FILE {
 
-enum inFileFormat: unsigned int{
-	TX2, VTF
+enum fileFormat: unsigned int{
+	VTF, PNM, TGA, TX2
 };
 
-enum outFileFormat: unsigned int{
-	PGM, TGA
-};
+bool PG_UTIL_API convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, fileFormat formatOut);
 
-bool PG_UTIL_API convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, outFileFormat formatOut);
-
-bool PG_UTIL_API convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut);
+bool PG_UTIL_API convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, fileFormat formatOut);
 
 bool PG_UTIL_API convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG::FILE::tx2Type compression = PG::FILE::DXT5);
 

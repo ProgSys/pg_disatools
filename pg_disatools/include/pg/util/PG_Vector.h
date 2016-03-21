@@ -178,6 +178,9 @@ struct tVector4{
 	void operator-=(const tVector4<T>& tvec);
 
 	bool operator==(const tVector4<T>& tvec) const;
+	bool equal(const tVector4<T>& tvec) const;
+	bool equalXYZ(const tVector4<T>& tvec) const;
+	bool equalRGB(const tVector4<T>& tvec) const;
 
 	void clear(T value = 0);
 
@@ -463,6 +466,22 @@ template<typename T>
 bool tVector4<T>::operator==(const tVector4<T>& tvec) const{
 	return x == tvec.x && y == tvec.y && z == tvec.z && w == tvec.w;
 }
+
+template<typename T>
+bool tVector4<T>::equal(const tVector4<T>& tvec) const{
+	return x == tvec.x && y == tvec.y && z == tvec.z && w == tvec.w;
+}
+
+template<typename T>
+bool tVector4<T>::equalXYZ(const tVector4<T>& tvec) const{
+	return x == tvec.x && y == tvec.y && z == tvec.z;
+}
+
+template<typename T>
+bool tVector4<T>::equalRGB(const tVector4<T>& tvec) const{
+	return equalXYZ(tvec);
+}
+
 
 template<typename T>
 void tVector4<T>::operator=(const tVector2<T>& tvec){

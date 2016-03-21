@@ -36,11 +36,11 @@
 namespace PG {
 namespace FILE {
 
-bool convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, outFileFormat formatOut){
+bool convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, fileFormat formatOut){
 	std::string extension = fileIn.getFileExtension();
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
 
-	inFileFormat formatIn;
+	fileFormat formatIn;
 
 	if(extension == "vtf"){
 		formatIn = VTF;
@@ -79,10 +79,10 @@ bool convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileO
 
 
 	switch (formatOut) {
-		case PGM:
+		case PNM:
 		{
-			PG_INFO_STREAM("Writing PGM. (RGB)");
-			savePGM(fileOut.getPath(), image);
+			PG_INFO_STREAM("Writing PNM. (RGB)");
+			saveNetPNM(fileOut.getPath(), image);
 		}
 			break;
 		case TGA:
@@ -100,13 +100,14 @@ bool convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileO
 }
 
 
-bool convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, outFileFormat formatOut){
+bool convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, fileFormat formatOut){
 	return convertTX2ToImage(PG::UTIL::File(fileIn),PG::UTIL::File(fileOut),formatOut);
 }
 
 bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG::FILE::tx2Type compression){
 	std::vector<char> bytes;
 	PG::UTIL::RGBAImage image;
+	PG_INFO_STREAM(fileIn);
 	PG::UTIL::File file(fileIn);
 	std::string extension = file.getFileExtension();
 	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
@@ -115,6 +116,8 @@ bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG
 
 	if(extension == "tga"){
 		loadTGA(fileIn, image);
+	} else if(extension == "pgm" || extension == "pnm"){
+		loadNetPNM(fileIn, image);
 	}else{
 		PG_INFO_STREAM("File format "<<extension<<" not supported.");
 		return true;
