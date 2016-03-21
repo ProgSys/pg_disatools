@@ -25,6 +25,7 @@
 #include <iostream>
 #include <string>
 #include <algorithm>
+#include <iomanip>
 
 
 #include <pg/files/PG_Convert.h>
@@ -63,22 +64,20 @@ inline bool changeFileExtrention(std::string& str, PG::FILE::outFileFormat forma
 }
 
 void printInfo(){
-	STROUT("\nAllows you to convert Disgaea PC *.TX2 textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).");
-	STROUT("Sadly the other way around is broken right now.");
-	STROUT("Make a backup before using this tool!");
-	STROUT("Version: 0.3 (early access pre alpha thingy dood) \n");
+	STROUT("\nAllows you to convert Disgaea PC *.TX2 textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha) and back!");
+	STROUT("Make a backup of your files before using this tool!");
+	STROUT("Version: 0.4 (early access pre alpha thingy dood) \n");
 
 	STROUT("Usage: ");
-	STROUT("  * '-tx2 <path_to_TX2>': Decompress a *.TX2 file to a *.TGA image.");
-	STROUT("  * '-tx2to <path_to_TX2> <TGA | PGM>': Decompress a *.TX2 file to a *.TGA or *.PGM image.");
+	STROUT("  * "<< std::left << std::setw(43)<< "'-tx2 <path_to_TX2>':"<< "Decompress a *.TX2 file into a *.TGA image.");
+	STROUT("  * "<< std::left << std::setw(43)<< "'-tx2to <path_to_TX2> <TGA | PGM>':"<< "Decompress a *.TX2 file into a *.TGA or *.PGM image.");
 
-	STROUT("  * '-tga <path_to_TGA> <compression>': Compresses a BGRA8888 *.TGA file into to a DXT1, DXT5 or BGRA *.TX2 file.");
+	STROUT("  * "<< std::left << std::setw(43)<< "'-tga <path_to_TGA> <DXT1 | DXT5 | BGRA>':"<< "Compresses a BGRA8888 *.TGA file into to a DXT1, DXT5 or BGRA *.TX2 file.");
 
-	STROUT("  * '-folder <path_to_folder> (-dir)': (Optional) Target output folder.");
-	STROUT("                      On default the file will be save into the same folder as the input file, just with a different file extension. ");
+	STROUT("  * "<< std::left << std::setw(43)<< "'-folder <path_to_folder> (-dir)':"<< "(Optional) Target output folder.");
 
-	STROUT("  * '-output <file_name> (-out)': (Optional) Target output path and filename. Overwrites the -folder command.");
-	STROUT("                      On default the file will be save into the same folder as the input file, just with a different file extension. ");
+	STROUT("  * "<< std::left << std::setw(43)<< "'-output <file_name> (-out)':"<< "(Optional) Target output path and filename. Overwrites the -folder command.");
+	STROUT("    On default the file will be save into the same folder as the input file, just with a different file extension. ");
 
 	STROUT("Examples: ");
 	STROUT("  *  '.\\TX2Converter.exe -tx2 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2'' ");

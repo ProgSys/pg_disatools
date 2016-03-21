@@ -90,47 +90,12 @@ short getShort(const PG::UTIL::rgba& color888){
 	return (b << 8) + a;
 }
 
-int roundDXTColor(double x)
-{
-    if (x < 0.0)
-        return (int)(x - 0.51);
-    else
-        return (int)(x + 0.49);
-}
-
 inline PG::UTIL::rgba toRGB565( const PG::UTIL::rgba& rgba888){
 	return PG::UTIL::rgba( std::round(rgba888.r/8.0)*8  , std::round(rgba888.g/4.0)*4 , std::round(rgba888.b/8.0)*8 , rgba888.a);
 }
 
 inline PG::UTIL::rgba clampToRGBA(const PG::UTIL::ivec4& vec){
 	return PG::UTIL::rgba( std::max(std::min(vec.r, 255), 0), std::max(std::min(vec.g, 255), 0), std::max(std::min(vec.b, 255), 0), std::max(std::min(vec.a, 255), 0)  );
-}
-
-inline void getMinMaxRGBA(const PG::UTIL::rgba& rgba0In, const PG::UTIL::rgba& rgba1In, PG::UTIL::rgba& minOut, PG::UTIL::rgba& maxOut){
-	if(rgba0In.r > rgba1In.r){
-		minOut.r = rgba1In.r;
-		maxOut.r = rgba0In.r;
-	}else{
-		minOut.r = rgba0In.r;
-		maxOut.r = rgba1In.r;
-	}
-
-	if(rgba0In.g > rgba1In.g){
-		minOut.g = rgba1In.g;
-		maxOut.g = rgba0In.g;
-	}else{
-		minOut.g = rgba0In.g;
-		maxOut.g = rgba1In.g;
-	}
-
-	if(rgba0In.b > rgba1In.b){
-		minOut.b = rgba1In.b;
-		maxOut.b = rgba0In.b;
-	}else{
-		minOut.b = rgba0In.b;
-		maxOut.b = rgba1In.b;
-	}
-
 }
 
 PG::UTIL::rgba operator-(const PG::UTIL::rgba& rgba, const PG::UTIL::ivec4& vec){
@@ -143,8 +108,8 @@ PG::UTIL::rgba operator+(const PG::UTIL::rgba& rgba, const PG::UTIL::ivec4& vec)
 	return clampToRGBA(buffvec);
 }
 
-
-inline void findMinError(const PG::UTIL::RGBAImage& window, const PG::UTIL::Array<PG::UTIL::rgba, 4>& colors, float& error, PG::UTIL::rgba& c0out, PG::UTIL::rgba& c1out  ){
+template<unsigned int T>
+inline void findMinError(const PG::UTIL::RGBAImage& window, const PG::UTIL::Array<PG::UTIL::rgba, T>& colors, float& error, PG::UTIL::rgba& c0out, PG::UTIL::rgba& c1out  ){
 	float found_error = 0;
 	for(const PG::UTIL::rgba& color: window){
 		float dis = 0;
@@ -163,12 +128,25 @@ inline void findMinError(const PG::UTIL::RGBAImage& window, const PG::UTIL::Arra
 	}
 }
 
+/*!
+ * @brief The slowest and stupidest way doing it, but it works. <br>
+ * The idea is simple, to find the two key colors this function just try's out different combinations of the colors witch are given in 4x4 window.
+ * It chooses the two colors, which give the smallest error on reconstructing the original colors.
+ * @param window Imput 4x4 image block, in witch the two key colors should be found.
+ * @param c0out Output key color one.
+ * @param c1out Output key color two.
+ * @param testalpha If true DXT1 compression is used. Means the visibility is also coded by the two output colors, also function can return true.
+ * @returns true, if a DXT1 block has alpha. (Means you need to use the 0.5 interpolation for the third color and the fourth color has alpha of 0. )
+ */
 bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::UTIL::rgba& c1out, bool testalpha = true){
-	// = the slowest and stupidest way doing it =
 
-			//does have the image pixels with a alpha below 128?
+			//init the output values with the fist color in window
+			c0out = window[0];
+			c1out = window[0];
+
+			//does have the window have pixels with a alpha below 128?
 			bool alpha = false;
-			if(testalpha)
+			if(testalpha) //no need for it if we don't compress with DXT1
 				for(const PG::UTIL::rgba& color: window){
 					if(color.a < 128){
 						alpha = true;
@@ -176,8 +154,10 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 					}
 				}
 
+			//arbitrary big error
 			float error = 99999999.0f;
 
+			//if the window has alpha, the 0.5 interpolation is used
 			if(alpha){
 				//image has has alpha
 				for(const PG::UTIL::rgba& color1: window)
@@ -217,29 +197,25 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 
 				return true;
 
-
 			}else{
 				//image has no alpha
-				unsigned int startIndex = 1;
-				std::vector<PG::UTIL::rgba> uniqueColors;
-				for(const PG::UTIL::rgba& color1: window){ //x
-					bool found = false;
-					for(const PG::UTIL::rgba& tColor: uniqueColors){
-						if(tColor == color1){
-							found = true;
-							break;
-						}
-					}
-					if(!found) uniqueColors.push_back(color1);
-
-					for(unsigned int i = startIndex; i < 16; ++i){ //y
+				unsigned int startIndex = 1; //so we do not test two colors twice
+				// take two colors and test different combinations, to find the one witch reconstructs the original colors the best
+				for(const PG::UTIL::rgba& color1: window){ //color1
+					for(unsigned int i = startIndex; i < 16; ++i){ //color2
 						const PG::UTIL::rgba& color2 = window[i];
+
+						//we ignore colors with a alpha value of zero and same colors
 						if(color1.a == 0 && color2.a == 0) continue;
 						if(color1 == color2) continue;
 
-						//the four color combinations
+						//the six color combinations
+						//you have line, with a start and end point and two points in between = total four points
+						//the two colors 1 and 2 are then "placed" at the different points
+						//and the start and end point are calculated
+						//Note: the start and end point are saved as RGB565, so they are reduced to it
 
-						// x - t0 - t1 - y
+						// color1 - o - o - color2
 						PG::UTIL::Array<PG::UTIL::rgba, 4> c;
 						c[0] = toRGB565(color1);
 						c[1] = toRGB565(color2);
@@ -247,8 +223,9 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 						c[3] = interpolate(c[0],c[1],  2.0/3.0);
 
 						findMinError(window, c, error, c0out, c1out);
+						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
-						// x - t0 - y - t1
+						// color1 - o - color2 - o
 						PG::UTIL::Array<PG::UTIL::rgba, 4> c1;
 						c1[0] = c[0];
 						c1[1] = toRGB565(clampToRGBA(  PG::UTIL::ivec4( ( int(color2.r)*3-int(color1.r))*0.5, (int(color2.g)*3-int(color1.g))*0.5, (int(color2.b)*3-int(color1.b))*0.5 )   ));
@@ -256,81 +233,83 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 						c1[3] = interpolate(c1[0],c1[1],  2.0/3.0);
 
 						findMinError(window, c1, error, c0out, c1out);
+						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
-						// t0 - x - t1 - y
+						// o - color1 - o - color2
 						PG::UTIL::Array<PG::UTIL::rgba, 4> c2;
-						c2[0] = toRGB565(clampToRGBA(  PG::UTIL::ivec4( ( int(color1.r)*3-int(color2.r))*0.5, (int(color1.g)*3-int(color2.g))*0.5, (int(color1.b)*3-int(color2.b))*0.5 )   ));
-						c2[1] = c[1];
-						c2[2] = interpolate(c2[0],c2[1],  1.0/3.0);
-						c2[3] = interpolate(c2[0],c2[1],  2.0/3.0);
+						c1[0] = toRGB565(clampToRGBA(  PG::UTIL::ivec4( ( int(color1.r)*3-int(color2.r))*0.5, (int(color1.g)*3-int(color2.g))*0.5, (int(color1.b)*3-int(color2.b))*0.5 )   ));
+						c1[1] = c[1];
+						c1[2] = interpolate(c1[0],c1[1],  1.0/3.0);
+						c1[3] = interpolate(c1[0],c1[1],  2.0/3.0);
 
-						findMinError(window, c2, error, c0out, c1out);
+						findMinError(window, c1, error, c0out, c1out);
+						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
-
-						// x - y - t0 - t1
+						// color1 - color2 - o - o
 						PG::UTIL::Array<PG::UTIL::rgba, 4> c3;
-						c3[0] = c[0];
-						c3[1] = toRGB565(clampToRGBA(  PG::UTIL::ivec4(  int(color2.r)*3-int(color1.r)*2 , int(color2.g)*3-int(color1.g)*2, int(color2.b)*3-int(color1.b)*2 )   ));
-						c3[2] = interpolate(c3[0],c3[1],  1.0/3.0);
-						c3[3] = interpolate(c3[0],c3[1],  2.0/3.0);
+						c1[0] = c[0];
+						c1[1] = toRGB565(clampToRGBA(  PG::UTIL::ivec4(  int(color2.r)*3-int(color1.r)*2 , int(color2.g)*3-int(color1.g)*2, int(color2.b)*3-int(color1.b)*2 )   ));
+						c1[2] = interpolate(c1[0],c1[1],  1.0/3.0);
+						c1[3] = interpolate(c1[0],c1[1],  2.0/3.0);
 
 						//PG_INFO_STREAM( "c0: "<<color1<<" c1: "<< color2<<" r: "<<PG::UTIL::ivec4(  int(color2.r)*3-int(color1.r)*2 , int(color2.g)*3-int(color1.g)*2, int(color2.b)*3-int(color1.b)*2 ) << " o: "<< c3[1])
-						findMinError(window, c3, error, c0out, c1out);
+						findMinError(window, c1, error, c0out, c1out);
+						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
-						// t0 - t1 - x - y
+						// o - o - color1 - color2
 						PG::UTIL::Array<PG::UTIL::rgba, 4> c4;
-						c4[0] = toRGB565(clampToRGBA(  PG::UTIL::ivec4(  int(color1.r)*3-int(color2.r)*2 , int(color1.g)*3-int(color2.g)*2, int(color1.b)*3-int(color2.b)*2 )   ));
-						c4[1] = c[1];
-						c4[2] = interpolate(c4[0],c4[1],  1.0/3.0);
-						c4[3] = interpolate(c4[0],c4[1],  2.0/3.0);
+						c1[0] = toRGB565(clampToRGBA(  PG::UTIL::ivec4(  int(color1.r)*3-int(color2.r)*2 , int(color1.g)*3-int(color2.g)*2, int(color1.b)*3-int(color2.b)*2 )   ));
+						c1[1] = c[1];
+						c1[2] = interpolate(c1[0],c1[1],  1.0/3.0);
+						c1[3] = interpolate(c1[0],c1[1],  2.0/3.0);
 
 						//PG_INFO_STREAM( "c0: "<<color2<<" c1: "<< color1<<" r: "<<PG::UTIL::ivec4(  int(color1.r)*3-int(color2.r)*2 , int(color1.g)*3-int(color2.g)*2, int(color1.b)*3-int(color2.b)*2 )  << " o: "<< c4[0])
-						findMinError(window, c4, error, c0out, c1out);
+						findMinError(window, c1, error, c0out, c1out);
+						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
-						// t0 - x - y - t1
+						// o - color1 - color2 - o
 						PG::UTIL::Array<PG::UTIL::rgba, 4> c5;
 						const PG::UTIL::ivec4 diff( std::abs(int(color1.r)-int(color2.r)), std::abs(int(color1.g)-int(color2.g)), std::abs(int(color1.b)-int(color2.b)) );
 						//c3[0] = toRGB565(color1-diff);
 						//c3[1] = toRGB565(color2+diff);
 
-
 						if(color1.r > color2.r){
-							c5[0].r = color1.r + diff.r;
-							c5[1].r = color2.r - diff.r;
+							c1[0].r = color1.r + diff.r;
+							c1[1].r = color2.r - diff.r;
 						}else{
-							c5[0].r = color1.r - diff.r;
-							c5[1].r = color2.r + diff.r;
+							c1[0].r = color1.r - diff.r;
+							c1[1].r = color2.r + diff.r;
 						}
 						if(color1.g > color2.g){
-							c5[0].g = color1.g + diff.g;
-							c5[1].g = color2.g - diff.g;
+							c1[0].g = color1.g + diff.g;
+							c1[1].g = color2.g - diff.g;
 						}else{
-							c5[0].g = color1.g - diff.g;
-							c5[1].g = color2.g + diff.g;
+							c1[0].g = color1.g - diff.g;
+							c1[1].g = color2.g + diff.g;
 						}
 						if(color1.b > color2.b){
-							c5[0].b = color1.b + diff.b;
-							c5[1].b = color2.b - diff.b;
+							c1[0].b = color1.b + diff.b;
+							c1[1].b = color2.b - diff.b;
 						}else{
-							c5[0].b = color1.b - diff.b;
-							c5[1].b = color2.b + diff.b;
+							c1[0].b = color1.b - diff.b;
+							c1[1].b = color2.b + diff.b;
 						}
-						c5[0] = toRGB565(c5[0]);
-						c5[1] = toRGB565(c5[1]);
-						c5[2] = interpolate(c5[0],c5[1],  1.0/3.0);
-						c5[3] = interpolate(c5[0],c5[1],  2.0/3.0);
+						c1[0] = toRGB565(c1[0]);
+						c1[1] = toRGB565(c1[1]);
+						c1[2] = interpolate(c1[0],c1[1],  1.0/3.0);
+						c1[3] = interpolate(c1[0],c1[1],  2.0/3.0);
 
 						//PG_INFO_STREAM("A: "<<color1<<" B: "<<color2<< " sub: "<< (color1-diff) <<" add: "<< (color2+diff)<<" c5[0]: "<<c5[0]<<" c5[1]: "<<c5[1]);
 
-						findMinError(window, c5, error, c0out, c1out);
+						findMinError(window, c1, error, c0out, c1out);
 					}
 
 					startIndex++;
 				}//for loop end
 
 				//is there only one color?
-				if(uniqueColors.size() == 1)
-					findSameColorBestMatch(uniqueColors[0], c0out,c1out);
+				if(c0out == c1out)
+					findSameColorBestMatch(c0out, c0out,c1out);
 
 				//sort the two key collors
 				unsigned int i1,i2;
@@ -338,7 +317,7 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 					PG::UTIL::rgba cb = c0out;
 					c0out = c1out;
 					c1out = cb;
-				}else if(testalpha && uniqueColors.size() != 2 && i1 == i2){
+				}else if(testalpha && i1 == i2){
 					if(c0out.g >= 4)
 						c0out.g -= 4;
 					else
@@ -710,10 +689,9 @@ void DXT1block::compress(const PG::UTIL::RGBAImage& window, S3CompressionMethod 
 
 
 unsigned int DXT1block::setColorA(const rgba& color888A){
-    // RGB565=(((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3));
-	char g = color888A.g & 0xFC;
-	color[0] = ((color888A.b & 0xF8) >> 3) | (g << 3);
-	color[1] = (color888A.r & 0xF8) | ((g >> 5) & 0x07);
+	// gggbbbbb rrrrrggg
+	color[0] = (color888A.b >> 3) | ((color888A.g & 0x1C) << 3) ;
+	color[1] = (color888A.r & 0xF8) | (color888A.g >> 5);
 	return (color[1] << 8) + color[0];
 }
 
@@ -724,10 +702,9 @@ rgba DXT1block::getColorA() const{
 }
 
 unsigned int DXT1block::setColorB(const rgba& color888B){
-    // RGB565=(((r&0xF8)<<8)|((g&0xFC)<<3)|((b&0xF8)>>3));
-	char g = color888B.g & 0xFC;
-	color[2] = ((color888B.b & 0xF8) >> 3) | (g << 3);
-	color[3] = (color888B.r & 0xF8) | ((g >> 5) & 0x07);
+	// gggbbbbb rrrrrggg
+	color[2] = (color888B.b >> 3) | ((color888B.g & 0x1C) << 3) ;
+	color[3] = (color888B.r & 0xF8) | (color888B.g >> 5);
 	return (color[3] << 8) + color[2];
 }
 
@@ -995,7 +972,6 @@ void DXT5block::setAlphaLookUpValue(unsigned char index, unsigned char value){
 	}
 
 }
-
 
 void DXT5block::buildAlpha(const PG::UTIL::RGBAImage& window){
 	//min max alpha
