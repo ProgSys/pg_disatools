@@ -354,8 +354,8 @@ bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
 	QString ext = fInfo.suffix();
 	if( ext == "tga"){
 		return PG::FILE::saveTGA(targetfile.toStdString(), img);
-	}else if(ext == "pgm"){
-		return PG::FILE::savePGM(targetfile.toStdString(), img);
+	}else if(ext == "pgm" || ext == "pnm"){
+		return PG::FILE::saveNetPNM(targetfile.toStdString(), img);
 	}else{
 		QImage qimg( &(img[0].r), img.getWidth() , img.getHeight(), QImage::Format_RGBA8888 );
 		return qimg.save(targetfile, 0, 100);

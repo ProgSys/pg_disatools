@@ -258,7 +258,7 @@ void MainWindow::saveSelectedImage(){
 	imageFileName.replace(".TX2","");
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Save Image"),
 									imageFileName,
-	                                   tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif);;TGA (*.tga);;PGM (*.pgm)"));
+	                                   tr("PNG (*.png);;JPEG (*.jpg *.jpeg);;TIFF (*.tif);;TGA (*.tga);;PNM (*.pnm)"));
 
 	if (fileName.isEmpty()) return;
 

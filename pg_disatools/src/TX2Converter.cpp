@@ -87,7 +87,7 @@ void printInfo(){
 
 	STROUT("Examples: ");
 	STROUT("  *  '.\\TX2Converter.exe -tx2 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2'' ");
-	STROUT("  *  '.\\TX2Converter.exe -tx2to 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2' PGM -dir 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texturesout''");
+	STROUT("  *  '.\\TX2Converter.exe -tx2to 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2' PNM -dir 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texturesout''");
 	STROUT("  *  '.\\TX2Converter.exe -img 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\image.tga' DXT5'");
 
 	STROUT("\n");
