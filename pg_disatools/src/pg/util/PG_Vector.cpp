@@ -53,6 +53,10 @@ void tVector3<unsigned char>::dump(std::ostream& o) const{
 	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
 }
 
+template<>
+void tVector4<int>::dump(std::ostream& o) const{
+	o<<"("<<x<<", "<<y<<", "<<z<<", "<<w<<")";
+}
 
 template<>
 void tVector4<char>::dump(std::ostream& o) const{

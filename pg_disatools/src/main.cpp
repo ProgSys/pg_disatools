@@ -33,6 +33,8 @@
 #include <pg/util/PG_BinaryFileWriter.h>
 #include <fstream>
 #include <pg/util/PG_Vector.h>
+#include <cstdlib>
+#include <cmath>
 
 #define OUTSTR(x) std::cout << x << std::endl
 
@@ -41,11 +43,121 @@ struct testStr{
 	std::string name;
 };
 
+void findTwoColorBestMatch(PG::UTIL::rgba& target, PG::UTIL::rgba& c0, PG::UTIL::rgba& c1){
+
+	int cy = std::floor((3*int(target.r))/16.0) * 8;
+	if(cy > 248) cy = 248;
+	int cx = 0;
+	int cxpart;
+	if( (cxpart = int(target.r)*3 - cy*2) > 0){
+		cx = std::round(cxpart/8.0) * 8;
+		if((int(target.r)-1) % 8 == 0) cx +=8;
+	}
+	if(cx > 248) cx = 248;
+
+	c0.r = cx;
+	c1.r = cy;
+
+
+	cy = std::floor((3*int(target.g))/8.0) * 4;
+	if(cy > 251) cy = 251;
+	cx = 0;
+	if( (cxpart = int(target.g)*3 - cy*2) > 0){
+		cx = std::round(cxpart/4.0) * 4;
+		if((target.g+1) % 8 == 0){ cx -=4; cy +=4;}
+		else if((target.g+1) % 4 == 0)cx +=4;
+	}
+	if(cx > 251) cx = 251;
+
+	c0.g = cx;
+	c1.g = cy;
+
+
+	cy = std::floor((3*int(target.b))/16.0) * 8;
+	if(cy > 248) cy = 248;
+	cx = 0;
+	if( (cxpart = int(target.b)*3 - cy*2) > 0){
+		cx = std::round(cxpart/8.0) * 8;
+		if((int(target.b)-1) % 8 == 0) cx +=8;
+	}
+	if(cx > 248) cx = 248;
+
+	c0.b = cx;
+	c1.b = cy;
+}
+
+void findBestMatch(int target, ofstream& myfile){
+
+	int y = std::floor((3*(target))/8.0) * 4;
+	if(y > 252) y = 252;
+	int x = 0;
+	int xpart;
+	if( (xpart = target*3 - y*2) > 0){
+		x = std::round(xpart/4.0) * 4;
+		if((target+1) % 8 == 0){ x -=4; y +=4;}
+		else if((target+1) % 4 == 0) x +=4;
+	}
+	if(x > 252) x = 252;
+
+
+	unsigned int control = x*(1.0/3.0)+y*(2.0/3.0);
+
+	OUTSTR(target<< " x: "<<x<<" y: "<<y<<" c: "<<control<<" err: " << std::abs(int(target)-int(control)) );
+
+	myfile<<(int)target<<";"<<x<<";"<<y<<";"<<control<<";"<<std::abs(int(target)-int(control));
+
+	control = 0;
+	//find best
+	unsigned int error = 255*255;
+	for(unsigned int x2 = 0; x2 <= 255; x2+=4){
+		for(unsigned int y2 = 0; y2 <= 255; y2+=4){
+			unsigned int c = x2*(1.0/3.0)+y2*(2.0/3.0);
+			unsigned int diff = std::abs(int(target)-int(c));
+			if(error > diff){
+				error = diff;
+				x = x2;
+				y = y2;
+				control = c;
+				//OUTSTR(" Pre: x: "<<x<<" y: "<<y<<" c: "<<control<<" err: " << error<<" c: "<<c<<" - "<< std::abs(int(target)-int(c)));
+			}
+		}
+	}
+	OUTSTR(" Best: x: "<<x<<" y: "<<y<<" c: "<<control<<" err: " << error );
+	myfile<<";"<<xpart/8.0<<";"<<x<<";"<<y<<";"<<control<<";"<<error;
+	myfile<<"\n";
+}
+
+
+
+
+int roundDXTColor(double x)
+{
+    if (x < 0.0)
+        return (int)(x - 0.51);
+    else
+        return (int)(x + 0.49);
+}
+
+
+
 /*!
  * @brief Testing main method, just for testing.
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
+	OUTSTR( (34/4.0)<< " " << roundDXTColor(34/4.0));
+
+	return 0;
+
+	ofstream myfile;
+	myfile.open ("results2.csv");
+	myfile<<"Target"<<";"<<"X"<<";"<<"Y"<<";"<<"Ergebnis"<<";"<<"Unterschied";
+	myfile<<";;"<<"X"<<";"<<"Y"<<";"<<"Ergebnis"<<";"<<"Unterschied";
+	myfile<<"\n";
+	for(unsigned int i = 0; i <= 255; i++)
+		findBestMatch(i,myfile);
+	myfile.close();
+	return 0;
 
 	char a[2];
 	a[0] = 0x0B;
@@ -66,7 +178,7 @@ int main(int argc, char* argv[]){
 
 	OUTSTR("back: "<<(int)a[0]<<" "<<(int)a[1]);
 
-	return 0;
+	//return 0;
 
 	PG::UTIL::ByteInFileStream reader("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.GEO");
 	//PG::UTIL::BinaryFileWriter writer("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.obj");
@@ -74,8 +186,8 @@ int main(int argc, char* argv[]){
 	 ofstream writer;
 	 writer.open ("C:/Users/ProgSys/Desktop/Disgaea/PC/MPP/geo/GEOMETRY0.obj");
 
-	//reader.skip(304);
-	reader.skip(10192);
+	reader.skip(304);
+	//reader.skip(10192);
 
 	std::vector<unsigned int> index;
 
@@ -86,7 +198,7 @@ int main(int argc, char* argv[]){
 		PG::UTIL::vec3 vertex;
 		reader.read((char*)&vertex.x, sizeof(float)*3);
 
-		writer << "v " << vertex.x<<" "<<vertex.y<<" "<<vertex.z<<"\n"; // openGl swap z and y
+		writer << "v " << vertex.x<<" "<<vertex.z<<" "<<-vertex.y<<"\n"; // openGl swap z and y
 
 		index.push_back(i +1);
 	}

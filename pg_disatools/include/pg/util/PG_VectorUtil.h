@@ -136,10 +136,22 @@ inline void scaleRGB888to565(tVector3<char>& vec){
 	vec.b = ( vec.b >> 3 );
 }
 
+inline void reduceRGB888to565(tVector3<char>& vec){
+	vec.r &= 0xF8;
+	vec.g &= 0xFC;
+	vec.b &= 0xF8;
+}
+
 inline void scaleRGB888to565(tVector4<char>& vec){
 	vec.r = ( vec.r >> 3 );
 	vec.g = ( vec.g >> 2 );
 	vec.b = ( vec.b >> 3 );
+}
+
+inline void reduceRGB888to565(tVector4<char>& vec){
+	vec.r &= 0xF8;
+	vec.g &= 0xFC;
+	vec.b &= 0xF8;
 }
 
 
@@ -149,10 +161,22 @@ inline void scaleRGB565to888(tVector3<unsigned char>& vec){
 	vec.b = ( vec.b << 3 );
 }
 
+inline void reduceRGB888to565(tVector3<unsigned char>& vec){
+	vec.r &= 0xF8;
+	vec.g &= 0xFC;
+	vec.b &= 0xF8;
+}
+
 inline void scaleRGB565to888(tVector4<unsigned char>& vec){
 	vec.r = ( vec.r << 3 );
 	vec.g = ( vec.g << 2 );
 	vec.b = ( vec.b << 3 );
+}
+
+inline void reduceRGB888to565(tVector4<unsigned char>& vec){
+	vec.r &= 0xF8;
+	vec.g &= 0xFC;
+	vec.b &= 0xF8;
 }
 
 inline void scaleRGB888to565(tVector3<unsigned char>& vec){
@@ -165,6 +189,40 @@ inline void scaleRGB888to565(tVector4<unsigned char>& vec){
 	vec.r = ( vec.r >> 3 );
 	vec.g = ( vec.g >> 2 );
 	vec.b = ( vec.b >> 3 );
+}
+
+
+
+
+template<typename T>
+ivec4 toivec4(const tVector4<T>& vec){
+	return PG::UTIL::ivec4((int)vec.x,(int)vec.y,(int)vec.z,(int)vec.a);
+}
+
+template<typename T>
+ivec4 toivec4(const tVector3<T>& vec){
+	return PG::UTIL::ivec4((int)vec.x,(int)vec.y,(int)vec.z,0);
+}
+
+template<typename T>
+ivec4 toivec4(const tVector2<T>& vec){
+	return PG::UTIL::ivec4((int)vec.x,(int)vec.y,0,0);
+}
+
+
+template<typename T>
+rgba torgba(const tVector4<T>& vec){
+	return PG::UTIL::rgba(vec.x,vec.y,vec.z,vec.a);
+}
+
+template<typename T>
+rgba torgba(const tVector3<T>& vec){
+	return PG::UTIL::rgba(vec.x,vec.y,vec.z,255);
+}
+
+template<typename T>
+rgba torgba(const tVector2<T>& vec){
+	return PG::UTIL::rgba(vec.x,vec.y,0,255);
 }
 
 
