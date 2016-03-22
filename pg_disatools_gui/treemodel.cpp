@@ -27,6 +27,7 @@
 
 #include <pg/files/PG_MPP.h>
 #include <pg/files/PG_PSPFS.h>
+#include <pg/files/PG_StartDAT.h>
 
 
 
@@ -51,7 +52,12 @@ bool TreeModel::open(const QString &file){
 	const QString ext = fileInfo.suffix().toUpper();
 	if(ext == "DAT"){
 		m_openedFileType = "DAT";
-		m_fileExtractor = new PG::FILE::PSPFS();
+		if(PG::FILE::isPSPFS(file.toStdString())){
+			m_fileExtractor = new PG::FILE::PSPFS();
+		}else{
+			m_fileExtractor = new PG::FILE::StartDAT();
+		}
+
 	}else if(ext == "MPP"){
 		m_openedFileType = "MPP";
 		m_fileExtractor = new PG::FILE::MPP();
@@ -327,11 +333,13 @@ bool TreeModel::saveFile(){
 
 bool TreeModel::saveFileAs(const QString& filepath){
 	if(!m_fileExtractor) return false;
-    if(!m_fileExtractor->save(filepath.toStdString()))
+	 QAbstractItemModel::layoutAboutToBeChanged();
+    if(!m_fileExtractor->save(filepath.toStdString())){
+    	m_fileExtractor->open(filepath.toStdString());
+    	QAbstractItemModel::layoutChanged();
         return true;
-    else{
+    }else{
         //if saving faled try to reopen it
-        QAbstractItemModel::layoutAboutToBeChanged();
         PG::UTIL::File file = m_fileExtractor->getOpendFile();
         return open(QString::fromStdString(file.getPath()));
         QAbstractItemModel::layoutChanged();

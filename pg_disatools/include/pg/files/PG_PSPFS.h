@@ -84,6 +84,8 @@ struct filePSPFSInfo{
     bool operator < (const filePSPFSInfo& str) const;
 };
 
+bool isPSPFS(const std::string& filepath);
+
 class PSPFS: public ExtractorBase {
 public:
 	PG_UTIL_API PSPFS();

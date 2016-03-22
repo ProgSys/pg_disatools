@@ -72,6 +72,16 @@ bool filePSPFSInfo::operator< (const filePSPFSInfo& str) const{
 }
 
 
+bool isPSPFS(const std::string& filepath){
+	PG::UTIL::ByteInFileStream reader(filepath);
+	if(!reader.isopen()) return false;
+
+	if(reader.readString(8) == "PSPFS_V1"){
+		return true;
+	}
+	return false;
+}
+
 PSPFS::PSPFS(){
 
 }
@@ -202,6 +212,7 @@ bool PSPFS::insert(const PG::UTIL::File& file){
 
 
 	if(it != m_filePSPFSInfos.end()){
+		addFile.unknown = (*it).unknown;
 		(*it) = addFile;
 	}else{
 		//replace a dummy file or add at end
