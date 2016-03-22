@@ -2,6 +2,6 @@
  * Added support to compress TGA (BGRA8888) or PNM (P3/P6 RBG888 No alpha) into TX2. (Not fully tested)
  * Renamed the Netpbm format to PNM
 
- ===  ? - v0.4 ===
- * START.DAT is now supported!
+ ===  23.03.2016 - v0.3.7 ===
+ * uncompressed START.DAT is now supported!
  * the currently unknown variables in PSPFS_V1 files are now copyed on save

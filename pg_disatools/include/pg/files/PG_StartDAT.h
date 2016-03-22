@@ -61,6 +61,8 @@ public:
 private:
 	PG::UTIL::File m_file;
 	std::vector<fileInfo> m_fileInfos;
+	//contains the table of known files
+	std::vector<std::string> m_namesTable;
 };
 
 } /* namespace FILE */

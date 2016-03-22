@@ -8,6 +8,8 @@ You can download the latest version of the tools here:
 
 * [Version v0.3.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.1%20alpha.zip)
 * [Version v0.3.5 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.5%20alpha.zip)
+* [Version v0.3.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.7%20alpha.zip)
+
 
 ###Content
 #### Disa PC File Manager
@@ -19,9 +21,8 @@ Note that the position of most files in .DAT is hardcoded, deleting files could 
 
 #### TX2Converter.exe
 
-A command line tool which allows you to convert Disgaea PC *.TX2 and *.MPP textures to *.TGA (BGRA8888) or *.PGM (P6 RBG888 No alpha).
-Sadly the other way around is not supported yet.
-Make a backup before using this tool!
+A command line tool which allows you to convert Disgaea PC *.TX2 textures into *.TGA (BGRA8888) or *.PNM (P3/P6 RBG888 No alpha) and back!
+Make a backup of your files before using this tool!!!
 
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 

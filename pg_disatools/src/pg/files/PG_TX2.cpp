@@ -121,8 +121,7 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 		//lookup table RGBA with max 16 values
 
 		if(color_table_size > 16){
-			PG_ERROR_STREAM("Color table is too big!");
-			return true;
+			PG_WARN_STREAM("Color table is too big!  ("<<color_table_size<<" but should be 16)");
 		}
 
 		const unsigned int total_number_of_bytes = (widthOut*heightOut)/2; // every byte holds two table values
@@ -131,7 +130,7 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 			return true;
 		}
 
-		std::vector<PG::UTIL::rgba> colortable(16);
+		std::vector<PG::UTIL::rgba> colortable(color_table_size);
 		instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
 
 		imageOut.resize(widthOut,heightOut);
@@ -193,7 +192,7 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 			return true;
 		}
 
-		std::vector<PG::UTIL::rgba> colortable(256);
+		std::vector<PG::UTIL::rgba> colortable(color_table_size);
 		instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
 
 		imageOut.resize(widthOut,heightOut);

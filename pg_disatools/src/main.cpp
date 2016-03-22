@@ -128,8 +128,6 @@ void findBestMatch(int target, ofstream& myfile){
 }
 
 
-
-
 int roundDXTColor(double x)
 {
     if (x < 0.0)
@@ -138,14 +136,68 @@ int roundDXTColor(double x)
         return (int)(x + 0.49);
 }
 
+struct imyHeader{
+	unsigned int magic_number;
 
+	unsigned short unknown02;
+	unsigned short unknown03;
+	unsigned short unknown04; //was width
+	unsigned char compressionFlag;
+	unsigned char unknown06;
+	unsigned short unknown07; //was height
+	unsigned short unknown08; //was paletteSize
+	unsigned int unknown09; //padding
+	unsigned int unknown10; //padding
+	unsigned int unknown11; //padding
+	unsigned int unknown12; //padding
+	unsigned short compressedDataPointer;
+};
+
+/*
+bool uncompressIMY(const std::string& imyfile){
+	PG::UTIL::ByteInFileStream reader(imyfile);
+
+	if(!reader.isopen()){
+		OUTSTR("Coundn't open "<<imyfile);
+		return true;
+	}
+
+	imyHeader header;
+
+	reader.read((char*) &header, sizeof(imyHeader));
+
+	if(header.magic_number != 0x00594D49){
+		OUTSTR("IMY magic number is wrong "<<imyfile);
+		return true;
+	}
+
+	//Int32 compressedDataInfoPointer = (Int32)fs.Position;
+	//Int32 compressedDataPointer = (Int32)(fs.Position + imyHeader.compressedDataPointer);
+	unsigned int decompressedFileSize = header.unknown04 * header.unknown07;
+
+
+	PG::UTIL::Array<unsigned int, 4> lookUpTable;
+	lookUpTable[0] = 0xFFFFFFFE;
+	lookUpTable[1] = ~header.unknown04;
+	lookUpTable[2] = lookUpTable[1] + 2;
+	lookUpTable[3] = lookUpTable[1] - 2;
+
+
+	unsigned int bytesProcessed = 0;
+    while (bytesProcessed < decompressedFileSize)
+    {
+    	unsigned char info = reader.readChar();
+    }
+
+	return false;
+}*/
 
 /*!
  * @brief Testing main method, just for testing.
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
-	OUTSTR( (34/4.0)<< " " << roundDXTColor(34/4.0));
+
 
 	return 0;
 

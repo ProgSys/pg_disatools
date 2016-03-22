@@ -23,20 +23,57 @@
  */
 #include <pg/files/PG_StartDAT.h>
 
+#include <algorithm>
 #include <pg/util/PG_ByteInFileStream.h>
 #include <pg/util/PG_BinaryFileWriter.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
+#include <pg/files/PG_TX2.h>
 
 namespace PG {
 namespace FILE {
 
-StartDAT::StartDAT() {
-	// TODO Auto-generated constructor stub
-
+inline void skipSCVColumn(PG::UTIL::ByteInFileStream& reader){
+	char c;
+	while( !reader.eof() && (c = reader.readChar()) != ',' && c != '\n'  ){}
 }
 
-StartDAT::StartDAT(const PG::UTIL::File& file){
+inline std::string readSCVColumn(PG::UTIL::ByteInFileStream& reader){
+	std::string str;
+	char c;
+	while( !reader.eof() && (c = reader.readChar()) != ','  && c != '\n' ){
+		str.push_back(c);
+	}
+	std::transform(str.begin(), str.end(), str.begin(), ::toupper );
+	return str;
+}
+
+inline void skipSCVLine(PG::UTIL::ByteInFileStream& reader){
+	char c;
+	while( !reader.eof() && (c = reader.readChar()) != '\n' ){}
+}
+
+
+StartDAT::StartDAT() {
+	PG::UTIL::ByteInFileStream reader("resources/START.DAT.csv");
+	if(reader.isopen()){
+		skipSCVLine(reader);
+
+		while(!reader.eof()){
+			skipSCVColumn(reader);
+			m_namesTable.push_back(readSCVColumn(reader));
+			skipSCVLine(reader);
+		}
+
+	}
+	reader.close();
+
+	for(const std::string& str: m_namesTable){
+		PG_INFO_STREAM(str);
+	}
+}
+
+StartDAT::StartDAT(const PG::UTIL::File& file): StartDAT(){
 	open(file);
 }
 
@@ -120,12 +157,16 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 		PG::UTIL::BinaryFileWriter writer(target);
 
 		writer.writeInt(0); //reserve space for number of files
-		writer.writeInt(131072);
+		//writer.writeInt(131072);
 		for(unsigned int i = 0; i < m_fileInfos.size(); ++i){
 			writer.writeInt(0);
 		}
 
-		unsigned int header_offset = sizeof(int)*2;
+		for(unsigned int i = 0; i < 4 - (1+m_fileInfos.size())%4; ++i){
+			writer.writeInt(0);
+		}
+
+		unsigned int header_offset = sizeof(int);
 
 		PG::UTIL::ByteInFileStream reader_dat(m_file);
 		auto it = m_fileInfos.begin();
@@ -216,6 +257,70 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 	return false;
 }
 
+inline bool isIMY(PG::UTIL::ByteInFileStream& reader){
+	return reader.readString(3) == "IMY";
+}
+
+inline bool isTX2(PG::UTIL::ByteInFileStream& reader){
+	const unsigned short width = reader.readUnsignedShort();
+	const unsigned short height = reader.readUnsignedShort();
+
+	const unsigned short type = reader.readUnsignedShort();
+	const unsigned short same = reader.readUnsignedShort();
+
+	const unsigned short colorTableSize = reader.readUnsignedShort();
+	reader.skip(2);
+
+	if(width == 0 || height == 0)
+		return false;
+	//if(reader.readUnsignedInt() != 65536) //width*height)
+		//return false;
+
+	switch (type) {
+		case tx2Type::DXT1:
+		{
+			if(width%4 != 0 || height%4 != 0 || colorTableSize != 0 )
+				return false;
+		}
+			break;
+		case tx2Type::DXT5:
+		{
+			if(width%4 != 0 || height%4 != 0 || colorTableSize != 0)
+				return false;
+		}
+			break;
+		case tx2Type::BGRA:
+		{
+			if(( colorTableSize != 0 && colorTableSize != 16) )
+				return false;
+		}
+			break;
+		case tx2Type::COLORTABLERGBA256:
+		{
+			if(colorTableSize == 0 || colorTableSize > 500)
+				return false;
+		}
+			break;
+		case tx2Type::COLORTABLEBGRA16:
+		{
+			if(colorTableSize != 16  && colorTableSize != 256)
+				return false;
+		}
+			break;
+		case tx2Type::COLORTABLERGBA16:
+		{
+			if(colorTableSize != 16 && colorTableSize != 256)
+				return false;
+		}
+			break;
+		default:
+			return false;
+			break;
+	}
+
+	return true;
+}
+
 bool StartDAT::open(const PG::UTIL::File& file){
 	clear();
 	m_file = file;
@@ -232,13 +337,13 @@ bool StartDAT::open(const PG::UTIL::File& file){
 
 		const unsigned int file_size = reader.size();
 		const unsigned int number_of_files = reader.readUnsignedInt();
-		const unsigned int header_size = 8+number_of_files*sizeof(int);
+		const unsigned int header_size = 4+number_of_files*sizeof(int);
 
 		if(number_of_files > 9000){
 			PG_ERROR_STREAM("START.DAT is too big!");
 			return true;
 		}
-		reader.skip(sizeof(int));
+		//reader.skip(sizeof(int));
 
 		unsigned int lastOffset = reader.readUnsignedInt();
 		for(unsigned int i = 0; i < number_of_files; ++i){
@@ -250,7 +355,7 @@ bool StartDAT::open(const PG::UTIL::File& file){
 				lastOffset = file_size;
 
 			if(lastOffset < info.offset){
-				PG_ERROR_STREAM("File offset order is wrong! ("<<lastOffset <<" < "<<info.offset<<")");
+				PG_ERROR_STREAM("File offset order is wrong! ("<<lastOffset <<" < "<<info.offset<<") at: "<<reader.pos());
 				return true;
 			}
 
@@ -266,21 +371,41 @@ bool StartDAT::open(const PG::UTIL::File& file){
 				return true;
 			}
 
-			std::stringstream o;
-			o<<"FILE";
-			o.fill('0');
-			o.width(4);
-			o<<i<<".";
-
 			const unsigned int currentPos = reader.pos();
-			reader.seek(info.offset);
+			if( i < m_namesTable.size() && !m_namesTable[i].empty() ){
+				info.name = m_namesTable[i];
+				reader.seek(info.offset);
+				if(isTX2(reader)){
+					if(info.name.getFileExtension() != "TX2")
+						info.name = info.name.getName()+".TX2";
+				}else
+					if(info.name.getFileExtension() == "TX2")
+						info.name = info.name.getName()+".NOT";
 
-			if(reader.readString(3) == "IMY"){
-				o<<"IMY";
-			}else
-				o<<"DAT";
+			}else{
+				std::stringstream o;
+				o<<"FILE";
+				o.fill('0');
+				o.width(4);
+				o<<i<<".";
+
+				reader.seek(info.offset);
+
+				if(isIMY(reader)){
+					o<<"IMY";
+				}
+				reader.seek(info.offset);
+				if(isTX2(reader)){
+					o<<"TX2";
+				}else
+					o<<"DAT";
+
+				info.name = o.str();
+			}
+
+
 			reader.seek(currentPos);
-			info.name = o.str();
+
 
 			m_fileInfos.push_back(info);
 		}
