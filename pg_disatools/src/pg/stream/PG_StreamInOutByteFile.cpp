@@ -21,27 +21,27 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#include <pg/util/PG_ByteInOutFileStream.h>
-#include <pg/util/PG_Base.h>
-#include <pg/util/PG_Exception.h>
+#include <pg/Stream/PG_StreamInOutByteFile.h>
+#include <pg/Util/PG_Base.h>
+#include <pg/Util/PG_Exception.h>
 
 namespace PG {
-namespace UTIL {
+namespace STREAM {
 
 
 
-ByteInOutFileStream::ByteInOutFileStream(const std::string& path) {
+InOutByteFile::InOutByteFile(const std::string& path) {
 	if(path.empty()){
 		PG_ERROR_STREAM("File path empty!");
-		//throw_Exception("Could not create file! File path empty!");
+		throw_Exception("Could not create file! File path empty!");
 		return;
 	}
 
 	m_file.open(path.c_str(),std::ios::in | std::ios::out | std::ios::binary);
-	//m_file.open(path.c_str(), fstream::in | fstream::out | fstream::trunc | fstream::binary);
+
 	if (!m_file.is_open()){
 		PG_ERROR_STREAM("Could not create file: "<<path);
-		//throw_Exception("Could not create file.");
+		throw_Exception("Could not create file.");
 		return;
 	}
 
@@ -50,167 +50,172 @@ ByteInOutFileStream::ByteInOutFileStream(const std::string& path) {
 	rewind();
 }
 
-ByteInOutFileStream::ByteInOutFileStream(const PG::UTIL::File& path): ByteInOutFileStream(path.getPath()){
+InOutByteFile::InOutByteFile(const PG::UTIL::File& path): InOutByteFile(path.getPath()){
 
 }
 
-unsigned int ByteInOutFileStream::pos(){
+unsigned int InOutByteFile::pos(){
 	return m_file.tellp();
 }
 
-void ByteInOutFileStream::seek(unsigned int position){
+void InOutByteFile::seek(unsigned int position){
 	m_file.seekp(position,ios_base::beg);
 }
 
-void ByteInOutFileStream::rewind(){
+void InOutByteFile::rewind(){
 	m_file.seekp(0,ios_base::beg);
 }
 
-void ByteInOutFileStream::goEnd(){
+void InOutByteFile::goEnd(){
 	m_file.seekp(0,ios_base::end);
 }
 
 
 
-char ByteInOutFileStream::readChar(){
+char InOutByteFile::readChar(){
 	char c[1];
 	m_file.read( c, 1 );
 	return c[0];
 }
-unsigned char ByteInOutFileStream::readUnsignedChar(){
+unsigned char InOutByteFile::readUnsignedChar(){
 	char c[1];
 	m_file.read( c, 1 );
 	return c[0];
 }
-short ByteInOutFileStream::readShort(){
+short InOutByteFile::readShort(){
 	short s;
 	m_file.read( (char*)&s, sizeof(short)  );
 	return s;
 }
-unsigned short ByteInOutFileStream::readUnsignedShort(){
+unsigned short InOutByteFile::readUnsignedShort(){
 	unsigned short s;
 	m_file.read( (char*)&s, sizeof(short)  );
 	return s;
 }
-int ByteInOutFileStream::readInt(){
+int InOutByteFile::readInt(){
 	int i;
 	m_file.read( (char*)&i, sizeof(int)  );
 	return i;
 }
-unsigned int ByteInOutFileStream::readUnsignedInt(){
+unsigned int InOutByteFile::readUnsignedInt(){
 	unsigned int i;
 	m_file.read( (char*)&i, sizeof(int)  );
 	return i;
 }
 
-long ByteInOutFileStream::readLong(){
+long InOutByteFile::readLong(){
 	long l;
 	m_file.read( (char*)&l, sizeof(long)  );
 	return l;
 }
 
-unsigned long ByteInOutFileStream::readUnsignedLong(){
+unsigned long InOutByteFile::readUnsignedLong(){
 	unsigned long l;
 	m_file.read( (char*)&l, sizeof(unsigned long)  );
 	return l;
 }
 
-long long ByteInOutFileStream::readLongLong(){
+long long InOutByteFile::readLongLong(){
 	long long l;
 	m_file.read( (char*)&l, sizeof(long long)  );
 	return l;
 }
 
-unsigned long long ByteInOutFileStream::readUnsignedLongLong(){
+unsigned long long InOutByteFile::readUnsignedLongLong(){
 	unsigned long long l;
 	m_file.read( (char*)&l, sizeof(unsigned long long)  );
 	return l;
 }
 
-float ByteInOutFileStream::readFloat(){
+float InOutByteFile::readFloat(){
 	float f;
 	m_file.read( (char*)&f, sizeof(float)  );
 	return f;
 }
-double ByteInOutFileStream::readDouble(){
+double InOutByteFile::readDouble(){
 	double d;
 	m_file.read( (char*)&d, sizeof(float)  );
 	return d;
 }
 
-bool ByteInOutFileStream::eof() const{
+bool InOutByteFile::eof() const{
 	return m_file.eof();
 }
 
-unsigned int ByteInOutFileStream::size() const{
+unsigned int InOutByteFile::size() const{
 	return m_size;
 }
 
 
 
-std::string ByteInOutFileStream::readString(unsigned int size){
+std::string InOutByteFile::readString(unsigned int size){
 	std::string str;
 	str.resize(size);
 	m_file.read( &str[0], size );
 	return str;
 }
 
-void ByteInOutFileStream::skip(unsigned int bytes){
+void InOutByteFile::skip(unsigned int bytes){
 	m_file.ignore(bytes);
 }
 
-void ByteInOutFileStream::read(char* data, unsigned int bytes){
+void InOutByteFile::read(char* data, unsigned int bytes){
 	m_file.read( data, bytes);
 }
 
 
-void ByteInOutFileStream::writeChar(char c){
+void InOutByteFile::writeChar(char c){
 	m_file.write((char *)&c, sizeof(char));
 }
 
-void ByteInOutFileStream::writeInt(int i){
+void InOutByteFile::writeInt(int i){
 	m_file.write((char *)&i, sizeof(int));
 }
 
-void ByteInOutFileStream::writeLong(long l){
+void InOutByteFile::writeLong(long l){
 	m_file.write((char *)&l, sizeof(long));
 }
 
-void ByteInOutFileStream::writeLongLong(long long ll){
+void InOutByteFile::writeLongLong(long long ll){
 	m_file.write((char *)&ll, sizeof(long long));
 }
 
-void ByteInOutFileStream::writeShort(short s){
+void InOutByteFile::writeShort(short s){
 	m_file.write((char *)&s, sizeof(short));
 }
 
-void ByteInOutFileStream::writeFloat(float i){
+void InOutByteFile::writeFloat(float i){
 	m_file.write((char *)&i, sizeof(float));
 }
 
-void ByteInOutFileStream::writeFloats(const std::vector<float>& floats){
+void InOutByteFile::writeFloats(const std::vector<float>& floats){
 	m_file.write((char *)&floats[0], sizeof(float)*floats.size());
 }
 
-void ByteInOutFileStream::operator<<(const std::string& string){
+void InOutByteFile::writeDouble(double d){
+	m_file.write((char *)&d, sizeof(double));
+}
+
+
+void InOutByteFile::operator<<(const std::string& string){
 	m_file<<string;
 }
 
-void ByteInOutFileStream::writeString(const std::string& string){
+void InOutByteFile::writeString(const std::string& string){
 	m_file<<string;
 }
 
-void ByteInOutFileStream::write(char* data, unsigned int size){
+void InOutByteFile::write(char* data, unsigned int size){
 	m_file.write(data, size);
 }
 
-void ByteInOutFileStream::close(){
+void InOutByteFile::close(){
 	m_file.close();
 }
 
-ByteInOutFileStream::~ByteInOutFileStream() {
+InOutByteFile::~InOutByteFile() {
 	close();
 }
 
-} /* namespace UTIL */
+} /* namespace STREAM */
 } /* namespace PG */

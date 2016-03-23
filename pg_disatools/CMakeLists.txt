@@ -70,7 +70,7 @@ file(GLOB PG_LOADERS_SRC
 	"src/pg/loaders/*.cpp"
 	
 	"src/pg/savers/*.cpp"
-
+	"src/pg/stream/*.cpp"
 	"src/pg/files/*.cpp"
 	
     "src/pg/util/*.cpp"
@@ -87,9 +87,9 @@ file(GLOB PG_LOADERS_HEADERS
 	"include/pg/loaders/*.h"
 	
 	"include/pg/savers/*.h"
-
+	"include/pg/stream/*.h"
 	"include/pg/files/*.h"
-	
+
     "include/pg/util/*.h"
 
 )

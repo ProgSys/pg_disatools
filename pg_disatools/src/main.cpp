@@ -31,8 +31,11 @@
 #include <pg/util/PG_ByteInFileStream.h>
 #include <algorithm>
 #include <pg/util/PG_BinaryFileWriter.h>
+#include <pg/util/PG_ByteInOutFileStream.h>
+#include <pg/util/PG_Array.h>
 #include <fstream>
 #include <pg/util/PG_Vector.h>
+
 #include <cstdlib>
 #include <cmath>
 
@@ -137,23 +140,28 @@ int roundDXTColor(double x)
 }
 
 struct imyHeader{
-	unsigned int magic_number;
+	unsigned int magic_number; // 4
 
-	unsigned short unknown02;
-	unsigned short unknown03;
-	unsigned short unknown04; //was width
-	unsigned char compressionFlag;
-	unsigned char unknown06;
-	unsigned short unknown07; //was height
-	unsigned short unknown08; //was paletteSize
-	unsigned int unknown09; //padding
-	unsigned int unknown10; //padding
-	unsigned int unknown11; //padding
-	unsigned int unknown12; //padding
-	unsigned short compressedDataPointer;
+	unsigned short unknown02; // 2
+	unsigned short unknown03; // 2 -> 8
+	unsigned short streamOffset; //was width // 2
+	unsigned char compressionType; // 1
+	unsigned char unknown06; // 1
+	unsigned short unknown07; //was height // 2
+	unsigned short unknown08; //was paletteSize // 2 -> 16
+	unsigned int zero0; //padding // 4
+	unsigned int zero1; //padding // 4 -> 24
+	unsigned int zero2; //padding // 4
+	unsigned int zero3; //padding // 4 -> 32
+	unsigned short compressionInfoBits;// 2 -> 34
 };
 
-/*
+/*!
+ * Krisan Thyme provided the original source code!
+ * Thank you!
+ *
+ * @
+ */
 bool uncompressIMY(const std::string& imyfile){
 	PG::UTIL::ByteInFileStream reader(imyfile);
 
@@ -163,34 +171,72 @@ bool uncompressIMY(const std::string& imyfile){
 	}
 
 	imyHeader header;
-
-	reader.read((char*) &header, sizeof(imyHeader));
+	reader.read((char*) &header, 34);
 
 	if(header.magic_number != 0x00594D49){
-		OUTSTR("IMY magic number is wrong "<<imyfile);
+		OUTSTR("IMY magic number is wrong '"<<imyfile<<"'");
 		return true;
 	}
 
-	//Int32 compressedDataInfoPointer = (Int32)fs.Position;
-	//Int32 compressedDataPointer = (Int32)(fs.Position + imyHeader.compressedDataPointer);
-	unsigned int decompressedFileSize = header.unknown04 * header.unknown07;
 
+	const unsigned int decompressedFileSize = header.streamOffset * header.unknown07;
+	unsigned int flagsOffset = reader.pos();
+	const unsigned int compressedDataOffset = flagsOffset + header.compressionInfoBits;
+	unsigned int dataOffset = compressedDataOffset;
+	//PG_INFO_STREAM("decompressedFileSize "<<decompressedFileSize <<" dataOffset: "<< header.compressionInfoBits );
 
 	PG::UTIL::Array<unsigned int, 4> lookUpTable;
-	lookUpTable[0] = 0xFFFFFFFE;
-	lookUpTable[1] = ~header.unknown04;
+	lookUpTable[0] = 2; // go back one short
+	lookUpTable[1] = header.streamOffset;
 	lookUpTable[2] = lookUpTable[1] + 2;
 	lookUpTable[3] = lookUpTable[1] - 2;
 
+	PG::UTIL::File outPutFile(imyfile+".bin");
+	if(outPutFile.exists())
+		outPutFile.remove();
+	outPutFile.create();
+	PG::UTIL::ByteInOutFileStream write(outPutFile);
 
-	unsigned int bytesProcessed = 0;
-    while (bytesProcessed < decompressedFileSize)
-    {
-    	unsigned char info = reader.readChar();
-    }
+	while(write.pos() < decompressedFileSize && flagsOffset < compressedDataOffset){
+	//for(unsigned int i = 0; i < header.compressionInfoBits-2; i++){
+		reader.seek(flagsOffset);
+		unsigned char compressionFlag = reader.readChar();
+		flagsOffset++;
+
+		if( compressionFlag & 0xF0 ){
+			if( (compressionFlag & 0x80) && (compressionFlag & 0x40)){
+				//copy shorts from the already uncompressed stream
+				const int index = (compressionFlag & 0x30) >> 4; // the value can only be 0-3
+				const int shorts_to_copy = (compressionFlag & 0x0F) + 1;
+
+				for (int i = 0; i < shorts_to_copy; i++){
+					//read
+					const unsigned int currentEnd = write.pos();
+					write.seek(currentEnd - lookUpTable[index]);
+					const short s = write.readShort();
+					write.seek(currentEnd);
+					write.writeShort(s);
+				}
+			}else{
+				//copy a short from the compressed stream by going back to a short
+				const unsigned int stepsBack = (compressionFlag - 16)*2 + 2;
+				reader.seek(dataOffset-stepsBack);
+				write.writeShort(reader.readShort());
+			}
+		}else{
+			// just copy shorts (2 byte)
+			compressionFlag++; //you always copy at least one short
+			for(unsigned char i = 0; i < compressionFlag; ++i){
+				reader.seek(dataOffset);
+				write.writeShort(reader.readShort());
+				dataOffset += 2;
+			}
+		}
+
+	}
 
 	return false;
-}*/
+}
 
 /*!
  * @brief Testing main method, just for testing.
@@ -198,6 +244,15 @@ bool uncompressIMY(const std::string& imyfile){
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
+	PG::FILE::decompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first.IMY","C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first_un.IMY.bin");
+
+	OUTSTR("END");
+
+	return 0;
+
+
+	uncompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first.IMY");
+	OUTSTR("END");
 
 	return 0;
 

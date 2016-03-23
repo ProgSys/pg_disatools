@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <cstdio>
 #include <algorithm>
+#include <fstream>
 #include <pg/util/PG_Exception.h>
 
 namespace PG {
@@ -37,6 +38,7 @@ namespace UTIL {
 File::File(const std::string& path): m_path(path){
 
 }
+
 
 std::string const& File::getPath() const{
 	return m_path;
@@ -114,6 +116,18 @@ bool File::exists() const{
 	  struct stat buffer;
 	  return (stat (m_path.c_str(), &buffer) == 0);
 }
+
+bool File::create(const std::string& text) const{
+	std::ofstream outfile (m_path);
+	if(!outfile.is_open()){
+		outfile.close();
+		return false;
+	}
+	outfile << text;
+	outfile.close();
+	return true;
+}
+
 bool File::rename(const std::string& name) const{
 	if(isEmpty()) return false;
 	return std::rename( m_path.c_str(), name.c_str() );

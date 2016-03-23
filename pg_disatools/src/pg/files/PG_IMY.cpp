@@ -22,67 +22,128 @@
  *	SOFTWARE.
  */
 #include <pg/files/PG_IMY.h>
-#include <pg/util/PG_ByteInStream.h>
-#include <pg/util/PG_ByteInFileStream.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamInOutByteFile.h>
 #include <pg/util/PG_Exception.h>
+#include <pg/util/PG_Array.h>
 
 namespace PG {
 namespace FILE {
 
-bool uncompressIMY(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut ){
+struct imyHeader{
+	unsigned int magic_number; // 4
 
+	unsigned short unknown02; // 2
+	unsigned short unknown03; // 2 -> 8
+	unsigned short streamOffset; //was width // 2
+	unsigned char compressionType; // 1
+	unsigned char unknown06; // 1
+	unsigned short unknown07; //was height // 2
+	unsigned short unknown08; //was paletteSize // 2 -> 16
+	unsigned int zero0; //padding // 4
+	unsigned int zero1; //padding // 4 -> 24
+	unsigned int zero2; //padding // 4
+	unsigned int zero3; //padding // 4 -> 32
+	unsigned short compressionInfoBits;// 2 -> 34
+};
 
-	if(instream->readString(3) != "IMY"){
-		PG_ERROR_STREAM("Magic numbers is wrong!")
+bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
+
+	const unsigned int startOffset = outstream->pos();
+	imyHeader header;
+	instream->read((char*) &header, 34);
+
+	if(header.magic_number != 0x00594D49){
+		PG_ERROR_STREAM("IMY magic number is wrong!");
 		return true;
 	}
 
-	throw_Exception("uncompressIMY is currently not supported.");
+	if( (header.compressionType >> 4) == 1){
+		const unsigned int decompressedFileSize = header.streamOffset * header.unknown07;
+		unsigned int flagsOffset = instream->pos();
+		const unsigned int compressedDataOffset = flagsOffset + header.compressionInfoBits;
+		unsigned int dataOffset = compressedDataOffset;
 
-	/*
-	instream->skip(0); //skip one byte
-	const unsigned width = instream->readShort();
-	const unsigned height = instream->readShort();
+		PG::UTIL::Array<unsigned int, 4> lookUpTable;
+		lookUpTable[0] = 2; // go back one short
+		lookUpTable[1] = header.streamOffset;
+		lookUpTable[2] = lookUpTable[1] + 2;
+		lookUpTable[3] = lookUpTable[1] - 2;
 
-	PG_INFO_STREAM(width<<" "<<height);
+		while( (outstream->pos()-startOffset) < decompressedFileSize && flagsOffset < compressedDataOffset){
+			instream->seek(flagsOffset);
+			unsigned char compressionFlag = instream->readChar();
+			flagsOffset++;
 
-	instream->skip(24);
-	instream->seek(148);
+			if( compressionFlag & 0xF0 ){
+				if( (compressionFlag & 0x80) && (compressionFlag & 0x40)){
+					//copy shorts from the already uncompressed stream
+					const int index = (compressionFlag & 0x30) >> 4; // the value can only be 0-3
+					const int shorts_to_copy = (compressionFlag & 0x0F) + 1;
 
-	imageOut.resize(128, 512);
+					for (int i = 0; i < shorts_to_copy; i++){
+						//read
+						const unsigned int currentEnd = outstream->pos();
+						outstream->seek(currentEnd - lookUpTable[index]);
+						const short s = outstream->readShort();
+						outstream->seek(currentEnd);
+						outstream->writeShort(s);
+					}
+				}else{
+					//copy a short from the compressed stream by going back to a short
+					const unsigned int stepsBack = (compressionFlag - 16)*2 + 2;
+					instream->seek(dataOffset-stepsBack);
+					outstream->writeShort(instream->readShort());
+				}
+			}else{
+				// just copy shorts (2 byte)
+				compressionFlag++; //you always copy at least one short
+				for(unsigned char i = 0; i < compressionFlag; ++i){
+					instream->seek(dataOffset);
+					outstream->writeShort(instream->readShort());
+					dataOffset += 2;
+				}
+			}
 
-	for(unsigned int i = 0; i < 7578; ++i){
-		unsigned short s = instream->readShort();
-		imageOut[i].r = s;
-		imageOut[i].g = s >> 8;
+		}
+
+	}else{
+		PG_ERROR_STREAM("IMY compression type '"<<header.compressionType<<"' is not supported!");
+		return true;
 	}
-	//instream->read((char*) &imageOut[0].r, 110000);
-
 
 	return false;
-	*/
 }
 
-bool uncompressIMY(const PG::UTIL::File& fileIn, PG::UTIL::RGBAImage& imageOut ){
+bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut){
+
 	try {
-		PG::UTIL::ByteInFileStream reader(fileIn);
-		const bool s = uncompressIMY((PG::UTIL::InStream*) &reader, imageOut);
+		PG::STREAM::InByteFile reader(fileIn);
+
+		if(fileOut.exists())
+			fileOut.remove();
+		fileOut.create();
+		PG::STREAM::InOutByteFile writer(fileOut);
+
+		const bool s = decompressIMY((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer);
 		return s;
 	} catch (PG::UTIL::Exception& e) {
 		PG_ERROR_STREAM(e.what());
-		PG_ERROR_STREAM("Couldn't read IMY image.")
+		PG_ERROR_STREAM("Couldn't read IMY '"<<fileIn<<"'!")
 		return true;
 	} catch (...) {
-		PG_ERROR_STREAM("Couldn't read IMY image.")
+		PG_ERROR_STREAM("Couldn't read IMY '"<<fileIn<<"'!")
 		return true;
 	}
 
 	return false;
 }
 
-bool uncompressIMY(const std::string& fileIn, PG::UTIL::RGBAImage& imageOut ){
-	return uncompressIMY(PG::UTIL::File(fileIn),imageOut );
+bool decompressIMY(const std::string& fileIn, const std::string& fileOut ){
+	return decompressIMY(PG::UTIL::File(fileIn), PG::UTIL::File(fileOut));
 }
+
+
 
 } /* namespace FILE */
 } /* namespace PG */

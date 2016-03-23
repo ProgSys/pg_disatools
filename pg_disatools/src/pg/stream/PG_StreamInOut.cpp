@@ -21,33 +21,19 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_FILES_PG_IMY_H_
-#define INCLUDE_PG_FILES_PG_IMY_H_
-
-#include <string>
-#include <pg/util/PG_File.h>
-#include <pg/stream/PG_StreamIn.h>
 #include <pg/stream/PG_StreamInOut.h>
 
 namespace PG {
-namespace FILE {
+namespace STREAM {
 
-/*!
- * @return true on error
- */
-bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream );
+InOut::InOut() {
+	// TODO Auto-generated constructor stub
 
-/*!
- * @return true on error
- */
-bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut );
+}
 
-/*!
- * @return true on error
- */
-bool decompressIMY(const std::string& fileIn, const std::string& fileOut );
+InOut::~InOut() {
+	// TODO Auto-generated destructor stub
+}
 
-} /* namespace FILE */
+} /* namespace STREAM */
 } /* namespace PG */
-
-#endif /* INCLUDE_PG_FILES_PG_IMY_H_ */

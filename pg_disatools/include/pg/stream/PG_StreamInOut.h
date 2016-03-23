@@ -21,33 +21,37 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_FILES_PG_IMY_H_
-#define INCLUDE_PG_FILES_PG_IMY_H_
+#ifndef INCLUDE_PG_STREAM_PG_STREAMINOUT_H_
+#define INCLUDE_PG_STREAM_PG_STREAMINOUT_H_
 
-#include <string>
-#include <pg/util/PG_File.h>
 #include <pg/stream/PG_StreamIn.h>
-#include <pg/stream/PG_StreamInOut.h>
+#include <pg/stream/PG_StreamOut.h>
 
 namespace PG {
-namespace FILE {
+namespace STREAM {
 
-/*!
- * @return true on error
- */
-bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream );
+class InOut: public In, public Out {
+public:
+	InOut();
 
-/*!
- * @return true on error
- */
-bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut );
+	virtual void skip(unsigned int skip)  = 0;
+	///Go to the given position
+	virtual void seek(unsigned int position)  = 0;
+	///Get the current position
+	virtual unsigned int pos() = 0;
+	///Set the position to zero
+	virtual void rewind()  = 0;
 
-/*!
- * @return true on error
- */
-bool decompressIMY(const std::string& fileIn, const std::string& fileOut );
+	/*!
+	 * @return true if position is at end.
+	 */
+	virtual bool eof() const = 0;
+	virtual unsigned int size() const = 0;
 
-} /* namespace FILE */
+	virtual ~InOut();
+};
+
+} /* namespace STREAM */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_FILES_PG_IMY_H_ */
+#endif /* INCLUDE_PG_STREAM_PG_STREAMINOUT_H_ */

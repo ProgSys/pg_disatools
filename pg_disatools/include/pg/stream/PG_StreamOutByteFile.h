@@ -21,33 +21,56 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_FILES_PG_IMY_H_
-#define INCLUDE_PG_FILES_PG_IMY_H_
 
+#ifndef INCLUDE_PG_STREAM_PG_STREAMOUTBYTEFILE_H_
+#define INCLUDE_PG_STREAM_PG_STREAMOUTBYTEFILE_H_
+
+#include <fstream>
 #include <string>
-#include <pg/util/PG_File.h>
-#include <pg/stream/PG_StreamIn.h>
-#include <pg/stream/PG_StreamInOut.h>
+#include <vector>
+#include <pg/Stream/PG_StreamOut.h>
 
 namespace PG {
-namespace FILE {
+namespace STREAM {
 
 /*!
- * @return true on error
+ * \brief Allows you to write a binary file.
  */
-bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream );
+class OutByteFile: public Out {
+public:
+	OutByteFile(std::string path, bool append = false);
 
-/*!
- * @return true on error
- */
-bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut );
+	 long getPosition();
+	 void setPosition(long  position);
+	 void goEnd(int i = 0);
+	/*!
+	 * \brief Write a char into the file.
+	 */
+	 void writeChar(char c);
+	 void writeShort(short s);
+	 void writeInt(int i);
+	 void writeLong(long l);
+	 void writeLongLong(long long ll);
 
-/*!
- * @return true on error
- */
-bool decompressIMY(const std::string& fileIn, const std::string& fileOut );
+	 void writeFloat(float i);
+	 void writeFloats(const std::vector<float>& floats);
+	 void writeDouble(double d);
 
-} /* namespace FILE */
+	 void operator<<(const std::string& string);
+	 void writeString(const std::string& string);
+
+	 void write(char* data, unsigned int size);
+
+	/*!
+	 * \brief Do not forget to close it when you done!
+	 */
+	 void close();
+	 virtual ~OutByteFile();
+private:
+	std::ofstream m_outFile;
+};
+
+} /* namespace STREAM */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_FILES_PG_IMY_H_ */
+#endif /* INCLUDE_PG_STREAM_PG_STREAMOUTBYTEFILE_H_ */

@@ -38,6 +38,7 @@ class File {
 	std::string m_path;
 public:
 	File(const std::string& path = "");
+
 	/*!
 	 * @brief Get the full path to file.
 	 */
@@ -73,6 +74,7 @@ public:
 
 	unsigned int size() const;
 	bool exists() const;
+	bool create(const std::string& text = "") const;
 	bool rename(const std::string& name) const;
 	bool remove() const;
 
