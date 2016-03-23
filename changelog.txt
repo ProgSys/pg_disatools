@@ -9,3 +9,6 @@
  ===  24.03.2016 - v0.3.8 (hotfix) ===
  * other .DAT files now use there own .csv filetable, if one has bean found in the resources folder
  * swapped Red and Blue color channels for color table 16 and 256 .TX2
+
+ ===  ? - v0.3.9 ===
+ * Added support for decompressing IMY files

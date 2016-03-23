@@ -380,7 +380,7 @@ bool StartDAT::open(const PG::UTIL::File& file){
 			}
 
 			if((info.offset+info.size) > file_size){
-				PG_ERROR_STREAM("File is outside the range (offset+size > file_size)!");
+				PG_ERROR_STREAM("File is outside the range ("<< (info.offset+info.size) << " > " << file_size <<")!");
 				return true;
 			}
 

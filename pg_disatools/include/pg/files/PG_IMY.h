@@ -47,6 +47,16 @@ bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut )
  */
 bool decompressIMY(const std::string& fileIn, const std::string& fileOut );
 
+/*!
+ * @return true on error
+ */
+bool decompressIMYPackage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut );
+
+/*!
+ * @return true on error
+ */
+bool decompressIMYPackage(const std::string& fileIn, const std::string& fileOut );
+
 } /* namespace FILE */
 } /* namespace PG */
 

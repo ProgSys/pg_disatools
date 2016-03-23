@@ -22,6 +22,9 @@
  *	SOFTWARE.
  */
 #include <pg/files/PG_IMY.h>
+
+#include <iomanip>
+
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamInOutByteFile.h>
 #include <pg/util/PG_Exception.h>
@@ -70,9 +73,25 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
 		lookUpTable[2] = lookUpTable[1] + 2;
 		lookUpTable[3] = lookUpTable[1] - 2;
 
+		//unsigned long long compressionFlags = 0;
+		unsigned char compressionFlags[128];
+		unsigned int currentFlag = 0;
 		while( (outstream->pos()-startOffset) < decompressedFileSize && flagsOffset < compressedDataOffset){
-			instream->seek(flagsOffset);
-			unsigned char compressionFlag = instream->readChar();
+
+			//too speed up the reading, 128 flags are readed at once
+			//slow way
+			/*
+			 * instream->seek(flagsOffset);
+			 * compressionFlag = instream->readChar();
+			 */
+			if(currentFlag >= 128)
+				currentFlag = 0;
+			if(currentFlag == 0){
+				instream->seek(flagsOffset);
+				instream->read((char*)&compressionFlags[0],128);
+			}
+			unsigned char compressionFlag = compressionFlags[currentFlag];
+			currentFlag++;
 			flagsOffset++;
 
 			if( compressionFlag & 0xF0 ){
@@ -80,7 +99,28 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
 					//copy shorts from the already uncompressed stream
 					const int index = (compressionFlag & 0x30) >> 4; // the value can only be 0-3
 					const int shorts_to_copy = (compressionFlag & 0x0F) + 1;
+					const unsigned int bytes_to_write = ((compressionFlag & 0x0F) + 1)*2;
+					const unsigned int currentEnd = outstream->pos();
+					const unsigned int backOffset = currentEnd - lookUpTable[index];
+					const unsigned int bytes_to_copy = currentEnd - backOffset;
 
+					char c[bytes_to_copy];
+					outstream->seek(backOffset);
+					outstream->read(&c[0], bytes_to_copy);
+
+					outstream->seek(currentEnd);
+					unsigned int bytesWritten = 0;
+					unsigned int currentByte = 0;
+					while(bytesWritten < bytes_to_write){
+						outstream->writeChar(c[currentByte]);
+						bytesWritten++;
+						currentByte++;
+						if(currentByte >= bytes_to_copy)
+							currentByte = 0;
+					}
+
+
+					/*
 					for (int i = 0; i < shorts_to_copy; i++){
 						//read
 						const unsigned int currentEnd = outstream->pos();
@@ -88,7 +128,7 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
 						const short s = outstream->readShort();
 						outstream->seek(currentEnd);
 						outstream->writeShort(s);
-					}
+					}*/
 				}else{
 					//copy a short from the compressed stream by going back to a short
 					const unsigned int stepsBack = (compressionFlag - 16)*2 + 2;
@@ -97,12 +137,20 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
 				}
 			}else{
 				// just copy shorts (2 byte)
-				compressionFlag++; //you always copy at least one short
+				//you always copy at least one short
+				const unsigned int readSize = (compressionFlag+1)*2;
+				char c[readSize];
+				instream->seek(dataOffset);
+				instream->read(&c[0], readSize);
+				outstream->write(&c[0], readSize);
+				dataOffset += readSize;
+
+				/*
 				for(unsigned char i = 0; i < compressionFlag; ++i){
 					instream->seek(dataOffset);
 					outstream->writeShort(instream->readShort());
 					dataOffset += 2;
-				}
+				}*/
 			}
 
 		}
@@ -119,6 +167,7 @@ bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut){
 
 	try {
 		PG::STREAM::InByteFile reader(fileIn);
+		if(!reader.isopen()) return false;
 
 		if(fileOut.exists())
 			fileOut.remove();
@@ -126,13 +175,15 @@ bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut){
 		PG::STREAM::InOutByteFile writer(fileOut);
 
 		const bool s = decompressIMY((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer);
+		reader.close();
+		writer.close();
 		return s;
 	} catch (PG::UTIL::Exception& e) {
 		PG_ERROR_STREAM(e.what());
-		PG_ERROR_STREAM("Couldn't read IMY '"<<fileIn<<"'!")
+		PG_ERROR_STREAM("Couldn't decompress IMY '"<<fileIn<<"'!")
 		return true;
 	} catch (...) {
-		PG_ERROR_STREAM("Couldn't read IMY '"<<fileIn<<"'!")
+		PG_ERROR_STREAM("Couldn't decompress IMY '"<<fileIn<<"'!")
 		return true;
 	}
 
@@ -143,7 +194,60 @@ bool decompressIMY(const std::string& fileIn, const std::string& fileOut ){
 	return decompressIMY(PG::UTIL::File(fileIn), PG::UTIL::File(fileOut));
 }
 
+/*!
+ * @return true on error
+ */
+bool decompressIMYPackage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut ){
+	try {
+		PG::STREAM::InByteFile reader(fileIn);
+		if(!reader.isopen()) return false;
 
+		const unsigned int packages = reader.readUnsignedInt();
+		const unsigned int decopressedSize = reader.readUnsignedInt();
+
+		std::vector<unsigned int> offsets(packages);
+		reader.read((char*) &offsets[0],packages*sizeof(unsigned int) );
+		//offsets[packages+1] = reader.size();
+
+		if(fileOut.exists())
+			fileOut.remove();
+		fileOut.create();
+		PG::STREAM::InOutByteFile writer(fileOut);
+		unsigned int i = 0;
+		for(unsigned int offset: offsets){
+		//for(unsigned int i = 0; i < packages; ++i){
+			//const unsigned int offset = offsets[i];
+			//const unsigned int size = offsets[i+1] -  offset;
+
+			if(i%10 == 0)
+				std::cout <<"Progress: "<<std::setw(6)<<std::setprecision(3)<<  (i/(float)packages) *100<<"%" <<std::endl;
+			i++;
+
+			reader.seek(offset);
+			if( decompressIMY((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer) ){
+				PG_ERROR_STREAM("Couldn't decompress IMY file at "<<offset<<"!")
+				return true;
+			}
+		}
+
+		reader.close();
+		writer.close();
+
+	} catch (PG::UTIL::Exception& e) {
+		PG_ERROR_STREAM(e.what());
+		PG_ERROR_STREAM("Couldn't decompress IMY package'"<<fileIn<<"'!")
+		return true;
+	} catch (...) {
+		PG_ERROR_STREAM("Couldn't decompress IMY package'"<<fileIn<<"'!")
+		return true;
+	}
+
+	return false;
+}
+
+bool decompressIMYPackage(const std::string& fileIn, const std::string& fileOut ){
+	return decompressIMYPackage(PG::UTIL::File(fileIn), PG::UTIL::File(fileOut));
+}
 
 } /* namespace FILE */
 } /* namespace PG */
