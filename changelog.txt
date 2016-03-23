@@ -5,3 +5,7 @@
  ===  23.03.2016 - v0.3.7 ===
  * uncompressed START.DAT is now supported!
  * the currently unknown variables in PSPFS_V1 files are now copyed on save
+ 
+ ===  24.03.2016 - v0.3.8 (hotfix) ===
+ * other .DAT files now use there own .csv filetable, if one has bean found in the resources folder
+ * swapped Red and Blue color channels for color table 16 and 256 .TX2

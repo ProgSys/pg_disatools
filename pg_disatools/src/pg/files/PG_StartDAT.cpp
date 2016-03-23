@@ -55,7 +55,19 @@ inline void skipSCVLine(PG::UTIL::ByteInFileStream& reader){
 
 
 StartDAT::StartDAT() {
-	PG::UTIL::ByteInFileStream reader("resources/START.DAT.csv");
+
+}
+
+StartDAT::StartDAT(const PG::UTIL::File& file){
+	open(file);
+}
+
+
+void StartDAT::readFileNames(){
+	std::string filename = m_file.getFile();
+	std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper );
+
+	PG::UTIL::ByteInFileStream reader("resources/"+filename+".csv");
 	if(reader.isopen()){
 		skipSCVLine(reader);
 
@@ -68,13 +80,6 @@ StartDAT::StartDAT() {
 	}
 	reader.close();
 
-	for(const std::string& str: m_namesTable){
-		PG_INFO_STREAM(str);
-	}
-}
-
-StartDAT::StartDAT(const PG::UTIL::File& file): StartDAT(){
-	open(file);
 }
 
 bool StartDAT::insert(const PG::UTIL::File& file){
@@ -301,6 +306,12 @@ inline bool isTX2(PG::UTIL::ByteInFileStream& reader){
 				return false;
 		}
 			break;
+		case tx2Type::COLORTABLEBGRA256:
+		{
+			if(colorTableSize == 0 || colorTableSize > 500)
+				return false;
+		}
+			break;
 		case tx2Type::COLORTABLEBGRA16:
 		{
 			if(colorTableSize != 16  && colorTableSize != 256)
@@ -330,6 +341,8 @@ bool StartDAT::open(const PG::UTIL::File& file){
 		 m_file.clear();
 		 return true;
 	}
+
+	readFileNames();
 
 	try{
 		PG::UTIL::ByteInFileStream reader(m_file);
@@ -440,6 +453,7 @@ void StartDAT::clear(){
 	m_changed = false;
 	m_file.clear();
 	m_fileInfos.clear();
+	m_namesTable.clear();
 }
 
 bool StartDAT::isEmpty() const{

@@ -178,7 +178,7 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 				imageOut[pos+1] = colortable[ (c >> 4) & 0x0F ];
 			}
 
-	}else if(compressiontype == tx2Type::COLORTABLERGBA256){
+	}else if(compressiontype == tx2Type::COLORTABLEBGRA256 || compressiontype == tx2Type::COLORTABLERGBA256){
 		//lookup table RGBA
 
 		if(color_table_size > 256){
@@ -196,9 +196,19 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 		instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
 
 		imageOut.resize(widthOut,heightOut);
-		for(unsigned int i = 0; i < total_number_of_bytes; i++){
-			imageOut[i] = colortable[instream->readUnsignedChar()];
-		}
+
+		if(compressiontype == tx2Type::COLORTABLEBGRA256 ){
+			for(unsigned int i = 0; i < total_number_of_bytes; i++){
+				imageOut[i] = colortable[instream->readUnsignedChar()];
+				char r = imageOut[i].r;
+				imageOut[i].r = imageOut[i].b;
+				imageOut[i].b = r;
+			}
+		}else
+			for(unsigned int i = 0; i < total_number_of_bytes; i++){
+				imageOut[i] = colortable[instream->readUnsignedChar()];
+			}
+
 
 	}else{
 		PG_ERROR_STREAM("Unknown format not supported!");

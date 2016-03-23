@@ -63,6 +63,8 @@ private:
 	std::vector<fileInfo> m_fileInfos;
 	//contains the table of known files
 	std::vector<std::string> m_namesTable;
+
+	void readFileNames();
 };
 
 } /* namespace FILE */
