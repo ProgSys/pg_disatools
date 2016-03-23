@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 #include <pg/Stream/PG_StreamOut.h>
+#include <pg/util/PG_File.h>
 
 namespace PG {
 namespace STREAM {
@@ -38,34 +39,47 @@ namespace STREAM {
  */
 class OutByteFile: public Out {
 public:
-	OutByteFile(std::string path, bool append = false);
+	OutByteFile(const PG::UTIL::File& path, bool append = false);
+	OutByteFile(const std::string& path, bool append = false);
 
-	 long getPosition();
-	 void setPosition(long  position);
-	 void goEnd(int i = 0);
+	long getPosition();
+	void setPosition(long  position);
+	void goEnd(int i = 0);
 	/*!
-	 * \brief Write a char into the file.
-	 */
-	 void writeChar(char c);
-	 void writeShort(short s);
-	 void writeInt(int i);
-	 void writeLong(long l);
-	 void writeLongLong(long long ll);
+	* \brief Write a char into the file.
+	*/
+	void writeChar(char c);
+	void writeShort(short s);
+	void writeInt(int i);
+	void writeLong(long l);
+	void writeLongLong(long long ll);
 
-	 void writeFloat(float i);
-	 void writeFloats(const std::vector<float>& floats);
-	 void writeDouble(double d);
+	void writeFloat(float i);
+	void writeFloats(const std::vector<float>& floats);
+	void writeDouble(double d);
 
-	 void operator<<(const std::string& string);
-	 void writeString(const std::string& string);
+	void operator<<(const std::string& string);
+	void writeString(const std::string& string);
 
-	 void write(char* data, unsigned int size);
+	void write(char* data, unsigned int size);
+
+
+	///Skip the given number of bytes, if at end write zero
+	void skip(unsigned int skip);
+	///Go to the given position
+	void seek(unsigned int position);
+	///Get the current position
+	unsigned int pos();
+	///Set the position to zero
+	void rewind();
+
+	unsigned int size();
 
 	/*!
-	 * \brief Do not forget to close it when you done!
-	 */
-	 void close();
-	 virtual ~OutByteFile();
+	* \brief Do not forget to close it when you done!
+	*/
+	void close();
+	virtual ~OutByteFile();
 private:
 	std::ofstream m_outFile;
 };

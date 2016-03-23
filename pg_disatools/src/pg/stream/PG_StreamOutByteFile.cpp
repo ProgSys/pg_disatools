@@ -28,7 +28,10 @@
 namespace PG {
 namespace STREAM {
 
-OutByteFile::OutByteFile(std::string path, bool append) {
+OutByteFile::OutByteFile(const PG::UTIL::File& path, bool append):
+		OutByteFile(path.getPath(), append){}
+
+OutByteFile::OutByteFile(const std::string& path, bool append) {
 	if(path.empty()){
 		PG_ERROR_STREAM("File path empty!");
 		throw_Exception("Could not create file! File path empty!");
@@ -102,6 +105,40 @@ void OutByteFile::writeString(const std::string& string){
 
 void OutByteFile::write(char* data, unsigned int size){
 	m_outFile.write(data, size);
+}
+
+
+void OutByteFile::skip(unsigned int skip){
+	const unsigned int currentPos = pos();
+	const unsigned int filesize = size();
+
+	if(currentPos+skip >= filesize){
+		goEnd();
+		for(unsigned int i = filesize; i < currentPos+skip; i++ )
+			writeChar(0);
+	}else{
+		seek(currentPos+skip);
+	}
+}
+///Go to the given position
+void OutByteFile::seek(unsigned int position){
+	m_outFile.seekp(position,ios_base::beg);
+}
+///Get the current position
+unsigned int OutByteFile::pos(){
+	return m_outFile.tellp();
+}
+///Set the position to zero
+void OutByteFile::rewind(){
+	seek(0);
+}
+
+unsigned int OutByteFile::size(){
+	const unsigned int currPos = pos();
+	goEnd();
+	const unsigned int size = pos();
+	seek(currPos);
+	return size;
 }
 
 void OutByteFile::close(){

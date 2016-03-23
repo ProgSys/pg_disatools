@@ -81,7 +81,7 @@ public:
 	 * @return true if position is at end.
 	 */
 	virtual bool eof() const = 0;
-	virtual unsigned int size() const = 0;
+	virtual unsigned int size() = 0;
 
 	///Closes the file stream, if it is a file stream else it does nothing.
 	virtual void close() {};

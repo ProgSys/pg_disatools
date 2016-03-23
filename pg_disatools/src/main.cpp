@@ -244,6 +244,15 @@ bool uncompressIMY(const std::string& imyfile){
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
+	PG::UTIL::Array<int, 5> arr = {1,2,3,4,5};
+	OUTSTR(arr);
+	arr.moveRight(10);
+	OUTSTR(arr);
+
+	OUTSTR("END");
+
+	return 0;
+
 	//PG::FILE::decompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first.IMY","C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first_un.IMY.bin");
 	PG::FILE::decompressIMYPackage("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/START.DAT","C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/START_UN.DAT");
 

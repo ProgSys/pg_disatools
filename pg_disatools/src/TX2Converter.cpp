@@ -69,7 +69,7 @@ inline bool changeFileExtrention(std::string& str, PG::FILE::fileFormat format){
 	return 0;
 }
 
-void printInfo(){
+void printUsage(){
 	STROUT("\nAllows you to convert Disgaea PC *.TX2 textures into *.TGA (BGRA8888) or *.PNM (P3/P6 RBG888 No alpha) and back!");
 	STROUT("Make a backup of your files before using this tool!");
 	STROUT("Version: 0.4 (early access pre alpha thingy dood) \n");
@@ -83,36 +83,44 @@ void printInfo(){
 	STROUT("  * "<< std::left << std::setw(43)<< "'-folder <path_to_folder> (-dir)':"<< "(Optional) Target output folder.");
 
 	STROUT("  * "<< std::left << std::setw(43)<< "'-output <file_name> (-out)':"<< "(Optional) Target output path and filename. Overwrites the -folder command.");
+	STROUT("  * "<< std::left << std::setw(43)<< "'-help (-p)':"<< "Prints the usage.");
+	STROUT("  * "<< std::left << std::setw(43)<< "'-license (-l)':"<< "Prints the license.");
 	STROUT("    On default the file will be save into the same folder as the input file, just with a different file extension. ");
 
 	STROUT("Examples: ");
 	STROUT("  *  '.\\TX2Converter.exe -tx2 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2'' ");
 	STROUT("  *  '.\\TX2Converter.exe -tx2to 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\BU3202.TX2' PNM -dir 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texturesout''");
 	STROUT("  *  '.\\TX2Converter.exe -img 'C:\\Users\\ProgSys\\Desktop\\Disgaea\\texture_analysis\\image.tga' DXT5'");
+}
 
-	STROUT("\n");
-
+void printLicence(){
 	STROUT("License: ");
-	STROUT("\n\nGNU General Public License (GPL): \n");
+		STROUT("\n\nGNU General Public License (GPL): \n");
 
-	STROUT(" The MIT License (MIT)\n\n"
-			" Copyright (c) 2016 ProgSys\n\n Permission is hereby granted, free of charge, to any person obtaining a copy\n"
-			" of this software and associated documentation files (the \"Software\"), to deal\n"
-			" in the Software without restriction, including without limitation the rights\n"
-			" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
-			" copies of the Software, and to permit persons to whom the Software is\n"
-			" furnished to do so, subject to the following conditions:\n\n"
+		STROUT(" The MIT License (MIT)\n\n"
+				" Copyright (c) 2016 ProgSys\n\n Permission is hereby granted, free of charge, to any person obtaining a copy\n"
+				" of this software and associated documentation files (the \"Software\"), to deal\n"
+				" in the Software without restriction, including without limitation the rights\n"
+				" to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n"
+				" copies of the Software, and to permit persons to whom the Software is\n"
+				" furnished to do so, subject to the following conditions:\n\n"
 
-			" The above copyright notice and this permission notice shall be included in all\n"
-			" copies or substantial portions of the Software.\n\n"
-			" THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
-			" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
-			" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
-			" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
-			" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
-			" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
-			" SOFTWARE."
-			);
+				" The above copyright notice and this permission notice shall be included in all\n"
+				" copies or substantial portions of the Software.\n\n"
+				" THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n"
+				" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n"
+				" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n"
+				" AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n"
+				" LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n"
+				" OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\n"
+				" SOFTWARE."
+				);
+}
+
+void printInfo(){
+	printUsage();
+	STROUT("\n");
+	printLicence();
 }
 
 int main(int argc, char* argv[]){
@@ -155,7 +163,7 @@ int main(int argc, char* argv[]){
 
 			compress = false;
 			i += 1;
-		}else if(std::strcmp(argv[i],"-img") == 0  && (i+2)<argc){
+		}else if( (std::strcmp(argv[i],"-img") == 0 || std::strcmp(argv[i],"-tga") == 0 || std::strcmp(argv[i],"-pnm") == 0 )  && (i+2)<argc){
 			targetfile = std::string(argv[i+1]);
 
 			std::string f(argv[i+2]);
@@ -193,6 +201,15 @@ int main(int argc, char* argv[]){
 		}else if( (std::strcmp(argv[i],"-out") == 0 || std::strcmp(argv[i],"-output") == 0) && (i+1)<argc){
 			out = std::string(argv[i+1]);
 			i += 1;
+		}else if( (std::strcmp(argv[i],"-help") == 0 || std::strcmp(argv[i],"-h" ) == 0 || std::strcmp(argv[i],"help" ) == 0)){
+			printUsage();
+			return 0;
+		}else if( (std::strcmp(argv[i],"-license") == 0 || std::strcmp(argv[i],"-l") == 0)){
+			printLicence();
+			return 0;
+		}else{
+			STRERR("Unknown command '"<<argv[i]<<"'!");
+			return 1;
 		}
 	}
 

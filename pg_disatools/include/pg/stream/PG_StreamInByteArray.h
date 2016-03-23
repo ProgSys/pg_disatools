@@ -70,7 +70,7 @@ public:
 
 	bool eof() const final;
 
-	unsigned int size() const final;
+	unsigned int size() final;
 
 	virtual ~InByteArray();
 private:

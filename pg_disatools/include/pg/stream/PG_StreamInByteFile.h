@@ -119,7 +119,7 @@ public:
 	/*!
 	 * Get the number of bytes.
 	 */
-	 unsigned int size() const final;
+	 unsigned int size() final;
 
 	 void read(char* data, unsigned int size) final;
 	/*!

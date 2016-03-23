@@ -40,7 +40,7 @@ public:
 	///Set the position to zero
 	virtual void rewind()  = 0;
 
-	virtual unsigned int size() const = 0;
+	virtual unsigned int size() = 0;
 
 	///Closes the file stream, if it is a file stream else it does nothing.
 	virtual void close() {};

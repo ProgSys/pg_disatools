@@ -70,7 +70,7 @@ public:
 	void goEnd();
 
 	bool eof() const final;
-	unsigned int size() const final;
+	unsigned int size() final;
 
 
 	/*!

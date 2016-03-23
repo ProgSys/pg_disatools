@@ -89,6 +89,24 @@ struct Array {
 		return arraySize;
 	}
 
+	void moveRight(unsigned int steps = 1){
+		unsigned int i = arraySize-1;
+		for( ; i >= steps; --i)
+			array[i] = array[i-steps];
+
+		for( ; i > 0; --i)
+			array[i] = 0;
+		array[0] = 0;
+	}
+
+	void moveLeft(unsigned int steps = 1){
+		unsigned int i = 0;
+		for( ; i < (arraySize - steps); ++i)
+			array[i] = array[i+steps];
+
+		for( ; i < arraySize; ++i)
+			array[i] = 0;
+	}
 
 	virtual T* begin(){
 		return &array[0];

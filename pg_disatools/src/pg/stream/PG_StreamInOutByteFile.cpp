@@ -142,7 +142,7 @@ bool InOutByteFile::eof() const{
 	return m_file.eof();
 }
 
-unsigned int InOutByteFile::size() const{
+unsigned int InOutByteFile::size(){
 	return m_size;
 }
 

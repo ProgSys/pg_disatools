@@ -135,7 +135,7 @@ bool InByteArray::eof() const{
 	return  m_pos >= m_length;
 }
 
-unsigned int InByteArray::size() const{
+unsigned int InByteArray::size(){
 	return m_length;
 }
 

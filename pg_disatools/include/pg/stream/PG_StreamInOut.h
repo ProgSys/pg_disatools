@@ -46,7 +46,7 @@ public:
 	 * @return true if position is at end.
 	 */
 	virtual bool eof() const = 0;
-	virtual unsigned int size() const = 0;
+	virtual unsigned int size() = 0;
 
 	virtual ~InOut();
 };

@@ -157,7 +157,7 @@ void InByteFile::read(char* data, unsigned int size){
 	m_inFile.read( data, size );
 }
 
-unsigned int InByteFile::size() const{
+unsigned int InByteFile::size(){
 	return m_size;
 }
 
