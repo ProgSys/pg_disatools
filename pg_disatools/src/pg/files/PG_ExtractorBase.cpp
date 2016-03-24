@@ -25,8 +25,8 @@
 #include <pg/files/PG_ExtractorBase.h>
 #include <pg/util/PG_Base.h>
 
-#include <pg/util/PG_ByteInFileStream.h>
-#include <pg/util/PG_BinaryFileWriter.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_Exception.h>
 
 
@@ -143,7 +143,7 @@ bool ExtractorBase::extract(const PG::UTIL::File& file, const PG::UTIL::File& ta
 				return true;
 			}
 
-			PG::UTIL::ByteInFileStream reader(info.externalFile);
+			PG::STREAM::InByteFile reader(info.externalFile);
 
 			const unsigned file_size = reader.size();
 
@@ -161,7 +161,7 @@ bool ExtractorBase::extract(const PG::UTIL::File& file, const PG::UTIL::File& ta
 			reader.read(c, info.getSize());
 			reader.close();
 
-			PG::UTIL::BinaryFileWriter writer(targetFile);
+			PG::STREAM::OutByteFile writer(targetFile);
 			writer.write(c,info.getSize() );
 			writer.close();
 
@@ -170,14 +170,14 @@ bool ExtractorBase::extract(const PG::UTIL::File& file, const PG::UTIL::File& ta
 
 
 		}else{
-			PG::UTIL::ByteInFileStream reader(getOpendFile());
+			PG::STREAM::InByteFile reader(getOpendFile());
 
 			c = new char[info.getSize()];
 			reader.seek(info.getOffset());
 			reader.read(c,info.getSize() );
 			reader.close();
 
-			PG::UTIL::BinaryFileWriter writer(targetFile);
+			PG::STREAM::OutByteFile writer(targetFile);
 			writer.write(c,info.getSize() );
 			writer.close();
 
@@ -214,14 +214,14 @@ unsigned int ExtractorBase::extract(const PG::UTIL::File& file, char* (&data) ) 
 	data = nullptr;
 	try{
 		if(info.isExternalFile()){
-			PG::UTIL::ByteInFileStream reader(info.externalFile);
+			PG::STREAM::InByteFile reader(info.externalFile);
 			const unsigned int filesize = reader.size();
 			data = new char[filesize];
 			reader.read(data,filesize);
 			reader.close();
 			return filesize;
 		}else{
-			PG::UTIL::ByteInFileStream reader(getOpendFile());
+			PG::STREAM::InByteFile reader(getOpendFile());
 
 			data = new char[info.getSize()];
 			reader.seek(info.getOffset());

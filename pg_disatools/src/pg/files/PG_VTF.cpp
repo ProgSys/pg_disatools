@@ -24,14 +24,14 @@
 #include <pg/files/PG_VTF.h>
 #include <pg/files/PG_S3Compression.h>
 #include <pg/util/PG_Exception.h>
-#include <pg/util/PG_ByteInFileStream.h>
-#include <pg/util/PG_ByteInStream.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamOutByteFile.h>
 
 namespace PG {
 namespace FILE {
 
 
-bool decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut ){
+bool decompressVTF(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut ){
 	if(instream == nullptr || instream->size() < 16) return true;
 
 	if(instream->readString(3) != "VTF"){
@@ -90,8 +90,8 @@ bool decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut )
 
 bool decompressVTF(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut ){
 	try {
-		PG::UTIL::ByteInFileStream reader(file);
-		const bool s = decompressVTF((PG::UTIL::InStream*) &reader, imageOut);
+		PG::STREAM::InByteFile reader(file);
+		const bool s = decompressVTF((PG::STREAM::In*) &reader, imageOut);
 		return s;
 	} catch (PG::UTIL::Exception& e) {
 		PG_ERROR_STREAM(e.what());

@@ -23,15 +23,15 @@
  */
 #include <pg/files/PG_ImageFiles.h>
 #include <sstream>
-#include <pg/util/PG_BinaryFileWriter.h>
-#include <pg/util/PG_ByteInFileStream.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamOutByteFile.h>
 
 namespace PG {
 namespace FILE {
 
 bool saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 	try{
-		PG::UTIL::BinaryFileWriter writer(filepath);
+		PG::STREAM::OutByteFile writer(filepath);
 		writer.writeInt(131072);
 		writer.writeInt(0);
 		writer.writeInt(0);
@@ -66,7 +66,7 @@ bool saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 }
 
 bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
-	PG::UTIL::ByteInFileStream reader(filepath);
+	PG::STREAM::InByteFile reader(filepath);
 
 	if(reader.readUnsignedInt() != 131072){
 		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
@@ -101,7 +101,7 @@ bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 
 bool saveNetPNM(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 	//return savePPM(outfilename);
-	PG::UTIL::BinaryFileWriter writer(filepath);
+	PG::STREAM::OutByteFile writer(filepath);
 	std::stringstream o;
 	o<<"P6\n"<<image.getWidth()<<"\n"<<image.getHeight()<<"\n255\n";
 	writer.writeString(o.str());
@@ -115,7 +115,7 @@ bool saveNetPNM(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 }
 
 bool loadNetPNM(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
-	PG::UTIL::ByteInFileStream reader(filepath);
+	PG::STREAM::InByteFile reader(filepath);
 
 	char type = 0;
 	{

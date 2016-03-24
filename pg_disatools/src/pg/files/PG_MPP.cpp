@@ -25,8 +25,8 @@
 #include <pg/files/PG_MPP.h>
 
 #include <vector>
-#include <pg/util/PG_ByteInFileStream.h>
-#include <pg/util/PG_BinaryFileWriter.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
 
@@ -53,7 +53,7 @@ bool MPP::open(const PG::UTIL::File& file){
 	 }
 
 	 try{
-		 PG::UTIL::ByteInFileStream reader(m_file);
+		 PG::STREAM::InByteFile reader(m_file);
 		 if(!reader.isopen()) return true;
 
 		 const unsigned short number_of_offsets_set1 = reader.readUnsignedShort();
@@ -286,7 +286,7 @@ bool MPP::save(){
 }
 
 inline void saveLoop(const std::vector<fileInfo>& original, std::vector<fileInfo> target,
-		PG::UTIL::ByteInFileStream& reader_mpp, PG::UTIL::BinaryFileWriter& writer,
+		PG::STREAM::InByteFile& reader_mpp, PG::STREAM::OutByteFile& writer,
 		char* (&c), unsigned int& header_start_offset, unsigned int& start_offset){
 
 	for(const fileInfo& info: original){
@@ -299,7 +299,7 @@ inline void saveLoop(const std::vector<fileInfo>& original, std::vector<fileInfo
 
 		if(current_info.isExternalFile()){
 			PG_INFO_STREAM("Adding external file '"<<current_info.externalFile<<"'.")
-			PG::UTIL::ByteInFileStream reader_file(current_info.externalFile);
+			PG::STREAM::InByteFile reader_file(current_info.externalFile);
 			if(!reader_file.isopen())
 				throw_Exception("Couldn't open external file!");
 
@@ -376,7 +376,7 @@ bool MPP::save(const PG::UTIL::File& targetfile){
 
 	char* c = nullptr;
 	try{
-		PG::UTIL::BinaryFileWriter writer(target);
+		PG::STREAM::OutByteFile writer(target);
 		if(size() == 0) return false;
 		//setup header
 		writer.writeShort(m_fileTextureInfos.size()); // number of textures
@@ -403,7 +403,7 @@ bool MPP::save(const PG::UTIL::File& targetfile){
 		//unsigned int end_offset = 0;
 
 
-		PG::UTIL::ByteInFileStream reader_mpp(m_file);
+		PG::STREAM::InByteFile reader_mpp(m_file);
 		if(!reader_mpp.isopen()) return true;
 
 

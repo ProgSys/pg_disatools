@@ -26,14 +26,14 @@
 #include <pg/util/PG_Exception.h>
 
 
-#include <pg/util/PG_InStream.h>
-#include <pg/util/PG_ByteInFileStream.h>
-#include <pg/util/PG_ByteInStream.h>
+#include <pg/stream/PG_StreamIn.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamInByteArray.h>
 
 namespace PG {
 namespace FILE {
 
-bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  ){
+bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 	if(instream == nullptr){
 		PG_ERROR_STREAM("InStream is nullptr!");
 		return true;
@@ -220,8 +220,8 @@ bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut  
 
 bool decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut ){
 	try {
-		PG::UTIL::ByteInFileStream reader(file);
-		const bool s = decompressTX2((PG::UTIL::InStream*) &reader, imageOut);
+		PG::STREAM::InByteFile reader(file);
+		const bool s = decompressTX2((PG::STREAM::In*) &reader, imageOut);
 		return s;
 	} catch (PG::UTIL::Exception& e) {
 		PG_ERROR_STREAM(e.what());
@@ -241,14 +241,14 @@ bool decompressTX2(const std::string& file, PG::UTIL::RGBAImage& imageOut ){
 }
 
 bool decompressTX2(const std::vector<char>& bytesIn, PG::UTIL::RGBAImage& imageOut ){
-	PG::UTIL::ByteInStream reader(&bytesIn[0], bytesIn.size());
-	const bool s = decompressTX2((PG::UTIL::InStream*) &reader, imageOut);
+	PG::STREAM::InByteArray reader(&bytesIn[0], bytesIn.size());
+	const bool s = decompressTX2((PG::STREAM::In*) &reader, imageOut);
 	return s;
 }
 
 bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAImage& imageOut ){
-	PG::UTIL::ByteInStream reader(bytesIn, lenghtIn);
-	const bool s = decompressTX2((PG::UTIL::InStream*) &reader, imageOut);
+	PG::STREAM::InByteArray reader(bytesIn, lenghtIn);
+	const bool s = decompressTX2((PG::STREAM::In*) &reader, imageOut);
 	return s;
 }
 

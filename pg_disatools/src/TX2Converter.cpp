@@ -29,7 +29,6 @@
 
 
 #include <pg/files/PG_Convert.h>
-#include <pg/util/PG_ByteInFileStream.h>
 #include <pg/util/PG_Exception.h>
 #include <pg/files/PG_TX2.h>
 

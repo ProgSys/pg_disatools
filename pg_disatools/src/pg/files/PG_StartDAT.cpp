@@ -24,8 +24,8 @@
 #include <pg/files/PG_StartDAT.h>
 
 #include <algorithm>
-#include <pg/util/PG_ByteInFileStream.h>
-#include <pg/util/PG_BinaryFileWriter.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
 #include <pg/files/PG_TX2.h>
@@ -33,12 +33,12 @@
 namespace PG {
 namespace FILE {
 
-inline void skipSCVColumn(PG::UTIL::ByteInFileStream& reader){
+inline void skipSCVColumn(PG::STREAM::InByteFile& reader){
 	char c;
 	while( !reader.eof() && (c = reader.readChar()) != ',' && c != '\n'  ){}
 }
 
-inline std::string readSCVColumn(PG::UTIL::ByteInFileStream& reader){
+inline std::string readSCVColumn(PG::STREAM::InByteFile& reader){
 	std::string str;
 	char c;
 	while( !reader.eof() && (c = reader.readChar()) != ','  && c != '\n' ){
@@ -48,7 +48,7 @@ inline std::string readSCVColumn(PG::UTIL::ByteInFileStream& reader){
 	return str;
 }
 
-inline void skipSCVLine(PG::UTIL::ByteInFileStream& reader){
+inline void skipSCVLine(PG::STREAM::InByteFile& reader){
 	char c;
 	while( !reader.eof() && (c = reader.readChar()) != '\n' ){}
 }
@@ -67,7 +67,7 @@ void StartDAT::readFileNames(){
 	std::string filename = m_file.getFile();
 	std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper );
 
-	PG::UTIL::ByteInFileStream reader("resources/"+filename+".csv");
+	PG::STREAM::InByteFile reader("resources/"+filename+".csv");
 	if(reader.isopen()){
 		skipSCVLine(reader);
 
@@ -159,7 +159,7 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 	char* c = nullptr;
 
 	try{
-		PG::UTIL::BinaryFileWriter writer(target);
+		PG::STREAM::OutByteFile writer(target);
 
 		writer.writeInt(0); //reserve space for number of files
 		//writer.writeInt(131072);
@@ -173,7 +173,7 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 
 		unsigned int header_offset = sizeof(int);
 
-		PG::UTIL::ByteInFileStream reader_dat(m_file);
+		PG::STREAM::InByteFile reader_dat(m_file);
 		auto it = m_fileInfos.begin();
 		for(unsigned int i = 0; i < m_fileInfos.size(); ++i){
 			const fileInfo& info = (*it);
@@ -183,7 +183,7 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 			info_new.size = info.size;
 
 			if(info.isExternalFile()){
-				PG::UTIL::ByteInFileStream reader_file(info.externalFile);
+				PG::STREAM::InByteFile reader_file(info.externalFile);
 				if(!reader_file.isopen()){
 					PG_ERROR_STREAM("Couldn't read external file '"<<info.externalFile<<"'! Skipping it!");
 					continue;
@@ -262,11 +262,11 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 	return false;
 }
 
-inline bool isIMY(PG::UTIL::ByteInFileStream& reader){
+inline bool isIMY(PG::STREAM::InByteFile& reader){
 	return reader.readString(3) == "IMY";
 }
 
-inline bool isTX2(PG::UTIL::ByteInFileStream& reader){
+inline bool isTX2(PG::STREAM::InByteFile& reader){
 	const unsigned short width = reader.readUnsignedShort();
 	const unsigned short height = reader.readUnsignedShort();
 
@@ -345,7 +345,7 @@ bool StartDAT::open(const PG::UTIL::File& file){
 	readFileNames();
 
 	try{
-		PG::UTIL::ByteInFileStream reader(m_file);
+		PG::STREAM::InByteFile reader(m_file);
 		if(!reader.isopen()) return true;
 
 		const unsigned int file_size = reader.size();

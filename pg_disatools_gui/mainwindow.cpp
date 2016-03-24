@@ -28,6 +28,7 @@
 #include <QFuture>
 #include <QtConcurrent/QtConcurrentRun>
 #include <QGraphicsPixmapItem>
+#include <QModelIndex>
 
 #include <iostream>
 
@@ -58,6 +59,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->treeView->header()->resizeSection(2,60);
     ui->treeView->setSelectionMode(QAbstractItemView::SelectionMode::ExtendedSelection);
 
+    //ui->treeView->addAction(new QAction("Replace",  ui->treeView));
+
+    ui->treeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->treeView, SIGNAL(customContextMenuRequested(const QPoint &)),
+    		this, SLOT(treeContextMenu(const QPoint &)));
 
     selectionModel = ui->treeView->selectionModel();
 
@@ -243,6 +249,32 @@ void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSe
             ui->btnExtractImage->setEnabled(false);
 		}
 
+}
+
+void MainWindow::treeContextMenu(const QPoint &pos){
+	qDebug() << "treeContextMenu "<< pos.x()<<" "<<pos.y();
+
+	QPoint globalpos = ui->treeView->mapToGlobal(pos);
+
+
+
+	QModelIndex pointedItem = ui->treeView->indexAt(pos);
+	QModelIndex pointedItemR = m_treeSort->mapToSource(pointedItem);
+	const PG::FILE::fileInfo *itemp = static_cast<const PG::FILE::fileInfo*>(pointedItemR.internalPointer());
+
+	if(pointedItemR.isValid()){
+		QMap<int, QVariant> item = m_treeSort->itemData(pointedItem);
+        QString itemName = item[0].toString();
+		qDebug() << "Item "<<" "<<itemName<<" itemp: "<<QString::fromStdString(itemp->name.getPath());
+
+		QMenu menu(this);
+		QAction* action_replace = menu.addAction("Replace");
+		QAction* selectedAction = menu.exec(ui->treeView->viewport()->mapToGlobal(pos));
+
+		if(action_replace == selectedAction)
+			qDebug() << "Replace "<<" "<<itemName;
+
+	}
 }
 
 void MainWindow::saveSelectedImage(){

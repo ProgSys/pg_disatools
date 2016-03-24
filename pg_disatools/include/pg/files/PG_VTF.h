@@ -30,7 +30,7 @@
 #include <pg/util/PG_Image.h>
 #include <pg/util/PG_File.h>
 
-#include <pg/util/PG_InStream.h>
+#include <pg/stream/PG_StreamIn.h>
 #include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
@@ -41,7 +41,7 @@ namespace FILE {
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool decompressVTF(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut );
+bool decompressVTF(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a Valve Texture Format image file.

@@ -30,7 +30,7 @@
 #include <pg/util/PG_Image.h>
 #include <pg/util/PG_File.h>
 
-#include <pg/util/PG_InStream.h>
+#include <pg/Stream/PG_StreamIn.h>
 #include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
@@ -45,7 +45,7 @@ enum tx2Type: unsigned short {
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool decompressTX2(PG::UTIL::InStream* instream, PG::UTIL::RGBAImage& imageOut );
+bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image file.

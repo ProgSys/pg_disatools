@@ -24,8 +24,8 @@
 
 #include <pg/files/PG_PSPFS.h>
 #include <pg/util/PG_Base.h>
-#include <pg/util/PG_ByteInFileStream.h>
-#include <pg/util/PG_BinaryFileWriter.h>
+#include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
 #include <pg/files/PG_TX2.h>
@@ -73,7 +73,7 @@ bool filePSPFSInfo::operator< (const filePSPFSInfo& str) const{
 
 
 bool isPSPFS(const std::string& filepath){
-	PG::UTIL::ByteInFileStream reader(filepath);
+	PG::STREAM::InByteFile reader(filepath);
 	if(!reader.isopen()) return false;
 
 	if(reader.readString(8) == "PSPFS_V1"){
@@ -107,7 +107,7 @@ bool PSPFS::open(const PG::UTIL::File& file){
 	 }
 
 	 try{
-		 PG::UTIL::ByteInFileStream reader(m_file);
+		 PG::STREAM::InByteFile reader(m_file);
 		 if(!reader.isopen()) return true;
 
 		 //Check magic number
@@ -275,7 +275,7 @@ inline void swap(std::vector<filePSPFSInfo>& file_infos, unsigned int index1, un
 	file_infos[index2] = swap;
 }
 
-inline void writeDUMMY(PG::UTIL::BinaryFileWriter& writer,unsigned int& next_header_offset, unsigned int& next_file_offset, unsigned int& dummy_traget_offset){
+inline void writeDUMMY(PG::STREAM::OutByteFile& writer,unsigned int& next_header_offset, unsigned int& next_file_offset, unsigned int& dummy_traget_offset){
 	if(dummy_traget_offset == 0){
 		dummy_traget_offset = next_file_offset;
 
@@ -325,7 +325,7 @@ bool PSPFS::save(const PG::UTIL::File& targetfile){
 	file_infos.reserve(m_filePSPFSInfos.size());
 	char* c = nullptr;
 	try{
-		PG::UTIL::BinaryFileWriter writer(target);
+		PG::STREAM::OutByteFile writer(target);
 		//setup header
 		writer.writeString("PSPFS_V1"); //write magic number
 
@@ -346,7 +346,7 @@ bool PSPFS::save(const PG::UTIL::File& targetfile){
 
 		unsigned int dummy_traget_offset = 0;
 
-		PG::UTIL::ByteInFileStream reader_dat(m_file);
+		PG::STREAM::InByteFile reader_dat(m_file);
 		if(!reader_dat.isopen()) return true;
 
 		for(const filePSPFSInfo& info: m_filePSPFSInfos){
@@ -359,7 +359,7 @@ bool PSPFS::save(const PG::UTIL::File& targetfile){
 					writeDUMMY(writer,next_header_offset,next_file_offset, dummy_traget_offset );
 				}else{
 					PG_INFO_STREAM("Adding external file '"<<current_info.getExternalFile()<<"'.");
-					PG::UTIL::ByteInFileStream reader_file(current_info.getExternalFile());
+					PG::STREAM::InByteFile reader_file(current_info.getExternalFile());
 					const unsigned int file_size = reader_file.size();
 
 

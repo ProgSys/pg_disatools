@@ -31,7 +31,7 @@
 #include <pg/files/PG_TX2.h>
 #include <pg/files/PG_VTF.h>
 #include <pg/files/PG_ImageFiles.h>
-#include <pg/util/PG_BinaryFileWriter.h>
+#include <pg/stream/PG_StreamOutByteFile.h>
 
 namespace PG {
 namespace FILE {
@@ -128,7 +128,7 @@ bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG
 		return true;
 	}
 
-	PG::UTIL::BinaryFileWriter writer(fileOut);
+	PG::STREAM::OutByteFile writer(fileOut);
 	writer.write((char*)&bytes[0], bytes.size());
 
 	return false;

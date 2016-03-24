@@ -33,26 +33,34 @@ namespace PG {
 namespace FILE {
 
 /*!
+ * @brief Uncompress a single IMY file.
+ * <br>
+ * Krisan Thyme provided the original source code!
+ * <b>Thank you!</b>
  * @return true on error
  */
 bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream );
 
 /*!
+ * @brief Uncompress a single IMY file.
  * @return true on error
  */
 bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut );
 
 /*!
+ * @brief Uncompress a single IMY file.
  * @return true on error
  */
 bool decompressIMY(const std::string& fileIn, const std::string& fileOut );
 
 /*!
+ * @brief Uncompress a IMY package. One big file is usually compressed into several IMY and saved as a package.
  * @return true on error
  */
 bool decompressIMYPackage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut );
 
 /*!
+ * @brief Uncompress a IMY package. One big file is usually compressed into several IMY and saved as a package.
  * @return true on error
  */
 bool decompressIMYPackage(const std::string& fileIn, const std::string& fileOut );

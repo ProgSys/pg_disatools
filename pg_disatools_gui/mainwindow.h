@@ -40,61 +40,27 @@ public:
 
 private slots:
     void on_btnDelete_clicked();
-
-private slots:
     void on_treeView_activated(const QModelIndex &index);
-
-private slots:
     void on_btnSave_clicked();
-
-private slots:
     void on_btnInsert_clicked();
-
-private slots:
     void on_btnExtract_clicked();
-
-private slots:
     void on_treeView_clicked(const QModelIndex &index);
-
-private slots:
     void on_checkBox_TX2_clicked(bool checked);
-
-private slots:
     void on_checkBox_PHD_clicked(bool checked);
-
-private slots:
     void on_checkBox_PNG_clicked(bool checked);
-
-private slots:
     void on_checkBox_PBD_clicked(bool checked);
-
-private slots:
     void on_checkBox_OGG_clicked(bool checked);
-
-private slots:
     void on_checkBox_FFM_clicked(bool checked);
-
-private slots:
     void on_checkBox_FAD_clicked(bool checked);
-
-private slots:
     void on_checkBox_DAT_clicked(bool checked);
-
-private slots:
     void on_checkBox_MPD_clicked(bool checked);
-
-private slots:
     void on_checkBox_ARC_clicked(bool checked);
-
-private slots:
     void on_checkBox_MMP_clicked(bool checked);
-
-private slots:
     void on_btnAbout_clicked();
-
     void on_btnOpen_clicked();
-public slots:
+
     void treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel);
+    void treeContextMenu(const QPoint &pos);
 
 signals:
     bool openFile(const QString& filepath);
