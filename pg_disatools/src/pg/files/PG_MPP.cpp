@@ -42,7 +42,7 @@ MPP::MPP(const PG::UTIL::File& file){
 	open(file);
 }
 
-bool MPP::open(const PG::UTIL::File& file){
+bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 	clear();
 	m_file = file;
 
@@ -79,8 +79,13 @@ bool MPP::open(const PG::UTIL::File& file){
 		 std::vector<unsigned int> file_offsets((m_hasNormals)? number_of_offsets_set1*2+number_of_offsets_set2: number_of_offsets_set1+number_of_offsets_set2);
 		 reader.read((char*) &file_offsets[0],file_offsets.size()*sizeof(unsigned int) );
 
+		 unsigned int total_file_number;
+		 if(m_hasNormals)
+			 total_file_number = number_of_offsets_set1*2+number_of_offsets_set2;
+		 else
+			 total_file_number = number_of_offsets_set1+number_of_offsets_set2;
+		 m_fileInfos.reserve(total_file_number);
 
-		 m_fileTextureInfos.reserve(number_of_offsets_set1);
 		 for(unsigned int i = 0; i < number_of_offsets_set1; i++){
 			 const unsigned file_start_offset = file_offsets[i];
 			 const unsigned file_end_offset = (i+1 >= file_offsets.size())? file_size : file_offsets[i+1];
@@ -98,13 +103,14 @@ bool MPP::open(const PG::UTIL::File& file){
 			 std::stringstream o;
 				 o << "TEXTURE"<<i<<".TX2";
 			 info.setName(o.str());
-			 m_fileTextureInfos.push_back(info);
+			 m_fileInfos.push_back(info);
+			 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 		 }
+		 m_texturesEnd = m_fileInfos.end();
 
 		 if(m_hasNormals){
-			 m_fileNormalsInfos.reserve(number_of_offsets_set1);
 			 for(unsigned int i = 0; i < number_of_offsets_set1; i++){
-				 const unsigned int index = i + m_fileTextureInfos.size();
+				 const unsigned int index = i + number_of_offsets_set1;
 				 const unsigned file_start_offset = file_offsets[index];
 				 const unsigned file_end_offset = (index+1 >= file_offsets.size())? file_size : file_offsets[index+1];
 
@@ -120,13 +126,18 @@ bool MPP::open(const PG::UTIL::File& file){
 				 std::stringstream o;
 					 o << "NORMAL"<<i<<".TX2";
 				 info.setName(o.str());
-				 m_fileNormalsInfos.push_back(info);
+				 m_fileInfos.push_back(info);
+				 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 			 }
-		 }
 
-		 m_fileGeometryInfos.reserve(number_of_offsets_set2);
+		 }
+		 m_normalsEnd = m_fileInfos.end();
+
+		 const unsigned int texturesSize = m_fileInfos.size();
 		 for(unsigned int i = 0; i < number_of_offsets_set2; i++){
-			 const unsigned int index = i + m_fileTextureInfos.size() + m_fileNormalsInfos.size();
+
+			 const unsigned int index = i + texturesSize;
+
 			 const unsigned file_start_offset = file_offsets[index];
 			 const unsigned file_end_offset = (index+1 >= file_offsets.size())? file_size : file_offsets[index+1];
 
@@ -142,10 +153,11 @@ bool MPP::open(const PG::UTIL::File& file){
 			 std::stringstream o;
 				 o << "GEOMETRY"<<i<<".GEO";
 			 info.setName(o.str());
-			 m_fileGeometryInfos.push_back(info);
+			 m_fileInfos.push_back(info);
+			 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 		 }
 
-		 if(m_fileTextureInfos.empty() && m_fileGeometryInfos.empty()){
+		 if(m_fileInfos.empty()){
 			 PG_ERROR_STREAM("No files found inside!");
 			 clear();
 			 return true;
@@ -161,185 +173,129 @@ bool MPP::open(const PG::UTIL::File& file){
 		 return true;
 	 }
 	 PG_INFO_STREAM("Opening done");
-
 	return false;
 }
 
-bool MPP::insert(const PG::UTIL::File& file){
+bool MPP::replace(fileInfo& target,const PG::UTIL::File& file, bool keepName){
 	if(!file.exists()){
-		PG_INFO_STREAM("File doesn't exist. '"<<file<<"'!");
-		return true;
+		m_lastError = "Replacement file not found!";
+		PG_ERROR_STREAM(m_lastError)
+		return FAILURE;
 	}
 
-	PG::UTIL::File ufile = file.toUpper();
-	const std::string fileExt = ufile.getFileExtension();
-	const std::string fileName = ufile.getFile();
-	if(fileExt == "TX2"){
-		if(fileName.size() > 5 && fileName.substr(0,6) == "NORMAL"){
-			auto it = std::find_if(m_fileNormalsInfos.begin(), m_fileNormalsInfos.end(), [fileName](const fileInfo& info){
-				return info.getName() == fileName;
-			});
+	PG::UTIL::File fileName = PG::UTIL::File(file.getFile()).toUpper();
+	const std::string fileExt = fileName.getFileExtension();
 
-			if(it != m_fileNormalsInfos.end()){
-				(*it).externalFile = file;
-				(*it).size = file.size();
-				m_changed = true;
-				return false;
-			}else{
-				stringstream o;
-				o<<"NORMAL"<<m_fileTextureInfos.size()<<".TX2";
-				fileInfo info(o.str(), file.size(), 0);
-				info.externalFile = file;
-				m_fileNormalsInfos.push_back(info);
-				m_changed = true;
-				return false;
-			}
-		}
+	if(fileExt != "TX2" && fileExt != "GEO"){
+		m_lastError = "You can only insert TX2 or GEO files into a MPP!";
+		PG_ERROR_STREAM(m_lastError);
+		return FAILURE;
+	}
+	if(fileExt == "TX2")
+		target.texture = true;
+	else
+		target.texture = false;
 
-		auto it = std::find_if(m_fileTextureInfos.begin(), m_fileTextureInfos.end(), [fileName](const fileInfo& info){
-			return info.getName() == fileName;
-		});
+	target.size = file.size();
+	target.externalFile = file;
+	m_changed = true;
+	return SUCCESS;
+}
 
-		if(it != m_fileTextureInfos.end()){
-			(*it).externalFile = file;
-			(*it).size = file.size();
-			m_changed = true;
-			return false;
-		}else{
-			stringstream o;
-			o<<"TEXTURE"<<m_fileTextureInfos.size()<<".TX2";
-			fileInfo info(o.str(), file.size(), 0);
-			info.externalFile = file;
-			m_fileTextureInfos.push_back(info);
-			m_changed = true;
-			return false;
-		}
+bool MPP::insert(const PG::UTIL::File& file){
+	if(m_file.isEmpty()){
+		PG_ERROR_STREAM("No file opened.");
+		return FAILURE;
+	}
 
+	if(!file.exists()){
+		PG_ERROR_STREAM("File doesn't exist!");
+		return FAILURE;
+	}
 
-	}else if(fileExt == "GEO"){
-		auto it = std::find_if(m_fileGeometryInfos.begin(), m_fileGeometryInfos.end(), [fileName](const fileInfo& info){
-			return info.getName() == fileName;
-		});
+	PG::UTIL::File fileName = PG::UTIL::File(file.getFile()).toUpper();
+	const std::string fileExt = fileName.getFileExtension();
 
-		if(it != m_fileGeometryInfos.end()){
-			(*it).externalFile = file;
-			(*it).size = file.size();
-			m_changed = true;
-			return false;
-		}else{
-			stringstream o;
-			o<<"GEOMETRY"<<m_fileTextureInfos.size()<<".GEO";
-			fileInfo info(o.str(), file.size(), 0);
-			info.externalFile = file;
-			m_fileTextureInfos.push_back(info);
-			m_changed = true;
-			return false;
-		}
+	if(fileExt != "TX2" && fileExt != "GEO"){
+		m_lastError = "You can only insert TX2 or GEO files into a MPP!";
+		PG_ERROR_STREAM(m_lastError);
+		return FAILURE;
+	}
+
+	//file is already inside?
+	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [fileName](const fileInfo& info){
+		return info.getName() == fileName;
+	});
+
+	if(it != m_fileInfos.end()){
+		(*it).externalFile = file;
 	}else{
-		PG_INFO_STREAM("Only texture (*.TX2) or geometry (*.GEO) files can be added! '"<<file<<"'!");
-		return true;
-
-	}
-
-}
-
-bool MPP::remove(const PG::UTIL::File& file){
-	PG::UTIL::File ufile = file.toUpper();
-	const std::string fileExt = ufile.getFileExtension();
-	const std::string fileName = ufile.getFile();
-	if(fileExt == "TX2"){
-		auto it = std::find_if(m_fileTextureInfos.begin(), m_fileTextureInfos.end(), [fileName](const fileInfo& info){
-			return info.getName() == fileName;
-		});
-
-		if(it != m_fileTextureInfos.end()){
-			m_fileTextureInfos.erase(it);
-			m_changed = true;
-			return false;
-		}
-
-		it = std::find_if(m_fileNormalsInfos.begin(), m_fileNormalsInfos.end(), [fileName](const fileInfo& info){
-			return info.getName() == fileName;
-		});
-
-		if(it != m_fileNormalsInfos.end()){
-			m_fileNormalsInfos.erase(it);
-			m_changed = true;
-			return false;
-		}
-	}else if(fileExt == "GEO"){
-		auto it = std::find_if(m_fileGeometryInfos.begin(), m_fileGeometryInfos.end(), [fileName](const fileInfo& info){
-			return info.getName() == fileName;
-		});
-
-		if(it != m_fileGeometryInfos.end()){
-			m_fileGeometryInfos.erase(it);
-			m_changed = true;
-			return false;
-		}
-	}
-
-	return true;
-}
-bool MPP::save(){
-	return save(m_file);
-}
-
-inline void saveLoop(const std::vector<fileInfo>& original, std::vector<fileInfo> target,
-		PG::STREAM::InByteFile& reader_mpp, PG::STREAM::OutByteFile& writer,
-		char* (&c), unsigned int& header_start_offset, unsigned int& start_offset){
-
-	for(const fileInfo& info: original){
-		fileInfo current_info = info; //copy info
-		writer.setPosition(header_start_offset);
-		writer.writeInt(start_offset);
-		header_start_offset += 4;
-
-		writer.setPosition(start_offset);
-
-		if(current_info.isExternalFile()){
-			PG_INFO_STREAM("Adding external file '"<<current_info.externalFile<<"'.")
-			PG::STREAM::InByteFile reader_file(current_info.externalFile);
-			if(!reader_file.isopen())
-				throw_Exception("Couldn't open external file!");
-
-			const unsigned int file_size = reader_file.size();
-
-			// check if valid
-			if(file_size == 0)
-				PG_WARN_STREAM("File '"<<current_info.externalFile<<"' has a size of zero!");
-
-			if(info.getSize() != file_size){
-				PG_WARN_STREAM("File '"<<current_info.externalFile<<"' size is different than expected! ("<<current_info.getSize()<<" != "<<file_size<<")");
-				current_info.setSize(file_size);
+		std::string name = fileName.getName();
+		if(fileExt == "TX2"){
+			fileInfo info(fileName, file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
+			info.texture = true;
+			if(name.size() > 5 && name.substr(0,6) == "NORMAL"){
+				info.externalFile = file;
+				m_hasNormals = true;
+				m_fileInfos.insert(m_normalsEnd,info);
+				m_normalsEnd++;
+			}else if(name.size() > 6 && name.substr(0,7) == "TEXTURE"){
+				info.externalFile = file;
+				m_fileInfos.insert(m_texturesEnd,info);
+				m_texturesEnd++;
+				m_normalsEnd++;
+			}else{
+				m_lastError = "A TX2 file should start with 'NORMAL' or 'TEXTURE'!";
+				PG_ERROR_STREAM(m_lastError);
+				return FAILURE;
 			}
+		}else if(fileExt == "GEO"){
+			std::stringstream o;
+				 o << "GEOMETRY"<<std::distance(m_normalsEnd, m_fileInfos.end())<<".GEO";
 
-			c = new char[current_info.getSize()];
-			reader_file.read(c,current_info.getSize());
-			writer.write(c, current_info.getSize());
-			reader_file.close();
-			delete[] c;
-			c = nullptr;
+			fileInfo info(o.str(), file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
+			info.externalFile = file;
+			m_fileInfos.push_back(info);
+		}else
+			return FAILURE;
 
-			start_offset = writer.getPosition();
+	}
 
-			current_info.clearExternalFile();
-		}else{
-			reader_mpp.seek(current_info.getOffset());
-			c = new char[current_info.getSize()];
-			reader_mpp.read(c,current_info.getSize());
-			writer.write(c, current_info.getSize());
+	return SUCCESS;
 
-			delete[] c;
-			c = nullptr;
-
-			start_offset += current_info.getSize();
-		}
-		target.push_back(current_info);
-	} //for loop end
 }
 
-bool MPP::save(const PG::UTIL::File& targetfile){
+bool MPP::remove(fileInfo& target){
+	std::vector<fileInfo>::iterator  it(&target);
+	const unsigned int index = std::distance(m_fileInfos.begin(), it);
+	if(it < m_fileInfos.end()){
+		if(m_fileInfos.size() == 1){
+			m_fileInfos.clear();
+			m_hasNormals = false;
+			m_texturesEnd = m_fileInfos.end();
+			m_normalsEnd = m_fileInfos.end();
+			return SUCCESS;
+		}
+		if(it < m_texturesEnd){
+			m_texturesEnd--;
+			m_normalsEnd--;
+		}else if(it < m_normalsEnd)
+			m_normalsEnd--;
+
+		m_fileInfos.erase(it);
+
+		if(m_normalsEnd == m_texturesEnd)
+			m_hasNormals = false;
+
+		m_changed = true;
+	}else{
+		PG_ERROR_STREAM("File '"<<target.getName()<<" found!");
+		return FAILURE;
+	}
+	return SUCCESS;
+}
+
+bool MPP::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No MPP file opened.");
 		return true;
@@ -355,85 +311,117 @@ bool MPP::save(const PG::UTIL::File& targetfile){
 		target = targetfile;
 	}
 
-	std::sort(m_fileTextureInfos.begin(), m_fileTextureInfos.end(), [](const fileInfo& A, const fileInfo& B){
+	const unsigned short number_of_textures = std::distance(m_fileInfos.begin(),m_texturesEnd);
+	const unsigned short number_of_normals = std::distance(m_texturesEnd, m_normalsEnd);
+	const unsigned short number_of_geometry = std::distance(m_normalsEnd, m_fileInfos.end());
+
+	if(m_hasNormals && number_of_textures != number_of_normals){
+		m_lastError = "The number of textures and normals needs to be the same!";
+		PG_ERROR_STREAM(m_lastError);
+		return FAILURE;
+	}
+
+	/*
+	std::sort(m_fileInfos.begin(), m_texturesEnd, [](const fileInfo& A, const fileInfo& B){
 		return A.name < B.name;
 	});
 
-	std::sort(m_fileNormalsInfos.begin(), m_fileNormalsInfos.end(), [](const fileInfo& A, const fileInfo& B){
-		return A.name < B.name;
-	});
+	if(m_hasNormals)
+		std::sort(m_texturesEnd, m_normalsEnd, [](const fileInfo& A, const fileInfo& B){
+			return A.name < B.name;
+		});
 
-	std::sort(m_fileGeometryInfos.begin(), m_fileGeometryInfos.end(), [](const fileInfo& A, const fileInfo& B){
+	std::sort(m_normalsEnd, m_fileInfos.end(), [](const fileInfo& A, const fileInfo& B){
 		return A.name < B.name;
-	});
+	});*/
 
-	std::vector<fileInfo> fileTextureInfos;
-	fileTextureInfos.reserve(m_fileTextureInfos.size());
-	std::vector<fileInfo> fileNormalsInfos;
-	fileTextureInfos.reserve(m_fileNormalsInfos.size());
-	std::vector<fileInfo> fileGeometryInfos;
-	fileGeometryInfos.reserve(m_fileGeometryInfos.size());
+	std::vector<fileInfo> fileInfos;
+	fileInfos.reserve(m_fileInfos.size());
 
 	char* c = nullptr;
 	try{
 		PG::STREAM::OutByteFile writer(target);
 		if(size() == 0) return false;
 		//setup header
-		writer.writeShort(m_fileTextureInfos.size()); // number of textures
-		if(!m_fileNormalsInfos.empty() && m_fileTextureInfos.size() != m_fileNormalsInfos.size()){
-			PG_WARN_STREAM("The number of normal textures should be the same as the number of textures!!!");
-			writer.writeShort(m_fileNormalsInfos.size());
-		}else
-			writer.writeShort(!m_fileNormalsInfos.empty());
-
-		writer.writeShort(m_fileGeometryInfos.size()); // number of geometry files
+		writer.writeShort(number_of_textures); // number of textures
+		writer.writeShort(m_hasNormals);
+		writer.writeShort(number_of_geometry); // number of geometry files
 		writer.writeShort(0);
 
 		writer.writeInt(0); //totalfilesize
 
 		unsigned int header_start_offset = writer.getPosition();
-		//allocate space for the header
 
-		const unsigned int header_count = (size() == 1)? 1 : 5 + ((size()-1)/5) * 4;
-		for(unsigned int i = 0; i < header_count; ++i)
+		//allocate space for the header
+		for(unsigned int i = 0; i < m_fileInfos.size(); ++i)
 			writer.writeInt(0);
 
-		unsigned int start_offset = writer.getPosition();
-		PG_INFO_STREAM(" START: header_count: "<<header_count <<" start_offset: "<<start_offset);
-		//unsigned int end_offset = 0;
-
+		unsigned int fileEnd = writer.getPosition();
 
 		PG::STREAM::InByteFile reader_mpp(m_file);
 		if(!reader_mpp.isopen()) return true;
 
+		for(const fileInfo& info: m_fileInfos){
+			fileInfo new_info = info;
 
-		saveLoop(m_fileTextureInfos, fileTextureInfos, reader_mpp, writer, c, header_start_offset, start_offset);
-		if(!m_fileNormalsInfos.empty())
-			saveLoop(m_fileNormalsInfos, fileNormalsInfos, reader_mpp, writer, c, header_start_offset, start_offset);
-		saveLoop(m_fileGeometryInfos, fileGeometryInfos, reader_mpp, writer, c, header_start_offset, start_offset);
+			if(new_info.isExternalFile()){
+				PG::STREAM::InByteFile reader_file(new_info.externalFile);
+				const unsigned int file_size = reader_file.size();
+				if(new_info.size != file_size){
+					PG_WARN_STREAM("File '"<<new_info.externalFile<<"' size is different than expected! ("<<new_info.getSize()<<" != "<<file_size<<")");
+					new_info.setSize(file_size);
+				}
+				new_info.offset = writer.getPosition();
+				c = new char[info.size];
+				reader_file.close();
+				writer.write(c, info.size);
+				delete c;
+				c = nullptr;
+				new_info.clearExternalFile();
+			}else{
+
+				new_info.offset = writer.getPosition();
+				reader_mpp.seek(info.offset);
+				c = new char[info.size];
+				reader_mpp.read(c, info.size);
+				writer.write(c, info.size);
+				delete c;
+				c = nullptr;
+			}
+			fileEnd = writer.getPosition();
+
+			writer.seek(header_start_offset);
+			writer.writeInt(new_info.offset);
+			header_start_offset += sizeof(int);
+			writer.seek(fileEnd);
+
+			fileInfos.push_back(new_info);
+			if(percent) percent->percent = (fileInfos.size()/float(m_fileInfos.size()))*100;
+		}
+
 		reader_mpp.close();
 
 		writer.setPosition(8);
-		writer.writeInt(start_offset);
+		writer.writeInt(fileEnd);
 
 		writer.close();
 
 	}catch (PG::UTIL::Exception& e) {
 		 PG_ERROR_STREAM("Couldn't save PSPFS archive! : "<<e.what());
 		 target.remove();
+		 if(c) delete c;
 		 return true;
 	}catch (...) {
 		 PG_ERROR_STREAM("Couldn't save PSPFS archive!");
 		 target.remove();
+		 if(c) delete c;
 		 return true;
 	}
 
 	 if(overwrite){
 		 m_file.remove();
 		 target.rename(m_file.getPath());
-		 m_fileTextureInfos = fileTextureInfos;
-		 m_fileNormalsInfos = fileNormalsInfos;
-		 m_fileGeometryInfos = fileGeometryInfos;
+		 m_fileInfos = fileInfos;
 		 m_changed = false;
 	 }
 
@@ -442,75 +430,24 @@ bool MPP::save(const PG::UTIL::File& targetfile){
 }
 
 void MPP::clear(){
-	m_fileTextureInfos.clear();
-	m_fileGeometryInfos.clear();
-	m_file.clear();
-	m_changed = false;
+	ExtractorBase::clear();
 	m_hasNormals = false;
+	m_texturesEnd = m_fileInfos.end();
+	m_normalsEnd = m_fileInfos.end();
+	//m_lastError.clear();
 }
 
-bool MPP::isEmpty() const{
-	return m_fileTextureInfos.empty() && m_fileGeometryInfos.empty();
-}
 
-const PG::UTIL::File& MPP::getOpendFile() const{
-	return m_file;
-}
 
-unsigned int MPP::size() const{
-	return m_fileTextureInfos.size() + m_fileNormalsInfos.size() + m_fileGeometryInfos.size();
-}
+bool MPP::checkValid(std::string& errorMessageOut){
 
-bool MPP::find(const PG::UTIL::File& file, fileInfo& infoOut) const{
-	PG::UTIL::File ufile = file.toUpper();
-	const std::string fileExt = ufile.getFileExtension();
-	if(fileExt == "TX2"){
-		auto it = std::find_if(m_fileTextureInfos.begin(), m_fileTextureInfos.end(), [ufile](const fileInfo& info){
-			return info.getName() == ufile.getPath();
-		});
-
-		if(it != m_fileTextureInfos.end()){
-			infoOut = (*it);
-			return true;
-		}
-
-		it = std::find_if(m_fileNormalsInfos.begin(), m_fileNormalsInfos.end(), [ufile](const fileInfo& info){
-			return info.getName() == ufile.getPath();
-		});
-
-		if(it != m_fileNormalsInfos.end()){
-			infoOut = (*it);
-			return true;
-		}
-
-	}else if(fileExt == "GEO"){
-		auto it = std::find_if(m_fileGeometryInfos.begin(), m_fileGeometryInfos.end(), [ufile](const fileInfo& info){
-			return info.getName() == ufile.getPath();
-		});
-
-		if(it != m_fileGeometryInfos.end()){
-			infoOut = (*it);
-			return true;
-		}
+	if(!m_lastError.empty()){
+		errorMessageOut = m_lastError;
+		m_lastError.clear();
+		return false;
 	}
 
-	return false;
-}
-
-const fileInfo& MPP::get(unsigned int index) const{
-	if(index < m_fileTextureInfos.size()){
-		return m_fileTextureInfos[index];
-	}else if(index-m_fileTextureInfos.size() < m_fileNormalsInfos.size()){
-		return m_fileNormalsInfos[index-m_fileTextureInfos.size()];
-	}else{
-		return m_fileGeometryInfos[index-m_fileTextureInfos.size()-m_fileNormalsInfos.size()];
-	}
-}
-
-
-bool MPP::checkValid(std::string& errorMessageOut) const{
-
-	if(!m_fileNormalsInfos.empty() && m_fileTextureInfos.size() != m_fileNormalsInfos.size()){
+	if(!m_fileInfos.empty() && ( std::distance(m_fileInfos.begin(), m_texturesEnd) != std::distance(m_texturesEnd, m_normalsEnd) && m_hasNormals )){
 		errorMessageOut = "The number of normal textures should be the same as the number of textures!";
 		PG_WARN_STREAM(errorMessageOut);
 		return false;

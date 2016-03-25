@@ -73,6 +73,8 @@ public:
 	///Set the position to zero
 	void rewind();
 
+
+	bool isOpen() const;
 	unsigned int size();
 
 	/*!

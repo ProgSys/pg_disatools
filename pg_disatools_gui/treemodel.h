@@ -37,12 +37,12 @@ public:
     explicit TreeModel(const QString &file, QObject *parent = 0);
 
 
-    void extractFile(const QString &file, const QString &dir) const;
-    bool addFile(const QString &file);
-    int addFiles(const QStringList &files);
-    int removeFiles(const QStringList &files);
+
+    bool remove(const QModelIndex& index );
+    unsigned int remove(QList<PG::FILE::fileInfo*>& index);
+
     bool hasDataChanged() const;
-    bool save();
+
     bool setGraphicsScene(const QString &file, QGraphicsScene* scene) const;
 
     //void hideFiles(const QString &extention, bool hide);
@@ -57,13 +57,24 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
     int columnCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
 
+    float getProgress() const;
+    void getFileProperties(PG::FILE::fileInfo& target) const;
 
     virtual ~TreeModel();
 public slots:
-    bool openFile(const QString& file);
-    bool saveFile();
-    bool saveFileAs(const QString& filepath);
+	bool open(const QString &file);
+    bool save();
+    bool saveAs(const QString& filepath);
     bool saveImage(const QString& imagename, const QString& targetfile);
+
+    bool addFile(const QString &file);
+    int add(const QStringList &files);
+
+    bool replace(const QModelIndex& index, const QString &file, bool keepName = false);
+
+    bool extractFileName(const QModelIndex& index, const QString &filepath) const;
+    bool extractFile(const QModelIndex& index, const QString &dir) const;
+    int extract(const QModelIndexList& indeces, const QString &dir) const;
 
     bool checkIsValid(QString& outMessage) const;
 
@@ -73,13 +84,13 @@ public slots:
 private:
 
     PG::FILE::ExtractorBase* m_fileExtractor;
+    mutable PG::FILE::PercentIndicator m_percentIndicator;
     QString m_openedFileType;
 
     std::vector<std::string> m_hideExtentions;
 
 
     bool getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
-    bool open(const QString &file);
 
 };
 

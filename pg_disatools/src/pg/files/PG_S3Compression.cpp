@@ -58,8 +58,8 @@ void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL:
 	}
 	if(cx > 248) cx = 248;
 
-	c0.r = cx;
-	c1.r = cy;
+	c0.r = min(cx,255);
+	c1.r = min(cy,255);
 
 
 	cy = std::floor((3*int(target.g))/8.0) * 4;
@@ -72,8 +72,8 @@ void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL:
 	}
 	if(cx > 252) cx = 252;
 
-	c0.g = cx;
-	c1.g = cy;
+	c0.g = min(cx,255);
+	c1.g = min(cy,255);
 
 
 	cy = std::floor((3*int(target.b))/16.0) * 8;
@@ -85,8 +85,8 @@ void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL:
 	}
 	if(cx > 248) cx = 248;
 
-	c0.b = cx;
-	c1.b = cy;
+	c0.b = min(cx,255);
+	c1.b = min(cy,255);
 }
 
 unsigned int getShort(const PG::UTIL::rgba& color888){
@@ -97,7 +97,7 @@ unsigned int getShort(const PG::UTIL::rgba& color888){
 }
 
 inline PG::UTIL::rgba toRGB565( const PG::UTIL::rgba& rgba888){
-	return PG::UTIL::rgba( std::round(rgba888.r/8.0)*8  , std::round(rgba888.g/4.0)*4 , std::round(rgba888.b/8.0)*8 , rgba888.a);
+	return PG::UTIL::rgba( std::min( std::round(rgba888.r/8.0)*8, 255.0)  , std::min(std::round(rgba888.g/4.0)*4,255.0)  , std::min(std::round(rgba888.b/8.0)*8,255.0) , rgba888.a);
 }
 
 inline PG::UTIL::rgba clampToRGBA(const PG::UTIL::ivec4& vec){
@@ -185,6 +185,7 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 					}
 				}
 
+
 			//arbitrary big error
 			float error = 99999999.0f;
 
@@ -260,7 +261,6 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 
 						//we ignore colors with a alpha value of zero and same colors
 						if(color1.a == 0 && color2.a == 0) continue;
-						if(color1.equalRGB(color2)) continue;
 
 						//the six color combinations
 						//you have line, with a start and end point and two points in between = total four points
@@ -272,10 +272,13 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 						PG::UTIL::Array<PG::UTIL::rgba, 4> c;
 						c[0] = toRGB565(color1);
 						c[1] = toRGB565(color2);
+						if(c[0].equalRGB(c[1])) continue;
 						c[2] = interpolate(c[0],c[1],  1.0/3.0);
 						c[3] = interpolate(c[0],c[1],  2.0/3.0);
+						//PG_INFO_STREAM("0: color1: "<<color1<<" color2: "<<color2<< " c[0]: "<< c[0]<< " c[1]: "<< c[1]  );
 
 						reconstructionError(window, c, error, c0out, c1out);
+						//PG_INFO_STREAM("1: c0out: "<<c0out<<" c1out: "<<c1out<< " error: "<< error );
 						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
 						// color1 - o - color2 - o
@@ -286,6 +289,7 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 						c1[3] = interpolate(c1[0],c1[1],  2.0/3.0);
 
 						reconstructionError(window, c1, error, c0out, c1out);
+						//PG_INFO_STREAM("2: c0out: "<<c0out<<" c1out: "<<c1out<< " error: "<< error );
 						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
 						// o - color1 - o - color2
@@ -296,6 +300,7 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 						c1[3] = interpolate(c1[0],c1[1],  2.0/3.0);
 
 						reconstructionError(window, c1, error, c0out, c1out);
+						//PG_INFO_STREAM("3: c0out: "<<c0out<<" c1out: "<<c1out<< " error: "<< error );
 						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
 						// color1 - color2 - o - o
@@ -307,6 +312,7 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 
 						//PG_INFO_STREAM( "c0: "<<color1<<" c1: "<< color2<<" r: "<<PG::UTIL::ivec4(  int(color2.r)*3-int(color1.r)*2 , int(color2.g)*3-int(color1.g)*2, int(color2.b)*3-int(color1.b)*2 ) << " o: "<< c3[1])
 						reconstructionError(window, c1, error, c0out, c1out);
+						//PG_INFO_STREAM("4: c0out: "<<c0out<<" c1out: "<<c1out<< " error: "<< error );
 						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
 						// o - o - color1 - color2
@@ -318,6 +324,7 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 
 						//PG_INFO_STREAM( "c0: "<<color2<<" c1: "<< color1<<" r: "<<PG::UTIL::ivec4(  int(color1.r)*3-int(color2.r)*2 , int(color1.g)*3-int(color2.g)*2, int(color1.b)*3-int(color2.b)*2 )  << " o: "<< c4[0])
 						reconstructionError(window, c1, error, c0out, c1out);
+						//PG_INFO_STREAM("5: c0out: "<<c0out<<" c1out: "<<c1out<< " error: "<< error );
 						if(error < std::numeric_limits<float>::epsilon() ) continue; // if 0, then best match found
 
 						// o - color1 - color2 - o
@@ -355,14 +362,19 @@ bool compressDXT1(const PG::UTIL::RGBAImage& window, PG::UTIL::rgba& c0out, PG::
 						//PG_INFO_STREAM("A: "<<color1<<" B: "<<color2<< " sub: "<< (color1-diff) <<" add: "<< (color2+diff)<<" c5[0]: "<<c5[0]<<" c5[1]: "<<c5[1]);
 
 						reconstructionError(window, c1, error, c0out, c1out);
+						//PG_INFO_STREAM("6: c0out: "<<c0out<<" c1out: "<<c1out<< " error: "<< error );
 					}
 
 					startIndex++;
 				}//for loop end
 
 				//is there only one color?
-				if(c0out == c1out)
+				if(c0out == c1out){
+					//PG_MARK;
+					//PG_ERROR_STREAM(c0out);
 					findSameColorBestMatch(c0out, c0out,c1out);
+					//PG_ERROR_STREAM(c0out<<c1out);
+				}
 
 				//sort the two key colors
 				unsigned int i1,i2;

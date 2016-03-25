@@ -133,6 +133,10 @@ void OutByteFile::rewind(){
 	seek(0);
 }
 
+bool OutByteFile::isOpen() const{
+	return m_outFile.is_open();
+}
+
 unsigned int OutByteFile::size(){
 	const unsigned int currPos = pos();
 	goEnd();

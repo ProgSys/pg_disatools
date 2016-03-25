@@ -43,29 +43,23 @@ public:
 	 * @brief Opens the given MPP file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file);
+	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
+	bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
+
+	bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
 
 	bool insert(const PG::UTIL::File& file);
-	bool remove(const PG::UTIL::File& file);
-	bool save();
-	bool save(const PG::UTIL::File& targetfile);
+	bool remove(fileInfo& target);
 	void clear();
-	bool isEmpty() const;
-	const PG::UTIL::File& getOpendFile() const;
-	unsigned int size() const;
 
-	bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
-	const fileInfo& get(unsigned int index) const;
-
-	bool checkValid(std::string& errorMessageOut) const;
+	bool checkValid(std::string& errorMessageOut);
 
 	virtual ~MPP();
 private:
-	PG::UTIL::File m_file;
 	bool m_hasNormals = false; // remastered maps with better textures
-	std::vector<fileInfo> m_fileTextureInfos;
-	std::vector<fileInfo> m_fileNormalsInfos;
-	std::vector<fileInfo> m_fileGeometryInfos;
+	std::vector<fileInfo>::iterator m_texturesEnd;
+	std::vector<fileInfo>::iterator m_normalsEnd;
+	std::string m_lastError;
 
 	bool findFileInfo(const PG::UTIL::File& file, fileInfo& infoOut) const;
 };

@@ -12,3 +12,4 @@
 
  ===  ? - v0.3.9 ===
  * Added support for decompressing IMY files
+ * Fixed char overflow in S3 compression

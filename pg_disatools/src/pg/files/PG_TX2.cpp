@@ -117,38 +117,11 @@ bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 			rgba.r = rgba.b;
 			rgba.b = r;
 		}
-	}else if(compressiontype == tx2Type::COLORTABLERGBA16){
-		//lookup table RGBA with max 16 values
-
-		if(color_table_size > 16){
-			PG_WARN_STREAM("Color table is too big!  ("<<color_table_size<<" but should be 16)");
-		}
-
-		const unsigned int total_number_of_bytes = (widthOut*heightOut)/2; // every byte holds two table values
-		if( instream->size() < (total_number_of_bytes+color_table_size+16)){
-			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < " << (total_number_of_bytes+color_table_size+16)<<") ");
-			return true;
-		}
-
-		std::vector<PG::UTIL::rgba> colortable(color_table_size);
-		instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
-
-		imageOut.resize(widthOut,heightOut);
-
-
-		for(unsigned int i = 0; i < total_number_of_bytes; ++i){
-			const char c = instream->readUnsignedChar();
-
-			const unsigned int pos = i*2;
-			imageOut[pos] = colortable[ c & 0x0F];
-			imageOut[pos+1] = colortable[ (c >> 4) & 0x0F ];
-		}
-	}else if(compressiontype == tx2Type::COLORTABLEBGRA16){
+	}else if(compressiontype == tx2Type::COLORTABLE_BGRA16 || compressiontype == tx2Type::COLORTABLE_RGBA16){
 			//lookup table RGBA with max 16 values
 
 			if(color_table_size > 16){
-				PG_ERROR_STREAM("Color table is too big!");
-				return true;
+				PG_WARN_STREAM("Color table is too big!  ("<<color_table_size<<" but should be 16)");
 			}
 
 			const unsigned int total_number_of_bytes = (widthOut*heightOut)/2; // every byte holds two table values
@@ -157,15 +130,17 @@ bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 				return true;
 			}
 
-			std::vector<PG::UTIL::rgba> colortable(16);
+			std::vector<PG::UTIL::rgba> colortable(color_table_size);
 			instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
 
-			//flip R and B channel
-			for(PG::UTIL::rgba& color: colortable){
-				const char r = color.r;
-				color.r = color.b;
-				color.b = r;
-			}
+			if(compressiontype == tx2Type::COLORTABLE_BGRA16)
+				//flip R and B channel
+				for(PG::UTIL::rgba& color: colortable){
+					const char r = color.r;
+					color.r = color.b;
+					color.b = r;
+				}
+
 
 			imageOut.resize(widthOut,heightOut);
 
@@ -178,7 +153,7 @@ bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 				imageOut[pos+1] = colortable[ (c >> 4) & 0x0F ];
 			}
 
-	}else if(compressiontype == tx2Type::COLORTABLEBGRA256 || compressiontype == tx2Type::COLORTABLERGBA256){
+	}else if(compressiontype == tx2Type::COLORTABLE_BGRA256 || compressiontype == tx2Type::COLORTABLE_RGBA256){
 		//lookup table RGBA
 
 		if(color_table_size > 256){
@@ -197,7 +172,7 @@ bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 
 		imageOut.resize(widthOut,heightOut);
 
-		if(compressiontype == tx2Type::COLORTABLEBGRA256 ){
+		if(compressiontype == tx2Type::COLORTABLE_BGRA256 ){
 			for(unsigned int i = 0; i < total_number_of_bytes; i++){
 				imageOut[i] = colortable[instream->readUnsignedChar()];
 				char r = imageOut[i].r;

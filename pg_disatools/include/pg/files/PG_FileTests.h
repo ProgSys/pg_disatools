@@ -21,63 +21,29 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
+#ifndef INCLUDE_PG_FILES_PG_FILETESTS_H_
+#define INCLUDE_PG_FILES_PG_FILETESTS_H_
 
-#ifndef INCLUDE_PG_FILES_PG_PSPFS_H_
-#define INCLUDE_PG_FILES_PG_PSPFS_H_
-
-#include <string>
-#include <vector>
 #include <pg/util/PG_File.h>
-#include <pg/util/PG_ApiUtil.h>
-#include <pg/files/PG_ExtractorBase.h>
-#include <iostream>
+#include <pg/stream/PG_StreamInByteFile.h>
 
 namespace PG {
 namespace FILE {
 
-class PSPFS: public ExtractorBase {
-public:
-	PG_UTIL_API PSPFS();
-	PG_UTIL_API PSPFS(const PG::UTIL::File& file);
-	PG_UTIL_API PSPFS(const std::string& file);
+bool isIMY(const PG::UTIL::File& file);
+bool isIMY(PG::STREAM::InByteFile& reader);
 
-	/*!
-	 * @brief Opens the given PSPFS file.
-	 * @return true on error
-	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
-	/*!
-	 * @brief Saves the changes done with insert or remove.
-	 * @return true on error
-	 */
-	PG_UTIL_API bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
-	/*!
-	 * @brief Add a file into the archive. Changes will only be applied when you save.
-	 * @return true on error
-	 * @see save()
-	 */
-	PG_UTIL_API bool insert(const PG::UTIL::File& file);
-	/*!
-	 * @brief Remove a file from the archive. Changes will only be applied when you save.
-	 * @return true on error
-	 * @see save()
-	 */
-	PG_UTIL_API bool remove(fileInfo& target);
+unsigned int isIMYPackage(const PG::UTIL::File& file);
+unsigned int isIMYPackage(PG::STREAM::InByteFile& reader);
+
+bool isTX2(const PG::UTIL::File& file);
+bool isTX2(PG::STREAM::InByteFile& reader);
 
 
-
-	PG_UTIL_API void clear();
-
-
-	PG_UTIL_API virtual ~PSPFS();
-
-private:
-	PG::UTIL::File m_file_buffer;
-
-
-};
+bool isPSPFS(PG::STREAM::InByteFile& reader);
+bool isPSPFS(const PG::UTIL::File& file);
 
 } /* namespace FILE */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_FILES_PG_PSPFS_H_ */
+#endif /* INCLUDE_PG_FILES_PG_FILETESTS_H_ */

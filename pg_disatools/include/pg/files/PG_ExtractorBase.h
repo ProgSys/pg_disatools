@@ -27,17 +27,35 @@
 #include <string>
 #include <vector>
 #include <pg/util/PG_File.h>
-
+#include <memory>
 
 namespace PG {
 namespace FILE {
+
+class FileInfoExtra{
+public:
+	FileInfoExtra();
+
+	virtual void clear() = 0;
+
+	virtual ~FileInfoExtra();
+};
+
+struct PercentIndicator{
+	float percent;
+};
 
 struct fileInfo{
 	PG::UTIL::File name;
 	unsigned int size = 0; //size in byte
 	unsigned int offset = 0; //offset from file beginning in byte
+	unsigned int decompressedFileSize = 0;
 
 	PG::UTIL::File externalFile;
+
+	bool compressed = false;
+	bool package = false;
+	bool texture = false;
 
 	fileInfo();
 	fileInfo(const std::string& name,unsigned int size,unsigned int offset);
@@ -56,8 +74,14 @@ struct fileInfo{
 	void setSize(unsigned int size);
 	void setOffset(unsigned int offset);
 	void setExternalName(const PG::UTIL::File& externalFile);
+	void setAsDummy(unsigned int offset = 0);
 
 	bool isExternalFile() const;
+	bool isCompressed() const;
+	bool isPackage() const;
+	bool isTexture() const;
+	bool isValid() const;
+
 	void clearExternalFile();
 	void clear();
 };
@@ -66,48 +90,70 @@ class ExtractorBase {
 public:
 	ExtractorBase();
 
-	virtual bool open(const PG::UTIL::File& file) = 0;
+	virtual bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr) = 0;
+	bool save(PercentIndicator* percent = nullptr);
+	virtual bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) = 0;
+
+
+	virtual bool insert(const PG::UTIL::File& file);
+	bool remove(const PG::UTIL::File& file);
+	virtual bool remove(fileInfo& target);
+
+
+	bool isEmpty() const;
+	unsigned int size() const;
+	/*!
+	 * @returns true if archive is correct, otherwise will return false and a error message.
+	 */
+	virtual bool checkValid(std::string& errorMessageOut);
+
+	const PG::UTIL::File& getOpendFile() const;
+
 	/*!
 	 * @brief Is the given file inside the archive.
 	 * @return true if file is inside the archive.
 	 */
 	virtual bool exists(const PG::UTIL::File& file) const;
+	virtual bool isChanged() const;
+
+	virtual unsigned int extract(const fileInfo& target, char* (&data) ) const;
+	virtual unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const;
+
+	virtual bool extract(const fileInfo& target, const PG::UTIL::File& targetFile ) const;
 	/*!
 	 * @brief Extract a file into the given target file.
 	 * @return true on error
 	 */
 	virtual bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
-	virtual unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const;
-	virtual bool insert(const PG::UTIL::File& file) = 0;
-	virtual bool remove(const PG::UTIL::File& file) = 0;
-	virtual bool save() = 0;
-	virtual bool save(const PG::UTIL::File& targetfile) = 0;
-	virtual void clear() = 0;
-	virtual bool isEmpty() const = 0;
-	virtual bool isChanged() const;
-	virtual const PG::UTIL::File& getOpendFile() const = 0;
-	virtual unsigned int size() const = 0;
 
-	virtual const fileInfo& get(unsigned int index) const = 0;
+	virtual bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
+	bool replace(const PG::UTIL::File& targetfile, const PG::UTIL::File& file, bool keepName = false);
+
+
+	virtual void clear();
+
 	/*!
 	 * @brief Find a file info with the given name.
+	 * @param infoOut returns reference file info
 	 * @returns true if file info found
 	 */
-	virtual bool find(const PG::UTIL::File& file, fileInfo& infoOut) const = 0;
+	virtual bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
 
-	/*!
-	 * @returns true if archive is correct, otherwise will return false and a error message.
-	 */
-	virtual bool checkValid(std::string& errorMessageOut) const;
 
+	fileInfo& get(unsigned int index);
+	const fileInfo& get(unsigned int index) const;
 	const fileInfo& operator[](unsigned int index) const;
 	fileInfo* getDataPointer(unsigned int index) const;
 
+	void getFileProperties(fileInfo& target) const;
+
 	virtual ~ExtractorBase();
 protected:
+	PG::UTIL::File m_file;
+	std::vector<fileInfo> m_fileInfos;
 
 	bool m_changed = false;
-
+	unsigned int m_originalFileSize = 0;
 
 };
 

@@ -43,6 +43,9 @@
 	#define FALSE 0
 #endif
 
+#define FAILURE TRUE
+#define SUCCESS FALSE
+
 #if ( defined(_MSC_VER) && !defined(__INTEL_COMPILER) )
 	#define FUNCTION_NAME __FUNCTION__
 #elif __MINGW32__

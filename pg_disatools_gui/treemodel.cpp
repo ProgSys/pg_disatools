@@ -28,6 +28,7 @@
 #include <pg/files/PG_MPP.h>
 #include <pg/files/PG_PSPFS.h>
 #include <pg/files/PG_StartDAT.h>
+#include <pg/files/PG_FileTests.h>
 
 
 
@@ -47,6 +48,7 @@ TreeModel::TreeModel(const QString &data, QObject *parent)
 
 bool TreeModel::open(const QString &file){
 	if(m_fileExtractor) delete m_fileExtractor;
+	QAbstractItemModel::layoutAboutToBeChanged();
 
 	QFileInfo fileInfo(file);
 	const QString ext = fileInfo.suffix().toUpper();
@@ -70,28 +72,54 @@ bool TreeModel::open(const QString &file){
 		qInfo() << "Couldn't open: '"<<file<<"'!";
 		delete m_fileExtractor;
 		m_fileExtractor = nullptr;
+		QAbstractItemModel::layoutChanged();
 		return false;
 	}
+	QAbstractItemModel::layoutChanged();
 
 	return true;
 
 }
 
-bool TreeModel::openFile(const QString &file){
-	QAbstractItemModel::layoutAboutToBeChanged();
-	const bool result = open(file);
-	QAbstractItemModel::layoutChanged();
-	return result;
+bool TreeModel::extractFileName(const QModelIndex& index, const QString &filepath) const{
+	if(!m_fileExtractor || !index.isValid()) return true;
+	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
+
+	if(m_fileExtractor->extract(*item, filepath.toStdString())){
+		qInfo() << "Couldn't extract "<<QString::fromStdString(item->name.getPath());
+		return true;
+	}
+	return false;
 
 }
 
-void TreeModel::extractFile(const QString &file, const QString &dir) const{
-	if(!m_fileExtractor) return;
+bool TreeModel::extractFile(const QModelIndex& index, const QString &dir) const{
+	if(!m_fileExtractor || !index.isValid()) return true;
 
-	const std::string targetFile = dir.toStdString() +"/"+file.toStdString();
-	if(m_fileExtractor->extract(file.toStdString(), targetFile)){
-		qInfo() << "Couldn't extract "<<file;
+	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
+	const std::string targetFile = dir.toStdString() +"/"+item->name.getPath();
+	if(m_fileExtractor->extract(*item, targetFile)){
+		qInfo() << "Couldn't extract "<<QString::fromStdString(item->name.getPath());
+		return true;
 	}
+	return false;
+}
+
+int TreeModel::extract(const QModelIndexList& indeces, const QString &dir) const{
+
+	int extracted = 0;
+	for(const QModelIndex& index: indeces){
+		PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
+		const std::string targetFile = dir.toStdString() +"/"+item->name.getPath();
+		if(m_fileExtractor->extract(*item, targetFile)){
+			qInfo() << "Couldn't extract "<<QString::fromStdString(item->name.getPath());
+		}else
+			extracted++;
+
+		 m_percentIndicator.percent = (extracted/float(indeces.size()))*100;
+	}
+
+	return extracted;
 }
 
 bool TreeModel::addFile(const QString &file){
@@ -107,32 +135,64 @@ bool TreeModel::addFile(const QString &file){
 	return added;
 }
 
-int TreeModel::addFiles(const QStringList &files){
+int TreeModel::add(const QStringList &files){
 	if(!m_fileExtractor || files.empty()) return 0;
 	QAbstractItemModel::layoutAboutToBeChanged();
+
 	int filesAddedOrChanged = 0;
 	 for(const QString& str: files){
 		 if(m_fileExtractor->insert(str.toStdString())){
 		 		qInfo() << "Couldn't add file: '"<<str<<"'";
 		 }else
 			 filesAddedOrChanged++;
+		 m_percentIndicator.percent = (filesAddedOrChanged/float(files.size()))*100;
 	 }
+
 	QAbstractItemModel::layoutChanged();
 	return filesAddedOrChanged;
 }
 
-int TreeModel::removeFiles(const QStringList &files){
-	if(!m_fileExtractor || files.empty()) return 0;
+bool TreeModel::replace(const QModelIndex& index, const QString &file, bool keepName){
+	if(!m_fileExtractor || file.isEmpty() || !index.isValid()) return 0;
+
+	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
+	if(m_fileExtractor->replace(*item, file.toStdString(), keepName)){
+		qInfo() << "Couldn't remove file: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		return true;
+	}
+	return false;
+}
+
+bool TreeModel::remove(const QModelIndex& index){
+	if(!m_fileExtractor || !index.isValid()) return true;
+
 	QAbstractItemModel::layoutAboutToBeChanged();
-	int filesRemoved = 0;
-	for(const QString& str: files){
-		 if(m_fileExtractor->remove(str.toStdString())){
-		 		qInfo() << "Couldn't remove file: '"<<str<<"'";
-		 }else
-			 filesRemoved++;
+	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
+	if(m_fileExtractor->remove(*item)){
+		qInfo() << "Couldn't remove file: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		return true;
 	}
 	QAbstractItemModel::layoutChanged();
-	return filesRemoved;
+
+	return false;
+}
+
+unsigned int TreeModel::remove(QList<PG::FILE::fileInfo*>& indices ){
+	if(!m_fileExtractor) return true;
+	QAbstractItemModel::layoutAboutToBeChanged();
+	qSort(indices.begin(), indices.end(), [](const PG::FILE::fileInfo* a,const PG::FILE::fileInfo* b){
+		return a > b;
+	});
+
+	unsigned int removed = 0;
+	for(PG::FILE::fileInfo* index: indices){
+		if(!m_fileExtractor->remove(*index))
+			removed++;
+		m_percentIndicator.percent = (removed/float(indices.size()))*100;
+	}
+
+	QAbstractItemModel::layoutChanged();
+	return removed;
 }
 
 bool TreeModel::hasDataChanged() const{
@@ -144,16 +204,31 @@ bool TreeModel::save(){
 
 	QAbstractItemModel::layoutAboutToBeChanged();
 	PG::UTIL::File file = m_fileExtractor->getOpendFile();
-	if(m_fileExtractor->save()){
-		delete m_fileExtractor;
-		m_fileExtractor = nullptr;
+	if(m_fileExtractor->save(&m_percentIndicator)){
 		QAbstractItemModel::layoutChanged();
 		return false;
 	}
-	bool success = open(QString::fromStdString(file.getPath()));
+	//bool success = open(QString::fromStdString(file.getPath()));
 	QAbstractItemModel::layoutChanged();
+	return true;
+}
 
-	return success;
+bool TreeModel::saveAs(const QString& filepath){
+	if(!m_fileExtractor) return false;
+	 QAbstractItemModel::layoutAboutToBeChanged();
+    if(!m_fileExtractor->save(filepath.toStdString(), &m_percentIndicator)){
+    	m_fileExtractor->open(filepath.toStdString(), &m_percentIndicator);
+    	QAbstractItemModel::layoutChanged();
+        return true;
+    }else{
+        //if saving faled try to reopen it
+        PG::UTIL::File file = m_fileExtractor->getOpendFile();
+        const bool success = open(QString::fromStdString(file.getPath()));
+        QAbstractItemModel::layoutChanged();
+        return success;
+    }
+
+    return false;
 }
 
 bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha) const{
@@ -214,24 +289,6 @@ bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) con
 
 }
 
-/*
-void TreeModel::hideFiles(const QString &extention, bool hide){
-	if(!m_fileExtractor) return false;
-
-	if(hide){
-		auto it = std::find(m_hideExtentions.begin(), m_hideExtentions.end(), extention.toStdString());
-		if(it == m_hideExtentions.end()){
-			m_hideExtentions.push_back(extention.toStdString());
-			QAbstractItemModel::layoutChanged();
-		}
-	}else{
-		auto it = std::find(m_hideExtentions.begin(), m_hideExtentions.end(), extention.toStdString());
-		if(it != m_hideExtentions.end()){
-			m_hideExtentions.erase(it);
-			QAbstractItemModel::layoutChanged();
-		}
-	}
-}*/
 
 QVariant TreeModel::data(const QModelIndex &index, int role) const{
     if (!m_fileExtractor || !index.isValid())
@@ -254,13 +311,21 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
     }else if(role == Qt::DisplayRole){
 		switch (index.column()) {
 				case 0:
+				{
+					if(item->isExternalFile())
+						return QVariant(QString::fromStdString(item->name.getPath()).append('*'));
+					else
 						return QVariant(QString::fromStdString(item->name.getPath()));
+				}
 					break;
 				case 1:
 						return QVariant(item->size);
 					break;
 				case 2:
 						return QVariant(exp);
+					break;
+				case 3:
+						return QString("%1").arg(index.row(), 5, 10, QChar('0')); //QVariant(QString::number(item->index));
 					break;
 				default:
 					return QVariant();
@@ -288,6 +353,9 @@ QVariant TreeModel::headerData(int section, Qt::Orientation orientation, int rol
             break;
         case 2:
             return QVariant(QString("Format"));
+            break;
+        case 3:
+            return QVariant(QString("Index"));
             break;
         default:
              return QVariant();
@@ -325,27 +393,6 @@ int TreeModel::rowCount(const QModelIndex &parent) const{
 		 return 0;
 
 	return m_fileExtractor->size();
-}
-
-bool TreeModel::saveFile(){
-    return save();
-}
-
-bool TreeModel::saveFileAs(const QString& filepath){
-	if(!m_fileExtractor) return false;
-	 QAbstractItemModel::layoutAboutToBeChanged();
-    if(!m_fileExtractor->save(filepath.toStdString())){
-    	m_fileExtractor->open(filepath.toStdString());
-    	QAbstractItemModel::layoutChanged();
-        return true;
-    }else{
-        //if saving faled try to reopen it
-        PG::UTIL::File file = m_fileExtractor->getOpendFile();
-        return open(QString::fromStdString(file.getPath()));
-        QAbstractItemModel::layoutChanged();
-    }
-
-    return false;
 }
 
 bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
@@ -401,8 +448,16 @@ const QString& TreeModel::getOpenedType() const{
 int TreeModel::columnCount(const QModelIndex &parent) const{
 	if (parent.isValid())
 		 return 0;
-	return 3;
+	return 4;
 
+}
+
+float TreeModel::getProgress() const{
+	return m_percentIndicator.percent;
+}
+
+void TreeModel::getFileProperties(PG::FILE::fileInfo& target) const{
+	if(m_fileExtractor) m_fileExtractor->getFileProperties(target);
 }
 
 TreeModel::~TreeModel(){

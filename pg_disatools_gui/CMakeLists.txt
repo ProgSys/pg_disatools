@@ -31,7 +31,8 @@ find_package(PG_DISATOOLS REQUIRED)
 #FIND_PACKAGE(Qt5Widgets REQUIRED)
 #INCLUDE(${QT_USE_FILE})
  
-QT5_WRAP_UI(UISrcs mainwindow.ui)
+QT5_WRAP_UI(UIMainWindowSrcs mainwindow.ui)
+QT5_WRAP_UI(UIFileInfoBoxSrcs fileinfobox.ui)
 #QT5_WRAP_CPP(MOCSrcs ui_mainwindow.h)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
@@ -132,7 +133,7 @@ add_executable(
 	pg_disatools_gui
 		${PG_LOADERS_HEADERS}
 		${PG_LOADERS_SRC}
-		${MOCSrcs} ${UISrcs}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}
 		
 )
 

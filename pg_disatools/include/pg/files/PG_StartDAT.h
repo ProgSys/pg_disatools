@@ -42,28 +42,17 @@ public:
 	 * @brief Opens the given START.DAT file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file);
-
-	bool insert(const PG::UTIL::File& file);
-	bool remove(const PG::UTIL::File& file);
-	bool save();
-	bool save(const PG::UTIL::File& targetfile);
+	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
+	bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
 
 	void clear();
-	bool isEmpty() const;
-	const PG::UTIL::File& getOpendFile() const;
-	unsigned int size() const;
 
-	bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
-	const fileInfo& get(unsigned int index) const;
 
 	virtual ~StartDAT();
 private:
-	PG::UTIL::File m_file;
-	std::vector<fileInfo> m_fileInfos;
 	//contains the table of known files
 	std::vector<std::string> m_namesTable;
-
+	bool m_isCompressed = false;
 	void readFileNames();
 };
 

@@ -90,8 +90,9 @@ private:
     TreeSort* m_treeSort;
     QGraphicsScene* scene;
     QItemSelectionModel* selectionModel;
+    QTemporaryFile* m_tempFile;
 
-    bool checkFileAndAsk();
+    bool checkValid();
 };
 
 #endif // MAINWINDOW_H

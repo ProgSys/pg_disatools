@@ -28,7 +28,7 @@
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
-#include <pg/files/PG_TX2.h>
+#include <pg/files/PG_FileTests.h>
 
 namespace PG {
 namespace FILE {
@@ -82,62 +82,8 @@ void StartDAT::readFileNames(){
 
 }
 
-bool StartDAT::insert(const PG::UTIL::File& file){
-	if(m_file.isEmpty()){
-		PG_ERROR_STREAM("No START.DAT file opened.");
-		return true;
-	}
 
-	if(!file.exists()){
-		PG_ERROR_STREAM("File doesn't exist!");
-		return true;
-	}
-
-	PG::UTIL::File ufile = file.toUpper();
-	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [ufile](const fileInfo& info){
-		return info.getName() == ufile.getName();
-	});
-
-
-	m_changed = true;
-
-	if(it != m_fileInfos.end()){
-		(*it).size = file.size();
-		(*it).externalFile = file;
-		return false;
-	}
-
-	fileInfo info;
-	info.name = ufile.getFile();
-	info.size = file.size();
-	info.offset = 0;
-	info.externalFile = file;
-
-	m_fileInfos.push_back(info);
-	return false;
-}
-
-bool StartDAT::remove(const PG::UTIL::File& file){
-	PG::UTIL::File ufile = file.toUpper();
-
-	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [ufile](const fileInfo& info){
-		return info.getName() == ufile.getPath();
-	});
-
-	if(it != m_fileInfos.end()){
-		m_fileInfos.erase(it);
-		m_changed = true;
-		return false;
-	}
-
-	return true;
-}
-
-bool StartDAT::save(){
-	save(m_file);
-}
-
-bool StartDAT::save(const PG::UTIL::File& targetfile){
+bool StartDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No START.DAT file opened.");
 		return true;
@@ -162,14 +108,19 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 		PG::STREAM::OutByteFile writer(target);
 
 		writer.writeInt(0); //reserve space for number of files
-		//writer.writeInt(131072);
-		for(unsigned int i = 0; i < m_fileInfos.size(); ++i){
-			writer.writeInt(0);
+		if(m_isCompressed){
+			writer.writeInt(131072);
 		}
 
-		for(unsigned int i = 0; i < 4 - (1+m_fileInfos.size())%4; ++i){
+		//writer.writeInt(131072);
+		for(unsigned int i = 0; i < m_fileInfos.size(); ++i)
 			writer.writeInt(0);
-		}
+
+		//fill with zero
+		if(!m_isCompressed)
+			for(unsigned int i = 0; i < 4 - (1+m_fileInfos.size())%4; ++i)
+				writer.writeInt(0);
+
 
 		unsigned int header_offset = sizeof(int);
 
@@ -178,9 +129,8 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 		for(unsigned int i = 0; i < m_fileInfos.size(); ++i){
 			const fileInfo& info = (*it);
 			const unsigned int offset = writer.getPosition();
-			fileInfo info_new;
-			info_new.name = info.name;
-			info_new.size = info.size;
+			fileInfo info_new = info;
+			info_new.externalFile.clear();
 
 			if(info.isExternalFile()){
 				PG::STREAM::InByteFile reader_file(info.externalFile);
@@ -262,77 +212,7 @@ bool StartDAT::save(const PG::UTIL::File& targetfile){
 	return false;
 }
 
-inline bool isIMY(PG::STREAM::InByteFile& reader){
-	return reader.readString(3) == "IMY";
-}
-
-inline bool isTX2(PG::STREAM::InByteFile& reader){
-	const unsigned short width = reader.readUnsignedShort();
-	const unsigned short height = reader.readUnsignedShort();
-
-	const unsigned short type = reader.readUnsignedShort();
-	const unsigned short same = reader.readUnsignedShort();
-
-	const unsigned short colorTableSize = reader.readUnsignedShort();
-	reader.skip(2);
-
-	if(width == 0 || height == 0)
-		return false;
-	//if(reader.readUnsignedInt() != 65536) //width*height)
-		//return false;
-
-	switch (type) {
-		case tx2Type::DXT1:
-		{
-			if(width%4 != 0 || height%4 != 0 || colorTableSize != 0 )
-				return false;
-		}
-			break;
-		case tx2Type::DXT5:
-		{
-			if(width%4 != 0 || height%4 != 0 || colorTableSize != 0)
-				return false;
-		}
-			break;
-		case tx2Type::BGRA:
-		{
-			if(( colorTableSize != 0 && colorTableSize != 16) )
-				return false;
-		}
-			break;
-		case tx2Type::COLORTABLERGBA256:
-		{
-			if(colorTableSize == 0 || colorTableSize > 500)
-				return false;
-		}
-			break;
-		case tx2Type::COLORTABLEBGRA256:
-		{
-			if(colorTableSize == 0 || colorTableSize > 500)
-				return false;
-		}
-			break;
-		case tx2Type::COLORTABLEBGRA16:
-		{
-			if(colorTableSize != 16  && colorTableSize != 256)
-				return false;
-		}
-			break;
-		case tx2Type::COLORTABLERGBA16:
-		{
-			if(colorTableSize != 16 && colorTableSize != 256)
-				return false;
-		}
-			break;
-		default:
-			return false;
-			break;
-	}
-
-	return true;
-}
-
-bool StartDAT::open(const PG::UTIL::File& file){
+bool StartDAT::open(const PG::UTIL::File& file, PercentIndicator* percent){
 	clear();
 	m_file = file;
 
@@ -350,7 +230,21 @@ bool StartDAT::open(const PG::UTIL::File& file){
 
 		const unsigned int file_size = reader.size();
 		const unsigned int number_of_files = reader.readUnsignedInt();
-		const unsigned int header_size = 4+number_of_files*sizeof(int);
+
+		//test if this is a IMY file
+		{
+			const unsigned int v1 = reader.readUnsignedInt();
+			const unsigned int v2 = reader.readUnsignedInt();
+			if(v1 > v2){
+				m_isCompressed = true;
+			}else{
+				m_isCompressed = false;
+			}
+			reader.seek(4);
+		}
+
+		const unsigned int header_size = (m_isCompressed)? 8+number_of_files*sizeof(int) : 4+number_of_files*sizeof(int);
+		if(m_isCompressed) reader.skip(4);
 
 		if(number_of_files > 9000){
 			PG_ERROR_STREAM("START.DAT is too big!");
@@ -385,12 +279,13 @@ bool StartDAT::open(const PG::UTIL::File& file){
 			}
 
 			const unsigned int currentPos = reader.pos();
-			if( i < m_namesTable.size() && !m_namesTable[i].empty() ){
+			if( !m_isCompressed && i < m_namesTable.size() && !m_namesTable[i].empty() ){
 				info.name = m_namesTable[i];
 				reader.seek(info.offset);
 				if(isTX2(reader)){
 					if(info.name.getFileExtension() != "TX2")
 						info.name = info.name.getName()+".TX2";
+					info.texture = true;
 				}else
 					if(info.name.getFileExtension() == "TX2")
 						info.name = info.name.getName()+".NOT";
@@ -406,12 +301,15 @@ bool StartDAT::open(const PG::UTIL::File& file){
 
 				if(isIMY(reader)){
 					o<<"IMY";
+					info.compressed = true;
+				}else{
+					reader.seek(info.offset);
+					if(isTX2(reader)){
+						o<<"TX2";
+						info.texture = true;
+					}else
+						o<<"DAT";
 				}
-				reader.seek(info.offset);
-				if(isTX2(reader)){
-					o<<"TX2";
-				}else
-					o<<"DAT";
 
 				info.name = o.str();
 			}
@@ -450,43 +348,10 @@ bool StartDAT::open(const PG::UTIL::File& file){
 
 
 void StartDAT::clear(){
-	m_changed = false;
-	m_file.clear();
-	m_fileInfos.clear();
 	m_namesTable.clear();
+	ExtractorBase::clear();
 }
 
-bool StartDAT::isEmpty() const{
-	return m_fileInfos.empty();
-}
-
-const PG::UTIL::File& StartDAT::getOpendFile() const{
-	return m_file;
-}
-
-unsigned int StartDAT::size() const{
-	return m_fileInfos.size();
-}
-
-bool StartDAT::find(const PG::UTIL::File& file, fileInfo& infoOut) const{
-	PG::UTIL::File ufile = file.toUpper();
-
-	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [ufile](const fileInfo& info){
-		return info.getName() == ufile.getPath();
-	});
-
-	if(it != m_fileInfos.end()){
-		infoOut = (*it);
-		return true;
-	}
-
-	return false;
-
-}
-
-const fileInfo& StartDAT::get(unsigned int index) const{
-	return m_fileInfos[index];
-}
 
 StartDAT::~StartDAT() {
 	// TODO Auto-generated destructor stub

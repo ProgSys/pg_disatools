@@ -28,7 +28,9 @@
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_Exception.h>
+#include <pg/files/PG_FileTests.h>
 
+#include <algorithm>
 
 namespace PG {
 namespace FILE {
@@ -39,12 +41,14 @@ fileInfo::fileInfo(const std::string& _name,unsigned int _size,unsigned int _off
 fileInfo::fileInfo(const PG::UTIL::File& _name,unsigned int _size,unsigned int _offset):
 		name(_name),size(_size),offset(_offset){}
 fileInfo::fileInfo(const fileInfo& info):
-		name(info.name),size(info.size),offset(info.offset),externalFile(info.externalFile)
+		name(info.name),size(info.size),offset(info.offset),decompressedFileSize(info.decompressedFileSize),externalFile(info.externalFile),
+		compressed(info.compressed), package(info.package), texture(info.texture)
 {}
 
 void fileInfo::operator=(const fileInfo& info){
 	name = info.name;
 	size = info.size;
+	decompressedFileSize = info.decompressedFileSize;
 	offset = info.offset;
 	externalFile = info.externalFile;
 }
@@ -78,10 +82,35 @@ void fileInfo::setOffset(unsigned int _offset){
 void fileInfo::setExternalName(const PG::UTIL::File& _externalFile){
 	externalFile = _externalFile;
 }
+void fileInfo::setAsDummy(unsigned int _offset){
+	externalFile.clear();
+	name = "DUMMY.DAT";
+	size = 5;
+	offset = _offset;
+	decompressedFileSize = 0;
+}
+
 
 bool fileInfo::isExternalFile() const{
 	return !externalFile.isEmpty();
 }
+
+bool fileInfo::isCompressed() const{
+	return compressed;
+}
+bool fileInfo::isPackage() const{
+	return package;
+}
+bool fileInfo::isTexture() const{
+	return texture;
+}
+
+bool fileInfo::isValid() const{
+	if(name.getPath().empty() || size == 0 || (offset < 16 && !isExternalFile()) )
+		return false;
+	return true;
+}
+
 void fileInfo::clearExternalFile(){
 	externalFile.clear();
 }
@@ -89,13 +118,101 @@ void fileInfo::clear(){
 	name.clear();
 	size = 0;
 	offset = 0;
-	externalFile.clear();;
+	externalFile.clear();
+	decompressedFileSize = 0;
 }
 
 
 ExtractorBase::ExtractorBase() {
 	// TODO Auto-generated constructor stub
 
+}
+
+bool ExtractorBase::save(PercentIndicator* percent){
+	return save(getOpendFile(), percent);
+}
+
+bool ExtractorBase::insert(const PG::UTIL::File& file){
+	if(m_file.isEmpty()){
+		PG_ERROR_STREAM("No file opened.");
+		return FAILURE;
+	}
+
+	if(!file.exists()){
+		PG_ERROR_STREAM("File doesn't exist!");
+		return FAILURE;
+	}
+
+	PG::UTIL::File fileName = PG::UTIL::File(file.getFile()).toUpper();
+	//file is already inside?
+	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [fileName](const fileInfo& info){
+		return info.getName() == fileName;
+	});
+
+	if(it != m_fileInfos.end()){
+		(*it).externalFile = file;
+	}else{
+		fileInfo info(fileName, file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
+		info.externalFile = file;
+		m_fileInfos.push_back(info);
+	}
+
+	return SUCCESS;
+}
+
+bool ExtractorBase::remove(fileInfo& target){
+	std::vector<fileInfo>::iterator  it(&target);
+	const unsigned int index = std::distance(m_fileInfos.begin(), it);
+	if(it < m_fileInfos.end()){
+		if(index < m_originalFileSize){
+			if(target.name == "DUMMY.DAT"){
+				m_fileInfos.erase(it);
+			}else{
+				target.setAsDummy(target.offset);
+			}
+		}else{
+			m_fileInfos.erase(it);
+		}
+		m_changed = true;
+	}else{
+		PG_ERROR_STREAM("File '"<<target.getName()<<" found!");
+		return FAILURE;
+	}
+	return SUCCESS;
+}
+
+void ExtractorBase::clear(){
+	m_file.clear();
+	m_originalFileSize = 0;
+	m_fileInfos.clear();
+	m_changed = false;
+}
+
+bool ExtractorBase::find(const PG::UTIL::File& file, fileInfo& infoOut) const{
+	std::string name = file.getFile();
+	std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [name](const fileInfo& info){
+		return info.getName() == name;
+	});
+
+	if(it != m_fileInfos.end()){
+		infoOut = (*it);
+		return true;
+	}
+
+	return false;
+}
+
+bool ExtractorBase::isEmpty() const{
+	return m_fileInfos.empty();
+}
+
+unsigned int ExtractorBase::size() const{
+	return m_fileInfos.size();
+}
+
+const PG::UTIL::File& ExtractorBase::getOpendFile() const{
+	return m_file;
 }
 
 
@@ -113,7 +230,48 @@ bool ExtractorBase::exists(const PG::UTIL::File& file) const{
 	return false;
 }
 
-bool ExtractorBase::extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const{
+unsigned int ExtractorBase::extract(const fileInfo& target, char* (&data) ) const{
+	data = nullptr;
+	try{
+		if(target.isExternalFile()){
+			PG::STREAM::InByteFile reader(target.externalFile);
+			const unsigned int filesize = reader.size();
+			data = new char[filesize];
+			reader.read(data,filesize);
+			reader.close();
+			return filesize;
+		}else{
+			PG::STREAM::InByteFile reader(getOpendFile());
+
+			data = new char[target.getSize()];
+			reader.seek(target.getOffset());
+			reader.read(data,target.getSize() );
+			reader.close();
+			return target.getSize();
+		}
+	}catch (PG::UTIL::Exception& e) {
+		PG_ERROR_STREAM("Couldn't read file '"<<target.getName()<<"': "<<e.what());
+		if(data) delete[] data;
+		return 0;
+	}catch (...) {
+		PG_ERROR_STREAM("Couldn't write file '"<<target.getName()<<"'!");
+		if(data) delete[] data;
+		return 0;
+	}
+	return 0;
+}
+
+unsigned int ExtractorBase::extract(const PG::UTIL::File& file, char* (&data) ) const{
+	fileInfo info;
+	if(!find(file, info)){
+		PG_ERROR_STREAM("File '"<<file<<"' not found in archive!");
+		return 0;
+	}
+
+	return extract(info, data);
+}
+
+bool ExtractorBase::extract(const fileInfo& target, const PG::UTIL::File& targetFile ) const{
 	if(isEmpty() || getOpendFile().isEmpty()){
 		PG_ERROR_STREAM("No archive is opened.");
 		return true;
@@ -124,136 +282,151 @@ bool ExtractorBase::extract(const PG::UTIL::File& file, const PG::UTIL::File& ta
 		return true;
 	}
 
+	char* c = nullptr;
+	unsigned int size = extract(target, c);
+	if(size == 0){
+		if(c) delete[] c;
+		PG_ERROR_STREAM("Couldn't read target extract file!");
+		return FAILURE;
+	}
+
+	try{
+		PG::STREAM::OutByteFile writer(targetFile);
+		if(!writer.isOpen()){
+			PG_ERROR_STREAM("Couldn't create file '"<<targetFile<<"'!");
+			if(c) delete[] c;
+			return true;
+		}
+		writer.write(c, size);
+
+		delete[] c;
+		c = nullptr;
+
+		PG_INFO_STREAM("File extracted to '"<<targetFile<<"'.");
+	}catch (PG::UTIL::Exception& e) {
+		PG_ERROR_STREAM("Couldn't write file '"<<targetFile<<"': "<<e.what());
+		if(c) delete[] c;
+		return true;
+	}catch (...) {
+		PG_ERROR_STREAM("Couldn't write file '"<<targetFile<<"'!");
+		if(c) delete[] c;
+		return true;
+	}
+
+	return false;
+
+}
+
+bool ExtractorBase::extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const{
 	fileInfo info;
 	if(!find(file, info)){
 		PG_ERROR_STREAM("File '"<<file.getPath()<<"' not found in archive!");
 		return true;
 	}
 
-	if(info.size == 0 || (info.offset < 16 && !info.isExternalFile())){
+	if(!info.isValid()){
 		PG_ERROR_STREAM("File info is wrong!");
 		return true;
 	}
 
-	char* c = nullptr;
-	try{
-		if(info.isExternalFile()){
-			if(!info.externalFile.exists()){
-				PG_ERROR_STREAM("External file '"<<info.externalFile<<"' doesn't exist!");
-				return true;
-			}
-
-			PG::STREAM::InByteFile reader(info.externalFile);
-
-			const unsigned file_size = reader.size();
-
-			if(info.getSize() != file_size){
-				PG_WARN_STREAM("File '"<<info.externalFile<<"' size is different than expected! ("<<info.getSize()<<" != "<<file_size<<")");
-				info.setSize(file_size);
-			}
-
-			if(file_size == 0){
-				PG_ERROR_STREAM("File '"<<info.externalFile<<"' has a size of zero!");
-				return true;
-			}
-
-			c = new char[info.getSize()];
-			reader.read(c, info.getSize());
-			reader.close();
-
-			PG::STREAM::OutByteFile writer(targetFile);
-			writer.write(c,info.getSize() );
-			writer.close();
-
-			delete[] c;
-			c = nullptr;
-
-
-		}else{
-			PG::STREAM::InByteFile reader(getOpendFile());
-
-			c = new char[info.getSize()];
-			reader.seek(info.getOffset());
-			reader.read(c,info.getSize() );
-			reader.close();
-
-			PG::STREAM::OutByteFile writer(targetFile);
-			writer.write(c,info.getSize() );
-			writer.close();
-
-			delete[] c;
-			c = nullptr;
-		}
-		PG_INFO_STREAM("File extracted to '"<<targetFile<<"'.");
-
-	}catch (PG::UTIL::Exception& e) {
-		PG_ERROR_STREAM("Couldn't write file '"<<file<<"': "<<e.what());
-		if(c) delete[] c;
-		return true;
-	}catch (...) {
-		PG_ERROR_STREAM("Couldn't write file '"<<file<<"'!");
-		if(c) delete[] c;
-		return true;
-	}
-
-	return false;
+	return extract(info,targetFile);
 }
 
-unsigned int ExtractorBase::extract(const PG::UTIL::File& file, char* (&data) ) const{
-	if(isEmpty() || getOpendFile().isEmpty()){
-		PG_ERROR_STREAM("No PSPFS file opened.");
-		return 0;
-	}
-
-	fileInfo info;
-	if(!find(file, info)){
-		PG_ERROR_STREAM("File '"<<file<<"' not found in archive!");
-		return 0;
-	}
-
-	data = nullptr;
-	try{
-		if(info.isExternalFile()){
-			PG::STREAM::InByteFile reader(info.externalFile);
-			const unsigned int filesize = reader.size();
-			data = new char[filesize];
-			reader.read(data,filesize);
-			reader.close();
-			return filesize;
-		}else{
-			PG::STREAM::InByteFile reader(getOpendFile());
-
-			data = new char[info.getSize()];
-			reader.seek(info.getOffset());
-			reader.read(data,info.getSize() );
-			reader.close();
-			return info.getSize();
-		}
-	}catch (PG::UTIL::Exception& e) {
-		PG_ERROR_STREAM("Couldn't write file '"<<file<<"': "<<e.what());
-		if(data) delete[] data;
-		return 0;
-	}catch (...) {
-		PG_ERROR_STREAM("Couldn't write file '"<<file<<"'!");
-		if(data) delete[] data;
-		return 0;
-	}
-	return 0;
-}
 
 bool ExtractorBase::isChanged() const{
 	return m_changed;
 }
 
-bool ExtractorBase::checkValid(std::string& errorMessageOut) const{
+bool ExtractorBase::checkValid(std::string& errorMessageOut){
 	return true;
 }
 
+fileInfo& ExtractorBase::get(unsigned int index){
+	return m_fileInfos[index];
+}
+const fileInfo& ExtractorBase::get(unsigned int index) const{
+	return m_fileInfos[index];
+}
+
 const fileInfo& ExtractorBase::operator[](unsigned int index) const{
-	return get(index);
+	return m_fileInfos[index];
 }
 fileInfo* ExtractorBase::getDataPointer(unsigned int index) const{
-	return const_cast<fileInfo*>(&get(index));
+	return const_cast<fileInfo*>(&m_fileInfos[index]);
+}
+
+void ExtractorBase::getFileProperties(fileInfo& target) const{
+	if(isEmpty() || getOpendFile().isEmpty()){
+		PG_ERROR_STREAM("No archive is opened.");
+		return;
+	}
+
+	if(target.isValid()){
+		PG::STREAM::InByteFile reader(getOpendFile());
+		reader.seek(target.offset);
+		if( (target.decompressedFileSize = isIMYPackage(reader)) ){
+			reader.close();
+			target.compressed = (bool)target.decompressedFileSize;
+			target.package = true;
+			return;
+		}
+
+		reader.seek(target.offset);
+		if( isIMY(reader) ){
+			reader.close();
+			target.compressed = true;
+			return;
+		}
+
+		reader.seek(target.offset);
+		if( isTX2(reader)){
+			reader.close();
+			target.texture = true;
+			return;
+		}
+
+		reader.seek(target.offset);
+		if( isPSPFS(reader)){
+			reader.close();
+			target.package =true;
+			return;
+		}
+		reader.close();
+	}
+}
+
+bool ExtractorBase::replace(fileInfo& target,const PG::UTIL::File& file, bool keepName){
+	if(!file.exists()){
+		PG_ERROR_STREAM("Replacement file not found!")
+		return FAILURE;
+	}
+
+	if(!keepName){
+		target.name = file.getFile();
+		target.name = target.name.toUpper();
+	}
+	target.size = file.size();
+	target.externalFile = file;
+	m_changed = true;
+	return SUCCESS;
+}
+
+bool ExtractorBase::replace(const PG::UTIL::File& targetfile, const PG::UTIL::File& file, bool keepName){
+	fileInfo info; //will this work?
+	if(find(targetfile, info)){
+		return replace(info, file, keepName);
+	}
+	return FAILURE;
+}
+
+bool ExtractorBase::remove(const PG::UTIL::File& file){
+	fileInfo info;
+	if(!find(file, info)){
+		PG_ERROR_STREAM("File '"<<file.getPath()<<"' not found in archive!");
+		return FAILURE;
+	}
+
+	return remove(info);
 }
 
 ExtractorBase::~ExtractorBase() {
