@@ -21,4 +21,6 @@
  * Progress bars now actually shows the progress, instead of just spinning
  * Added new file icons (IMY and IMY pack)
  * The console window doesn't show up anymore
-	
+
+ ===  26.03.2016 - v0.4 (hotfix) ===
+ * In some cases the save button would not light up

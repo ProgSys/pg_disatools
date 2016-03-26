@@ -157,6 +157,8 @@ bool ExtractorBase::insert(const PG::UTIL::File& file){
 		m_fileInfos.push_back(info);
 	}
 
+	m_changed = true;
+
 	return SUCCESS;
 }
 
@@ -173,11 +175,11 @@ bool ExtractorBase::remove(fileInfo& target){
 		}else{
 			m_fileInfos.erase(it);
 		}
-		m_changed = true;
 	}else{
 		PG_ERROR_STREAM("File '"<<target.getName()<<" found!");
 		return FAILURE;
 	}
+	m_changed = true;
 	return SUCCESS;
 }
 
