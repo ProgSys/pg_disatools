@@ -23,4 +23,4 @@
  * The console window doesn't show up anymore
 
  ===  26.03.2016 - v0.4 (hotfix) ===
- * In some cases the save button would not light up
+ * Fixed in some cases the save button would not light up
