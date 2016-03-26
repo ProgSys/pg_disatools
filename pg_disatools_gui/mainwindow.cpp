@@ -383,7 +383,7 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 				if(temp->open()){
 					temp->close();
 					m_treeModel->extractFileName(pointedItem,temp->fileName());
-					QDesktopServices::openUrl(QUrl(temp->fileName()));
+					QDesktopServices::openUrl(QUrl("file:///"+temp->fileName()));
 					m_tempFiles.push_back(temp);
 				}else
 					delete temp;
@@ -392,7 +392,7 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 				if(temp->open()){
 					temp->close();
 					m_treeModel->saveImage(pointedItem,temp->fileName());
-					QDesktopServices::openUrl(QUrl(temp->fileName()));
+					QDesktopServices::openUrl(QUrl("file:///"+temp->fileName()));
 					m_tempFiles.push_back(temp);
 				}else
 					delete temp;
