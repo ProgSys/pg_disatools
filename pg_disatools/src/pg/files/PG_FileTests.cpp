@@ -151,6 +151,55 @@ bool isTX2(PG::STREAM::InByteFile& reader){
 	return true;
 }
 
+
+std::string getTX2CompressionType(PG::STREAM::InByteFile& reader){
+	reader.skip(4);
+	const unsigned short type = reader.readUnsignedShort();
+
+	switch (type) {
+		case tx2Type::DXT1:
+		{
+			return "DXT1";
+		}
+			break;
+		case tx2Type::DXT5:
+		{
+			return "DXT5";
+		}
+			break;
+		case tx2Type::BGRA:
+		{
+			return "BGRA";
+		}
+			break;
+		case tx2Type::COLORTABLE_RGBA256:
+		{
+			return "COLORTABLE RGBA256";
+		}
+			break;
+		case tx2Type::COLORTABLE_BGRA256:
+		{
+			return "COLORTABLE BGRA256";
+		}
+			break;
+		case tx2Type::COLORTABLE_BGRA16:
+		{
+			return "COLORTABLE BGRA16";
+		}
+			break;
+		case tx2Type::COLORTABLE_RGBA16:
+		{
+			return "COLORTABLE RGBA16";
+		}
+			break;
+		default:
+			return false;
+			break;
+	}
+
+	return "";
+}
+
 bool isPSPFS(PG::STREAM::InByteFile& reader){
 	if(reader.readString(8) == "PSPFS_V1"){
 		return true;

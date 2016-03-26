@@ -355,40 +355,52 @@ fileInfo* ExtractorBase::getDataPointer(unsigned int index) const{
 	return const_cast<fileInfo*>(&m_fileInfos[index]);
 }
 
-void ExtractorBase::getFileProperties(fileInfo& target) const{
+void ExtractorBase::getFileProperties(fileProperties& target) const{
 	if(isEmpty() || getOpendFile().isEmpty()){
 		PG_ERROR_STREAM("No archive is opened.");
 		return;
 	}
 
-	if(target.isValid()){
+	if(target.info.isValid()){
 		PG::STREAM::InByteFile reader(getOpendFile());
-		reader.seek(target.offset);
-		if( (target.decompressedFileSize = isIMYPackage(reader)) ){
+		if(!reader.isopen()) return;
+		reader.seek(target.info.offset);
+		if( (target.info.decompressedFileSize = isIMYPackage(reader)) ){
 			reader.close();
-			target.compressed = (bool)target.decompressedFileSize;
-			target.package = true;
+			target.info.compressed = (bool)target.info.decompressedFileSize;
+			target.info.package = true;
+			target.info.texture = false;
 			return;
 		}
 
-		reader.seek(target.offset);
+		reader.seek(target.info.offset);
 		if( isIMY(reader) ){
 			reader.close();
-			target.compressed = true;
+			target.info.compressed = true;
+			target.info.package = false;
+			target.info.texture = false;
 			return;
 		}
 
-		reader.seek(target.offset);
+		reader.seek(target.info.offset);
 		if( isTX2(reader)){
+
+			target.info.compressed = false;
+			target.info.package = false;
+			target.info.texture = true;
+
+			reader.seek(target.info.offset);
+			target.textureCompression = getTX2CompressionType(reader);
 			reader.close();
-			target.texture = true;
 			return;
 		}
 
-		reader.seek(target.offset);
+		reader.seek(target.info.offset);
 		if( isPSPFS(reader)){
 			reader.close();
-			target.package =true;
+			target.info.compressed = false;
+			target.info.package = true;
+			target.info.texture = false;
 			return;
 		}
 		reader.close();
@@ -399,6 +411,25 @@ bool ExtractorBase::replace(fileInfo& target,const PG::UTIL::File& file, bool ke
 	if(!file.exists()){
 		PG_ERROR_STREAM("Replacement file not found!")
 		return FAILURE;
+	}
+
+	//tests
+	if(isIMY(file)){
+		target.compressed = true;
+		target.package = false;
+		target.texture = false;
+	}else if(isTX2(file)){
+		target.compressed = false;
+		target.package = false;
+		target.texture = true;
+	}else if(isIMYPackage(file)){
+		target.compressed = true;
+		target.package = true;
+		target.texture = false;
+	}else{
+		target.compressed = false;
+		target.package = false;
+		target.texture = false;
 	}
 
 	if(!keepName){

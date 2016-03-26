@@ -29,7 +29,7 @@
 #include <pg/files/PG_PSPFS.h>
 #include <pg/files/PG_StartDAT.h>
 #include <pg/files/PG_FileTests.h>
-
+#include <pg/files/PG_IMY.h>
 
 
 TreeModel::TreeModel(QObject *parent)
@@ -48,6 +48,9 @@ TreeModel::TreeModel(const QString &data, QObject *parent)
 
 bool TreeModel::open(const QString &file){
 	if(m_fileExtractor) delete m_fileExtractor;
+    for(QTemporaryFile* temp: m_tempFiles)
+    	delete temp;
+    m_tempFiles.clear();
 	QAbstractItemModel::layoutAboutToBeChanged();
 
 	QFileInfo fileInfo(file);
@@ -153,7 +156,7 @@ int TreeModel::add(const QStringList &files){
 }
 
 bool TreeModel::replace(const QModelIndex& index, const QString &file, bool keepName){
-	if(!m_fileExtractor || file.isEmpty() || !index.isValid()) return 0;
+	if(!m_fileExtractor || file.isEmpty() || !index.isValid()) return false;
 
 	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
 	if(m_fileExtractor->replace(*item, file.toStdString(), keepName)){
@@ -195,6 +198,58 @@ unsigned int TreeModel::remove(QList<PG::FILE::fileInfo*>& indices ){
 	return removed;
 }
 
+bool TreeModel::decompresIMYPack(const QModelIndex& index){
+	if(!m_fileExtractor || !index.isValid()) return false;
+	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
+	if(!item || !item->isCompressed() || !item->isPackage() ){
+		qInfo() << "File isn't a IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
+		return false;
+	}
+
+	QTemporaryFile* temp = new QTemporaryFile(QString::fromStdString(item->name.getPath()) , this);
+	if(!temp->open()){
+		delete temp;
+		qInfo() << "Couldn't create temp file for IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
+		return false;
+	}
+	temp->close();
+	m_tempFiles.push_back(temp);
+
+	char * c = nullptr;
+	unsigned int sile_size = 0;
+	if( (sile_size = m_fileExtractor->extract(*item, c)) == 0){
+		if(c) delete c;
+		qInfo() << "Couldn't extract IMY pack: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		return false;
+	}
+
+	const std::string fileName =  temp->fileName().toStdString();
+	PG::FILE::decompressIMYPackage(c,sile_size, fileName, &m_percentIndicator);
+
+	return replace(index, temp->fileName(), true);
+}
+
+bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString &filepath) const{
+	if(!m_fileExtractor || !index.isValid() || filepath.isEmpty()) return false;
+	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
+	if(!item || !item->isCompressed() || !item->isPackage() ){
+		qInfo() << "File isn't a IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
+		return false;
+	}
+
+	char * c = nullptr;
+	unsigned int sile_size = 0;
+	if( (sile_size = m_fileExtractor->extract(*item, c)) == 0){
+		if(c) delete c;
+		qInfo() << "Couldn't extract IMY pack: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		return false;
+	}
+
+	PG::FILE::decompressIMYPackage(c,sile_size, filepath.toStdString(), &m_percentIndicator);
+	return true;
+}
+
+
 bool TreeModel::hasDataChanged() const{
 	return m_fileExtractor->isChanged();
 }
@@ -208,6 +263,9 @@ bool TreeModel::save(){
 		QAbstractItemModel::layoutChanged();
 		return false;
 	}
+    for(QTemporaryFile* temp: m_tempFiles)
+    	delete temp;
+  		m_tempFiles.clear();
 	//bool success = open(QString::fromStdString(file.getPath()));
 	QAbstractItemModel::layoutChanged();
 	return true;
@@ -231,24 +289,26 @@ bool TreeModel::saveAs(const QString& filepath){
     return false;
 }
 
-bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha) const{
+bool TreeModel::getImage(const QModelIndex& index, PG::UTIL::RGBAImage& imageOut, bool alpha) const{
 	if(!m_fileExtractor) return false;
 
-	QFileInfo info(file);
-	if(info.suffix() != "TX2"){
-		qInfo() << "File is not a TX2: '"<<file<<"'";
+	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
+
+	if(item->name.getFileExtension() != "TX2"){
+		qInfo() << "File is not a TX2: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return true;
 	}
 
 	char * c = nullptr;
 	unsigned int sile_size = 0;
-	if( (sile_size = m_fileExtractor->extract(file.toStdString(), c)) == 0){
-		qInfo() << "Couldn't extract image file: '"<<file<<"'";
+	if( (sile_size = m_fileExtractor->extract(*item, c)) == 0){
+		if(c) delete c;
+		qInfo() << "Couldn't extract image file: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return true;
 	}
 
 	if(PG::FILE::decompressTX2(c, sile_size, imageOut)){
-		qInfo() << "Couldn't decompress TX2 image file: '"<<file<<"'";
+		qInfo() << "Couldn't decompress TX2 image file: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		if(c) delete[] c;
 		return true;
 	}
@@ -268,12 +328,12 @@ bool TreeModel::getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, boo
 	return false;
 }
 
-bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) const{
+bool TreeModel::setGraphicsScene(const QModelIndex& index, QGraphicsScene* scene) const{
 	if(!m_fileExtractor) return false;
 
 	PG::UTIL::RGBAImage img;
-	if(getImage(file, img, false)){
-		qInfo() << "Couldn't open image file: '"<<file<<"'";
+	if(getImage(index, img, false)){
+		qInfo() << "Couldn't open image file!";
 		return true;
 	}
 
@@ -289,7 +349,6 @@ bool TreeModel::setGraphicsScene(const QString &file, QGraphicsScene* scene) con
 
 }
 
-
 QVariant TreeModel::data(const QModelIndex &index, int role) const{
     if (!m_fileExtractor || !index.isValid())
         return QVariant();
@@ -301,7 +360,14 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
     QString exp = QString::fromStdString(item->getFileExtension());
 
     if(role == Qt::DecorationRole && index.column() == 0){
-			if(exp == "PNG" || exp == "TX2")
+    		if(item->isCompressed())
+    			if(item->isPackage())
+    				return QPixmap("resources/compress.png");
+    			else
+    				return QPixmap("resources/compress_file.png");
+    		else if(item->isPackage())
+    			return QPixmap("resources/archive.png");
+    		else if(exp == "PNG" || exp == "TX2")
 				return QPixmap("resources/image.png");
 			else if(exp == "OGG")
 				return QPixmap("resources/note.png");
@@ -395,15 +461,18 @@ int TreeModel::rowCount(const QModelIndex &parent) const{
 	return m_fileExtractor->size();
 }
 
-bool TreeModel::saveImage(const QString& imagename, const QString& targetfile){
+bool TreeModel::saveImage(const QModelIndex& index, const QString& targetfile){
 	if(!m_fileExtractor) return false;
 	PG::UTIL::RGBAImage img;
-	if(getImage(imagename, img, true)){
-		qInfo() << "Couldn't extract image file: '"<<imagename<<"'";
+
+
+
+	if(getImage(index, img, true)){
+		qInfo() << "Couldn't extract image file.";
 		return false;
 	}
 
-	qInfo() <<" Trying to export image '"<<imagename<<"' to '"<<targetfile<<"'.";
+	qInfo() <<" Trying to export image to '"<<targetfile<<"'.";
 
 	QFileInfo fInfo(targetfile);
 	QString ext = fInfo.suffix();
@@ -456,12 +525,14 @@ float TreeModel::getProgress() const{
 	return m_percentIndicator.percent;
 }
 
-void TreeModel::getFileProperties(PG::FILE::fileInfo& target) const{
+void TreeModel::getFileProperties(PG::FILE::fileProperties& target) const{
 	if(m_fileExtractor) m_fileExtractor->getFileProperties(target);
 }
 
 TreeModel::~TreeModel(){
 	if(m_fileExtractor) delete m_fileExtractor;
+    for(QTemporaryFile* temp: m_tempFiles)
+    	delete temp;
 }
 
 

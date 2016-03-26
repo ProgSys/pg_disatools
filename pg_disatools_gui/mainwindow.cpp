@@ -32,20 +32,32 @@
 #include <QModelIndex>
 #include <QDesktopServices>
 #include <QTemporaryFile>
+#include <QMutableListIterator>
 
 #include <iostream>
 
 #define WINTITLE "Disa PC File Manager v0.4 alpha"
+
+inline void openProgress(QProgressDialog& progress){
+	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
+	progress.setWindowTitle("Please wait.");
+	progress.setWindowModality(Qt::WindowModal);
+	progress.setLabelText("Saving in progress.");
+	progress.setCancelButton(0);
+	progress.setRange(0,101);
+	progress.show();
+}
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setWindowIcon(QIcon("resources/disa_tools_icon.ico"));
 
     setWindowTitle(WINTITLE);
 
-    m_tempFile = nullptr;
     m_treeModel = new TreeModel(this);
     //m_treeModel = new TreeModel("C:/Users/ProgSys/Desktop/Disgaea/PC/DATA.DAT",this);
 
@@ -91,8 +103,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->statusBar->showMessage("Please open a .DAT or .MPP.");
 
-
-    connect(this, SIGNAL(saveImage(const QString&, const QString&)), m_treeModel, SLOT(saveImage(const QString&, const QString&)));
+    connect(this, SIGNAL(saveImage(const QModelIndex&, const QString&)), m_treeModel, SLOT(saveImage(const QModelIndex&, const QString&)));
     connect(ui->btnExtractImage, SIGNAL(clicked()), this, SLOT(saveSelectedImage()));
     connect(this, SIGNAL(openFile(const QString&)), m_treeModel, SLOT(open(const QString&)));
 
@@ -100,8 +111,29 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+
+	bool deletionFailed = false;
+	{
+		QMutableListIterator<QTemporaryFile*> it(m_tempFiles);
+		while (it.hasNext()) {
+			it.next();
+			if(it.value()->remove()){
+				delete it.value();
+				it.remove();
+			}else
+				deletionFailed = true;
+		}
+	}
+
+
+	if(deletionFailed){
+		QMessageBox::critical(0,"Error","Couldn't delete some temporary files, because they are still in use by other applications.");
+	}
+
+    for(QTemporaryFile* temp: m_tempFiles)
+    	delete temp;
+
     delete ui;
-    if(m_tempFile) delete m_tempFile;
 }
 
 void MainWindow::on_btnAbout_clicked()
@@ -115,7 +147,10 @@ void MainWindow::on_btnAbout_clicked()
     			"This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.<br>"\
     			"Note that the position of most files in .DAT is hardcoded,<br> deleting files could break the file order and so the archive itself.<br>"\
 				"You can find the source code here: <a href='https://github.com/ProgSys/pg_disatools/'>https://github.com/ProgSys/pg_disatools</a><br>"
-                "<br><b>GNU Lesser General Public License (LGPL):</b> <br>"
+
+				"<br>Thank you <b>Krisan Thyme</b> for helping out understanding all the file formats!<br>"
+
+				"<br><b>GNU Lesser General Public License (LGPL):</b> <br>"
 				"<br>Copyright (C) 2016  ProgSys"\
                 "<br><br>This program is free software: you can redistribute it and/or modify"\
                 "<br>it under the terms of the GNU Lesser General Public License as published by"\
@@ -246,17 +281,17 @@ void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSe
 
 	 ui->btnExtract->setEnabled(true);
 	 ui->btnDelete->setEnabled(true);
+	QModelIndex index = m_treeSort->mapToSource(selected[0]);
+	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
+	if(!item || !index.isValid()) return;
 
-
-		QMap<int, QVariant> item = m_treeSort->itemData(selected[0]);
-		if(item.empty() || !item[0].isValid()) return;
-        QString itemName = item[0].toString();
+        QString itemName = QString::fromStdString(item->name.getPath());
         if( itemName.contains(".TX2")){
             ui->btnExtractImage->setEnabled(true);
             ui->btnExtractImage->setText(QString("Export %1").arg(itemName));
             if(ui->imagePreview->isPreviewEnabled()){
                 qDebug() << "Trying to open image preview: "<<itemName;
-                m_treeModel->setGraphicsScene(itemName,scene);
+                m_treeModel->setGraphicsScene(index,scene);
                 ui->imagePreview->fitInView(scene->itemsBoundingRect() ,Qt::KeepAspectRatio);
                 ui->imagePreview->setShowsImage(true);
             }else{
@@ -282,19 +317,37 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 		QAction* action_Info = menu.addAction("File info");
 		menu.addSeparator();
 		QAction* action_replace = menu.addAction("Replace");
+		action_replace->setToolTip("Replace the selected file.");
 		QAction* action_replaceKeep = menu.addAction("Replace, keep name");
+		action_replaceKeep->setToolTip("Replace the selected file but keep the original name.");
 		menu.addSeparator();
-		QAction* action_playOGG = menu.addAction("Play");
-		if(item->getFileExtension() != "OGG"){
-			action_playOGG->setEnabled(false);
+		QAction* action_open = nullptr;
+		const std::string ext = item->getFileExtension();
+		if(ext == "OGG"){
+			action_open = menu.addAction("Play");
+			action_open->setToolTip("Play the OGG in your default app.");
+		}else if(ext == "TX2"){
+			action_open = menu.addAction("Open");
+			action_open->setToolTip("Open the TX2 as a PNG in your default app.");
+		}
+		QAction* action_decompress = nullptr;
+		QAction* action_decompress_replace= nullptr;
+		if(item->isCompressed() && item->isPackage()){
+			action_decompress = menu.addAction("Decompress");
+			action_decompress->setToolTip("Decompress the IMY package.");
+			action_decompress_replace = menu.addAction("Decompress and Replace");
+			action_decompress_replace->setToolTip("Decompress the IMY package and add it back to the archive.");
 		}
 
 		QAction* selectedAction = menu.exec(ui->treeView->viewport()->mapToGlobal(pos));
 
-		if(action_Info == selectedAction){
+		if(nullptr == selectedAction)
+			return;
+		else if(action_Info == selectedAction){
             FileInfoBox infobox(this);
-            m_treeModel->getFileProperties(*item);
-            infobox.setModel(item);
+            PG::FILE::fileProperties properties(*item);
+            m_treeModel->getFileProperties(properties);
+            infobox.setModel(properties);
             infobox.exec();
 		}else if(action_replace == selectedAction || action_replaceKeep == selectedAction){
 
@@ -312,18 +365,84 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 				ui->btnSaveAs->setEnabled(true);
 			}
 
-		}else if(action_playOGG  == selectedAction ){
+		}else if(action_open  == selectedAction ){
 			QString tempFile = QString::fromStdString(item->name.getName());
-			if(m_tempFile) delete m_tempFile;
-			m_tempFile = new QTemporaryFile(tempFile+"XXXXXX.OGG", this);
-			m_tempFile->setAutoRemove(true);
-			m_tempFile->open();
+			{
+				QMutableListIterator<QTemporaryFile*> it(m_tempFiles);
+				while (it.hasNext()) {
+					it.next();
+					if(it.value()->remove()){
+						delete it.value();
+						it.remove();
+					}
+				}
+			}
 
-			m_treeModel->extractFileName(pointedItem,m_tempFile->fileName());
-			qDebug()<<tempFile;
-			//temp.setAutoRemove(true)
-			//temp.setAutoRemove(true);
-		    QDesktopServices::openUrl(QUrl(m_tempFile->fileName()));
+			if(ext == "OGG"){
+				QTemporaryFile* temp = new QTemporaryFile(tempFile+"-tempXXXXXX.OGG", this);
+				if(temp->open()){
+					temp->close();
+					m_treeModel->extractFileName(pointedItem,temp->fileName());
+					QDesktopServices::openUrl(QUrl(temp->fileName()));
+					m_tempFiles.push_back(temp);
+				}else
+					delete temp;
+			}else if(ext == "TX2"){
+				QTemporaryFile* temp = new QTemporaryFile(tempFile+"-tempXXXXXX.png", this);
+				if(temp->open()){
+					temp->close();
+					m_treeModel->saveImage(pointedItem,temp->fileName());
+					QDesktopServices::openUrl(QUrl(temp->fileName()));
+					m_tempFiles.push_back(temp);
+				}else
+					delete temp;
+			}
+		}else if(action_decompress == selectedAction){
+	    	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+	    										QString::fromStdString(item->name.getPath()), "Any (*)");
+	    	if(fileName.isEmpty() || fileName.isNull()){
+				ui->statusBar->showMessage("Invalid extract file.");
+				return;
+			}
+
+	    	setEnabled(false);
+	    	QProgressDialog progress;
+	    	openProgress(progress);
+
+	    	QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::decompresIMYPack,pointedItem,fileName );
+	    	while(f1.isRunning()){
+	    		progress.setValue(m_treeModel->getProgress());
+	    		QApplication::processEvents();
+	    	}
+	        if(f1.result()){
+	        	ui->statusBar->showMessage(QString("Extracted decompresed IMY to: %1").arg(fileName));;
+	        }else{
+	        	ui->statusBar->showMessage(QString("Failed to decompres IMY!"));
+	        }
+
+	        setEnabled(true);
+		}else if(action_decompress_replace == selectedAction){
+	    	setEnabled(false);
+	    	QProgressDialog progress;
+	    	openProgress(progress);
+
+	    	QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::decompresIMYPack,pointedItem );
+	    	while(f1.isRunning()){
+	    		progress.setValue(m_treeModel->getProgress());
+	    		QApplication::processEvents();
+	    	}
+	        if(f1.result()){
+	        	ui->statusBar->showMessage(QString("Decompresed IMY pack %1").arg(QString::fromStdString(item->name.getPath())));
+	        }else{
+	        	ui->statusBar->showMessage(QString("Failed to decompres pack IMY!"));
+	        }
+
+	        if(m_treeModel->hasDataChanged()){
+	        	ui->btnSave->setEnabled(true);
+	        	ui->btnSaveAs->setEnabled(true);
+	        }
+
+	        setEnabled(true);
 		}
 
 	}
@@ -332,13 +451,14 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 void MainWindow::saveSelectedImage(){
 
 	QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
-	if(selected.isEmpty() || !selected[0].isValid()) return;
-	QMap<int, QVariant> item = m_treeSort->itemData(selected[0]);
+	if(selected.isEmpty()) return;
+	QModelIndex index = m_treeSort->mapToSource(selected[0]);
+	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
+	if(!item || !index.isValid()) return;
 
-	QString image = item[0].toString();
-	if(!image.contains(".TX2")) return;
+	QString imageFileName = QString::fromStdString(item->name.getPath());
+	if(!imageFileName.contains(".TX2")) return;
 
-	QString imageFileName = image;
 	imageFileName.replace(".TX2","");
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Save Image"),
 									imageFileName,
@@ -347,7 +467,7 @@ void MainWindow::saveSelectedImage(){
 	if (fileName.isEmpty()) return;
 
 
-	if(emit saveImage(image, fileName)){
+	if(emit saveImage(index, fileName)){
 		ui->statusBar->showMessage(QString("Image saved to %1").arg(fileName));
 	}else{
 		ui->statusBar->showMessage("Coudn't export image!");
@@ -371,30 +491,41 @@ void MainWindow::on_btnExtract_clicked()
         return;
     }
 
-	QString dir = QFileDialog::getExistingDirectory(this, tr("Extract Directory"), "/home",QFileDialog::ShowDirsOnly
-	                                             | QFileDialog::DontResolveSymlinks);
-
-	if(dir.isEmpty() || dir.isNull()){
-		ui->statusBar->showMessage("Invalid extract directory.");
-		return;
-	}
-
 	QModelIndexList selectedSource;
-	for(const QModelIndex& index: selected){
+	for(const QModelIndex& index: selected)
 		selectedSource.push_back(m_treeSort->mapToSource(index));
-	}
+
 
 	if(selectedSource.size() == 1){
-		if(m_treeModel->extractFile(selectedSource[0], dir)){
+		const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(selectedSource[0].internalPointer());
+
+    	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+    										QString::fromStdString(item->name.getPath()), "Any (*)");
+
+    	if(fileName.isEmpty() || fileName.isNull()){
+    		ui->statusBar->showMessage("Invalid extract file.");
+    		return;
+    	}
+
+		if(m_treeModel->extractFileName(selectedSource[0], fileName)){
 			ui->statusBar->showMessage(QString("Failed to extract file!"));
 		}else{
-			ui->statusBar->showMessage(QString("Extracted file to: %1").arg(dir));;
+			ui->statusBar->showMessage(QString("Extracted file to: %1").arg(fileName));;
 		}
 	}else{
+
+		QString dir = QFileDialog::getExistingDirectory(this, tr("Extract Directory"), "/home",QFileDialog::ShowDirsOnly
+		                                             | QFileDialog::DontResolveSymlinks);
+
+		if(dir.isEmpty() || dir.isNull()){
+			ui->statusBar->showMessage("Invalid extract directory.");
+			return;
+		}
+
     	setEnabled(false); //disable main window
 
     	QProgressDialog progress;
-    	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
     	progress.setWindowTitle("Please wait.");
     	progress.setWindowModality(Qt::WindowModal);
     	progress.setLabelText("Extraction in progress.");
@@ -432,7 +563,7 @@ void MainWindow::on_btnInsert_clicked()
 
 
 		QProgressDialog progress;
-		progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+		progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
 		progress.setWindowTitle("Please wait.");
 		progress.setWindowModality(Qt::WindowModal);
 		progress.setLabelText("Extraction in progress.");
@@ -480,13 +611,7 @@ void MainWindow::on_btnSave_clicked()
 
     	setEnabled(false);
     	QProgressDialog progress;
-    	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
-    	progress.setWindowTitle("Please wait.");
-    	progress.setWindowModality(Qt::WindowModal);
-    	progress.setLabelText("Saving in progress.");
-    	progress.setCancelButton(0);
-    	progress.setRange(0,101);
-    	progress.show();
+    	openProgress(progress);
 
     	QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::save);
     	while(f1.isRunning()){
@@ -534,7 +659,7 @@ void MainWindow::on_btnSaveAs_clicked()
     	setEnabled(false); //disable main window
 
     	QProgressDialog progress;
-    	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint);
+    	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
     	progress.setWindowTitle("Please wait.");
     	progress.setWindowModality(Qt::WindowModal);
     	progress.setLabelText("Saving in progress.");

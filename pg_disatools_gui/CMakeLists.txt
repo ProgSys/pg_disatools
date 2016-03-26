@@ -129,13 +129,24 @@ message (${PG_LOADERS_SRC})
 # pg_disatools_gui
 #===============================================
 
-add_executable(
+if(DEBUG_COMPILE)
+add_executable( 
 	pg_disatools_gui
 		${PG_LOADERS_HEADERS}
 		${PG_LOADERS_SRC}
 		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}
 		
 )
+else()
+add_executable( 
+	pg_disatools_gui
+		WIN32
+		${PG_LOADERS_HEADERS}
+		${PG_LOADERS_SRC}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}
+		
+)
+endif()
 
 target_link_libraries(
 	pg_disatools_gui

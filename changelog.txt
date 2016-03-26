@@ -10,6 +10,15 @@
  * other .DAT files now use there own .csv filetable, if one has bean found in the resources folder
  * swapped Red and Blue color channels for color table 16 and 256 .TX2
 
- ===  ? - v0.3.9 ===
+ ===  26.03.2016 - v0.4 ===
  * Added support for decompressing IMY files
  * Fixed char overflow in S3 compression
+ * Added right click menu list entries
+	- You can replace a entry
+	- If it is a OGG or TX2 you can play/open it in your default app
+	- If it is a IMY compressed package you can decompress it
+ * Changed entries now have a '*' next to there names
+ * Progress bars now actually show the progress, instead of just spinning
+ * Added new file icons (IMY and IMY pack)
+ * The console window doesn't show up anymore
+	

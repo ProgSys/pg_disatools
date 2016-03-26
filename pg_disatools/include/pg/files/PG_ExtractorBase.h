@@ -29,6 +29,8 @@
 #include <pg/util/PG_File.h>
 #include <memory>
 
+#include <pg/util/PG_PercentIndicator.h>
+
 namespace PG {
 namespace FILE {
 
@@ -39,10 +41,6 @@ public:
 	virtual void clear() = 0;
 
 	virtual ~FileInfoExtra();
-};
-
-struct PercentIndicator{
-	float percent;
 };
 
 struct fileInfo{
@@ -84,6 +82,12 @@ struct fileInfo{
 
 	void clearExternalFile();
 	void clear();
+};
+
+struct fileProperties{
+	fileProperties(fileInfo& fInfo): info(fInfo){}
+	fileInfo& info;
+	std::string textureCompression;
 };
 
 class ExtractorBase {
@@ -145,7 +149,7 @@ public:
 	const fileInfo& operator[](unsigned int index) const;
 	fileInfo* getDataPointer(unsigned int index) const;
 
-	void getFileProperties(fileInfo& target) const;
+	void getFileProperties(fileProperties& target) const;
 
 	virtual ~ExtractorBase();
 protected:

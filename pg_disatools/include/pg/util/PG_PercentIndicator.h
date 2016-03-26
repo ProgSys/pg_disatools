@@ -21,30 +21,12 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_FILES_PG_FILETESTS_H_
-#define INCLUDE_PG_FILES_PG_FILETESTS_H_
+#ifndef INCLUDE_PG_UTIL_PG_PERCENTINDICATOR_H_
+#define INCLUDE_PG_UTIL_PG_PERCENTINDICATOR_H_
 
-#include <pg/util/PG_File.h>
-#include <pg/stream/PG_StreamInByteFile.h>
+struct PercentIndicator{
+	float percent;
+};
 
-namespace PG {
-namespace FILE {
 
-bool isIMY(const PG::UTIL::File& file);
-bool isIMY(PG::STREAM::InByteFile& reader);
-
-unsigned int isIMYPackage(const PG::UTIL::File& file);
-unsigned int isIMYPackage(PG::STREAM::InByteFile& reader);
-
-bool isTX2(const PG::UTIL::File& file);
-bool isTX2(PG::STREAM::InByteFile& reader);
-
-std::string getTX2CompressionType(PG::STREAM::InByteFile& reader);
-
-bool isPSPFS(PG::STREAM::InByteFile& reader);
-bool isPSPFS(const PG::UTIL::File& file);
-
-} /* namespace FILE */
-} /* namespace PG */
-
-#endif /* INCLUDE_PG_FILES_PG_FILETESTS_H_ */
+#endif /* INCLUDE_PG_UTIL_PG_PERCENTINDICATOR_H_ */

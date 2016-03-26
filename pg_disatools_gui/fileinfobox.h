@@ -31,7 +31,7 @@ class FileInfoBox : public QDialog
 
 public:
     explicit FileInfoBox(QWidget *parent = 0);
-    void setModel(const PG::FILE::fileInfo* info);
+    void setModel(const PG::FILE::fileProperties& info);
     ~FileInfoBox();
 
 private slots:

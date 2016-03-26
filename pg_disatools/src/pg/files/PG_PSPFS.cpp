@@ -96,7 +96,22 @@ bool PSPFS::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 info.setSize(reader.readUnsignedInt());
 			 info.setOffset(reader.readUnsignedInt());
 
-			 //if(info.name != "DUMMY.DAT")
+			 //tests
+			 const unsigned int current_pos = reader.pos();
+			 reader.seek(info.offset);
+
+			 if(isIMYPackage(reader)){
+				 info.compressed = true;
+				 info.package = true;
+			 }else{
+				 reader.seek(current_pos);
+				 if(isIMY(reader)){
+					 info.compressed = true;
+				 }
+			 }
+
+			 reader.seek(current_pos);
+
 			 m_fileInfos.push_back(info);
 		 }
 
@@ -362,10 +377,8 @@ bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 					c = nullptr;
 					next_file_offset += current_info.getSize();
 				}
-
-				file_infos.push_back(current_info);
 			}
-
+			file_infos.push_back(current_info);
 
 
 		}// for loop end

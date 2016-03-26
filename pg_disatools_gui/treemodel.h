@@ -43,7 +43,7 @@ public:
 
     bool hasDataChanged() const;
 
-    bool setGraphicsScene(const QString &file, QGraphicsScene* scene) const;
+    bool setGraphicsScene(const QModelIndex& index, QGraphicsScene* scene) const;
 
     //void hideFiles(const QString &extention, bool hide);
 
@@ -58,14 +58,14 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
 
     float getProgress() const;
-    void getFileProperties(PG::FILE::fileInfo& target) const;
+    void getFileProperties(PG::FILE::fileProperties& target) const;
 
     virtual ~TreeModel();
 public slots:
 	bool open(const QString &file);
     bool save();
     bool saveAs(const QString& filepath);
-    bool saveImage(const QString& imagename, const QString& targetfile);
+    bool saveImage(const QModelIndex& index, const QString& targetfile);
 
     bool addFile(const QString &file);
     int add(const QStringList &files);
@@ -76,6 +76,9 @@ public slots:
     bool extractFile(const QModelIndex& index, const QString &dir) const;
     int extract(const QModelIndexList& indeces, const QString &dir) const;
 
+    bool decompresIMYPack(const QModelIndex& index); //decompres IMY pack and add it back in into the archive
+    bool decompresIMYPack(const QModelIndex& index, const QString &filepath) const; //save the decompress IMY pack as a seperate file
+
     bool checkIsValid(QString& outMessage) const;
 
     QString getOpenedFileName() const;
@@ -84,13 +87,14 @@ public slots:
 private:
 
     PG::FILE::ExtractorBase* m_fileExtractor;
-    mutable PG::FILE::PercentIndicator m_percentIndicator;
+    mutable PercentIndicator m_percentIndicator;
     QString m_openedFileType;
+    QList<QTemporaryFile*> m_tempFiles;
 
     std::vector<std::string> m_hideExtentions;
 
 
-    bool getImage(const QString &file, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
+    bool getImage(const QModelIndex& index, PG::UTIL::RGBAImage& imageOut, bool alpha = true) const;
 
 };
 

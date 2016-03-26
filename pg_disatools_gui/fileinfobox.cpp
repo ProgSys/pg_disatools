@@ -30,23 +30,23 @@ FileInfoBox::~FileInfoBox()
     delete ui;
 }
 
-void FileInfoBox::setModel(const PG::FILE::fileInfo* info){
-	if(!info) return;
-	ui->label_Name->setText(QString::fromStdString(info->name.getPath()));
-	ui->label_Size->setText(QString::number(info->size));
-	ui->label_offset->setText(QString::number(info->offset));
+void FileInfoBox::setModel(const PG::FILE::fileProperties& info){
+	ui->label_Name->setText(QString::fromStdString(info.info.name.getPath()));
+	ui->label_Size->setText(QString::number(info.info.size));
+	ui->label_offset->setText(QString::number(info.info.offset));
 
-	if(info->isExternalFile())
+	if(info.info.isExternalFile())
 		ui->label_external->setText("Yes");
 
-	if(info->isPackage())
+	if(info.info.isPackage())
 		ui->label_pack->setText("Yes");
 
-	if(info->isCompressed())
+	if(info.info.isCompressed())
 		ui->label_imy->setText("Yes");
 
-	if(info->isTexture())
-		ui->label_img->setText("Yes");
+	if(info.info.isTexture())
+		ui->label_img->setText(QString::fromStdString(info.textureCompression));
+
 }
 
 void FileInfoBox::on_btnClose_clicked()

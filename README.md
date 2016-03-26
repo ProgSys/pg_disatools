@@ -10,7 +10,7 @@ You can download the latest version of the tools here:
 * [Version v0.3.5 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.5%20alpha.zip)
 * [Version v0.3.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.7%20alpha.zip)
 * [Version v0.3.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.8%20alpha.zip)
-
+* [Version v0.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
 
 ###Content
 #### Disa PC File Manager
@@ -18,7 +18,7 @@ You can download the latest version of the tools here:
 This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.
 Note that the position of most files in .DAT is hardcoded, deleting files could break the file order and so the archive itself.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview6.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview7.png)
 
 #### TX2Converter.exe
 

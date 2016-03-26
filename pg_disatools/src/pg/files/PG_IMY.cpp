@@ -27,6 +27,7 @@
 
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamInOutByteFile.h>
+#include <pg/stream/PG_StreamInByteArray.h>
 #include <pg/util/PG_Exception.h>
 #include <pg/util/PG_Array.h>
 
@@ -50,15 +51,15 @@ struct imyHeader{
 	unsigned short compressionInfoBits;// 2 -> 34
 };
 
-bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
+bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, PercentIndicator* percent ){
 
 	const unsigned int startOffset = outstream->pos();
 	imyHeader header;
 	instream->read((char*) &header, 34);
 
 	if(header.magic_number != 0x00594D49){
-		PG_ERROR_STREAM("IMY magic number is wrong!");
-		return true;
+		PG_ERROR_STREAM("IMY file magic number is wrong!");
+		return FAILURE;
 	}
 
 	if( (header.compressionType >> 4) == 1){
@@ -76,8 +77,10 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
 		//unsigned long long compressionFlags = 0;
 		unsigned char compressionFlags[128];
 		unsigned int currentFlag = 0;
-		while( (outstream->pos()-startOffset) < decompressedFileSize && flagsOffset < compressedDataOffset){
 
+
+		while( (outstream->pos()-startOffset) < decompressedFileSize && flagsOffset < compressedDataOffset){
+			if(percent) percent->percent = flagsOffset/float(compressedDataOffset)*100;
 			//too speed up the reading, 128 flags are readed at once
 			//slow way
 			/*
@@ -157,37 +160,63 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream ){
 
 	}else{
 		PG_ERROR_STREAM("IMY compression type '"<<header.compressionType<<"' is not supported!");
-		return true;
+		return FAILURE;
 	}
 
-	return false;
+	return SUCCESS;
 }
 
-bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut){
-
+bool decompressIMY(const char* bytesIn, unsigned int lenghtIn, const PG::UTIL::File& fileOut, PercentIndicator* percent ){
 	try {
-		PG::STREAM::InByteFile reader(fileIn);
-		if(!reader.isopen()) return false;
+		PG::STREAM::InByteArray reader(bytesIn, lenghtIn);
 
 		if(fileOut.exists())
 			fileOut.remove();
 		fileOut.create();
 		PG::STREAM::InOutByteFile writer(fileOut);
 
-		const bool s = decompressIMY((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer);
+		const bool s = decompressIMY((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer, percent);
+		reader.close();
+		writer.close();
+
+		return s;
+	} catch (PG::UTIL::Exception& e) {
+		PG_ERROR_STREAM(e.what());
+		PG_ERROR_STREAM("Couldn't decompress IMY!")
+		return true;
+	} catch (...) {
+		PG_ERROR_STREAM("Couldn't decompress IMY!")
+		return true;
+	}
+
+	return false;
+}
+
+bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, PercentIndicator* percent){
+
+	try {
+		PG::STREAM::InByteFile reader(fileIn);
+		if(!reader.isopen()) return FAILURE;
+
+		if(fileOut.exists())
+			fileOut.remove();
+		fileOut.create();
+		PG::STREAM::InOutByteFile writer(fileOut);
+
+		const bool s = decompressIMY((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer, percent);
 		reader.close();
 		writer.close();
 		return s;
 	} catch (PG::UTIL::Exception& e) {
 		PG_ERROR_STREAM(e.what());
 		PG_ERROR_STREAM("Couldn't decompress IMY '"<<fileIn<<"'!")
-		return true;
+		return FAILURE;
 	} catch (...) {
 		PG_ERROR_STREAM("Couldn't decompress IMY '"<<fileIn<<"'!")
-		return true;
+		return FAILURE;
 	}
 
-	return false;
+	return SUCCESS;
 }
 
 bool decompressIMY(const std::string& fileIn, const std::string& fileOut ){
@@ -195,58 +224,114 @@ bool decompressIMY(const std::string& fileIn, const std::string& fileOut ){
 }
 
 /*!
+ * @brief Uncompress a IMY package. One big file is usually compressed into several IMY and saved as a package.
  * @return true on error
  */
-bool decompressIMYPackage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut ){
-	try {
-		PG::STREAM::InByteFile reader(fileIn);
-		if(!reader.isopen()) return false;
+bool decompressIMYPackage(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, PercentIndicator* percent ){
 
-		const unsigned int packages = reader.readUnsignedInt();
-		const unsigned int decopressedSize = reader.readUnsignedInt();
+	//PG::STREAM::InByteFile reader(fileIn);
+	//if(!reader.isopen()) return false;
 
-		std::vector<unsigned int> offsets(packages);
-		reader.read((char*) &offsets[0],packages*sizeof(unsigned int) );
-		//offsets[packages+1] = reader.size();
+	const unsigned int packages = instream->readUnsignedInt();
+	const unsigned int decopressedSize = instream->readUnsignedInt();
 
-		if(fileOut.exists())
-			fileOut.remove();
-		fileOut.create();
-		PG::STREAM::InOutByteFile writer(fileOut);
-		unsigned int i = 0;
-		for(unsigned int offset: offsets){
-		//for(unsigned int i = 0; i < packages; ++i){
-			//const unsigned int offset = offsets[i];
-			//const unsigned int size = offsets[i+1] -  offset;
+	std::vector<unsigned int> offsets(packages);
+	instream->read((char*) &offsets[0],packages*sizeof(unsigned int) );
+	//offsets[packages+1] = reader.size();
 
-			if(i%10 == 0)
-				std::cout <<"Progress: "<<std::setw(6)<<std::setprecision(3)<<  (i/(float)packages) *100<<"%" <<std::endl;
-			i++;
+	//if(fileOut.exists())
+		//fileOut.remove();
+	//fileOut.create();
+	//PG::STREAM::InOutByteFile writer(fileOut);
+	unsigned int i = 0;
+	for(unsigned int offset: offsets){
+	//for(unsigned int i = 0; i < packages; ++i){
+		//const unsigned int offset = offsets[i];
+		//const unsigned int size = offsets[i+1] -  offset;
 
-			reader.seek(offset);
-			if( decompressIMY((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer) ){
-				PG_ERROR_STREAM("Couldn't decompress IMY file at "<<offset<<"!")
-				return true;
-			}
+		if(percent) percent->percent = (i/(float)packages) *100;
+		/*
+		if(i%10 == 0)
+			std::cout <<"Progress: "<<std::setw(6)<<std::setprecision(3)<<  (i/(float)packages) *100<<"%" <<std::endl;
+			*/
+		i++;
+
+		instream->seek(offset);
+		if( decompressIMY(instream, outstream) ){
+			PG_ERROR_STREAM("Couldn't decompress IMY file at "<<offset<<"!")
+			return FAILURE;
 		}
-
-		reader.close();
-		writer.close();
-
-	} catch (PG::UTIL::Exception& e) {
-		PG_ERROR_STREAM(e.what());
-		PG_ERROR_STREAM("Couldn't decompress IMY package'"<<fileIn<<"'!")
-		return true;
-	} catch (...) {
-		PG_ERROR_STREAM("Couldn't decompress IMY package'"<<fileIn<<"'!")
-		return true;
 	}
 
 	return false;
 }
 
-bool decompressIMYPackage(const std::string& fileIn, const std::string& fileOut ){
-	return decompressIMYPackage(PG::UTIL::File(fileIn), PG::UTIL::File(fileOut));
+/*!
+ * @return true on error
+ */
+bool decompressIMYPackage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, PercentIndicator* percent ){
+	try {
+		PG::STREAM::InByteFile reader(fileIn);
+		if(!reader.isopen()) return FAILURE;
+
+		if(fileOut.exists())
+			fileOut.remove();
+		fileOut.create();
+		PG::STREAM::InOutByteFile writer(fileOut);
+
+		const bool s = decompressIMYPackage((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer, percent);
+
+		reader.close();
+		writer.close();
+
+		if(s == FAILURE){
+			PG_ERROR_STREAM("Couldn't decompress IMY package'"<<fileIn<<"'!");
+			return FAILURE;
+		}
+
+	} catch (PG::UTIL::Exception& e) {
+		PG_ERROR_STREAM(e.what());
+		PG_ERROR_STREAM("Couldn't decompress IMY package'"<<fileIn<<"'!")
+		return FAILURE;
+	} catch (...) {
+		PG_ERROR_STREAM("Couldn't decompress IMY package'"<<fileIn<<"'!")
+		return FAILURE;
+	}
+
+	return SUCCESS;
+}
+
+bool decompressIMYPackage(const std::string& fileIn, const std::string& fileOut, PercentIndicator* percent ){
+	return decompressIMYPackage(PG::UTIL::File(fileIn), PG::UTIL::File(fileOut), percent);
+}
+
+bool decompressIMYPackage(const char* bytesIn, unsigned int lenghtIn, const PG::UTIL::File& fileOut, PercentIndicator* percent ){
+	try {
+		PG::STREAM::InByteArray reader(bytesIn, lenghtIn);
+
+		if(fileOut.exists())
+			fileOut.remove();
+		fileOut.create();
+		PG::STREAM::InOutByteFile writer(fileOut);
+
+		const bool s = decompressIMYPackage((PG::STREAM::In*) &reader, (PG::STREAM::InOut*) &writer, percent);
+
+		writer.close();
+		if(s == FAILURE){
+			PG_ERROR_STREAM("Couldn't decompress IMY package!");
+			return FAILURE;
+		}
+
+	} catch (PG::UTIL::Exception& e) {
+		PG_ERROR_STREAM(e.what());
+		PG_ERROR_STREAM("Couldn't decompress IMY package!")
+		return FAILURE;
+	} catch (...) {
+		PG_ERROR_STREAM("Couldn't decompress IMY package!")
+		return FAILURE;
+	}
+
+	return false;
 }
 
 } /* namespace FILE */

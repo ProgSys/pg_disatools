@@ -66,7 +66,7 @@ signals:
     bool openFile(const QString& filepath);
 	bool saveFile();
 	bool saveFileAs(const QString& filepath);
-	bool saveImage(const QString& imagename, const QString& targetfile);
+	bool saveImage(const QModelIndex &index, const QString& targetfile);
 
 private slots:
     void on_checkBox_GEO_clicked(bool checked);
@@ -90,7 +90,7 @@ private:
     TreeSort* m_treeSort;
     QGraphicsScene* scene;
     QItemSelectionModel* selectionModel;
-    QTemporaryFile* m_tempFile;
+    QList<QTemporaryFile*> m_tempFiles;
 
     bool checkValid();
 };
