@@ -51,6 +51,10 @@ void fileInfo::operator=(const fileInfo& info){
 	decompressedFileSize = info.decompressedFileSize;
 	offset = info.offset;
 	externalFile = info.externalFile;
+
+	compressed = info.compressed;
+	package = info.package;
+	texture = info.texture;
 }
 
 const PG::UTIL::File& fileInfo::getName() const{
@@ -149,11 +153,18 @@ bool ExtractorBase::insert(const PG::UTIL::File& file){
 		return info.getName() == fileName;
 	});
 
+	PG_MARK;
 	if(it != m_fileInfos.end()){
 		(*it).externalFile = file;
+		//tests
+		fileProperties prop((*it));
+		getFileProperties(prop);
+		PG_INFO_STREAM(prop.info.isCompressed())
 	}else{
 		fileInfo info(fileName, file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
 		info.externalFile = file;
+		fileProperties prop(info);
+		getFileProperties(prop);
 		m_fileInfos.push_back(info);
 	}
 
@@ -340,6 +351,12 @@ bool ExtractorBase::isChanged() const{
 }
 
 bool ExtractorBase::checkValid(std::string& errorMessageOut){
+	if(!m_lastError.empty()){
+		errorMessageOut = m_lastError;
+		m_lastError.clear();
+		return false;
+	}
+
 	return true;
 }
 
@@ -363,10 +380,26 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 		return;
 	}
 
+
 	if(target.info.isValid()){
-		PG::STREAM::InByteFile reader(getOpendFile());
-		if(!reader.isopen()) return;
-		reader.seek(target.info.offset);
+		PG::STREAM::InByteFile reader;
+		unsigned int resetPos = 0;
+		if(target.info.isExternalFile()){
+			reader.open(target.info.externalFile);
+			if(!reader.isopen()){
+				PG_ERROR_STREAM("Couldn't open external file '"<<target.info.externalFile<<"'!");
+				return;
+			}
+		}else{
+			reader.open(getOpendFile());
+			resetPos = target.info.offset;
+			if(!reader.isopen()){
+				PG_ERROR_STREAM("Couldn't open '"<<target.info.externalFile<<"'!");
+				return;
+			}
+			reader.seek(target.info.offset);
+		}
+
 		if( (target.info.decompressedFileSize = isIMYPackage(reader)) ){
 			reader.close();
 			target.info.compressed = (bool)target.info.decompressedFileSize;
@@ -375,7 +408,7 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 			return;
 		}
 
-		reader.seek(target.info.offset);
+		reader.seek(resetPos);
 		if( isIMY(reader) ){
 			reader.close();
 			target.info.compressed = true;
@@ -384,7 +417,7 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 			return;
 		}
 
-		reader.seek(target.info.offset);
+		reader.seek(resetPos);
 		if( isTX2(reader)){
 
 			target.info.compressed = false;
@@ -397,13 +430,17 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 			return;
 		}
 
-		reader.seek(target.info.offset);
+		reader.seek(resetPos);
 		if( isPSPFS(reader)){
 			reader.close();
 			target.info.compressed = false;
 			target.info.package = true;
 			target.info.texture = false;
 			return;
+		}else{
+			target.info.compressed = false;
+			target.info.package = false;
+			target.info.texture = false;
 		}
 		reader.close();
 	}
@@ -415,31 +452,19 @@ bool ExtractorBase::replace(fileInfo& target,const PG::UTIL::File& file, bool ke
 		return FAILURE;
 	}
 
+	target.externalFile = file;
+	target.size = file.size();
 	//tests
-	if(isIMY(file)){
-		target.compressed = true;
-		target.package = false;
-		target.texture = false;
-	}else if(isTX2(file)){
-		target.compressed = false;
-		target.package = false;
-		target.texture = true;
-	}else if(isIMYPackage(file)){
-		target.compressed = true;
-		target.package = true;
-		target.texture = false;
-	}else{
-		target.compressed = false;
-		target.package = false;
-		target.texture = false;
-	}
+	fileProperties prop(target);
+	getFileProperties(prop);
 
 	if(!keepName){
 		target.name = file.getFile();
 		target.name = target.name.toUpper();
 	}
-	target.size = file.size();
-	target.externalFile = file;
+
+
+
 	m_changed = true;
 	return SUCCESS;
 }

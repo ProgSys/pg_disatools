@@ -441,11 +441,8 @@ void MPP::clear(){
 
 bool MPP::checkValid(std::string& errorMessageOut){
 
-	if(!m_lastError.empty()){
-		errorMessageOut = m_lastError;
-		m_lastError.clear();
+	if(!ExtractorBase::checkValid(errorMessageOut))
 		return false;
-	}
 
 	if(!m_fileInfos.empty() && ( std::distance(m_fileInfos.begin(), m_texturesEnd) != std::distance(m_texturesEnd, m_normalsEnd) && m_hasNormals )){
 		errorMessageOut = "The number of normal textures should be the same as the number of textures!";

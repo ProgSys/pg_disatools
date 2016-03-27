@@ -28,6 +28,7 @@
 #include <pg/files/PG_MPP.h>
 #include <pg/files/PG_PSPFS.h>
 #include <pg/files/PG_StartDAT.h>
+#include <pg/files/PG_SpriteSheetDAT.h>
 #include <pg/files/PG_FileTests.h>
 #include <pg/files/PG_IMY.h>
 
@@ -59,6 +60,8 @@ bool TreeModel::open(const QString &file){
 		m_openedFileType = "DAT";
 		if(PG::FILE::isPSPFS(file.toStdString())){
 			m_fileExtractor = new PG::FILE::PSPFS();
+		}else if(PG::FILE::isSpriteSheetPackage(file.toStdString())){
+			m_fileExtractor = new PG::FILE::SpriteSheetDAT();
 		}else{
 			m_fileExtractor = new PG::FILE::StartDAT();
 		}
@@ -81,7 +84,6 @@ bool TreeModel::open(const QString &file){
 	QAbstractItemModel::layoutChanged();
 
 	return true;
-
 }
 
 bool TreeModel::extractFileName(const QModelIndex& index, const QString &filepath) const{
@@ -134,6 +136,7 @@ bool TreeModel::addFile(const QString &file){
 		qInfo() << "Couldn't add file '"<<file<<"'";
 	}else
 		added = true;
+	qInfo() << "Added file '"<<file<<"'";
 	QAbstractItemModel::layoutChanged();
 	return added;
 }
@@ -150,7 +153,7 @@ int TreeModel::add(const QStringList &files){
 			 filesAddedOrChanged++;
 		 m_percentIndicator.percent = (filesAddedOrChanged/float(files.size()))*100;
 	 }
-
+	qInfo() << "Added files";
 	QAbstractItemModel::layoutChanged();
 	return filesAddedOrChanged;
 }

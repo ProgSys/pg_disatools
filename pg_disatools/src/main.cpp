@@ -32,9 +32,11 @@
 #include <pg/util/PG_Array.h>
 #include <fstream>
 #include <pg/util/PG_Vector.h>
+#include <pg/stream/PG_StreamInByteFile.h>
 
 #include <cstdlib>
 #include <cmath>
+#include <iomanip>
 
 #define OUTSTR(x) std::cout << x << std::endl
 
@@ -86,12 +88,175 @@ void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL:
 	c1.b = cy;
 }
 
+
+
+typedef struct
+{
+	unsigned short unknown0;
+	unsigned short unknown1;
+} __attribute__((packed, aligned(1))) part0;
+
+std::ostream& operator<<(std::ostream& o,const part0& i){
+	o <<"("<<i.unknown0<<", "<<i.unknown1<<", ["<<  (  (int)(i.unknown1<<2 | i.unknown0))<<"] )";
+	return o;
+}
+
+typedef struct
+{
+	unsigned short unknown0;
+	unsigned short unknown1;
+} __attribute__((packed, aligned(1))) part1;
+
+std::ostream& operator<<(std::ostream& o,const part1& i){
+	o <<"("<<i.unknown0<<", "<<i.unknown1<<", ["<<  (  (int)(i.unknown1<<2 | i.unknown0)) <<"] )";
+	return o;
+}
+
+typedef struct
+{
+	unsigned short external_sheet; // get a sheet from different file by it's ID
+	unsigned char sheet; // there is not one big sprite sheet but multiple smaller one
+	unsigned char colortable; // the 16 rgba colortable which the sheet should use
+	short offsetx;
+	short offsety;
+
+	//sprite info
+	unsigned short x;
+	unsigned short y;
+	unsigned short width;
+	unsigned short height;
+	unsigned short scalex; // 0-100
+	unsigned short scaley; // 0-100
+
+	// only rotationx and rotationz seam to have a effect on 2D sprites
+	short rotationx; //not confirmed
+	short rotationy; //not confirmed
+	short rotationz; //not confirmed
+
+	unsigned short mirror; //not confirmed
+
+} __attribute__((packed, aligned(1))) part3;
+
+std::ostream& operator<<(std::ostream& o,const part3& i){
+	o <<"("<<std::setw(4)<<i.external_sheet<<", "<<std::setw(4)<<(int)i.sheet<<", "<<std::setw(4)<<(int)i.colortable<<", "<<std::setw(4)<<i.offsetx
+			<<", "<<std::setw(4)<<i.offsety<<", "<<std::setw(4)<<i.x<<", "<<std::setw(4)<<i.y<<", "<<std::setw(4)<<i.width<<", "<<std::setw(4)<<i.height<<", "<<std::setw(4)<<i.scalex
+			<<", "<<std::setw(4)<<i.scaley<<", "<<std::setw(4)<<i.rotationx<<", "<<std::setw(4)<<i.rotationy<<", "<<std::setw(4)<<i.rotationz<<", "<<std::setw(4)<<i.mirror<<")";
+	return o;
+}
+
+
+template <typename T>
+inline void printInt(const std::vector<T>& arr, std::ofstream& myfile){
+	unsigned int count = 0;
+	for(const T& i: arr){
+		myfile<<i<<", ";
+		count++;
+		if(count == 4){
+			myfile<<"\n";
+			count = 0;
+		}
+	}
+
+}
 /*!
  * @brief Testing main method, just for testing.
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
+	PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/laharl.DAT");
+	const unsigned int file_size = reader.size();
+	std::vector<unsigned short> header(8);
+	std::vector<unsigned int> addresses(4);
 
+
+	std::vector<part0> something0(((436)/sizeof(part0)));
+	OUTSTR("size: 4 == " <<sizeof(part0)<<" size: 4 == " <<sizeof(part1)<<" size: 28 == " <<sizeof(part3) );
+	std::vector<part1> something1((2088-468)/sizeof(part1));
+	std::vector<part0> something2((8816-2088)/sizeof(part0));
+	std::vector<part3> something3((37776-8816)/sizeof(part3));
+
+	reader.read((char*)&header[0],header.size()*sizeof(short) );
+	reader.read((char*)&addresses[0],addresses.size()*sizeof(int) );
+
+	reader.read((char*)&something0[0],something0.size()*sizeof(part0) );
+	reader.read((char*)&something1[0],something1.size()*sizeof(part1) );
+
+	reader.read((char*)&something2[0],something2.size()*sizeof(part0) );
+	reader.read((char*)&something3[0],something3.size()*sizeof(part3) );
+	OUTSTR(reader.pos()<<" "<<something0.size());
+
+	std::ofstream myfile;
+	myfile.open ("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/laharl_parse.txt");
+	if(!myfile.is_open()){
+		OUTSTR("Failed to open");
+		return 1;
+	}
+	myfile<<"header\n";
+	for(unsigned short i: header)
+		myfile<<i<<", ";
+	OUTSTR("addresses: "<<addresses.size());
+	myfile<<"\n\naddresses: "<< addresses.size()<<"\n";
+	printInt(addresses, myfile);
+
+	OUTSTR("something0: "<<something0.size());
+	myfile<<"\n\nsomething0: "<< something0.size()<<"\n";
+	printInt(something0, myfile);
+
+	OUTSTR("something1: "<<something1.size());
+	myfile<<"\n\nsomething1: "<< something1.size()<<"\n";
+	printInt(something1, myfile);
+
+	OUTSTR("something2: "<<something2.size());
+	myfile<<"\n\nsomething2: "<< something2.size()<<"\n";
+	printInt(something2, myfile);
+
+	OUTSTR("something3: "<<something3.size());
+	myfile<<"\n\nsomething3: "<< something3.size()<<"\n";
+	printInt(something3, myfile);
+	myfile.close();
+
+	OUTSTR("sprites ct: "<<37776<<" portrait ct: "<<(37776+4*16)<<" coulds ct: "<<37776+4*16*2<< " end: "<<37776+4*16*3);
+	//reader.seek(37776); //sprites colortable
+	reader.seek(37776+4*16); //portrait colortable
+	//reader.seek(37776+4*16*2); //coulds colortable
+	//reader.seek(37776+4*16*4); //coulds colortable
+
+	OUTSTR("a");
+	std::vector<PG::UTIL::rgba> colortable(16);
+	reader.read((char*)&colortable[0], colortable.size()*sizeof(PG::UTIL::rgba));
+
+	for(PG::UTIL::rgba& color: colortable){
+		const char r = color.r;
+		color.r = color.b;
+		color.b = r;
+	}
+
+	PG::UTIL::RGBAImage imageOut(256,1920);
+
+	reader.seek(38480);
+	//unsigned int skip = 65537;
+	//reader.skip(skip);
+
+	PG_INFO_STREAM(38480-37776);
+	const unsigned int read_bytes = imageOut.size();
+	//const unsigned int read_bytes = file_size-skip-38480;
+	PG_INFO_STREAM("file size: "<<file_size<<" read bytes: "<<read_bytes);
+	for(unsigned int i = 0; i < read_bytes; i+=2){
+		const char c = reader.readUnsignedChar();
+
+		//const unsigned int pos = i*2;
+		imageOut[i] = colortable[ c & 0x0F];
+		imageOut[i+1] = colortable[ (c >> 4) & 0x0F ];
+	}
+	PG_INFO_STREAM(reader.pos() << " size: "<<imageOut.size()*4);
+	reader.close();
+
+	PG::FILE::saveTGA("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/laharl.tga",imageOut);
+
+
+	OUTSTR("END");
+
+	return 0;
 	//PG::FILE::decompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first.IMY","C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first_un.IMY.bin");
 	//PG::FILE::decompressIMYPackage("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/START.DAT","C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/START_UN.DAT");
 

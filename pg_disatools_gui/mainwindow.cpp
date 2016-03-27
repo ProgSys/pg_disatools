@@ -36,7 +36,7 @@
 
 #include <iostream>
 
-#define WINTITLE "Disa PC File Manager v0.4 alpha"
+#define WINTITLE "Disa PC File Manager v0.4.1 alpha"
 
 inline void openProgress(QProgressDialog& progress){
 	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
@@ -282,11 +282,12 @@ void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSe
 	 ui->btnExtract->setEnabled(true);
 	 ui->btnDelete->setEnabled(true);
 	QModelIndex index = m_treeSort->mapToSource(selected[0]);
+	if(!index.isValid()) return;
 	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
-	if(!item || !index.isValid()) return;
+	if(!item) return;
 
         QString itemName = QString::fromStdString(item->name.getPath());
-        if( itemName.contains(".TX2")){
+        if( !itemName.isEmpty() && itemName.contains(".TX2")){
             ui->btnExtractImage->setEnabled(true);
             ui->btnExtractImage->setText(QString("Export %1").arg(itemName));
             if(ui->imagePreview->isPreviewEnabled()){
@@ -498,7 +499,7 @@ void MainWindow::on_btnExtract_clicked()
 
 	if(selectedSource.size() == 1){
 		const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(selectedSource[0].internalPointer());
-
+		if(!item) return;
     	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
     										QString::fromStdString(item->name.getPath()), "Any (*)");
 
@@ -546,6 +547,7 @@ void MainWindow::on_btnExtract_clicked()
     		ui->statusBar->showMessage(QString("Failed to extract %1 files!").arg(selectedSource.size()-result));
         }
     	progress.close();
+    	QApplication::processEvents();
     	setEnabled(true);
 
 	}
@@ -586,12 +588,14 @@ void MainWindow::on_btnInsert_clicked()
         }else{
         	 ui->statusBar->showMessage(QString("Added %1 files.").arg(added));
         }
-
+        m_treeModel->layoutChanged();
         if(m_treeModel->hasDataChanged()){
         	ui->btnSave->setEnabled(true);
         	ui->btnSaveAs->setEnabled(true);
         }
         progress.close();
+
+        QApplication::processEvents();
         setEnabled(true);
     }
 }
@@ -627,6 +631,7 @@ void MainWindow::on_btnSave_clicked()
         }
 
         progress.close();
+        QApplication::processEvents();
         setEnabled(true);
 
     }else{
@@ -685,6 +690,7 @@ void MainWindow::on_btnSaveAs_clicked()
     		ui->statusBar->showMessage("Saving failed, file is maybe broken now.");
         }
     	progress.close();
+    	QApplication::processEvents();
     	setEnabled(true);
 
 }
@@ -704,7 +710,8 @@ void MainWindow::on_btnDelete_clicked()
 	QList<PG::FILE::fileInfo*> selectedSource;
 	for(const QModelIndex& index: selected){
 		PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(m_treeSort->mapToSource(index).internalPointer());
-		selectedSource.push_back(item);
+		if(item)
+			selectedSource.push_back(item);
 	}
 
 	unsigned int removed = m_treeModel->remove(selectedSource);

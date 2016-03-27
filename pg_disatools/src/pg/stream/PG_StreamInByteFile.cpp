@@ -27,12 +27,21 @@
 
 namespace PG {
 namespace STREAM {
+
+InByteFile::InByteFile(){
+	m_size = 0;
+}
+
 InByteFile::InByteFile(const std::string& path) {
+	open(path);
+}
+
+bool InByteFile::open(const std::string& path){
 	m_size = 0;
 
 	if(path.empty()){
 		PG_ERROR_STREAM("File path empty!");
-		return;
+		return FAILURE;
 	}
 
 	//m_inFile.open( path.c_str(), std::ios::in | std::ios::app | std::ios::binary );
@@ -40,7 +49,7 @@ InByteFile::InByteFile(const std::string& path) {
 
 	if(!m_inFile.is_open()){
 		PG_ERROR_STREAM("Can't open file: "<<path<<"!");
-		return;
+		return FAILURE;
 	}
 
 	m_inFile.seekg(0, std::ios::end); // set the pointer to the end
@@ -48,6 +57,11 @@ InByteFile::InByteFile(const std::string& path) {
 	//std::cout << "Size of file: " << m_size <<std::endl;
 	m_inFile.seekg(0, std::ios::beg); // set the pointer to the beginning
 
+	return SUCCESS;
+}
+
+bool InByteFile::open(const UTIL::File& file){
+	return open(file.getPath());
 }
 
 InByteFile::InByteFile(const UTIL::File& file): InByteFile(file.getPath())

@@ -41,8 +41,12 @@ namespace STREAM {
  */
 class InByteFile: public In  {
 public:
+	InByteFile();
 	InByteFile(const std::string& path);
 	InByteFile(const UTIL::File& file);
+
+	bool open(const std::string& path);
+	bool open(const UTIL::File& file);
 	/*!
 	 * Read one byte, as a unsigned char (+BYTE).
 	 */

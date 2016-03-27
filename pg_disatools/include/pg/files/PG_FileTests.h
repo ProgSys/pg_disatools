@@ -36,6 +36,9 @@ bool isIMY(PG::STREAM::InByteFile& reader);
 unsigned int isIMYPackage(const PG::UTIL::File& file);
 unsigned int isIMYPackage(PG::STREAM::InByteFile& reader);
 
+bool isSpriteSheetPackage(const PG::UTIL::File& file);
+bool isSpriteSheetPackage(PG::STREAM::InByteFile& reader);
+
 bool isTX2(const PG::UTIL::File& file);
 bool isTX2(PG::STREAM::InByteFile& reader);
 

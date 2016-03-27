@@ -159,19 +159,16 @@ bool PSPFS::insert(const PG::UTIL::File& file){
 	}
 
 
-	addFile.decompressedFileSize = isIMYPackage(file);
-	if(addFile.decompressedFileSize > 0){
-		addFile.compressed = true;
-	}
-
 	addFile.externalFile = file;
 	addFile.setSize(file.size());
+
+	fileProperties prop(addFile);
+	getFileProperties(prop);
 
 	//file is already inside?
 	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [addFile](const fileInfo& info){
 		return info.getName() == addFile.getName();
 	});
-
 
 	if(it != m_fileInfos.end()){
 		(*it) = addFile;
@@ -183,8 +180,10 @@ bool PSPFS::insert(const PG::UTIL::File& file){
 
 		if(it != m_fileInfos.end()){
 			(*it) = addFile;
+			//PG_INFO_STREAM("Replaced dummy "<<addFile.name);
 		}else{
 			m_fileInfos.push_back(addFile);
+			//PG_INFO_STREAM("Insert new "<<addFile.name);
 		}
 	}
 	m_changed = true;
@@ -311,7 +310,11 @@ bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 					writeDUMMY(writer,next_header_offset,next_file_offset, dummy_traget_offset );
 				}else{
 					PG_INFO_STREAM("Adding external file '"<<current_info.externalFile<<"'.");
+
+
 					PG::STREAM::InByteFile reader_file(current_info.externalFile);
+					current_info.decompressedFileSize = isIMYPackage(reader_file);
+					reader_file.seek(0);
 					const unsigned int file_size = reader_file.size();
 
 

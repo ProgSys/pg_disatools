@@ -21,49 +21,39 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_FILES_PG_MPP_H_
-#define INCLUDE_PG_FILES_PG_MPP_H_
+#ifndef INCLUDE_PG_FILES_PG_SPRITESHEETDAT_H_
+#define INCLUDE_PG_FILES_PG_SPRITESHEETDAT_H_
 
 #include <string>
 #include <vector>
 #include <pg/util/PG_File.h>
-#include <pg/util/PG_ApiUtil.h>
-#include <pg/util/PG_Exception.h>
 #include <pg/files/PG_ExtractorBase.h>
 
 namespace PG {
 namespace FILE {
 
-class MPP: public ExtractorBase  {
+class SpriteSheetDAT: public ExtractorBase {
 public:
-	MPP();
-	MPP(const PG::UTIL::File& file);
+	SpriteSheetDAT();
+	SpriteSheetDAT(const PG::UTIL::File& file);
 
 	/*!
-	 * @brief Opens the given MPP file.
+	 * @brief Opens the given START.DAT file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
-	bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
+	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr) final;
+	bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) final;
 
-	bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
+	bool insert(const PG::UTIL::File& file) final;
 
-	bool insert(const PG::UTIL::File& file);
-	bool remove(fileInfo& target);
 	void clear();
 
-	bool checkValid(std::string& errorMessageOut);
-
-	virtual ~MPP();
+	virtual ~SpriteSheetDAT();
 private:
-	bool m_hasNormals = false; // remastered maps with better textures
-	std::vector<fileInfo>::iterator m_texturesEnd;
-	std::vector<fileInfo>::iterator m_normalsEnd;
-
-	bool findFileInfo(const PG::UTIL::File& file, fileInfo& infoOut) const;
+	std::vector<unsigned short> m_chractersIDs;
 };
 
 } /* namespace FILE */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_FILES_PG_MPP_H_ */
+#endif /* INCLUDE_PG_FILES_PG_SPRITESHEETDAT_H_ */

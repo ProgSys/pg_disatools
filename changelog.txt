@@ -24,3 +24,8 @@
 
  ===  26.03.2016 - v0.4 (hotfix) ===
  * Fixed in some cases the save button would not light up
+
+ ===  28.03.2016 - v0.4.1 ===
+ * Fixed wrong repackaging (resulting in game crash) when replacing a compressed IMY pack with a decompressed pack
+ * You can now open and save sprite sheet packages (like ANM00.DAT inside the decompressed START.DAT) 
+   (note you currently only can replace existing sprite sheets, you can't add new sprite sheets)

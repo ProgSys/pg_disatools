@@ -88,6 +88,7 @@ struct fileProperties{
 	fileProperties(fileInfo& fInfo): info(fInfo){}
 	fileInfo& info;
 	std::string textureCompression;
+	unsigned short characterID = 0;
 };
 
 class ExtractorBase {
@@ -159,6 +160,7 @@ protected:
 	bool m_changed = false;
 	unsigned int m_originalFileSize = 0;
 
+	std::string m_lastError;
 };
 
 } /* namespace FILE */

@@ -60,7 +60,7 @@ unsigned int isIMYPackage(const PG::UTIL::File& file){
 		return b;
 	}
 
-	return false;;
+	return false;
 }
 
 unsigned int isIMYPackage(PG::STREAM::InByteFile& reader){
@@ -79,6 +79,22 @@ unsigned int isIMYPackage(PG::STREAM::InByteFile& reader){
 	return 0;
 }
 
+bool isSpriteSheetPackage(const PG::UTIL::File& file){
+	return openFile(file, isSpriteSheetPackage);
+}
+
+bool isSpriteSheetPackage(PG::STREAM::InByteFile& reader){
+	const unsigned int start = reader.pos();
+	const unsigned int number_of_files = reader.readUnsignedInt();
+	if(number_of_files > 9000) return false;
+
+	const unsigned int firstFileOffset = reader.readUnsignedInt();
+
+	const unsigned int chracterIdsOffset = number_of_files*4+4;
+	if(firstFileOffset < chracterIdsOffset+number_of_files*2) return false;
+
+	return true;
+}
 
 
 bool isTX2(const PG::UTIL::File& file){
