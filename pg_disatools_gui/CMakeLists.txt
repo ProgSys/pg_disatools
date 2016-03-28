@@ -31,8 +31,8 @@ find_package(PG_DISATOOLS REQUIRED)
 #FIND_PACKAGE(Qt5Widgets REQUIRED)
 #INCLUDE(${QT_USE_FILE})
  
-QT5_WRAP_UI(UIMainWindowSrcs mainwindow.ui)
-QT5_WRAP_UI(UIFileInfoBoxSrcs fileinfobox.ui)
+QT5_WRAP_UI(UIMainWindowSrcs ui/mainwindow.ui)
+QT5_WRAP_UI(UIFileInfoBoxSrcs ui/fileinfobox.ui)
 #QT5_WRAP_CPP(MOCSrcs ui_mainwindow.h)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
@@ -64,9 +64,11 @@ else()
 	#add_definitions(-DPG_LOADERS_DLL_CONFIG)
 endif()
 
+
 # where the include files are located
 include_directories(
-	"${PROJECT_SOURCE_DIR}"
+	"${PROJECT_SOURCE_DIR}/include"
+	#"${PROJECT_SOURCE_DIR}"
 	${Qt5Widgets_INCLUDES}
 	${PG_DISATOOLS_INCLUDE_PATH}
 )
@@ -88,35 +90,12 @@ message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 #===============================================
 file(GLOB PG_LOADERS_SRC
 	"*.cpp"
-	
-	"src/pg/test/*.cpp"
-	
-	"src/pg/loaders/*.cpp"
-	
-	"src/pg/savers/*.cpp"
-
-	"src/pg/files/*.cpp"
-	
-    "src/pg/util/*.cpp"
-
+	"src/*.cpp"
 )
 
 file(GLOB PG_LOADERS_HEADERS
 	"*.h"
 	"include/*.h"
-	
-	"include/pg/*.h"
-	
-	"include/pg/test/*.h"
-	
-	"include/pg/loaders/*.h"
-	
-	"include/pg/savers/*.h"
-
-	"include/pg/files/*.h"
-	
-    "include/pg/util/*.h"
-
 )
 
 GroupSources("include/pg")

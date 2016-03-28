@@ -48,8 +48,86 @@ struct imyHeader{
 	unsigned int zero1; //padding // 4 -> 24
 	unsigned int zero2; //padding // 4
 	unsigned int zero3; //padding // 4 -> 32
-	unsigned short compressionInfoBits;// 2 -> 34
-};
+	unsigned short number_of_info_bytes;// 2 -> 34
+} __attribute__((packed, aligned(1)));
+
+/*!
+ * @param instream, is a wrapper class witch just can read
+ * @param outstream, is a wrapper class witch can read and write
+ */
+bool decompressIMYSimple(PG::STREAM::In* instream, PG::STREAM::InOut* outstream){
+	const unsigned int startOffset = outstream->pos();
+
+	//read the header
+	imyHeader header;
+	instream->read((char*) &header, sizeof(imyHeader));
+
+	if(header.magic_number != 0x00594D49){
+		std::cerr << "IMY file magic number is wrong!" << std::endl;
+		return FAILURE;
+	}
+
+	if( (header.compressionType >> 4) == 1){
+
+		const unsigned int decompressedFileSize = header.streamOffset * header.unknown07; //not sure
+
+		unsigned int infoBytesOffset = instream->pos();
+		const unsigned int infoBytesOffsetEnd = infoBytesOffset + header.number_of_info_bytes;
+		unsigned int dataOffset = infoBytesOffsetEnd;
+
+		//create look up table
+		PG::UTIL::Array<unsigned int, 4> lookUpTable;
+		lookUpTable[0] = 2; // go back one short
+		lookUpTable[1] = header.streamOffset;
+		lookUpTable[2] = lookUpTable[1] + 2;
+		lookUpTable[3] = lookUpTable[1] - 2;
+
+		while( (outstream->pos()-startOffset) < decompressedFileSize && infoBytesOffset < infoBytesOffsetEnd){
+
+			// read every info byte
+			instream->seek(infoBytesOffset);
+			unsigned char infoByte = instream->readChar();
+			infoBytesOffset++;
+
+			if( infoByte & 0xF0 ){
+				if( (infoByte & 0x80) && (infoByte & 0x40)){
+					//copy shorts from the already uncompressed stream by looking back
+					const int index = (infoByte & 0x30) >> 4; // the value can only be 0-3
+					const int shorts_to_copy = (infoByte & 0x0F) + 1;
+
+					for (int i = 0; i < shorts_to_copy; i++){
+						//read
+						const unsigned int currentEnd = outstream->pos();
+						outstream->seek(currentEnd - lookUpTable[index]);
+						const short s = outstream->readShort();
+						outstream->seek(currentEnd);
+						outstream->writeShort(s);
+					}
+
+				}else{
+					//copy a short from the compressed stream by looking back to a short
+					const unsigned int lookback_bytes = (infoByte - 16)*2 + 2;
+					instream->seek(dataOffset-lookback_bytes);
+					outstream->writeShort(instream->readShort());
+				}
+			}else{
+				// just copy shorts (2 byte)
+				//you always copy at least one short
+				const unsigned int copy_bytes = (infoByte+1)*2;
+				char c[copy_bytes];
+				instream->seek(dataOffset);
+				instream->read(&c[0], copy_bytes);
+				outstream->write(&c[0], copy_bytes);
+				dataOffset += copy_bytes;
+			}
+		}
+	}else{
+		std::cerr << "IMY compression type '"<<header.compressionType<<"' is not supported!" << std::endl;
+		return FAILURE;
+	}
+
+	return SUCCESS;
+}
 
 bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, PercentIndicator* percent ){
 
@@ -65,7 +143,7 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, Perce
 	if( (header.compressionType >> 4) == 1){
 		const unsigned int decompressedFileSize = header.streamOffset * header.unknown07;
 		unsigned int flagsOffset = instream->pos();
-		const unsigned int compressedDataOffset = flagsOffset + header.compressionInfoBits;
+		const unsigned int compressedDataOffset = flagsOffset + header.number_of_info_bytes;
 		unsigned int dataOffset = compressedDataOffset;
 
 		PG::UTIL::Array<unsigned int, 4> lookUpTable;

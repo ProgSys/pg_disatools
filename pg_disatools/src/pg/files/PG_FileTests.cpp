@@ -209,7 +209,7 @@ std::string getTX2CompressionType(PG::STREAM::InByteFile& reader){
 		}
 			break;
 		default:
-			return false;
+			return "";
 			break;
 	}
 

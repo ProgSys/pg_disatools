@@ -127,8 +127,9 @@ public:
 	void setWindow(const PG::UTIL::uvec2& start, const Image<T>& windowIn){
 		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+windowIn.getWidth()) > m_width) || ((start.y+windowIn.getHeight())> m_height));
 
-		for(unsigned int y = 0; y < windowIn.getHeight(); ++y)
+		for(unsigned int y = 0; y < windowIn.getHeight(); ++y){
 			memcpy(&get(start+uvec2(0,y)), &windowIn.getRow(y) , windowIn.getWidth()*sizeof(T) );
+		}
 	}
 
 	void setWindow(const PG::UTIL::uvec2& start, const PG::UTIL::uvec2& size, const std::vector<T>& windowIn){
