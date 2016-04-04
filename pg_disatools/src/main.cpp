@@ -96,17 +96,15 @@ typedef struct
 	unsigned short number_of_sheets;
 
 	unsigned short unknown4;
-	unsigned short unknown5;
+	unsigned short number_of_keyframes;
 	unsigned short unknown6;
 	unsigned short unknown7;
-
-
 
 } __attribute__((packed, aligned(1))) spriteSheetHeader;
 
 std::ostream& operator<<(std::ostream& o,const spriteSheetHeader& i){
 	o <<"("<<i.number_of_something0<<", "<<i.number_of_animations<<", "<<i.number_of_colortablesSets<<", "<<i.number_of_sheets<<", ";
-	o      <<i.unknown4<<", "<<i.unknown5<<", "<<i.unknown6<<", "<<i.unknown7<<") ";
+	o      <<i.unknown4<<", "<<i.number_of_keyframes<<", "<<i.unknown6<<", "<<i.unknown7<<") ";
 	return o;
 }
 
@@ -191,7 +189,6 @@ std::ostream& operator<<(std::ostream& o,const keyframe& i){
 	return o;
 }
 
-
 template <typename T>
 inline void printInt(const std::vector<T>& arr, std::ofstream& myfile){
 	unsigned int count = 0;
@@ -210,37 +207,30 @@ inline void printInt(const std::vector<T>& arr, std::ofstream& myfile){
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
-	PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/laharl.DAT");
+	PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
 	const unsigned int file_size = reader.size();
 
 	spriteSheetHeader header;
 	reader.read((char*)&header,sizeof(spriteSheetHeader) );
 	OUTSTR(header);
-	// ? - animations+sheets - colortables - imagedata
-	std::vector<unsigned int> addresses(4);
 
-	std::vector<part0> something0(((436)/sizeof(part0)));
+	std::vector<unsigned int> addresses(4); // ? - animations+sheets - colortables - imagedata
+	reader.read((char*)&addresses[0],addresses.size()*sizeof(int) );
 
+	std::vector<part0> something0(header.number_of_something0);
 	std::vector<animation> animations(header.number_of_animations);
 	std::vector<unsigned int> numberOfColortables(header.number_of_colortablesSets);
 	std::vector<spriteSheet> sheets(header.number_of_sheets);
+	OUTSTR( (((unsigned int)addresses[1]-(unsigned int)addresses[0])/sizeof(part0)) << " "<< addresses[1]<<" - "<<addresses[0]);
+	std::vector<part0> something1( ((unsigned int)addresses[1]-(unsigned int)addresses[0])/sizeof(part0));
+	std::vector<keyframe> keyframes(header.number_of_keyframes);
 
-	std::vector<part0> something2((8816-2088)/sizeof(part0));
-
-	std::vector<keyframe> keyframes((37776-8816)/sizeof(keyframe));
-
-	reader.read((char*)&addresses[0],addresses.size()*sizeof(int) );
 
 	reader.read((char*)&something0[0],something0.size()*sizeof(part0) );
-
 	reader.read((char*)&animations[0],animations.size()*sizeof(animation) );
-
 	reader.read((char*)&numberOfColortables[0],numberOfColortables.size()*sizeof(unsigned int) );
-
 	reader.read((char*)&sheets[0],sheets.size()*sizeof(spriteSheet) );
-
-	reader.read((char*)&something2[0],something2.size()*sizeof(part0) );
-
+	reader.read((char*)&something1[0],something1.size()*sizeof(part0) );
 	reader.read((char*)&keyframes[0],keyframes.size()*sizeof(keyframe) );
 
 	OUTSTR(reader.pos()<<" "<<something0.size());
@@ -269,9 +259,9 @@ int main(int argc, char* argv[]){
 	myfile<<"\n\nsheets: "<< sheets.size()<<"\n";
 	printInt(sheets, myfile);
 
-	OUTSTR("something2: "<<something2.size());
-	myfile<<"\n\nsomething2: "<< something2.size()<<"\n";
-	printInt(something2, myfile);
+	OUTSTR("something1: "<<something1.size());
+	myfile<<"\n\nsomething1: "<< something1.size()<<"\n";
+	printInt(something1, myfile);
 
 	OUTSTR("keyframes: "<<keyframes.size());
 	myfile<<"\n\nkeyframes: "<< keyframes.size()<<"\n";
@@ -284,6 +274,7 @@ int main(int argc, char* argv[]){
 	std::vector< std::vector<PG::UTIL::rgba> > colortables;
 	std::vector< PG::UTIL::Image<char> > spriteSheets;
 
+	OUTSTR("numberOfColortables: "<<numberOfColortables[0]);
 	//read colortables
 	reader.seek(addresses[2]);
 	for(unsigned int i = 0; i < numberOfColortables[0]; ++i){
@@ -296,6 +287,13 @@ int main(int argc, char* argv[]){
 			color.r = color.b;
 			color.b = r;
 		}
+
+		/*
+		PG::UTIL::RGBAImage table(colortable,16,1);
+		std::stringstream o;
+		o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/colortable"<<i<<".tga";
+		PG::FILE::saveTGA(o.str(),table);
+		*/
 
 		colortables.push_back(colortable);
 	}
@@ -318,9 +316,8 @@ int main(int argc, char* argv[]){
 		images.push_back(PG::UTIL::RGBAImage(sheetIDs.getWidth(), sheetIDs.getHeight()));
 	}
 
-	unsigned int i = 0;
 	for(const keyframe& key: keyframes){
-		if(key.external_sheet != 0) continue;
+		if(key.external_sheet != 0 || key.sheet >= spriteSheets.size()) continue;
 		const PG::UTIL::uvec2 dim(key.width,key.height);
 		const PG::UTIL::uvec2 start(key.x,key.y);
 		const PG::UTIL::Image<char>& sheetIDs = spriteSheets[key.sheet];
@@ -331,27 +328,19 @@ int main(int argc, char* argv[]){
 
 		PG::UTIL::Image<char> sheetIDsWindow;
 		sheetIDs.getWindow(start, dim, sheetIDsWindow);
-		PG::UTIL::RGBAImage rgbaWindow(sheetIDsWindow.getWidth(), sheetIDsWindow.getHeight());
 
+		PG::UTIL::RGBAImage rgbaWindow(sheetIDsWindow.getWidth(), sheetIDsWindow.getHeight());
 		for(unsigned int i = 0; i < sheetIDsWindow.size(); ++i){
 			rgbaWindow[i] = colortabel[sheetIDsWindow[i]];
 		}
-		//std::stringstream o;
-		//o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/out/laharl"<<(int)key.sheet<<"_"<<start.x<<"_"<<start.y<<".tga";
-		//PG::FILE::saveTGA(o.str(),rgbaWindow);
 
-		//OUTSTR(start <<", "<<dim<<", t: "<<(int)key.sheet);
 		imageOut.setWindow(start, rgbaWindow);
-		i++;
-		//if(i >= 10)
-			//break;
 	}
-
 
 	unsigned int imgCount = 0;
 	for(const PG::UTIL::RGBAImage& image: images){
 		std::stringstream o;
-		o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/laharl"<<imgCount<<".tga";
+		o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SHEET"<<imgCount<<".tga";
 		PG::FILE::saveTGA(o.str(),image);
 		imgCount++;
 	}

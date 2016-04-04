@@ -54,12 +54,18 @@ public:
 		resize(size);
 	}
 
-	Image(const Image& image){
+	Image(const Image<T>& image){
 		m_width = image.getWidth();
 		m_height = image.getHeight();
 
 		m_pixels.resize(m_width*m_height);
 		memcpy(&m_pixels[0], &image[0], m_pixels.size()*sizeof(T) );
+	}
+
+	Image(const std::vector<T>& image, unsigned int width, unsigned int height){
+		resize(width, height);
+
+		memcpy(&m_pixels[0], &image[0], image.size()*sizeof(T) );
 	}
 
 	unsigned int getWidth() const{
@@ -200,6 +206,8 @@ public:
 
 typedef PG::UTIL::Image<PG::UTIL::rgb> RGBImage;
 typedef PG::UTIL::Image<PG::UTIL::rgba> RGBAImage;
+typedef PG::UTIL::Image<unsigned char> IDImage;
+typedef PG::UTIL::Image<unsigned int> IDuImage;
 
 } /* namespace UTIL */
 } /* namespace PG */

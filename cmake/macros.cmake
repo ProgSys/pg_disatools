@@ -26,9 +26,9 @@ macro(Setup_defaults _installDir)
 UNSET(PROJECT_DIR CACHE )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-	SET(PROJECT_DIR "${_installDir}_release" )
+	SET(PROJECT_DIR "${_installDir}/release" )
 else()
-	SET(PROJECT_DIR "${_installDir}" )
+	SET(PROJECT_DIR "${_installDir}/debug" )
 endif()
 
 #if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)

@@ -2,10 +2,11 @@
 cmake_minimum_required(VERSION 2.8.11)
 project(pg_disatools_gui)
 
+
 SET(DEPENDENCIES_PATH "${PROJECT_SOURCE_DIR}/../dependencies" CACHE FILEPATH "Path to the dependencies folder, which contains the include and lib files." )
 SET(CMAKE_CONFIGURATION_TYPES Debug;Release)
-#SET(CMAKE_BUILD_TYPE Debug)
 SET(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../cmake")
+
 option(DEBUG_COMPILE "Compile in debug mode" true)
 
 set(CMAKE_AUTOMOC ON)
@@ -15,25 +16,31 @@ set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake")
 
 
 if(DEBUG_COMPILE)
-	SET(CMAKE_BUILD_TYPE Debug)
+	SET(CMAKE_BUILD_TYPE Debug CACHE FILEPATH "" FORCE)
 	message (STATUS "DEBUG is ON")
 	add_definitions(-DDEBUG)
 else()
-	SET(CMAKE_BUILD_TYPE Release)
+	SET(CMAKE_BUILD_TYPE Release CACHE FILEPATH "" FORCE)
+	message (STATUS "Release is ON")
 endif()
 
 include(macros)
 #Set default path
 Setup_defaults(${CMAKE_PROJECT_NAME})
 
-find_package(Qt5 COMPONENTS Widgets Declarative)
+
+#find_package(Qt5 COMPONENTS Widgets Declarative OpenGL REQUIRED)
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
 find_package(PG_DISATOOLS REQUIRED)
-#FIND_PACKAGE(Qt5Widgets REQUIRED)
-#INCLUDE(${QT_USE_FILE})
- 
+
+# OpenGL & GLEW library
+find_package(OpenGL3 REQUIRED)
+find_package(GLEW REQUIRED)
+
 QT5_WRAP_UI(UIMainWindowSrcs ui/mainwindow.ui)
 QT5_WRAP_UI(UIFileInfoBoxSrcs ui/fileinfobox.ui)
-#QT5_WRAP_CPP(MOCSrcs ui_mainwindow.h)
+QT5_WRAP_UI(UISpriteSheetEditorSrcs ui/spritesheeteditor.ui)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")
@@ -43,33 +50,24 @@ message (STATUS "Icon File: ${sim_EXE_SRCS} ")
 endif(MINGW)
 
 
-
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	message (STATUS "DEBUG is ON")
-	add_definitions(-DDEBUG)
 endif()
-
-#add_definitions(-fPIC)
-
-
 
 message (STATUS "Modul path: ${CMAKE_MODULE_PATH}")
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    #add_definitions(-std=g++0x) #-std=gnu++0x
 	add_definitions(-std=gnu++11)
-	#add_definitions(-DGLEW_STATIC=TRUE) -std=gnu++0x
-else()
-	#add_definitions(-DPG_LOADERS_EXPORTS)
-	#add_definitions(-DPG_LOADERS_DLL_CONFIG)
 endif()
 
 
 # where the include files are located
 include_directories(
 	"${PROJECT_SOURCE_DIR}/include"
-	#"${PROJECT_SOURCE_DIR}"
+	${OpenGL3_INCLUDE_PATH}
+    ${GLEW_INCLUDE_PATH}
 	${Qt5Widgets_INCLUDES}
+	${QT_QTOPENGL_INCLUDE_DIR} 
 	${PG_DISATOOLS_INCLUDE_PATH}
 )
 
@@ -81,64 +79,106 @@ link_directories(
 	"${PROJECT_SOURCE_DIR}"
 )
 
-
 message (STATUS "Project binary dir: ${PROJECT_BINARY_DIR}")
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 
 #===============================================
-#   PG_LOADERS
+#   PG_QT
 #===============================================
-file(GLOB PG_LOADERS_SRC
-	"*.cpp"
+file(GLOB PG_QT_SRC
+	#"*.cpp"
 	"src/*.cpp"
+	"src/openGL/*.cpp"
 )
 
-file(GLOB PG_LOADERS_HEADERS
-	"*.h"
+file(GLOB PG_QT_HEADERS
+	#"*.h"
 	"include/*.h"
+	"include/openGL/*.h"
 )
 
 GroupSources("include/pg")
 GroupSources("src/pg")
-#source_group(source FILES ${PG_ENGINE_SRC})
 
-message (${PG_LOADERS_SRC})
+message (${PG_QT_SRC})
 
 #===============================================
 # pg_disatools_gui
 #===============================================
-
 if(DEBUG_COMPILE)
 add_executable( 
 	pg_disatools_gui
-		${PG_LOADERS_HEADERS}
-		${PG_LOADERS_SRC}
-		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}
+		"main.cpp"
+		${PG_QT_HEADERS}
+		${PG_QT_SRC}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs}
 		
 )
 else()
 add_executable( 
 	pg_disatools_gui
 		WIN32
-		${PG_LOADERS_HEADERS}
-		${PG_LOADERS_SRC}
-		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}
+		"main.cpp"
+		${PG_QT_HEADERS}
+		${PG_QT_SRC}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs}
 		
 )
 endif()
 
 target_link_libraries(
 	pg_disatools_gui
-	${Qt5Widgets_LIBRARIES}
+	${OpenGL3_LIBRARY}
+	${GLEW_LIBRARY}
+	
+	Qt5::Widgets
+	Qt5::OpenGL
+	${PG_DISATOOLS_LIBRARY}
+	${sim_EXE_SRCS}
+)
+
+
+#===============================================
+# pg_sprite_editor
+#===============================================
+
+if(DEBUG_COMPILE)
+add_executable( 
+	pg_sprite_editor
+		"spriteEditor.cpp"
+		${PG_QT_HEADERS}
+		${PG_QT_SRC}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs}
+		
+)
+else()
+add_executable( 
+	pg_sprite_editor
+		WIN32
+		"spriteEditor.cpp"
+		${PG_QT_HEADERS}
+		${PG_QT_SRC}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs}
+		
+)
+endif()
+
+target_link_libraries(
+	pg_sprite_editor
+	${OpenGL3_LIBRARY}
+	${GLEW_LIBRARY}
+	
+	Qt5::Widgets
+	Qt5::OpenGL
 	${PG_DISATOOLS_LIBRARY}
 	${sim_EXE_SRCS}
 )
 
 #===============================================
-# install
+# install pg_disatools_gui
 #===============================================
 install(
-	TARGETS pg_disatools_gui
+	TARGETS pg_disatools_gui pg_sprite_editor
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static
@@ -151,6 +191,22 @@ install(
 		FILES_MATCHING PATTERN "*.h"
 )
 
+#===============================================
+# install debug/release
+#===============================================
+#[[
+ADD_CUSTOM_TARGET(debug
+  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+  COMMENT "Switch CMAKE_BUILD_TYPE to Debug"
+  )
+
+ADD_CUSTOM_TARGET(release
+  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+  COMMENT "Switch CMAKE_BUILD_TYPE to Release"
+  )
+]]
 #===============================================
 # clean
 #===============================================

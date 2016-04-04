@@ -27,7 +27,6 @@ if(UNIX)
 	add_definitions(-fPIC)
 endif()
 
-
 message (STATUS "Modul path: ${CMAKE_MODULE_PATH}")
 
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -85,6 +84,7 @@ file(GLOB PG_LOADERS_HEADERS
 	"include/pg/test/*.h"
 	
 	"include/pg/loaders/*.h"
+	
 	
 	"include/pg/savers/*.h"
 	"include/pg/stream/*.h"
