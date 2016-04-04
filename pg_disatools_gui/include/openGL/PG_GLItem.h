@@ -21,6 +21,8 @@
 namespace PG {
 namespace GL {
 
+#define INVALID_OGL_VALUE 0xFFFFFFFF
+
 class GLItem {
 public:
 	GLItem();

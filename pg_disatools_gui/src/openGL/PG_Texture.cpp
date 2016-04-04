@@ -31,8 +31,6 @@
 
 #include <openGL/PG_GLError.h>
 
-#define INVALID_OGL_VALUE 0xFFFFFFFF
-
 
 namespace PG {
 namespace GL {

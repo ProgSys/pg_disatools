@@ -34,6 +34,8 @@
 #include <pg/util/PG_Vector.h>
 #include <pg/stream/PG_StreamInByteFile.h>
 
+#include <pg/util/PG_Matrix.h>
+
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
@@ -207,6 +209,31 @@ inline void printInt(const std::vector<T>& arr, std::ofstream& myfile){
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
+	PG::UTIL::mat4 E;
+
+	PG::UTIL::mat4 mat2;
+	for(int x = 0; x < 4; x++)
+		for(int y = 0; y < 4; y++){
+			mat2[x][y] = 2.5;
+		}
+
+	OUTSTR( (E*mat2) );
+
+	PG::UTIL::vec4 vec;
+
+	E[3][0] = 10;
+
+	OUTSTR( E );
+
+	vec[0] = 2;
+	vec[1] = 6;
+	vec[2] = 5;
+	vec[3] = 1;
+	OUTSTR( (E*vec) );
+
+	OUTSTR("END");
+
+	return 0;
 	PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
 	const unsigned int file_size = reader.size();
 

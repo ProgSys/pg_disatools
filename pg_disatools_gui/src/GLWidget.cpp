@@ -60,9 +60,12 @@ void GLWidget::initializeGL(){
 		exit (EXIT_FAILURE);
     }
     m_spriteShader.bind();
-    m_spriteShaderInfo.vertexLoc = m_spriteShader.attributeLocation("vertex");
-    m_spriteShaderInfo.normalLoc = m_spriteShader.attributeLocation("normal");
-    m_spriteShaderInfo.uvLoc = m_spriteShader.attributeLocation("uv");
+    m_spriteShaderInfo.vertexLoc = 0;//m_spriteShader.attributeLocation("vertex");
+    m_spriteShaderInfo.normalLoc = 1;//m_spriteShader.attributeLocation("normal");
+    m_spriteShaderInfo.uvLoc = 2;//m_spriteShader.attributeLocation("uv");
+
+    qDebug()<< "vertex loc: "<<QString::number(m_spriteShaderInfo.vertexLoc);
+    qDebug()<< "normal loc: "<<QString::number( m_spriteShaderInfo.normalLoc);
     qDebug()<< "UV loc: "<<QString::number(m_spriteShaderInfo.uvLoc);
 
     m_spriteShaderInfo.modelMatrixLoc = m_spriteShader.uniformLocation("modelMatrix");
@@ -78,7 +81,7 @@ void GLWidget::initializeGL(){
     m_spriteTexture.bind(img);
 
     //load geometry
-    m_spriteGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0),PG::UTIL::vec3(1,0,0) );
+    m_spriteGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,0.4,0),PG::UTIL::vec3(0.4,0,0) );
 
 }
 
@@ -90,9 +93,9 @@ void GLWidget::paintGL(){
     m_spriteShader.setUniformValue(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix);
     m_spriteShader.setUniformValue(m_spriteShaderInfo.projectionMatrixLoc, m_spriteShaderInfo.perspectiveMatrix);
 
-    //m_spriteShader.enableAttributeArray(m_spriteShaderInfo.vertexLoc);
-    //m_spriteShader.enableAttributeArray(m_spriteShaderInfo.normalLoc);
-    //m_spriteShader.enableAttributeArray(m_spriteShaderInfo.uvLoc);
+    m_spriteShader.enableAttributeArray(m_spriteShaderInfo.vertexLoc);
+    m_spriteShader.enableAttributeArray(m_spriteShaderInfo.normalLoc);
+    m_spriteShader.enableAttributeArray(m_spriteShaderInfo.uvLoc);
 
     glActiveTexture(GL_TEXTURE0);
     m_spriteShader.setUniformValue( m_spriteShaderInfo.idtextureLoc, 0);

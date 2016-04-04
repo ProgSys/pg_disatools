@@ -599,7 +599,11 @@ T const& tVector4<T>::minRGB() const{
 			return z;
 	}
 }
-
+/*
+template<typename T>
+void tVector4<T>::dump(std::ostream& o) const{
+	o<<"("<<x<<", "<<y<<", "<<z<<", "<<w<<")";
+}*/
 
 typedef tVector2<unsigned char> uv;
 typedef tVector3<unsigned char> rgb;

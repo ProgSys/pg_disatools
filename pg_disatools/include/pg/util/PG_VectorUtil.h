@@ -251,6 +251,20 @@ rgba torgba(const tVector2<T>& vec){
 	return PG::UTIL::rgba(vec.x,vec.y,0,255);
 }
 
+template<typename T>
+T const * value_ptr(const tVector2<T>& vec){
+	return &(vec.x);
+}
+
+template<typename T>
+T const * value_ptr(const tVector3<T>& vec){
+	return &(vec.x);
+}
+
+template<typename T>
+T const * value_ptr(const tVector4<T>& vec){
+	return &(vec.x);
+}
 
 
 } /* namespace UTIL */
