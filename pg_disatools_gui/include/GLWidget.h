@@ -18,7 +18,21 @@
 #ifndef INCLUDE_GLWIDGET_H_
 #define INCLUDE_GLWIDGET_H_
 
+// Open GL
+#if __APPLE__
+	#include <OpenGL/gl3.h>
+#else
+	#include <GL/glew.h>
+#endif
+
+#include <QOpenGLShader>
+#include <QOpenGLShaderProgram>
+
 #include <QOpenGLWidget>
+#include <QMatrix>
+
+#include <openGL/PG_Texture.h>
+#include <openGL/PG_Plane.h>
 
 class GLWidget : public QOpenGLWidget {
 	Q_OBJECT
@@ -30,6 +44,30 @@ public:
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
 
     virtual ~GLWidget();
+private:
+    QOpenGLShaderProgram m_spriteShader;
+    PG::GL::Texture m_spriteTexture;
+    PG::GL::Plane m_spriteGeometry;
+
+    struct spriteShader{
+    	QMatrix4x4 modelMatrix;
+    	QMatrix4x4 viewMatrix;
+    	QMatrix4x4 perspectiveMatrix;
+
+    	unsigned int vertexLoc;
+    	unsigned int normalLoc;
+    	unsigned int uvLoc;
+
+    	unsigned int viewMatrixLoc;
+    	unsigned int projectionMatrixLoc;
+    	unsigned int modelMatrixLoc;
+
+    	unsigned int idtextureLoc;
+    } m_spriteShaderInfo;
+
+
+
+
 };
 
 #endif /* INCLUDE_GLWIDGET_H_ */

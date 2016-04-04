@@ -15,34 +15,32 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_PG_OPENGL_PG_TEXTURE_H_
-#define INCLUDE_PG_OPENGL_PG_TEXTURE_H_
+
+#ifndef INCLUDE_OPENGL_PG_PLANE_H_
+#define INCLUDE_OPENGL_PG_PLANE_H_
 
 #include <openGL/PG_GLItem.h>
-#include <pg/util/PG_Image.h>
+#include <pg/util/PG_Vector.h>
 
 namespace PG {
 namespace GL {
 
-class Texture: public GLItem {
+class Plane: public GLItem {
 public:
-	Texture();
+	Plane();
 
-	void bind(const PG::UTIL::IDImage& img);
-	void bind(const PG::UTIL::RGBImage& img);
-	void bind(const PG::UTIL::RGBAImage& img);
+	///Parameterform
+	bool bind(const UTIL::vec3& start, const UTIL::vec3& a, const UTIL::vec3& b);
 
-	void apply() const;
+	void apply() const final;
+	void release() const final;
 
-	void release() const;
-
-	virtual ~Texture();
+	virtual ~Plane();
 private:
-	bool create();
-	bool setTexture(unsigned char* imagedata, int type, const unsigned int width, const unsigned int height, bool freedata = false, bool flipYAxis = false);
+	unsigned int m_bufferIDs[3];
 };
 
 } /* namespace GL */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_OPENGL_PG_TEXTURE_H_ */
+#endif /* INCLUDE_OPENGL_PG_PLANE_H_ */

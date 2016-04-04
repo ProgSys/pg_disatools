@@ -31,6 +31,32 @@ namespace PG {
 namespace UTIL {
 
 template<typename T>
+tVector3<T> cross(const tVector3<T>& A,const tVector3<T>& B){
+	return tVector3<T>(
+			A.y*B.z-A.z*B.y,
+			A.z*B.x-A.x*B.z,
+			A.x*B.y-A.y*B.x
+			);
+}
+
+template<typename T>
+T dot(const tVector4<T>& A,const tVector4<T>& B){
+	return A.x*B.x+A.y*B.y+A.z*B.z+A.w*B.w;
+}
+
+
+template<typename T>
+T dot(const tVector3<T>& A,const tVector3<T>& B){
+	return A.x*B.x+A.y*B.y+A.z*B.z;
+}
+
+template<typename T>
+T dot(const tVector2<T>& A,const tVector2<T>& B){
+	return A.x*B.x+A.y*B.y;
+}
+
+
+template<typename T>
 T interpolate(T a, T b, double v){
 	return a*(1-v)+b*v;
 }

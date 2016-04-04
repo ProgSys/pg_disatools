@@ -16,9 +16,15 @@
  *	or http://www.gnu.org/licenses/
  */
 #include <GLWidget.h>
-#include <QOpenGLTexture>
-#include <QOpenGLShader>
-#include <QOpenGLShaderProgram>
+
+
+
+#include <QMessagebox>
+#include <pg/files/PG_ImageFiles.h>
+#include <pg/util/PG_Image.h>
+
+
+
 
 
 GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent){
@@ -27,33 +33,75 @@ GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent){
 
 void GLWidget::initializeGL(){
 
+
+	GLenum err = glewInit();
+	if(err != GLEW_OK){
+		QMessageBox messageBox;
+		messageBox.critical(0,"Error","Couldn't init OpenGL 3.0!");
+		exit (EXIT_FAILURE);
+	}
+
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_TEXTURE_2D);
+
     glClearColor(0.196,0.38,0.6588,1);
 
-    /*
+    m_spriteShaderInfo.modelMatrix.ortho(rect());
+	m_spriteShaderInfo.viewMatrix.ortho(rect());
+	m_spriteShaderInfo.perspectiveMatrix.ortho(rect());
 
-    glBindTexture(GL_TEXTURE_2D,0);
-    unsigned int GLID;
-    glGenTextures( 1, &GLID);
-    //if(glGetError()){
-       // return;
-  //  }
+    //load shader
+    m_spriteShader.addShaderFromSourceFile(QOpenGLShader::Vertex, "resources/shaders/sprite.vert");
+    m_spriteShader.addShaderFromSourceFile(QOpenGLShader::Fragment, "resources/shaders/sprite.frag");
+    if(!m_spriteShader.link()){
+		QMessageBox messageBox;
+		messageBox.critical(0,"Error","Couldn't init shaders!");
+		exit (EXIT_FAILURE);
+    }
+    m_spriteShader.bind();
+    m_spriteShaderInfo.vertexLoc = m_spriteShader.attributeLocation("vertex");
+    m_spriteShaderInfo.normalLoc = m_spriteShader.attributeLocation("normal");
+    m_spriteShaderInfo.uvLoc = m_spriteShader.attributeLocation("uv");
+    qDebug()<< "UV loc: "<<QString::number(m_spriteShaderInfo.uvLoc);
 
-    glBindTexture( GL_TEXTURE_2D, GLID);
+    m_spriteShaderInfo.modelMatrixLoc = m_spriteShader.uniformLocation("modelMatrix");
+    m_spriteShaderInfo.projectionMatrixLoc = m_spriteShader.uniformLocation("projectionMatrix");
+    m_spriteShaderInfo.viewMatrixLoc = m_spriteShader.uniformLocation("viewMatrix");
+    m_spriteShaderInfo.idtextureLoc = m_spriteShader.uniformLocation("idtexture");
 
-    QOpenGLShader shader(QOpenGLShader::Vertex);
-    shader.compileSourceCode(code);
+    m_spriteShader.release();
 
-    QOpenGLShaderProgram program(this);
-    program.addShader(&shader);
-    program.link();
+    //load texture
+    PG::UTIL::RGBAImage img;
+    PG::FILE::loadTGA("resources/test.tga", img);
+    m_spriteTexture.bind(img);
 
-    program.bind();
-    */
+    //load geometry
+    m_spriteGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0),PG::UTIL::vec3(1,0,0) );
 
 }
 
 void GLWidget::paintGL(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    m_spriteShader.bind();
+    m_spriteShader.setUniformValue(m_spriteShaderInfo.modelMatrixLoc, m_spriteShaderInfo.modelMatrix);
+    m_spriteShader.setUniformValue(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix);
+    m_spriteShader.setUniformValue(m_spriteShaderInfo.projectionMatrixLoc, m_spriteShaderInfo.perspectiveMatrix);
+
+    //m_spriteShader.enableAttributeArray(m_spriteShaderInfo.vertexLoc);
+    //m_spriteShader.enableAttributeArray(m_spriteShaderInfo.normalLoc);
+    //m_spriteShader.enableAttributeArray(m_spriteShaderInfo.uvLoc);
+
+    glActiveTexture(GL_TEXTURE0);
+    m_spriteShader.setUniformValue( m_spriteShaderInfo.idtextureLoc, 0);
+    m_spriteTexture.apply();
+
+    m_spriteGeometry.apply();
+
+    m_spriteTexture.release();
+    m_spriteShader.release();
 }
 
 void GLWidget::resizeGL(int w, int h){
@@ -61,6 +109,6 @@ void GLWidget::resizeGL(int w, int h){
 }
 
 GLWidget::~GLWidget() {
-	// TODO Auto-generated destructor stub
+	//if(m_spriteTexture) delete m_spriteTexture;
 }
 
