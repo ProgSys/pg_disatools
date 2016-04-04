@@ -31,6 +31,7 @@
 #include <QOpenGLWidget>
 #include <QMatrix>
 
+#include <openGL/PG_Shader.h>
 #include <openGL/PG_Texture.h>
 #include <openGL/PG_Plane.h>
 
@@ -45,24 +46,25 @@ public:
 
     virtual ~GLWidget();
 private:
-    QOpenGLShaderProgram m_spriteShader;
+    //QOpenGLShaderProgram m_spriteShader;
+    PG::GL::Shader m_spriteShader;
     PG::GL::Texture m_spriteTexture;
     PG::GL::Plane m_spriteGeometry;
 
     struct spriteShader{
-    	QMatrix4x4 modelMatrix;
-    	QMatrix4x4 viewMatrix;
-    	QMatrix4x4 perspectiveMatrix;
+    	PG::UTIL::mat4 modelMatrix;
+    	PG::UTIL::mat4 viewMatrix;
+    	PG::UTIL::mat4 perspectiveMatrix;
 
-    	unsigned int vertexLoc;
-    	unsigned int normalLoc;
-    	unsigned int uvLoc;
+    	int vertexLoc;
+    	int normalLoc;
+    	int uvLoc;
 
-    	unsigned int viewMatrixLoc;
-    	unsigned int projectionMatrixLoc;
-    	unsigned int modelMatrixLoc;
+    	int viewMatrixLoc;
+    	int projectionMatrixLoc;
+    	int modelMatrixLoc;
 
-    	unsigned int idtextureLoc;
+    	int idtextureLoc;
     } m_spriteShaderInfo;
 
 

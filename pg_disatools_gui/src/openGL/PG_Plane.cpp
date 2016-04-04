@@ -32,13 +32,13 @@ namespace GL {
 
 
 static GLfloat const planeUVs[] = {
-	0.0f, 0.0f,
-	1.0f, 0.0f,
-    1.0f, 1.0f,
+	0.0f, 1.0f,
+	1.0f, 1.0f,
+    1.0f, 0.0f,
 
-	0.0f, 0.0f,
-    1.0f, 1.0f,
-    0.0f, 1.0f
+	0.0f, 1.0f,
+    1.0f, 0.0f,
+    0.0f, 0.0f
 };
 
 Plane::Plane(){
@@ -47,13 +47,13 @@ Plane::Plane(){
 
 bool Plane::bind(const UTIL::vec3& start, const UTIL::vec3& a, const UTIL::vec3& b){
 	GLfloat const planeVertices[] = {
-		start.x,start.y,start.z, 0.0f,
-		start.x+a.x,start.y+a.y,start.z+a.z, 0.0f,
-		start.x+a.x+b.x,start.y+a.y+b.y,start.z+a.z+b.z, 0.0f,
+		start.x,start.y,start.z, 1.0f,
+		start.x+a.x,start.y+a.y,start.z+a.z, 1.0f,
+		start.x+a.x+b.x,start.y+a.y+b.y,start.z+a.z+b.z, 1.0f,
 
-		start.x,start.y,start.z, 0.0f,
-		start.x+a.x+b.x,start.y+a.y+b.y,start.z+a.z+b.z, 0.0f,
-		start.x+b.x,start.y+b.y,start.z+b.z, 0.0f,
+		start.x,start.y,start.z, 1.0f,
+		start.x+a.x+b.x,start.y+a.y+b.y,start.z+a.z+b.z, 1.0f,
+		start.x+b.x,start.y+b.y,start.z+b.z, 1.0f,
 	};
 
 	PG::UTIL::vec3 normal = PG::UTIL::cross(a,b);

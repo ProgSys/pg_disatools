@@ -1,16 +1,30 @@
 /*
- * PG_Shader.cpp
+ *  GNU Lesser General Public License (LGPL):
  *
- *  Created on: 04.04.2016
- *      Author: ProgSys
+ *	Copyright (C) 2016  ProgSys
+ *
+ *	This program is free software: you can redistribute it and/or modify
+ *	it under the terms of the GNU Lesser General Public License as published by
+ *	the Free Software Foundation, version 3 of the License.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU Lesser General Public License for more details.
+ *
+ *	You should have received a copy of the GNU Lesser General Public License
+ *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
+ *	or http://www.gnu.org/licenses/
  */
-
 #include <openGL/PG_Shader.h>
 
 #include <algorithm>
+#include <fstream>
+#include <cstring>
 #include <pg/util/PG_Base.h>
-
 #include <openGL/PG_GLError.h>
+
+#include <pg/util/PG_VectorUtil.h>
+#include <pg/util/PG_MatrixUtil.h>
 
 namespace PG {
 namespace GL {
@@ -27,8 +41,7 @@ void Shader::addShaderFile(Shader::type shaderType, const std::string& filepath)
 	//open file and "parse" input
 	std::ifstream file(filepath);
 	if (file.is_open()) {
-		while (!file.eof()){
-			getline (file, line);
+		while (getline (file, line)){
 			fileContent += line + "\n";
 		}
 		file.close();
@@ -52,7 +65,7 @@ void Shader::addShader(Shader::type shaderType, const std::string& shaderText){
 }
 
 //checks a shader for compiler errors
-inline void checkShader(GLuint shaderID) {
+inline bool checkShader(GLuint shaderID) {
     GLint status;
     glGetShaderiv(shaderID, GL_COMPILE_STATUS, &status);
 
@@ -67,13 +80,15 @@ inline void checkShader(GLuint shaderID) {
         // Don't leak the shader.
         glDeleteShader(shaderID);
         delete[] infoLog;
+        return true;
     } else {
         PG_SUCCESS_STREAM("Shader compiled ID: "<< shaderID);
+        return false;
     }
 }
 
 //checks a program
-inline void checkProgram(GLuint programID) {
+inline bool checkProgram(GLuint programID) {
     GLint status;
     glGetProgramiv(programID, GL_LINK_STATUS, &status);
 
@@ -87,8 +102,10 @@ inline void checkProgram(GLuint programID) {
         PG_ERROR_STREAM("Unable to link ShaderSet: " << std::endl << infoLog );
         glDeleteProgram(programID);
         delete[] infoLog;
+        return true;
     } else {
     	PG_SUCCESS_STREAM("ShaderSet linked ID: "<< programID);
+    	return false;
     }
 }
 
@@ -101,28 +118,42 @@ bool Shader::bind(){
 
 	if(m_shaders.empty()) return false;
 
-	std::vector<GLuint> ids(m_shaders.size());
+	std::vector<GLuint> ids;
+	ids.reserve(m_shaders.size());
 
 	for(const shaderInfo& info: m_shaders){
 		GLuint id = glCreateShader(info.shaderType);
 		ids.push_back(id);
-	    const char* source = info.text.c_str();
-	    const GLint source_size = info.text.size();//strlen(source);
+
+		const char* source = info.text.c_str();
+	    const GLint source_size = strlen(source); //info.text.size();//
 		glShaderSource(id, 1, &source, &source_size);
+
 		glCompileShader(id);
-		checkShader(id);
+		if(checkShader(id)){
+			for(GLuint id: ids)
+				glDeleteShader(id);
+			return false;
+		}
 	}
+
 
 	//link shader programs
 	m_GLID = glCreateProgram(); //ProgramID
 
 	for(GLuint id: ids){
 		glAttachShader(m_GLID, id);
-		glDeleteShader(id);
 	}
 
 	glLinkProgram(getGLID());
-	checkProgram(getGLID());
+	if(checkProgram(getGLID()))
+		return false;
+
+	for(GLuint id: ids){
+		glDetachShader(m_GLID, id);
+		glDeleteShader(id);
+	}
+
 	return !checkGLError();
 }
 
@@ -134,31 +165,41 @@ void Shader::release() const{
 }
 
 int Shader::getAttributeLocation(const std::string& name) const{
-	return glGetAttribLocation( m_GLID, name.c_str());
+	const int i = glGetAttribLocation( m_GLID, name.c_str());
+	if(i == INVALID_OGL_VALUE)
+		 PG_ERROR_STREAM("Attribute location with the name '" << name<<"', not found! Make sure it is active. (is used in shader)" );
+	return i;
 }
 
 int Shader::getUniformLocation(const std::string& name) const{
-	return glGetUniformLocation( m_GLID, name.c_str());
+	const int i = glGetUniformLocation( m_GLID, name.c_str());
+	if(i == INVALID_OGL_VALUE)
+		 PG_ERROR_STREAM("Uniform location with the name '" << name<<"', not found! Make sure it is active. (is used in shader)" );
+	return i;
 }
 
 void Shader::setUniform(int location, int value){
-	glUniform1i(m_GLID, value);
+	glUniform1i(location, value);
 }
 
 void Shader::setUniform(int location, float value){
-	glUniform1f(m_GLID, value);
+	glUniform1f(location, value);
 }
 
 void Shader::setUniform(int location, const PG::UTIL::vec2& value){
-	glUniform2fv(m_GLID,1, PG::UTIL::value_ptr(value));
+	glUniform2fv(location,1, PG::UTIL::value_ptr(value));
 }
 
 void Shader::setUniform(int location, const PG::UTIL::vec3& value){
-	glUniform3fv(m_GLID,1, PG::UTIL::value_ptr(value));
+	glUniform3fv(location,1, PG::UTIL::value_ptr(value));
 }
 
 void Shader::setUniform(int location, const PG::UTIL::vec4& value){
-	glUniform4fv(m_GLID,1, PG::UTIL::value_ptr(value));
+	glUniform4fv(location,1, PG::UTIL::value_ptr(value));
+}
+
+void Shader::setUniform(int location, const PG::UTIL::mat4& value){
+	glUniformMatrix4fv(location, 1, GL_FALSE, PG::UTIL::value_ptr(value));
 }
 
 Shader::~Shader() {

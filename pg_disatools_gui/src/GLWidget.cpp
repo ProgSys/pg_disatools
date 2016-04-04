@@ -47,31 +47,40 @@ void GLWidget::initializeGL(){
 
     glClearColor(0.196,0.38,0.6588,1);
 
-    m_spriteShaderInfo.modelMatrix.ortho(rect());
-	m_spriteShaderInfo.viewMatrix.ortho(rect());
-	m_spriteShaderInfo.perspectiveMatrix.ortho(rect());
+    // m_spriteShaderInfo.modelMatrix.ortho(rect());
+	//m_spriteShaderInfo.viewMatrix.ortho(rect());
+	//m_spriteShaderInfo.perspectiveMatrix.ortho(rect());
 
     //load shader
-    m_spriteShader.addShaderFromSourceFile(QOpenGLShader::Vertex, "resources/shaders/sprite.vert");
-    m_spriteShader.addShaderFromSourceFile(QOpenGLShader::Fragment, "resources/shaders/sprite.frag");
-    if(!m_spriteShader.link()){
+	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/sprite.vert");
+	m_spriteShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/sprite.frag");
+
+    if(!m_spriteShader.bind()){
 		QMessageBox messageBox;
 		messageBox.critical(0,"Error","Couldn't init shaders!");
 		exit (EXIT_FAILURE);
     }
-    m_spriteShader.bind();
-    m_spriteShaderInfo.vertexLoc = 0;//m_spriteShader.attributeLocation("vertex");
-    m_spriteShaderInfo.normalLoc = 1;//m_spriteShader.attributeLocation("normal");
-    m_spriteShaderInfo.uvLoc = 2;//m_spriteShader.attributeLocation("uv");
+
+    m_spriteShader.apply();
+
+    m_spriteShaderInfo.vertexLoc = m_spriteShader.getAttributeLocation("vertex");
+    m_spriteShaderInfo.normalLoc = m_spriteShader.getAttributeLocation("normal");
+    m_spriteShaderInfo.uvLoc = m_spriteShader.getAttributeLocation("uv");
 
     qDebug()<< "vertex loc: "<<QString::number(m_spriteShaderInfo.vertexLoc);
     qDebug()<< "normal loc: "<<QString::number( m_spriteShaderInfo.normalLoc);
     qDebug()<< "UV loc: "<<QString::number(m_spriteShaderInfo.uvLoc);
 
-    m_spriteShaderInfo.modelMatrixLoc = m_spriteShader.uniformLocation("modelMatrix");
-    m_spriteShaderInfo.projectionMatrixLoc = m_spriteShader.uniformLocation("projectionMatrix");
-    m_spriteShaderInfo.viewMatrixLoc = m_spriteShader.uniformLocation("viewMatrix");
-    m_spriteShaderInfo.idtextureLoc = m_spriteShader.uniformLocation("idtexture");
+    m_spriteShaderInfo.modelMatrixLoc = m_spriteShader.getUniformLocation("modelMatrix");
+    m_spriteShaderInfo.projectionMatrixLoc = m_spriteShader.getUniformLocation("projectionMatrix");
+    m_spriteShaderInfo.viewMatrixLoc = m_spriteShader.getUniformLocation("viewMatrix");
+    m_spriteShaderInfo.idtextureLoc = m_spriteShader.getUniformLocation("idtexture");
+    qDebug()<< QString::number( m_spriteShaderInfo.modelMatrixLoc)<<", "<< QString::number( m_spriteShaderInfo.projectionMatrixLoc)<<", "
+    		<< QString::number( m_spriteShaderInfo.viewMatrixLoc)<<", "<< QString::number( m_spriteShaderInfo.idtextureLoc);
+
+    m_spriteShaderInfo.modelMatrix[3][0] = -0.1f;
+    m_spriteShaderInfo.modelMatrix[3][1] = -0.1f;
+   // m_spriteShader.setUniform(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix);
 
     m_spriteShader.release();
 
@@ -80,25 +89,27 @@ void GLWidget::initializeGL(){
     PG::FILE::loadTGA("resources/test.tga", img);
     m_spriteTexture.bind(img);
 
+
     //load geometry
-    m_spriteGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,0.4,0),PG::UTIL::vec3(0.4,0,0) );
+    m_spriteGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(1,0,0),PG::UTIL::vec3(0,1,0) );
 
 }
 
 void GLWidget::paintGL(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    m_spriteShader.bind();
-    m_spriteShader.setUniformValue(m_spriteShaderInfo.modelMatrixLoc, m_spriteShaderInfo.modelMatrix);
-    m_spriteShader.setUniformValue(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix);
-    m_spriteShader.setUniformValue(m_spriteShaderInfo.projectionMatrixLoc, m_spriteShaderInfo.perspectiveMatrix);
+    m_spriteShader.apply();
+    m_spriteShader.setUniform(m_spriteShaderInfo.modelMatrixLoc, m_spriteShaderInfo.modelMatrix);
+    m_spriteShader.setUniform(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix);
+    m_spriteShader.setUniform(m_spriteShaderInfo.projectionMatrixLoc, m_spriteShaderInfo.perspectiveMatrix);
 
-    m_spriteShader.enableAttributeArray(m_spriteShaderInfo.vertexLoc);
-    m_spriteShader.enableAttributeArray(m_spriteShaderInfo.normalLoc);
-    m_spriteShader.enableAttributeArray(m_spriteShaderInfo.uvLoc);
+
+   // m_spriteShader.enableAttributeArray(m_spriteShaderInfo.vertexLoc);
+   // m_spriteShader.enableAttributeArray(m_spriteShaderInfo.normalLoc);
+   // m_spriteShader.enableAttributeArray(m_spriteShaderInfo.uvLoc);
 
     glActiveTexture(GL_TEXTURE0);
-    m_spriteShader.setUniformValue( m_spriteShaderInfo.idtextureLoc, 0);
+    m_spriteShader.setUniform( m_spriteShaderInfo.idtextureLoc, 0);
     m_spriteTexture.apply();
 
     m_spriteGeometry.apply();

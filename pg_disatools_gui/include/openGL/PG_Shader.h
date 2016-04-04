@@ -1,10 +1,20 @@
 /*
- * PG_Shader.h
+ *  GNU Lesser General Public License (LGPL):
  *
- *  Created on: 04.04.2016
- *      Author: ProgSys
+ *	Copyright (C) 2016  ProgSys
+ *
+ *	This program is free software: you can redistribute it and/or modify
+ *	it under the terms of the GNU Lesser General Public License as published by
+ *	the Free Software Foundation, version 3 of the License.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU Lesser General Public License for more details.
+ *
+ *	You should have received a copy of the GNU Lesser General Public License
+ *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
+ *	or http://www.gnu.org/licenses/
  */
-
 #ifndef INCLUDE_OPENGL_PG_SHADER_H_
 #define INCLUDE_OPENGL_PG_SHADER_H_
 
@@ -21,6 +31,7 @@
 #include <vector>
 
 #include <pg/util/PG_Vector.h>
+#include <pg/util/PG_Matrix.h>
 
 namespace PG {
 namespace GL {
@@ -58,7 +69,7 @@ public:
 	void setUniform(int location, const PG::UTIL::vec3& value);
 	void setUniform(int location, const PG::UTIL::vec4& value);
 
-	//void setUniform(int location, const PG::UTIL::vec4& value);
+	void setUniform(int location, const PG::UTIL::mat4& value);
 	//void setUniform(int location, const PG::UTIL::vec4& value);
 	//void setUniform(int location, const PG::UTIL::vec4& value);
 
