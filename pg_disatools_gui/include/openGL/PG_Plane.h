@@ -30,7 +30,7 @@ public:
 	Plane();
 
 	///Parameterform
-	bool bind(const UTIL::vec3& start, const UTIL::vec3& a, const UTIL::vec3& b);
+	bool bind(const UTIL::vec3& start, const UTIL::vec3& a, const UTIL::vec3& b, float textureScale = 1.0f);
 
 	void apply() const final;
 	void release() const final;

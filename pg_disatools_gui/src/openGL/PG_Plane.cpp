@@ -31,21 +31,12 @@ namespace PG {
 namespace GL {
 
 
-static GLfloat const planeUVs[] = {
-	0.0f, 1.0f,
-	1.0f, 1.0f,
-    1.0f, 0.0f,
-
-	0.0f, 1.0f,
-    1.0f, 0.0f,
-    0.0f, 0.0f
-};
 
 Plane::Plane(){
 
 }
 
-bool Plane::bind(const UTIL::vec3& start, const UTIL::vec3& a, const UTIL::vec3& b){
+bool Plane::bind(const UTIL::vec3& start, const UTIL::vec3& a, const UTIL::vec3& b, float textureScale){
 	GLfloat const planeVertices[] = {
 		start.x,start.y,start.z, 1.0f,
 		start.x+a.x,start.y+a.y,start.z+a.z, 1.0f,
@@ -65,6 +56,16 @@ bool Plane::bind(const UTIL::vec3& start, const UTIL::vec3& a, const UTIL::vec3&
 		normal.x, normal.y, normal.z,
 		normal.x, normal.y, normal.z,
 		normal.x, normal.y, normal.z,
+	};
+
+	GLfloat const planeUVs[] = {
+		0.0f, textureScale,
+		textureScale, textureScale,
+		textureScale, 0.0f,
+
+		0.0f, textureScale,
+		textureScale, 0.0f,
+	    0.0f, 0.0f
 	};
 
 	glGenVertexArrays(1, &m_GLID);//vaoObjectHandle

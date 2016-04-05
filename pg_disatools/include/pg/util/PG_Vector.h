@@ -67,9 +67,11 @@ struct tVector2{
 
 	tVector2<T> operator-(const tVector2<T>& tvec) const;
 
-	tVector2<T> operator*(float f) const;
+	template<typename D>
+	tVector2<T> operator*(D f) const;
 
-	tVector2<T> operator/(float f) const;
+	template<typename D>
+	tVector2<T> operator/(D f) const;
 
 	void operator+=(const tVector2<T>& tvec);
 
@@ -117,9 +119,11 @@ struct tVector3{
 
 	tVector3<T> operator-(const tVector3<T>& tvec) const;
 
-	tVector3<T> operator*(float f) const;
+	template<typename D>
+	tVector3<T> operator*(D f) const;
 
-	tVector3<T> operator/(float f) const;
+	template<typename D>
+	tVector3<T> operator/(D f) const;
 
 	void operator+=(const tVector3<T>& tvec);
 
@@ -169,9 +173,11 @@ struct tVector4{
 
 	tVector4<T> operator-(const tVector4<T>& tvec) const;
 
-	tVector4<T> operator*(float f) const;
+	template<typename D>
+	tVector4<T> operator*(D f) const;
 
-	tVector4<T> operator/(float f) const;
+	template<typename D>
+	tVector4<T> operator/(D f) const;
 
 	void operator+=(const tVector4<T>& tvec);
 
@@ -242,12 +248,14 @@ tVector2<T> tVector2<T>::operator-(const tVector2<T>& tvec) const{
 }
 
 template<typename T>
-tVector2<T> tVector2<T>::operator*(float f) const{
+template<typename D>
+tVector2<T> tVector2<T>::operator*(D f) const{
 	return tVector2<T>(x*f, y*f);
 }
 
 template<typename T>
-tVector2<T> tVector2<T>::operator/(float f) const{
+template<typename D>
+tVector2<T> tVector2<T>::operator/(D f) const{
 	return tVector2<T>(x/f, y/f);
 }
 
@@ -340,12 +348,14 @@ tVector3<T> tVector3<T>::operator-(const tVector3<T>& tvec) const{
 }
 
 template<typename T>
-tVector3<T> tVector3<T>::operator*(float f) const{
+template<typename D>
+tVector3<T> tVector3<T>::operator*(D f) const{
 	return tVector3<T>(x*f, y*f, z*f);
 }
 
 template<typename T>
-tVector3<T> tVector3<T>::operator/(float f) const{
+template<typename D>
+tVector3<T> tVector3<T>::operator/(D f) const{
 	return tVector3<T>(x/f, y/f, z/f);
 }
 
@@ -437,12 +447,14 @@ tVector4<T> tVector4<T>::operator-(const tVector4<T>& tvec) const{
 }
 
 template<typename T>
-tVector4<T> tVector4<T>::operator*(float f) const{
+template<typename D>
+tVector4<T> tVector4<T>::operator*(D f) const{
 	return tVector4<T>(x*f, y*f, z*f, w*f);
 }
 
 template<typename T>
-tVector4<T> tVector4<T>::operator/(float f) const{
+template<typename D>
+tVector4<T> tVector4<T>::operator/(D f) const{
 	return tVector4<T>(x/f, y/f, z/f, w/f);
 }
 

@@ -32,6 +32,7 @@
 #include <pg/util/PG_Array.h>
 #include <fstream>
 #include <pg/util/PG_Vector.h>
+#include <pg/util/PG_VectorUtil.h>
 #include <pg/stream/PG_StreamInByteFile.h>
 
 #include <pg/util/PG_Matrix.h>
@@ -39,6 +40,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
+
 
 #define OUTSTR(x) std::cout << x << std::endl
 
@@ -231,6 +233,9 @@ int main(int argc, char* argv[]){
 	vec[3] = 1;
 	OUTSTR( (E*vec) );
 
+	OUTSTR( PG::UTIL::normalize(PG::UTIL::vec3(0,4.2f,0)) );
+	OUTSTR( PG::UTIL::interpolate(PG::UTIL::vec3(1,1,1), PG::UTIL::vec3(6,6,6), 0.5) );
+	OUTSTR( PG::UTIL::vec3(1,1,1)*0.5f );
 	OUTSTR("END");
 
 	return 0;

@@ -25,7 +25,11 @@
 #define INCLUDE_PG_UTIL_PG_MATRIXUTIL_H_
 
 #include <cmath>
+#include <limits.h>
+#include <pg/util/PG_Exception.h>
 #include <pg/util/PG_Matrix.h>
+#include <pg/util/PG_Vector.h>
+#include <pg/util/PG_VectorUtil.h>
 
 namespace PG {
 namespace UTIL {
@@ -33,6 +37,50 @@ namespace UTIL {
 template<typename T>
 T const * value_ptr(const tMatrix4x4<T>& mat){
 	return &(mat[0].x);
+}
+
+template<typename T>
+tMatrix4x4<T> lookAt( tVector3<T> eyePos, tVector3<T> lookAtPoint, tVector3<T> upVector){
+	//build a normal base
+	const tVector3<T> f(normalize(lookAtPoint - eyePos));
+	const tVector3<T> s(normalize(cross(f, upVector)));
+	const tVector3<T> u(cross(s, f));
+
+	tMatrix4x4<T> viewMat;
+	viewMat[0][0] = s.x;
+	viewMat[1][0] = s.y;
+	viewMat[2][0] = s.z;
+	viewMat[0][1] = u.x;
+	viewMat[1][1] = u.y;
+	viewMat[2][1] = u.z;
+	viewMat[0][2] =-f.x;
+	viewMat[1][2] =-f.y;
+	viewMat[2][2] =-f.z;
+	viewMat[3][0] =-dot(s, eyePos);
+	viewMat[3][1] =-dot(u, eyePos);
+	viewMat[3][2] = dot(f, eyePos);
+	return viewMat;
+}
+
+
+template<typename T>
+tMatrix4x4<T> perspective(T fovy, T aspectRatio, T nearZ, T farZ){
+	assert_Test("Aspect ratio is 0!", abs(aspectRatio - std::numeric_limits<T>::epsilon()) <= static_cast<T>(0));
+
+	const T tanHalfFovy = tan(fovy / static_cast<T>(2));
+
+	tMatrix4x4<T> perspectiveMat(static_cast<T>(0));
+	perspectiveMat[0][0] = static_cast<T>(1) / (aspectRatio * tanHalfFovy);
+	perspectiveMat[1][1] = static_cast<T>(1) / (tanHalfFovy);
+	perspectiveMat[2][2] = - (farZ + nearZ) / (farZ - nearZ);
+	perspectiveMat[2][3] = - static_cast<T>(1);
+	perspectiveMat[3][2] = - (static_cast<T>(2) * farZ * nearZ) / (farZ);
+	return perspectiveMat;
+}
+
+template<typename T>
+tMatrix4x4<T> perspective(T fovy, int width, int height, T nearZ, T farZ){
+	return perspective(fovy, width/static_cast<T>(height), nearZ, farZ);
 }
 
 

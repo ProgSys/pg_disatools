@@ -38,6 +38,18 @@ void tVector2<unsigned char>::dump(std::ostream& o) const{
 	o<<"("<<(int)x<<", "<<(int)y<<")";
 }
 
+template<>
+void tVector2<float>::dump(std::ostream& o) const{
+	o<<"("<<x<<", "<<y<<")";
+}
+
+template<>
+void tVector2<double>::dump(std::ostream& o) const{
+	o<<"("<<x<<", "<<y<<")";
+}
+
+/////// tVector3 ///////
+
 template<typename T>
 void tVector3<T>::dump(std::ostream& o) const{
 	o<<"("<<x<<", "<<y<<", "<<z<<")";
@@ -52,6 +64,18 @@ template<>
 void tVector3<unsigned char>::dump(std::ostream& o) const{
 	o<<"("<<(int)x<<", "<<(int)y<<", "<<(int)z<<")";
 }
+
+template<>
+void tVector3<float>::dump(std::ostream& o) const{
+	o<<"("<<x<<", "<<y<<", "<<z<<")";
+}
+
+template<>
+void tVector3<double>::dump(std::ostream& o) const{
+	o<<"("<<x<<", "<<y<<", "<<z<<")";
+}
+
+/////// tVector4 ///////
 
 template<>
 void tVector4<int>::dump(std::ostream& o) const{
@@ -76,6 +100,11 @@ void tVector4<unsigned char>::dump(std::ostream& o) const{
 
 template<>
 void tVector4<float>::dump(std::ostream& o) const{
+	o<<"("<<x<<", "<<y<<", "<<z<<", "<<w<<")";
+}
+
+template<>
+void tVector4<double>::dump(std::ostream& o) const{
 	o<<"("<<x<<", "<<y<<", "<<z<<", "<<w<<")";
 }
 

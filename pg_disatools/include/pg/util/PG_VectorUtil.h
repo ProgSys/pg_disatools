@@ -55,30 +55,50 @@ T dot(const tVector2<T>& A,const tVector2<T>& B){
 	return A.x*B.x+A.y*B.y;
 }
 
+/////// normalize ///////
+template <typename T>
+T invsqrt(T x){
+    return 1.0 / std::sqrt(x);
+}
 
+template<typename T, template <typename> class Vec>
+Vec<T> normalize( const Vec<T>& vector){
+	return vector * invsqrt(dot(vector,vector));
+}
+
+/////// interpolate ///////
 template<typename T>
 T interpolate(T a, T b, double v){
 	return a*(1-v)+b*v;
 }
 
+template<typename T, template <typename> class Vec>
+Vec<T> interpolate(const Vec<T>& A,const Vec<T>& B, double v){
+	const double a = (1.0f-v);
+	return (A*a)+(B*v);
+}
+
+/*
 template<typename T>
 tVector2<T> interpolate(const tVector2<T>& A,const tVector2<T>& B, double v){
-	const float a = (1.0f-v);
+	const double a = (1.0f-v);
 	return tVector2<T>(A.x*a+B.x*v, A.y*a+B.y*v);
 }
 
 template<typename T>
 tVector3<T> interpolate(const tVector3<T>& A,const tVector3<T>& B, double v){
-	const float a = (1.0f-v);
+	const double a = (1.0f-v);
 	return tVector3<T>(A.x*a+B.x*v, A.y*a+B.y*v, A.z*a+B.z*v);
 }
 
 template<typename T>
 tVector4<T> interpolate(const tVector4<T>& A,const tVector4<T>& B, double v){
-	const float a = (1.0f-v);
+	const double a = (1.0f-v);
 	return tVector4<T>(A.x*a+B.x*v, A.y*a+B.y*v, A.z*a+B.z*v, A.w*a+B.w*v);
 }
+*/
 
+/////// length ///////
 template<typename T>
 float length(const tVector2<T>& A){
 	return  std::sqrt(std::pow(A.x, 2.0)+std::pow(A.y, 2.0));
@@ -94,6 +114,7 @@ float length(const tVector4<T>& A){
 	return  std::sqrt(std::pow(A.x, 2.0)+std::pow(A.y, 2.0)+std::pow(A.z, 2.0)+std::pow(A.a, 2.0));
 }
 
+/////// distance ///////
 template<typename T>
 float distance(T a, T b){
 	return  std::sqrt(std::pow(a-b, 2.0));
@@ -124,7 +145,7 @@ float distanceXYZ(const tVector4<T>& A,const tVector4<T>& B){
 	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0)+std::pow(A.z-B.z, 2.0));
 }
 
-
+/////// grayscale ///////
 template<typename T>
 T grayscale(const tVector3<T>& A){
 	return  A.r*0.2126+A.g*0.7152+A.b*0.0722;
@@ -135,9 +156,7 @@ float grayscale(const tVector4<T>& A){
 	return  A.r*0.2126+A.g*0.7152+A.b*0.0722;
 }
 
-
-
-
+/////// scaleRGB565to888 ///////
 inline void scaleRGB565to888(tVector3<char>& vec){
 	/*
 	vec.r = ( vec.r << 3 ) | ( vec.r >> 2 );
@@ -251,18 +270,9 @@ rgba torgba(const tVector2<T>& vec){
 	return PG::UTIL::rgba(vec.x,vec.y,0,255);
 }
 
-template<typename T>
-T const * value_ptr(const tVector2<T>& vec){
-	return &(vec.x);
-}
 
-template<typename T>
-T const * value_ptr(const tVector3<T>& vec){
-	return &(vec.x);
-}
-
-template<typename T>
-T const * value_ptr(const tVector4<T>& vec){
+template<typename T, template <typename> class Vec>
+T const * value_ptr(const Vec<T>& vec){
 	return &(vec.x);
 }
 

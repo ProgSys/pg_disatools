@@ -51,6 +51,9 @@ private:
     PG::GL::Texture m_spriteTexture;
     PG::GL::Plane m_spriteGeometry;
 
+    PG::GL::Texture m_groundTexture;
+    PG::GL::Plane m_groundGeometry;
+
     struct spriteShader{
     	PG::UTIL::mat4 modelMatrix;
     	PG::UTIL::mat4 viewMatrix;

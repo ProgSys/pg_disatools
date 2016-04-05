@@ -22,9 +22,7 @@
 #include <QMessagebox>
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/util/PG_Image.h>
-
-
-
+#include <pg/util/PG_MatrixUtil.h>
 
 
 GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent){
@@ -46,10 +44,6 @@ void GLWidget::initializeGL(){
 	glEnable(GL_TEXTURE_2D);
 
     glClearColor(0.196,0.38,0.6588,1);
-
-    // m_spriteShaderInfo.modelMatrix.ortho(rect());
-	//m_spriteShaderInfo.viewMatrix.ortho(rect());
-	//m_spriteShaderInfo.perspectiveMatrix.ortho(rect());
 
     //load shader
 	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/sprite.vert");
@@ -85,41 +79,51 @@ void GLWidget::initializeGL(){
     m_spriteShader.release();
 
     //load texture
-    PG::UTIL::RGBAImage img;
-    PG::FILE::loadTGA("resources/test.tga", img);
-    m_spriteTexture.bind(img);
+    {
+		PG::UTIL::RGBAImage img;
+		PG::FILE::loadTGA("resources/materials/test.tga", img);
+		m_spriteTexture.bind(img);
 
+		PG::FILE::loadTGA("resources/materials/ground.tga", img);
+		m_groundTexture.bind(img);
+    }
 
     //load geometry
     m_spriteGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(1,0,0),PG::UTIL::vec3(0,1,0) );
+    m_groundGeometry.bind(PG::UTIL::vec3(-5,0,-5),PG::UTIL::vec3(0,0,10),PG::UTIL::vec3(10,0,0), 10.0f );
 
+    //set mat
+    m_spriteShaderInfo.viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
 }
 
 void GLWidget::paintGL(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    //shader
     m_spriteShader.apply();
     m_spriteShader.setUniform(m_spriteShaderInfo.modelMatrixLoc, m_spriteShaderInfo.modelMatrix);
-    m_spriteShader.setUniform(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix);
+    m_spriteShader.setUniform(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix  );
     m_spriteShader.setUniform(m_spriteShaderInfo.projectionMatrixLoc, m_spriteShaderInfo.perspectiveMatrix);
-
-
-   // m_spriteShader.enableAttributeArray(m_spriteShaderInfo.vertexLoc);
-   // m_spriteShader.enableAttributeArray(m_spriteShaderInfo.normalLoc);
-   // m_spriteShader.enableAttributeArray(m_spriteShaderInfo.uvLoc);
-
     glActiveTexture(GL_TEXTURE0);
+
+
+    //sprite
     m_spriteShader.setUniform( m_spriteShaderInfo.idtextureLoc, 0);
     m_spriteTexture.apply();
-
     m_spriteGeometry.apply();
 
-    m_spriteTexture.release();
+    //ground
+    m_groundTexture.apply();
+    m_spriteShader.setUniform(m_spriteShaderInfo.modelMatrixLoc, PG::UTIL::mat4());
+    m_groundGeometry.apply();
+
+    //clean up
+    m_groundTexture.release();
     m_spriteShader.release();
 }
 
 void GLWidget::resizeGL(int w, int h){
-
+	m_spriteShaderInfo.perspectiveMatrix = PG::UTIL::perspective(90.0f, w, h, 0.01f, 3.0f);
 }
 
 GLWidget::~GLWidget() {
