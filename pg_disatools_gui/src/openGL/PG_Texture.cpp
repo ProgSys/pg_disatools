@@ -52,43 +52,38 @@ bool Texture::create(){
 
 	glBindTexture( GL_TEXTURE_2D, m_GLID);
 
-	/*
-	if(quality == 2){
-		glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-		glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-	}
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-
-	//texture settings
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
-
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST );
-
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST );
-
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	//glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
-	 */
-
-	//BEST
-	glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-
 	return true;
 }
 
+void Texture::setTexParameter(Texture::type texType){
+	switch (texType) {
+		case NORMAL:
+			{
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+			}
+			break;
+		case MEDIUM:
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+			break;
+		case LOW:
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			break;
+		case SPRITE:
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+			glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+			break;
+		default:
+			break;
+	}
+}
 
-bool Texture::setTexture(unsigned char* imagedata, int type, const unsigned int width, const unsigned int height, bool freedata, bool flipYAxis){
+
+bool Texture::setTexture(unsigned char* imagedata, int type, const unsigned int width, const unsigned int height,bool midmap, bool freedata, bool flipYAxis){
 	int bytesPerPixel = 0;
 	if( type == GL_RED ||  type == GL_GREEN ||  type == GL_BLUE){
 		bytesPerPixel = 1;
@@ -140,42 +135,52 @@ bool Texture::setTexture(unsigned char* imagedata, int type, const unsigned int 
     }
 
     //ImageTexture settings
-    if(width > 16 && height > 16)
+    if(midmap && width > 16 && height > 16)
     	glGenerateMipmap(GL_TEXTURE_2D);
-    else{
-    	glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-    	glTexParameterf( GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-    }
+
 
 	if (freedata) delete[] imagedata;
 
 	return true;
 }
 
-void Texture::bind(const PG::UTIL::IDImage& img){
+void Texture::bind(const PG::UTIL::IDImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
 	if(!create()) return;
+	setTexParameter(texType);
 	checkGLError();
-	setTexture((unsigned char*) &img[0], GL_RED, img.getWidth(), img.getHeight());
+	setTexture((unsigned char*) &img[0], GL_RED, img.getWidth(), img.getHeight(), texType != SPRITE );
 	checkGLError();
 }
 
-void Texture::bind(const PG::UTIL::RGBImage& img){
+void Texture::bind(const PG::UTIL::RGBImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
 	if(!create()) return;
+	setTexParameter(texType);
 	checkGLError();
-	setTexture((unsigned char*) &img[0], GL_RGB, img.getWidth(), img.getHeight());
+	setTexture((unsigned char*) &img[0], GL_RGB, img.getWidth(), img.getHeight(), texType != SPRITE );
 	checkGLError();
 }
 
-void Texture::bind(const PG::UTIL::RGBAImage& img){
+void Texture::bind(const PG::UTIL::RGBAImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
 	if(!create()) return;
+	setTexParameter(texType);
 	checkGLError();
-	setTexture((unsigned char*) &img[0], GL_RGBA, img.getWidth(), img.getHeight());
+	setTexture((unsigned char*) &img[0], GL_RGBA, img.getWidth(), img.getHeight(), texType != SPRITE );
+	checkGLError();
+}
+
+void Texture::bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType){
+	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
+	m_GLID = INVALID_OGL_VALUE;
+	if(!create()) return;
+	setTexParameter(texType);
+	checkGLError();
+	setTexture((unsigned char*) &img[0], GL_RGBA, img.size(), 1, texType != SPRITE );
 	checkGLError();
 }
 

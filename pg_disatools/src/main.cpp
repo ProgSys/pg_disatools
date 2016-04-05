@@ -44,6 +44,7 @@
 
 #define OUTSTR(x) std::cout << x << std::endl
 
+/*
 struct testStr{
 	testStr(const std::string& str): name(str){}
 	std::string name;
@@ -206,6 +207,7 @@ inline void printInt(const std::vector<T>& arr, std::ofstream& myfile){
 	}
 
 }
+*/
 /*!
  * @brief Testing main method, just for testing.
  */
@@ -239,6 +241,7 @@ int main(int argc, char* argv[]){
 	OUTSTR("END");
 
 	return 0;
+	/*
 	PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
 	const unsigned int file_size = reader.size();
 
@@ -320,12 +323,12 @@ int main(int argc, char* argv[]){
 			color.b = r;
 		}
 
-		/*
-		PG::UTIL::RGBAImage table(colortable,16,1);
-		std::stringstream o;
-		o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/colortable"<<i<<".tga";
-		PG::FILE::saveTGA(o.str(),table);
-		*/
+
+		//PG::UTIL::RGBAImage table(colortable,16,1);
+		//std::stringstream o;
+		//o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/colortable"<<i<<".tga";
+		//PG::FILE::saveTGA(o.str(),table);
+
 
 		colortables.push_back(colortable);
 	}
@@ -376,7 +379,7 @@ int main(int argc, char* argv[]){
 		PG::FILE::saveTGA(o.str(),image);
 		imgCount++;
 	}
-
+		*/
 
 
 	/*
@@ -417,42 +420,4 @@ int main(int argc, char* argv[]){
 	PG::FILE::saveTGA("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/laharl.tga",imageOut);
 	*/
 
-	OUTSTR("END");
-
-	return 0;
-	//PG::FILE::decompressIMY("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first.IMY","C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/first_un.IMY.bin");
-	//PG::FILE::decompressIMYPackage("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/START.DAT","C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/START_UN.DAT");
-
-	unsigned int c0 = 0;
-	unsigned int c1 = 0;
-	int target = 199;
-	int error = 99999999;
-	for(unsigned int x = 0; x < 255; x += 4)
-		for(unsigned int y = 0; y < 255; y += 4){
-			int reconstruction = x*(1.0/3.0)+  y*(2.0/3.0);
-			int buf_error = std::abs(target-reconstruction);
-			if(buf_error < error){
-				error = buf_error;
-				c0 = x;
-				c1 = y;
-			}
-		}
-
-	OUTSTR("c0: "<<c0<<" c1: "<<c1<<" err: "<<error);
-
-	int cy = std::floor((3*int(target))/8.0) * 4;
-	if(cy > 252) cy = 252;
-	int cx = 0;
-	int cxpart = 0;
-	if( (cxpart = int(target)*3 - cy*2) > 0){
-		cx = std::round(cxpart/4.0) * 4;
-		if((target+1) % 8 == 0){ cx -=4; cy +=4;}
-		else if((target+1) % 4 == 0) cx +=4;
-	}
-	if(cx > 252) cx = 252;
-	OUTSTR("c0: "<<cx<<" c1: "<<cy);
-
-	OUTSTR("END");
-
-	return 0;
 }

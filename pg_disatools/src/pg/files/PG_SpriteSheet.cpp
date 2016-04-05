@@ -59,7 +59,7 @@ bool SpriteSheet::open(const PG::UTIL::File& file){
 
 	m_unknown0.resize(m_header.number_of_something0);
 	m_animations.resize(m_header.number_of_animations);
-	m_numberOfColortables.resize(m_header.number_of_animations);
+	m_numberOfColortables.resize(m_header.number_of_colortablesSets);
 	m_sheetsInfos.resize(m_header.number_of_sheets);
 
 	m_unknown1.resize(m_header.number_of_something1);
@@ -113,6 +113,50 @@ bool SpriteSheet::open(const std::string& filename){
 bool SpriteSheet::isOpen() const{
 	return !m_file.isEmpty();
 }
+
+unsigned int SpriteSheet::getNumberOfAnimations() const{
+	return m_animations.size();
+}
+unsigned int SpriteSheet::getNumberOfKeyframes() const{
+	return m_keyframes.size();
+}
+unsigned int SpriteSheet::getNumberOfSpriteSheets() const{
+	return m_spriteSheets.size();
+}
+unsigned int SpriteSheet::getNumberOfColorTables() const{
+	return m_colortables.size();
+}
+
+animation& SpriteSheet::getAnimation(unsigned int index){
+	return m_animations[index];
+}
+const animation& SpriteSheet::getAnimation(unsigned int index) const{
+	return m_animations[index];
+}
+
+keyframe& SpriteSheet::getKeyframe(unsigned int index){
+	return m_keyframes[index];
+}
+const keyframe& SpriteSheet::getKeyframe(unsigned int index) const{
+	return m_keyframes[index];
+}
+
+void SpriteSheet::getKeyframes(unsigned animationIndex, std::vector<keyframe>& keyframesIn) const{
+	const animation& ani = getAnimation(animationIndex);
+	keyframesIn.clear();
+	keyframesIn.reserve(ani.number_of_frames);
+	for(unsigned int i = ani.start_keyframe; i <=  ani.start_keyframe+ani.number_of_frames; ++i){
+		keyframesIn.push_back(m_keyframes[i]);
+	}
+}
+
+const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet(unsigned int index) const{
+	return m_spriteSheets[index];
+}
+const ColorTable& SpriteSheet::getColorTable(unsigned int index) const{
+	return m_colortables[index];
+}
+
 
 void SpriteSheet::clear(){
 	m_file.clear();

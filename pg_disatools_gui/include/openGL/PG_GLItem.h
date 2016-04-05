@@ -30,6 +30,8 @@ public:
 	virtual void apply() const;
 	virtual void release() const;
 
+	virtual operator bool() const;
+
 	unsigned int getGLID() const;
 
 	virtual ~GLItem();

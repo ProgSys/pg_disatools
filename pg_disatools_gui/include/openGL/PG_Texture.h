@@ -18,6 +18,7 @@
 #ifndef INCLUDE_PG_OPENGL_PG_TEXTURE_H_
 #define INCLUDE_PG_OPENGL_PG_TEXTURE_H_
 
+#include <vector>
 #include <openGL/PG_GLItem.h>
 #include <pg/util/PG_Image.h>
 
@@ -26,11 +27,19 @@ namespace GL {
 
 class Texture: public GLItem {
 public:
+	enum type{
+		NORMAL,
+		MEDIUM,
+		LOW,
+		SPRITE
+	};
+
 	Texture();
 
-	void bind(const PG::UTIL::IDImage& img);
-	void bind(const PG::UTIL::RGBImage& img);
-	void bind(const PG::UTIL::RGBAImage& img);
+	void bind(const PG::UTIL::IDImage& img, Texture::type texType = NORMAL);
+	void bind(const PG::UTIL::RGBImage& img, Texture::type texType = NORMAL);
+	void bind(const PG::UTIL::RGBAImage& img, Texture::type texType = NORMAL);
+	void bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType = NORMAL);
 
 	void apply() const;
 
@@ -39,7 +48,12 @@ public:
 	virtual ~Texture();
 private:
 	bool create();
-	bool setTexture(unsigned char* imagedata, int type, const unsigned int width, const unsigned int height, bool freedata = false, bool flipYAxis = false);
+	void setTexParameter(Texture::type texType);
+	bool setTexture(
+			unsigned char* imagedata, int type,
+			const unsigned int width, const unsigned int height,
+			bool midmap = true, bool freedata = false, bool flipYAxis = false
+			);
 };
 
 } /* namespace GL */

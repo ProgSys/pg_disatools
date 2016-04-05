@@ -20,7 +20,7 @@
 namespace PG {
 namespace GL {
 
-GLItem::GLItem(): m_GLID(0) {}
+GLItem::GLItem(): m_GLID(INVALID_OGL_VALUE) {}
 
 void GLItem::apply() const{
 
@@ -28,6 +28,10 @@ void GLItem::apply() const{
 
 void GLItem::release() const{
 
+}
+
+GLItem::operator bool() const{
+	return m_GLID != INVALID_OGL_VALUE;
 }
 
 unsigned int GLItem::getGLID() const{

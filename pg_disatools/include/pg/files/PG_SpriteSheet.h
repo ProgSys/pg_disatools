@@ -33,12 +33,12 @@ typedef struct
 	unsigned short unknown7;
 
 } __attribute__((packed, aligned(1))) spriteSheetHeader;
-
+/*
 std::ostream& operator<<(std::ostream& o,const spriteSheetHeader& i){
 	o <<"("<<i.number_of_something0<<", "<<i.number_of_animations<<", "<<i.number_of_colortablesSets<<", "<<i.number_of_sheets<<", ";
 	o      <<i.number_of_something1<<", "<<i.number_of_keyframes<<", "<<i.unknown6<<", "<<i.unknown7<<") ";
 	return o;
-}
+}*/
 
 typedef struct
 {
@@ -46,10 +46,11 @@ typedef struct
 	unsigned short unknown1;
 } __attribute__((packed, aligned(1))) something0;
 
+/*
 std::ostream& operator<<(std::ostream& o,const something0& i){
 	o <<"("<<i.unknown0<<", "<<i.unknown1<<", ["<<  (  (int)(int(i.unknown1)<<16 | i.unknown0))<<"] )";
 	return o;
-}
+}*/
 
 typedef struct
 {
@@ -59,10 +60,11 @@ typedef struct
 	unsigned short unknown3;
 } __attribute__((packed, aligned(1))) something1;
 
+/*
 std::ostream& operator<<(std::ostream& o,const something1& i){
 	o <<"("<<i.unknown0<<", "<<i.unknown1<<", ["<<  (  (int)(int(i.unknown1)<<16 | i.unknown0)) <<"], "<<i.unknown2<<", "<<i.unknown3<<", ["<<  (  (int)(int(i.unknown2)<<16 | i.unknown3)) <<"] )";
 	return o;
-}
+}*/
 
 typedef struct
 {
@@ -70,10 +72,11 @@ typedef struct
 	unsigned short number_of_frames;
 }__attribute__((packed, aligned(1))) animation;
 
+/*
 std::ostream& operator<<(std::ostream& o,const animation& i){
 	o <<"("<<std::setw(4)<<i.start_keyframe<<", "<<std::setw(4)<<i.number_of_frames<<")";
 	return o;
-}
+}*/
 
 typedef struct
 {
@@ -86,10 +89,11 @@ typedef struct
 
 }__attribute__((packed, aligned(1))) spriteSheet;
 
+/*
 std::ostream& operator<<(std::ostream& o,const spriteSheet& i){
 	o <<"("<<std::setw(6)<<i.offset<<", "<<std::setw(4)<<i.width<<", "<<std::setw(4)<<i.height<<", "<<std::setw(4)<<i.unknown0<<", "<<std::setw(4)<<i.unknown1<<")";
 	return o;
-}
+}*/
 
 typedef struct
 {
@@ -116,12 +120,13 @@ typedef struct
 
 } __attribute__((packed, aligned(1))) keyframe;
 
+/*
 std::ostream& operator<<(std::ostream& o,const keyframe& i){
 	o <<"("<<std::setw(4)<<i.external_sheet<<", "<<std::setw(4)<<(int)i.sheet<<", "<<std::setw(4)<<(int)i.colortable<<", "<<std::setw(4)<<i.offsetx
 			<<", "<<std::setw(4)<<i.offsety<<", "<<std::setw(4)<<i.x<<", "<<std::setw(4)<<i.y<<", "<<std::setw(4)<<i.width<<", "<<std::setw(4)<<i.height<<", "<<std::setw(4)<<i.scalex
 			<<", "<<std::setw(4)<<i.scaley<<", "<<std::setw(4)<<i.rotationx<<", "<<std::setw(4)<<i.rotationy<<", "<<std::setw(4)<<i.rotationz<<", "<<std::setw(4)<<i.mirror<<")";
 	return o;
-}
+}*/
 
 
 class SpriteSheet {
@@ -133,6 +138,21 @@ public:
 	bool open(const PG::UTIL::File& file);
 	bool open(const std::string& filename);
 
+	unsigned int getNumberOfAnimations() const;
+	unsigned int getNumberOfKeyframes() const;
+	unsigned int getNumberOfSpriteSheets() const;
+	unsigned int getNumberOfColorTables() const;
+
+	animation& getAnimation(unsigned int index);
+	const animation& getAnimation(unsigned int index) const;
+
+	keyframe& getKeyframe(unsigned int index);
+	const keyframe& getKeyframe(unsigned int index) const;
+
+	void getKeyframes(unsigned animationIndex, std::vector<keyframe>& keyframesIn) const;
+
+	const PG::UTIL::IDImage& getSpriteSheet(unsigned int index) const;
+	const ColorTable& getColorTable(unsigned int index) const;
 
 	bool isOpen() const;
 	void clear();

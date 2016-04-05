@@ -24,6 +24,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 {
 	ui->setupUi(this);
 
+	//ui->openGLWidget->openSprite("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
+
 }
 
 SpriteSheetEditor::~SpriteSheetEditor() {

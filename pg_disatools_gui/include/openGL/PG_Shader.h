@@ -53,23 +53,23 @@ public:
 	void addShader(Shader::type shaderType, const std::string& shaderText);
 
 	///Some call it link
-	bool bind();
+	virtual bool bind();
 
-	void apply() const final;
-	void release() const final;
+	void apply() const;
+	void release() const;
 
 
 	int getAttributeLocation(const std::string& name) const;
 	int getUniformLocation(const std::string& name) const;
 
-	void setUniform(int location, int value);
-	void setUniform(int location, float value);
+	void setUniform(int location, int value) const;
+	void setUniform(int location, float value) const;
 
-	void setUniform(int location, const PG::UTIL::vec2& value);
-	void setUniform(int location, const PG::UTIL::vec3& value);
-	void setUniform(int location, const PG::UTIL::vec4& value);
+	void setUniform(int location, const PG::UTIL::vec2& value) const;
+	void setUniform(int location, const PG::UTIL::vec3& value) const;
+	void setUniform(int location, const PG::UTIL::vec4& value) const;
 
-	void setUniform(int location, const PG::UTIL::mat4& value);
+	void setUniform(int location, const PG::UTIL::mat4& value) const;
 	//void setUniform(int location, const PG::UTIL::vec4& value);
 	//void setUniform(int location, const PG::UTIL::vec4& value);
 

@@ -83,6 +83,18 @@ tMatrix4x4<T> perspective(T fovy, int width, int height, T nearZ, T farZ){
 	return perspective(fovy, width/static_cast<T>(height), nearZ, farZ);
 }
 
+template<typename T>
+tMatrix4x4<T> orthogonal(T left, T right, T bottom, T top, T nearZ, T farZ){
+	tMatrix4x4<T> orthogonalMat;
+	orthogonalMat[0][0] = static_cast<T>(2) / (right - left);
+	orthogonalMat[1][1] = static_cast<T>(2) / (top - bottom);
+	orthogonalMat[2][2] = - static_cast<T>(2) / (farZ - nearZ);
+	orthogonalMat[3][0] = - (right + left) / (right - left);
+	orthogonalMat[3][1] = - (top + bottom) / (top - bottom);
+	orthogonalMat[3][2] = - (farZ + nearZ) / (farZ - nearZ);
+	return orthogonalMat;
+}
+
 
 } /* namespace UTIL */
 } /* namespace PG */

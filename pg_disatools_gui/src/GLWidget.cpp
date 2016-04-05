@@ -17,16 +17,94 @@
  */
 #include <GLWidget.h>
 
-
-
 #include <QMessagebox>
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/util/PG_Image.h>
 #include <pg/util/PG_MatrixUtil.h>
 
+bool GLWidget::spriteShader::bind(){
+	const bool b = PG::GL::Shader::bind();
+	if(!b) return false;
+	PG::GL::Shader::apply();
+    vertexLoc = getAttributeLocation("vertex");
+    normalLoc = getAttributeLocation("normal");
+    uvLoc = getAttributeLocation("uv");
+
+    modelMatrixLoc = getUniformLocation("modelMatrix");
+    projectionMatrixLoc = getUniformLocation("projectionMatrix");
+    viewMatrixLoc = getUniformLocation("viewMatrix");
+    idtextureLoc = getUniformLocation("idtexture");
+    colorTableLoc = getUniformLocation("colorTable");
+
+    spriteSizeLoc = getUniformLocation("spriteSize");
+    startLoc = getUniformLocation("start");
+    sizeLoc = getUniformLocation("size");
+
+    PG::GL::Shader::release();
+    return true;
+}
+
+void GLWidget::spriteShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+	PG::GL::Shader::apply();
+
+	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
+	PG::GL::Shader::setUniform(viewMatrixLoc, viewMatrix  );
+	PG::GL::Shader::setUniform(projectionMatrixLoc, perspectiveMatrix);
+    PG::GL::Shader::setUniform( idtextureLoc, 0);
+    PG::GL::Shader::setUniform( colorTableLoc, 1);
+}
+
+bool GLWidget::objectShader::bind(){
+	const bool b = PG::GL::Shader::bind();
+	if(!b) return false;
+	PG::GL::Shader::apply();
+    vertexLoc = getAttributeLocation("vertex");
+    normalLoc = getAttributeLocation("normal");
+    uvLoc = getAttributeLocation("uv");
+
+    modelMatrixLoc = getUniformLocation("modelMatrix");
+    projectionMatrixLoc = getUniformLocation("projectionMatrix");
+    viewMatrixLoc = getUniformLocation("viewMatrix");
+    textureLoc = getUniformLocation("texture");
+    PG::GL::Shader::release();
+
+    return true;
+}
+
+void GLWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+	PG::GL::Shader::apply();
+
+	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
+	PG::GL::Shader::setUniform(viewMatrixLoc, viewMatrix  );
+	PG::GL::Shader::setUniform(projectionMatrixLoc, perspectiveMatrix);
+    PG::GL::Shader::setUniform( textureLoc, 0);
+}
+
 
 GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent){
 
+}
+
+bool GLWidget::openSprite(const QString& spriteFile){
+	if(spriteFile.isEmpty()) return false;
+
+	if(m_SpriteSheet.open(spriteFile.toStdString())){
+		qDebug()<<"Coudn't open sprite sheet!";
+		return false;
+	}
+
+	m_currentAnimation.setTextures(m_SpriteSheet);
+	setAnimation(20);
+
+	return true;
+}
+
+void GLWidget::setAnimation(unsigned int index){
+	if(m_SpriteSheet.isOpen() && index < m_SpriteSheet.getNumberOfAnimations()){
+		m_currentAnimation.index = index;
+		m_SpriteSheet.getKeyframes(index, m_currentAnimation.keyframes);
+		m_currentAnimation.keyframe = 0;
+	}
 }
 
 void GLWidget::initializeGL(){
@@ -43,6 +121,9 @@ void GLWidget::initializeGL(){
 	glEnable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 
+	glEnable (GL_BLEND);
+	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     glClearColor(0.196,0.38,0.6588,1);
 
     //load shader
@@ -51,82 +132,78 @@ void GLWidget::initializeGL(){
 
     if(!m_spriteShader.bind()){
 		QMessageBox messageBox;
-		messageBox.critical(0,"Error","Couldn't init shaders!");
+		messageBox.critical(0,"Error","Failed to init the 'sprite' shader!");
 		exit (EXIT_FAILURE);
     }
 
-    m_spriteShader.apply();
+    m_objectShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/simple.vert");
+    m_objectShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/simple.frag");
 
-    m_spriteShaderInfo.vertexLoc = m_spriteShader.getAttributeLocation("vertex");
-    m_spriteShaderInfo.normalLoc = m_spriteShader.getAttributeLocation("normal");
-    m_spriteShaderInfo.uvLoc = m_spriteShader.getAttributeLocation("uv");
-
-    qDebug()<< "vertex loc: "<<QString::number(m_spriteShaderInfo.vertexLoc);
-    qDebug()<< "normal loc: "<<QString::number( m_spriteShaderInfo.normalLoc);
-    qDebug()<< "UV loc: "<<QString::number(m_spriteShaderInfo.uvLoc);
-
-    m_spriteShaderInfo.modelMatrixLoc = m_spriteShader.getUniformLocation("modelMatrix");
-    m_spriteShaderInfo.projectionMatrixLoc = m_spriteShader.getUniformLocation("projectionMatrix");
-    m_spriteShaderInfo.viewMatrixLoc = m_spriteShader.getUniformLocation("viewMatrix");
-    m_spriteShaderInfo.idtextureLoc = m_spriteShader.getUniformLocation("idtexture");
-    qDebug()<< QString::number( m_spriteShaderInfo.modelMatrixLoc)<<", "<< QString::number( m_spriteShaderInfo.projectionMatrixLoc)<<", "
-    		<< QString::number( m_spriteShaderInfo.viewMatrixLoc)<<", "<< QString::number( m_spriteShaderInfo.idtextureLoc);
-
-    m_spriteShaderInfo.modelMatrix[3][0] = -0.1f;
-    m_spriteShaderInfo.modelMatrix[3][1] = -0.1f;
-   // m_spriteShader.setUniform(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix);
-
-    m_spriteShader.release();
+    if(!m_objectShader.bind()){
+		QMessageBox messageBox;
+		messageBox.critical(0,"Error","Failed to init the 'simple' shader!");
+		exit (EXIT_FAILURE);
+    }
 
     //load texture
     {
 		PG::UTIL::RGBAImage img;
-		PG::FILE::loadTGA("resources/materials/test.tga", img);
-		m_spriteTexture.bind(img);
+		//PG::FILE::loadTGA("resources/materials/test.tga", img);
+		//m_spriteIDTexture.bind(img);
+		//m_spriteColortable.bind(img);
 
 		PG::FILE::loadTGA("resources/materials/ground.tga", img);
 		m_groundTexture.bind(img);
     }
 
     //load geometry
-    m_spriteGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(1,0,0),PG::UTIL::vec3(0,1,0) );
+    m_spriteGeometry.bind(PG::UTIL::vec3(-0.5f,-0.5f,0),PG::UTIL::vec3(1.f,0,0),PG::UTIL::vec3(0,1.f,0) );
     m_groundGeometry.bind(PG::UTIL::vec3(-5,0,-5),PG::UTIL::vec3(0,0,10),PG::UTIL::vec3(10,0,0), 10.0f );
 
     //set mat
-    m_spriteShaderInfo.viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
+    modelMatrix[3][0] = 0.0f;
+    modelMatrix[3][1] = 0.5f;
+    modelMatrix[3][2] = 0.0f;
+
+    viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
+
+    openSprite("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
 }
 
 void GLWidget::paintGL(){
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //shader
-    m_spriteShader.apply();
-    m_spriteShader.setUniform(m_spriteShaderInfo.modelMatrixLoc, m_spriteShaderInfo.modelMatrix);
-    m_spriteShader.setUniform(m_spriteShaderInfo.viewMatrixLoc, m_spriteShaderInfo.viewMatrix  );
-    m_spriteShader.setUniform(m_spriteShaderInfo.projectionMatrixLoc, m_spriteShaderInfo.perspectiveMatrix);
-    glActiveTexture(GL_TEXTURE0);
-
-
-    //sprite
-    m_spriteShader.setUniform( m_spriteShaderInfo.idtextureLoc, 0);
-    m_spriteTexture.apply();
-    m_spriteGeometry.apply();
-
     //ground
+    m_objectShader.apply(PG::UTIL::mat4(), viewMatrix, perspectiveMatrix);
+
+    glActiveTexture(GL_TEXTURE0);
     m_groundTexture.apply();
-    m_spriteShader.setUniform(m_spriteShaderInfo.modelMatrixLoc, PG::UTIL::mat4());
     m_groundGeometry.apply();
 
+    //sprite
+    if(m_currentAnimation){
+		m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
+		m_currentAnimation.setUniforms(m_spriteShader, m_SpriteSheet);
+		m_currentAnimation.apply();
+		m_spriteGeometry.apply();
+    }
+
     //clean up
-    m_groundTexture.release();
     m_spriteShader.release();
+    m_spriteGeometry.release();
+
+    m_currentAnimation.next();
 }
 
 void GLWidget::resizeGL(int w, int h){
-	m_spriteShaderInfo.perspectiveMatrix = PG::UTIL::perspective(90.0f, w, h, 0.01f, 3.0f);
+	//perspectiveMatrix = PG::UTIL::perspective(90.0f, w, h, 0.01f, 3.0f);
+	const float wf = w/400.f;
+	const float hf = h/400.f;
+	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf, hf, -1.f, 10.0f);
+
 }
 
 GLWidget::~GLWidget() {
-	//if(m_spriteTexture) delete m_spriteTexture;
+	m_currentAnimation.clear();
 }
 

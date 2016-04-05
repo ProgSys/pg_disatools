@@ -178,27 +178,27 @@ int Shader::getUniformLocation(const std::string& name) const{
 	return i;
 }
 
-void Shader::setUniform(int location, int value){
+void Shader::setUniform(int location, int value) const{
 	glUniform1i(location, value);
 }
 
-void Shader::setUniform(int location, float value){
+void Shader::setUniform(int location, float value) const{
 	glUniform1f(location, value);
 }
 
-void Shader::setUniform(int location, const PG::UTIL::vec2& value){
+void Shader::setUniform(int location, const PG::UTIL::vec2& value) const{
 	glUniform2fv(location,1, PG::UTIL::value_ptr(value));
 }
 
-void Shader::setUniform(int location, const PG::UTIL::vec3& value){
+void Shader::setUniform(int location, const PG::UTIL::vec3& value) const{
 	glUniform3fv(location,1, PG::UTIL::value_ptr(value));
 }
 
-void Shader::setUniform(int location, const PG::UTIL::vec4& value){
+void Shader::setUniform(int location, const PG::UTIL::vec4& value) const{
 	glUniform4fv(location,1, PG::UTIL::value_ptr(value));
 }
 
-void Shader::setUniform(int location, const PG::UTIL::mat4& value){
+void Shader::setUniform(int location, const PG::UTIL::mat4& value) const{
 	glUniformMatrix4fv(location, 1, GL_FALSE, PG::UTIL::value_ptr(value));
 }
 
