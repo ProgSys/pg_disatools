@@ -37,11 +37,11 @@ enum fileFormat: unsigned int{
 	VTF, PNM, TGA, TX2
 };
 
-bool PG_UTIL_API convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, fileFormat formatOut);
+EXPORT bool convertTX2ToImage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, fileFormat formatOut);
 
-bool PG_UTIL_API convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, fileFormat formatOut);
+EXPORT bool convertTX2ToImage(const std::string& fileIn, const std::string& fileOut, fileFormat formatOut);
 
-bool PG_UTIL_API convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG::FILE::tx2Type compression = PG::FILE::DXT5);
+EXPORT bool convertImageToTX2(const std::string& fileIn, const std::string& fileOut, PG::FILE::tx2Type compression = PG::FILE::DXT5);
 
 } /* namespace FILE */
 } /* namespace PG */

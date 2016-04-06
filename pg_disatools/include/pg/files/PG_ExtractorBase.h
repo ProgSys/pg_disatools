@@ -30,20 +30,34 @@
 #include <memory>
 
 #include <pg/util/PG_PercentIndicator.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
 namespace FILE {
 
 class FileInfoExtra{
 public:
-	FileInfoExtra();
+	EXPORT FileInfoExtra();
 
-	virtual void clear() = 0;
+	EXPORT virtual void clear() = 0;
 
-	virtual ~FileInfoExtra();
+	EXPORT virtual ~FileInfoExtra();
 };
 
 struct fileInfo{
+	enum type{
+		PSPFS_V1,
+		OLA,  /// Offset list archive
+		COLA, /// Compressed offset list archive
+		SOLA, /// Sprite sheets offset list archive (it also has a list of IDs)
+		TX2,
+		IMY,
+		MPP,
+		SH,   /// Sprite sheet
+		GEO,
+		UNKNOWN
+	} fileType = UNKNOWN;
+
 	PG::UTIL::File name;
 	unsigned int size = 0; //size in byte
 	unsigned int offset = 0; //offset from file beginning in byte
@@ -51,37 +65,33 @@ struct fileInfo{
 
 	PG::UTIL::File externalFile;
 
-	bool compressed = false;
-	bool package = false;
-	bool texture = false;
+	EXPORT fileInfo();
+	EXPORT fileInfo(const std::string& name,unsigned int size,unsigned int offset);
+	EXPORT fileInfo(const PG::UTIL::File& name,unsigned int size,unsigned int offset);
+	EXPORT fileInfo(const fileInfo& info);
 
-	fileInfo();
-	fileInfo(const std::string& name,unsigned int size,unsigned int offset);
-	fileInfo(const PG::UTIL::File& name,unsigned int size,unsigned int offset);
-	fileInfo(const fileInfo& info);
+	EXPORT void operator=(const fileInfo& info);
 
-	void operator=(const fileInfo& info);
+	EXPORT const PG::UTIL::File& getName() const;
+	EXPORT unsigned int getSize() const;
+	EXPORT unsigned int getOffset() const;
+	EXPORT const PG::UTIL::File& getExternalName() const;
+	EXPORT std::string getFileExtension() const;
 
-	const PG::UTIL::File& getName() const;
-	unsigned int getSize() const;
-	unsigned int getOffset() const;
-	const PG::UTIL::File& getExternalName() const;
-	std::string getFileExtension() const;
+	EXPORT void setName(const PG::UTIL::File& name);
+	EXPORT void setSize(unsigned int size);
+	EXPORT void setOffset(unsigned int offset);
+	EXPORT void setExternalName(const PG::UTIL::File& externalFile);
+	EXPORT void setAsDummy(unsigned int offset = 0);
 
-	void setName(const PG::UTIL::File& name);
-	void setSize(unsigned int size);
-	void setOffset(unsigned int offset);
-	void setExternalName(const PG::UTIL::File& externalFile);
-	void setAsDummy(unsigned int offset = 0);
+	EXPORT bool isExternalFile() const;
+	EXPORT bool isCompressed() const;
+	EXPORT bool isPackage() const;
+	EXPORT bool isTexture() const;
+	EXPORT bool isValid() const;
 
-	bool isExternalFile() const;
-	bool isCompressed() const;
-	bool isPackage() const;
-	bool isTexture() const;
-	bool isValid() const;
-
-	void clearExternalFile();
-	void clear();
+	EXPORT void clearExternalFile();
+	EXPORT void clear();
 };
 
 struct fileProperties{
@@ -93,66 +103,66 @@ struct fileProperties{
 
 class ExtractorBase {
 public:
-	ExtractorBase();
+	EXPORT ExtractorBase();
 
-	virtual bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr) = 0;
-	bool save(PercentIndicator* percent = nullptr);
-	virtual bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) = 0;
-
-
-	virtual bool insert(const PG::UTIL::File& file);
-	bool remove(const PG::UTIL::File& file);
-	virtual bool remove(fileInfo& target);
+	EXPORT virtual bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr) = 0;
+	EXPORT bool save(PercentIndicator* percent = nullptr);
+	EXPORT virtual bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) = 0;
 
 
-	bool isEmpty() const;
-	unsigned int size() const;
+	EXPORT virtual bool insert(const PG::UTIL::File& file);
+	EXPORT bool remove(const PG::UTIL::File& file);
+	EXPORT virtual bool remove(fileInfo& target);
+
+
+	EXPORT bool isEmpty() const;
+	EXPORT unsigned int size() const;
 	/*!
 	 * @returns true if archive is correct, otherwise will return false and a error message.
 	 */
-	virtual bool checkValid(std::string& errorMessageOut);
+	EXPORT virtual bool checkValid(std::string& errorMessageOut);
 
-	const PG::UTIL::File& getOpendFile() const;
+	EXPORT const PG::UTIL::File& getOpendFile() const;
 
 	/*!
 	 * @brief Is the given file inside the archive.
 	 * @return true if file is inside the archive.
 	 */
-	virtual bool exists(const PG::UTIL::File& file) const;
-	virtual bool isChanged() const;
+	EXPORT virtual bool exists(const PG::UTIL::File& file) const;
+	EXPORT virtual bool isChanged() const;
 
-	virtual unsigned int extract(const fileInfo& target, char* (&data) ) const;
-	virtual unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const;
+	EXPORT virtual unsigned int extract(const fileInfo& target, char* (&data) ) const;
+	EXPORT virtual unsigned int extract(const PG::UTIL::File& file, char* (&data) ) const;
 
-	virtual bool extract(const fileInfo& target, const PG::UTIL::File& targetFile ) const;
+	EXPORT virtual bool extract(const fileInfo& target, const PG::UTIL::File& targetFile ) const;
 	/*!
 	 * @brief Extract a file into the given target file.
 	 * @return true on error
 	 */
-	virtual bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
+	EXPORT virtual bool extract(const PG::UTIL::File& file, const PG::UTIL::File& targetFile) const;
 
-	virtual bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
-	bool replace(const PG::UTIL::File& targetfile, const PG::UTIL::File& file, bool keepName = false);
+	EXPORT virtual bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
+	EXPORT bool replace(const PG::UTIL::File& targetfile, const PG::UTIL::File& file, bool keepName = false);
 
 
-	virtual void clear();
+	EXPORT virtual void clear();
 
 	/*!
 	 * @brief Find a file info with the given name.
 	 * @param infoOut returns reference file info
 	 * @returns true if file info found
 	 */
-	virtual bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
+	EXPORT virtual bool find(const PG::UTIL::File& file, fileInfo& infoOut) const;
 
 
-	fileInfo& get(unsigned int index);
-	const fileInfo& get(unsigned int index) const;
-	const fileInfo& operator[](unsigned int index) const;
-	fileInfo* getDataPointer(unsigned int index) const;
+	EXPORT fileInfo& get(unsigned int index);
+	EXPORT const fileInfo& get(unsigned int index) const;
+	EXPORT const fileInfo& operator[](unsigned int index) const;
+	EXPORT fileInfo* getDataPointer(unsigned int index) const;
 
-	void getFileProperties(fileProperties& target) const;
+	EXPORT void getFileProperties(fileProperties& target) const;
 
-	virtual ~ExtractorBase();
+	EXPORT virtual ~ExtractorBase();
 protected:
 	PG::UTIL::File m_file;
 	std::vector<fileInfo> m_fileInfos;

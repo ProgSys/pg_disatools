@@ -37,39 +37,39 @@ namespace FILE {
 
 class PSPFS: public ExtractorBase {
 public:
-	PG_UTIL_API PSPFS();
-	PG_UTIL_API PSPFS(const PG::UTIL::File& file);
-	PG_UTIL_API PSPFS(const std::string& file);
+	EXPORT PSPFS();
+	EXPORT PSPFS(const PG::UTIL::File& file);
+	EXPORT PSPFS(const std::string& file);
 
 	/*!
 	 * @brief Opens the given PSPFS file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
+	EXPORT bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
 	/*!
 	 * @brief Saves the changes done with insert or remove.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
+	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
 	/*!
 	 * @brief Add a file into the archive. Changes will only be applied when you save.
 	 * @return true on error
 	 * @see save()
 	 */
-	PG_UTIL_API bool insert(const PG::UTIL::File& file);
+	EXPORT bool insert(const PG::UTIL::File& file);
 	/*!
 	 * @brief Remove a file from the archive. Changes will only be applied when you save.
 	 * @return true on error
 	 * @see save()
 	 */
-	PG_UTIL_API bool remove(fileInfo& target);
+	EXPORT bool remove(fileInfo& target);
 
 
 
-	PG_UTIL_API void clear();
+	EXPORT void clear();
 
 
-	PG_UTIL_API virtual ~PSPFS();
+	EXPORT virtual ~PSPFS();
 
 private:
 	PG::UTIL::File m_file_buffer;

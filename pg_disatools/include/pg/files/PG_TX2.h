@@ -45,7 +45,7 @@ enum tx2Type: unsigned short {
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut );
+EXPORT bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image file.
@@ -53,7 +53,7 @@ bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut );
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
+EXPORT bool decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image file.
@@ -61,24 +61,24 @@ bool decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut );
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool decompressTX2(const std::string& file, PG::UTIL::RGBAImage& imageOut );
+EXPORT bool decompressTX2(const std::string& file, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image bytes.
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool decompressTX2(const std::vector<char>& bytesIn, PG::UTIL::RGBAImage& imageOut );
+EXPORT bool decompressTX2(const std::vector<char>& bytesIn, PG::UTIL::RGBAImage& imageOut );
 
 /*!
  * @brief Decompresses a TX2 Disgaea PC image bytes.
  * @param imageOut output rgba image
  * @return true if decompression was unsuccessful.
  */
-bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAImage& imageOut );
+EXPORT bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::RGBAImage& imageOut );
 
 
-bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
+EXPORT bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
 
 } /* namespace FILE */
 } /* namespace PG */

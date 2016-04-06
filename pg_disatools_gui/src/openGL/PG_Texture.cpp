@@ -30,7 +30,7 @@
 #endif
 
 #include <openGL/PG_GLError.h>
-
+#include <pg/files/PG_ImageFiles.h>
 
 namespace PG {
 namespace GL {
@@ -182,6 +182,25 @@ void Texture::bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RGBA, img.size(), 1, texType != SPRITE );
 	checkGLError();
+}
+
+void Texture::bindTGA(const std::string& path, Texture::type texType){
+	PG::UTIL::RGBAImage img;
+	if(PG::FILE::loadTGA(path,img)){
+		bind(img, texType);
+	}
+}
+
+void Texture::bindPNM(const std::string& path, Texture::type texType){
+	PG::UTIL::RGBAImage img;
+	if(PG::FILE::loadNetPNM(path,img)){
+		bind(img, texType);
+	}
+}
+
+void Texture::clear(){
+	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
+	m_GLID = INVALID_OGL_VALUE;
 }
 
 void Texture::apply() const{

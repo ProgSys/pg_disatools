@@ -217,6 +217,7 @@ bool SpriteSheetDAT::open(const PG::UTIL::File& file, PercentIndicator* percent)
 				return true;
 			}
 
+			info.fileType = fileInfo::SH;
 			m_fileInfos.push_back(info);
 		}
 
@@ -290,7 +291,7 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
 	if(it != m_fileInfos.end()){
 		(*it).externalFile = file;
 	}else{
-		m_lastError = "You can currently only replace sprite sheets!";
+		m_lastError = "You can only replace sprite sheets!";
 		return FAILURE;
 	}
 
@@ -299,6 +300,38 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
 	return SUCCESS;
 }
 
+bool SpriteSheetDAT::insert(const PG::UTIL::File& file, unsigned short id){
+	if(m_file.isEmpty()){
+		PG_ERROR_STREAM("No file opened.");
+		return FAILURE;
+	}
+
+	if(!file.exists()){
+		PG_ERROR_STREAM("File doesn't exist!");
+		return FAILURE;
+	}
+
+	PG::UTIL::File fileName = PG::UTIL::File(file.getFile()).toUpper();
+	//file is already inside?
+	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [fileName](const fileInfo& info){
+		return info.getName() == fileName;
+	});
+
+	if(it != m_fileInfos.end()){
+		(*it).externalFile = file;
+	}else{
+		fileInfo info;
+		info.name = file.getFile();
+		info.externalFile = file;
+		info.size = file.size();
+		m_fileInfos.push_back(info);
+		m_chractersIDs.push_back(id);
+	}
+
+	m_changed = true;
+
+	return SUCCESS;
+}
 
 void SpriteSheetDAT::clear(){
 	m_chractersIDs.clear();

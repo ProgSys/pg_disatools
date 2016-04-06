@@ -28,27 +28,29 @@
 #include <vector>
 #include <pg/util/PG_File.h>
 #include <pg/files/PG_ExtractorBase.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
 namespace FILE {
 
 class SpriteSheetDAT: public ExtractorBase {
 public:
-	SpriteSheetDAT();
-	SpriteSheetDAT(const PG::UTIL::File& file);
+	EXPORT SpriteSheetDAT();
+	EXPORT SpriteSheetDAT(const PG::UTIL::File& file);
 
 	/*!
 	 * @brief Opens the given START.DAT file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr) final;
-	bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) final;
+	EXPORT bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr) final;
+	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) final;
 
-	bool insert(const PG::UTIL::File& file) final;
+	EXPORT bool insert(const PG::UTIL::File& file);
+	EXPORT bool insert(const PG::UTIL::File& file, unsigned short id = 0);
 
-	void clear();
+	EXPORT void clear();
 
-	virtual ~SpriteSheetDAT();
+	EXPORT virtual ~SpriteSheetDAT();
 private:
 	std::vector<unsigned short> m_chractersIDs;
 };

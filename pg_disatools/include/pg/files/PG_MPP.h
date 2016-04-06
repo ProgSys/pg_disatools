@@ -36,25 +36,25 @@ namespace FILE {
 
 class MPP: public ExtractorBase  {
 public:
-	MPP();
-	MPP(const PG::UTIL::File& file);
+	EXPORT MPP();
+	EXPORT MPP(const PG::UTIL::File& file);
 
 	/*!
 	 * @brief Opens the given MPP file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
-	bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
+	EXPORT bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
+	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
 
-	bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
+	EXPORT bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
 
-	bool insert(const PG::UTIL::File& file);
-	bool remove(fileInfo& target);
-	void clear();
+	EXPORT bool insert(const PG::UTIL::File& file);
+	EXPORT bool remove(fileInfo& target);
+	EXPORT void clear();
 
-	bool checkValid(std::string& errorMessageOut);
+	EXPORT bool checkValid(std::string& errorMessageOut);
 
-	virtual ~MPP();
+	EXPORT virtual ~MPP();
 private:
 	bool m_hasNormals = false; // remastered maps with better textures
 	std::vector<fileInfo>::iterator m_texturesEnd;

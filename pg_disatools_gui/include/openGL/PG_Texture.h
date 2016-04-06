@@ -40,6 +40,10 @@ public:
 	void bind(const PG::UTIL::RGBImage& img, Texture::type texType = NORMAL);
 	void bind(const PG::UTIL::RGBAImage& img, Texture::type texType = NORMAL);
 	void bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType = NORMAL);
+	void bindTGA(const std::string& path, Texture::type texType = NORMAL);
+	void bindPNM(const std::string& path, Texture::type texType = NORMAL);
+
+	void clear();
 
 	void apply() const;
 

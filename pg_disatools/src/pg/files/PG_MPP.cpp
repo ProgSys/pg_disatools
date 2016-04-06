@@ -103,6 +103,7 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 std::stringstream o;
 				 o << "TEXTURE"<<i<<".TX2";
 			 info.setName(o.str());
+			 info.fileType = fileInfo::TX2;
 			 m_fileInfos.push_back(info);
 			 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 		 }
@@ -126,6 +127,7 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 				 std::stringstream o;
 					 o << "NORMAL"<<i<<".TX2";
 				 info.setName(o.str());
+				 info.fileType = fileInfo::TX2;
 				 m_fileInfos.push_back(info);
 				 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 			 }
@@ -153,6 +155,7 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 std::stringstream o;
 				 o << "GEOMETRY"<<i<<".GEO";
 			 info.setName(o.str());
+			 info.fileType = fileInfo::GEO;
 			 m_fileInfos.push_back(info);
 			 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 		 }
@@ -192,9 +195,9 @@ bool MPP::replace(fileInfo& target,const PG::UTIL::File& file, bool keepName){
 		return FAILURE;
 	}
 	if(fileExt == "TX2")
-		target.texture = true;
+		target.fileType = fileInfo::TX2;
 	else
-		target.texture = false;
+		target.fileType = fileInfo::GEO;
 
 	target.size = file.size();
 	target.externalFile = file;
@@ -233,7 +236,7 @@ bool MPP::insert(const PG::UTIL::File& file){
 		std::string name = fileName.getName();
 		if(fileExt == "TX2"){
 			fileInfo info(fileName, file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
-			info.texture = true;
+			info.fileType = fileInfo::TX2;
 			if(name.size() > 5 && name.substr(0,6) == "NORMAL"){
 				info.externalFile = file;
 				m_hasNormals = true;
@@ -252,8 +255,8 @@ bool MPP::insert(const PG::UTIL::File& file){
 		}else if(fileExt == "GEO"){
 			std::stringstream o;
 				 o << "GEOMETRY"<<std::distance(m_normalsEnd, m_fileInfos.end())<<".GEO";
-
 			fileInfo info(o.str(), file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
+			info.fileType = fileInfo::GEO;
 			info.externalFile = file;
 			m_fileInfos.push_back(info);
 		}else

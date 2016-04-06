@@ -285,7 +285,7 @@ bool StartDAT::open(const PG::UTIL::File& file, PercentIndicator* percent){
 				if(isTX2(reader)){
 					if(info.name.getFileExtension() != "TX2")
 						info.name = info.name.getName()+".TX2";
-					info.texture = true;
+					info.fileType = fileInfo::TX2;
 				}else
 					if(info.name.getFileExtension() == "TX2")
 						info.name = info.name.getName()+".NOT";
@@ -301,12 +301,12 @@ bool StartDAT::open(const PG::UTIL::File& file, PercentIndicator* percent){
 
 				if(isIMY(reader)){
 					o<<"IMY";
-					info.compressed = true;
+					info.fileType = fileInfo::IMY;
 				}else{
 					reader.seek(info.offset);
 					if(isTX2(reader)){
 						o<<"TX2";
-						info.texture = true;
+						info.fileType = fileInfo::TX2;
 					}else
 						o<<"DAT";
 				}

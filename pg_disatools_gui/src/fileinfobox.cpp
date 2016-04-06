@@ -35,6 +35,39 @@ void FileInfoBox::setModel(const PG::FILE::fileProperties& info){
 	ui->label_Size->setText(QString::number(info.info.size));
 	ui->label_offset->setText(QString::number(info.info.offset));
 
+	switch (info.info.fileType) {
+		case PG::FILE::fileInfo::PSPFS_V1:
+				ui->label_type->setText("PSPFS_V1");
+			break;
+		case PG::FILE::fileInfo::OLA:
+				ui->label_type->setText("Offset list archive");
+			break;
+		case PG::FILE::fileInfo::COLA:
+				ui->label_type->setText("IMY compressed offset list archive");
+			break;
+		case PG::FILE::fileInfo::SOLA:
+				ui->label_type->setText("Sprites offset list archive");
+			break;
+		case PG::FILE::fileInfo::TX2:
+				ui->label_type->setText("TX2");
+			break;
+		case PG::FILE::fileInfo::IMY:
+				ui->label_type->setText("IMY");
+			break;
+		case PG::FILE::fileInfo::MPP:
+				ui->label_type->setText("MPP");
+			break;
+		case PG::FILE::fileInfo::SH:
+				ui->label_type->setText("Sprite");
+			break;
+		case PG::FILE::fileInfo::GEO:
+				ui->label_type->setText("Geomety");
+			break;
+		default:
+			ui->label_type->setText("Unknown");
+			break;
+	}
+
 	if(info.info.isExternalFile())
 		ui->label_external->setText("Yes");
 

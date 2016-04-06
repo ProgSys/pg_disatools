@@ -31,6 +31,7 @@
 #include <QOpenGLWidget>
 #include <QMatrix>
 #include <QString>
+#include <QTimer>
 
 #include <openGL/PG_Shader.h>
 #include <openGL/PG_Texture.h>
@@ -42,22 +43,31 @@ class GLWidget : public QOpenGLWidget {
 	Q_OBJECT
 public:
 	explicit GLWidget(QWidget *parent = 0);
-
-	///returns true on success
-	bool openSprite(const QString& spriteFile);
-
-	void setAnimation(unsigned int index);
+	void setUpConnections(QWidget *parent);
 
     void initializeGL() Q_DECL_OVERRIDE;
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
 
     virtual ~GLWidget();
+public slots:
+	///returns true on success
+	bool open(const QString& spriteFile);
+	bool dump(const QString& filepath);
+
+	///if png is false then tga is used
+	int exportSprites(const QString& folder, const QString& type);
+	///select animation
+	void setAnimation(int index);
+	void process();
+signals:
+	void animationAdded(const QString& name);
 private:
     //data
     PG::FILE::SpriteSheet m_SpriteSheet;
 
     //render
+    QTimer m_time;
     PG::UTIL::mat4 modelMatrix;
 	PG::UTIL::mat4 viewMatrix;
 	PG::UTIL::mat4 perspectiveMatrix;
@@ -82,6 +92,7 @@ private:
     	int spriteSizeLoc = -1;
     	int startLoc = -1;
     	int sizeLoc = -1;
+    	int scaleLoc = -1;
 
     	int idtextureLoc = -1;
     	int colorTableLoc = -1;
@@ -134,6 +145,14 @@ private:
 
 		std::vector<PG::GL::Texture* > spriteIDTextures;
 		std::vector<PG::GL::Texture* > colorTables;
+		PG::GL::Texture* externalSheet = nullptr;
+
+		void init(){
+			if(!externalSheet){
+				externalSheet = new PG::GL::Texture();
+				externalSheet->bindTGA("resources/materials/external_sheet.tga", PG::GL::Texture::SPRITE);
+			}
+		}
 
 		void setTextures(PG::FILE::SpriteSheet& data){
 			clear();
@@ -156,18 +175,19 @@ private:
 
 		PG::GL::Texture* getCurrentIDTexture() const{
 			const PG::FILE::keyframe& key = keyframes[keyframe];
-			if(key.external_sheet)
-				return spriteIDTextures[0];
-			else
+			if(key.external_sheet){
+				PG_INFO_STREAM("IS EXTERNAL: "<<key.external_sheet);
+				return externalSheet;
+			}else
 				return spriteIDTextures[key.sheet];
 		}
 
 
 		PG::GL::Texture* getCurrentColorTable() const{
 			const PG::FILE::keyframe& key = keyframes[keyframe];
-			if(key.external_sheet)
+			if(key.external_sheet){
 				return colorTables[0];
-			else
+			}else
 				return colorTables[key.colortable];
 		}
 
@@ -178,6 +198,7 @@ private:
 			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(img.getWidth(), img.getHeight()));
 			shader.setUniform(shader.startLoc, PG::UTIL::vec2(key.x, key.y));
 			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(key.width, key.height));
+			shader.setUniform(shader.scaleLoc, PG::UTIL::vec2(key.scalex, key.scaley));
 		}
 
 		void apply() const{
@@ -193,7 +214,7 @@ private:
 
 		void next(){
 			keyframe++;
-			PG_INFO_STREAM(keyframe << " total: "<<keyframes.size());
+			//PG_INFO_STREAM(keyframe << " total: "<<keyframes.size());
 			if(keyframe >= keyframes.size())
 				keyframe = 0;
 		}
@@ -210,6 +231,11 @@ private:
 			keyframes.clear();
 		}
 
+		void clearAll(){
+			if(externalSheet) delete externalSheet;
+			externalSheet = nullptr;
+			clear();
+		}
 
 	} m_currentAnimation;
 

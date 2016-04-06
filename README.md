@@ -12,7 +12,7 @@ You can download the latest version of the tools here:
 * [Version v0.3.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.8%20alpha.zip)
 * [Version v0.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
 * [Version v0.4.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.1%20alpha.zip)
-
+* [Version v0.4.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.3%20alpha.zip)
 
 
 ###Content
@@ -23,6 +23,14 @@ Note that the position of most files in .DAT is hardcoded, deleting files could 
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview7.png)
 
+#### Sprite Sheet Viewer
+
+This gui application allows you to view and extract Disgaea PC sprite sheets (as .png or .tga).
+Currently it is very basic.
+
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Viewer_v0.0.1_preview.png)
+
+
 #### TX2Converter.exe
 
 A command line tool which allows you to convert Disgaea PC *.TX2 textures into *.TGA (BGRA8888) or *.PNM (P3/P6 RBG888 No alpha) and back!
@@ -31,8 +39,8 @@ Make a backup of your files before using this tool!!!
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
 
-## Disa PC File Manager
-This project uses the Qt Library, which requires the GNU LESSER GENERAL PUBLIC LICENSE.
+## Disa PC File Manager & Sprite Sheet Viewer
+This projects uses the Qt Library, which requires the GNU LESSER GENERAL PUBLIC LICENSE.
 The source code is located in the folder 'pg_disatools_gui'
 
 ### GNU Lesser General Public License (LGPL)

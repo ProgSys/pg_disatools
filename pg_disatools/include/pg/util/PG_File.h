@@ -28,6 +28,8 @@
 #include <ostream>
 #include <pg/util/PG_ApiUtil.h>
 
+#include <pg/util/PG_ApiUtil.h>
+
 namespace PG {
 namespace UTIL {
 
@@ -37,53 +39,53 @@ namespace UTIL {
 class File {
 	std::string m_path;
 public:
-	File(const std::string& path = "");
+	EXPORT File(const std::string& path = "");
 
 	/*!
 	 * @brief Get the full path to file.
 	 */
-	std::string const& getPath() const;
+	EXPORT std::string const& getPath() const;
 	/*!
 	 * @brief Get the file extension.
 	 */
-	std::string getFileExtension() const;
+	EXPORT std::string getFileExtension() const;
 	/*!
 	 * @brief Get the name of the file with the file file extension.
 	 */
-	std::string getFile() const;
+	EXPORT std::string getFile() const;
 	/*!
 	 * @brief Get the name of the file without the file file extension.
 	 */
-	std::string getName() const;
+	EXPORT std::string getName() const;
 
-	File toUpper() const;
-	File toLower() const;
+	EXPORT File toUpper() const;
+	EXPORT File toLower() const;
 
-	void operator=(const std::string& path);
-	void operator=(const File& file);
+	EXPORT void operator=(const std::string& path);
+	EXPORT void operator=(const File& file);
 
-	bool operator==(const std::string& path) const;
-	bool operator==(const File& file) const;
+	EXPORT bool operator==(const std::string& path) const;
+	EXPORT bool operator==(const File& file) const;
 
-	bool operator<(const File& file) const;
+	EXPORT bool operator<(const File& file) const;
 
-	void clear();
-	bool isEmpty() const;
+	EXPORT void clear();
+	EXPORT bool isEmpty() const;
 
-	void set(const std::string& path);
+	EXPORT void set(const std::string& path);
 
-	unsigned int size() const;
-	bool exists() const;
-	bool create(const std::string& text = "") const;
-	bool rename(const std::string& name) const;
-	bool remove() const;
+	EXPORT unsigned int size() const;
+	EXPORT bool exists() const;
+	EXPORT bool create(const std::string& text = "") const;
+	EXPORT bool rename(const std::string& name) const;
+	EXPORT bool remove() const;
 
 
 	friend std::ostream& operator<<(std::ostream& o,const File& file){
 		return o<<file.getPath();
 	}
 
-	virtual ~File();
+	EXPORT virtual ~File();
 };
 
 } /* namespace UTIL */

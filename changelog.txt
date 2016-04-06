@@ -29,3 +29,10 @@
  * Fixed wrong repackaging (resulting in game crash) when replacing a compressed IMY pack with a decompressed pack
  * You can now open and save sprite sheet packages (like ANM00.DAT inside the decompressed START.DAT) 
    (note you currently only can replace existing sprite sheets, you can't add new sprite sheets)
+
+ ===  06.04.2016 - v0.4.3 ===
+ * Added basic sprite sheet viewer (v0.0.1)
+	- Allows to view the keyframes
+	- Allows to export the sprite sheet as PNG or TGA
+	- No editing yet
+ * You can (right click menu) open a sprite sheet directly from the file manager

@@ -17,8 +17,9 @@
  */
 #include <openGL/PG_Shader.h>
 
+#include <QFile>
+#include <QTextStream>
 #include <algorithm>
-#include <fstream>
 #include <cstring>
 #include <pg/util/PG_Base.h>
 #include <openGL/PG_GLError.h>
@@ -36,20 +37,43 @@ Shader::Shader() {
 
 void Shader::addShaderFile(Shader::type shaderType, const std::string& filepath){
 	std::string fileContent;
-	std::string line;
-
 	//open file and "parse" input
-	std::ifstream file(filepath);
-	if (file.is_open()) {
-		while (getline (file, line)){
-			fileContent += line + "\n";
-		}
-		file.close();
+
+	QFile inputFile(QString::fromStdString(filepath));
+	if (inputFile.open(QIODevice::ReadOnly))
+	{
+	   QTextStream in(&inputFile);
+	   while (!in.atEnd())
+	   {
+	      QString line = in.readLine();
+	      fileContent += line.toStdString() + "\n";
+	   }
+	   inputFile.close();
 	}
-	else{
-		PG_ERROR_STREAM("Unable to open shader file '" << filepath<<"'." );
+
+	/*
+	// why does this not work in release o.0
+	try{
+		std::ifstream file(filepath);
+		if (file.is_open()) {
+			while (getline (file, line)){
+				fileContent += line + "\n";
+				PG_INFO_STREAM(line);
+			}
+			file.close();
+		}
+		else{
+			PG_ERROR_STREAM("Unable to open shader file '" << filepath<<"'!" );
+			return;
+		}
+	}catch (const std::ifstream::failure & e) {
+		PG_ERROR_STREAM("Unable to open shader file '" << filepath<<"' "<<e.what()<<"!" );
+		return;
+	}catch (...) {
+		PG_ERROR_STREAM("Unable to open shader file '" << filepath<<"'!" );
 		return;
 	}
+	*/
 
 	addShader(shaderType, fileContent);
 }

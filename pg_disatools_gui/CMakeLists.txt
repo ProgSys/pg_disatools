@@ -49,6 +49,11 @@ SET(sim_EXE_SRCS ${sim_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/disa_tools_icon
 message (STATUS "Icon File: ${sim_EXE_SRCS} ")
 endif(MINGW)
 
+SET(SPRITE_EDITOR_EXE_SRCS "")
+if(MINGW)
+SET(SPRITE_EDITOR_EXE_SRCS ${SPRITE_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/sprite_sheet_editor_icon.res")
+message (STATUS "Sprite editor icon File: ${SPRITE_EDITOR_EXE_SRCS} ")
+endif(MINGW)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	message (STATUS "DEBUG is ON")
@@ -171,7 +176,7 @@ target_link_libraries(
 	Qt5::Widgets
 	Qt5::OpenGL
 	${PG_DISATOOLS_LIBRARY}
-	${sim_EXE_SRCS}
+	${SPRITE_EDITOR_EXE_SRCS}
 )
 
 #===============================================

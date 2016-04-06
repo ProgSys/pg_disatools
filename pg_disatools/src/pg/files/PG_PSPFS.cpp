@@ -101,12 +101,11 @@ bool PSPFS::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 reader.seek(info.offset);
 
 			 if(isIMYPackage(reader)){
-				 info.compressed = true;
-				 info.package = true;
+				 info.fileType = fileInfo::COLA;
 			 }else{
 				 reader.seek(current_pos);
 				 if(isIMY(reader)){
-					 info.compressed = true;
+					 info.fileType = fileInfo::IMY;
 				 }
 			 }
 

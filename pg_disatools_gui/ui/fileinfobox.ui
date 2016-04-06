@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>226</width>
-    <height>227</height>
+    <height>247</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -84,35 +84,14 @@
         </property>
        </spacer>
       </item>
-      <item row="4" column="0">
+      <item row="5" column="0">
        <widget class="QLabel" name="label_4">
         <property name="text">
          <string>isExternal:</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>isIMYCompressed:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="label_6">
-        <property name="text">
-         <string>isImage:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="0">
-       <widget class="QLabel" name="label_7">
-        <property name="text">
-         <string>isPackage:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="QLabel" name="label_external">
         <property name="text">
          <string>No</string>
@@ -122,7 +101,14 @@
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="6" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>isIMYCompressed:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
        <widget class="QLabel" name="label_imy">
         <property name="text">
          <string>No</string>
@@ -132,7 +118,14 @@
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="7" column="0">
+       <widget class="QLabel" name="label_6">
+        <property name="text">
+         <string>isImage:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="7" column="1">
        <widget class="QLabel" name="label_img">
         <property name="text">
          <string>No</string>
@@ -142,10 +135,34 @@
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
+      <item row="8" column="0">
+       <widget class="QLabel" name="label_7">
+        <property name="text">
+         <string>isPackage:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="8" column="1">
        <widget class="QLabel" name="label_pack">
         <property name="text">
          <string>No</string>
+        </property>
+        <property name="textInteractionFlags">
+         <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_8">
+        <property name="text">
+         <string>Type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLabel" name="label_type">
+        <property name="text">
+         <string>Unknown</string>
         </property>
         <property name="textInteractionFlags">
          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>

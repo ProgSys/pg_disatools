@@ -42,7 +42,7 @@ fileInfo::fileInfo(const PG::UTIL::File& _name,unsigned int _size,unsigned int _
 		name(_name),size(_size),offset(_offset){}
 fileInfo::fileInfo(const fileInfo& info):
 		name(info.name),size(info.size),offset(info.offset),decompressedFileSize(info.decompressedFileSize),externalFile(info.externalFile),
-		compressed(info.compressed), package(info.package), texture(info.texture)
+		fileType(info.fileType)
 {}
 
 void fileInfo::operator=(const fileInfo& info){
@@ -52,9 +52,7 @@ void fileInfo::operator=(const fileInfo& info){
 	offset = info.offset;
 	externalFile = info.externalFile;
 
-	compressed = info.compressed;
-	package = info.package;
-	texture = info.texture;
+	fileType = info.fileType;
 }
 
 const PG::UTIL::File& fileInfo::getName() const{
@@ -100,13 +98,14 @@ bool fileInfo::isExternalFile() const{
 }
 
 bool fileInfo::isCompressed() const{
-	return compressed;
+	return fileType == IMY || fileType == COLA;
 }
 bool fileInfo::isPackage() const{
-	return package;
+	return fileType == OLA || fileType == PSPFS_V1 || fileType == PSPFS_V1 || fileType == COLA || fileType == SOLA;
 }
+
 bool fileInfo::isTexture() const{
-	return texture;
+	return fileType == TX2 ;
 }
 
 bool fileInfo::isValid() const{
@@ -380,9 +379,10 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 		return;
 	}
 
+	PG_INFO_STREAM("type: "<<target.info.fileType<<" == "<<fileInfo::UNKNOWN);
 
-	if(target.info.isValid()){
-		PG::STREAM::InByteFile reader;
+	PG::STREAM::InByteFile reader;
+	if(target.info.isValid() && target.info.fileType == fileInfo::UNKNOWN){
 		unsigned int resetPos = 0;
 		if(target.info.isExternalFile()){
 			reader.open(target.info.externalFile);
@@ -402,27 +402,21 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 
 		if( (target.info.decompressedFileSize = isIMYPackage(reader)) ){
 			reader.close();
-			target.info.compressed = (bool)target.info.decompressedFileSize;
-			target.info.package = true;
-			target.info.texture = false;
+			target.info.fileType = fileInfo::COLA;
 			return;
 		}
 
 		reader.seek(resetPos);
 		if( isIMY(reader) ){
 			reader.close();
-			target.info.compressed = true;
-			target.info.package = false;
-			target.info.texture = false;
+			target.info.fileType = fileInfo::IMY;
 			return;
 		}
 
 		reader.seek(resetPos);
 		if( isTX2(reader)){
 
-			target.info.compressed = false;
-			target.info.package = false;
-			target.info.texture = true;
+			target.info.fileType = fileInfo::TX2;
 
 			reader.seek(target.info.offset);
 			target.textureCompression = getTX2CompressionType(reader);
@@ -433,17 +427,18 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 		reader.seek(resetPos);
 		if( isPSPFS(reader)){
 			reader.close();
-			target.info.compressed = false;
-			target.info.package = true;
-			target.info.texture = false;
+			target.info.fileType = fileInfo::PSPFS_V1;
 			return;
 		}else{
-			target.info.compressed = false;
-			target.info.package = false;
-			target.info.texture = false;
+			target.info.fileType = fileInfo::UNKNOWN;
 		}
 		reader.close();
+	}else if(target.info.fileType == fileInfo::TX2){
+		reader.seek(target.info.offset);
+		target.textureCompression = getTX2CompressionType(reader);
 	}
+
+
 }
 
 bool ExtractorBase::replace(fileInfo& target,const PG::UTIL::File& file, bool keepName){

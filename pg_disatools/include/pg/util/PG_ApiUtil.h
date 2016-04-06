@@ -25,14 +25,21 @@
 #ifndef INCLUDE_PG_UTIL_PG_APIUTIL_H_
 #define INCLUDE_PG_UTIL_PG_APIUTIL_H_
 
+//#define EXPORT __attribute__ ((dllexport))
+//#define EXPORT __declspec(dllexport)
+
+#define EXPORT
+
+/*
 #if defined PG_UTIL_DLL_CONFIG && defined _MSC_VER && !(defined __INTEL_COMPILER)
-#ifdef PG_UTIL_EXPORTS
-	#define PG_UTIL_API __declspec(dllexport)
+#ifdef EXPORTS
+	#define EXPORT __declspec(dllexport)
 #else
-	#define PG_UTIL_API __declspec(dllimport)
+	#define EXPORT __declspec(dllimport)
 #endif
 #else
-	#define PG_UTIL_API
+	#define EXPORT
 #endif
+*/
 
 #endif /* INCLUDE_PG_UTIL_PG_APIUTIL_H_ */

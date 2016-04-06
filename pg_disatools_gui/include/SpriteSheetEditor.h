@@ -18,6 +18,7 @@
 #ifndef INCLUDE_SPRITESHEETEDITOR_H_
 #define INCLUDE_SPRITESHEETEDITOR_H_
 
+#include <QString>
 #include <QMainWindow>
 
 namespace Ui {
@@ -30,8 +31,24 @@ class SpriteSheetEditor: public QMainWindow {
 public:
 	explicit SpriteSheetEditor(QWidget *parent = 0);
 	virtual ~SpriteSheetEditor();
+public slots:
+	void open();
+	void open(const QString& file);
+	void addAnimation(const QString& animation);
+	void addAnimations(const QStringList& animations);
+
+	void dump();
+	void exportSprites(const QString& filetype);
+signals:
+	bool openSprite(const QString& filepath);
+	bool dumpSprite(const QString& filepath);
+	int exportSprites(const QString& folder, const QString& filetype);
+
 private:
 	Ui::SpriteSheetEditorWindow *ui;
+
+	void setTitel();
+	void setTitel(const QString& filename);
 };
 
 #endif /* INCLUDE_SPRITESHEETEDITOR_H_ */

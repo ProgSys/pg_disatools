@@ -25,6 +25,7 @@
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/files/PG_TX2.h>
+#include <pg/files/PG_SpriteSheet.h>
 
 namespace PG {
 namespace FILE {
@@ -215,6 +216,26 @@ std::string getTX2CompressionType(PG::STREAM::InByteFile& reader){
 
 	return "";
 }
+
+
+bool isSpriteSheet(const PG::UTIL::File& file){
+	return openFile(file, isSpriteSheet);
+}
+
+bool isSpriteSheet(PG::STREAM::InByteFile& reader){
+	const unsigned int startPos = reader.pos();
+	spriteSheetHeader header;
+	reader.read((char*)&header, sizeof(spriteSheetHeader));
+
+	std::vector<unsigned int> pointers(4);
+	reader.read((char*)&pointers[0], 4*sizeof(unsigned int));
+
+	if(pointers[0] == 0 || pointers[1] == 0 || pointers[2] == 0 || pointers[3] == 0) return false;
+	if(pointers[3]+startPos >= reader.size()) return false;
+
+	return true;
+}
+
 
 bool isPSPFS(PG::STREAM::InByteFile& reader){
 	if(reader.readString(8) == "PSPFS_V1"){

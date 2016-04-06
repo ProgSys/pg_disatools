@@ -33,10 +33,11 @@
 #include <QDesktopServices>
 #include <QTemporaryFile>
 #include <QMutableListIterator>
+#include <QProcess>
 
 #include <iostream>
 
-#define WINTITLE "Disa PC File Manager v0.4.1 alpha"
+#include <TitleDefine.h>
 
 inline void openProgress(QProgressDialog& progress){
 	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
@@ -330,7 +331,11 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 		}else if(ext == "TX2"){
 			action_open = menu.addAction("Open");
 			action_open->setToolTip("Open the TX2 as a PNG in your default app.");
+		}else if(ext == "SH"){
+			action_open = menu.addAction("Open");
+			action_open->setToolTip("Open sprite sheet in the viewer.");
 		}
+
 		QAction* action_decompress = nullptr;
 		QAction* action_decompress_replace= nullptr;
 		if(item->isCompressed() && item->isPackage()){
@@ -397,7 +402,27 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 					m_tempFiles.push_back(temp);
 				}else
 					delete temp;
+			}else if(ext == "SH"){
+				QTemporaryFile* temp = new QTemporaryFile(tempFile+"-tempXXXXXX.sh", this);
+				if(temp->open()){
+					temp->close();
+					m_treeModel->extractFileName(pointedItem,temp->fileName());
+
+#ifdef DEBUG
+					QString file = QString("pg_sprite_editor.exe \"")+temp->fileName()+"\"";
+#else
+					QString file = "\""+QString(SpriteSheetEditorTITLE)+".exe\" \""+temp->fileName()+"\"";
+#endif
+					setEnabled(false);
+					QApplication::processEvents();
+					QProcess::execute(file);
+					setEnabled(true);
+
+					m_tempFiles.push_back(temp);
+				}else
+					delete temp;
 			}
+
 		}else if(action_decompress == selectedAction){
 	    	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
 	    										QString::fromStdString(item->name.getPath()), "Any (*)");

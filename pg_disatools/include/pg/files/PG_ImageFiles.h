@@ -28,6 +28,7 @@
 #include <vector>
 #include <pg/util/PG_Vector.h>
 #include <pg/util/PG_Image.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
 namespace FILE {
@@ -36,26 +37,26 @@ namespace FILE {
  * @brief Will create a very simple TGA8888 image.
  * @return true, if image saved
  */
-bool saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image);
+EXPORT bool saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image);
 
 /*!
  * @brief Will load a simple TGA8888 image.
  * @return true, if image loaded
  */
-bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
+EXPORT bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
 
 
 /*!
  * @brief Will create a very simple PNM P6 (RGB888 no alpha) image.
  * @return true, if image saved
  */
-bool saveNetPNM(const std::string& filepath, const PG::UTIL::RGBAImage& image);
+EXPORT bool saveNetPNM(const std::string& filepath, const PG::UTIL::RGBAImage& image);
 
 /*!
  * @brief Will load a very simple PNM P3 or PNM P6 (RGB888 no alpha) image.
  * @return true, if image loaded
  */
-bool loadNetPNM(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
+EXPORT bool loadNetPNM(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
 
 } /* namespace FILE */
 } /* namespace PG */

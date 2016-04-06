@@ -41,6 +41,8 @@
 #include <cmath>
 #include <iomanip>
 
+#include <pg/files/PG_SpriteSheet.h>
+
 
 #define OUTSTR(x) std::cout << x << std::endl
 
@@ -205,41 +207,31 @@ inline void printInt(const std::vector<T>& arr, std::ofstream& myfile){
 			count = 0;
 		}
 	}
-
 }
+
 */
+
+void useStuff(){
+	PG::FILE::SpriteSheet sheet;
+	sheet.open("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
+	OUTSTR(sheet.getOpenedFile()<<sheet.getKeyframes().size()<<sheet.getSpriteSheets().size()<<sheet.getColorTables().size());
+	OUTSTR(sheet);
+}
+
 /*!
  * @brief Testing main method, just for testing.
  */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
-	PG::UTIL::mat4 E;
 
-	PG::UTIL::mat4 mat2;
-	for(int x = 0; x < 4; x++)
-		for(int y = 0; y < 4; y++){
-			mat2[x][y] = 2.5;
-		}
-
-	OUTSTR( (E*mat2) );
-
-	PG::UTIL::vec4 vec;
-
-	E[3][0] = 10;
-
-	OUTSTR( E );
-
-	vec[0] = 2;
-	vec[1] = 6;
-	vec[2] = 5;
-	vec[3] = 1;
-	OUTSTR( (E*vec) );
-
-	OUTSTR( PG::UTIL::normalize(PG::UTIL::vec3(0,4.2f,0)) );
-	OUTSTR( PG::UTIL::interpolate(PG::UTIL::vec3(1,1,1), PG::UTIL::vec3(6,6,6), 0.5) );
-	OUTSTR( PG::UTIL::vec3(1,1,1)*0.5f );
+	PG::FILE::SpriteSheet sheet;
+	sheet.open("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
+	OUTSTR(sheet.getOpenedFile()<<sheet.getKeyframes().size()<<sheet.getSpriteSheets().size()<<sheet.getColorTables().size());
+	sheet.getOpenedFile();
+	OUTSTR(sheet.getOpenedFile()<<":\n"<<sheet);
 	OUTSTR("END");
 
+	//useStuff();
 	return 0;
 	/*
 	PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");

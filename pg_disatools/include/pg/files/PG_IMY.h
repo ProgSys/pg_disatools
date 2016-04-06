@@ -29,6 +29,7 @@
 #include <pg/stream/PG_StreamIn.h>
 #include <pg/stream/PG_StreamInOut.h>
 #include <pg/util/PG_PercentIndicator.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
 namespace FILE {
@@ -40,38 +41,38 @@ namespace FILE {
  * <b>Thank you!</b>
  * @return true on error
  */
-bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, PercentIndicator* percent = nullptr );
+EXPORT bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, PercentIndicator* percent = nullptr );
 
 /*!
  * @brief Uncompress a single IMY file.
  * @return true on error
  */
-bool decompressIMY(const char* bytesIn, unsigned int lenghtIn, const PG::UTIL::File& fileOut, PercentIndicator* percent = nullptr );
+EXPORT bool decompressIMY(const char* bytesIn, unsigned int lenghtIn, const PG::UTIL::File& fileOut, PercentIndicator* percent = nullptr );
 
 /*!
  * @brief Uncompress a single IMY file.
  * @return true on error
  */
-bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, PercentIndicator* percent = nullptr );
+EXPORT bool decompressIMY(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, PercentIndicator* percent = nullptr );
 
 /*!
  * @brief Uncompress a single IMY file.
  * @return true on error
  */
-bool decompressIMY(const std::string& fileIn, const std::string& fileOut, PercentIndicator* percent = nullptr );
+EXPORT bool decompressIMY(const std::string& fileIn, const std::string& fileOut, PercentIndicator* percent = nullptr );
 
 
 /*!
  * @brief Uncompress a IMY package. One big file is usually compressed into several IMY and saved as a package.
  * @return true on error
  */
-bool decompressIMYPackage(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, PercentIndicator* percent = nullptr );
+EXPORT bool decompressIMYPackage(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, PercentIndicator* percent = nullptr );
 
 /*!
  * @brief Uncompress a IMY package. One big file is usually compressed into several IMY and saved as a package.
  * @return true on error
  */
-bool decompressIMYPackage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, PercentIndicator* percent = nullptr );
+EXPORT bool decompressIMYPackage(const PG::UTIL::File& fileIn, const PG::UTIL::File& fileOut, PercentIndicator* percent = nullptr );
 
 /*!
  * @brief Uncompress a IMY package. One big file is usually compressed into several IMY and saved as a package.

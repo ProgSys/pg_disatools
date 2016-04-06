@@ -38,6 +38,9 @@ else()
 	#add_definitions(-DPG_LOADERS_DLL_CONFIG)
 endif()
 
+
+#set (CMAKE_SHARED_LINKER_FLAGS "-Wl,--export-all-symbols")
+
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")
 if(MINGW)

@@ -28,6 +28,7 @@
 #include <vector>
 #include <pg/util/PG_File.h>
 #include <pg/files/PG_ExtractorBase.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
 namespace FILE {
@@ -35,20 +36,20 @@ namespace FILE {
 
 class StartDAT: public ExtractorBase {
 public:
-	StartDAT();
-	StartDAT(const PG::UTIL::File& file);
+	EXPORT StartDAT();
+	EXPORT StartDAT(const PG::UTIL::File& file);
 
 	/*!
 	 * @brief Opens the given START.DAT file.
 	 * @return true on error
 	 */
-	PG_UTIL_API bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
-	bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
+	EXPORT bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
+	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
 
-	void clear();
+	EXPORT void clear();
 
 
-	virtual ~StartDAT();
+	EXPORT virtual ~StartDAT();
 private:
 	//contains the table of known files
 	std::vector<std::string> m_namesTable;

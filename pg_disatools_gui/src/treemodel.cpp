@@ -376,6 +376,8 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
 				return QPixmap("resources/note.png");
 			else if(exp == "GEO" || exp == "MPP")
 				return QPixmap("resources/geometry.png");
+			else if(item->fileType == PG::FILE::fileInfo::SH)
+				return QPixmap("resources/sprite.png");
 			return QVariant();
     }else if(role == Qt::DisplayRole){
 		switch (index.column()) {

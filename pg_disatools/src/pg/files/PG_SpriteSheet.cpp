@@ -14,7 +14,6 @@ namespace FILE {
 
 SpriteSheet::SpriteSheet() {
 	// TODO Auto-generated constructor stub
-
 }
 
 SpriteSheet::SpriteSheet(const std::string& filename): SpriteSheet(PG::UTIL::File(filename)){
@@ -114,6 +113,11 @@ bool SpriteSheet::isOpen() const{
 	return !m_file.isEmpty();
 }
 
+/*
+const PG::UTIL::File& SpriteSheet::getOpenedFile() const{
+	return m_file;
+}*/
+
 unsigned int SpriteSheet::getNumberOfAnimations() const{
 	return m_animations.size();
 }
@@ -140,12 +144,16 @@ keyframe& SpriteSheet::getKeyframe(unsigned int index){
 const keyframe& SpriteSheet::getKeyframe(unsigned int index) const{
 	return m_keyframes[index];
 }
+/*
+const std::vector<keyframe>& SpriteSheet::getKeyframes() const{
+	return m_keyframes;
+}*/
 
 void SpriteSheet::getKeyframes(unsigned animationIndex, std::vector<keyframe>& keyframesIn) const{
 	const animation& ani = getAnimation(animationIndex);
 	keyframesIn.clear();
 	keyframesIn.reserve(ani.number_of_frames);
-	for(unsigned int i = ani.start_keyframe; i <=  ani.start_keyframe+ani.number_of_frames; ++i){
+	for(unsigned int i = ani.start_keyframe; i <=  ani.start_keyframe+ani.number_of_frames-1; ++i){
 		keyframesIn.push_back(m_keyframes[i]);
 	}
 }
@@ -153,8 +161,64 @@ void SpriteSheet::getKeyframes(unsigned animationIndex, std::vector<keyframe>& k
 const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet(unsigned int index) const{
 	return m_spriteSheets[index];
 }
+/*
+const std::vector< PG::UTIL::IDImage >&  SpriteSheet::getSpriteSheets() const{
+	return m_spriteSheets;
+}
+*/
+
 const ColorTable& SpriteSheet::getColorTable(unsigned int index) const{
 	return m_colortables[index];
+}
+
+/*
+const std::vector< ColorTable >&  SpriteSheet::getColorTables() const{
+	return m_colortables;
+}
+*/
+
+template <typename T>
+inline void printInt(const std::vector<T>& arr, std::stringstream& o){
+	unsigned int count = 0;
+	for(const T& i: arr){
+		 o<<i<<", ";
+		count++;
+		if(count == 4){
+			 o<<"\n";
+			count = 0;
+		}
+	}
+	o<<"\n";
+}
+
+void SpriteSheet::filedump(std::stringstream& o) const{
+	if(!isOpen()){
+		o<<"No file open!";
+		return;
+	}
+
+	o<<"File: '"<<m_file<<"'\n";
+	o<<"Header: \n";
+	o<<m_header<<"\n";
+
+	o<<"Unknown0: "<<m_unknown0.size()<<"\n";
+	printInt(m_unknown0,  o);
+
+	o<<"Animations: "<<m_animations.size()<<"\n";
+	printInt(m_animations,  o);
+
+	o<<"Number of color tables: "<<m_numberOfColortables.size()<<"\n";
+	printInt(m_numberOfColortables,  o);
+
+	o<<"Sprite sheets: "<<m_sheetsInfos.size()<<"\n";
+	printInt(m_sheetsInfos,  o);
+
+	o<<"Unknown1: "<<m_unknown1.size()<<"\n";
+	printInt(m_unknown1,  o);
+
+	o<<"Keyframes: "<<m_keyframes.size()<<"\n";
+	printInt(m_keyframes,  o);
+
 }
 
 
@@ -172,6 +236,7 @@ void SpriteSheet::clear(){
 	m_colortables.clear();
 	m_spriteSheets.clear();
 }
+
 
 SpriteSheet::~SpriteSheet() {
 	// TODO Auto-generated destructor stub

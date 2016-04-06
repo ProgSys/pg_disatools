@@ -18,9 +18,13 @@
 #include <GLWidget.h>
 
 #include <QMessagebox>
+#include <QImage>
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/util/PG_Image.h>
 #include <pg/util/PG_MatrixUtil.h>
+
+#include <fstream>
+#include <ostream>
 
 bool GLWidget::spriteShader::bind(){
 	const bool b = PG::GL::Shader::bind();
@@ -39,6 +43,7 @@ bool GLWidget::spriteShader::bind(){
     spriteSizeLoc = getUniformLocation("spriteSize");
     startLoc = getUniformLocation("start");
     sizeLoc = getUniformLocation("size");
+    scaleLoc = getUniformLocation("scale");
 
     PG::GL::Shader::release();
     return true;
@@ -82,10 +87,14 @@ void GLWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::
 
 
 GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent){
-
+	connect(&m_time, SIGNAL(timeout()), this, SLOT(process()));
 }
 
-bool GLWidget::openSprite(const QString& spriteFile){
+void GLWidget::setUpConnections(QWidget *parent){
+	connect(this, SIGNAL(animationAdded( const QString& )), parent, SLOT(addAnimation( const QString& )));
+}
+
+bool GLWidget::open(const QString& spriteFile){
 	if(spriteFile.isEmpty()) return false;
 
 	if(m_SpriteSheet.open(spriteFile.toStdString())){
@@ -94,22 +103,99 @@ bool GLWidget::openSprite(const QString& spriteFile){
 	}
 
 	m_currentAnimation.setTextures(m_SpriteSheet);
-	setAnimation(20);
+	setAnimation(0);
+
+	for(unsigned int i = 0; i < m_SpriteSheet.getNumberOfAnimations(); ++i){
+		const PG::FILE::animation& ani = m_SpriteSheet.getAnimation(i);
+		const QString str(QString::number(i)+ ": "+QString::number(ani.start_keyframe)+" - "+QString::number(ani.start_keyframe+ani.number_of_frames-1));
+		emit animationAdded(str);
+	}
 
 	return true;
 }
 
-void GLWidget::setAnimation(unsigned int index){
-	if(m_SpriteSheet.isOpen() && index < m_SpriteSheet.getNumberOfAnimations()){
+bool GLWidget::dump(const QString& filepath){
+	if(filepath.isEmpty() || !m_SpriteSheet.isOpen()) return false;
+
+	std::ofstream filedump;
+	filedump.open(filepath.toStdString().c_str());
+	if(!filedump.is_open()) return false;
+
+	filedump<<m_SpriteSheet;
+
+	filedump.close();
+
+	return true;
+}
+
+int GLWidget::exportSprites(const QString& folder, const QString& type ){
+	bool png = false;
+	if(type == "PNG"){
+		png = true;
+	}else if(type != "TGA")
+		return 0;
+	if(folder.isEmpty() || !m_SpriteSheet.isOpen()) return 0;
+
+	//convertToRGBA
+	std::vector< PG::UTIL::RGBAImage > images;
+	for(const PG::UTIL::IDImage& sheetIDs: m_SpriteSheet.getSpriteSheets()){
+		images.push_back(PG::UTIL::RGBAImage(sheetIDs.getWidth(), sheetIDs.getHeight()));
+	}
+
+	for(const PG::FILE::keyframe& key: m_SpriteSheet.getKeyframes()){
+		if(key.external_sheet != 0 || key.sheet >= m_SpriteSheet.getSpriteSheets().size()) continue;
+		const PG::UTIL::uvec2 dim(key.width,key.height);
+		const PG::UTIL::uvec2 start(key.x,key.y);
+		const PG::UTIL::IDImage& sheetIDs = m_SpriteSheet.getSpriteSheets()[key.sheet];
+		if(start.x+dim.x > sheetIDs.getWidth() || start.y+dim.y > sheetIDs.getHeight())
+			continue;
+		const std::vector<PG::UTIL::rgba>& colortabel = m_SpriteSheet.getColorTables()[key.colortable];
+		PG::UTIL::RGBAImage& imageOut = images[key.sheet];
+
+		PG::UTIL::IDImage sheetIDsWindow;
+		sheetIDs.getWindow(start, dim, sheetIDsWindow);
+
+		PG::UTIL::RGBAImage rgbaWindow(sheetIDsWindow.getWidth(), sheetIDsWindow.getHeight());
+		for(unsigned int i = 0; i < sheetIDsWindow.size(); ++i){
+			rgbaWindow[i] = colortabel[sheetIDsWindow[i]];
+		}
+
+		imageOut.setWindow(start, rgbaWindow);
+	}
+
+	int imgCount = 0;
+	if(png){
+		for(const PG::UTIL::RGBAImage& image: images){
+			QImage qimg( &(image[0].r), image.getWidth() , image.getHeight(), QImage::Format_RGBA8888 );
+			qimg.save(folder+"/"+QString::fromStdString(m_SpriteSheet.getOpenedFile().getName()) + "_"+QString::number(imgCount)+".png", 0, 100);
+			imgCount++;
+		}
+
+	}else{
+		for(const PG::UTIL::RGBAImage& image: images){
+			std::stringstream o;
+			o<< folder.toStdString()<<"/"<<m_SpriteSheet.getOpenedFile().getName()<<"_"<<imgCount<<".tga";
+			PG::FILE::saveTGA(o.str(),image);
+			imgCount++;
+		}
+	}
+
+	return imgCount;
+}
+
+void GLWidget::setAnimation(int index){
+	if(m_SpriteSheet.isOpen() && index >= 0 && index < m_SpriteSheet.getNumberOfAnimations()){
 		m_currentAnimation.index = index;
 		m_SpriteSheet.getKeyframes(index, m_currentAnimation.keyframes);
 		m_currentAnimation.keyframe = 0;
 	}
 }
 
+void GLWidget::process(){
+	update();
+}
+
 void GLWidget::initializeGL(){
-
-
 	GLenum err = glewInit();
 	if(err != GLEW_OK){
 		QMessageBox messageBox;
@@ -167,7 +253,8 @@ void GLWidget::initializeGL(){
 
     viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
 
-    openSprite("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
+    m_currentAnimation.init();
+    //open("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
 }
 
 void GLWidget::paintGL(){
@@ -193,17 +280,18 @@ void GLWidget::paintGL(){
     m_spriteGeometry.release();
 
     m_currentAnimation.next();
+    m_time.start( 500 );
 }
 
 void GLWidget::resizeGL(int w, int h){
 	//perspectiveMatrix = PG::UTIL::perspective(90.0f, w, h, 0.01f, 3.0f);
 	const float wf = w/400.f;
 	const float hf = h/400.f;
-	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf, hf, -1.f, 10.0f);
+	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf+0.5f, hf+0.5f, -1.f, 10.0f);
 
 }
 
 GLWidget::~GLWidget() {
-	m_currentAnimation.clear();
+	m_currentAnimation.clearAll();
 }
 

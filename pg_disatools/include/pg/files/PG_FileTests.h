@@ -26,26 +26,31 @@
 
 #include <pg/util/PG_File.h>
 #include <pg/stream/PG_StreamInByteFile.h>
+#include <pg/util/PG_ApiUtil.h>
 
 namespace PG {
 namespace FILE {
 
-bool isIMY(const PG::UTIL::File& file);
-bool isIMY(PG::STREAM::InByteFile& reader);
+EXPORT bool isIMY(const PG::UTIL::File& file);
+EXPORT bool isIMY(PG::STREAM::InByteFile& reader);
 
-unsigned int isIMYPackage(const PG::UTIL::File& file);
-unsigned int isIMYPackage(PG::STREAM::InByteFile& reader);
+EXPORT unsigned int isIMYPackage(const PG::UTIL::File& file);
+EXPORT unsigned int isIMYPackage(PG::STREAM::InByteFile& reader);
 
-bool isSpriteSheetPackage(const PG::UTIL::File& file);
-bool isSpriteSheetPackage(PG::STREAM::InByteFile& reader);
+EXPORT bool isSpriteSheetPackage(const PG::UTIL::File& file);
+EXPORT bool isSpriteSheetPackage(PG::STREAM::InByteFile& reader);
 
-bool isTX2(const PG::UTIL::File& file);
-bool isTX2(PG::STREAM::InByteFile& reader);
+EXPORT bool isTX2(const PG::UTIL::File& file);
+EXPORT bool isTX2(PG::STREAM::InByteFile& reader);
 
-std::string getTX2CompressionType(PG::STREAM::InByteFile& reader);
+EXPORT std::string getTX2CompressionType(PG::STREAM::InByteFile& reader);
 
-bool isPSPFS(PG::STREAM::InByteFile& reader);
-bool isPSPFS(const PG::UTIL::File& file);
+//TODO
+EXPORT bool isSpriteSheet(const PG::UTIL::File& file);
+EXPORT bool isSpriteSheet(PG::STREAM::InByteFile& reader);
+
+EXPORT bool isPSPFS(PG::STREAM::InByteFile& reader);
+EXPORT bool isPSPFS(const PG::UTIL::File& file);
 
 } /* namespace FILE */
 } /* namespace PG */

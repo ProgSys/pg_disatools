@@ -15,22 +15,12 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef SPRITEEDITOR_CPP_
-#define SPRITEEDITOR_CPP_
+#ifndef INCLUDE_TITLEDEFINE_H_
+#define INCLUDE_TITLEDEFINE_H_
 
 
-#include <SpriteSheetEditor.h>
-#include <QApplication>
-
-int main(int argc, char *argv[])
-{
-    QApplication a(argc, argv);
-    SpriteSheetEditor w;
-    w.show();
-    if(argc == 2) w.open(QString(argv[1]));
-    return a.exec();
-}
+#define WINTITLE "Disa PC File Manager v0.4.3 alpha"
+#define SpriteSheetEditorTITLE "Sprite Sheet Viewer v0.0.1 alpha"
 
 
-
-#endif /* SPRITEEDITOR_CPP_ */
+#endif /* INCLUDE_TITLEDEFINE_H_ */
