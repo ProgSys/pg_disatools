@@ -214,7 +214,7 @@ inline void printInt(const std::vector<T>& arr, std::ofstream& myfile){
 void useStuff(){
 	PG::FILE::SpriteSheet sheet;
 	sheet.open("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
-	OUTSTR(sheet.getOpenedFile()<<sheet.getKeyframes().size()<<sheet.getSpriteSheets().size()<<sheet.getColorTables().size());
+	OUTSTR(sheet.getOpenedFile()<<sheet.getSpriteSheets().size()<<sheet.getColorTables().size());
 	OUTSTR(sheet);
 }
 
@@ -225,8 +225,8 @@ int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
 	PG::FILE::SpriteSheet sheet;
-	sheet.open("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
-	OUTSTR(sheet.getOpenedFile()<<sheet.getKeyframes().size()<<sheet.getSpriteSheets().size()<<sheet.getColorTables().size());
+	sheet.open("C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/laharl/laharl.SH");
+	OUTSTR(sheet.getOpenedFile()<<sheet.getSpriteSheets().size()<<sheet.getColorTables().size());
 	sheet.getOpenedFile();
 	OUTSTR(sheet.getOpenedFile()<<":\n"<<sheet);
 	OUTSTR("END");

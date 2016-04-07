@@ -36,3 +36,10 @@
 	- Allows to export the sprite sheet as PNG or TGA
 	- No editing yet
  * You can (right click menu) open a sprite sheet directly from the file manager
+
+ ===  07.04.2016 - v0.4.4 ===
+ * Hopefully fixed a crash on opening files
+ * Sprite sheet viewer (v0.1.0)
+	- It now plays the animations and not the cutouts
+	- There are now basic play controls
+	- There are now some view options

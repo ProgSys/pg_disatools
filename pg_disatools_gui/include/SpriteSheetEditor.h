@@ -20,6 +20,7 @@
 
 #include <QString>
 #include <QMainWindow>
+#include <QColor>
 
 namespace Ui {
 	class SpriteSheetEditorWindow;
@@ -39,16 +40,26 @@ public slots:
 
 	void dump();
 	void exportSprites(const QString& filetype);
+
+	void setCurrentFrame(unsigned int currFrame);
+	void setTotalFrames(unsigned int totalFrames);
+
 signals:
 	bool openSprite(const QString& filepath);
 	bool dumpSprite(const QString& filepath);
 	int exportSprites(const QString& folder, const QString& filetype);
+
+	void backgroundColorSelected(const QColor& color);
 
 private:
 	Ui::SpriteSheetEditorWindow *ui;
 
 	void setTitel();
 	void setTitel(const QString& filename);
+
+private slots:
+	void clickPlayPause();
+	void pickBackgroundColor();
 };
 
 #endif /* INCLUDE_SPRITESHEETEDITOR_H_ */

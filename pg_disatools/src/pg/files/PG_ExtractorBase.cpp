@@ -152,13 +152,11 @@ bool ExtractorBase::insert(const PG::UTIL::File& file){
 		return info.getName() == fileName;
 	});
 
-	PG_MARK;
 	if(it != m_fileInfos.end()){
 		(*it).externalFile = file;
 		//tests
 		fileProperties prop((*it));
 		getFileProperties(prop);
-		PG_INFO_STREAM(prop.info.isCompressed())
 	}else{
 		fileInfo info(fileName, file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
 		info.externalFile = file;
@@ -378,8 +376,6 @@ void ExtractorBase::getFileProperties(fileProperties& target) const{
 		PG_ERROR_STREAM("No archive is opened.");
 		return;
 	}
-
-	PG_INFO_STREAM("type: "<<target.info.fileType<<" == "<<fileInfo::UNKNOWN);
 
 	PG::STREAM::InByteFile reader;
 	if(target.info.isValid() && target.info.fileType == fileInfo::UNKNOWN){

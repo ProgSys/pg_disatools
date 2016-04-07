@@ -32,6 +32,7 @@
 #include <QMatrix>
 #include <QString>
 #include <QTimer>
+#include <QColor>
 
 #include <openGL/PG_Shader.h>
 #include <openGL/PG_Texture.h>
@@ -49,6 +50,8 @@ public:
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
 
+    bool isPlaying() const;
+
     virtual ~GLWidget();
 public slots:
 	///returns true on success
@@ -59,24 +62,49 @@ public slots:
 	int exportSprites(const QString& folder, const QString& type);
 	///select animation
 	void setAnimation(int index);
-	void process();
+
+	void loop();
+
+	void nextFrame();
+	void previousFrame();
+	void pause();
+	void play();
+
+	void displayExternalReferences(bool display);
+	void displayGround(bool display);
+	void displayShadow(bool display);
+
+	void setBackgroundColor(const QColor& color);
+
 signals:
 	void animationAdded(const QString& name);
+	void totalFrames(unsigned int frames);
+	void currentFrame(unsigned int currFrame);
 private:
-    //data
-    PG::FILE::SpriteSheet m_SpriteSheet;
 
     //render
-    QTimer m_time;
+    QTimer m_frame;
+
     PG::UTIL::mat4 modelMatrix;
 	PG::UTIL::mat4 viewMatrix;
 	PG::UTIL::mat4 perspectiveMatrix;
-
 
     PG::GL::Plane m_spriteGeometry;
 
     PG::GL::Texture m_groundTexture;
     PG::GL::Plane m_groundGeometry;
+
+    PG::GL::Texture m_shadowTexture;
+
+    QColor m_clearcolor;
+
+    //settings
+    bool m_displayExternalReferences = true;
+    bool m_displayGround = true;
+    bool m_displayShadow = true;
+
+    //play feedback
+    bool m_playing = true;
 
     struct spriteShader: public PG::GL::Shader{
 
@@ -137,11 +165,13 @@ private:
 
     } m_objectShader;
 
-	struct animation{
-		unsigned int index = 0;
 
-		std::vector<PG::FILE::keyframe> keyframes;
-		unsigned int keyframe = 0;
+	struct spriteInfo{
+        //data
+        PG::FILE::SpriteSheet spriteSheet;
+
+    	unsigned int index = 0;
+    	unsigned int keyframe = 0;
 
 		std::vector<PG::GL::Texture* > spriteIDTextures;
 		std::vector<PG::GL::Texture* > colorTables;
@@ -154,69 +184,123 @@ private:
 			}
 		}
 
-		void setTextures(PG::FILE::SpriteSheet& data){
+		bool open(const QString& path){
 			clear();
-			spriteIDTextures.reserve(data.getNumberOfSpriteSheets());
-			PG_INFO_STREAM("Number of sheets: "<<data.getNumberOfSpriteSheets());
-			for(unsigned int i = 0; i < data.getNumberOfSpriteSheets(); ++i){
+			if(path.isEmpty() || spriteSheet.open(path.toStdString()))
+				return false;
+
+			setTextures();
+
+			return true;
+
+		}
+
+		void setTextures(){
+			spriteIDTextures.reserve(spriteSheet.getNumberOfSpriteSheets());
+			PG_INFO_STREAM("Number of sheets: "<<spriteSheet.getNumberOfSpriteSheets());
+			for(unsigned int i = 0; i < spriteSheet.getNumberOfSpriteSheets(); ++i){
 				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(data.getSpriteSheet(i), PG::GL::Texture::SPRITE);
+				t->bind(spriteSheet.getSpriteSheet(i), PG::GL::Texture::SPRITE);
 				spriteIDTextures.push_back(t);
 			}
 
-			PG_INFO_STREAM("Number of color tabels: "<<data.getNumberOfColorTables());
-			colorTables.reserve(data.getNumberOfColorTables());
-			for(unsigned int i = 0; i < data.getNumberOfColorTables(); ++i){
+			colorTables.reserve(spriteSheet.getNumberOfColorTables());
+			for(unsigned int i = 0; i < spriteSheet.getNumberOfColorTables(); ++i){
 				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(data.getColorTable(i), PG::GL::Texture::SPRITE);
+				t->bind(spriteSheet.getColorTable(i), PG::GL::Texture::SPRITE);
 				colorTables.push_back(t);
 			}
 		}
 
-		PG::GL::Texture* getCurrentIDTexture() const{
-			const PG::FILE::keyframe& key = keyframes[keyframe];
-			if(key.external_sheet){
-				PG_INFO_STREAM("IS EXTERNAL: "<<key.external_sheet);
+		unsigned int getNumberOfLayers() const{
+			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
+			return key.layers.size();
+		}
+
+		unsigned int getTotalFrames() const{
+			return spriteSheet.getAnimation(index).keyframes.size();
+		}
+
+		bool isExternalReference(unsigned int layer) const{
+			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
+			const PG::FILE::cutout& cut = key.layers[layer];
+			return cut.external_sheet;
+		}
+
+		PG::GL::Texture* getCurrentIDTexture(unsigned int layer = 0) const{
+			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
+			const PG::FILE::cutout& cut = key.layers[layer];
+			if(cut.external_sheet){
 				return externalSheet;
-			}else
-				return spriteIDTextures[key.sheet];
+			}else{
+				assert_Test("Texture index is out of bound!", cut.sheet >= spriteIDTextures.size());
+				return spriteIDTextures[cut.sheet];
+			}
 		}
 
 
-		PG::GL::Texture* getCurrentColorTable() const{
-			const PG::FILE::keyframe& key = keyframes[keyframe];
-			if(key.external_sheet){
+		PG::GL::Texture* getCurrentColorTable(unsigned int layer = 0) const{
+			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
+			const PG::FILE::cutout& cut = key.layers[layer];
+			if(cut.external_sheet){
 				return colorTables[0];
-			}else
-				return colorTables[key.colortable];
+			}else{
+				assert_Test("Color table index is out of bound!", cut.colortable >= colorTables.size());
+				return colorTables[cut.colortable];
+			}
 		}
 
-		void setUniforms(GLWidget::spriteShader& shader, PG::FILE::SpriteSheet& data){
-			const PG::FILE::keyframe& key = keyframes[keyframe];
+		unsigned int getCurrentDelay() const{
+			if(spriteSheet.isOpen())
+				return spriteSheet.getAnimation(index).keyframes[keyframe].delay*10;
+			else
+				return 1000;
+		}
 
-			const PG::UTIL::IDImage& img = data.getSpriteSheet(key.sheet);
+		void setCurrentModelMat( PG::UTIL::mat4& modelmat, unsigned int layer = 0){
+			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
+			const PG::FILE::cutout& cut = key.layers[layer];
+
+			//PG_INFO_STREAM("x: "<<cut.offsetx<< " y: "<<cut.offsety<<" = "<<((cut.offsetx)/50.0)<<" "<<((-cut.offsety)/50.0));
+			//TODO find the correct values
+			modelmat[3][0] = (cut.offsetx/35.0);
+			modelmat[3][1] = (-cut.offsety/70.0);
+		}
+
+		void setUniforms(GLWidget::spriteShader& shader, unsigned int layer = 0){
+			assert_Test("Keyframe has no layers!", spriteSheet.getAnimation(index).keyframes[keyframe].layers.empty());
+			const PG::FILE::cutout& cut = spriteSheet.getAnimation(index).keyframes[keyframe].layers[layer];
+
+			const PG::UTIL::IDImage& img = spriteSheet.getSpriteSheet(cut.sheet);
 			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(img.getWidth(), img.getHeight()));
-			shader.setUniform(shader.startLoc, PG::UTIL::vec2(key.x, key.y));
-			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(key.width, key.height));
-			shader.setUniform(shader.scaleLoc, PG::UTIL::vec2(key.scalex, key.scaley));
+			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut.x, cut.y));
+			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut.width, cut.height));
+			shader.setUniform(shader.scaleLoc, PG::UTIL::vec2(cut.scalex, cut.scaley));
 		}
 
-		void apply() const{
+		void apply(unsigned int layer = 0 ) const{
 			glActiveTexture(GL_TEXTURE0);
-			getCurrentIDTexture()->apply();
+			getCurrentIDTexture(layer)->apply();
 			glActiveTexture(GL_TEXTURE1);
-			getCurrentColorTable()->apply();
+			getCurrentColorTable(layer)->apply();
 		}
 
 		operator bool() const{
-			return !spriteIDTextures.empty() &&  !colorTables.empty() && !keyframes.empty();
+			return !spriteIDTextures.empty() &&  !colorTables.empty() && spriteSheet.isOpen();
 		}
 
 		void next(){
+			if(!spriteSheet.isOpen()) return;
 			keyframe++;
 			//PG_INFO_STREAM(keyframe << " total: "<<keyframes.size());
-			if(keyframe >= keyframes.size())
+			if(keyframe >= spriteSheet.getAnimation(index).keyframes.size())
 				keyframe = 0;
+		}
+
+		void previous(){
+			if(!spriteSheet.isOpen()) return;
+			if(keyframe == 0) keyframe = spriteSheet.getAnimation(index).keyframes.size()-1;
+			else keyframe--;
 		}
 
 		void clear(){
@@ -228,7 +312,7 @@ private:
 			colorTables.clear();
 			index = 0;
 			keyframe = 0;
-			keyframes.clear();
+			spriteSheet.clear();
 		}
 
 		void clearAll(){
@@ -237,7 +321,7 @@ private:
 			clear();
 		}
 
-	} m_currentAnimation;
+	} m_current;
 
 
 };

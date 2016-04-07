@@ -49,6 +49,7 @@ TreeModel::TreeModel(const QString &data, QObject *parent)
 
 bool TreeModel::open(const QString &file){
 	if(m_fileExtractor) delete m_fileExtractor;
+	m_fileExtractor = nullptr;
     for(QTemporaryFile* temp: m_tempFiles)
     	delete temp;
     m_tempFiles.clear();
@@ -73,6 +74,8 @@ bool TreeModel::open(const QString &file){
 		qInfo() << "Unknown file format: '"<<ext<<"' file: '"<< file<<"'!";
 		return false;
 	}
+
+	if(!m_fileExtractor) return false;
 
 	if(m_fileExtractor->open(file.toStdString())){
 		qInfo() << "Couldn't open: '"<<file<<"'!";

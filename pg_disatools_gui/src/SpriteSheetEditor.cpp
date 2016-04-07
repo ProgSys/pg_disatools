@@ -21,6 +21,7 @@
 #include <QFileDialog>
 #include <TitleDefine.h>
 #include <QMessageBox>
+#include <QColorDialog>
 
 inline void about(){
     QMessageBox msgBox;
@@ -61,11 +62,27 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 
 	setWindowIcon(QIcon("resources/sprite_sheet_editor_icon.ico"));
 	setWindowTitle(SpriteSheetEditorTITLE);
+
+	ui->btnPrevious->setIcon(QIcon("resources/materials/icons/previous.png"));
+	ui->btnPausePlay->setIcon(QIcon("resources/materials/icons/pause.png"));
+	ui->btnNext->setIcon(QIcon("resources/materials/icons/next.png"));
+
 	//ui->openGLWidget->openSprite("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
+	//files
 	connect(ui->actionOpen_File, SIGNAL(triggered()), this, SLOT(open()));
+
+	//tools
 	connect(ui->actionDump, SIGNAL(triggered()), this, SLOT(dump()));
 	connect(ui->actionExport_sprites_as_PNG, &QAction::triggered, this, [this]{exportSprites("PNG");} );
 	connect(ui->actionExport_sprites_as_TGA, &QAction::triggered, this, [this]{exportSprites("TGA");} );
+
+	//View
+	connect(ui->action_Pick_color, SIGNAL(triggered()), this, SLOT(pickBackgroundColor()));
+	connect(ui->actionDisplay_external_references, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayExternalReferences(bool)));
+	connect(ui->actionDisplay_ground, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayGround(bool)));
+	connect(ui->actionDisplay_shadow, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayShadow(bool)));
+
+	//About
 	connect(ui->actionAbout, &QAction::triggered, this, [this]{
 		about();
 	});
@@ -73,10 +90,18 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 		 QMessageBox::aboutQt(this);
 	} );
 
+	//player functions
+	connect(ui->btnPrevious, SIGNAL(clicked()), ui->openGLWidget, SLOT(previousFrame()));
+	connect(ui->btnPausePlay, SIGNAL(clicked()), this, SLOT(clickPlayPause()));
+	connect(ui->btnNext, SIGNAL(clicked()), ui->openGLWidget, SLOT(nextFrame()));
+
 	connect(this, SIGNAL(openSprite( const QString& )), ui->openGLWidget, SLOT(open( const QString& )));
 	connect(this, SIGNAL(dumpSprite( const QString& )), ui->openGLWidget, SLOT(dump( const QString& )));
 	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), ui->openGLWidget, SLOT( exportSprites( const QString& , const QString& ) ) );
 	connect(ui->comboBox, SIGNAL(currentIndexChanged( int )), ui->openGLWidget, SLOT(setAnimation( int )));
+
+	connect(this, SIGNAL(backgroundColorSelected(  const QColor& )), ui->openGLWidget, SLOT( setBackgroundColor( const QColor& )));
+
 	ui->openGLWidget->setUpConnections(this);
 }
 
@@ -95,7 +120,7 @@ void SpriteSheetEditor::open(){
 }
 
 void SpriteSheetEditor::open(const QString& file){
-
+	ui->comboBox->clear();
 	if(!file.isEmpty() && emit openSprite(file)){
 		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
 		setTitel(file);
@@ -151,6 +176,14 @@ void SpriteSheetEditor::exportSprites(const QString& filetype){
 	}
 }
 
+void SpriteSheetEditor::setCurrentFrame(unsigned int currFrame){
+	ui->labelCurentFrame->setText(QString::number(currFrame+1));
+}
+
+void SpriteSheetEditor::setTotalFrames(unsigned int totalFrames){
+	ui->labelTotalFrames->setText(QString::number(totalFrames));
+}
+
 
 void SpriteSheetEditor::setTitel(){
 	setWindowTitle(SpriteSheetEditorTITLE);
@@ -165,6 +198,21 @@ void SpriteSheetEditor::setTitel(const QString& filename){
 	 title.append(" - ");
 	 title.append(filename);
 	 setWindowTitle(title);
+}
+
+void SpriteSheetEditor::clickPlayPause(){
+	if(ui->openGLWidget->isPlaying()){
+		ui->openGLWidget->pause();
+		ui->btnPausePlay->setIcon(QIcon("resources/materials/icons/play.png"));
+	}else{
+		ui->openGLWidget->play();
+		ui->btnPausePlay->setIcon(QIcon("resources/materials/icons/pause.png"));
+	}
+}
+
+void SpriteSheetEditor::pickBackgroundColor(){
+	QColor color = QColorDialog::getColor(QColor(5,79,121), this, "Pick a background color!");
+	emit backgroundColorSelected(color);
 }
 
 SpriteSheetEditor::~SpriteSheetEditor() {

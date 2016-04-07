@@ -13,7 +13,7 @@ You can download the latest version of the tools here:
 * [Version v0.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
 * [Version v0.4.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.1%20alpha.zip)
 * [Version v0.4.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.3%20alpha.zip)
-
+* [Version v0.4.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.4%20alpha.zip)
 
 ###Content
 #### Disa PC File Manager
@@ -28,7 +28,7 @@ Note that the position of most files in .DAT is hardcoded, deleting files could 
 This gui application allows you to view and extract Disgaea PC sprite sheets (as .png or .tga).
 Currently it is very basic.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Viewer_v0.0.1_preview.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Viewer_v0.1.0_preview.png)
 
 
 #### TX2Converter.exe
