@@ -352,10 +352,9 @@ bool SpriteSheetDAT::open(const PG::UTIL::File& file, PercentIndicator* percent)
 			}else if(s == 3500){
 				o<<"3500_PLEINAIR.SH";
 			}else{
-				o<<"SPRITE_SHEET";
 				o.fill('0');
 				o.width(4);
-				o<<s<<".SH";
+				o<<s<<"_SPRITE_SHEET.SH";
 			}
 			(*it).name = o.str();
 			it++;
