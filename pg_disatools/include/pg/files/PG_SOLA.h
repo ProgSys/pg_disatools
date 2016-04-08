@@ -52,7 +52,9 @@ public:
 	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) final;
 
 	EXPORT bool insert(const PG::UTIL::File& file);
-	EXPORT bool insert(const PG::UTIL::File& file, unsigned short id = 0);
+	EXPORT bool insert(const PG::UTIL::File& file, unsigned short id);
+
+	EXPORT bool remove(fileInfo& target);
 
 	EXPORT void clear();
 

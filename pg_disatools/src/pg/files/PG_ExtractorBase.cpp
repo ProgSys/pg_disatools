@@ -184,7 +184,7 @@ bool ExtractorBase::remove(fileInfo& target){
 			m_fileInfos.erase(it);
 		}
 	}else{
-		PG_ERROR_STREAM("File '"<<target.getName()<<" found!");
+		PG_ERROR_STREAM("File '"<<target.getName()<<"not found!");
 		return FAILURE;
 	}
 	m_changed = true;

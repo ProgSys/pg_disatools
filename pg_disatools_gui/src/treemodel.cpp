@@ -22,6 +22,8 @@
 #include <iostream>
 #include <QGraphicsPixmapItem>
 #include <QFileInfo>
+#include <QProgressDialog>
+
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/files/PG_TX2.h>
 
@@ -32,6 +34,17 @@
 #include <pg/files/PG_FileTests.h>
 #include <pg/files/PG_IMY.h>
 
+#include <EnterValue.h>
+
+inline void openProgress(QProgressDialog& progress, const QString& title = "In progress"){
+	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint ); // | Qt::WindowStaysOnTopHint
+	progress.setWindowTitle("Please wait.");
+	progress.setWindowModality(Qt::WindowModal);
+	progress.setLabelText(title);
+	progress.setCancelButton(0);
+	progress.setRange(0,101);
+	progress.show();
+}
 
 TreeModel::TreeModel(QObject *parent)
     :QAbstractItemModel(parent), m_fileExtractor(nullptr){
@@ -135,11 +148,19 @@ bool TreeModel::addFile(const QString &file){
 
 	bool added = false;
 	QAbstractItemModel::layoutAboutToBeChanged();
+	if(m_fileExtractor->getType() == "SOLA"){ //sprite sheets also need a ID
+			PG::FILE::SOLA* sola = static_cast<PG::FILE::SOLA*>(m_fileExtractor);
+			 int id = 0;
+			if(EnterValue::openEnterIntDialog(id, 1, 65535, "Please enter a ID", "Please enter a ID for the sprite sheet:\n '"+file+"'") && !sola->insert(file.toStdString(), id)){
+				added = true;
+			}else
+				qInfo() << "Couldn't add file '"<<file<<"'";
+	}else //normal add
 	if(m_fileExtractor->insert(file.toStdString())){
 		qInfo() << "Couldn't add file '"<<file<<"'";
 	}else
 		added = true;
-	qInfo() << "Added file '"<<file<<"'";
+
 	QAbstractItemModel::layoutChanged();
 	return added;
 }
@@ -148,14 +169,49 @@ int TreeModel::add(const QStringList &files){
 	if(!m_fileExtractor || files.empty()) return 0;
 	QAbstractItemModel::layoutAboutToBeChanged();
 
+	QProgressDialog progress;
+	openProgress(progress, "Insert in progress");
+
 	int filesAddedOrChanged = 0;
+	if(m_fileExtractor->getType() == "SOLA"){ //sprite sheets also need a ID
+		PG::FILE::SOLA* sola = static_cast<PG::FILE::SOLA*>(m_fileExtractor);
+		if(!sola){
+			qInfo()<<"SOLA cast failed!";
+			return 0;
+		}
+
+		 for(const QString& str: files){
+			 if(true && sola->exists(str.toStdString())){
+				 if(sola->insert(str.toStdString())){
+					qInfo() << "Couldn't add file: '"<<str<<"'";
+				 }else
+					 filesAddedOrChanged++;
+			 }else{
+				 //will be added to the back
+				 int id = 0;
+				 progress.hide();
+				 if(EnterValue::openEnterIntDialog(id, 1, 65535, "Please enter a ID", "Please enter a ID for the sprite sheet:\n '"+QFileInfo(str).fileName()+"'")
+				 	 	 && !sola->insert(str.toStdString(), id)
+						 ){
+					 filesAddedOrChanged++;
+				 }else
+					qInfo() << "Couldn't add file: '"<<str<<"'";
+				 progress.show();
+				 m_percentIndicator.percent = (filesAddedOrChanged/float(files.size()))*100;
+				 progress.setValue( m_percentIndicator.percent);
+			 }
+		 }
+	}else //normal add
 	 for(const QString& str: files){
 		 if(m_fileExtractor->insert(str.toStdString())){
 		 		qInfo() << "Couldn't add file: '"<<str<<"'";
 		 }else
 			 filesAddedOrChanged++;
 		 m_percentIndicator.percent = (filesAddedOrChanged/float(files.size()))*100;
+		 progress.setValue( m_percentIndicator.percent);
 	 }
+
+	progress.close();
 	qInfo() << "Added files";
 	QAbstractItemModel::layoutChanged();
 	return filesAddedOrChanged;
@@ -520,6 +576,13 @@ QString TreeModel::getOpenedFileName() const{
 
 const QString& TreeModel::getOpenedType() const{
 	return m_openedFileType;
+}
+
+QString TreeModel::getType() const{
+	if(m_fileExtractor){
+		return QString::fromStdString(m_fileExtractor->getType());
+	}else
+		return "";
 }
 
 int TreeModel::columnCount(const QModelIndex &parent) const{

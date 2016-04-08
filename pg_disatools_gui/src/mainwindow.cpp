@@ -35,19 +35,22 @@
 #include <QMutableListIterator>
 #include <QProcess>
 
-#include <iostream>
-
 #include <TitleDefine.h>
 
-inline void openProgress(QProgressDialog& progress){
+#include <iostream>
+#include <EnterValue.h>
+
+inline void openProgress(QProgressDialog& progress, const QString& title = "In progress"){
 	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
 	progress.setWindowTitle("Please wait.");
 	progress.setWindowModality(Qt::WindowModal);
-	progress.setLabelText("Saving in progress.");
+	progress.setLabelText(title);
 	progress.setCancelButton(0);
 	progress.setRange(0,101);
 	progress.show();
 }
+
+#define DEBUG_HERE qInfo()<<QString::number(__LINE__)<<": HERE___";
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -156,6 +159,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_btnAbout_clicked()
 {
+	/*
+	int out = 0;
+	EnterValue::openEnterIntDialog(out, 0, 9001, "Enter int value", "Enter");
+	qDebug()<<"Enter value "<<out;
+	*/
+
     QMessageBox msgBox;
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setWindowTitle("About");
@@ -535,29 +544,16 @@ void MainWindow::on_btnInsert_clicked()
 {
     QFileDialog openDialog(this);
     openDialog.setFileMode(QFileDialog::ExistingFiles); //multiple files
+    if(m_treeModel->getType() == "SOLA")
+    	openDialog.setNameFilter(tr("SPRITE SHEET (*.SH)"));
+
     QStringList fileNames;
     if (openDialog.exec() ){
        	setEnabled(false); //disable main window
+
         fileNames = openDialog.selectedFiles();
+        int added = m_treeModel->add(fileNames);
 
-
-		QProgressDialog progress;
-		progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
-		progress.setWindowTitle("Please wait.");
-		progress.setWindowModality(Qt::WindowModal);
-		progress.setLabelText("Extraction in progress.");
-		progress.setCancelButton(0);
-		progress.setRange(0,100);
-		progress.show();
-
-		QFuture<int> f1 = QtConcurrent::run(m_treeModel, &TreeModel::add, fileNames);
-		while(f1.isRunning()){
-			progress.setValue(m_treeModel->getProgress());
-			QApplication::processEvents();
-        }
-
-
-		int added = f1.result();
         if(added <= 0){
         	 ui->statusBar->showMessage("No files added!");
         }else if( added == 1){
@@ -565,14 +561,13 @@ void MainWindow::on_btnInsert_clicked()
         }else{
         	 ui->statusBar->showMessage(QString("Added %1 files.").arg(added));
         }
-        m_treeModel->layoutChanged();
+
         if(m_treeModel->hasDataChanged()){
+        	m_treeSort->layoutChanged();
         	ui->btnSave->setEnabled(true);
         	ui->btnSaveAs->setEnabled(true);
         }
-        progress.close();
 
-        QApplication::processEvents();
         setEnabled(true);
     }
 }
