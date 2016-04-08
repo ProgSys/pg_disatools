@@ -108,6 +108,23 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btnExtractImage, SIGNAL(clicked()), this, SLOT(saveSelectedImage()));
     connect(this, SIGNAL(openFile(const QString&)), m_treeModel, SLOT(open(const QString&)));
 
+
+    // ckeckboxes
+    connect(ui->checkBox_TX2, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("TX2", !checked); } );
+    connect(ui->checkBox_PHD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("PHD", !checked); } );
+    connect(ui->checkBox_PNG, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("PNG", !checked); } );
+    connect(ui->checkBox_PBD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("PBD", !checked); } );
+    connect(ui->checkBox_OGG, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("OGG", !checked); } );
+    connect(ui->checkBox_FFM, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("FFM", !checked); } );
+    connect(ui->checkBox_FAD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("FAD", !checked); } );
+    connect(ui->checkBox_DAT, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("DAT", !checked); } );
+    connect(ui->checkBox_MPD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("MPD", !checked); } );
+    connect(ui->checkBox_ARC, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("ARC", !checked); } );
+    connect(ui->checkBox_MPP, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("MPP", !checked); } );
+    connect(ui->checkBox_GEO, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("GEO", !checked); } );
+
+    //About
+	connect(ui->btnAboutQt, &QPushButton::clicked, this, [this]{ QMessageBox::aboutQt(this); } );
 }
 
 MainWindow::~MainWindow()
@@ -171,11 +188,6 @@ void MainWindow::on_btnAbout_clicked()
 
 }
 
-void MainWindow::on_btnAboutQt_clicked()
-{
-    QMessageBox::aboutQt(this);
-}
-
 void MainWindow::on_btnOpen_clicked()
 {
     QFileDialog openDialog(this);
@@ -207,66 +219,6 @@ void MainWindow::on_btnOpen_clicked()
         }
     }
 
-}
-
-void MainWindow::on_checkBox_MMP_clicked(bool checked)
-{
-	m_treeSort->setFilterFileExtention("MPP", !checked);
-}
-
-void MainWindow::on_checkBox_ARC_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("ARC", !checked);
-}
-
-void MainWindow::on_checkBox_MPD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("MPD", !checked);
-}
-
-void MainWindow::on_checkBox_DAT_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("DAT", !checked);
-}
-
-void MainWindow::on_checkBox_FAD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("FAD", !checked);
-}
-
-void MainWindow::on_checkBox_FFM_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("FFM", !checked);
-}
-
-void MainWindow::on_checkBox_OGG_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("OGG", !checked);
-}
-
-void MainWindow::on_checkBox_PBD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("PBD", !checked);
-}
-
-void MainWindow::on_checkBox_PNG_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("PNG", !checked);
-}
-
-void MainWindow::on_checkBox_PHD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("PHD", !checked);
-}
-
-void MainWindow::on_checkBox_TX2_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("TX2", !checked);
-}
-
-void MainWindow::on_checkBox_GEO_clicked(bool checked)
-{
-    m_treeSort->setFilterFileExtention("GEO", !checked);
 }
 
 void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel){

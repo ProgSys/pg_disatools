@@ -28,10 +28,11 @@ class TreeSort : public QSortFilterProxyModel{
 	Q_OBJECT
 public:
 	TreeSort(QObject *parent = 0);
+	virtual ~TreeSort();
 
+public slots:
 	void setFilterFileExtention(const QString& fileExt, bool filter = true);
 
-	virtual ~TreeSort();
 protected:
 	bool filterAcceptsRow(int sourceRow, const QModelIndex &sourceParent) const;
 	bool lessThan(const QModelIndex &left, const QModelIndex &right) const;

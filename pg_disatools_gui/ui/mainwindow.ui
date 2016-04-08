@@ -206,9 +206,9 @@ QPushButton:!enabled
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="QCheckBox" name="checkBox_MMP">
+            <widget class="QCheckBox" name="checkBox_MPP">
              <property name="text">
-              <string>*.MMP</string>
+              <string>*.MPP</string>
              </property>
              <property name="checked">
               <bool>true</bool>
