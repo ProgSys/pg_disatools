@@ -43,3 +43,10 @@
 	- It now plays the animations and not the cutouts
 	- There are now basic play controls
 	- There are now some view options
+	
+===  08.04.2016 - v0.4.5 ===
+  * Disa PC File Manager v0.4.5 alpha:
+	- You now can properly delete and insert sprite sheets into a 'sprite offset list archive'
+  * Sprite Sheet Viewer v0.1.1 alpha:
+	- Correct position and rotation is applied to the animations  
+   
