@@ -415,6 +415,10 @@ void PSPFS::clear(){
 	ExtractorBase::clear();
 }
 
+std::string PSPFS::getType() const{
+	return "PSPFS_V1";
+}
+
 
 PSPFS::~PSPFS(){
 	if(m_file_buffer.exists())

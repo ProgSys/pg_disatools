@@ -47,12 +47,13 @@ public:
 	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
 
 	EXPORT bool replace(fileInfo& target,const PG::UTIL::File& file, bool keepName = false);
-
 	EXPORT bool insert(const PG::UTIL::File& file);
 	EXPORT bool remove(fileInfo& target);
 	EXPORT void clear();
 
-	EXPORT bool checkValid(std::string& errorMessageOut);
+	EXPORT std::string getError();
+
+	EXPORT std::string getType() const;
 
 	EXPORT virtual ~MPP();
 private:

@@ -181,8 +181,8 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 
 bool MPP::replace(fileInfo& target,const PG::UTIL::File& file, bool keepName){
 	if(!file.exists()){
-		m_lastError = "Replacement file not found!";
-		PG_ERROR_STREAM(m_lastError)
+		pushError("Replacement file not found!");
+		PG_ERROR_STREAM(m_errors.top())
 		return FAILURE;
 	}
 
@@ -190,8 +190,8 @@ bool MPP::replace(fileInfo& target,const PG::UTIL::File& file, bool keepName){
 	const std::string fileExt = fileName.getFileExtension();
 
 	if(fileExt != "TX2" && fileExt != "GEO"){
-		m_lastError = "You can only insert TX2 or GEO files into a MPP!";
-		PG_ERROR_STREAM(m_lastError);
+		pushError("Replacement file not found!");
+		PG_ERROR_STREAM(m_errors.top())
 		return FAILURE;
 	}
 	if(fileExt == "TX2")
@@ -220,8 +220,8 @@ bool MPP::insert(const PG::UTIL::File& file){
 	const std::string fileExt = fileName.getFileExtension();
 
 	if(fileExt != "TX2" && fileExt != "GEO"){
-		m_lastError = "You can only insert TX2 or GEO files into a MPP!";
-		PG_ERROR_STREAM(m_lastError);
+		pushError("You can only insert TX2 or GEO files into a MPP!");
+		PG_ERROR_STREAM(m_errors.top())
 		return FAILURE;
 	}
 
@@ -248,8 +248,8 @@ bool MPP::insert(const PG::UTIL::File& file){
 				m_texturesEnd++;
 				m_normalsEnd++;
 			}else{
-				m_lastError = "A TX2 file should start with 'NORMAL' or 'TEXTURE'!";
-				PG_ERROR_STREAM(m_lastError);
+				pushError("A TX2 file should start with 'NORMAL' or 'TEXTURE'!");
+				PG_ERROR_STREAM(m_errors.top())
 				return FAILURE;
 			}
 		}else if(fileExt == "GEO"){
@@ -319,24 +319,10 @@ bool MPP::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	const unsigned short number_of_geometry = std::distance(m_normalsEnd, m_fileInfos.end());
 
 	if(m_hasNormals && number_of_textures != number_of_normals){
-		m_lastError = "The number of textures and normals needs to be the same!";
-		PG_ERROR_STREAM(m_lastError);
+		pushError("The number of textures and normals needs to be the same!");
+		PG_ERROR_STREAM(m_errors.top())
 		return FAILURE;
 	}
-
-	/*
-	std::sort(m_fileInfos.begin(), m_texturesEnd, [](const fileInfo& A, const fileInfo& B){
-		return A.name < B.name;
-	});
-
-	if(m_hasNormals)
-		std::sort(m_texturesEnd, m_normalsEnd, [](const fileInfo& A, const fileInfo& B){
-			return A.name < B.name;
-		});
-
-	std::sort(m_normalsEnd, m_fileInfos.end(), [](const fileInfo& A, const fileInfo& B){
-		return A.name < B.name;
-	});*/
 
 	std::vector<fileInfo> fileInfos;
 	fileInfos.reserve(m_fileInfos.size());
@@ -441,18 +427,20 @@ void MPP::clear(){
 }
 
 
-
-bool MPP::checkValid(std::string& errorMessageOut){
-
-	if(!ExtractorBase::checkValid(errorMessageOut))
-		return false;
+std::string MPP::getError(){
+	std::string errorMsg = ExtractorBase::getError();
+	if(!errorMsg.empty()) return errorMsg;
 
 	if(!m_fileInfos.empty() && ( std::distance(m_fileInfos.begin(), m_texturesEnd) != std::distance(m_texturesEnd, m_normalsEnd) && m_hasNormals )){
-		errorMessageOut = "The number of normal textures should be the same as the number of textures!";
-		PG_WARN_STREAM(errorMessageOut);
-		return false;
+		errorMsg = "The number of normal textures should be the same as the number of textures!";
+		PG_WARN_STREAM(errorMsg);
+		return errorMsg;
 	}
-	return true;
+	return "";
+}
+
+std::string MPP::getType() const{
+	return "MPP";
 }
 
 

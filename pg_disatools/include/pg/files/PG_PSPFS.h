@@ -65,9 +65,9 @@ public:
 	EXPORT bool remove(fileInfo& target);
 
 
-
 	EXPORT void clear();
 
+	EXPORT std::string getType() const;
 
 	EXPORT virtual ~PSPFS();
 

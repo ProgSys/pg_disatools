@@ -48,6 +48,7 @@ public:
 
 	EXPORT void clear();
 
+	EXPORT std::string getType() const;
 
 	EXPORT virtual ~StartDAT();
 private:

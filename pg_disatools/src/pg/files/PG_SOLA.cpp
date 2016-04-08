@@ -21,28 +21,29 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#include <pg/files/PG_SpriteSheetDAT.h>
-
 #include <algorithm>
+#include <pg/files/PG_SOLA.h>
+
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
 #include <pg/files/PG_FileTests.h>
 
+
 namespace PG {
 namespace FILE {
 
-SpriteSheetDAT::SpriteSheetDAT() {
+SOLA::SOLA() {
 	// TODO Auto-generated constructor stub
 
 }
 
-SpriteSheetDAT::SpriteSheetDAT(const PG::UTIL::File& file){
+SOLA::SOLA(const PG::UTIL::File& file){
 	open(file);
 }
 
-bool SpriteSheetDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
+bool SOLA::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No START.DAT file opened.");
 		return true;
@@ -165,7 +166,7 @@ bool SpriteSheetDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* pe
 	return false;
 }
 
-bool SpriteSheetDAT::open(const PG::UTIL::File& file, PercentIndicator* percent){
+bool SOLA::open(const PG::UTIL::File& file, PercentIndicator* percent){
 	clear();
 	m_file = file;
 
@@ -386,7 +387,7 @@ bool SpriteSheetDAT::open(const PG::UTIL::File& file, PercentIndicator* percent)
 	return false;
 }
 
-bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
+bool SOLA::insert(const PG::UTIL::File& file){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No file opened.");
 		return FAILURE;
@@ -406,7 +407,7 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
 	if(it != m_fileInfos.end()){
 		(*it).externalFile = file;
 	}else{
-		m_lastError = "You can only replace sprite sheets!";
+		pushError("You can only replace sprite sheets!");
 		return FAILURE;
 	}
 
@@ -415,7 +416,7 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
 	return SUCCESS;
 }
 
-bool SpriteSheetDAT::insert(const PG::UTIL::File& file, unsigned short id){
+bool SOLA::insert(const PG::UTIL::File& file, unsigned short id){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No file opened.");
 		return FAILURE;
@@ -448,13 +449,16 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file, unsigned short id){
 	return SUCCESS;
 }
 
-void SpriteSheetDAT::clear(){
+void SOLA::clear(){
 	m_chractersIDs.clear();
 	ExtractorBase::clear();
 }
 
+std::string SOLA::getType() const{
+	return "SOLA";
+}
 
-SpriteSheetDAT::~SpriteSheetDAT() {
+SOLA::~SOLA() {
 	// TODO Auto-generated destructor stub
 }
 

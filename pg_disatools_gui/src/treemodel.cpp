@@ -28,7 +28,7 @@
 #include <pg/files/PG_MPP.h>
 #include <pg/files/PG_PSPFS.h>
 #include <pg/files/PG_StartDAT.h>
-#include <pg/files/PG_SpriteSheetDAT.h>
+#include <pg/files/PG_SOLA.h>
 #include <pg/files/PG_FileTests.h>
 #include <pg/files/PG_IMY.h>
 
@@ -62,7 +62,7 @@ bool TreeModel::open(const QString &file){
 		if(PG::FILE::isPSPFS(file.toStdString())){
 			m_fileExtractor = new PG::FILE::PSPFS();
 		}else if(PG::FILE::isSpriteSheetPackage(file.toStdString())){
-			m_fileExtractor = new PG::FILE::SpriteSheetDAT();
+			m_fileExtractor = new PG::FILE::SOLA();
 		}else{
 			m_fileExtractor = new PG::FILE::StartDAT();
 		}
@@ -499,7 +499,7 @@ bool TreeModel::saveImage(const QModelIndex& index, const QString& targetfile){
 bool TreeModel::checkIsValid(QString& outMessage) const{
 	if(m_fileExtractor){
 		std::string errorMSG;
-		if(!m_fileExtractor->checkValid(errorMSG)){
+		if(  !(errorMSG = m_fileExtractor->getError()).empty()){
 			outMessage = QString::fromStdString(errorMSG);
 			return false;
 		}
