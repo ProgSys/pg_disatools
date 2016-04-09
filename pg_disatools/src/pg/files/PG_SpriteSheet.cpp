@@ -77,29 +77,32 @@ bool SpriteSheet::open(const PG::UTIL::File& file){
 
 	//read colortables
 	reader.seek(addresses[2]);
-	for(unsigned int i = 0; i < numberOfColortables[0]; ++i){
-		std::vector<PG::UTIL::rgba> colortable(16);
-		reader.read((char*)&colortable[0],colortable.size()*sizeof(PG::UTIL::rgba) );
 
-		//flip Red and Blue
-		for(PG::UTIL::rgba& color: colortable){
-			const char r = color.r;
-			color.r = color.b;
-			color.b = r;
-		}
-
-		m_colortables.push_back(colortable);
+	m_colortables.resize(16*numberOfColortables[0]);
+	reader.read((char*)&m_colortables[0],m_colortables.size()*sizeof(PG::UTIL::rgba) );
+	//flip Red and Blue
+	for(PG::UTIL::rgba& color: m_colortables){
+		const char r = color.r;
+		color.r = color.b;
+		color.b = r;
 	}
 
 	//read sheet color IDs
 	for(const spriteSheet& sheet: sheetsInfos){
 		PG::UTIL::IDImage sheetIDs(sheet.width,sheet.height);
 		reader.seek(sheet.offset);
-		for(unsigned int i = 0; i < sheetIDs.size(); i+=2){
-			const char c = reader.readChar();
-			sheetIDs[i] =  c & 0x0F;
-			sheetIDs[i+1] = (c >> 4) & 0x0F ;
-		}
+		if(sheet.unknown0 == 8)
+			//color table 256
+			reader.read((char*) &sheetIDs[0], sheetIDs.size());
+		else
+			//color table 16
+			for(unsigned int i = 0; i < sheetIDs.size(); i+=2){
+				const char c = reader.readChar();
+				sheetIDs[i] =  c & 0x0F;
+				sheetIDs[i+1] = (c >> 4) & 0x0F ;
+			}
+
+
 		m_spriteSheets.push_back(sheetIDs);
 	}
 	reader.close();
@@ -131,10 +134,10 @@ bool SpriteSheet::isOpen() const{
 	return !m_file.isEmpty();
 }
 
-/*
+
 const PG::UTIL::File& SpriteSheet::getOpenedFile() const{
 	return m_file;
-}*/
+}
 
 unsigned int SpriteSheet::getNumberOfAnimations() const{
 	return m_animations.size();
@@ -167,15 +170,15 @@ const std::vector< PG::UTIL::IDImage >&  SpriteSheet::getSpriteSheets() const{
 }
 
 
-const ColorTable& SpriteSheet::getColorTable(unsigned int index) const{
-	return m_colortables[index];
+void SpriteSheet::getColorTable(unsigned int index, ColorTable& out) const{
+	out.resize(16);
+	memcpy(&out[0], &m_colortables[index*16], 16*4);
 }
 
 
-const std::vector< ColorTable >&  SpriteSheet::getColorTables() const{
+const ColorTable&  SpriteSheet::getColorTables() const{
 	return m_colortables;
 }
-
 
 template <typename T>
 inline void printInt(const std::vector<T>& arr, std::stringstream& o){

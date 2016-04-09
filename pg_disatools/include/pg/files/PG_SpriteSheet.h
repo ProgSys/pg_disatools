@@ -197,11 +197,9 @@ public:
 	EXPORT bool open(const PG::UTIL::File& file);
 	EXPORT bool open(const std::string& filename);
 
-	const PG::UTIL::File& getOpenedFile() const{
-		return m_file;
-	}
-	EXPORT unsigned int getNumberOfAnimations() const;
+	const PG::UTIL::File& getOpenedFile() const;
 
+	EXPORT unsigned int getNumberOfAnimations() const;
 	EXPORT unsigned int getNumberOfSpriteSheets() const;
 	EXPORT unsigned int getNumberOfColorTables() const;
 
@@ -211,9 +209,9 @@ public:
 	EXPORT const std::vector<animation2D>& getAnimations() const;
 
 	EXPORT const PG::UTIL::IDImage& getSpriteSheet(unsigned int index) const;
-	const std::vector< PG::UTIL::IDImage >&  getSpriteSheets() const;
-	EXPORT const ColorTable& getColorTable(unsigned int index) const;
-	const std::vector< ColorTable > &  getColorTables() const;
+	EXPORT const std::vector< PG::UTIL::IDImage >&  getSpriteSheets() const;
+	EXPORT void getColorTable(unsigned int index, ColorTable& out) const;
+	EXPORT const ColorTable& getColorTables() const;
 
 	EXPORT void filedump(std::stringstream& o) const;
 	//void filedump() const;
@@ -231,17 +229,8 @@ private:
 	spriteSheetHeader m_header;
 
 	std::vector<animation2D> m_animations;
-	/*
-	std::vector<something0> m_unknown0;//(header.number_of_something0);
-	std::vector<animation> m_animations;//(header.number_of_animations);
-	std::vector<unsigned int> m_numberOfColortables;//(header.number_of_colortablesSets);
-	std::vector<spriteSheet> m_sheetsInfos;//(header.number_of_sheets);
 
-	std::vector<something1> m_unknown1;//( ((unsigned int)addresses[1]-(unsigned int)addresses[0])/sizeof(part0));
-	std::vector<keyframe> m_keyframes;//(header.number_of_keyframes);
-	*/
-
-	std::vector< ColorTable > m_colortables;
+	ColorTable m_colortables;
 	std::vector< PG::UTIL::IDImage > m_spriteSheets;
 };
 

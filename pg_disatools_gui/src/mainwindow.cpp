@@ -204,6 +204,7 @@ void MainWindow::on_btnOpen_clicked()
 
     QStringList fileNames;
     if (openDialog.exec()){
+    	setEnabled(false);
         fileNames = openDialog.selectedFiles();
         if(fileNames.size() > 0){
         	qInfo() <<"Opening file '"<< fileNames[0] <<"' ";
@@ -226,8 +227,8 @@ void MainWindow::on_btnOpen_clicked()
             ui->btnExtractImage->setEnabled(false);
             ui->btnExtract->setEnabled(false);
         }
+        setEnabled(true);
     }
-
 }
 
 void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel){

@@ -44,7 +44,8 @@ bool GLWidget::spriteShader::bind(){
     spriteSizeLoc = getUniformLocation("spriteSize");
     startLoc = getUniformLocation("start");
     sizeLoc = getUniformLocation("size");
-    scaleLoc = getUniformLocation("scale");
+    mirrorLoc = getUniformLocation("mirror");
+    colorTableStartLoc = getUniformLocation("colortableStart");
 
     PG::GL::Shader::release();
     return true;
@@ -168,17 +169,22 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 					const PG::UTIL::uvec2 dim(cut.width,cut.height);
 					const PG::UTIL::uvec2 start(cut.x,cut.y);
 					const PG::UTIL::IDImage& sheetIDs = m_current.spriteSheet.getSpriteSheets()[cut.sheet];
-					if(start.x+dim.x > sheetIDs.getWidth() || start.y+dim.y > sheetIDs.getHeight())
+
+					const int width = (start.x+dim.x > sheetIDs.getWidth())? sheetIDs.getWidth()-start.x : dim.x;
+					const int height = (start.y+dim.y > sheetIDs.getHeight())? sheetIDs.getHeight()-start.y : dim.y;
+
+					if(width <= 0 || height <= 0)
 						continue;
-					const std::vector<PG::UTIL::rgba>& colortabel = m_current.spriteSheet.getColorTables()[cut.colortable];
+
+					const PG::FILE::ColorTable& colortabel = m_current.spriteSheet.getColorTables();
 					PG::UTIL::RGBAImage& imageOut = images[cut.sheet];
 
 					PG::UTIL::IDImage sheetIDsWindow;
-					sheetIDs.getWindow(start, dim, sheetIDsWindow);
+					sheetIDs.getWindow(start, PG::UTIL::uvec2(width, height), sheetIDsWindow);
 
 					PG::UTIL::RGBAImage rgbaWindow(sheetIDsWindow.getWidth(), sheetIDsWindow.getHeight());
 					for(unsigned int i = 0; i < sheetIDsWindow.size(); ++i){
-						rgbaWindow[i] = colortabel[sheetIDsWindow[i]];
+						rgbaWindow[i] = colortabel[cut.sheet*16 + sheetIDsWindow[i]];
 					}
 
 					imageOut.setWindow(start, rgbaWindow);
@@ -328,7 +334,16 @@ void GLWidget::paintGL(){
 	glClearColor(m_clearcolor.red()/255.0,m_clearcolor.green()/255.0,m_clearcolor.blue()/255.0,1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    //ground pre
+    if(m_displayGround){
+    	glDepthMask(false);
+		m_objectShader.apply(PG::UTIL::mat4(), viewMatrix, perspectiveMatrix);
 
+		glActiveTexture(GL_TEXTURE0);
+		m_groundTexture.apply();
+		m_groundGeometry.apply();
+		glDepthMask(true);
+    }
 
     if(m_current){
     	//sprite

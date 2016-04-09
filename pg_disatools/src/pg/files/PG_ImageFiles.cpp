@@ -65,6 +65,42 @@ bool saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image){
 	return true;
 }
 
+bool saveTGA(const std::string& filepath, const PG::UTIL::IDImage& image){
+	try{
+		PG::STREAM::OutByteFile writer(filepath);
+		writer.writeInt(131072);
+		writer.writeInt(0);
+		writer.writeInt(0);
+		writer.writeShort(image.getWidth());
+		writer.writeShort(image.getHeight());
+		writer.writeShort(2080);
+
+
+		for(unsigned int y = 0; y < image.getHeight(); ++y ){
+			for(unsigned int x = 0; x < image.getWidth(); ++x ){
+				const unsigned int index = ((image.getHeight()-y-1)*image.getWidth()+x); //y-flip
+				const unsigned char pix = image[index];
+
+				writer.writeChar(pix);
+				writer.writeChar(pix);
+				writer.writeChar(pix);
+				writer.writeChar(255);
+			}
+		}
+
+		writer.writeLongLong(0);
+		writer.writeLongLong(0);
+		writer.writeString("TRUEVISION-XFILE.");
+	}catch (PG::UTIL::Exception& e) {
+		 PG_ERROR_STREAM("Couldn't save TGA Image! : "<<e.what());
+		 return false;
+	}catch (...) {
+		 PG_ERROR_STREAM("Couldn't save TGA Image!");
+		 return false;
+	}
+	return true;
+}
+
 bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 	PG::STREAM::InByteFile reader(filepath);
 

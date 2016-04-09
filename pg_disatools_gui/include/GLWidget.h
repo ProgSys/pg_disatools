@@ -126,10 +126,13 @@ private:
     	int spriteSizeLoc = -1;
     	int startLoc = -1;
     	int sizeLoc = -1;
-    	int scaleLoc = -1;
+    	int mirrorLoc = -1;
+
+    	int colorTableStartLoc = -1;
 
     	int idtextureLoc = -1;
     	int colorTableLoc = -1;
+
 
     	spriteShader(){}
 
@@ -180,7 +183,7 @@ private:
     	unsigned int keyframe = 0;
 
 		std::vector<PG::GL::Texture* > spriteIDTextures;
-		std::vector<PG::GL::Texture* > colorTables;
+		PG::GL::Texture* colorTable;
 		PG::GL::Texture* externalSheet = nullptr;
 
 		void init(){
@@ -210,12 +213,9 @@ private:
 				spriteIDTextures.push_back(t);
 			}
 
-			colorTables.reserve(spriteSheet.getNumberOfColorTables());
-			for(unsigned int i = 0; i < spriteSheet.getNumberOfColorTables(); ++i){
-				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(spriteSheet.getColorTable(i), PG::GL::Texture::SPRITE);
-				colorTables.push_back(t);
-			}
+
+			colorTable = new PG::GL::Texture();
+			colorTable->bind(spriteSheet.getColorTables(), PG::GL::Texture::SPRITE);
 		}
 
 		unsigned int getNumberOfLayers() const{
@@ -246,14 +246,7 @@ private:
 
 
 		PG::GL::Texture* getCurrentColorTable(unsigned int layer = 0) const{
-			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
-			const PG::FILE::cutout& cut = key.layers[layer];
-			if(cut.external_sheet){
-				return colorTables[0];
-			}else{
-				assert_Test("Color table index is out of bound!", cut.colortable >= colorTables.size());
-				return colorTables[cut.colortable];
-			}
+			return colorTable;
 		}
 
 		unsigned int getCurrentDelay() const{
@@ -267,14 +260,6 @@ private:
 			PG::UTIL::mat4 mat;
 			mat[0][0] = (cut.width/50.0) * (cut.scalex/100.0);
 			mat[1][1] = (cut.height/50.0) * (cut.scaley/100.0);
-			return mat;
-		}
-
-		inline PG::UTIL::mat4 mirrorMat(const PG::FILE::cutout& cut){
-			PG::UTIL::mat4 mat;
-			//PG_INFO_STREAM("mirror: "<<cut.mirror);
-			if(cut.unkown0 == 10)
-				mat[0][0] = (-1);
 			return mat;
 		}
 
@@ -299,7 +284,7 @@ private:
 
 			//could be multiplied out, but meh fast enogh
 			const float angle = toRad(-cut.rotation);
-			modelmat = positionOffsetMat(cut)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*mirrorMat(cut)*anchorOffsetMat(cut)*scaleMat(cut);
+			modelmat = positionOffsetMat(cut)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(cut)*scaleMat(cut);
 			//PG_INFO_STREAM("x: "<<cut.offsetx<< " y: "<<cut.offsety<<" width: "<<((cut.width/50.0)*(cut.scalex/100.0))<<" height: "<<((cut.height/50.0)*(cut.scaley/100.0))<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 
@@ -311,7 +296,24 @@ private:
 			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(img.getWidth(), img.getHeight()));
 			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut.x, cut.y));
 			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut.width, cut.height));
-			shader.setUniform(shader.scaleLoc, PG::UTIL::vec2(cut.scalex, cut.scaley));
+
+			if(cut.unkown0 == 10 || cut.unkown0 == 8 )
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 0));
+			else
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
+
+			//set colortable
+			if(cut.external_sheet){
+				shader.setUniform(shader.colorTableStartLoc, (int)0);
+			}else{
+				if(cut.sheet*16 >= spriteSheet.getColorTables().size()){
+					shader.setUniform(shader.colorTableStartLoc, (int)0);
+				}else{
+					//qDebug()<<QString::number(__LINE__)<<": sheet "<<QString::number(cut.sheet)<<" size "<<QString::number(spriteSheet.getColorTables().size());
+					shader.setUniform(shader.colorTableStartLoc, (int)cut.colortable);
+				}
+			}
+
 		}
 
 		void apply(unsigned int layer = 0 ) const{
@@ -322,7 +324,7 @@ private:
 		}
 
 		operator bool() const{
-			return !spriteIDTextures.empty() &&  !colorTables.empty() && spriteSheet.isOpen();
+			return !spriteIDTextures.empty() && colorTable && spriteSheet.isOpen();
 		}
 
 		void next(){
@@ -343,9 +345,8 @@ private:
 			for(PG::GL::Texture* t: spriteIDTextures)
 				delete t;
 			spriteIDTextures.clear();
-			for(PG::GL::Texture* t: colorTables)
-				delete t;
-			colorTables.clear();
+			if(colorTable) delete colorTable;
+			colorTable = nullptr;
 			index = 0;
 			keyframe = 0;
 			spriteSheet.clear();

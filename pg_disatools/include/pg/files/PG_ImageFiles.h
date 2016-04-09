@@ -38,6 +38,7 @@ namespace FILE {
  * @return true, if image saved
  */
 EXPORT bool saveTGA(const std::string& filepath, const PG::UTIL::RGBAImage& image);
+EXPORT bool saveTGA(const std::string& filepath, const PG::UTIL::IDImage& image);
 
 /*!
  * @brief Will load a simple TGA8888 image.

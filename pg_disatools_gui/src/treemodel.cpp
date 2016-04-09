@@ -23,6 +23,7 @@
 #include <QGraphicsPixmapItem>
 #include <QFileInfo>
 #include <QProgressDialog>
+#include <QtConcurrent/QtConcurrentRun>
 
 #include <pg/files/PG_ImageFiles.h>
 #include <pg/files/PG_TX2.h>
@@ -90,13 +91,26 @@ bool TreeModel::open(const QString &file){
 
 	if(!m_fileExtractor) return false;
 
-	if(m_fileExtractor->open(file.toStdString())){
+	QProgressDialog progress;
+	openProgress(progress, "Open in progress");
+
+	QFuture<bool> f1 = QtConcurrent::run(m_fileExtractor, &PG::FILE::ExtractorBase::open, file.toStdString(), &m_percentIndicator);
+	while(f1.isRunning()){
+		progress.setValue(m_percentIndicator.percent);
+		progress.update();
+	}
+
+	bool result = f1.result();
+
+	if(result){
 		qInfo() << "Couldn't open: '"<<file<<"'!";
 		delete m_fileExtractor;
 		m_fileExtractor = nullptr;
 		QAbstractItemModel::layoutChanged();
 		return false;
 	}
+	progress.close();
+
 	QAbstractItemModel::layoutChanged();
 
 	return true;
@@ -144,25 +158,8 @@ int TreeModel::extract(const QModelIndexList& indeces, const QString &dir) const
 }
 
 bool TreeModel::addFile(const QString &file){
-	if(!m_fileExtractor) return false;
-
-	bool added = false;
-	QAbstractItemModel::layoutAboutToBeChanged();
-	if(m_fileExtractor->getType() == "SOLA"){ //sprite sheets also need a ID
-			PG::FILE::SOLA* sola = static_cast<PG::FILE::SOLA*>(m_fileExtractor);
-			 int id = 0;
-			if(EnterValue::openEnterIntDialog(id, 1, 65535, "Please enter a ID", "Please enter a ID for the sprite sheet:\n '"+file+"'") && !sola->insert(file.toStdString(), id)){
-				added = true;
-			}else
-				qInfo() << "Couldn't add file '"<<file<<"'";
-	}else //normal add
-	if(m_fileExtractor->insert(file.toStdString())){
-		qInfo() << "Couldn't add file '"<<file<<"'";
-	}else
-		added = true;
-
-	QAbstractItemModel::layoutChanged();
-	return added;
+	if(file.isEmpty()) return false;
+	return add({file});
 }
 
 int TreeModel::add(const QStringList &files){
@@ -310,7 +307,6 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString &filepa
 	PG::FILE::decompressIMYPackage(c,sile_size, filepath.toStdString(), &m_percentIndicator);
 	return true;
 }
-
 
 bool TreeModel::hasDataChanged() const{
 	return m_fileExtractor->isChanged();
@@ -599,6 +595,7 @@ float TreeModel::getProgress() const{
 void TreeModel::getFileProperties(PG::FILE::fileProperties& target) const{
 	if(m_fileExtractor) m_fileExtractor->getFileProperties(target);
 }
+
 
 TreeModel::~TreeModel(){
 	if(m_fileExtractor) delete m_fileExtractor;
