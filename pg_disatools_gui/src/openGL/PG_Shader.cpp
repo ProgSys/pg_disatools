@@ -191,14 +191,14 @@ void Shader::release() const{
 int Shader::getAttributeLocation(const std::string& name) const{
 	const int i = glGetAttribLocation( m_GLID, name.c_str());
 	if(i == INVALID_OGL_VALUE)
-		 PG_ERROR_STREAM("Attribute location with the name '" << name<<"', not found! Make sure it is active. (is used in shader)" );
+		PG_WARN_STREAM("Attribute location with the name '" << name<<"', not found! Make sure it is active. (is used in shader)" );
 	return i;
 }
 
 int Shader::getUniformLocation(const std::string& name) const{
 	const int i = glGetUniformLocation( m_GLID, name.c_str());
 	if(i == INVALID_OGL_VALUE)
-		 PG_ERROR_STREAM("Uniform location with the name '" << name<<"', not found! Make sure it is active. (is used in shader)" );
+		 PG_WARN_STREAM("Uniform location with the name '" << name<<"', not found! Make sure it is active. (is used in shader)" );
 	return i;
 }
 
