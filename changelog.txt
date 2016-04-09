@@ -49,4 +49,9 @@
 	- You now can properly delete and insert sprite sheets into a 'sprite offset list archive'
   * Sprite Sheet Viewer v0.1.1 alpha:
 	- Correct position and rotation is applied to the animations  
-   
+
+===  09.04.2016 - v0.4.6 ===
+  * Disa PC File Manager v0.4.6 alpha:
+	- Some clean up
+  * Sprite Sheet Viewer v0.1.2 alpha:
+	- You now can properly view and export sprite sheets with 256 colors
