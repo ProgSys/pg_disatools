@@ -14,9 +14,9 @@ You can download the latest version of the tools here:
 * [Version v0.4.6 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.6%20alpha.zip)
  
 ---
-<p align="center">
+
 [![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
-</p>
+
 
 ##Content
 #### Disa PC File Manager
