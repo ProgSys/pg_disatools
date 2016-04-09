@@ -133,17 +133,6 @@ bool GLWidget::dump(const QString& filepath){
 		file.close();
 		return false;
 	}
-
-
-	/*
-	std::ofstream filedump;
-	filedump.open(filepath.toStdString().c_str());
-	if(!filedump.is_open()) return false;
-
-	filedump<<m_SpriteSheet;
-	filedump.close();
-	*/
-
 	return true;
 }
 

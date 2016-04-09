@@ -183,7 +183,7 @@ private:
     	unsigned int keyframe = 0;
 
 		std::vector<PG::GL::Texture* > spriteIDTextures;
-		PG::GL::Texture* colorTable;
+		PG::GL::Texture* colorTable = nullptr;
 		PG::GL::Texture* externalSheet = nullptr;
 
 		void init(){
@@ -195,6 +195,7 @@ private:
 
 		bool open(const QString& path){
 			clear();
+
 			if(path.isEmpty() || spriteSheet.open(path.toStdString()))
 				return false;
 
