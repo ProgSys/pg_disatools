@@ -13,8 +13,10 @@ You can download the latest version of the tools here:
 * [Version v0.4.5 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.5%20alpha.zip)
 * [Version v0.4.6 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.6%20alpha.zip)
  
+---
+
 <p align="center">
-*Donate:*
+*Donate*
 <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
 <input type="hidden" name="cmd" value="_s-xclick">
 <input type="hidden" name="hosted_button_id" value="CD32DJ9YJKCUQ">
