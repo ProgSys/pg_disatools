@@ -84,6 +84,7 @@ public slots:
     QString getOpenedFileName() const;
     const QString& getOpenedType() const;
 
+    QString getType() const;
 private:
 
     PG::FILE::ExtractorBase* m_fileExtractor;

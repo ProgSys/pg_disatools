@@ -113,7 +113,8 @@ bool GLWidget::open(const QString& spriteFile){
 
 
 	m_frame.stop();
-	m_frame.start(m_current.getCurrentDelay());
+	if(m_playing)
+		m_frame.start(m_current.getCurrentDelay());
 	return true;
 }
 
@@ -277,7 +278,8 @@ void GLWidget::initializeGL(){
 	}
 
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
+	glDisable(GL_CULL_FACE);
 	glEnable(GL_TEXTURE_2D);
 
 	glEnable (GL_BLEND);
@@ -314,7 +316,7 @@ void GLWidget::initializeGL(){
     }
 
     //load geometry
-    m_spriteGeometry.bind(PG::UTIL::vec3(0,-0.5f,0),PG::UTIL::vec3(1.f,0,0),PG::UTIL::vec3(0,1.f,0) );
+    m_spriteGeometry.bind(PG::UTIL::vec3(0,-1.f,0),PG::UTIL::vec3(1.f,0,0),PG::UTIL::vec3(0,1.f,0) );
     m_groundGeometry.bind(PG::UTIL::vec3(-5,0,-5),PG::UTIL::vec3(0,0,10),PG::UTIL::vec3(10,0,0), 10.0f );
 
     viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
@@ -326,8 +328,26 @@ void GLWidget::paintGL(){
 	glClearColor(m_clearcolor.red()/255.0,m_clearcolor.green()/255.0,m_clearcolor.blue()/255.0,1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //ground
 
+
+    if(m_current){
+    	//sprite
+    	modelMatrix = PG::UTIL::mat4();
+    	glDepthFunc(GL_ALWAYS);
+    	//glDepthMask(false);
+    	for(unsigned int i = 0; i < m_current.getNumberOfLayers(); ++i){
+    		if(!m_displayExternalReferences && m_current.isExternalReference(i)) continue;
+        	m_current.setCurrentModelMat(modelMatrix, i);
+    		m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
+    		m_current.setUniforms(m_spriteShader, i);
+    		m_current.apply(i);
+    		m_spriteGeometry.apply();
+    	}
+    	glDepthFunc(GL_LEQUAL);
+		//glDepthMask(true);
+    }
+
+    //ground
     if(m_displayGround){
 		m_objectShader.apply(PG::UTIL::mat4(), viewMatrix, perspectiveMatrix);
 
@@ -337,16 +357,18 @@ void GLWidget::paintGL(){
     }
 
     if(m_current){
-
 		//shadow
 		if(m_displayShadow){
 			modelMatrix = PG::UTIL::mat4();
 			modelMatrix[0][0] = 0.5;
 			modelMatrix[1][1] = 0.5;
 			modelMatrix[2][2] = 0.5;
-			modelMatrix[3][0] = -0.5/2.0;
+
+			modelMatrix[3][0] = -0.2;
 			modelMatrix[3][1] = 0.02;
+			modelMatrix[3][2] = -0.2;
 			modelMatrix[3][3] = 1;
+
 			PG::UTIL::mat4 rotMat(0);
 			rotMat[0][0] = 1;
 			rotMat[1][2] = -1;
@@ -359,19 +381,6 @@ void GLWidget::paintGL(){
 			m_shadowTexture.apply();
 			m_spriteGeometry.apply();
 		}
-
-    //sprite
-    	modelMatrix = PG::UTIL::mat4();
-    	glDepthMask(false);
-    	for(unsigned int i = 0; i < m_current.getNumberOfLayers(); ++i){
-    		if(!m_displayExternalReferences && m_current.isExternalReference(i)) continue;
-        	m_current.setCurrentModelMat(modelMatrix, i);
-    		m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
-    		m_current.setUniforms(m_spriteShader, i);
-    		m_current.apply(i);
-    		m_spriteGeometry.apply();
-    	}
-		glDepthMask(true);
     }
 
     //clean up

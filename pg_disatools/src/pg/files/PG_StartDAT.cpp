@@ -352,6 +352,12 @@ void StartDAT::clear(){
 	ExtractorBase::clear();
 }
 
+std::string StartDAT::getType() const{
+	if(m_isCompressed)
+		return "COLA";
+	else
+		return "OLA";
+}
 
 StartDAT::~StartDAT() {
 	// TODO Auto-generated destructor stub

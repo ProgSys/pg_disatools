@@ -41,6 +41,7 @@ find_package(GLEW REQUIRED)
 QT5_WRAP_UI(UIMainWindowSrcs ui/mainwindow.ui)
 QT5_WRAP_UI(UIFileInfoBoxSrcs ui/fileinfobox.ui)
 QT5_WRAP_UI(UISpriteSheetEditorSrcs ui/spritesheeteditor.ui)
+QT5_WRAP_UI(UIEnterValueSrcs ui/entervaluedialog.ui)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")
@@ -116,7 +117,7 @@ add_executable(
 		"main.cpp"
 		${PG_QT_HEADERS}
 		${PG_QT_SRC}
-		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs} ${UIEnterValueSrcs}
 		
 )
 else()
@@ -126,7 +127,7 @@ add_executable(
 		"main.cpp"
 		${PG_QT_HEADERS}
 		${PG_QT_SRC}
-		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs} ${UIEnterValueSrcs}
 		
 )
 endif()

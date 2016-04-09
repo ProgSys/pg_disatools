@@ -35,19 +35,22 @@
 #include <QMutableListIterator>
 #include <QProcess>
 
-#include <iostream>
-
 #include <TitleDefine.h>
 
-inline void openProgress(QProgressDialog& progress){
+#include <iostream>
+#include <EnterValue.h>
+
+inline void openProgress(QProgressDialog& progress, const QString& title = "In progress"){
 	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
 	progress.setWindowTitle("Please wait.");
 	progress.setWindowModality(Qt::WindowModal);
-	progress.setLabelText("Saving in progress.");
+	progress.setLabelText(title);
 	progress.setCancelButton(0);
 	progress.setRange(0,101);
 	progress.show();
 }
+
+#define DEBUG_HERE qInfo()<<QString::number(__LINE__)<<": HERE___";
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -108,6 +111,23 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btnExtractImage, SIGNAL(clicked()), this, SLOT(saveSelectedImage()));
     connect(this, SIGNAL(openFile(const QString&)), m_treeModel, SLOT(open(const QString&)));
 
+
+    // ckeckboxes
+    connect(ui->checkBox_TX2, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("TX2", !checked); } );
+    connect(ui->checkBox_PHD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("PHD", !checked); } );
+    connect(ui->checkBox_PNG, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("PNG", !checked); } );
+    connect(ui->checkBox_PBD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("PBD", !checked); } );
+    connect(ui->checkBox_OGG, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("OGG", !checked); } );
+    connect(ui->checkBox_FFM, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("FFM", !checked); } );
+    connect(ui->checkBox_FAD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("FAD", !checked); } );
+    connect(ui->checkBox_DAT, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("DAT", !checked); } );
+    connect(ui->checkBox_MPD, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("MPD", !checked); } );
+    connect(ui->checkBox_ARC, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("ARC", !checked); } );
+    connect(ui->checkBox_MPP, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("MPP", !checked); } );
+    connect(ui->checkBox_GEO, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("GEO", !checked); } );
+
+    //About
+	connect(ui->btnAboutQt, &QPushButton::clicked, this, [this]{ QMessageBox::aboutQt(this); } );
 }
 
 MainWindow::~MainWindow()
@@ -139,6 +159,12 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_btnAbout_clicked()
 {
+	/*
+	int out = 0;
+	EnterValue::openEnterIntDialog(out, 0, 9001, "Enter int value", "Enter");
+	qDebug()<<"Enter value "<<out;
+	*/
+
     QMessageBox msgBox;
     msgBox.setIcon(QMessageBox::Information);
     msgBox.setWindowTitle("About");
@@ -169,11 +195,6 @@ void MainWindow::on_btnAbout_clicked()
 
     msgBox.exec();
 
-}
-
-void MainWindow::on_btnAboutQt_clicked()
-{
-    QMessageBox::aboutQt(this);
 }
 
 void MainWindow::on_btnOpen_clicked()
@@ -207,66 +228,6 @@ void MainWindow::on_btnOpen_clicked()
         }
     }
 
-}
-
-void MainWindow::on_checkBox_MMP_clicked(bool checked)
-{
-	m_treeSort->setFilterFileExtention("MPP", !checked);
-}
-
-void MainWindow::on_checkBox_ARC_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("ARC", !checked);
-}
-
-void MainWindow::on_checkBox_MPD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("MPD", !checked);
-}
-
-void MainWindow::on_checkBox_DAT_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("DAT", !checked);
-}
-
-void MainWindow::on_checkBox_FAD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("FAD", !checked);
-}
-
-void MainWindow::on_checkBox_FFM_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("FFM", !checked);
-}
-
-void MainWindow::on_checkBox_OGG_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("OGG", !checked);
-}
-
-void MainWindow::on_checkBox_PBD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("PBD", !checked);
-}
-
-void MainWindow::on_checkBox_PNG_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("PNG", !checked);
-}
-
-void MainWindow::on_checkBox_PHD_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("PHD", !checked);
-}
-
-void MainWindow::on_checkBox_TX2_clicked(bool checked)
-{
-     m_treeSort->setFilterFileExtention("TX2", !checked);
-}
-
-void MainWindow::on_checkBox_GEO_clicked(bool checked)
-{
-    m_treeSort->setFilterFileExtention("GEO", !checked);
 }
 
 void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel){
@@ -583,29 +544,16 @@ void MainWindow::on_btnInsert_clicked()
 {
     QFileDialog openDialog(this);
     openDialog.setFileMode(QFileDialog::ExistingFiles); //multiple files
+    if(m_treeModel->getType() == "SOLA")
+    	openDialog.setNameFilter(tr("SPRITE SHEET (*.SH)"));
+
     QStringList fileNames;
     if (openDialog.exec() ){
        	setEnabled(false); //disable main window
+
         fileNames = openDialog.selectedFiles();
+        int added = m_treeModel->add(fileNames);
 
-
-		QProgressDialog progress;
-		progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
-		progress.setWindowTitle("Please wait.");
-		progress.setWindowModality(Qt::WindowModal);
-		progress.setLabelText("Extraction in progress.");
-		progress.setCancelButton(0);
-		progress.setRange(0,100);
-		progress.show();
-
-		QFuture<int> f1 = QtConcurrent::run(m_treeModel, &TreeModel::add, fileNames);
-		while(f1.isRunning()){
-			progress.setValue(m_treeModel->getProgress());
-			QApplication::processEvents();
-        }
-
-
-		int added = f1.result();
         if(added <= 0){
         	 ui->statusBar->showMessage("No files added!");
         }else if( added == 1){
@@ -613,14 +561,13 @@ void MainWindow::on_btnInsert_clicked()
         }else{
         	 ui->statusBar->showMessage(QString("Added %1 files.").arg(added));
         }
-        m_treeModel->layoutChanged();
+
         if(m_treeModel->hasDataChanged()){
+        	m_treeSort->layoutChanged();
         	ui->btnSave->setEnabled(true);
         	ui->btnSaveAs->setEnabled(true);
         }
-        progress.close();
 
-        QApplication::processEvents();
         setEnabled(true);
     }
 }

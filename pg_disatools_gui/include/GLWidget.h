@@ -40,6 +40,12 @@
 
 #include <pg/files/PG_SpriteSheet.h>
 
+#include <pg/util/PG_MatrixUtil.h>
+#include <cmath>
+
+#define PI 3.14159265
+#define toRad(x) x * PI / 180.0
+
 class GLWidget : public QOpenGLWidget {
 	Q_OBJECT
 public:
@@ -257,14 +263,44 @@ private:
 				return 1000;
 		}
 
+		inline PG::UTIL::mat4 scaleMat(const PG::FILE::cutout& cut){
+			PG::UTIL::mat4 mat;
+			mat[0][0] = (cut.width/50.0) * (cut.scalex/100.0);
+			mat[1][1] = (cut.height/50.0) * (cut.scaley/100.0);
+			return mat;
+		}
+
+		inline PG::UTIL::mat4 mirrorMat(const PG::FILE::cutout& cut){
+			PG::UTIL::mat4 mat;
+			//PG_INFO_STREAM("mirror: "<<cut.mirror);
+			if(cut.unkown0 == 10)
+				mat[0][0] = (-1);
+			return mat;
+		}
+
+		inline PG::UTIL::mat4 anchorOffsetMat(const PG::FILE::cutout& cut){
+			PG::UTIL::mat4 mat;
+			mat[3][0] = (cut.anchorx/50.0);
+			mat[3][1] = (-cut.anchory/50.0);
+			return mat;
+		}
+
+		inline PG::UTIL::mat4 positionOffsetMat(const PG::FILE::cutout& cut){
+			PG::UTIL::mat4 mat;
+			mat[3][0] = (cut.offsetx/50.0);
+			mat[3][1] = (-cut.offsety/50.0);
+			return mat;
+		}
+
 		void setCurrentModelMat( PG::UTIL::mat4& modelmat, unsigned int layer = 0){
 			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
 			const PG::FILE::cutout& cut = key.layers[layer];
 
-			//PG_INFO_STREAM("x: "<<cut.offsetx<< " y: "<<cut.offsety<<" = "<<((cut.offsetx)/50.0)<<" "<<((-cut.offsety)/50.0));
-			//TODO find the correct values
-			modelmat[3][0] = (cut.offsetx/35.0);
-			modelmat[3][1] = (-cut.offsety/70.0);
+
+			//could be multiplied out, but meh fast enogh
+			const float angle = toRad(-cut.rotation);
+			modelmat = positionOffsetMat(cut)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*mirrorMat(cut)*anchorOffsetMat(cut)*scaleMat(cut);
+			//PG_INFO_STREAM("x: "<<cut.offsetx<< " y: "<<cut.offsety<<" width: "<<((cut.width/50.0)*(cut.scalex/100.0))<<" height: "<<((cut.height/50.0)*(cut.scaley/100.0))<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 
 		void setUniforms(GLWidget::spriteShader& shader, unsigned int layer = 0){

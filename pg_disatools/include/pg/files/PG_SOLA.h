@@ -21,8 +21,8 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_FILES_PG_SPRITESHEETDAT_H_
-#define INCLUDE_PG_FILES_PG_SPRITESHEETDAT_H_
+#ifndef INCLUDE_PG_FILES_PG_SOLA_H_
+#define INCLUDE_PG_FILES_PG_SOLA_H_
 
 #include <string>
 #include <vector>
@@ -33,10 +33,16 @@
 namespace PG {
 namespace FILE {
 
-class SpriteSheetDAT: public ExtractorBase {
+/*!
+ * @brief This archive only holds sprite sheets and is very simmilar to a Offset List Archive,
+ * but after the sprte pointers, there is also for each sprite a ID (unsigned short - 2 byte),
+ * which acts like a filename.
+ * Means you can add new character or effect sprite sheets and reference them in the game scripts.
+ */
+class SOLA: public ExtractorBase {
 public:
-	EXPORT SpriteSheetDAT();
-	EXPORT SpriteSheetDAT(const PG::UTIL::File& file);
+	EXPORT SOLA();
+	EXPORT SOLA(const PG::UTIL::File& file);
 
 	/*!
 	 * @brief Opens the given START.DAT file.
@@ -46,11 +52,15 @@ public:
 	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr) final;
 
 	EXPORT bool insert(const PG::UTIL::File& file);
-	EXPORT bool insert(const PG::UTIL::File& file, unsigned short id = 0);
+	EXPORT bool insert(const PG::UTIL::File& file, unsigned short id);
+
+	EXPORT bool remove(fileInfo& target);
 
 	EXPORT void clear();
 
-	EXPORT virtual ~SpriteSheetDAT();
+	EXPORT std::string getType() const;
+
+	EXPORT virtual ~SOLA();
 private:
 	std::vector<unsigned short> m_chractersIDs;
 };
@@ -58,4 +68,4 @@ private:
 } /* namespace FILE */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_FILES_PG_SPRITESHEETDAT_H_ */
+#endif /* INCLUDE_PG_FILES_PG_SOLA_H_ */

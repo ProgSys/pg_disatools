@@ -62,7 +62,6 @@ tMatrix4x4<T> lookAt( tVector3<T> eyePos, tVector3<T> lookAtPoint, tVector3<T> u
 	return viewMat;
 }
 
-
 template<typename T>
 tMatrix4x4<T> perspective(T fovy, T aspectRatio, T nearZ, T farZ){
 	assert_Test("Aspect ratio is 0!", abs(aspectRatio - std::numeric_limits<T>::epsilon()) <= static_cast<T>(0));
@@ -95,6 +94,32 @@ tMatrix4x4<T> orthogonal(T left, T right, T bottom, T top, T nearZ, T farZ){
 	return orthogonalMat;
 }
 
+// imput in radians
+template<typename T>
+tMatrix4x4<T> eulerYXZ( const T& yaw, const T& pitch, const T& roll){
+
+	const T yaw_cos = cos(yaw);
+	const T yaw_sin = sin(yaw);
+	const T pitch_cos = cos(pitch);
+	const T pitch_sin = sin(pitch);
+	const T roll_cos = cos(roll);
+	const T roll_sin = sin(roll);
+
+	tMatrix4x4<T> rotationMat;
+	rotationMat[0][0] = yaw_cos * roll_cos + yaw_sin * pitch_sin * roll_sin;
+	rotationMat[0][1] = roll_sin * pitch_cos;
+	rotationMat[0][2] = -yaw_sin * roll_cos + yaw_cos * pitch_sin * roll_sin;
+
+	rotationMat[1][0] = -yaw_cos * roll_sin + yaw_sin * pitch_sin * roll_cos;
+	rotationMat[1][1] = roll_cos * pitch_cos;
+	rotationMat[1][2] = roll_sin * yaw_sin + yaw_cos * pitch_sin * roll_cos;
+
+	rotationMat[2][0] = yaw_sin * pitch_cos;
+	rotationMat[2][1] = -pitch_sin;
+	rotationMat[2][2] = yaw_cos * pitch_cos;
+
+	return rotationMat;
+}
 
 } /* namespace UTIL */
 } /* namespace PG */

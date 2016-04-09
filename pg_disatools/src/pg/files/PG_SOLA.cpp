@@ -21,28 +21,162 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#include <pg/files/PG_SpriteSheetDAT.h>
-
 #include <algorithm>
+#include <pg/files/PG_SOLA.h>
+
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
 #include <pg/files/PG_FileTests.h>
 
+
 namespace PG {
 namespace FILE {
 
-SpriteSheetDAT::SpriteSheetDAT() {
+std::string getSpriteName(unsigned short id){
+	std::stringstream o;
+	if(id == 1){
+		o<<"0001_LAHARL.SH";
+	}else if(id == 2){
+		o<<"0002_ETNA.SH";
+	}else if(id == 3){
+		o<<"0003_FLONNE.SH";
+	}else if(id == 4){
+		o<<"0004_GORDON.SH";
+	}else if(id == 5){
+		o<<"0005_JENNIFER.SH";
+	}else if(id == 6){
+		o<<"0006_MOD-KRISAN_PLEINAIR.SH";
+	}else if(id == 1010){
+		o<<"1010_BRAWLER_MALE.SH";
+	}else if(id == 1020){
+		o<<"1020_BRAWLER_FEMALE.SH";
+	}else if(id == 1030){
+		o<<"1030_WARRIOR_MALE.SH";
+	}else if(id == 1040){
+		o<<"1040_WARRIOR_FEMALE.SH";
+	}else if(id == 1050){
+		o<<"1050_MAJIN.SH";
+	}else if(id == 1060){
+		o<<"1060_NINJA.SH";
+	}else if(id == 1070){
+		o<<"1070_RONIN.SH";
+	}else if(id == 1080){
+		o<<"1080_KNIGHT.SH";
+	}else if(id == 1090){
+		o<<"1090_ARCHER.SH";
+	}else if(id == 1100){
+		o<<"1100_SKULL.SH";
+	}else if(id == 1110){
+		o<<"1110_MAGE.SH";
+	}else if(id == 1120){
+		o<<"1120_CLERIC_MALE.SH";
+	}else if(id == 1130){
+		o<<"1130_CLERIC_FEMALE.SH";
+	}else if(id == 1140){
+		o<<"1140_SCOUT.SH";
+	}else if(id == 1150){
+		o<<"1150_RECRUIT.SH";
+	}else if(id == 1160){
+		o<<"1160_ANGEL.SH";
+	}else if(id == 1170){
+		o<<"1170_ROGUE.SH";
+	}else if(id == 2000){
+		o<<"2000_HOBBIT.SH";
+	}else if(id == 2010){
+		o<<"2010_GHOST.SH";
+	}else if(id == 2020){
+		o<<"2020_GOLEM.SH";
+	}else if(id == 2030){
+		o<<"2030_MANEATER.SH";
+	}else if(id == 2040){
+		o<<"2040_IMP.SH";
+	}else if(id == 2050){
+		o<<"2050_KILLERARMOR.SH";
+	}else if(id == 2060){
+		o<<"2060_PUMPKIN.SH";
+	}else if(id == 2070){
+		o<<"2070_GARGOYLE.SH";
+	}else if(id == 2080){
+		o<<"2080_NIGHTMARE.SH";
+	}else if(id == 2090){
+		o<<"2090_SERPENT.SH";
+	}else if(id == 2100){
+		o<<"2100_CYCLOPS.SH";
+	}else if(id == 2110){
+		o<<"2110_DRAGON.SH";
+	}else if(id == 2120){
+		o<<"2120_ZOMBIE.SH";
+	}else if(id == 2130){
+		o<<"2130_BRUTE.SH";
+	}else if(id == 2140){
+		o<<"2140_BAAL.SH";
+	}else if(id == 2150){
+		o<<"2150_MANTICORE.SH";
+	}else if(id == 2160){
+		o<<"2160_EMPUSA.SH";
+	}else if(id == 2170){
+		o<<"2170_NEKOMATA.SH";
+	}else if(id == 2180){
+		o<<"2180_VAMPIRE.SH";
+	}else if(id == 2190){
+		o<<"2190_EFREET.SH";
+	}else if(id == 2200){
+		o<<"2200_THURSDAY.SH";
+	}else if(id == 2210){
+		o<<"2210_PRINNY.SH";
+	}else if(id == 2216){
+		o<<"2216_PRINNY_KURTIS.SH";
+	}else if(id == 2500){
+		o<<"2500_VYERS.SH";
+	}else if(id == 2570){
+		o<<"2570_VULCANUS.SH";
+	}else if(id == 2580){
+		o<<"2580_LAMINGTON.SH";
+	}else if(id == 2590){
+		o<<"2590_KURTIS.SH";
+	}else if(id == 2600){
+		o<<"2600_DONJOAQUIN.SH";
+	}else if(id == 2610){
+		o<<"2610_PRISMRANGER.SH";
+	}else if(id == 2916){
+		o<<"2916_PRINNYMAID.SH";
+	}else if(id == 2917){
+		o<<"2917_DIEMENSIONPHONE.SH";
+	}else if(id == 3000){
+		o<<"3000_PRIERE.SH";
+	}else if(id == 3010){
+		o<<"3010_MARJOLY.SH";
+	}else if(id == 3020){
+		o<<"3020_ADELL.SH";
+	}else if(id == 3030){
+		o<<"3030_ROZALIN.SH";
+	}else if(id == 3040){
+		o<<"3040_ZETTA.SH";
+	}else if(id == 3190){
+		o<<"3190_MOD-KRISAN_ASAGI.SH";
+	}else if(id == 3500){
+		o<<"3500_PLEINAIR.SH";
+	}else{
+		o.fill('0');
+		o.width(4);
+		o<<id<<"_SPRITE_SHEET.SH";
+	}
+
+	return o.str();
+}
+
+SOLA::SOLA() {
 	// TODO Auto-generated constructor stub
 
 }
 
-SpriteSheetDAT::SpriteSheetDAT(const PG::UTIL::File& file){
+SOLA::SOLA(const PG::UTIL::File& file){
 	open(file);
 }
 
-bool SpriteSheetDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
+bool SOLA::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No START.DAT file opened.");
 		return true;
@@ -165,7 +299,7 @@ bool SpriteSheetDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* pe
 	return false;
 }
 
-bool SpriteSheetDAT::open(const PG::UTIL::File& file, PercentIndicator* percent){
+bool SOLA::open(const PG::UTIL::File& file, PercentIndicator* percent){
 	clear();
 	m_file = file;
 
@@ -227,21 +361,8 @@ bool SpriteSheetDAT::open(const PG::UTIL::File& file, PercentIndicator* percent)
 		//read ids
 
 		auto it = m_fileInfos.begin();
-		for(unsigned short s: m_chractersIDs){
-			std::stringstream o;
-			if(s == 1){
-				o<<"LAHARL.SH";
-			}else if(s == 2){
-				o<<"ETNA.SH";
-			}else if(s == 3){
-				o<<"FLONNE.SH";
-			}else{
-				o<<"SPRITE_SHEET";
-				o.fill('0');
-				o.width(4);
-				o<<s<<".SH";
-			}
-			(*it).name = o.str();
+		for(unsigned short id: m_chractersIDs){
+			(*it).name = getSpriteName(id);
 			it++;
 		}
 
@@ -271,7 +392,7 @@ bool SpriteSheetDAT::open(const PG::UTIL::File& file, PercentIndicator* percent)
 	return false;
 }
 
-bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
+bool SOLA::insert(const PG::UTIL::File& file){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No file opened.");
 		return FAILURE;
@@ -291,7 +412,7 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
 	if(it != m_fileInfos.end()){
 		(*it).externalFile = file;
 	}else{
-		m_lastError = "You can only replace sprite sheets!";
+		pushError("You can only replace sprite sheets!");
 		return FAILURE;
 	}
 
@@ -300,7 +421,7 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file){
 	return SUCCESS;
 }
 
-bool SpriteSheetDAT::insert(const PG::UTIL::File& file, unsigned short id){
+bool SOLA::insert(const PG::UTIL::File& file, unsigned short id){
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No file opened.");
 		return FAILURE;
@@ -320,12 +441,23 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file, unsigned short id){
 	if(it != m_fileInfos.end()){
 		(*it).externalFile = file;
 	}else{
-		fileInfo info;
-		info.name = file.getFile();
-		info.externalFile = file;
-		info.size = file.size();
-		m_fileInfos.push_back(info);
-		m_chractersIDs.push_back(id);
+		//search by ID
+		auto itID = std::find_if(m_chractersIDs.begin(), m_chractersIDs.end(), [id](unsigned short spriteID){
+			return spriteID == id;
+		});
+
+		if(itID != m_chractersIDs.end()){
+			fileInfo& info = m_fileInfos[std::distance(m_chractersIDs.begin(), itID)];
+			info.externalFile = file;
+		}else{
+			fileInfo info;
+			info.name = getSpriteName(id);
+			info.externalFile = file;
+			info.size = file.size();
+			info.fileType = fileInfo::SH;
+			m_fileInfos.push_back(info);
+			m_chractersIDs.push_back(id);
+		}
 	}
 
 	m_changed = true;
@@ -333,13 +465,30 @@ bool SpriteSheetDAT::insert(const PG::UTIL::File& file, unsigned short id){
 	return SUCCESS;
 }
 
-void SpriteSheetDAT::clear(){
+bool SOLA::remove(fileInfo& target){
+	std::vector<fileInfo>::iterator  it(&target);
+	const unsigned int index = std::distance(m_fileInfos.begin(), it);
+	if(it < m_fileInfos.end()){
+			m_chractersIDs.erase(m_chractersIDs.begin() + index);
+			m_fileInfos.erase(it);
+	}else{
+		PG_ERROR_STREAM("File '"<<target.getName()<<" not found!");
+		return FAILURE;
+	}
+	m_changed = true;
+	return SUCCESS;
+}
+
+void SOLA::clear(){
 	m_chractersIDs.clear();
 	ExtractorBase::clear();
 }
 
+std::string SOLA::getType() const{
+	return "SOLA";
+}
 
-SpriteSheetDAT::~SpriteSheetDAT() {
+SOLA::~SOLA() {
 	// TODO Auto-generated destructor stub
 }
 

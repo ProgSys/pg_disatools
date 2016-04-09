@@ -75,8 +75,8 @@ typedef struct
 	unsigned short external_sheet; // get a sheet from different file by it's ID
 	unsigned char sheet; // there is not one big sprite sheet but multiple smaller one
 	unsigned char colortable; // the 16 rgba colortable which the sheet should use
-	short offsetx;
-	short offsety;
+	short anchorx; // rotation and mirror point
+	short anchory; // rotation and mirror point
 
 	//sprite info
 	unsigned short x;
@@ -87,11 +87,12 @@ typedef struct
 	unsigned short scaley; // 0-100
 
 	// only rotationx and rotationz seam to have a effect on 2D sprites
-	short rotationx; //not confirmed
-	short rotationy; //not confirmed
-	short rotationz; //not confirmed
+	short offsetx; // offset from the anchor
+	short offsety; // offset from the anchor
+	short rotation; // is degree
 
-	unsigned short mirror; //not confirmed
+	unsigned char mirror; //not confirmed
+	unsigned char unkown0; //not confirmed
 
 } __attribute__((packed, aligned(1))) cutout;
 
@@ -123,9 +124,9 @@ inline std::ostream& operator<<(std::ostream& o,const spriteSheet& i){
 }
 
 inline std::ostream& operator<<(std::ostream& o,const cutout& i){
-	o <<"("<<std::setw(4)<<i.external_sheet<<", "<<std::setw(4)<<(int)i.sheet<<", "<<std::setw(4)<<(int)i.colortable<<", "<<std::setw(4)<<i.offsetx
-			<<", "<<std::setw(4)<<i.offsety<<", "<<std::setw(4)<<i.x<<", "<<std::setw(4)<<i.y<<", "<<std::setw(4)<<i.width<<", "<<std::setw(4)<<i.height<<", "<<std::setw(4)<<i.scalex
-			<<", "<<std::setw(4)<<i.scaley<<", "<<std::setw(4)<<i.rotationx<<", "<<std::setw(4)<<i.rotationy<<", "<<std::setw(4)<<i.rotationz<<", "<<std::setw(4)<<i.mirror<<")";
+	o <<"("<<std::setw(4)<<i.external_sheet<<", "<<std::setw(4)<<(int)i.sheet<<", "<<std::setw(4)<<(int)i.colortable<<", "<<std::setw(4)<<i.anchorx
+			<<", "<<std::setw(4)<<i.anchory<<", "<<std::setw(4)<<i.x<<", "<<std::setw(4)<<i.y<<", "<<std::setw(4)<<i.width<<", "<<std::setw(4)<<i.height<<", "<<std::setw(4)<<i.scalex
+			<<", "<<std::setw(4)<<i.scaley<<", "<<std::setw(4)<<i.offsetx<<", "<<std::setw(4)<<i.offsety<<", "<<std::setw(4)<<i.rotation<<", "<<std::setw(4)<<(int)i.mirror<<", "<<std::setw(4)<<(int)i.unkown0<<")";
 	return o;
 }
 

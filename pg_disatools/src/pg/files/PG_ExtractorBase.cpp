@@ -184,7 +184,7 @@ bool ExtractorBase::remove(fileInfo& target){
 			m_fileInfos.erase(it);
 		}
 	}else{
-		PG_ERROR_STREAM("File '"<<target.getName()<<" found!");
+		PG_ERROR_STREAM("File '"<<target.getName()<<"not found!");
 		return FAILURE;
 	}
 	m_changed = true;
@@ -347,14 +347,14 @@ bool ExtractorBase::isChanged() const{
 	return m_changed;
 }
 
-bool ExtractorBase::checkValid(std::string& errorMessageOut){
-	if(!m_lastError.empty()){
-		errorMessageOut = m_lastError;
-		m_lastError.clear();
-		return false;
+std::string ExtractorBase::getError(){
+	if(!m_errors.empty()){
+		const std::string errorMessageOut = m_errors.top();
+		m_errors.pop();
+		return errorMessageOut;
 	}
 
-	return true;
+	return "";
 }
 
 fileInfo& ExtractorBase::get(unsigned int index){
@@ -476,6 +476,10 @@ bool ExtractorBase::remove(const PG::UTIL::File& file){
 	}
 
 	return remove(info);
+}
+
+void ExtractorBase::pushError(const std::string& error){
+	m_errors.push(error);
 }
 
 ExtractorBase::~ExtractorBase() {

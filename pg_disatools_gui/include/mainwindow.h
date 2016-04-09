@@ -42,46 +42,26 @@ private slots:
     void on_btnDelete_clicked();
     void on_treeView_activated(const QModelIndex &index);
     void on_btnSave_clicked();
+    void on_btnSaveAs_clicked();
+
     void on_btnInsert_clicked();
     void on_btnExtract_clicked();
     void on_treeView_clicked(const QModelIndex &index);
-    void on_checkBox_TX2_clicked(bool checked);
-    void on_checkBox_PHD_clicked(bool checked);
-    void on_checkBox_PNG_clicked(bool checked);
-    void on_checkBox_PBD_clicked(bool checked);
-    void on_checkBox_OGG_clicked(bool checked);
-    void on_checkBox_FFM_clicked(bool checked);
-    void on_checkBox_FAD_clicked(bool checked);
-    void on_checkBox_DAT_clicked(bool checked);
-    void on_checkBox_MPD_clicked(bool checked);
-    void on_checkBox_ARC_clicked(bool checked);
-    void on_checkBox_MMP_clicked(bool checked);
+
     void on_btnAbout_clicked();
     void on_btnOpen_clicked();
 
+    void on_btnExtractImage_clicked();
+
     void treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel);
     void treeContextMenu(const QPoint &pos);
+    void saveSelectedImage();
 
 signals:
     bool openFile(const QString& filepath);
 	bool saveFile();
 	bool saveFileAs(const QString& filepath);
 	bool saveImage(const QModelIndex &index, const QString& targetfile);
-
-private slots:
-    void on_checkBox_GEO_clicked(bool checked);
-
-private slots:
-    void on_btnExtractImage_clicked();
-
-private slots:
-	void saveSelectedImage();
-
-private slots:
-    void on_btnAboutQt_clicked();
-
-private slots:
-    void on_btnSaveAs_clicked();
 
 private:
     Ui::MainWindow *ui;

@@ -14,6 +14,7 @@ You can download the latest version of the tools here:
 * [Version v0.4.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.1%20alpha.zip)
 * [Version v0.4.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.3%20alpha.zip)
 * [Version v0.4.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.4%20alpha.zip)
+* [Version v0.4.5 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.5%20alpha.zip)
 
 ###Content
 #### Disa PC File Manager
