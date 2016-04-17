@@ -32,6 +32,10 @@ Setup_defaults(${CMAKE_PROJECT_NAME})
 #find_package(Qt5 COMPONENTS Widgets Declarative OpenGL REQUIRED)
 find_package(Qt5Widgets REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
+
+find_package(Qt5Quick REQUIRED)
+find_package(Qt5QuickWidgets REQUIRED)
+
 find_package(PG_DISATOOLS REQUIRED)
 
 # OpenGL & GLEW library
@@ -139,6 +143,9 @@ target_link_libraries(
 	
 	Qt5::Widgets
 	Qt5::OpenGL
+	Qt5::Qml
+	Qt5::Quick
+	Qt5::QuickWidgets
 	${PG_DISATOOLS_LIBRARY}
 	${sim_EXE_SRCS}
 )
@@ -176,6 +183,9 @@ target_link_libraries(
 	
 	Qt5::Widgets
 	Qt5::OpenGL
+	Qt5::Qml
+	Qt5::Quick
+	Qt5::QuickWidgets
 	${PG_DISATOOLS_LIBRARY}
 	${SPRITE_EDITOR_EXE_SRCS}
 )

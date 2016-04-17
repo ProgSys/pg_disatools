@@ -100,14 +100,14 @@ void GLWidget::setUpConnections(QWidget *parent){
 }
 
 bool GLWidget::open(const QString& spriteFile){
-	if(!m_current.open(spriteFile)){
+	if(!m_animationInfo.importSH(spriteFile)){
 		qDebug()<<"Coudn't open sprite sheet!";
 		return false;
 	}
 
 	unsigned int i = 0;
-	for(const PG::FILE::animation2D& ani: m_current.spriteSheet.getAnimations()){
-		const QString str(QString::number(i)+ ": Size: "+QString::number(ani.keyframes.size())+", ID: "+QString::number(ani.unknown0));
+	for(const PG::FILE::animation& ani: m_animationInfo.spriteSheet.getAnimations()){
+		const QString str(QString::number(i)+ ": Size: "+QString::number(ani.keyframes.size())+", ID: "+QString::number(ani.ID)+", name: "+QString::fromStdString(ani.name));
 		emit animationAdded(str);
 		i++;
 	}
@@ -115,18 +115,18 @@ bool GLWidget::open(const QString& spriteFile){
 
 	m_frame.stop();
 	if(m_playing)
-		m_frame.start(m_current.getCurrentDelay());
+		m_frame.start(ANIMATION_SPEED);
 	return true;
 }
 
 bool GLWidget::dump(const QString& filepath){
-	if(filepath.isEmpty() || !m_current) return false;
+	if(filepath.isEmpty() || !m_animationInfo) return false;
 
 	QFile file(filepath);
 	if(file.open(QIODevice::WriteOnly)){
 		QTextStream out(&file);
 		std::stringstream o;
-		o<<m_current.spriteSheet;
+		o << m_animationInfo.spriteSheet;
 		out << QString::fromStdString(o.str());
 		file.close();
 	}else{
@@ -142,58 +142,61 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 		png = true;
 	}else if(type != "TGA")
 		return 0;
-	if(folder.isEmpty() || !m_current) return 0;
+	if(folder.isEmpty() || !m_animationInfo) return 0;
 
 	//convertToRGBA
 	std::vector< PG::UTIL::RGBAImage > images;
-	for(const PG::UTIL::IDImage& sheetIDs: m_current.spriteSheet.getSpriteSheets()){
+	for(const PG::UTIL::IDImage& sheetIDs: m_animationInfo.spriteSheet.getSheets()){
 		images.push_back(PG::UTIL::RGBAImage(sheetIDs.getWidth(), sheetIDs.getHeight()));
+		//just in case there are some undefined values
+		for(unsigned int i = 0; i < sheetIDs.size(); ++i)
+			images.back()[i] = m_animationInfo.spriteSheet.getColortable()[sheetIDs[i]];
 	}
 
-	for(const PG::FILE::animation2D& ani: m_current.spriteSheet.getAnimations()){
-			for(const PG::FILE::animation2D::keyframe& key: ani.keyframes){
-				for(const PG::FILE::cutout& cut: key.layers){
-					if(cut.external_sheet || cut.sheet >= m_current.spriteSheet.getNumberOfSpriteSheets()) continue;
+	for(const PG::FILE::animation& ani: m_animationInfo.spriteSheet.getAnimations()){
+		for(const PG::FILE::keyframe& key: ani.keyframes){
+			for(const PG::FILE::layer& lay: key.layers){
+				PG::FILE::cutout& cut = m_animationInfo.spriteSheet.getCutout(lay.cutoutID);
+				if(cut.isExternalSheet || cut.sheetID >= m_animationInfo.spriteSheet.getNumberOfSheets()) continue;
 
-					const PG::UTIL::uvec2 dim(cut.width,cut.height);
-					const PG::UTIL::uvec2 start(cut.x,cut.y);
-					const PG::UTIL::IDImage& sheetIDs = m_current.spriteSheet.getSpriteSheets()[cut.sheet];
+				const PG::UTIL::uvec2 dim(cut.width,cut.height);
+				const PG::UTIL::uvec2 start(cut.x,cut.y);
+				const PG::UTIL::IDImage& sheetIDs = m_animationInfo.spriteSheet.getSheet(cut.sheetID);
 
-					const int width = (start.x+dim.x > sheetIDs.getWidth())? sheetIDs.getWidth()-start.x : dim.x;
-					const int height = (start.y+dim.y > sheetIDs.getHeight())? sheetIDs.getHeight()-start.y : dim.y;
+				const int width = (start.x+dim.x > sheetIDs.getWidth())? sheetIDs.getWidth()-start.x : dim.x;
+				const int height = (start.y+dim.y > sheetIDs.getHeight())? sheetIDs.getHeight()-start.y : dim.y;
 
-					if(width <= 0 || height <= 0)
-						continue;
+				if(width <= 0 || height <= 0)
+					continue;
 
-					const PG::FILE::ColorTable& colortabel = m_current.spriteSheet.getColorTables();
-					PG::UTIL::RGBAImage& imageOut = images[cut.sheet];
+				const PG::FILE::ColorTable& colortabel =  m_animationInfo.spriteSheet.getColortable();
+				PG::UTIL::RGBAImage& imageOut = images[cut.sheetID];
 
-					PG::UTIL::IDImage sheetIDsWindow;
-					sheetIDs.getWindow(start, PG::UTIL::uvec2(width, height), sheetIDsWindow);
+				PG::UTIL::IDImage sheetIDsWindow;
+				sheetIDs.getWindow(start, PG::UTIL::uvec2(width, height), sheetIDsWindow);
 
-					PG::UTIL::RGBAImage rgbaWindow(sheetIDsWindow.getWidth(), sheetIDsWindow.getHeight());
-					for(unsigned int i = 0; i < sheetIDsWindow.size(); ++i){
-						rgbaWindow[i] = colortabel[cut.sheet*16 + sheetIDsWindow[i]];
-					}
-
-					imageOut.setWindow(start, rgbaWindow);
-
+				PG::UTIL::RGBAImage rgbaWindow(sheetIDsWindow.getWidth(), sheetIDsWindow.getHeight());
+				for(unsigned int i = 0; i < sheetIDsWindow.size(); ++i){
+					rgbaWindow[i] = colortabel[lay.colortableID*16 + sheetIDsWindow[i]];
 				}
+
+				imageOut.setWindow(start, rgbaWindow);
 			}
+		}
 	}
 
 	int imgCount = 0;
 	if(png){
 		for(const PG::UTIL::RGBAImage& image: images){
 			QImage qimg( &(image[0].r), image.getWidth() , image.getHeight(), QImage::Format_RGBA8888 );
-			qimg.save(folder+"/"+QString::fromStdString(m_current.spriteSheet.getOpenedFile().getName()) + "_"+QString::number(imgCount)+".png", 0, 100);
+			qimg.save(folder+"/"+QString::fromStdString( m_animationInfo.spriteSheet.getOpenedFile().getName()) + "_"+QString::number(imgCount)+".png", 0, 100);
 			imgCount++;
 		}
 
 	}else{
 		for(const PG::UTIL::RGBAImage& image: images){
 			std::stringstream o;
-			o<< folder.toStdString()<<"/"<<m_current.spriteSheet.getOpenedFile().getName()<<"_"<<imgCount<<".tga";
+			o<< folder.toStdString()<<"/"<< m_animationInfo.spriteSheet.getOpenedFile().getName()<<"_"<<imgCount<<".tga";
 			PG::FILE::saveTGA(o.str(),image);
 			imgCount++;
 		}
@@ -203,34 +206,43 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 }
 
 void GLWidget::setAnimation(int index){
-	if(m_current && index >= 0 && index < m_current.spriteSheet.getNumberOfAnimations()){
-		m_current.index = index;
-		m_current.keyframe = 0;
-
-		emit totalFrames(m_current.getTotalFrames());
+	if(m_animationInfo && index >= 0 && index < m_animationInfo.spriteSheet.getNumberOfAnimations()){
+		m_animationInfo.setAnimation(index);
+		m_currentKeyframe = 0;
+		emit currentFrame(m_currentKeyframe);
+		emit totalFrames(m_animationInfo.getTotalKeyframes());
 
 		if(m_playing){
 			m_frame.stop();
-			m_frame.start(m_current.getCurrentDelay());
+			m_frame.start(ANIMATION_SPEED);
 		}
 		update();
 	}
 }
 
 void GLWidget::loop(){
-	nextFrame();
-	m_frame.start(m_current.getCurrentDelay());
+	//nextFrame();
+	m_animationInfo++;
+
+	const unsigned int currentKeyframe = m_animationInfo.getCurrentKeyframeID();
+	if(m_currentKeyframe != currentKeyframe){
+		m_currentKeyframe = currentKeyframe;
+		update();
+		emit currentFrame(m_currentKeyframe);
+	}
+
+	m_frame.start(ANIMATION_SPEED);
 }
 
 void GLWidget::nextFrame(){
-	m_current.next();
-	emit currentFrame(m_current.keyframe);
+	m_currentKeyframe = m_animationInfo.nextKeyframe();
+	emit currentFrame(m_currentKeyframe);
 	update();
 }
 
 void GLWidget::previousFrame(){
-	m_current.previous();
-	emit currentFrame(m_current.keyframe);
+	m_currentKeyframe = m_animationInfo.previousKeyframe();
+	emit currentFrame(m_currentKeyframe);
 	update();
 }
 
@@ -241,7 +253,7 @@ void GLWidget::pause(){
 
 void GLWidget::play(){
 	m_playing = true;
-	m_frame.start(m_current.getCurrentDelay());
+	m_frame.start(ANIMATION_SPEED);
 }
 
 void GLWidget::displayExternalReferences(bool display){
@@ -316,7 +328,7 @@ void GLWidget::initializeGL(){
 
     viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
 
-    m_current.init();
+    m_animationInfo.init();
 }
 
 void GLWidget::paintGL(){
@@ -334,17 +346,18 @@ void GLWidget::paintGL(){
 		glDepthMask(true);
     }
 
-    if(m_current){
+    if(m_animationInfo){
     	//sprite
     	modelMatrix = PG::UTIL::mat4();
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
-    	for(unsigned int i = 0; i < m_current.getNumberOfLayers(); ++i){
-    		if(!m_displayExternalReferences && m_current.isExternalReference(i)) continue;
-        	m_current.setCurrentModelMat(modelMatrix, i);
+
+    	for(unsigned int i = 0; i < m_animationInfo.getNumberOfLayers(); ++i){
+    		if(!m_displayExternalReferences) continue;
+    		m_animationInfo.setCurrentModelMat(modelMatrix, i);
     		m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
-    		m_current.setUniforms(m_spriteShader, i);
-    		m_current.apply(i);
+    		m_animationInfo.setUniforms(m_spriteShader, i);
+    		m_animationInfo.apply(i);
     		m_spriteGeometry.apply();
     	}
     	glDepthFunc(GL_LEQUAL);
@@ -360,7 +373,7 @@ void GLWidget::paintGL(){
 		m_groundGeometry.apply();
     }
 
-    if(m_current){
+    if(m_animationInfo){
 		//shadow
 		if(m_displayShadow){
 			modelMatrix = PG::UTIL::mat4();
@@ -406,6 +419,6 @@ bool GLWidget::isPlaying() const{
 }
 
 GLWidget::~GLWidget() {
-	m_current.clearAll();
+	m_animationInfo.clearAll();
 }
 
