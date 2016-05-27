@@ -141,6 +141,10 @@ SpriteAnimation::SpriteAnimation() {
 
 }
 
+bool SpriteAnimation::isOpen() const{
+	return !m_file.isEmpty();
+}
+
 bool SpriteAnimation::open(const std::string& file){
 	if(file.empty()){
 		PG_ERROR_STREAM("Given filename is empty!");

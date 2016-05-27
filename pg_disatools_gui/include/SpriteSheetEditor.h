@@ -21,8 +21,7 @@
 #include <QString>
 #include <QMainWindow>
 #include <QColor>
-#include <Timeline.h>
-#include <pg/files/PG_SpriteAnimation.h>
+#include <SpritePlayer.h>
 
 namespace Ui {
 	class SpriteSheetEditorWindow;
@@ -31,6 +30,7 @@ namespace Ui {
 
 class SpriteSheetEditor: public QMainWindow {
 	 Q_OBJECT
+
 public:
 	explicit SpriteSheetEditor(QWidget *parent = 0);
 	virtual ~SpriteSheetEditor();
@@ -47,7 +47,7 @@ public slots:
 	void setTotalFrames(unsigned int totalFrames);
 
 signals:
-	bool openSprite(PG::FILE::SpriteAnimation* const spriteSheet);
+	bool openSprite(const QString& filepath);
 	bool dumpSprite(const QString& filepath);
 	int exportSprites(const QString& folder, const QString& filetype);
 
@@ -55,8 +55,7 @@ signals:
 
 private:
 	Ui::SpriteSheetEditorWindow *ui;
-	PG::FILE::SpriteAnimation m_spriteSheet;
-	Timeline* m_tline;
+	SpritePlayer* m_player;
 
 	void setTitel();
 	void setTitel(const QString& filename);
@@ -65,5 +64,7 @@ private slots:
 	void clickPlayPause();
 	void pickBackgroundColor();
 };
+
+Q_DECLARE_METATYPE(PG::FILE::SpriteAnimation);
 
 #endif /* INCLUDE_SPRITESHEETEDITOR_H_ */

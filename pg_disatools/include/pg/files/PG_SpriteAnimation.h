@@ -72,6 +72,7 @@ class SpriteAnimation {
 public:
 	SpriteAnimation();
 
+	bool isOpen() const;
 	bool open(const std::string& file);
 	bool save(const std::string& file);
 

@@ -79,8 +79,6 @@ public:
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
 
-    bool isPlaying() const;
-
     virtual ~GLWidget();
 public slots:
 	///returns true on success
@@ -91,13 +89,7 @@ public slots:
 	int exportSprites(const QString& folder, const QString& type);
 	///select animation
 	void setAnimation(int index);
-
-	void loop();
-
-	void nextFrame();
-	void previousFrame();
-	void pause();
-	void play();
+	void renderKeyframe(int index);
 
 	void displayExternalReferences(bool display);
 	void displayGround(bool display);
@@ -114,7 +106,6 @@ private:
 	const PG::FILE::SpriteAnimation* m_spriteSheet;
 
     //render
-    QTimer m_frame;
 
     PG::UTIL::mat4 modelMatrix;
 	PG::UTIL::mat4 viewMatrix;
@@ -135,7 +126,6 @@ private:
     bool m_displayShadow = true;
 
     //play feedback
-    bool m_playing = true;
     unsigned int m_currentKeyframe = 0;
 
     struct spriteShader: public PG::GL::Shader{

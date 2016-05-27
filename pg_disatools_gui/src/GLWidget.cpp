@@ -26,6 +26,8 @@
 #include <pg/util/PG_Image.h>
 #include <pg/util/PG_MatrixUtil.h>
 
+#include <qdebug.h>
+
 
 bool GLWidget::spriteShader::bind(){
 	const bool b = PG::GL::Shader::bind();
@@ -89,7 +91,6 @@ void GLWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::
 
 
 GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121),m_spriteSheet(nullptr){
-	connect(&m_frame, SIGNAL(timeout()), this, SLOT(loop()));
 }
 
 void GLWidget::setUpConnections(QWidget *parent){
@@ -102,8 +103,10 @@ void GLWidget::setUpConnections(QWidget *parent){
 bool GLWidget::open(const PG::FILE::SpriteAnimation* spriteSheet){
 
 	m_spriteSheet = spriteSheet;
+	qDebug()<<"GL Open pre"<<m_spriteSheet;
 	if(!m_spriteSheet)
 		return false;
+	qDebug()<<"GL Open "<<QString::fromStdString(m_spriteSheet->getOpenedFile().getFile());
 
 	if(!m_animationInfo.open(spriteSheet)){
 		qDebug()<<"Coudn't load sprites for open GL!";
@@ -117,10 +120,6 @@ bool GLWidget::open(const PG::FILE::SpriteAnimation* spriteSheet){
 		i++;
 	}
 
-
-	m_frame.stop();
-	if(m_playing)
-		m_frame.start(ANIMATION_SPEED);
 	return true;
 }
 
@@ -220,48 +219,17 @@ void GLWidget::setAnimation(int index){
 		emit currentFrame(m_currentKeyframe);
 		emit totalFrames(m_animationInfo.getTotalKeyframes());
 
-		if(m_playing){
-			m_frame.stop();
-			m_frame.start(ANIMATION_SPEED);
-		}
+
 		update();
 	}
 }
 
-void GLWidget::loop(){
-	//nextFrame();
-	m_animationInfo++;
-
-	const unsigned int currentKeyframe = m_animationInfo.getCurrentKeyframeID();
-	if(m_currentKeyframe != currentKeyframe){
-		m_currentKeyframe = currentKeyframe;
+void GLWidget::renderKeyframe(int index){
+	if(m_currentKeyframe != index){
+		m_currentKeyframe = index;
 		update();
 		emit currentFrame(m_currentKeyframe);
 	}
-
-	m_frame.start(ANIMATION_SPEED);
-}
-
-void GLWidget::nextFrame(){
-	m_currentKeyframe = m_animationInfo.nextKeyframe();
-	emit currentFrame(m_currentKeyframe);
-	update();
-}
-
-void GLWidget::previousFrame(){
-	m_currentKeyframe = m_animationInfo.previousKeyframe();
-	emit currentFrame(m_currentKeyframe);
-	update();
-}
-
-void GLWidget::pause(){
-	m_playing = false;
-	m_frame.stop();
-}
-
-void GLWidget::play(){
-	m_playing = true;
-	m_frame.start(ANIMATION_SPEED);
 }
 
 void GLWidget::displayExternalReferences(bool display){
@@ -423,9 +391,6 @@ void GLWidget::resizeGL(int w, int h){
 
 }
 
-bool GLWidget::isPlaying() const{
-	return m_playing;
-}
 
 GLWidget::~GLWidget() {
 	m_animationInfo.clearAll();

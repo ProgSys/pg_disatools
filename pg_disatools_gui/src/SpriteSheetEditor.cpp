@@ -62,6 +62,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 {
 	ui->setupUi(this);
 
+	m_player = new SpritePlayer(this);
+
 	setWindowIcon(QIcon("resources/sprite_sheet_editor_icon.ico"));
 	setWindowTitle(SpriteSheetEditorTITLE);
 
@@ -95,25 +97,25 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	} );
 
 	//player functions
-	connect(ui->btnPrevious, SIGNAL(clicked()), ui->openGLWidget, SLOT(previousFrame()));
+	connect(ui->btnPrevious, SIGNAL(clicked()), m_player->getTimeline(), SLOT(previousKeyFrame));
 	connect(ui->btnPausePlay, SIGNAL(clicked()), this, SLOT(clickPlayPause()));
-	connect(ui->btnNext, SIGNAL(clicked()), ui->openGLWidget, SLOT(nextFrame()));
+	connect(ui->btnNext, SIGNAL(clicked()), m_player->getTimeline(), SLOT(nextKeyFrame()));
 
-	connect(this, SIGNAL(openSprite(const PG::FILE::SpriteAnimation* spriteSheet)), ui->openGLWidget, SLOT(open(const PG::FILE::SpriteAnimation* spriteSheet)));
+	qRegisterMetaType<PG::FILE::SpriteAnimation>("SpriteAnimation");
+	connect(this, SIGNAL(openSprite( const QString& filepath )), m_player, SLOT(openSH( const QString& filepath  )));
 	connect(this, SIGNAL(dumpSprite( const QString& )), ui->openGLWidget, SLOT(dump( const QString& )));
 	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), ui->openGLWidget, SLOT( exportSprites( const QString& , const QString& ) ) );
-	connect(ui->comboBox, SIGNAL(currentIndexChanged( int )), ui->openGLWidget, SLOT(setAnimation( int )));
+	connect(ui->comboBox, SIGNAL(currentIndexChanged( int )), m_player, SLOT(setAnimation( int )));
 
 	connect(this, SIGNAL(backgroundColorSelected(  const QColor& )), ui->openGLWidget, SLOT( setBackgroundColor( const QColor& )));
 
 	ui->openGLWidget->setUpConnections(this);
 
 	//timeline
-	m_tline = new Timeline(this);
     qmlRegisterType<Timeline>("MyTimeLine",0,1, "Timeline");
     qmlRegisterType<Keyframe>("MyKeyframe",0,1, "Keyframe");
+    ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
-    ui->timelineQML->rootContext()->setContextProperty("timeline", m_tline);
 }
 
 void SpriteSheetEditor::open(){
@@ -132,7 +134,9 @@ void SpriteSheetEditor::open(){
 void SpriteSheetEditor::open(const QString& file){
 	ui->comboBox->clear();
 
-	if(file.isEmpty() || m_spriteSheet.importSH(file.toStdString()) || !(emit openSprite(&m_spriteSheet))){
+	qDebug()<<"Openning: "<<file;
+	//emit openSprite(m_spriteSheet); // does work :(
+	if(file.isEmpty() || emit openSprite(file)){
 		ui->statusbar->showMessage(QString("Failed to opened %1.").arg(file));
 		setTitel();
 
@@ -212,11 +216,11 @@ void SpriteSheetEditor::setTitel(const QString& filename){
 }
 
 void SpriteSheetEditor::clickPlayPause(){
-	if(ui->openGLWidget->isPlaying()){
-		ui->openGLWidget->pause();
+	if(m_player->getTimeline()->isPlaying()){
+		m_player->getTimeline()->pause();
 		ui->btnPausePlay->setIcon(QIcon("resources/materials/icons/play.png"));
 	}else{
-		ui->openGLWidget->play();
+		m_player->getTimeline()->play();
 		ui->btnPausePlay->setIcon(QIcon("resources/materials/icons/pause.png"));
 	}
 }
@@ -227,7 +231,7 @@ void SpriteSheetEditor::pickBackgroundColor(){
 }
 
 SpriteSheetEditor::~SpriteSheetEditor() {
-	delete m_tline;
+	delete m_player;
 	delete ui;
 }
 
