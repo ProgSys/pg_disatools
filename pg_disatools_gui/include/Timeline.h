@@ -69,7 +69,6 @@ public:
 
     int getSteps() const;
     float getTimeScale() const;
-    int getWidth() const;
     int getSize() const;
     Q_INVOKABLE int getOffset(int index) const;
 
@@ -90,6 +89,7 @@ public slots:
 	//player
 	int getTracker() const;
 	void setTracker(int tracker);
+	int getWidth() const;
 
 	void nextFrame();
 	void previousFrame();

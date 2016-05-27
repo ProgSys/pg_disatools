@@ -122,11 +122,11 @@ int Timeline::getTrackIndex() const{
 	int width = 0;
 	for(int i = 0; i < m_keyframes.size(); ++i){
 		width += static_cast<const Keyframe* const>(m_keyframes[i])->getDuration();
-		if(m_tracker <= width)
+		if(m_tracker < width)
 			return i;
 	}
 
-	return -1;
+	return m_keyframes.size()-1;
 }
 
 void Timeline::setTracker(int tracker)
@@ -177,6 +177,7 @@ void Timeline::loop(){
 }
 
 void Timeline::nextFrame(){
+	if(m_totalTrackSize <= 0) return;
 	m_tracker++;
 	if(m_tracker > m_totalTrackSize)
 		m_tracker = 0;
@@ -187,6 +188,7 @@ void Timeline::nextFrame(){
 
 }
 void Timeline::previousFrame(){
+	if(m_totalTrackSize <= 0) return;
 	m_tracker--;
 	if(m_tracker < 0)
 		m_tracker = m_totalTrackSize;
@@ -195,12 +197,15 @@ void Timeline::previousFrame(){
 	emit trackerChanged();
 }
 void Timeline::nextKeyframe(){
+	if(m_totalTrackSize <= 0) return;
 	int i = getTrackIndex();
 	if(i < 0){
 		m_tracker = 0;
+		checkRender(0);
 		emit trackerChanged();
 		return;
 	}
+	i++;
 	if(i >= m_keyframes.size())
 		i = 0;
 	m_tracker = getOffset(i);
@@ -208,23 +213,35 @@ void Timeline::nextKeyframe(){
 	emit trackerChanged();
 }
 void Timeline::previousKeyframe(){
+	if(m_totalTrackSize <= 0) return;
 	int i = getTrackIndex();
+	i--;
 	if(i < 0){
-		m_tracker = (m_keyframes.empty())? 0 : getOffset(m_keyframes.size()-1);
+		if(m_keyframes.empty()){
+			m_tracker = 0;
+			checkRender(0);
+		}else{
+			i = m_keyframes.size()-1;
+			m_tracker = getOffset(i);
+			checkRender(i);
+		}
 		emit trackerChanged();
 		return;
 	}
+
 	m_tracker = getOffset(i);
 	checkRender(i);
 	emit trackerChanged();
 }
 void Timeline::pause(){
 	m_playing = false;
+	if(m_totalTrackSize <= 0) return;
 	m_time.stop();
 	emit onPause();
 }
 void Timeline::play(){
 	m_playing = true;
+	if(m_totalTrackSize <= 0) return;
 	m_time.start(ONEFRAME_ANIMATION_SPEED);
 	emit onPlay();
 }

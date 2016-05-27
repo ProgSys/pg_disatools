@@ -139,7 +139,7 @@ void SpriteSheetEditor::open(const QString& file){
 	ui->comboBox->clear();
 
 	qDebug()<<"Openning: "<<file;
-	if(file.isEmpty() || emit openSH(file)){
+	if(file.isEmpty() || !(emit openSH(file))){
 		ui->statusbar->showMessage(QString("Failed to opened %1.").arg(file));
 		setTitel();
 
