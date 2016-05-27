@@ -83,7 +83,7 @@
    <property name="minimumSize">
     <size>
      <width>210</width>
-     <height>131</height>
+     <height>128</height>
     </size>
    </property>
    <property name="locale">
@@ -96,9 +96,12 @@
     <number>8</number>
    </attribute>
    <widget class="QWidget" name="dockWidgetContents">
-    <layout class="QVBoxLayout" name="verticalLayout_2">
+    <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1">
+     <property name="topMargin">
+      <number>2</number>
+     </property>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="15,0,0,1,0">
        <property name="spacing">
         <number>6</number>
        </property>
@@ -142,46 +145,124 @@
         </widget>
        </item>
        <item>
-        <widget class="QLabel" name="labelCurentFrame">
-         <property name="maximumSize">
-          <size>
-           <width>25</width>
-           <height>23</height>
-          </size>
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <property name="spacing">
+          <number>0</number>
          </property>
-         <property name="text">
-          <string>0</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="maximumSize">
-          <size>
-           <width>7</width>
-           <height>23</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>/</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="labelTotalFrames">
-         <property name="maximumSize">
-          <size>
-           <width>25</width>
-           <height>23</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>0</string>
-         </property>
-        </widget>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <property name="spacing">
+            <number>2</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="labelCurentKeyframe">
+             <property name="maximumSize">
+              <size>
+               <width>25</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>8</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="maximumSize">
+              <size>
+               <width>7</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>8</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>/</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelTotalKeyframes">
+             <property name="maximumSize">
+              <size>
+               <width>25</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>8</pointsize>
+              </font>
+             </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
+           <property name="spacing">
+            <number>2</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="labelCurentFrame">
+             <property name="maximumSize">
+              <size>
+               <width>25</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_3">
+             <property name="maximumSize">
+              <size>
+               <width>7</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>/</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelTotalFrames">
+             <property name="maximumSize">
+              <size>
+               <width>25</width>
+               <height>23</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
        </item>
        <item>
         <widget class="QPushButton" name="btnNext">
@@ -203,7 +284,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>60</height>
+         <height>40</height>
         </size>
        </property>
        <property name="resizeMode">

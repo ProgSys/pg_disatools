@@ -43,8 +43,11 @@ public slots:
 	void dump();
 	void exportSprites(const QString& filetype);
 
-	void setCurrentFrame(unsigned int currFrame);
-	void setTotalFrames(unsigned int totalFrames);
+	void setCurrentKeyframe(int currKeyframe);
+	void setTotalKeyframes(int totalKeyframes);
+
+	void setCurrentFrame(int currFrame);
+	void setTotalFrames(int totalFrames);
 
 signals:
 

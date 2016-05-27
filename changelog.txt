@@ -55,3 +55,9 @@
 	- Some clean up
   * Sprite Sheet Viewer v0.1.2 alpha:
 	- You now can properly view and export sprite sheets with 256 colors
+
+===  27.05.2016 - v0.4.7 ===
+  * Disa PC File Manager v0.4.7 alpha:
+	- Nothing really
+  * Sprite Sheet Viewer v0.1.4 alpha:
+	- Added a very fancy timeline

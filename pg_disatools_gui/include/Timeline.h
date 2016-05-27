@@ -111,7 +111,12 @@ signals:
     void trackerChanged();
 
     void render();
-    void renderKeyframe(int keyframe);
+
+    void currentKeyframe(int keyframe);
+    void totalKeyframes(int totalkeyframes);
+
+    void currentFrame(int frame);
+    void totalFrames(int totalframes);
 
     void onPause();
     void onPlay();

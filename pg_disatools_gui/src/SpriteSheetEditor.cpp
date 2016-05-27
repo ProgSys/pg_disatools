@@ -72,6 +72,12 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	ui->btnPausePlay->setIcon(QIcon("resources/materials/icons/pause.png"));
 	ui->btnNext->setIcon(QIcon("resources/materials/icons/next.png"));
 
+	//keyframes
+	connect(m_player->getTimeline(), SIGNAL(totalKeyframes( int )), this, SLOT(setTotalKeyframes( int)));
+	connect(m_player->getTimeline(), SIGNAL(currentKeyframe( int )), this, SLOT(setCurrentKeyframe( int )));
+	connect(m_player->getTimeline(), SIGNAL(totalFrames( int )), this, SLOT(setTotalFrames( int)));
+	connect(m_player->getTimeline(), SIGNAL(currentFrame( int )), this, SLOT(setCurrentFrame( int )));
+
 	//ui->openGLWidget->openSprite("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
 	//files
 	connect(ui->actionOpen_File, SIGNAL(triggered()), this, SLOT(open()));
@@ -195,11 +201,18 @@ void SpriteSheetEditor::exportSprites(const QString& filetype){
 	}
 }
 
-void SpriteSheetEditor::setCurrentFrame(unsigned int currFrame){
-	ui->labelCurentFrame->setText(QString::number(currFrame+1));
+void SpriteSheetEditor::setCurrentKeyframe(int currKeyframe){
+	ui->labelCurentKeyframe->setText(QString::number(currKeyframe+1));
+}
+void SpriteSheetEditor::setTotalKeyframes(int totalKeyframes){
+	ui->labelTotalKeyframes->setText(QString::number(totalKeyframes));
 }
 
-void SpriteSheetEditor::setTotalFrames(unsigned int totalFrames){
+void SpriteSheetEditor::setCurrentFrame(int currFrame){
+	ui->labelCurentFrame->setText(QString::number(currFrame));
+}
+
+void SpriteSheetEditor::setTotalFrames(int totalFrames){
 	ui->labelTotalFrames->setText(QString::number(totalFrames));
 }
 

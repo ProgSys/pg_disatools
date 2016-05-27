@@ -136,6 +136,7 @@ void Timeline::setTracker(int tracker)
     if(m_tracker != tracker){
         m_tracker = tracker;
         checkRender();
+        emit currentFrame(m_tracker);
         emit trackerChanged();
         pause();
     }
@@ -147,6 +148,11 @@ void Timeline::clear(){
 	m_totalTrackSize = 0;
 	m_time.stop();
 	m_currentKeyframe = 0;
+
+	emit currentFrame(0);
+	emit currentKeyframe(0);
+	emit totalFrames(0);
+	emit totalKeyframes(0);
 	emit trackerChanged();
 	emit keyframesChanged();
 	emit widthChanged();
@@ -156,6 +162,9 @@ void Timeline::addKeyframe(Keyframe* key){
 	if(!key) return;
 	m_keyframes.push_back(key);
 	m_totalTrackSize += key->getDuration();
+
+	emit totalFrames(m_totalTrackSize);
+	emit totalKeyframes(m_keyframes.size());
 	emit keyframesChanged();
 	emit widthChanged();
 }
@@ -167,6 +176,9 @@ void Timeline::addKeyframe(int duration){
 	}
 	m_keyframes.push_back(new Keyframe(duration, this));
 	m_totalTrackSize += duration;
+
+	emit totalFrames(m_totalTrackSize);
+	emit totalKeyframes(m_keyframes.size());
 	emit keyframesChanged();
 	emit widthChanged();
 }
@@ -184,6 +196,8 @@ void Timeline::nextFrame(){
 
 	int keyFrame = getTrackIndex();
 	checkRender();
+
+	emit currentFrame(m_tracker);
 	emit trackerChanged();
 
 }
@@ -194,6 +208,8 @@ void Timeline::previousFrame(){
 		m_tracker = m_totalTrackSize;
 	int keyFrame = getTrackIndex();
 	checkRender();
+
+	emit currentFrame(m_tracker);
 	emit trackerChanged();
 }
 void Timeline::nextKeyframe(){
@@ -255,14 +271,14 @@ void Timeline::checkRender(){
 	if(keyFrame != m_currentKeyframe){
 		m_currentKeyframe = keyFrame;
 		emit render();
-		emit renderKeyframe(m_currentKeyframe);
+		emit currentKeyframe(m_currentKeyframe);
 	}
 }
 void Timeline::checkRender(int keyframe){
 	if(keyframe != m_currentKeyframe){
 		m_currentKeyframe = keyframe;
 		emit render();
-		emit renderKeyframe(m_currentKeyframe);
+		emit currentKeyframe(m_currentKeyframe);
 	}
 }
 

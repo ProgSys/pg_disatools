@@ -96,8 +96,8 @@ GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,12
 void GLWidget::setUpConnections(QWidget *parent){
 	//connect(this, SIGNAL(animationAdded( const QString& )), parent, SLOT(addAnimation( const QString& )));
 
-	connect(this, SIGNAL(totalFrames( unsigned int )), parent, SLOT(setTotalFrames( unsigned int)));
-	connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
+	//connect(this, SIGNAL(totalFrames( unsigned int )), parent, SLOT(setTotalFrames( unsigned int)));
+	//connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
 }
 
 bool GLWidget::open(const PG::FILE::SpriteAnimation* spriteSheet){
