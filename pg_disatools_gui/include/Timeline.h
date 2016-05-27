@@ -23,7 +23,7 @@
 #include <QObject>
 #include <QTimer>
 
-#define ONEFRAME_ANIMATION_SPEED 1
+#define ONEFRAME_ANIMATION_SPEED 3
 
 class Keyframe : public QObject
 {
@@ -93,8 +93,8 @@ public slots:
 
 	void nextFrame();
 	void previousFrame();
-	void nextKeyFrame();
-	void previousKeyFrame();
+	void nextKeyframe();
+	void previousKeyframe();
 	void pause();
 	void play();
 	bool isPlaying() const;
@@ -112,6 +112,9 @@ signals:
 
     void render();
     void renderKeyframe(int keyframe);
+
+    void onPause();
+    void onPlay();
 
 private:
     void checkRender();

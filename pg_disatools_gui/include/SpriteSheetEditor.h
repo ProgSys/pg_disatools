@@ -47,7 +47,8 @@ public slots:
 	void setTotalFrames(unsigned int totalFrames);
 
 signals:
-	bool openSprite(const QString& filepath);
+
+	bool openSH( const QString& filepath );
 	bool dumpSprite(const QString& filepath);
 	int exportSprites(const QString& folder, const QString& filetype);
 
@@ -62,9 +63,10 @@ private:
 
 private slots:
 	void clickPlayPause();
+	void setImagePlay();
+	void setImagePause();
 	void pickBackgroundColor();
-};
 
-Q_DECLARE_METATYPE(PG::FILE::SpriteAnimation);
+};
 
 #endif /* INCLUDE_SPRITESHEETEDITOR_H_ */

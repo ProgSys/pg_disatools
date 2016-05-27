@@ -90,6 +90,7 @@ public slots:
 	///select animation
 	void setAnimation(int index);
 	void renderKeyframe(int index);
+	void renderKeyframe();
 
 	void displayExternalReferences(bool display);
 	void displayGround(bool display);
@@ -195,8 +196,7 @@ private:
     	const PG::FILE::SpriteAnimation* spriteSheet = nullptr;
 
     	unsigned int animationID = 0;
-    	unsigned int animationLenght = 0;
-    	unsigned int frame = 0;
+    	unsigned int keyframe = 0;
 
 		std::vector<PG::GL::Texture* > spriteIDTextures;
 		PG::GL::Texture* colorTable = nullptr;
@@ -253,15 +253,18 @@ private:
 		void setAnimation(unsigned int index){
 			if(index >= spriteSheet->getNumberOfAnimations()) animationID = spriteSheet->getNumberOfAnimations()-1;
 			else animationID = index;
-			frame = 0;
-			animationLenght = spriteSheet->getAnimation(animationID).getLenght();
+			keyframe = 0;
+		}
+
+		const PG::FILE::animation& getCurrentAnimation() const{
+			return spriteSheet->getAnimation(animationID);
 		}
 
 		const PG::FILE::keyframe& getCurrentKeyframe() const{
-			return spriteSheet->getAnimation(animationID).getKeyframeByFrame(frame);
+			return spriteSheet->getAnimation(animationID).keyframes[keyframe];
 		}
 		unsigned int getCurrentKeyframeID() const{
-			return spriteSheet->getAnimation(animationID).getKeyframeIDByFrame(frame);
+			return keyframe;
 		}
 
 		unsigned int getTotalKeyframes() const{
@@ -270,10 +273,6 @@ private:
 
 		unsigned int getNumberOfLayers() const{
 			return getCurrentKeyframe().layers.size();
-		}
-
-		unsigned int getAnimationLenght() const{
-			return animationLenght;
 		}
 
 		const PG::FILE::cutout& getCutout(unsigned short cut = 1){
@@ -354,61 +353,31 @@ private:
 			return !spriteIDTextures.empty() && colorTable && spriteSheet->getNumberOfAnimations();
 		}
 
+		void setKeyframe(int index){
+			keyframe = index;
+			if(keyframe > getCurrentAnimation().keyframes.size())
+				keyframe = 0;
+			if(keyframe < 0)
+				keyframe = getCurrentAnimation().keyframes.size()-1;
+		}
+
 		void operator++(){
-			frame++;
-			if(frame > animationLenght)
-				frame = 0;
+			keyframe++;
+			if(keyframe > getCurrentAnimation().keyframes.size())
+				keyframe = 0;
 		}
 
 		void operator++(int){
-			frame++;
-			if(frame > animationLenght)
-				frame = 0;
+			keyframe++;
+			if(keyframe > getCurrentAnimation().keyframes.size())
+				keyframe = 0;
 		}
 
 		void operator--(){
-			if(frame == 0)
-				frame = animationLenght;
+			if(keyframe == 0)
+				keyframe = getCurrentAnimation().keyframes.size()-1;
 			else
-				frame--;
-		}
-
-		unsigned int nextKeyframe(){
-			const PG::FILE::animation& ani =  spriteSheet->getAnimation(animationID);
-			unsigned int lenght = 0;
-			for(unsigned int i = 0; i < ani.keyframes.size()-1; i++){
-				lenght += ani.keyframes[i].durration;
-				if(frame < lenght){
-					frame = lenght;
-					return i+1;
-				}
-			}
-			frame = 0;
-			return 0;
-
-		}
-
-		unsigned int previousKeyframe(){
-			const PG::FILE::animation& ani =  spriteSheet->getAnimation(animationID);
-
-			if(frame <= ani.keyframes.front().durration){
-				frame = getAnimationLenght() - ani.keyframes.back().durration;
-				return ani.keyframes.size()-1;
-			}
-
-			unsigned int lenght = ani.keyframes.front().durration;
-			for(unsigned int i = 1; i < ani.keyframes.size(); i++){
-				const unsigned int durr = ani.keyframes[i].durration;
-				//PG_INFO_STREAM("i: "<<i<<" : "<<frame << " < "<< (lenght + durr) );
-				if(frame <= lenght + durr){
-					frame = lenght;
-					return i-1;
-				}
-				lenght += durr;
-			}
-
-			frame = getAnimationLenght() - ani.keyframes.back().durration;
-			return ani.keyframes.size()-1;
+				keyframe--;
 		}
 
 		void clear(){
@@ -418,7 +387,7 @@ private:
 			if(colorTable) delete colorTable;
 			colorTable = nullptr;
 			animationID = 0;
-			frame = 0;
+			keyframe = 0;
 			//m_spriteSheet->clear();
 		}
 

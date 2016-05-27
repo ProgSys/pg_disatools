@@ -24,9 +24,10 @@ SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
 
 void SpritePlayer::connectGLWidget(GLWidget *gl){
 	m_glView = gl;
-	connect(this, SIGNAL( onCurrentAnimationChanged(int index) ),gl, SLOT( setAnimation(int index) ));
-	connect(m_timeline, SIGNAL( renderKeyframe(int keyframe) ),gl, SLOT( renderKeyframe(int keyframe) ));
-
+	connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
+	connect(m_timeline, SIGNAL( renderKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
+	connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
+	connect(this, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
 }
 
 Timeline* SpritePlayer::getTimeline() const{
@@ -39,17 +40,27 @@ bool SpritePlayer::openSH(const QString& file){
 	if(file.isEmpty())
 		return false;
 
-	if(!m_spriteSheet->importSH(file.toStdString())){
+	qDebug()<<" Player opening: "<<file;
+	if(m_spriteSheet->importSH(file.toStdString())){
 		close();
 		return false;
 	}
+	qDebug()<<" Player opening success: "<<file;
 
 	if(m_glView)
 		m_glView->open(m_spriteSheet);
-
+	emit render();
 
 	for(const PG::FILE::keyframe& key: m_spriteSheet->getAnimation(m_currentAnimation).keyframes)
 		m_timeline->addKeyframe(key.durration);
+
+	//add animation to dropDown
+	unsigned int i = 0;
+	for(const PG::FILE::animation& ani: m_spriteSheet->getAnimations()){
+		const QString str(QString::number(i)+ ": Size: "+QString::number(ani.keyframes.size())+", ID: "+QString::number(ani.ID)+", name: "+QString::fromStdString(ani.name));
+		emit animationAdded(str);
+		i++;
+	}
 
 	return true;
 
@@ -66,13 +77,25 @@ bool SpritePlayer::isOpen() const{
 }
 
 void SpritePlayer::setAnimation(int index){
+	//qDebug()<<" Selected Animation: "<<index<<" last: "<<m_currentAnimation;
 	if(m_currentAnimation == index) return;
 	m_currentAnimation = index;
 	if(m_currentAnimation < 0)
 		m_currentAnimation = 0;
 	if(m_currentAnimation >= m_spriteSheet->getNumberOfAnimations())
 		m_currentAnimation = m_spriteSheet->getNumberOfAnimations()-1;
-	onCurrentAnimationChanged(m_currentAnimation);
+
+	m_timeline->clear();
+	for(const PG::FILE::keyframe& key: m_spriteSheet->getAnimation(m_currentAnimation).keyframes)
+		m_timeline->addKeyframe(key.durration);
+
+	emit onCurrentAnimationChanged(m_currentAnimation);
+	emit render();
+	m_timeline->setTracker(0);
+	if(m_timeline->isPlaying())
+		m_timeline->play();
+	else
+		m_timeline->pause();
 }
 
 SpritePlayer::~SpritePlayer() {

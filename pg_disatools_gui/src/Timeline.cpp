@@ -91,12 +91,6 @@ float Timeline::getTimeScale() const
 int Timeline::getWidth() const
 {
 	return m_totalTrackSize;
-	/*
-    int width = 0;
-    for(const QObject* const obj: m_keyframes)
-        width += static_cast<const Keyframe* const>(obj)->getDuration();
-    return width;
-    */
 }
 
 int Timeline::getSize() const
@@ -138,11 +132,12 @@ int Timeline::getTrackIndex() const{
 void Timeline::setTracker(int tracker)
 {
     if(tracker < 0) tracker = 0;
-    qDebug()<<"tracker: "<<QString::number(tracker);
+    //qDebug()<<"tracker: "<<QString::number(tracker);
     if(m_tracker != tracker){
         m_tracker = tracker;
         checkRender();
         emit trackerChanged();
+        pause();
     }
 }
 
@@ -154,6 +149,7 @@ void Timeline::clear(){
 	m_currentKeyframe = 0;
 	emit trackerChanged();
 	emit keyframesChanged();
+	emit widthChanged();
 }
 
 void Timeline::addKeyframe(Keyframe* key){
@@ -161,6 +157,7 @@ void Timeline::addKeyframe(Keyframe* key){
 	m_keyframes.push_back(key);
 	m_totalTrackSize += key->getDuration();
 	emit keyframesChanged();
+	emit widthChanged();
 }
 
 void Timeline::addKeyframe(int duration){
@@ -171,6 +168,7 @@ void Timeline::addKeyframe(int duration){
 	m_keyframes.push_back(new Keyframe(duration, this));
 	m_totalTrackSize += duration;
 	emit keyframesChanged();
+	emit widthChanged();
 }
 
 void Timeline::loop(){
@@ -196,7 +194,7 @@ void Timeline::previousFrame(){
 	checkRender();
 	emit trackerChanged();
 }
-void Timeline::nextKeyFrame(){
+void Timeline::nextKeyframe(){
 	int i = getTrackIndex();
 	if(i < 0){
 		m_tracker = 0;
@@ -209,7 +207,7 @@ void Timeline::nextKeyFrame(){
 	checkRender(i);
 	emit trackerChanged();
 }
-void Timeline::previousKeyFrame(){
+void Timeline::previousKeyframe(){
 	int i = getTrackIndex();
 	if(i < 0){
 		m_tracker = (m_keyframes.empty())? 0 : getOffset(m_keyframes.size()-1);
@@ -223,10 +221,12 @@ void Timeline::previousKeyFrame(){
 void Timeline::pause(){
 	m_playing = false;
 	m_time.stop();
+	emit onPause();
 }
 void Timeline::play(){
 	m_playing = true;
 	m_time.start(ONEFRAME_ANIMATION_SPEED);
+	emit onPlay();
 }
 
 bool Timeline::isPlaying() const{

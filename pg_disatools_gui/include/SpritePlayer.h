@@ -43,6 +43,8 @@ public slots:
 
 signals:
 	void onCurrentAnimationChanged(int setAnimation);
+	void animationAdded(const QString& name);
+	void render();
 private:
 	PG::FILE::SpriteAnimation* m_spriteSheet = nullptr;
 	Timeline* m_timeline = nullptr;

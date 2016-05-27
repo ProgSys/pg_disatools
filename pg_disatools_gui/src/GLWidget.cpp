@@ -94,7 +94,7 @@ GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,12
 }
 
 void GLWidget::setUpConnections(QWidget *parent){
-	connect(this, SIGNAL(animationAdded( const QString& )), parent, SLOT(addAnimation( const QString& )));
+	//connect(this, SIGNAL(animationAdded( const QString& )), parent, SLOT(addAnimation( const QString& )));
 
 	connect(this, SIGNAL(totalFrames( unsigned int )), parent, SLOT(setTotalFrames( unsigned int)));
 	connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
@@ -212,6 +212,7 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 }
 
 void GLWidget::setAnimation(int index){
+	//qDebug()<<" Animation "<<index<<" selected.";
 	if(!m_spriteSheet) return;
 	if(m_animationInfo && index >= 0 && index < m_spriteSheet->getNumberOfAnimations()){
 		m_animationInfo.setAnimation(index);
@@ -219,16 +220,20 @@ void GLWidget::setAnimation(int index){
 		emit currentFrame(m_currentKeyframe);
 		emit totalFrames(m_animationInfo.getTotalKeyframes());
 
-
 		update();
 	}
+}
+
+void GLWidget::renderKeyframe(){
+	update();
 }
 
 void GLWidget::renderKeyframe(int index){
 	if(m_currentKeyframe != index){
 		m_currentKeyframe = index;
-		update();
+		m_animationInfo.setKeyframe(index);
 		emit currentFrame(m_currentKeyframe);
+		update();
 	}
 }
 
@@ -328,7 +333,6 @@ void GLWidget::paintGL(){
     	modelMatrix = PG::UTIL::mat4();
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
-
     	for(unsigned int i = 0; i < m_animationInfo.getNumberOfLayers(); ++i){
     		if(!m_displayExternalReferences) continue;
     		m_animationInfo.setCurrentModelMat(modelMatrix, i);
