@@ -223,19 +223,6 @@ private:
 			return true;
 		}
 
-		/*
-		bool importSH(const QString& path){
-			clear();
-
-			if(path.isEmpty() || m_spriteSheet->importSH(path.toStdString()))
-				return false;
-
-			setTextures();
-
-			return true;
-		}
-		*/
-
 		void setTextures(){
 			spriteIDTextures.reserve(spriteSheet->getNumberOfSheets());
 			PG_INFO_STREAM("Number of sheets: "<<spriteSheet->getNumberOfSheets());

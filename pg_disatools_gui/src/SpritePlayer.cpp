@@ -40,12 +40,10 @@ bool SpritePlayer::openSH(const QString& file){
 	if(file.isEmpty())
 		return false;
 
-	qDebug()<<" Player opening: "<<file;
 	if(m_spriteSheet->importSH(file.toStdString())){
 		close();
 		return false;
 	}
-	qDebug()<<" Player opening success: "<<file;
 
 	if(m_glView)
 		m_glView->open(m_spriteSheet);
