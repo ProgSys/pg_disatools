@@ -25,6 +25,7 @@
 #define INCLUDE_PG_UTIL_PG_VECTOR_H_
 
 #include <ostream>
+#include <vector>
 #include <pg/util/PG_Exception.h>
 
 namespace PG {
@@ -54,6 +55,7 @@ struct tVector2{
 	tVector2(const tVector2<T>& tvec);
 	tVector2(const tVector3<T>& tvec);
 	tVector2(const tVector4<T>& tvec);
+	tVector2(const std::vector<T>& tvec);
 
 	unsigned int length() const;
 	T& operator[](unsigned int index);
@@ -106,6 +108,7 @@ struct tVector3{
 	tVector3(const tVector2<T>& tvec);
 	tVector3(const tVector3<T>& tvec);
 	tVector3(const tVector4<T>& tvec);
+	tVector3(const std::vector<T>& tvec);
 
 	unsigned int length() const;
 	T& operator[](unsigned int index);
@@ -219,6 +222,19 @@ tVector2<T>::tVector2(const tVector3<T>& tvec): x(tvec.x),y(tvec.y){};
 template<typename T>
 tVector2<T>::tVector2(const tVector4<T>& tvec): x(tvec.x),y(tvec.y) {};
 
+template<typename T>
+tVector2<T>::tVector2(const std::vector<T>& tvec){
+	if(tvec.size() >= 2){
+		x = tvec[0];
+		y = tvec[1];
+	}else if(tvec.size() == 1){
+		x = tvec[0];
+		y = 0;
+	}else{
+		x = 0;
+		y = 0;
+	}
+}
 
 template<typename T>
 unsigned int tVector2<T>::length() const{
@@ -319,6 +335,27 @@ tVector3<T>::tVector3(const tVector3<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z){}
 
 template<typename T>
 tVector3<T>::tVector3(const tVector4<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z) {};
+
+template<typename T>
+tVector3<T>::tVector3(const std::vector<T>& tvec){
+	if(tvec.size() >= 3){
+		x = tvec[0];
+		y = tvec[1];
+		z = tvec[2];
+	}else if(tvec.size() == 2){
+		x = tvec[0];
+		y = tvec[1];
+		z = 0;
+	}else if(tvec.size() == 1){
+		x = tvec[0];
+		y = 0;
+		z = 0;
+	}else{
+		x = 0;
+		y = 0;
+		z = 0;
+	}
+}
 
 template<typename T>
 unsigned int tVector3<T>::length() const{

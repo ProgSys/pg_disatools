@@ -47,337 +47,270 @@
 
 #define OUTSTR(x) std::cout << x << std::endl
 
-/*
-struct testStr{
-	testStr(const std::string& str): name(str){}
-	std::string name;
+
+struct face{
+	PG::UTIL::ivec3 A;
+	PG::UTIL::ivec3 B;
+	PG::UTIL::ivec3 C;
 };
 
-void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL::rgba& c1){
-	//found my math and try and error
-	int cy = std::floor((3*int(target.r))/16.0) * 8;
-	if(cy > 248) cy = 248;
-	int cx = 0;
-	int cxpart;
-	if( (cxpart = int(target.r)*3 - cy*2) > 0){
-		cx = std::round(cxpart/8.0) * 8;
-		if((int(target.r)-1) % 8 == 0) cx +=8;
+struct objectGroup{
+	std::string name; //g
+	std::string matname; //g
+	std::vector<PG::UTIL::vec3> verteces; //v
+	std::vector<PG::UTIL::vec3> normals; //vn
+	std::vector<PG::UTIL::vec2> uvw; //vt
+
+	std::vector<face> faces;
+};
+
+struct obj{
+	std::string mtllib;
+
+	std::vector<objectGroup> groups;
+};
+
+
+unsigned int skipBlank(const std::string& str, unsigned int start){
+	while(start < str.size()){
+		const char c = str[start];
+		if(c  != ' ' && c != '\t') break;
+		start++;
 	}
-	if(cx > 248) cx = 248;
+	return start;
+}
 
-	c0.r = cx;
-	c1.r = cy;
-
-
-	cy = std::floor((3*int(target.g))/8.0) * 4;
-	if(cy > 252) cy = 252;
-	cx = 0;
-	if( (cxpart = int(target.g)*3 - cy*2) > 0){
-		cx = std::round(cxpart/4.0) * 4;
-		if((target.g+1) % 8 == 0){ cx -=4; cy +=4;}
-		else if((target.g+1) % 4 == 0) cx +=4;
+unsigned int readUntilBlank(const std::string& str, unsigned int start, std::string& strOut){
+	start = skipBlank(str,start);
+	strOut.clear();
+	while(start < str.size()){
+		const char c = str[start];
+		if(c  == ' ' || c == '\t') break;
+		strOut.push_back(c);
+		start++;
 	}
-	if(cx > 252) cx = 252;
+	return start;
+}
 
-	c0.g = cx;
-	c1.g = cy;
-
-
-	cy = std::floor((3*int(target.b))/16.0) * 8;
-	if(cy > 248) cy = 248;
-	cx = 0;
-	if( (cxpart = int(target.b)*3 - cy*2) > 0){
-		cx = std::round(cxpart/8.0) * 8;
-		if((int(target.b)-1) % 8 == 0) cx +=8;
+unsigned int readUntilSlash(const std::string& str, unsigned int start, std::string& strOut){
+	start = skipBlank(str,start);
+	strOut.clear();
+	while(start < str.size()){
+		const char c = str[start];
+		if(c == '/' || c  == ' ' || c == '\t') break;
+		strOut.push_back(c);
+		start++;
 	}
-	if(cx > 248) cx = 248;
-
-	c0.b = cx;
-	c1.b = cy;
+	return start;
 }
 
-typedef struct
-{
-	unsigned short number_of_something0;//?
-	unsigned short number_of_animations;
-	unsigned short number_of_colortablesSets; //data between animations and sheets
-	unsigned short number_of_sheets;
+unsigned int readInt(const std::string& str, std::vector<int>& fOut, unsigned int start = 0){
+	start = skipBlank(str,start);
+	fOut.clear();
 
-	unsigned short unknown4;
-	unsigned short number_of_keyframes;
-	unsigned short unknown6;
-	unsigned short unknown7;
 
-} __attribute__((packed, aligned(1))) spriteSheetHeader;
+	while(start < str.size()){
+		std::string num;
+		start = readUntilSlash(str,start, num);
+		start++;
+		start = skipBlank(str,start);
+		fOut.push_back(atoi(num.c_str()));
+	}
 
-std::ostream& operator<<(std::ostream& o,const spriteSheetHeader& i){
-	o <<"("<<i.number_of_something0<<", "<<i.number_of_animations<<", "<<i.number_of_colortablesSets<<", "<<i.number_of_sheets<<", ";
-	o      <<i.unknown4<<", "<<i.number_of_keyframes<<", "<<i.unknown6<<", "<<i.unknown7<<") ";
-	return o;
+	return start;
 }
 
-typedef struct
-{
-	unsigned short unknown0;
-	unsigned short unknown1;
-} __attribute__((packed, aligned(1))) part0;
+unsigned int readFloat(const std::string& str, std::vector<float>& fOut, unsigned int start = 0){
+	start = skipBlank(str,start);
+	fOut.clear();
 
-std::ostream& operator<<(std::ostream& o,const part0& i){
-	o <<"("<<i.unknown0<<", "<<i.unknown1<<", ["<<  (  (int)(int(i.unknown1)<<16 | i.unknown0))<<"] )";
-	return o;
+
+	while(start < str.size()){
+		std::string num;
+		start = readUntilSlash(str,start, num);
+		start++;
+		start = skipBlank(str,start);
+		fOut.push_back(atof(num.c_str()));
+	}
+
+	return start;
 }
 
-typedef struct
-{
-	unsigned short unknown0;
-	unsigned short unknown1;
-} __attribute__((packed, aligned(1))) part1;
-
-std::ostream& operator<<(std::ostream& o,const part1& i){
-	o <<"("<<i.unknown0<<", "<<i.unknown1<<", ["<<  (  (int)(int(i.unknown1)<<16 | i.unknown0)) <<"] )";
-	return o;
+PG::UTIL::vec3 readVec3(const std::string& str, unsigned int start = 0){
+	std::vector<float> fOut;
+	readFloat(str,fOut,start);
+	return PG::UTIL::vec3(fOut);
 }
 
-typedef struct
-{
-	unsigned short start_keyframe;
-	unsigned short number_of_frames;
-}__attribute__((packed, aligned(1))) animation;
-
-std::ostream& operator<<(std::ostream& o,const animation& i){
-	o <<"("<<std::setw(4)<<i.start_keyframe<<", "<<std::setw(4)<<i.number_of_frames<<")";
-	return o;
+PG::UTIL::vec2 readVec2(const std::string& str, unsigned int start = 0){
+	std::vector<float> fOut;
+	readFloat(str,fOut,start);
+	return PG::UTIL::vec2(fOut);
 }
 
-typedef struct
-{
-	unsigned int offset;
-	unsigned short width;
-	unsigned short height;
-
-	unsigned short unknown0;
-	unsigned short unknown1;
-
-}__attribute__((packed, aligned(1))) spriteSheet;
-
-std::ostream& operator<<(std::ostream& o,const spriteSheet& i){
-	o <<"("<<std::setw(6)<<i.offset<<", "<<std::setw(4)<<i.width<<", "<<std::setw(4)<<i.height<<", "<<std::setw(4)<<i.unknown0<<", "<<std::setw(4)<<i.unknown1<<")";
-	return o;
+PG::UTIL::ivec3 readiVec3(const std::string& str, unsigned int start = 0){
+	std::vector<int> iOut;
+	readInt(str,iOut,start);
+	return PG::UTIL::ivec3(iOut);
 }
 
-typedef struct
-{
-	unsigned short external_sheet; // get a sheet from different file by it's ID
-	unsigned char sheet; // there is not one big sprite sheet but multiple smaller one
-	unsigned char colortable; // the 16 rgba colortable which the sheet should use
-	short offsetx;
-	short offsety;
+face readFace(const std::string& str, unsigned int start = 0){
 
-	//sprite info
-	unsigned short x;
-	unsigned short y;
-	unsigned short width;
-	unsigned short height;
-	unsigned short scalex; // 0-100
-	unsigned short scaley; // 0-100
+	std::vector<int> iOut;
+	readInt(str,iOut,start);
 
-	// only rotationx and rotationz seam to have a effect on 2D sprites
-	short rotationx; //not confirmed
-	short rotationy; //not confirmed
-	short rotationz; //not confirmed
+	face f;
+	if(iOut.size() == 9){
+		f.A = PG::UTIL::ivec3(iOut[0],iOut[1],iOut[2]);
+		f.B = PG::UTIL::ivec3(iOut[3],iOut[4],iOut[5]);
+		f.C = PG::UTIL::ivec3(iOut[6],iOut[7],iOut[8]);
+	}else{
+		OUTSTR("Error: Face size too small : "<<iOut.size());
 
-	unsigned short mirror; //not confirmed
-
-} __attribute__((packed, aligned(1))) keyframe;
-
-std::ostream& operator<<(std::ostream& o,const keyframe& i){
-	o <<"("<<std::setw(4)<<i.external_sheet<<", "<<std::setw(4)<<(int)i.sheet<<", "<<std::setw(4)<<(int)i.colortable<<", "<<std::setw(4)<<i.offsetx
-			<<", "<<std::setw(4)<<i.offsety<<", "<<std::setw(4)<<i.x<<", "<<std::setw(4)<<i.y<<", "<<std::setw(4)<<i.width<<", "<<std::setw(4)<<i.height<<", "<<std::setw(4)<<i.scalex
-			<<", "<<std::setw(4)<<i.scaley<<", "<<std::setw(4)<<i.rotationx<<", "<<std::setw(4)<<i.rotationy<<", "<<std::setw(4)<<i.rotationz<<", "<<std::setw(4)<<i.mirror<<")";
-	return o;
+	}
+	return f;
 }
 
-*/
-template <typename T>
-inline void printVectorT(const std::vector<T>& arr, std::ofstream& myfile){
-	unsigned int count = 0;
-	for(const T& i: arr){
-		myfile<<i<<", ";
-		count++;
-		if(count == 4){
-			myfile<<"\n";
-			count = 0;
+inline bool readGroup(std::ifstream& objfile, objectGroup& group,std::string& line){
+	while ( getline (objfile,line) ){
+		const unsigned int pos = objfile.tellg();
+		unsigned int currentPos = 0;
+		std::string currentString;
+		currentPos = readUntilBlank(line,currentPos, currentString );
+		if(currentString == "v"){
+			group.verteces.push_back(readVec3(line,currentPos));
+		}else if(currentString == "vt"){
+			group.uvw.push_back(readVec2(line,currentPos));
+		}else if(currentString == "vn"){
+			group.normals.push_back(readVec3(line,currentPos));
+		}else if(currentString == "f"){
+			group.faces.push_back(readFace(line,currentPos));
+		}else if(currentString == "usemtl"){
+			currentPos = readUntilBlank(line,currentPos, currentString );
+			group.matname = currentString;
+		}else if(currentString == "g"){
+			return true;
 		}
+
 	}
+	return false;
 }
 
-
-void useStuff(){
-	PG::FILE::SpriteSheet sheet;
-	sheet.open("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/SH/SPRITE_SHEET9901.SH");
-	OUTSTR(sheet.getOpenedFile()<<sheet.getSpriteSheets().size()<<sheet.getColorTables().size());
-	OUTSTR(sheet);
-}
-
-/*!
- * @brief Testing main method, just for testing.
- */
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
 
 
-	PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/colortables/4000_SPRITE_SHEET.SH");
-	//PG::STREAM::InByteFile reader("C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/colortables/SPRITE_SHEET2913.SH");
-	const unsigned int file_size = reader.size();
+	obj objectFile;
 
-	PG::FILE::spriteSheetHeader header;
-	reader.read((char*)&header,sizeof(PG::FILE::spriteSheetHeader) );
-	OUTSTR(header);
-
-	std::vector<unsigned int> addresses(4); // ? - animations+sheets - colortables - imagedata
-	reader.read((char*)&addresses[0],addresses.size()*sizeof(int) );
-
-	std::vector<PG::FILE::animationData> animations(header.number_of_animations);
-	std::vector<PG::FILE::bundelData> layers(header.number_of_bundels);
-	std::vector<unsigned int> numberOfColortables(header.number_of_colortablesSets);
-	std::vector<PG::FILE::spriteSheet> sheetsInfos(header.number_of_sheets);
-
-	std::vector<PG::FILE::keyframeData> keyframesData(header.number_of_keyframes);
-	std::vector<PG::FILE::cutout> cutouts(header.number_of_cutouts);
-
-	reader.read((char*)&animations[0],animations.size()*sizeof(PG::FILE::animationData) );
-	reader.read((char*)&layers[0],layers.size()*sizeof(PG::FILE::bundelData) );
-	reader.read((char*)&numberOfColortables[0],numberOfColortables.size()*sizeof(unsigned int) );
-	reader.read((char*)&sheetsInfos[0],sheetsInfos.size()*sizeof(PG::FILE::spriteSheet) );
-	reader.seek(addresses[0]);
-	reader.read((char*)&keyframesData[0],keyframesData.size()*sizeof(PG::FILE::keyframeData) );
-	reader.seek(addresses[1]);
-	reader.read((char*)&cutouts[0],cutouts.size()*sizeof(PG::FILE::cutout) );
-
-
-	std::ofstream myfile;
-	myfile.open ("C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/colortables/color_parse.txt");
-	//myfile.open ("C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/colortables/plei_parse.txt");
-	if(!myfile.is_open()){
-		OUTSTR("Failed to open");
-		return 1;
-	}
-	myfile<<"header\n";
-	myfile<<header<<"\n";
-	OUTSTR("addresses: "<<addresses.size());
-	myfile<<"\n\n addresses: "<< addresses.size()<<"\n";
-	printVectorT(addresses, myfile);
-
-	OUTSTR("animations: "<<animations.size());
-	myfile<<"\n\n animations: "<< animations.size()<<"\n";
-	printVectorT(animations, myfile);
-
-	OUTSTR("layers: "<<layers.size());
-	myfile<<"\n\n layers: "<< layers.size()<<"\n";
-	printVectorT(layers, myfile);
-
-	OUTSTR("numberOfColortables: "<<numberOfColortables.size());
-	myfile<<"\n\n numberOfColortables: "<< numberOfColortables.size()<<"\n";
-	printVectorT(numberOfColortables, myfile);
-
-	OUTSTR("sheetsInfos: "<<sheetsInfos.size());
-	myfile<<"\n\n sheetsInfos: "<< sheetsInfos.size()<<"\n";
-	printVectorT(sheetsInfos, myfile);
-
-	OUTSTR("keyframesData: "<<keyframesData.size());
-	myfile<<"\n\n keyframesData: "<< keyframesData.size()<<"\n";
-	printVectorT(keyframesData, myfile);
-
-	OUTSTR("cutouts: "<<cutouts.size());
-	myfile<<"\n\n keyframesData: "<< cutouts.size()<<"\n";
-	printVectorT(cutouts, myfile);
-
-	myfile.close();
-
-	//return 0;
-
-	//read images
-	std::vector< std::vector<PG::UTIL::rgba> > colortables;
-	std::vector< PG::UTIL::IDImage > spriteSheets;
-
-	OUTSTR("numberOfColortables: "<<numberOfColortables[0]);
-	reader.seek(addresses[3]);
-	PG::UTIL::IDImage img(256,256);
-	reader.read( (char*) &img[0], img.size());
-	PG::FILE::saveTGA("C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/colortables/test.tga",img);
-
-	/*
-	//read colortables
-	reader.seek(addresses[2]);
-	for(unsigned int i = 0; i < numberOfColortables[0]; ++i){
-		std::vector<PG::UTIL::rgba> colortable(16);
-		reader.read((char*)&colortable[0],colortable.size()*sizeof(PG::UTIL::rgba) );
-
-		//flip Red and Blue
-		for(PG::UTIL::rgba& color: colortable){
-			const char r = color.r;
-			color.r = color.b;
-			color.b = r;
+	std::string line;
+	//std::ifstream objfile ("D:/Users/ProgSys/Modding/Modelle/film/Campus/Campus2.1_2.obj");
+	std::ifstream objfile ("D:/Users/ProgSys/Modding/Modelle/film/Campus/Campus2.1_campus.obj");
+	//std::ifstream objfile ("D:/Users/ProgSys/Modding/Modelle/film/Campus/objTest.obj");
+	if (objfile.is_open()){
+		while ( getline (objfile,line) ){
+			//cout << line << '\n';
+			unsigned int currentPos = 0;
+			std::string currentString;
+			currentPos = readUntilBlank(line,currentPos, currentString );
+			//OUTSTR("Type: '"<<currentString<<"'");
+			if(currentString == "mtllib"){
+				currentPos = readUntilBlank(line,currentPos, currentString );
+				objectFile.mtllib = currentString;
+			}else if(currentString == "g"){
+				bool readGroups = true;
+				while(readGroups){
+					currentPos = readUntilBlank(line,2, currentString );
+					objectGroup group;
+					group.name = currentString;
+					OUTSTR("Group: "<<currentString);
+					readGroups = readGroup(objfile,group, line);
+					objectFile.groups.push_back(group);
+				}
+			}
 		}
-
-
-		//PG::UTIL::RGBAImage table(colortable,16,1);
-		//std::stringstream o;
-		//o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/colortable"<<i<<".tga";
-		//PG::FILE::saveTGA(o.str(),table);
-
-
-		colortables.push_back(colortable);
+		objfile.close();
 	}
 
-	//read sheet color IDs
-	for(const PG::FILE::spriteSheet& sheet: sheetsInfos){
-		PG::UTIL::IDImage sheetIDs(sheet.width,sheet.height);
-		reader.seek(sheet.offset);
-		for(unsigned int i = 0; i < sheetIDs.size(); i+=2){
-			const char c = reader.readChar();
-			sheetIDs[i] =  c & 0x0F;
-			sheetIDs[i+1] = (c >> 4) & 0x0F ;
-		}
-		spriteSheets.push_back(sheetIDs);
-	}
 
-	//convertToRGBA
-	std::vector< PG::UTIL::RGBAImage > images;
-	for(const PG::UTIL::IDImage& sheetIDs: spriteSheets){
-		images.push_back(PG::UTIL::RGBAImage(sheetIDs.getWidth(), sheetIDs.getHeight()));
-	}
+	ofstream objwrite;
+	objwrite.open ("D:/Users/ProgSys/Modding/Modelle/film/Campus/Campus2.1_campus_PG.obj");
 
-	for(const PG::FILE::cutout& key: cutouts){
-		if(key.external_sheet != 0 || key.sheet >= spriteSheets.size()) continue;
-		const PG::UTIL::uvec2 dim(key.width,key.height);
-		const PG::UTIL::uvec2 start(key.x,key.y);
-		const PG::UTIL::IDImage& sheetIDs = spriteSheets[key.sheet];
-		if(start.x+dim.x > sheetIDs.getWidth() || start.y+dim.y > sheetIDs.getHeight())
+	objwrite << "# PG Convert\n";
+	objwrite <<"mtllib "<< objectFile.mtllib<< "\n";
+	OUTSTR("Groups to export: "<<objectFile.groups.size());
+	unsigned int sumverteces = 0;
+	unsigned int sumuvw = 0;
+	unsigned int sumnormals = 0;
+	for(const objectGroup& group: objectFile.groups){
+		//test
+		/*
+		if(group.verteces.size() != group.normals.size()){
+			OUTSTR("Group: "<<group.name<<" Number of verteces and normals is not the same!");
 			continue;
-		const std::vector<PG::UTIL::rgba>& colortabel = colortables[key.colortable];
-		PG::UTIL::RGBAImage& imageOut = images[key.sheet];
+		}
+		else if(group.verteces.size() != group.uvw.size()){
+			OUTSTR("Group: "<<group.name<<" Number of verteces and uvw's is not the same!");
+			continue;
+		}
+		*/
 
-		PG::UTIL::IDImage sheetIDsWindow;
-		sheetIDs.getWindow(start, dim, sheetIDsWindow);
+		sumverteces += group.verteces.size();
+		sumuvw += group.uvw.size();
+		sumnormals += group.normals.size();
+		bool test = false;
 
-		PG::UTIL::RGBAImage rgbaWindow(sheetIDsWindow.getWidth(), sheetIDsWindow.getHeight());
-		for(unsigned int i = 0; i < sheetIDsWindow.size(); ++i){
-			rgbaWindow[i] = colortabel[sheetIDsWindow[i]];
+		for(const face& f: group.faces){
+			//v vt vn
+
+			if(f.A.x > sumverteces || f.B.x > sumverteces || f.C.x > sumverteces){
+				OUTSTR("Group: "<<group.name<<" Too many verteces! MAX: "<<group.verteces.size()<<" ("<<f.A.x<<", "<<f.B.x<<", "<<f.C.x<<")");
+				test = true;
+				break;
+			}
+			if(f.A.y > sumuvw || f.B.y > sumuvw || f.C.y > sumuvw){
+				OUTSTR("Group: "<<group.name<<" Too many uvw!");
+				test = true;
+				break;
+			}
+			if(f.A.z > sumnormals || f.B.z > sumnormals || f.C.z > sumnormals){
+				OUTSTR("Group: "<<group.name<<" Too many normals!");
+				test = true;
+				break;
+			}
+		}
+		if(test){
+			OUTSTR("Group: "<<group.name<<" The face is build wrong!");
+			continue;
 		}
 
-		imageOut.setWindow(start, rgbaWindow);
+		//write
+		objwrite <<"g "<< group.name<< "\n";
+
+		for(const PG::UTIL::vec3& v: group.verteces){
+			objwrite <<"v "<< v.x<<" "<< v.y<<" "<< v.z<< "\n";
+		}
+		for(const PG::UTIL::vec3& vn: group.normals){
+			objwrite <<"vn "<< vn.x<<" "<< vn.y<<" "<< vn.z<< "\n";
+		}
+
+		for(const PG::UTIL::vec2& vt: group.uvw){
+			objwrite <<"vt "<< vt.x<<" "<< vt.y<< "\n";
+		}
+		if(!group.matname.empty())
+			objwrite <<"usemtl "<< group.matname<< "\n";
+
+
+		for(const face& f: group.faces){
+			objwrite <<"f "
+					<< f.A.x<<"/"<<f.A.y<<"/"<<f.A.z<<" "
+					<< f.B.x<<"/"<<f.B.y<<"/"<<f.B.z<<" "
+					<< f.C.x<<"/"<<f.C.y<<"/"<<f.C.z<<" "
+					<< "\n";
+		}
 	}
 
-	unsigned int imgCount = 0;
-	for(const PG::UTIL::RGBAImage& image: images){
-		std::stringstream o;
-		o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/colortables/color_"<<imgCount<<".tga";
-		//o<< "C:/Users/ProgSys/Desktop/Disgaea/PC/Sprites/colortables/plei_"<<imgCount<<".tga";
-		PG::FILE::saveTGA(o.str(),image);
-		imgCount++;
-	}
-	*/
+	objwrite.close();
 
-	return 0;
+
+	OUTSTR("END");
 }

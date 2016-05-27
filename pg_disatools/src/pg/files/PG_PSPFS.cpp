@@ -252,7 +252,7 @@ bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	// do we even have a DAT file open
 	if(m_file.isEmpty()){
 		PG_ERROR_STREAM("No PSPFS file opened.");
-		return true;
+		return FAILURE;
 	}
 
 	//do we overwrtie the original or do we save as?
@@ -271,6 +271,10 @@ bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	char* c = nullptr;
 	try{
 		PG::STREAM::OutByteFile writer(target);
+		if(!writer.isOpen()){
+			PG_ERROR_STREAM("Failed to open/create '"<<target<<"'!");
+			return FAILURE;
+		}
 		//setup header
 		writer.writeString("PSPFS_V1"); //write magic number
 
@@ -391,11 +395,11 @@ bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 	}catch (PG::UTIL::Exception& e) {
 		 PG_ERROR_STREAM("Couldn't save PSPFS archive! : "<<e.what());
 		 target.remove();
-		 return true;
+		 return FAILURE;
 	}catch (...) {
 		 PG_ERROR_STREAM("Couldn't save PSPFS archive!");
 		 target.remove();
-		 return true;
+		 return FAILURE;
 	}
 
 	 if(overwrite){
@@ -405,7 +409,7 @@ bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 		 m_changed = false;
 	 }
 
-	return false;
+	return SUCCESS;
 
 }
 

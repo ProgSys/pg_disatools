@@ -88,7 +88,7 @@ void GLWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::
 }
 
 
-GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121){
+GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121),m_spriteSheet(nullptr){
 	connect(&m_frame, SIGNAL(timeout()), this, SLOT(loop()));
 }
 
@@ -99,14 +99,19 @@ void GLWidget::setUpConnections(QWidget *parent){
 	connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
 }
 
-bool GLWidget::open(const QString& spriteFile){
-	if(!m_animationInfo.importSH(spriteFile)){
-		qDebug()<<"Coudn't open sprite sheet!";
+bool GLWidget::open(const PG::FILE::SpriteAnimation* spriteSheet){
+
+	m_spriteSheet = spriteSheet;
+	if(!m_spriteSheet)
+		return false;
+
+	if(!m_animationInfo.open(spriteSheet)){
+		qDebug()<<"Coudn't load sprites for open GL!";
 		return false;
 	}
 
 	unsigned int i = 0;
-	for(const PG::FILE::animation& ani: m_animationInfo.spriteSheet.getAnimations()){
+	for(const PG::FILE::animation& ani: m_spriteSheet->getAnimations()){
 		const QString str(QString::number(i)+ ": Size: "+QString::number(ani.keyframes.size())+", ID: "+QString::number(ani.ID)+", name: "+QString::fromStdString(ani.name));
 		emit animationAdded(str);
 		i++;
@@ -120,13 +125,13 @@ bool GLWidget::open(const QString& spriteFile){
 }
 
 bool GLWidget::dump(const QString& filepath){
-	if(filepath.isEmpty() || !m_animationInfo) return false;
+	if(!m_spriteSheet || filepath.isEmpty() || !m_animationInfo) return false;
 
 	QFile file(filepath);
 	if(file.open(QIODevice::WriteOnly)){
 		QTextStream out(&file);
 		std::stringstream o;
-		o << m_animationInfo.spriteSheet;
+		o << *m_spriteSheet;
 		out << QString::fromStdString(o.str());
 		file.close();
 	}else{
@@ -137,6 +142,8 @@ bool GLWidget::dump(const QString& filepath){
 }
 
 int GLWidget::exportSprites(const QString& folder, const QString& type ){
+	if(!m_spriteSheet) return 0;
+
 	bool png = false;
 	if(type == "PNG"){
 		png = true;
@@ -146,22 +153,22 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 
 	//convertToRGBA
 	std::vector< PG::UTIL::RGBAImage > images;
-	for(const PG::UTIL::IDImage& sheetIDs: m_animationInfo.spriteSheet.getSheets()){
+	for(const PG::UTIL::IDImage& sheetIDs: m_spriteSheet->getSheets()){
 		images.push_back(PG::UTIL::RGBAImage(sheetIDs.getWidth(), sheetIDs.getHeight()));
 		//just in case there are some undefined values
 		for(unsigned int i = 0; i < sheetIDs.size(); ++i)
-			images.back()[i] = m_animationInfo.spriteSheet.getColortable()[sheetIDs[i]];
+			images.back()[i] = m_spriteSheet->getColortable()[sheetIDs[i]];
 	}
 
-	for(const PG::FILE::animation& ani: m_animationInfo.spriteSheet.getAnimations()){
+	for(const PG::FILE::animation& ani: m_spriteSheet->getAnimations()){
 		for(const PG::FILE::keyframe& key: ani.keyframes){
 			for(const PG::FILE::layer& lay: key.layers){
-				PG::FILE::cutout& cut = m_animationInfo.spriteSheet.getCutout(lay.cutoutID);
-				if(cut.isExternalSheet || cut.sheetID >= m_animationInfo.spriteSheet.getNumberOfSheets()) continue;
+				const PG::FILE::cutout& cut = m_spriteSheet->getCutout(lay.cutoutID);
+				if(cut.isExternalSheet || cut.sheetID >= m_spriteSheet->getNumberOfSheets()) continue;
 
 				const PG::UTIL::uvec2 dim(cut.width,cut.height);
 				const PG::UTIL::uvec2 start(cut.x,cut.y);
-				const PG::UTIL::IDImage& sheetIDs = m_animationInfo.spriteSheet.getSheet(cut.sheetID);
+				const PG::UTIL::IDImage& sheetIDs = m_spriteSheet->getSheet(cut.sheetID);
 
 				const int width = (start.x+dim.x > sheetIDs.getWidth())? sheetIDs.getWidth()-start.x : dim.x;
 				const int height = (start.y+dim.y > sheetIDs.getHeight())? sheetIDs.getHeight()-start.y : dim.y;
@@ -169,7 +176,7 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 				if(width <= 0 || height <= 0)
 					continue;
 
-				const PG::FILE::ColorTable& colortabel =  m_animationInfo.spriteSheet.getColortable();
+				const PG::FILE::ColorTable& colortabel =  m_spriteSheet->getColortable();
 				PG::UTIL::RGBAImage& imageOut = images[cut.sheetID];
 
 				PG::UTIL::IDImage sheetIDsWindow;
@@ -189,14 +196,14 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 	if(png){
 		for(const PG::UTIL::RGBAImage& image: images){
 			QImage qimg( &(image[0].r), image.getWidth() , image.getHeight(), QImage::Format_RGBA8888 );
-			qimg.save(folder+"/"+QString::fromStdString( m_animationInfo.spriteSheet.getOpenedFile().getName()) + "_"+QString::number(imgCount)+".png", 0, 100);
+			qimg.save(folder+"/"+QString::fromStdString( m_spriteSheet->getOpenedFile().getName()) + "_"+QString::number(imgCount)+".png", 0, 100);
 			imgCount++;
 		}
 
 	}else{
 		for(const PG::UTIL::RGBAImage& image: images){
 			std::stringstream o;
-			o<< folder.toStdString()<<"/"<< m_animationInfo.spriteSheet.getOpenedFile().getName()<<"_"<<imgCount<<".tga";
+			o<< folder.toStdString()<<"/"<< m_spriteSheet->getOpenedFile().getName()<<"_"<<imgCount<<".tga";
 			PG::FILE::saveTGA(o.str(),image);
 			imgCount++;
 		}
@@ -206,7 +213,8 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 }
 
 void GLWidget::setAnimation(int index){
-	if(m_animationInfo && index >= 0 && index < m_animationInfo.spriteSheet.getNumberOfAnimations()){
+	if(!m_spriteSheet) return;
+	if(m_animationInfo && index >= 0 && index < m_spriteSheet->getNumberOfAnimations()){
 		m_animationInfo.setAnimation(index);
 		m_currentKeyframe = 0;
 		emit currentFrame(m_currentKeyframe);
@@ -332,6 +340,7 @@ void GLWidget::initializeGL(){
 }
 
 void GLWidget::paintGL(){
+	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glClearColor(m_clearcolor.red()/255.0,m_clearcolor.green()/255.0,m_clearcolor.blue()/255.0,1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -403,7 +412,7 @@ void GLWidget::paintGL(){
     //clean up
     m_spriteShader.release();
     m_spriteGeometry.release();
-
+    glPopAttrib();
 }
 
 void GLWidget::resizeGL(int w, int h){

@@ -22,6 +22,8 @@
 #include <TitleDefine.h>
 #include <QMessageBox>
 #include <QColorDialog>
+#include <QtQml>
+#include <Timeline.h>
 
 inline void about(){
     QMessageBox msgBox;
@@ -81,6 +83,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionDisplay_external_references, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayExternalReferences(bool)));
 	connect(ui->actionDisplay_ground, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayGround(bool)));
 	connect(ui->actionDisplay_shadow, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayShadow(bool)));
+	connect(ui->actionTimeline, SIGNAL(triggered(bool)), ui->dockTimeline, SLOT(setVisible(bool)));
+	connect(ui->dockTimeline, SIGNAL(visibilityChanged(bool)), ui->actionTimeline, SLOT(setChecked(bool)));
 
 	//About
 	connect(ui->actionAbout, &QAction::triggered, this, [this]{
@@ -95,7 +99,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->btnPausePlay, SIGNAL(clicked()), this, SLOT(clickPlayPause()));
 	connect(ui->btnNext, SIGNAL(clicked()), ui->openGLWidget, SLOT(nextFrame()));
 
-	connect(this, SIGNAL(openSprite( const QString& )), ui->openGLWidget, SLOT(open( const QString& )));
+	connect(this, SIGNAL(openSprite(const PG::FILE::SpriteAnimation* spriteSheet)), ui->openGLWidget, SLOT(open(const PG::FILE::SpriteAnimation* spriteSheet)));
 	connect(this, SIGNAL(dumpSprite( const QString& )), ui->openGLWidget, SLOT(dump( const QString& )));
 	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), ui->openGLWidget, SLOT( exportSprites( const QString& , const QString& ) ) );
 	connect(ui->comboBox, SIGNAL(currentIndexChanged( int )), ui->openGLWidget, SLOT(setAnimation( int )));
@@ -103,39 +107,47 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(this, SIGNAL(backgroundColorSelected(  const QColor& )), ui->openGLWidget, SLOT( setBackgroundColor( const QColor& )));
 
 	ui->openGLWidget->setUpConnections(this);
-}
 
+	//timeline
+	m_tline = new Timeline(this);
+    qmlRegisterType<Timeline>("MyTimeLine",0,1, "Timeline");
+    qmlRegisterType<Keyframe>("MyKeyframe",0,1, "Keyframe");
+    ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
+    ui->timelineQML->rootContext()->setContextProperty("timeline", m_tline);
+}
 
 void SpriteSheetEditor::open(){
     QFileDialog openDialog(this);
     openDialog.setNameFilter(tr("SPRITE (*.sh);;DATA (*.dat)"));
 
     QStringList fileNames;
-        if (openDialog.exec()){
-            fileNames = openDialog.selectedFiles();
-            if(fileNames.size() > 0){
-            	open(fileNames[0]);
-            }
-        }
+	if (openDialog.exec()){
+		fileNames = openDialog.selectedFiles();
+		if(fileNames.size() > 0){
+			open(fileNames[0]);
+		}
+	}
 }
 
 void SpriteSheetEditor::open(const QString& file){
 	ui->comboBox->clear();
-	if(!file.isEmpty() && emit openSprite(file)){
-		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
-		setTitel(file);
 
-		ui->actionDump->setEnabled(true);
-		ui->actionExport_sprites_as_PNG->setEnabled(true);
-		ui->actionExport_sprites_as_TGA->setEnabled(true);
-	}else{
+	if(file.isEmpty() || m_spriteSheet.importSH(file.toStdString()) || !(emit openSprite(&m_spriteSheet))){
 		ui->statusbar->showMessage(QString("Failed to opened %1.").arg(file));
 		setTitel();
 
 		ui->actionDump->setEnabled(false);
 		ui->actionExport_sprites_as_PNG->setEnabled(false);
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
+	}else{
+		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
+		setTitel(file);
+
+		ui->actionDump->setEnabled(true);
+		ui->actionExport_sprites_as_PNG->setEnabled(true);
+		ui->actionExport_sprites_as_TGA->setEnabled(true);
 	}
+
 }
 
 void SpriteSheetEditor::addAnimation(const QString& animation){
@@ -184,7 +196,6 @@ void SpriteSheetEditor::setTotalFrames(unsigned int totalFrames){
 	ui->labelTotalFrames->setText(QString::number(totalFrames));
 }
 
-
 void SpriteSheetEditor::setTitel(){
 	setWindowTitle(SpriteSheetEditorTITLE);
 }
@@ -216,6 +227,7 @@ void SpriteSheetEditor::pickBackgroundColor(){
 }
 
 SpriteSheetEditor::~SpriteSheetEditor() {
-	 delete ui;
+	delete m_tline;
+	delete ui;
 }
 

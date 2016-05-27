@@ -47,9 +47,9 @@
 #define toRad(x) x * PI / 180.0
 #define ANIMATION_SPEED 15
 
-inline PG::UTIL::mat4 scaleMat(const PG::FILE::SpriteAnimation& ani, const PG::FILE::layer& lay){
+inline PG::UTIL::mat4 scaleMat(const PG::FILE::SpriteAnimation* ani, const PG::FILE::layer& lay){
 	PG::UTIL::mat4 mat;
-	const PG::FILE::cutout& cut = ani.getCutout(lay.cutoutID);
+	const PG::FILE::cutout& cut = ani->getCutout(lay.cutoutID);
 	mat[0][0] = (cut.width/50.0) * (lay.scalex/100.0);
 	mat[1][1] = (cut.height/50.0) * (lay.scaley/100.0);
 	return mat;
@@ -84,7 +84,7 @@ public:
     virtual ~GLWidget();
 public slots:
 	///returns true on success
-	bool open(const QString& spriteFile);
+	bool open(const PG::FILE::SpriteAnimation* spriteSheet);
 	bool dump(const QString& filepath);
 
 	///if png is false then tga is used
@@ -110,6 +110,8 @@ signals:
 	void totalFrames(unsigned int frames);
 	void currentFrame(unsigned int currFrame);
 private:
+	//data
+	const PG::FILE::SpriteAnimation* m_spriteSheet;
 
     //render
     QTimer m_frame;
@@ -200,7 +202,7 @@ private:
 
 	struct animationInfo{
         //data
-        PG::FILE::SpriteAnimation spriteSheet;
+    	const PG::FILE::SpriteAnimation* spriteSheet = nullptr;
 
     	unsigned int animationID = 0;
     	unsigned int animationLenght = 0;
@@ -219,48 +221,61 @@ private:
 			}
 		}
 
+		bool open(const PG::FILE::SpriteAnimation* spriteSheetIn){
+			spriteSheet = nullptr;
+			clear();
+			if(!spriteSheetIn)
+				return false;
+			spriteSheet = spriteSheetIn;
+
+			setTextures();
+
+			return true;
+		}
+
+		/*
 		bool importSH(const QString& path){
 			clear();
 
-			if(path.isEmpty() || spriteSheet.importSH(path.toStdString()))
+			if(path.isEmpty() || m_spriteSheet->importSH(path.toStdString()))
 				return false;
 
 			setTextures();
 
 			return true;
-
 		}
+		*/
 
 		void setTextures(){
-			spriteIDTextures.reserve(spriteSheet.getNumberOfSheets());
-			PG_INFO_STREAM("Number of sheets: "<<spriteSheet.getNumberOfSheets());
-			for(unsigned int i = 0; i < spriteSheet.getNumberOfSheets(); ++i){
+			spriteIDTextures.reserve(spriteSheet->getNumberOfSheets());
+			PG_INFO_STREAM("Number of sheets: "<<spriteSheet->getNumberOfSheets());
+			for(unsigned int i = 0; i < spriteSheet->getNumberOfSheets(); ++i){
 				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(spriteSheet.getSheet(i), PG::GL::Texture::SPRITE);
+				t->bind(spriteSheet->getSheet(i), PG::GL::Texture::SPRITE);
 				spriteIDTextures.push_back(t);
 			}
 
 
 			colorTable = new PG::GL::Texture();
-			colorTable->bind(spriteSheet.getColortable(), PG::GL::Texture::SPRITE);
+			colorTable->bind(spriteSheet->getColortable(), PG::GL::Texture::SPRITE);
 		}
 
 		void setAnimation(unsigned int index){
-			if(index >= spriteSheet.getNumberOfAnimations()) animationID = spriteSheet.getNumberOfAnimations()-1;
+			if(index >= spriteSheet->getNumberOfAnimations()) animationID = spriteSheet->getNumberOfAnimations()-1;
 			else animationID = index;
 			frame = 0;
-			animationLenght = spriteSheet.getAnimation(animationID).getLenght();
+			animationLenght = spriteSheet->getAnimation(animationID).getLenght();
 		}
 
 		const PG::FILE::keyframe& getCurrentKeyframe() const{
-			return spriteSheet.getAnimation(animationID).getKeyframeByFrame(frame);
+			return spriteSheet->getAnimation(animationID).getKeyframeByFrame(frame);
 		}
 		unsigned int getCurrentKeyframeID() const{
-			return spriteSheet.getAnimation(animationID).getKeyframeIDByFrame(frame);
+			return spriteSheet->getAnimation(animationID).getKeyframeIDByFrame(frame);
 		}
 
 		unsigned int getTotalKeyframes() const{
-			return spriteSheet.getAnimation(animationID).keyframes.size();
+			return spriteSheet->getAnimation(animationID).keyframes.size();
 		}
 
 		unsigned int getNumberOfLayers() const{
@@ -272,11 +287,11 @@ private:
 		}
 
 		const PG::FILE::cutout& getCutout(unsigned short cut = 1){
-			return spriteSheet.getCutout(cut);
+			return spriteSheet->getCutout(cut);
 		}
 
 		const PG::FILE::cutout& getCutout(const PG::FILE::layer& layer){
-			return spriteSheet.getCutout(layer.cutoutID);
+			return spriteSheet->getCutout(layer.cutoutID);
 		}
 
 		void setCurrentModelMat( PG::UTIL::mat4& modelmat, unsigned int layer = 0){
@@ -292,9 +307,9 @@ private:
 			 const PG::FILE::keyframe& key = getCurrentKeyframe();
 			 assert_Test("Keyframe has no layers!", key.layers.empty());
 			 const PG::FILE::layer& lay = key.layers[layer];
-			 const PG::FILE::cutout& cut = spriteSheet.getCutout(lay.cutoutID);
+			 const PG::FILE::cutout& cut = spriteSheet->getCutout(lay.cutoutID);
 
-			const PG::UTIL::IDImage& img = spriteSheet.getSheet(cut.sheetID);
+			const PG::UTIL::IDImage& img = spriteSheet->getSheet(cut.sheetID);
 			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(img.getWidth(), img.getHeight()));
 			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut.x, cut.y));
 			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut.width, cut.height));
@@ -310,7 +325,7 @@ private:
 			if(cut.isExternalSheet){
 				shader.setUniform(shader.colorTableStartLoc, (int)0);
 			}else{
-				if(lay.colortableID >= spriteSheet.getNumberOfColortables()){
+				if(lay.colortableID >= spriteSheet->getNumberOfColortables()){
 					shader.setUniform(shader.colorTableStartLoc, (int)0);
 				}else{
 					//qDebug()<<QString::number(__LINE__)<<": sheet "<<QString::number(cut.sheet)<<" size "<<QString::number(spriteSheet.getColorTables().size());
@@ -323,7 +338,7 @@ private:
 		PG::GL::Texture* getCurrentIDTexture(unsigned int layer = 0) const{
 			const PG::FILE::keyframe& key = getCurrentKeyframe();
 			const PG::FILE::layer& lay = key.layers[layer];
-			const PG::FILE::cutout& cut = spriteSheet.getCutout(lay.cutoutID);
+			const PG::FILE::cutout& cut = spriteSheet->getCutout(lay.cutoutID);
 
 
 			if(cut.isExternalSheet){
@@ -346,7 +361,7 @@ private:
 		}
 
 		operator bool() const{
-			return !spriteIDTextures.empty() && colorTable && spriteSheet.getNumberOfAnimations();
+			return !spriteIDTextures.empty() && colorTable && spriteSheet->getNumberOfAnimations();
 		}
 
 		void operator++(){
@@ -369,7 +384,7 @@ private:
 		}
 
 		unsigned int nextKeyframe(){
-			const PG::FILE::animation& ani =  spriteSheet.getAnimation(animationID);
+			const PG::FILE::animation& ani =  spriteSheet->getAnimation(animationID);
 			unsigned int lenght = 0;
 			for(unsigned int i = 0; i < ani.keyframes.size()-1; i++){
 				lenght += ani.keyframes[i].durration;
@@ -384,7 +399,7 @@ private:
 		}
 
 		unsigned int previousKeyframe(){
-			const PG::FILE::animation& ani =  spriteSheet.getAnimation(animationID);
+			const PG::FILE::animation& ani =  spriteSheet->getAnimation(animationID);
 
 			if(frame <= ani.keyframes.front().durration){
 				frame = getAnimationLenght() - ani.keyframes.back().durration;
@@ -414,7 +429,7 @@ private:
 			colorTable = nullptr;
 			animationID = 0;
 			frame = 0;
-			spriteSheet.clear();
+			//m_spriteSheet->clear();
 		}
 
 		void clearAll(){
@@ -424,175 +439,6 @@ private:
 		}
 
 	} m_animationInfo;
-
-	/*
-	struct spriteInfo{
-        //data
-        PG::FILE::SpriteSheet spriteSheet;
-
-    	unsigned int index = 0;
-    	unsigned int keyframe = 0;
-
-		std::vector<PG::GL::Texture* > spriteIDTextures;
-		PG::GL::Texture* colorTable = nullptr;
-		PG::GL::Texture* externalSheet = nullptr;
-
-		void init(){
-			if(!externalSheet){
-				externalSheet = new PG::GL::Texture();
-				externalSheet->bindTGA("resources/materials/external_sheet.tga", PG::GL::Texture::SPRITE);
-			}
-		}
-
-		bool open(const QString& path){
-			clear();
-
-			if(path.isEmpty() || spriteSheet.open(path.toStdString()))
-				return false;
-
-			setTextures();
-
-			return true;
-
-		}
-
-		void setTextures(){
-			spriteIDTextures.reserve(spriteSheet.getNumberOfSpriteSheets());
-			PG_INFO_STREAM("Number of sheets: "<<spriteSheet.getNumberOfSpriteSheets());
-			for(unsigned int i = 0; i < spriteSheet.getNumberOfSpriteSheets(); ++i){
-				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(spriteSheet.getSpriteSheet(i), PG::GL::Texture::SPRITE);
-				spriteIDTextures.push_back(t);
-			}
-
-
-			colorTable = new PG::GL::Texture();
-			colorTable->bind(spriteSheet.getColorTables(), PG::GL::Texture::SPRITE);
-		}
-
-		unsigned int getNumberOfLayers() const{
-			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
-			return key.layers.size();
-		}
-
-		unsigned int getTotalFrames() const{
-			return spriteSheet.getAnimation(index).keyframes.size();
-		}
-
-		bool isExternalReference(unsigned int layer) const{
-			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
-			const PG::FILE::cutout& cut = key.layers[layer];
-			return cut.external_sheet;
-		}
-
-		PG::GL::Texture* getCurrentIDTexture(unsigned int layer = 0) const{
-			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
-			const PG::FILE::cutout& cut = key.layers[layer];
-			if(cut.external_sheet){
-				return externalSheet;
-			}else{
-				assert_Test("Texture index is out of bound!", cut.sheet >= spriteIDTextures.size());
-				return spriteIDTextures[cut.sheet];
-			}
-		}
-
-
-		PG::GL::Texture* getCurrentColorTable(unsigned int layer = 0) const{
-			return colorTable;
-		}
-
-		unsigned int getCurrentDelay() const{
-			if(spriteSheet.isOpen())
-				return spriteSheet.getAnimation(index).keyframes[keyframe].delay*10;
-			else
-				return 1000;
-		}
-
-
-
-		void setCurrentModelMat( PG::UTIL::mat4& modelmat, unsigned int layer = 0){
-			const PG::FILE::animation2D::keyframe& key = spriteSheet.getAnimation(index).keyframes[keyframe];
-			const PG::FILE::cutout& cut = key.layers[layer];
-
-
-			//could be multiplied out, but meh fast enogh
-			const float angle = toRad(-cut.rotation);
-			modelmat = positionOffsetMat(cut)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(cut)*scaleMat(cut);
-			//PG_INFO_STREAM("x: "<<cut.offsetx<< " y: "<<cut.offsety<<" width: "<<((cut.width/50.0)*(cut.scalex/100.0))<<" height: "<<((cut.height/50.0)*(cut.scaley/100.0))<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
-		}
-
-		void setUniforms(GLWidget::spriteShader& shader, unsigned int layer = 0){
-			assert_Test("Keyframe has no layers!", spriteSheet.getAnimation(index).keyframes[keyframe].layers.empty());
-			const PG::FILE::cutout& cut = spriteSheet.getAnimation(index).keyframes[keyframe].layers[layer];
-
-			const PG::UTIL::IDImage& img = spriteSheet.getSpriteSheet(cut.sheet);
-			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(img.getWidth(), img.getHeight()));
-			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut.x, cut.y));
-			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut.width, cut.height));
-
-			if(cut.unkown0 == 10 || cut.unkown0 == 8 )
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 0));
-			else
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
-
-			//set colortable
-			if(cut.external_sheet){
-				shader.setUniform(shader.colorTableStartLoc, (int)0);
-			}else{
-				if(cut.sheet*16 >= spriteSheet.getColorTables().size()){
-					shader.setUniform(shader.colorTableStartLoc, (int)0);
-				}else{
-					//qDebug()<<QString::number(__LINE__)<<": sheet "<<QString::number(cut.sheet)<<" size "<<QString::number(spriteSheet.getColorTables().size());
-					shader.setUniform(shader.colorTableStartLoc, (int)cut.colortable);
-				}
-			}
-
-		}
-
-		void apply(unsigned int layer = 0 ) const{
-			glActiveTexture(GL_TEXTURE0);
-			getCurrentIDTexture(layer)->apply();
-			glActiveTexture(GL_TEXTURE1);
-			getCurrentColorTable(layer)->apply();
-		}
-
-		operator bool() const{
-			return !spriteIDTextures.empty() && colorTable && spriteSheet.isOpen();
-		}
-
-		void next(){
-			if(!spriteSheet.isOpen()) return;
-			keyframe++;
-			//PG_INFO_STREAM(keyframe << " total: "<<keyframes.size());
-			if(keyframe >= spriteSheet.getAnimation(index).keyframes.size())
-				keyframe = 0;
-		}
-
-		void previous(){
-			if(!spriteSheet.isOpen()) return;
-			if(keyframe == 0) keyframe = spriteSheet.getAnimation(index).keyframes.size()-1;
-			else keyframe--;
-		}
-
-		void clear(){
-			for(PG::GL::Texture* t: spriteIDTextures)
-				delete t;
-			spriteIDTextures.clear();
-			if(colorTable) delete colorTable;
-			colorTable = nullptr;
-			index = 0;
-			keyframe = 0;
-			spriteSheet.clear();
-		}
-
-		void clearAll(){
-			if(externalSheet) delete externalSheet;
-			externalSheet = nullptr;
-			clear();
-		}
-
-	} m_current;
-	*/
 
 };
 
