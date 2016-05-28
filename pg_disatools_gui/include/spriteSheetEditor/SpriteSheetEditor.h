@@ -21,7 +21,7 @@
 #include <QString>
 #include <QMainWindow>
 #include <QColor>
-#include <SpritePlayer.h>
+#include <spriteSheetEditor/SpritePlayer.h>
 
 namespace Ui {
 	class SpriteSheetEditorWindow;

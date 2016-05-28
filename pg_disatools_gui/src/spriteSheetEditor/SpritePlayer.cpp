@@ -15,7 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#include <SpritePlayer.h>
+#include <spriteSheetEditor/SpritePlayer.h>
 
 SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
 	m_spriteSheet = new PG::FILE::SpriteAnimation();

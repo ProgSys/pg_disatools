@@ -16,7 +16,7 @@
  *	or http://www.gnu.org/licenses/
  */
 
-#include <Timeline.h>
+#include <spriteSheetEditor/Timeline.h>
 #include <QDebug>
 
 ///// KEYFRAME /////

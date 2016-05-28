@@ -15,7 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#include <SpriteSheetEditor.h>
+#include <spriteSheetEditor/SpriteSheetEditor.h>
 #include "ui_spritesheeteditor.h"
 
 #include <QFileDialog>
@@ -23,7 +23,7 @@
 #include <QMessageBox>
 #include <QColorDialog>
 #include <QtQml>
-#include <Timeline.h>
+#include <spriteSheetEditor/Timeline.h>
 
 inline void about(){
     QMessageBox msgBox;

@@ -19,7 +19,7 @@
 #define SPRITEPLAYER_H_
 
 #include <QObject>
-#include <Timeline.h>
+#include <spriteSheetEditor/Timeline.h>
 #include <pg/files/PG_SpriteAnimation.h>
 #include <GLWidget.h>
 

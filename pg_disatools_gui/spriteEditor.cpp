@@ -19,7 +19,7 @@
 #define SPRITEEDITOR_CPP_
 
 
-#include <SpriteSheetEditor.h>
+#include <spriteSheetEditor/SpriteSheetEditor.h>
 #include <QApplication>
 
 int main(int argc, char *argv[])
