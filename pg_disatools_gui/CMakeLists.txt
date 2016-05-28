@@ -99,6 +99,7 @@ file(GLOB PG_QT_SRC
 	#"*.cpp"
 	"src/*.cpp"
 	"src/openGL/*.cpp"
+	"src/files/*.cpp"
 	"src/spriteSheetEditor/*.cpp"
 )
 
@@ -106,6 +107,7 @@ file(GLOB PG_QT_HEADERS
 	#"*.h"
 	"include/*.h"
 	"include/openGL/*.h"
+	"include/files/*.h"
 	"include/spriteSheetEditor/*.h"
 )
 

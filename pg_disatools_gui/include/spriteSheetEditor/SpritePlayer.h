@@ -22,6 +22,7 @@
 #include <spriteSheetEditor/Timeline.h>
 #include <pg/files/PG_SpriteAnimation.h>
 #include <GLWidget.h>
+#include <files/SpriteData.h>
 
 class SpritePlayer: public QObject {
 	Q_OBJECT
@@ -40,14 +41,14 @@ public slots:
 	void close();
 	bool isOpen() const;
 	void setAnimation(int index);
+	SpriteData* getSpriteData() const;
 
 signals:
 	void onCurrentAnimationChanged(int setAnimation);
-	void animationAdded(const QString& name);
 	void render();
 private:
-	PG::FILE::SpriteAnimation* m_spriteSheet = nullptr;
 	Timeline* m_timeline = nullptr;
+	SpriteData* m_aniData = nullptr;
 	GLWidget* m_glView = nullptr;
 	int m_currentAnimation = 0;
 };

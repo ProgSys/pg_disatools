@@ -64,6 +64,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 
 	m_player = new SpritePlayer(this);
 	m_player->connectGLWidget(ui->openGLWidget);
+	ui->comboBox->setModel(m_player->getSpriteData());
 
 	setWindowIcon(QIcon("resources/sprite_sheet_editor_icon.ico"));
 	setWindowTitle(SpriteSheetEditorTITLE);
@@ -161,14 +162,6 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
 	}
 
-}
-
-void SpriteSheetEditor::addAnimation(const QString& animation){
-	ui->comboBox->addItem(animation);
-}
-
-void SpriteSheetEditor::addAnimations(const QStringList& animations){
-	ui->comboBox->addItems(animations);
 }
 
 void SpriteSheetEditor::dump(){

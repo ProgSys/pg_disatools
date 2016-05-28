@@ -37,8 +37,6 @@ public:
 public slots:
 	void open();
 	void open(const QString& file);
-	void addAnimation(const QString& animation);
-	void addAnimations(const QStringList& animations);
 
 	void dump();
 	void exportSprites(const QString& filetype);
