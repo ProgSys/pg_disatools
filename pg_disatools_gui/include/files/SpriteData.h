@@ -13,6 +13,9 @@
 #include <QImage>
 #include <qvector2d.h>
 #include <QAbstractListModel>
+#include <QColor>
+#include <pg/util/PG_Image.h>
+#include <vector>
 
 class Cutout: public QObject{
 	Q_OBJECT
@@ -20,28 +23,26 @@ class Cutout: public QObject{
     Q_PROPERTY(unsigned char externalSheetID 	READ getExternalSheetID WRITE setExternalSheetID NOTIFY onExternalSheetIDChanged)
 	Q_PROPERTY(unsigned short cutoutWidth 		READ getWidth NOTIFY onWidthChanged)
 	Q_PROPERTY(unsigned short cutoutHeight 		READ getHeight NOTIFY onHeightChanged)
-	Q_PROPERTY(QImage cutout READ getCutout WRITE setCutout NOTIFY onCutoutChanged)
+	//Q_PROPERTY(QImage cutout READ getCutout WRITE setCutout NOTIFY onCutoutChanged)
 public:
 	explicit Cutout(QObject *parent = 0);
-	explicit Cutout(const QImage& img, QObject *parent = 0);
-	explicit Cutout(unsigned char externalSheetIDIn, unsigned short widthIn, unsigned short heightIn
-			,QObject *parent = 0);
+	explicit Cutout(const PG::UTIL::IDImage& img, QObject *parent = 0);
+	explicit Cutout(unsigned char externalSheetIDIn, QObject *parent = 0);
+	explicit Cutout(unsigned char externalSheetIDIn, unsigned short widthIn, unsigned short heightIn,QObject *parent = 0);
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
 
 	//getters
 	bool isExternalSheet() const;
-	unsigned short getEexternalSheetID() const;
+	unsigned short getExternalSheetID() const;
 
-	const QImage& getCutout() const;
+	const PG::UTIL::IDImage& getCutout() const;
 	unsigned short getWidth() const;
 	unsigned short getHeight() const;
 
 	//setters
-	void setEexternalSheetID(unsigned short externalSheetIDIn);
-	void setCutout(const QImage& img);
-	void setWidth(unsigned short widthIn);
-	void setHeight(unsigned short heightIn);
+	void setExternalSheetID(unsigned short externalSheetIDIn);
+	void setCutout(const PG::UTIL::IDImage& img);
 
 signals:
 	void onExternalSheetIDChanged();
@@ -51,7 +52,7 @@ signals:
 	void onHeightChanged();
 private:
 	unsigned short  m_externalSheetID = 0; // get a sheet from different file by it's ID
-	QImage m_cutout;
+	PG::UTIL::IDImage m_cutout;
 };
 
 Q_DECLARE_METATYPE( Cutout );
@@ -160,8 +161,8 @@ public:
 
     void operator =(const Keyframe& keyframe);
 
-    void pushLayer(const Layer& layer);
-    void pushLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+    void push_backLayer(Layer* layer);
+    void push_backLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
 			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn);
@@ -169,6 +170,7 @@ public:
     //getters
     int getDuration() const;
     int getNumberOfLayers() const;
+    const QList<Layer*>& getLayers() const;
 
     //setters
     void setDuration(int duration);
@@ -179,7 +181,7 @@ signals:
 
 private:
     int m_duration = 1;
-    QList<Layer> m_layers;
+    QList<Layer*> m_layers;
 };
 
 Q_DECLARE_METATYPE( Keyframe );
@@ -198,11 +200,14 @@ public:
 
 	void operator =(const SpriteAnimation& ani);
 
+	void push_backKeyframe(int duration);
+	void push_backKeyframe(Keyframe* key);
+
 	//getters
 	unsigned int getID() const;
 	const QString& getName() const;
 	int getNumberOfKeyframes() const;
-	const QList<Keyframe>& getKeyframes() const;
+	const QList<Keyframe*>& getKeyframes() const;
 	unsigned int getTotalFrames() const;
 
 	//setters
@@ -217,7 +222,7 @@ signals:
 private:
 	unsigned int m_ID = 0;
 	QString m_name;
-	QList<Keyframe> m_keyframes;
+	QList<Keyframe*> m_keyframes;
 };
 
 Q_DECLARE_METATYPE( SpriteAnimation );
@@ -243,8 +248,14 @@ public:
 	// getters
 	bool isOpen() const;
 	int getNumberOfAnimations() const;
+	int getNumberOfCutouts() const;
+	int getNumberOfColortables() const;
 	int getCurrentAnimationIndex() const;
-	const SpriteAnimation& getCurrentAnimation() const;
+
+	const SpriteAnimation* getCurrentAnimation() const;
+	const QList<Cutout*>& getCutouts() const;
+	const QList<QColor>& getColortable() const;
+	const std::vector<PG::UTIL::rgba>& getColortableGL() const;
 
 	//setters
 	void setCurrentAnimationByIndex(int index);
@@ -262,8 +273,10 @@ private:
 	QString m_lastFile;
 
 	int m_currentAnimation = -1;
-	QList<SpriteAnimation> m_aniamtions;
-	QList<Cutout> m_cutouts;
+	QList<SpriteAnimation*> m_aniamtions;
+	QList<Cutout*> m_cutouts;
+	QList<QColor> m_colortable;
+	std::vector<PG::UTIL::rgba> m_colortableGL;
 };
 
 #endif /* INCLUDE_FILES_SPRITEDATA_H_ */

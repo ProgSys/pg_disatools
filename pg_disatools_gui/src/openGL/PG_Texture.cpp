@@ -32,6 +32,10 @@
 #include <openGL/PG_GLError.h>
 #include <pg/files/PG_ImageFiles.h>
 
+#if SUPPORT_QT
+//#include <QGLWidget>
+#endif
+
 namespace PG {
 namespace GL {
 
@@ -174,13 +178,36 @@ void Texture::bind(const PG::UTIL::RGBAImage& img, Texture::type texType){
 	checkGLError();
 }
 
+#if SUPPORT_QT
+void Texture::bind(const QList<PG::UTIL::rgba>& colors, Texture::type texType){
+	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
+	m_GLID = INVALID_OGL_VALUE;
+	if(colors.empty() || !create()) return;
+	setTexParameter(texType);
+	checkGLError();
+	setTexture((unsigned char*) &colors[0], GL_RED, colors.size(), 1, texType != SPRITE );
+	checkGLError();
+}
+
+void Texture::bind(const QList<QColor>& colors, Texture::type rgba){
+	std::vector<PG::UTIL::rgba> rgbaImg;
+	rgbaImg.reserve(colors.size());
+	for(const QColor& color: colors){
+		rgbaImg.push_back(PG::UTIL::rgba(color.red(),color.green(),color.blue(),color.alpha()));
+	}
+	bind(rgbaImg, rgba);
+
+}
+#endif
+
 void Texture::bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(img.empty() || !create()) return;
+	PG_INFO_STREAM("Vector RGBA bind!: "<<img[0]);
 	setTexParameter(texType);
 	checkGLError();
-	setTexture((unsigned char*) &img[0], GL_RGBA, img.size(), 1, texType != SPRITE );
+	setTexture((unsigned char*) &img[0], GL_RED, img.size(), 1, texType != SPRITE );
 	checkGLError();
 }
 

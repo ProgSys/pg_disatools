@@ -27,8 +27,9 @@ Timeline::Timeline(SpriteData* aniData, QObject *parent)
     : QObject(parent)
 {
 	connect(&m_time, SIGNAL(timeout()), this, SLOT(loop()));
-	if(aniData)
+	if(aniData){
 		connect(aniData, SIGNAL(onAnimationChanged(SpriteAnimation* )), this, SLOT(setAnimation(SpriteAnimation*)));
+	}
     //m_keyframes.push_back(new Keyframe(10, this));
     //m_keyframes.push_back(new Keyframe(410, this));
     //m_keyframes.push_back(new Keyframe(15, this));
@@ -67,7 +68,7 @@ int Timeline::getOffset(int index) const
     int width = 0;
 
     for(int i = 0; i < index; ++i)
-    	width += m_currAnimation->getKeyframes()[i].getDuration();
+    	width += m_currAnimation->getKeyframes()[i]->getDuration();
          //width += static_cast<const Keyframe* const>(m_keyframes[i])->getDuration();
     return width;
 }
@@ -77,7 +78,7 @@ int Timeline::getTrackIndex() const{
 
 	int width = 0;
 	for(int i = 0; i < m_currAnimation->getKeyframes().size(); ++i){
-		width += m_currAnimation->getKeyframes()[i].getDuration();
+		width += m_currAnimation->getKeyframes()[i]->getDuration();
 		if(m_tracker < width)
 			return i;
 	}

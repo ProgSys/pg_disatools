@@ -100,7 +100,7 @@ void GLWidget::setUpConnections(QWidget *parent){
 	//connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
 }
 
-bool GLWidget::open(const PG::FILE::SpriteAnimation* spriteSheet){
+bool GLWidget::open(const SpriteData* spriteSheet){
 
 	m_spriteSheet = spriteSheet;
 	if(!m_spriteSheet)
@@ -109,13 +109,6 @@ bool GLWidget::open(const PG::FILE::SpriteAnimation* spriteSheet){
 	if(!m_animationInfo.open(spriteSheet)){
 		qDebug()<<"Coudn't load sprites for open GL!";
 		return false;
-	}
-
-	unsigned int i = 0;
-	for(const PG::FILE::animation& ani: m_spriteSheet->getAnimations()){
-		const QString str(QString::number(i)+ ": Size: "+QString::number(ani.keyframes.size())+", ID: "+QString::number(ani.ID)+", name: "+QString::fromStdString(ani.name));
-		emit animationAdded(str);
-		i++;
 	}
 
 	return true;
@@ -128,7 +121,8 @@ bool GLWidget::dump(const QString& filepath){
 	if(file.open(QIODevice::WriteOnly)){
 		QTextStream out(&file);
 		std::stringstream o;
-		o << *m_spriteSheet;
+		//TODO
+		o << "TODO";
 		out << QString::fromStdString(o.str());
 		file.close();
 	}else{
@@ -140,7 +134,8 @@ bool GLWidget::dump(const QString& filepath){
 
 int GLWidget::exportSprites(const QString& folder, const QString& type ){
 	if(!m_spriteSheet) return 0;
-
+	//TODO
+	/*
 	bool png = false;
 	if(type == "PNG"){
 		png = true;
@@ -207,20 +202,10 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 	}
 
 	return imgCount;
+	*/
+	return false;
 }
 
-void GLWidget::setAnimation(int index){
-	//qDebug()<<" Animation "<<index<<" selected.";
-	if(!m_spriteSheet) return;
-	if(m_animationInfo && index >= 0 && index < m_spriteSheet->getNumberOfAnimations()){
-		m_animationInfo.setAnimation(index);
-		m_currentKeyframe = 0;
-		emit currentFrame(m_currentKeyframe);
-		emit totalFrames(m_animationInfo.getTotalKeyframes());
-
-		update();
-	}
-}
 
 void GLWidget::renderKeyframe(){
 	update();
@@ -230,7 +215,6 @@ void GLWidget::renderKeyframe(int index){
 	if(m_currentKeyframe != index){
 		m_currentKeyframe = index;
 		m_animationInfo.setKeyframe(index);
-		emit currentFrame(m_currentKeyframe);
 		update();
 	}
 }
@@ -332,7 +316,7 @@ void GLWidget::paintGL(){
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
     	for(unsigned int i = 0; i < m_animationInfo.getNumberOfLayers(); ++i){
-    		if(!m_displayExternalReferences && m_spriteSheet->getCutout(m_animationInfo.getCurrentKeyframe().layers[i].cutoutID).isExternalSheet) continue;
+    		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[m_animationInfo.getCurrentKeyframe()->getLayers()[i]->getCutoutID()]->isExternalSheet()) continue;
     		m_animationInfo.setCurrentModelMat(modelMatrix, i);
     		m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
     		m_animationInfo.setUniforms(m_spriteShader, i);

@@ -38,7 +38,7 @@
 #include <openGL/PG_Texture.h>
 #include <openGL/PG_Plane.h>
 
-#include <pg/files/PG_SpriteAnimation.h>
+#include <files/SpriteData.h>
 
 #include <pg/util/PG_MatrixUtil.h>
 #include <cmath>
@@ -47,25 +47,25 @@
 #define toRad(x) x * PI / 180.0
 #define ANIMATION_SPEED 15
 
-inline PG::UTIL::mat4 scaleMat(const PG::FILE::SpriteAnimation* ani, const PG::FILE::layer& lay){
+inline PG::UTIL::mat4 scaleMat(const SpriteData* ani, const Layer* lay){
 	PG::UTIL::mat4 mat;
-	const PG::FILE::cutout& cut = ani->getCutout(lay.cutoutID);
-	mat[0][0] = (cut.width/50.0) * (lay.scalex/100.0);
-	mat[1][1] = (cut.height/50.0) * (lay.scaley/100.0);
+	const Cutout* cut = ani->getCutouts()[lay->getCutoutID()];
+	mat[0][0] = (cut->getWidth()/50.0) * (lay->getScaleX()/100.0);
+	mat[1][1] = (cut->getHeight()/50.0) * (lay->getScaleY()/100.0);
 	return mat;
 }
 
-inline PG::UTIL::mat4 anchorOffsetMat(const PG::FILE::layer& lay){
+inline PG::UTIL::mat4 anchorOffsetMat(const Layer* lay){
 	PG::UTIL::mat4 mat;
-	mat[3][0] = (lay.anchorx/50.0);
-	mat[3][1] = (-lay.anchory/50.0);
+	mat[3][0] = (lay->getAnchorX()/50.0);
+	mat[3][1] = (-lay->getAnchorY()/50.0);
 	return mat;
 }
 
-inline PG::UTIL::mat4 positionOffsetMat(const PG::FILE::layer& lay){
+inline PG::UTIL::mat4 positionOffsetMat(const Layer* lay){
 	PG::UTIL::mat4 mat;
-	mat[3][0] = (lay.offsetx/50.0);
-	mat[3][1] = (-lay.offsety/50.0);
+	mat[3][0] = (lay->getOffsetX()/50.0);
+	mat[3][1] = (-lay->getOffsetY()/50.0);
 	return mat;
 }
 
@@ -82,13 +82,12 @@ public:
     virtual ~GLWidget();
 public slots:
 	///returns true on success
-	bool open(const PG::FILE::SpriteAnimation* spriteSheet);
+	bool open(const SpriteData* spriteSheet);
 	bool dump(const QString& filepath);
 
 	///if png is false then tga is used
 	int exportSprites(const QString& folder, const QString& type);
-	///select animation
-	void setAnimation(int index);
+
 	void renderKeyframe(int index);
 	void renderKeyframe();
 
@@ -98,13 +97,9 @@ public slots:
 
 	void setBackgroundColor(const QColor& color);
 
-signals:
-	void animationAdded(const QString& name);
-	void totalFrames(unsigned int frames);
-	void currentFrame(unsigned int currFrame);
 private:
 	//data
-	const PG::FILE::SpriteAnimation* m_spriteSheet;
+	const SpriteData* m_spriteSheet;
 
     //render
 
@@ -193,12 +188,11 @@ private:
 
 	struct animationInfo{
         //data
-    	const PG::FILE::SpriteAnimation* spriteSheet = nullptr;
+    	const SpriteData* spriteData = nullptr;
 
-    	unsigned int animationID = 0;
     	unsigned int keyframe = 0;
 
-		std::vector<PG::GL::Texture* > spriteIDTextures;
+		std::vector<PG::GL::Texture* > cutoutIDTextures;
 		PG::GL::Texture* colorTable = nullptr;
 		PG::GL::Texture* externalSheet = nullptr;
 
@@ -211,12 +205,12 @@ private:
 			}
 		}
 
-		bool open(const PG::FILE::SpriteAnimation* spriteSheetIn){
-			spriteSheet = nullptr;
+		bool open(const SpriteData* spriteSheetIn){
+			spriteData = nullptr;
 			clear();
 			if(!spriteSheetIn)
 				return false;
-			spriteSheet = spriteSheetIn;
+			spriteData = spriteSheetIn;
 
 			setTextures();
 
@@ -224,104 +218,97 @@ private:
 		}
 
 		void setTextures(){
-			spriteIDTextures.reserve(spriteSheet->getNumberOfSheets());
-			PG_INFO_STREAM("Number of sheets: "<<spriteSheet->getNumberOfSheets());
-			for(unsigned int i = 0; i < spriteSheet->getNumberOfSheets(); ++i){
+			cutoutIDTextures.reserve(spriteData->getNumberOfCutouts());
+			PG_INFO_STREAM("Number of cutouts: "<<spriteData->getNumberOfCutouts());
+			for(const Cutout* cut: spriteData->getCutouts()){
+				assert_Test("Given cutout is nullptr!", cut == nullptr);
 				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(spriteSheet->getSheet(i), PG::GL::Texture::SPRITE);
-				spriteIDTextures.push_back(t);
+				t->bind(cut->getCutout(), PG::GL::Texture::SPRITE);
+				cutoutIDTextures.push_back(t);
 			}
 
-
 			colorTable = new PG::GL::Texture();
-			colorTable->bind(spriteSheet->getColortable(), PG::GL::Texture::SPRITE);
+			colorTable->bind(spriteData->getColortableGL(), PG::GL::Texture::SPRITE);
+			qDebug()<< "Textures set!";
 		}
 
-		void setAnimation(unsigned int index){
-			if(index >= spriteSheet->getNumberOfAnimations()) animationID = spriteSheet->getNumberOfAnimations()-1;
-			else animationID = index;
-			keyframe = 0;
+		const SpriteAnimation* getCurrentAnimation() const{
+			return spriteData->getCurrentAnimation();
 		}
 
-		const PG::FILE::animation& getCurrentAnimation() const{
-			return spriteSheet->getAnimation(animationID);
-		}
+		const Keyframe* getCurrentKeyframe() const{
+			const SpriteAnimation* spa = spriteData->getCurrentAnimation();
+			assert_Test("Current animation is nullptr!", !spa);
+			assert_Test("Keyframe out of bound!", keyframe >= spa->getNumberOfKeyframes());
+			return spa->getKeyframes()[keyframe];
 
-		const PG::FILE::keyframe& getCurrentKeyframe() const{
-			return spriteSheet->getAnimation(animationID).keyframes[keyframe];
+
 		}
 		unsigned int getCurrentKeyframeID() const{
 			return keyframe;
 		}
 
 		unsigned int getTotalKeyframes() const{
-			return spriteSheet->getAnimation(animationID).keyframes.size();
+			return getCurrentAnimation()->getNumberOfKeyframes();
 		}
 
 		unsigned int getNumberOfLayers() const{
-			return getCurrentKeyframe().layers.size();
+			return getCurrentKeyframe()->getNumberOfLayers();
 		}
 
-		const PG::FILE::cutout& getCutout(unsigned short cut = 1){
-			return spriteSheet->getCutout(cut);
+		const Cutout* getCutout(unsigned short cut = 1){
+			return spriteData->getCutouts()[cut];
 		}
 
-		const PG::FILE::cutout& getCutout(const PG::FILE::layer& layer){
-			return spriteSheet->getCutout(layer.cutoutID);
+		const Cutout* getCutout(const Layer* layer){
+			return spriteData->getCutouts()[layer->getCutoutID()];
 		}
 
 		void setCurrentModelMat( PG::UTIL::mat4& modelmat, unsigned int layer = 0){
-			const PG::FILE::layer& lay = getCurrentKeyframe().layers[layer];
+			const Layer* lay = getCurrentKeyframe()->getLayers()[layer];
 
 			//could be multiplied out, but meh fast enogh
-			const float angle = toRad(-lay.rotation);
-			modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteSheet, lay);
+			const float angle = toRad(-lay->getRotation());
+			modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
 			//PG_INFO_STREAM("x: "<<cut.offsetx<< " y: "<<cut.offsety<<" width: "<<((cut.width/50.0)*(cut.scalex/100.0))<<" height: "<<((cut.height/50.0)*(cut.scaley/100.0))<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 
 		void setUniforms(GLWidget::spriteShader& shader, unsigned int layer = 0){
-			 const PG::FILE::keyframe& key = getCurrentKeyframe();
-			 assert_Test("Keyframe has no layers!", key.layers.empty());
-			 const PG::FILE::layer& lay = key.layers[layer];
-			 const PG::FILE::cutout& cut = spriteSheet->getCutout(lay.cutoutID);
+			 const Keyframe* key = getCurrentKeyframe();
+			 assert_Test("Keyframe has no layers!", !key->getNumberOfLayers());
+			 const Layer* lay = key->getLayers()[layer];
+			 const Cutout* cut = spriteData->getCutouts()[lay->getCutoutID()];
 
-			const PG::UTIL::IDImage& img = spriteSheet->getSheet(cut.sheetID);
-			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(img.getWidth(), img.getHeight()));
-			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut.x, cut.y));
-			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut.width, cut.height));
-
-			/*
-			if(cut.unkown0 == 10 || cut.unkown0 == 8 )
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 0));
-			else
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
-			*/
+			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
+			shader.setUniform(shader.startLoc, PG::UTIL::vec2(0, 0));
+			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
 
 			//set colortable
-			if(cut.isExternalSheet){
+			if(cut->isExternalSheet()){
 				shader.setUniform(shader.colorTableStartLoc, (int)0);
 			}else{
-				if(lay.colortableID >= spriteSheet->getNumberOfColortables()){
+				if(lay->getColortableID() >= spriteData->getNumberOfColortables()){
 					shader.setUniform(shader.colorTableStartLoc, (int)0);
 				}else{
 					//qDebug()<<QString::number(__LINE__)<<": sheet "<<QString::number(cut.sheet)<<" size "<<QString::number(spriteSheet.getColorTables().size());
-					shader.setUniform(shader.colorTableStartLoc, (int)lay.colortableID);
+					shader.setUniform(shader.colorTableStartLoc, (int)lay->getColortableID());
 				}
 			}
 
 		}
 
 		PG::GL::Texture* getCurrentIDTexture(unsigned int layer = 0) const{
-			const PG::FILE::keyframe& key = getCurrentKeyframe();
-			const PG::FILE::layer& lay = key.layers[layer];
-			const PG::FILE::cutout& cut = spriteSheet->getCutout(lay.cutoutID);
+			 const Keyframe* key = getCurrentKeyframe();
+			 assert_Test("Keyframe has no layers!", !key->getNumberOfLayers());
+			 const Layer* lay = key->getLayers()[layer];
+			 const Cutout* cut = spriteData->getCutouts()[lay->getCutoutID()];
 
 
-			if(cut.isExternalSheet){
+			if(cut->isExternalSheet()){
 				return externalSheet;
 			}else{
-				assert_Test("Texture index is out of bound!", cut.sheetID >= spriteIDTextures.size());
-				return spriteIDTextures[cut.sheetID];
+				assert_Test("Texture index is out of bound!", lay->getCutoutID() >= cutoutIDTextures.size());
+				return cutoutIDTextures[lay->getCutoutID()];
 			}
 		}
 
@@ -337,43 +324,42 @@ private:
 		}
 
 		operator bool() const{
-			return !spriteIDTextures.empty() && colorTable && spriteSheet->getNumberOfAnimations();
+			return !cutoutIDTextures.empty() && colorTable && spriteData->getNumberOfAnimations();
 		}
 
 		void setKeyframe(int index){
 			keyframe = index;
-			if(keyframe > getCurrentAnimation().keyframes.size())
+			if(keyframe > getCurrentAnimation()->getNumberOfKeyframes())
 				keyframe = 0;
 			if(keyframe < 0)
-				keyframe = getCurrentAnimation().keyframes.size()-1;
+				keyframe = getCurrentAnimation()->getNumberOfKeyframes()-1;
 		}
 
 		void operator++(){
 			keyframe++;
-			if(keyframe > getCurrentAnimation().keyframes.size())
+			if(keyframe > getCurrentAnimation()->getNumberOfKeyframes())
 				keyframe = 0;
 		}
 
 		void operator++(int){
 			keyframe++;
-			if(keyframe > getCurrentAnimation().keyframes.size())
+			if(keyframe > getCurrentAnimation()->getNumberOfKeyframes())
 				keyframe = 0;
 		}
 
 		void operator--(){
 			if(keyframe == 0)
-				keyframe = getCurrentAnimation().keyframes.size()-1;
+				keyframe = getCurrentAnimation()->getNumberOfKeyframes()-1;
 			else
 				keyframe--;
 		}
 
 		void clear(){
-			for(PG::GL::Texture* t: spriteIDTextures)
+			for(PG::GL::Texture* t: cutoutIDTextures)
 				delete t;
-			spriteIDTextures.clear();
+			cutoutIDTextures.clear();
 			if(colorTable) delete colorTable;
 			colorTable = nullptr;
-			animationID = 0;
 			keyframe = 0;
 			//m_spriteSheet->clear();
 		}

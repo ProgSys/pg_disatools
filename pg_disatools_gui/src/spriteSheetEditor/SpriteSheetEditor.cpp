@@ -110,7 +110,6 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->btnPausePlay, SIGNAL(clicked()), this, SLOT(clickPlayPause()));
 	connect(ui->btnNext, SIGNAL(clicked()), m_player->getTimeline(), SLOT(nextKeyframe()));
 	connect(ui->comboBox, SIGNAL(currentIndexChanged( int )), m_player, SLOT(setAnimation( int )));
-	connect(m_player, SIGNAL(animationAdded( const QString& )), this, SLOT(addAnimation( const QString& )));
 	connect(m_player->getTimeline(), SIGNAL(onPlay()), this, SLOT(setImagePause()));
 	connect(m_player->getTimeline(), SIGNAL(onPause()), this, SLOT(setImagePlay()));
 
@@ -160,6 +159,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionDump->setEnabled(true);
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
+		ui->comboBox->setCurrentIndex(0);
 	}
 
 }

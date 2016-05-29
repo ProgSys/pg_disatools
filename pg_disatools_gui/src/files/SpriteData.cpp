@@ -7,32 +7,25 @@
 
 #include <files/SpriteData.h>
 #include <QException>
+#include <pg/files/PG_SH.h>
+#include <QDebug>
 
 Cutout::Cutout(QObject *parent): QObject(parent){
 
 }
-Cutout::Cutout(unsigned char externalSheetIDIn, unsigned short sheetIDIn,
-		unsigned short xIn, unsigned short yIn, unsigned short widthIn, unsigned short heightIn
-		,QObject *parent): QObject(parent),
-				m_externalSheetID(externalSheetIDIn),m_sheetID(sheetIDIn),
-				m_pos(QVector2D(xIn,yIn)),
-				m_width(widthIn),m_height(heightIn)
+Cutout::Cutout(const PG::UTIL::IDImage& img,QObject *parent): QObject(parent),m_cutout(img)
 {}
 
-Cutout::Cutout(unsigned char externalSheetIDIn, unsigned short sheetIDIn,
-		const QVector2D& posIn, unsigned short widthIn, unsigned short heightIn
-		,QObject *parent): QObject(parent),
-				m_externalSheetID(externalSheetIDIn),m_sheetID(sheetIDIn),
-				m_pos(posIn),
-				m_width(widthIn),m_height(heightIn)
+Cutout::Cutout(unsigned char externalSheetIDIn, QObject *parent): QObject(parent),m_externalSheetID(externalSheetIDIn)
+{}
+
+Cutout::Cutout(unsigned char externalSheetIDIn, unsigned short widthIn, unsigned short heightIn,QObject *parent): QObject(parent),
+		m_externalSheetID(externalSheetIDIn),m_cutout((int)widthIn,(int)heightIn)
 {}
 
 Cutout::Cutout(const Cutout& cutout): QObject(cutout.parent()),
-		m_externalSheetID(cutout.getEexternalSheetID()),
-		m_sheetID(cutout.getSheetID()),
-		m_pos(cutout.getPos()),
-		m_width(cutout.getWidth()),
-		m_height(cutout.getHeight())
+		m_externalSheetID(cutout.getExternalSheetID()),
+		m_cutout(cutout.getCutout())
 {}
 
 Cutout::~Cutout(){
@@ -40,80 +33,37 @@ Cutout::~Cutout(){
 }
 
 //getters
+
+const PG::UTIL::IDImage& Cutout::getCutout() const{
+	return m_cutout;
+}
+
 bool Cutout::isExternalSheet() const{
 	return m_externalSheetID;
 }
-unsigned char Cutout::getEexternalSheetID() const{
+unsigned short Cutout::getExternalSheetID() const{
 	return m_externalSheetID;
 }
-unsigned short Cutout::getSheetID() const{
-	return m_sheetID;
-}
 
-float Cutout::getX() const{
-	return m_pos.x();
-}
-float Cutout::getY() const{
-	return m_pos.y();
-}
-
-const QVector2D& Cutout::getPos() const{
-	return m_pos;
-}
 
 unsigned short Cutout::getWidth() const{
-	return m_width;
+	return m_cutout.getWidth();
 }
 unsigned short Cutout::getHeight() const{
-	return m_height;
+	return m_cutout.getHeight();
 }
 
 //setters
-void Cutout::setEexternalSheetID(unsigned char externalSheetIDIn){
+void Cutout::setExternalSheetID(unsigned short externalSheetIDIn){
 	if(m_externalSheetID == externalSheetIDIn) return;
 	m_externalSheetID = externalSheetIDIn;
-	emit onEexternalSheetIDChanged();
-}
-void Cutout::setSheetID(unsigned short sheetIDIn){
-	if(m_sheetID == sheetIDIn) return;
-	m_sheetID = sheetIDIn;
-	emit onSheetIDChanged();
+	emit onExternalSheetIDChanged();
 }
 
-void Cutout::setX(float xIn){
-	if(m_pos.x() == xIn) return;
-	m_pos.setX(xIn);
-	emit onXChanged();
-	emit onPosChanged();
-}
-void Cutout::setY(float yIn){
-	if(m_pos.y() == yIn) return;
-	m_pos.setY(yIn);
-	emit onYChanged();
-	emit onPosChanged();
-}
-
-void Cutout::setPos(const QVector2D& posIn){
-	if(m_pos.x() != posIn.x()){
-		m_pos.setX(posIn.x());
-		emit onXChanged();
-		emit onPosChanged();
-	}
-	if(m_pos.y() != posIn.y()){
-		m_pos.setY(posIn.y());
-		emit onYChanged();
-		emit onPosChanged();
-	}
-}
-
-void Cutout::setWidth(unsigned short widthIn){
-	if(m_width == widthIn) return;
-	m_width = widthIn;
+void Cutout::setCutout(const PG::UTIL::IDImage& img){
+	m_cutout = img;
+	emit onCutoutChanged();
 	emit onWidthChanged();
-}
-void Cutout::setHeight(unsigned short heightIn){
-	if(m_height == heightIn) return;
-	m_height = heightIn;
 	emit onHeightChanged();
 }
 
@@ -286,15 +236,16 @@ void Keyframe::operator =(const Keyframe &keyframe)
      m_layers = keyframe.m_layers;
 }
 
-void Keyframe::pushLayer(const Layer& layer){
+void Keyframe::push_backLayer(Layer* layer){
+	if(!layer) return;
 	m_layers.push_back(layer);
 	emit onNumberOfLayersChanged();
 }
-void Keyframe::pushLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+void Keyframe::push_backLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
 		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn){
-	pushLayer(Layer(cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetyIn,offsetxIn,rotationIn,mirrorIn,this ));
+	push_backLayer(new Layer(cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetyIn,offsetxIn,rotationIn,mirrorIn,this ));
 }
 
 
@@ -305,6 +256,10 @@ int Keyframe::getDuration() const
 
 int Keyframe::getNumberOfLayers() const{
 	return m_layers.size();
+}
+
+const QList<Layer*>& Keyframe::getLayers() const{
+	return m_layers;
 }
 
 void Keyframe::setDuration(int duration)
@@ -347,6 +302,18 @@ void SpriteAnimation::operator =(const SpriteAnimation& ani){
 	emit onNumberOfKeyframesChanged();
 }
 
+void SpriteAnimation::push_backKeyframe(int duration){
+	if(duration <= 0) return;
+	m_keyframes.push_back(new Keyframe(duration, this));
+	emit onNumberOfKeyframesChanged();
+}
+
+void SpriteAnimation::push_backKeyframe(Keyframe* key){
+	if(!key) return;
+	m_keyframes.push_back(key);
+	emit onNumberOfKeyframesChanged();
+}
+
 //getters
 unsigned int SpriteAnimation::getID() const{
 	return m_ID;
@@ -357,14 +324,16 @@ const QString& SpriteAnimation::getName() const{
 int SpriteAnimation::getNumberOfKeyframes() const{
 	return m_keyframes.size();
 }
-const QList<Keyframe>& SpriteAnimation::getKeyframes() const{
+
+
+const QList<Keyframe*>& SpriteAnimation::getKeyframes() const{
 	return m_keyframes;
 }
 
 unsigned int SpriteAnimation::getTotalFrames() const{
 	unsigned int lenght = 0;
-	for(const Keyframe& key: m_keyframes)
-		lenght += key.getDuration();
+	for(const Keyframe* const key: m_keyframes)
+		lenght += key->getDuration();
 	return lenght;
 }
 
@@ -386,9 +355,9 @@ void SpriteAnimation::setName(const QString& nameIn){
 
 SpriteData::SpriteData(QObject *parent): QAbstractListModel(parent) {
 	// TODO Auto-generated constructor stub
-	m_aniamtions.push_back(SpriteAnimation(1,"AniTest"));
-	m_aniamtions.push_back(SpriteAnimation(10,"AniWalk"));
-	m_aniamtions.push_back(SpriteAnimation(12,"HalloWorld"));
+	//m_aniamtions.push_back(SpriteAnimation(1,"AniTest"));
+	//m_aniamtions.push_back(SpriteAnimation(10,"AniWalk"));
+	//m_aniamtions.push_back(SpriteAnimation(12,"HalloWorld"));
 }
 
 SpriteData::~SpriteData() {
@@ -406,8 +375,78 @@ bool SpriteData::save(const QString& file){
 }
 
 bool SpriteData::importSH(const QString& file){
-	//TODO
-	return false;
+	PG::FILE::SH sh;
+
+	if(sh.open(file.toStdString())){
+		qDebug() << "Couldn't read sh file!";
+		return false;
+	}
+
+	unsigned int aniCount = 0;
+	m_aniamtions.reserve(sh.getAnimations().size());
+	for(const PG::FILE::shfileAnimation& ani: sh.getAnimations()){
+
+		m_aniamtions.push_back(new SpriteAnimation(ani.id, "unknown"+QString::number(aniCount), this));
+
+		const PG::FILE::shfileKeyframe* currKey = &sh.getKeyframes()[ani.start_keyframe];
+		while(currKey->type != 2){
+			Keyframe* key = new Keyframe(currKey->duration,m_aniamtions.back());
+			m_aniamtions.back()->push_backKeyframe(key);
+
+			const PG::FILE::shfileLayers& currlayer = sh.getLayers()[currKey->bundel_index];
+			for(unsigned int i = currlayer.start_cutout; i < currlayer.start_cutout+currlayer.number_of_cutouts; i++){
+				const PG::FILE::shfileCutout& currCutout =  sh.getCutouts()[i];
+
+				if(currCutout.external_sheet){
+					m_cutouts.push_back(new Cutout(currCutout.external_sheet, this));
+				}else{
+					//TODO find a way to reduce the number of cutouts, a way to find the same cutouts
+					Cutout* cutout = new Cutout(this);
+					const PG::UTIL::IDImage& pgimg = sh.getSprtieSheets()[currCutout.sheet];
+					PG::UTIL::IDImage window;
+					PG::UTIL::uvec2 pos(currCutout.x, currCutout.y);
+					PG::UTIL::uvec2 size(
+							((pos.x+currCutout.width > pgimg.getWidth())? pgimg.getWidth()-pos.x : currCutout.width),
+							((pos.y+currCutout.height > pgimg.getHeight())? pgimg.getHeight()-pos.y : currCutout.height));
+
+					pgimg.getWindow(pos,size,window);
+					cutout->setCutout(window);
+
+					m_cutouts.push_back(cutout);
+				}
+
+				key->push_backLayer(m_cutouts.size()-1,currCutout.colortable,
+						currCutout.anchorx,currCutout.anchory,
+						currCutout.scalex, currCutout.scaley,
+						currCutout.offsetx, currCutout.offsety,
+						currCutout.rotation, currCutout.mirror);
+
+			}
+
+			currKey++;
+		}
+
+		aniCount++;
+	}
+
+	//load colortable
+	m_colortable.reserve(sh.getColortables().size());
+	m_colortableGL = sh.getColortables();
+	for(const PG::UTIL::rgba& color: sh.getColortables()){
+		m_colortable.push_back(QColor(color.r,color.g,color.b,color.a));
+	}
+	if(m_aniamtions.empty()){
+		m_currentAnimation = -1;
+		emit onNumberOfAnimationsChanged();
+		emit onCurrentAnimationChanged();
+		emit onAnimationChanged(nullptr);
+	}else{
+		m_currentAnimation = 0;
+		emit onNumberOfAnimationsChanged();
+		emit onCurrentAnimationChanged();
+		emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
+	}
+	return true;
 }
 bool SpriteData::exportSH(const QString& file){
 	//TODO
@@ -433,13 +472,33 @@ int SpriteData::getNumberOfAnimations() const{
 	return m_aniamtions.size();
 }
 
+int SpriteData::getNumberOfCutouts() const{
+	return m_cutouts.size();
+}
+
+int SpriteData::getNumberOfColortables() const{
+	return m_colortable.size()/16;
+}
+
 int SpriteData::getCurrentAnimationIndex() const{
 	return m_currentAnimation;
 }
 
-const SpriteAnimation& SpriteData::getCurrentAnimation() const{
-	if(m_currentAnimation < 0 || m_aniamtions.empty()) throw "There are no animations!";
+const SpriteAnimation* SpriteData::getCurrentAnimation() const{
+	if(m_currentAnimation < 0 || m_aniamtions.empty()) return nullptr;
 	return m_aniamtions[m_currentAnimation];
+}
+
+const QList<Cutout*>& SpriteData::getCutouts() const{
+	return m_cutouts;
+}
+
+const QList<QColor>& SpriteData::getColortable() const{
+	return m_colortable;
+}
+
+const PG::FILE::ColorTable& SpriteData::getColortableGL() const{
+	return m_colortableGL;
 }
 
 //setters
@@ -449,7 +508,7 @@ void SpriteData::setCurrentAnimationByIndex(int index){
 	if(m_currentAnimation == index) return;
 	m_currentAnimation = index;
 	emit onCurrentAnimationChanged();
-	emit onAnimationChanged(&m_aniamtions[m_currentAnimation]);
+	emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
 }
 
 // QAbstractListModel
@@ -461,8 +520,8 @@ QVariant SpriteData::data(const QModelIndex & index, int role) const{
 	        return QVariant();
 
 	    if (role == Qt::DisplayRole){
-	    	const SpriteAnimation& ani = m_aniamtions.at(index.row());
-	        return QString::number(index.row())+": ID: "+QString::number(ani.getID())+" Name: "+ ani.getName() +" Keyframes: "+QString::number(ani.getNumberOfKeyframes());
+	    	const SpriteAnimation* ani = m_aniamtions.at(index.row());
+	        return QString::number(index.row())+": ID: "+QString::number(ani->getID())+" Name: "+ ani->getName() +" Keyframes: "+QString::number(ani->getNumberOfKeyframes());
 	    }else
 	        return QVariant();
 }
