@@ -51,6 +51,10 @@ int Timeline::getWidth() const
 	return m_totalTrackSize;
 }
 
+QObject* Timeline::getAnimation() const{
+	return m_currAnimation;
+}
+
 int Timeline::getSize() const
 {
 	if(!m_currAnimation) return 0;
@@ -110,7 +114,7 @@ void Timeline::clear(){
 	emit totalFrames(0);
 	emit totalKeyframes(0);
 	emit trackerChanged();
-	emit keyframesChanged();
+	emit onAnimationChanged();
 	emit widthChanged();
 }
 
@@ -132,6 +136,7 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 	}
 
 	m_currAnimation = ani;
+	//qDebug()<<"Animation set to: "<<m_currAnimation->getName();
 	m_tracker = 0;
 	m_currentKeyframe = 0;
 	m_totalTrackSize = m_currAnimation->getTotalFrames();
@@ -141,7 +146,7 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 	emit currentFrame(0);
 	emit currentKeyframe(0);
 	emit trackerChanged();
-	emit keyframesChanged();
+	emit onAnimationChanged();
 
 	if(isPlaying())
 		m_time.start(ONEFRAME_ANIMATION_SPEED);

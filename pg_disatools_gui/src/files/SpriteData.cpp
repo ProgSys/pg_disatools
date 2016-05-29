@@ -279,15 +279,15 @@ Keyframe::~Keyframe()
 
 ////// SPRITEANIMATION //////
 
-SpriteAnimation::SpriteAnimation(QObject *parent): QObject(parent){
+SpriteAnimation::SpriteAnimation(QObject *parent): QAbstractListModel(parent){
 
 }
 
-SpriteAnimation::SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent): QObject(parent),
+SpriteAnimation::SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent): QAbstractListModel(parent),
 		m_ID(IDin), m_name(nameIn)
 {}
 
-SpriteAnimation::SpriteAnimation(const SpriteAnimation& ani): QObject(ani.parent()),
+SpriteAnimation::SpriteAnimation(const SpriteAnimation& ani): QAbstractListModel(ani.parent()),
 		m_ID(ani.getID()),m_name(ani.getName()), m_keyframes(ani.m_keyframes){}
 
 SpriteAnimation::~SpriteAnimation(){
@@ -350,6 +350,22 @@ void SpriteAnimation::setName(const QString& nameIn){
 	emit onNameChanged();
 }
 
+// QAbstractListModel
+QVariant SpriteAnimation::data(const QModelIndex & index, int role) const{
+	   if (!index.isValid())
+	        return QVariant(QVariant::Invalid);
+
+	    if (index.row() >= getNumberOfKeyframes())
+	        return QVariant(QVariant::Invalid);
+
+	    if (role == Qt::DisplayRole){
+	    	return QVariant::fromValue(m_keyframes.at(index.row()));
+	    }else
+	        return QVariant();
+}
+int SpriteAnimation::rowCount(const QModelIndex & parent) const{
+	return getNumberOfKeyframes();
+}
 
 ////// SPRITE DATA //////
 

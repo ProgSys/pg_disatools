@@ -21,6 +21,8 @@ SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
 	qRegisterMetaType< SpriteAnimation >("SpriteAnimation");
 	m_aniData = new SpriteData(this);
 	m_timeline = new Timeline(m_aniData, this);
+
+	connect(m_aniData, SIGNAL( onAnimationChanged(SpriteAnimation*) ),m_timeline, SLOT( setAnimation(SpriteAnimation*) ));
 }
 
 void SpritePlayer::connectGLWidget(GLWidget *gl){

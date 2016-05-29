@@ -151,7 +151,7 @@ bool Texture::setTexture(unsigned char* imagedata, int type, const unsigned int 
 void Texture::bind(const PG::UTIL::IDImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(!img.getWidth() || !img.getHeight() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RED, img.getWidth(), img.getHeight(), texType != SPRITE );
@@ -161,7 +161,7 @@ void Texture::bind(const PG::UTIL::IDImage& img, Texture::type texType){
 void Texture::bind(const PG::UTIL::RGBImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(!img.getWidth() || !img.getHeight() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RGB, img.getWidth(), img.getHeight(), texType != SPRITE );
@@ -171,7 +171,7 @@ void Texture::bind(const PG::UTIL::RGBImage& img, Texture::type texType){
 void Texture::bind(const PG::UTIL::RGBAImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(!img.getWidth() || !img.getHeight() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RGBA, img.getWidth(), img.getHeight(), texType != SPRITE );
@@ -185,7 +185,7 @@ void Texture::bind(const QList<PG::UTIL::rgba>& colors, Texture::type texType){
 	if(colors.empty() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
-	setTexture((unsigned char*) &colors[0], GL_RED, colors.size(), 1, texType != SPRITE );
+	setTexture((unsigned char*) &colors[0], GL_RGBA, colors.size(), 1, texType != SPRITE );
 	checkGLError();
 }
 
@@ -204,10 +204,9 @@ void Texture::bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
 	if(img.empty() || !create()) return;
-	PG_INFO_STREAM("Vector RGBA bind!: "<<img[0]);
 	setTexParameter(texType);
 	checkGLError();
-	setTexture((unsigned char*) &img[0], GL_RED, img.size(), 1, texType != SPRITE );
+	setTexture((unsigned char*) &img[0], GL_RGBA, img.size(), 1, texType != SPRITE );
 	checkGLError();
 }
 

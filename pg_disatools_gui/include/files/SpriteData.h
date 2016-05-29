@@ -185,8 +185,9 @@ private:
 };
 
 Q_DECLARE_METATYPE( Keyframe );
+Q_DECLARE_METATYPE( Keyframe* );
 
-class SpriteAnimation: public QObject
+class SpriteAnimation: public QAbstractListModel
 {
 	Q_OBJECT
     Q_PROPERTY(unsigned int id READ getID WRITE setID NOTIFY onIDChanged)
@@ -214,6 +215,9 @@ public:
 	void setID(unsigned int idIn);
 	void setName(const QString& nameIn);
 
+	//QAbstractListModel
+	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
+	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
 signals:
 	void onIDChanged();
 	void onNameChanged();

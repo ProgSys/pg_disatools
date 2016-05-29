@@ -32,7 +32,7 @@ class Timeline : public QObject
     Q_OBJECT
     Q_PROPERTY(int steps READ getSteps NOTIFY stepsChanged)
     Q_PROPERTY(float timeScale READ getTimeScale NOTIFY timeScaleChanged)
-    //Q_PROPERTY(QList<QObject*> keyframes READ getKeyframes NOTIFY keyframesChanged)
+	Q_PROPERTY(QObject* animation READ getAnimation NOTIFY onAnimationChanged)
     Q_PROPERTY(int width READ getWidth NOTIFY widthChanged)
     Q_PROPERTY(int size READ getSize NOTIFY sizeChanged)
     Q_PROPERTY(int tracker READ getTracker WRITE setTracker NOTIFY trackerChanged)
@@ -59,31 +59,36 @@ public slots:
 	void clear();
 
 	//player
-	int getTracker() const;
-	void setTracker(int tracker);
-	int getWidth() const;
-
-	//setters
-	void setAnimation(SpriteAnimation* ani);
-
 	void nextFrame();
 	void previousFrame();
 	void nextKeyframe();
 	void previousKeyframe();
 	void pause();
 	void play();
+
+	//getters
 	bool isPlaying() const;
+	int getTracker() const;
+	int getWidth() const;
+	QObject* getAnimation() const;
+
+	//setters
+	void setTracker(int tracker);
+	void setAnimation(SpriteAnimation* ani);
+
+
 
 private slots:
 	void loop();
 
 signals:
+
     void widthChanged();
-    void keyframesChanged();
     void sizeChanged();
     void stepsChanged();
     void timeScaleChanged();
     void trackerChanged();
+    void onAnimationChanged();
 
     void render();
 

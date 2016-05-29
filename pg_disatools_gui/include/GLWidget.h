@@ -229,7 +229,6 @@ private:
 
 			colorTable = new PG::GL::Texture();
 			colorTable->bind(spriteData->getColortableGL(), PG::GL::Texture::SPRITE);
-			qDebug()<< "Textures set!";
 		}
 
 		const SpriteAnimation* getCurrentAnimation() const{
