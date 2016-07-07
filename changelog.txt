@@ -61,3 +61,7 @@
 	- Nothing really
   * Sprite Sheet Viewer v0.1.4 alpha:
 	- Added a very fancy timeline
+
+===  ? - v0.4.8 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- Added Info on how to decompress files

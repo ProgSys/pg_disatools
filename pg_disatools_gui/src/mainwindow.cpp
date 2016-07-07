@@ -177,6 +177,8 @@ void MainWindow::on_btnAbout_clicked()
 
 				"<br>Thank you <b>Krisan Thyme</b> for helping out understanding all the file formats!<br>"
 
+				"<a href='https://github.com/ProgSys/pg_disatools/wiki/Compressed-offset-list-archive'>How to decopress a file, like 'START.DAT'.</a><br>"
+
 				"<br><b>GNU Lesser General Public License (LGPL):</b> <br>"
 				"<br>Copyright (C) 2016  ProgSys"\
                 "<br><br>This program is free software: you can redistribute it and/or modify"\
@@ -217,7 +219,10 @@ void MainWindow::on_btnOpen_clicked()
                 title.append(fileNames[0]);
                 setWindowTitle(title);
         	}else{
-            	ui->statusBar->showMessage(QString("Couldn't open %1").arg(fileNames[0]));
+        		if(fileNames[0].toLower() == "start.dat"){
+        			ui->statusBar->showMessage(QString("Couldn't open START.DAT, you may need to decompress it first! (Click 'About' for more info.)"));
+        		}else
+        			ui->statusBar->showMessage(QString("Couldn't open %1").arg(fileNames[0]));
                 ui->btnInsert->setEnabled(false);
                 ui->btnSaveAs->setEnabled(false);
                 setWindowTitle(WINTITLE);
