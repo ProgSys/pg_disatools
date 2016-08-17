@@ -72,7 +72,7 @@ class Layer: public QObject, public QQuickImageProvider
 {
     Q_OBJECT
     Q_PROPERTY(unsigned int cutoutID 		READ getCutoutID WRITE setCutoutID NOTIFY onCutoutIDChanged)
-    Q_PROPERTY(unsigned char colortableID 	READ getColortableID WRITE setColortableID NOTIFY onColortableIDChanged)
+    Q_PROPERTY(unsigned int colortableID 	READ getColortableID WRITE setColortableID NOTIFY onColortableIDChanged)
 	Q_PROPERTY(short anchorx 				READ getAnchorX WRITE setAnchorX NOTIFY onAnchorXChanged)
 	Q_PROPERTY(short anchory 				READ getAnchorY WRITE setAnchorY NOTIFY onAnchorYChanged)
 	Q_PROPERTY(unsigned short scalex 		READ getScaleX WRITE setScaleX NOTIFY onScaleXChanged)
@@ -285,6 +285,7 @@ public:
 	const QList<Cutout*>& getCutouts() const;
 	const QList<QColor>& getColortable() const;
 	const std::vector<PG::UTIL::rgba>& getColortableGL() const;
+	QImage getSprite(unsigned int CutoutID, unsigned int ColortableID) const;
 
 	//setters
 	void setCurrentAnimationByIndex(int index);

@@ -553,6 +553,31 @@ const PG::FILE::ColorTable& SpriteData::getColortableGL() const{
 	return m_colortableGL;
 }
 
+QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) const{
+	if(CutoutID > m_cutouts.size() || ColortableID > getNumberOfColortables()){
+		qInfo() <<"Invalid CutoutID or ColortableID: "<<CutoutID<<", "<<ColortableID;
+		return QImage();
+	}
+
+	Cutout* cutout = m_cutouts[CutoutID];
+	if(cutout->isExternalSheet())
+		return QImage("resources/external.png");
+
+
+	QImage sprite(cutout->getWidth(), cutout->getHeight(), QImage::Format_RGB888);
+	//uchar * data = new uchar[cutout->getWidth()*cutout->getHeight()*3];
+	unsigned int i = 0;
+	for(const unsigned char id: cutout->getCutout()){
+		const QColor& color = m_colortable[ ColortableID*16 + int(id)];
+		sprite.bits()[i] = color.red();
+		sprite.bits()[i+1] = color.green();
+		sprite.bits()[i+2] = color.blue();
+		i += 3;
+	}
+
+	return sprite;
+}
+
 //setters
 void SpriteData::setCurrentAnimationByIndex(int index){
 	if(index < 0) index = 0;

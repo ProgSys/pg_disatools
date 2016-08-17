@@ -127,7 +127,12 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
 
+    m_TimelinePreviewImageProvider = new TimelinePreviewImageProvider(m_player->getSpriteData());
+    ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
+
     ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
+    ui->spritesView->close();
+    //ui->quickSpriteView->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
 }
 
 void SpriteSheetEditor::open(){
@@ -248,5 +253,6 @@ void SpriteSheetEditor::pickBackgroundColor(){
 SpriteSheetEditor::~SpriteSheetEditor() {
 	delete m_player;
 	delete ui;
+	//if(m_TimelinePreviewImageProvider) delete m_TimelinePreviewImageProvider;
 }
 
