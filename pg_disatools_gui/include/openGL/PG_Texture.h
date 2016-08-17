@@ -60,6 +60,9 @@ public:
 
 	void release() const;
 
+	unsigned int getWidth() const;
+	unsigned int getHeight() const;
+
 	virtual ~Texture();
 private:
 	bool create();
@@ -69,6 +72,8 @@ private:
 			const unsigned int width, const unsigned int height,
 			bool midmap = true, bool freedata = false, bool flipYAxis = false
 			);
+	unsigned int m_width = 0;
+	unsigned int m_height = 0;
 };
 
 } /* namespace GL */

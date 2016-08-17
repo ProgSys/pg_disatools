@@ -263,7 +263,7 @@ void Keyframe::push_backLayer(unsigned int cutoutIDIn, unsigned char colortableI
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
 		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn){
-	push_backLayer(new Layer(cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetyIn,offsetxIn,rotationIn,mirrorIn,this ));
+	push_backLayer(new Layer(cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn,this ));
 }
 
 
@@ -450,7 +450,7 @@ bool SpriteData::importSH(const QString& file){
 				const PG::FILE::shfileCutout& currCutout =  sh.getCutouts()[i];
 
 				if(currCutout.external_sheet){
-					m_cutouts.push_back(new Cutout(currCutout.external_sheet, this));
+					m_cutouts.push_back(new Cutout(currCutout.external_sheet,currCutout.width,currCutout.height, this));
 				}else{
 					//TODO find a way to reduce the number of cutouts, a way to find the same cutouts
 					Cutout* cutout = new Cutout(this);

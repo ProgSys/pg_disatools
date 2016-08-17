@@ -50,6 +50,7 @@
 inline PG::UTIL::mat4 scaleMat(const SpriteData* ani, const Layer* lay){
 	PG::UTIL::mat4 mat;
 	const Cutout* cut = ani->getCutouts()[lay->getCutoutID()];
+
 	mat[0][0] = (cut->getWidth()/50.0) * (lay->getScaleX()/100.0);
 	mat[1][1] = (cut->getHeight()/50.0) * (lay->getScaleY()/100.0);
 	return mat;
@@ -268,8 +269,9 @@ private:
 
 			//could be multiplied out, but meh fast enogh
 			const float angle = toRad(-lay->getRotation());
-			modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
-			//PG_INFO_STREAM("x: "<<cut.offsetx<< " y: "<<cut.offsety<<" width: "<<((cut.width/50.0)*(cut.scalex/100.0))<<" height: "<<((cut.height/50.0)*(cut.scaley/100.0))<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
+			//modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
+			modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
+			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 
 		void setUniforms(GLWidget::spriteShader& shader, unsigned int layer = 0){
@@ -278,10 +280,19 @@ private:
 			 const Layer* lay = key->getLayers()[layer];
 			 const Cutout* cut = spriteData->getCutouts()[lay->getCutoutID()];
 
-			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
+			 if(cut->isExternalSheet())
+				 shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(externalSheet->getWidth(), externalSheet->getHeight()));
+			 else
+				 shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
 			shader.setUniform(shader.startLoc, PG::UTIL::vec2(0, 0));
 			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
 
+			/*
+			if(lay->getMirror() == 10 || lay->getMirror() == 8 )
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 0));
+			else
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
+			 	*/
 			//set colortable
 			if(cut->isExternalSheet()){
 				shader.setUniform(shader.colorTableStartLoc, (int)0);

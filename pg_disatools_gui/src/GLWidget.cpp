@@ -316,12 +316,17 @@ void GLWidget::paintGL(){
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
     	for(unsigned int i = 0; i < m_animationInfo.getNumberOfLayers(); ++i){
-    		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[m_animationInfo.getCurrentKeyframe()->getLayers()[i]->getCutoutID()]->isExternalSheet()) continue;
+    		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[m_animationInfo.getCurrentKeyframe()->getLayers()[i]->getCutoutID()]->isExternalSheet())
+					continue;
+
     		m_animationInfo.setCurrentModelMat(modelMatrix, i);
+
     		m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
     		m_animationInfo.setUniforms(m_spriteShader, i);
     		m_animationInfo.apply(i);
     		m_spriteGeometry.apply();
+
+
     	}
     	glDepthFunc(GL_LEQUAL);
 		//glDepthMask(true);

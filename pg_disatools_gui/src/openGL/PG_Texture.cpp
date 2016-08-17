@@ -97,6 +97,9 @@ bool Texture::setTexture(unsigned char* imagedata, int type, const unsigned int 
 		bytesPerPixel = 4;
 	}
 
+	m_width = width;
+	m_height = height;
+
 	if(bytesPerPixel == 0){
 		qDebug()<<"glGenTextures returns a error! "<<QString::number(m_GLID);
 		//PG_ERROR_STREAM("Unable to open image, strange number of pixels.");
@@ -236,6 +239,14 @@ void Texture::apply() const{
 
 void Texture::release() const{
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+unsigned int Texture::getWidth() const{
+	return m_width;
+}
+
+unsigned int Texture::getHeight() const{
+	return m_height;
 }
 
 Texture::~Texture() {
