@@ -126,6 +126,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     qmlRegisterType<Keyframe>("MyKeyframe",0,1, "Keyframe");
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
+
+    ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
 }
 
 void SpriteSheetEditor::open(){

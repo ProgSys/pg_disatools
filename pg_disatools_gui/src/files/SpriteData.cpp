@@ -79,14 +79,14 @@ void Cutout::setCutout(const PG::UTIL::IDImage& img){
 
 ///// LAYER /////
 
-Layer::Layer(QObject *parent):QObject(parent){
+Layer::Layer(QObject *parent):QObject(parent), QQuickImageProvider(QQmlImageProviderBase::Image){
 
 }
 Layer::Layer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
 		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, QObject *parent):
-			QObject(parent),
+			QObject(parent),QQuickImageProvider(QQmlImageProviderBase::Image),
 			m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
 			m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
 			m_scalex(scalexIn) ,m_scaley(scaleyIn),
@@ -95,7 +95,7 @@ Layer::Layer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
 
 }
 
-Layer::Layer(const Layer& layer): QObject(layer.parent()),
+Layer::Layer(const Layer& layer): QObject(layer.parent()), QQuickImageProvider(QQmlImageProviderBase::Image),
 		m_cutoutID(layer.getCutoutID()), m_colortableID(layer.getColortableID()),
 		m_anchorx(layer.getAnchorX()),m_anchory(layer.getAnchorY()) ,
 		m_scalex(layer.getScaleX()) ,m_scaley(layer.getScaleY()),
@@ -155,6 +155,14 @@ short Layer::getRotation() const{
 }
 unsigned char Layer::getMirror() const{
 	return m_mirror;
+}
+
+QImage Layer::getImage() const{
+	return QImage("resources/test.jpg");
+}
+
+QImage Layer::requestImage(const QString &id, QSize *size, const QSize &requestedSize){
+	return getImage();
 }
 
 //setters
@@ -220,13 +228,13 @@ Layer::~Layer(){
 
 ///// KEYFRAME /////
 Keyframe::Keyframe(QObject *parent)
-: QObject(parent)
+: QAbstractListModel(parent)
 {
 
 }
 
 Keyframe::Keyframe(int duration, QObject *parent)
-    : QObject(parent)
+    : QAbstractListModel(parent)
 {
     if(duration <= 0)
         m_duration = 1;
@@ -235,7 +243,7 @@ Keyframe::Keyframe(int duration, QObject *parent)
 }
 
 Keyframe::Keyframe(const Keyframe &keyframe)
- : QObject(nullptr)
+ : QAbstractListModel(nullptr)
 {
     m_duration = keyframe.getDuration();
 }
@@ -280,6 +288,24 @@ void Keyframe::setDuration(int duration)
          m_duration = duration;
          emit onDurationChanged();
     }
+}
+
+// QAbstractListModel
+QVariant Keyframe::data(const QModelIndex & index, int role) const{
+	   if (!index.isValid())
+	        return QVariant();
+
+	    if (index.row() >= getNumberOfLayers())
+	        return QVariant();
+
+	    if (role == Qt::DisplayRole){
+	    	return QVariant::fromValue(m_layers.at(index.row()));
+	    }else
+	        return QVariant();
+}
+
+int Keyframe::rowCount(const QModelIndex & parent) const{
+	return getNumberOfLayers();
 }
 
 Keyframe::~Keyframe()

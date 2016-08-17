@@ -83,7 +83,7 @@ public:
 	void close();
 	virtual ~OutByteFile();
 private:
-	std::ofstream m_outFile;
+	mutable std::ofstream m_outFile;
 };
 
 } /* namespace STREAM */

@@ -147,6 +147,7 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 	emit currentKeyframe(0);
 	emit trackerChanged();
 	emit onAnimationChanged();
+	emit widthChanged();
 
 	if(isPlaying())
 		m_time.start(ONEFRAME_ANIMATION_SPEED);

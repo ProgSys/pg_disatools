@@ -62,6 +62,9 @@
   * Sprite Sheet Viewer v0.1.4 alpha:
 	- Added a very fancy timeline
 
-===  ? - v0.4.8 ===
+===  17.08.2016 - v0.4.8 ===
   * Disa PC File Manager v0.4.8 alpha:
 	- Added Info on how to decompress files
+	- You can now decompress multiple files at the same time!
+  * Sprite Sheet Viewer v0.1.4 alpha:
+	- nothing

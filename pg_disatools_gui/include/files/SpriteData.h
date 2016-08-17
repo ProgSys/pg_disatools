@@ -26,6 +26,7 @@
 #include <QColor>
 #include <pg/util/PG_Image.h>
 #include <vector>
+#include <QQuickImageProvider>
 
 class Cutout: public QObject{
 	Q_OBJECT
@@ -67,7 +68,7 @@ private:
 
 Q_DECLARE_METATYPE( Cutout );
 
-class Layer: public QObject
+class Layer: public QObject, public QQuickImageProvider
 {
     Q_OBJECT
     Q_PROPERTY(unsigned int cutoutID 		READ getCutoutID WRITE setCutoutID NOTIFY onCutoutIDChanged)
@@ -81,6 +82,8 @@ class Layer: public QObject
 
 	Q_PROPERTY(short rotation 				READ getRotation WRITE setRotation NOTIFY onRotationChanged)
 	Q_PROPERTY(unsigned char mirror 		READ getMirror WRITE setMirror NOTIFY onMirrorChanged)
+
+	Q_PROPERTY(QImage image		READ getImage NOTIFY onImageChanged)
 
 public:
     explicit Layer(QObject *parent = 0);
@@ -108,6 +111,10 @@ public:
 
     short getRotation() const;
     unsigned char getMirror() const;
+
+    QImage getImage() const;
+
+    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 
     //setters
     void setCutoutID(unsigned int cutoutIDIn);
@@ -141,6 +148,8 @@ signals:
     void onRotationChanged();
     void onMirrorChanged();
 
+    void onImageChanged();
+
 private:
 	unsigned int m_cutoutID = 0;
 	unsigned char m_colortableID = 0; // the 16 rgba colortable which the sheet should use
@@ -157,8 +166,10 @@ private:
 };
 
 Q_DECLARE_METATYPE( Layer );
+Q_DECLARE_METATYPE( Layer* );
 
-class Keyframe : public QObject
+
+class Keyframe : public QAbstractListModel
 {
     Q_OBJECT
     Q_PROPERTY(int duration READ getDuration WRITE setDuration NOTIFY onDurationChanged)
@@ -184,6 +195,10 @@ public:
 
     //setters
     void setDuration(int duration);
+
+	//QAbstractListModel
+	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
+	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
 
 signals:
     void onDurationChanged();
