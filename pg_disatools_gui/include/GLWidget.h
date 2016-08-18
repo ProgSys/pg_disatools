@@ -86,10 +86,6 @@ public:
 public slots:
 	///returns true on success
 	bool open(const SpriteData* spriteSheet);
-	bool dump(const QString& filepath);
-
-	///if png is false then tga is used
-	int exportSprites(const QString& folder, const QString& type);
 
 	void renderFrame(int frame);
 	void renderFrame();

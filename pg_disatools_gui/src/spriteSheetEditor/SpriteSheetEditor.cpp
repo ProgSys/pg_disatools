@@ -115,8 +115,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(m_player->getTimeline(), SIGNAL(onPause()), this, SLOT(setImagePlay()));
 
 
-	connect(this, SIGNAL(dumpSprite( const QString& )), ui->openGLWidget, SLOT(dump( const QString& )));
-	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), ui->openGLWidget, SLOT( exportSprites( const QString& , const QString& ) ) );
+	connect(this, SIGNAL(dumpSprite( const QString& )), m_player->getSpriteData(), SLOT(dump( const QString& )));
+	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSprites( const QString& , const QString& ) ) );
 
 	connect(this, SIGNAL(backgroundColorSelected(  const QColor& )), ui->openGLWidget, SLOT( setBackgroundColor( const QColor& )));
 

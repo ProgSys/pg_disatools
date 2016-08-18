@@ -415,6 +415,9 @@
    </property>
   </action>
   <action name="actionImport_SH">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Import .SH</string>
    </property>

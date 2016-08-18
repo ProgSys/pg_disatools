@@ -340,6 +340,11 @@ private:
 Q_DECLARE_METATYPE( SpriteAnimation );
 
 
+struct SpriteSheetInfo{
+	int width;
+	int height;
+};
+
 class SpriteData : public QAbstractListModel{
 	 Q_OBJECT
 	 Q_PROPERTY(int animationsSize READ getNumberOfAnimations NOTIFY onNumberOfAnimationsChanged)
@@ -357,6 +362,7 @@ public:
 	bool exportSH(const QString& file);
 
 	void close();
+
 
 	// getters
 	bool isOpen() const;
@@ -379,6 +385,10 @@ public:
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
 	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
 
+public slots:
+	///if png is false then tga is used
+	int exportSprites(const QString& folder, const QString& type);
+	bool dump(const QString& filepath);
 signals:
 	void onNumberOfAnimationsChanged();
 	void onCurrentAnimationChanged();
@@ -392,6 +402,8 @@ private:
 	QList<SpriteAnimation*> m_aniamtions;
 	QList<Cutout*> m_cutouts;
 	QList<QColor> m_colortable;
+
+	QList<SpriteSheetInfo> m_spriteSheetInfos;
 	std::vector<PG::UTIL::rgba> m_colortableGL;
 };
 
