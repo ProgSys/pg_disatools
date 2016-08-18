@@ -315,6 +315,7 @@ void GLWidget::paintGL(){
     	modelMatrix = PG::UTIL::mat4();
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
+
     	for(const Layer* lay: m_animationInfo.getCurrentAnimation()->getLayers()){
     		//PG_INFO_STREAM("Render Layer '"<<lay->getName().toStdString()<<"'!");
     		const Keyframe* keyframe = m_animationInfo.getCurrentKeyframe(lay);
@@ -329,16 +330,7 @@ void GLWidget::paintGL(){
         		m_spriteGeometry.apply();
     		}
     	}
-    	for(unsigned int i = 0; i < m_animationInfo.getNumberOfLayers(); ++i){
 
-
-
-
-
-
-
-
-    	}
     	glDepthFunc(GL_LEQUAL);
 		//glDepthMask(true);
     }

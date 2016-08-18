@@ -80,6 +80,18 @@ void Timeline::setTracker(int tracker)
     }
 }
 
+void Timeline::setTimeScale(float scale){
+	if(m_timeScale == scale) return;
+	m_timeScale = scale;
+	emit timeScaleChanged();
+}
+
+void Timeline::setSteps(int steps){
+	if(m_steps == steps) return;
+	m_steps = steps;
+	emit stepsChanged();
+}
+
 void Timeline::clear(){
 	m_tracker = 0;
 	m_totalTrackSize = 0;

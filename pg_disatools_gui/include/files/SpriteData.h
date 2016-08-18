@@ -298,6 +298,7 @@ class SpriteAnimation: public QAbstractListModel
     Q_PROPERTY(unsigned int id READ getID WRITE setID NOTIFY onIDChanged)
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY onNameChanged)
 	Q_PROPERTY(int layerSize READ getNumberOfLayers NOTIFY onNumberOfLayersChanged)
+	Q_PROPERTY(int length READ getTotalFrames NOTIFY onNumberOfLayersChanged)
 public:
 	explicit SpriteAnimation(QObject *parent = 0);
 	explicit SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent = 0);
@@ -343,6 +344,7 @@ class SpriteData : public QAbstractListModel{
 	 Q_OBJECT
 	 Q_PROPERTY(int animationsSize READ getNumberOfAnimations NOTIFY onNumberOfAnimationsChanged)
 	 Q_PROPERTY(int currentAnimationIndex READ getCurrentAnimationIndex  WRITE setCurrentAnimationByIndex NOTIFY onCurrentAnimationChanged)
+	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
 public:
 	SpriteData(QObject *parent = 0);
 	virtual ~SpriteData();
@@ -362,6 +364,7 @@ public:
 	int getNumberOfCutouts() const;
 	int getNumberOfColortables() const;
 	int getCurrentAnimationIndex() const;
+	QString getLastFileName() const;
 
 	const SpriteAnimation* getCurrentAnimation() const;
 	const QList<Cutout*>& getCutouts() const;
@@ -380,6 +383,7 @@ signals:
 	void onNumberOfAnimationsChanged();
 	void onCurrentAnimationChanged();
 	void onAnimationChanged(SpriteAnimation* ani);
+	void onLastFileNameChanged();
 
 private:
 	QString m_lastFile;

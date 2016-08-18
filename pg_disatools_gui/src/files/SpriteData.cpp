@@ -527,7 +527,8 @@ int Layer::rowCount(const QModelIndex & parent) const{
 
 Layer::~Layer()
 {
-
+	for(Keyframe* key: m_keyframes)
+		delete key;
 }
 
 ////// SPRITEANIMATION //////
@@ -544,7 +545,8 @@ SpriteAnimation::SpriteAnimation(const SpriteAnimation& ani): QAbstractListModel
 		m_ID(ani.getID()),m_name(ani.getName()), m_Layers(ani.m_Layers){}
 
 SpriteAnimation::~SpriteAnimation(){
-
+	for(Layer* lay: m_Layers)
+		delete lay;
 }
 
 void SpriteAnimation::operator =(const SpriteAnimation& ani){
@@ -635,7 +637,7 @@ SpriteData::SpriteData(QObject *parent): QAbstractListModel(parent) {
 }
 
 SpriteData::~SpriteData() {
-	// TODO Auto-generated destructor stub
+	close();
 }
 
 // functions
@@ -661,6 +663,9 @@ inline int findCutout(const QList<Cutout*> cutouts,const PG::FILE::shfileCutout&
 }
 
 bool SpriteData::importSH(const QString& file){
+	if(file.size() == 0) return false;
+	close();
+
 	PG::FILE::SH sh;
 
 	if(sh.open(file.toStdString())){
@@ -687,6 +692,7 @@ bool SpriteData::importSH(const QString& file){
 				int cutoutID = -1;
 				//cutout
 				if(currCutout.external_sheet){
+					cutoutID = m_cutouts.size();
 					m_cutouts.push_back(new Cutout(currCutout.external_sheet,currCutout.width,currCutout.height, this));
 				}else{
 					cutoutID = findCutout(m_cutouts, currCutout);
@@ -764,6 +770,9 @@ bool SpriteData::importSH(const QString& file){
 		emit onCurrentAnimationChanged();
 		emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
 	}
+
+	m_lastFile = file;
+	emit onLastFileNameChanged();
 	return true;
 }
 bool SpriteData::exportSH(const QString& file){
@@ -772,7 +781,13 @@ bool SpriteData::exportSH(const QString& file){
 }
 
 void SpriteData::close(){
+	for(Cutout* cut: m_cutouts)
+		delete cut;
 	m_cutouts.clear();
+	m_colortable.clear();
+	m_colortableGL.clear();
+	for(SpriteAnimation* ani: m_aniamtions)
+		delete ani;
 	m_aniamtions.clear();
 
 	emit onNumberOfAnimationsChanged();
@@ -800,6 +815,10 @@ int SpriteData::getNumberOfColortables() const{
 
 int SpriteData::getCurrentAnimationIndex() const{
 	return m_currentAnimation;
+}
+
+QString SpriteData::getLastFileName() const{
+	return m_lastFile;
 }
 
 const SpriteAnimation* SpriteData::getCurrentAnimation() const{

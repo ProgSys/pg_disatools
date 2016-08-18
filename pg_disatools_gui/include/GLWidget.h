@@ -50,6 +50,7 @@
 
 inline PG::UTIL::mat4 scaleMat(const SpriteData* ani, const Keyframe* key){
 	PG::UTIL::mat4 mat;
+	assert_Test("CutoutID out of bound!", key->getCutoutID() > ani->getCutouts().size());
 	const Cutout* cut = ani->getCutouts()[key->getCutoutID()];
 
 	mat[0][0] = (cut->getWidth()/50.0) * (key->getScaleX()/100.0);
@@ -277,6 +278,7 @@ private:
 
 		void setUniforms(GLWidget::spriteShader& shader, const Keyframe* key){
 			assert_Test("Key is nullptr!", !key);
+			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
 
 			 if(cut->isExternalSheet())

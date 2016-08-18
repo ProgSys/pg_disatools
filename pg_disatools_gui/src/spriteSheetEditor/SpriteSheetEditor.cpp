@@ -24,6 +24,7 @@
 #include <QColorDialog>
 #include <QtQml>
 #include <spriteSheetEditor/Timeline.h>
+//#include <QShortcut>
 
 inline void about(){
     QMessageBox msgBox;
@@ -133,6 +134,9 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
     ui->spritesView->close();
     //ui->quickSpriteView->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
+
+    //QShortcut *shortcut = new QShortcut(QKeySequence("Space"), this);
+    // QObject::connect(shortcut, SIGNAL(activated()), receiver, SLOT(yourSlotHere()));
 }
 
 void SpriteSheetEditor::open(){

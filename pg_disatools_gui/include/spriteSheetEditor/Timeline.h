@@ -30,8 +30,8 @@
 class Timeline : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int steps READ getSteps NOTIFY stepsChanged)
-    Q_PROPERTY(float timeScale READ getTimeScale NOTIFY timeScaleChanged)
+    Q_PROPERTY(int steps READ getSteps WRITE setSteps NOTIFY stepsChanged)
+    Q_PROPERTY(float timeScale READ getTimeScale WRITE setTimeScale NOTIFY timeScaleChanged)
 	Q_PROPERTY(QObject* animation READ getAnimation NOTIFY onAnimationChanged)
     Q_PROPERTY(int width READ getWidth NOTIFY widthChanged)
     Q_PROPERTY(int size READ getSize NOTIFY sizeChanged)
@@ -66,6 +66,8 @@ public slots:
 
 	//setters
 	void setTracker(int tracker);
+	void setTimeScale(float scale);
+	void setSteps(int steps);
 	void setAnimation(SpriteAnimation* ani);
 
 
