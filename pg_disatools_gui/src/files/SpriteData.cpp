@@ -630,10 +630,6 @@ int SpriteAnimation::rowCount(const QModelIndex & parent) const{
 ////// SPRITE DATA //////
 
 SpriteData::SpriteData(QObject *parent): QAbstractListModel(parent) {
-	// TODO Auto-generated constructor stub
-	//m_aniamtions.push_back(SpriteAnimation(1,"AniTest"));
-	//m_aniamtions.push_back(SpriteAnimation(10,"AniWalk"));
-	//m_aniamtions.push_back(SpriteAnimation(12,"HalloWorld"));
 }
 
 SpriteData::~SpriteData() {
@@ -673,6 +669,7 @@ bool SpriteData::importSH(const QString& file){
 		return false;
 	}
 
+	beginInsertRows(index(0),0,sh.getAnimations().size());
 	unsigned int aniCount = 0;
 	m_aniamtions.reserve(sh.getAnimations().size());
 	for(const PG::FILE::shfileAnimation& ani: sh.getAnimations()){
@@ -772,6 +769,9 @@ bool SpriteData::importSH(const QString& file){
 	}
 
 	m_lastFile = file;
+
+	endInsertRows();
+
 	emit onLastFileNameChanged();
 	return true;
 }
@@ -786,9 +786,14 @@ void SpriteData::close(){
 	m_cutouts.clear();
 	m_colortable.clear();
 	m_colortableGL.clear();
+
+	beginRemoveRows(index(0),0,m_aniamtions.size());
 	for(SpriteAnimation* ani: m_aniamtions)
 		delete ani;
 	m_aniamtions.clear();
+	endRemoveRows();
+
+	m_currentAnimation = -1;
 
 	emit onNumberOfAnimationsChanged();
 	emit onCurrentAnimationChanged();

@@ -247,15 +247,19 @@ private:
 			return getCurrentAnimation()->getNumberOfLayers();
 		}
 
-		const Keyframe* getCurrentKeyframe(const Layer* lay) const{
+		const Keyframe* getCurrentKeyframe(const Layer* lay, int testframe) const{
 			if(!lay) return nullptr;
 			for(const Keyframe* key: lay->getKeyframes()){
-				if(frame >= key->getStart() && frame < key->getEnd() )
+				if(testframe >= key->getStart() && testframe < key->getEnd() )
 					return key;
 			}
-			if(!lay->getKeyframes().empty() && frame == lay->getKeyframes().last()->getEnd())
+			if(!lay->getKeyframes().empty() && testframe == lay->getKeyframes().last()->getEnd())
 				return lay->getKeyframes().last();
 			return nullptr;
+		}
+
+		const Keyframe* getCurrentKeyframe(const Layer* lay) const{
+			return getCurrentKeyframe(lay,frame);
 		}
 
 		const Cutout* getCutout(unsigned short cut = 1){

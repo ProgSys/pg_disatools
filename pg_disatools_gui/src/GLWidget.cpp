@@ -212,11 +212,21 @@ void GLWidget::renderFrame(){
 }
 
 void GLWidget::renderFrame(int frame){
-	if(m_currentFrame != frame){
-		m_currentFrame = frame;
-		m_animationInfo.setFrame(frame);
-		update();
+	if(m_currentFrame == frame) return;
+
+	//is there a visual difference?
+	for(const Layer* lay: m_animationInfo.getCurrentAnimation()->getLayers()){
+
+		if(m_animationInfo.getCurrentKeyframe(lay,m_currentFrame) != m_animationInfo.getCurrentKeyframe(lay,frame)){
+			m_currentFrame = frame;
+			m_animationInfo.setFrame(frame);
+			update();
+			return;
+		}
 	}
+
+	m_currentFrame = frame;
+	m_animationInfo.setFrame(frame);
 }
 
 void GLWidget::displayExternalReferences(bool display){
@@ -311,6 +321,7 @@ void GLWidget::paintGL(){
     }
 
     if(m_animationInfo){
+    	//PG_INFO_STREAM("RENDER!");
     	//sprite
     	modelMatrix = PG::UTIL::mat4();
     	glDepthFunc(GL_ALWAYS);

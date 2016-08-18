@@ -144,10 +144,10 @@ void Timeline::nextFrame(){
 	m_tracker++;
 	if(m_tracker > m_totalTrackSize)
 		m_tracker = 0;
-	emit render();
 
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 
 }
 void Timeline::previousFrame(){
@@ -156,10 +156,10 @@ void Timeline::previousFrame(){
 	if(m_tracker < 0)
 		m_tracker = m_totalTrackSize;
 
-	emit render();
 
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 }
 void Timeline::nextKeyframe(){
 	if(!m_currAnimation) return;
@@ -176,7 +176,9 @@ void Timeline::nextKeyframe(){
 	else
 		m_tracker = lastFrame;
 
+	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 }
 void Timeline::previousKeyframe(){
 	if(!m_currAnimation) return;
@@ -193,7 +195,9 @@ void Timeline::previousKeyframe(){
 	else
 		m_tracker = lastFrame;
 
+	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 }
 void Timeline::pause(){
 	m_playing = false;
