@@ -207,14 +207,14 @@ int GLWidget::exportSprites(const QString& folder, const QString& type ){
 }
 
 
-void GLWidget::renderKeyframe(){
+void GLWidget::renderFrame(){
 	update();
 }
 
-void GLWidget::renderKeyframe(int index){
-	if(m_currentKeyframe != index){
-		m_currentKeyframe = index;
-		m_animationInfo.setKeyframe(index);
+void GLWidget::renderFrame(int frame){
+	if(m_currentFrame != frame){
+		m_currentFrame = frame;
+		m_animationInfo.setFrame(frame);
 		update();
 	}
 }
@@ -315,16 +315,27 @@ void GLWidget::paintGL(){
     	modelMatrix = PG::UTIL::mat4();
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
+    	for(const Layer* lay: m_animationInfo.getCurrentAnimation()->getLayers()){
+    		//PG_INFO_STREAM("Render Layer '"<<lay->getName().toStdString()<<"'!");
+    		const Keyframe* keyframe = m_animationInfo.getCurrentKeyframe(lay);
+    		if(keyframe){
+        		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
+    					continue;
+        		//PG_INFO_STREAM("Render Keyframe!");
+    			m_animationInfo.setCurrentModelMat(modelMatrix, keyframe);
+    			m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
+        		m_animationInfo.setUniforms(m_spriteShader, keyframe);
+        		m_animationInfo.apply(keyframe);
+        		m_spriteGeometry.apply();
+    		}
+    	}
     	for(unsigned int i = 0; i < m_animationInfo.getNumberOfLayers(); ++i){
-    		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[m_animationInfo.getCurrentKeyframe()->getLayers()[i]->getCutoutID()]->isExternalSheet())
-					continue;
 
-    		m_animationInfo.setCurrentModelMat(modelMatrix, i);
 
-    		m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
-    		m_animationInfo.setUniforms(m_spriteShader, i);
-    		m_animationInfo.apply(i);
-    		m_spriteGeometry.apply();
+
+
+
+
 
 
     	}

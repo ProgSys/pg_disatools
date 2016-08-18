@@ -26,6 +26,10 @@ Cutout::Cutout(QObject *parent): QObject(parent){
 Cutout::Cutout(const PG::UTIL::IDImage& img,QObject *parent): QObject(parent),m_cutout(img)
 {}
 
+Cutout::Cutout(const PG::UTIL::IDImage& img, const PG::UTIL::ivec2& position, QObject *parent):
+		QObject(parent), m_position(position), m_cutout(img)
+{}
+
 Cutout::Cutout(unsigned char externalSheetIDIn, QObject *parent): QObject(parent),m_externalSheetID(externalSheetIDIn)
 {}
 
@@ -40,6 +44,10 @@ Cutout::Cutout(const Cutout& cutout): QObject(cutout.parent()),
 
 Cutout::~Cutout(){
 
+}
+
+bool Cutout::isSame(int x,int y, int width, int height, int sheetID) const{
+	return !isExternalSheet() && m_position.x == x && m_position.y == y && m_cutout.getWidth() == width && m_cutout.getHeight() == height && m_sheetID == sheetID;
 }
 
 //getters
@@ -63,6 +71,22 @@ unsigned short Cutout::getHeight() const{
 	return m_cutout.getHeight();
 }
 
+const PG::UTIL::ivec2& Cutout::getPosition() const{
+	return m_position;
+}
+
+int Cutout::getX() const{
+	return m_position.x;
+}
+
+int Cutout::getY() const{
+	return m_position.y;
+}
+
+int Cutout::getSheetID() const{
+	return m_sheetID;
+}
+
 //setters
 void Cutout::setExternalSheetID(unsigned short externalSheetIDIn){
 	if(m_externalSheetID == externalSheetIDIn) return;
@@ -77,247 +101,431 @@ void Cutout::setCutout(const PG::UTIL::IDImage& img){
 	emit onHeightChanged();
 }
 
-///// LAYER /////
+void Cutout::setPosition(const PG::UTIL::ivec2& pos){
+	if(m_position.x == pos.x && m_position.y == pos.y) return;
+	m_position = pos;
+	emit onPositionChanged();
+}
 
-Layer::Layer(QObject *parent):QObject(parent), QQuickImageProvider(QQmlImageProviderBase::Image){
+void Cutout::setPosition(int x, int y){
+	if(m_position.x == x && m_position.y == y) return;
+	m_position.x = x;
+	m_position.y = y;
+	emit onPositionChanged();
+}
+
+void Cutout::setX(int x){
+	if(m_position.x == x) return;
+	m_position.x = x;
+	emit onPositionChanged();
+}
+
+void Cutout::setY(int y){
+	if(m_position.y == y) return;
+	m_position.y = y;
+	emit onPositionChanged();
+}
+
+void Cutout::setSheetID(int id){
+	if(m_sheetID == id) return;
+	m_sheetID = id;
 
 }
-Layer::Layer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+
+///// KEYFRAME /////
+
+Keyframe::Keyframe(QObject *parent):QObject(parent), QQuickImageProvider(QQmlImageProviderBase::Image){
+
+}
+
+Keyframe::Keyframe(Keyframe* previousIn, int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
+		short anchorxIn, short anchoryIn,
+		unsigned short scalexIn, unsigned short scaleyIn,
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent):
+					QObject(parent),QQuickImageProvider(QQmlImageProviderBase::Image),
+					m_start(startIn), m_duration(durationIn),
+					m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
+					m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
+					m_scalex(scalexIn) ,m_scaley(scaleyIn),
+					m_offsetx(offsetxIn), m_offsety(offsetyIn),
+					m_rotation(rotationIn), m_mirror(mirrorIn), m_unknown(unknown),
+					m_previous(previousIn)
+		{
+			if(previousIn && m_start < previousIn->getEnd())
+				m_start = previousIn->getEnd();
+		}
+
+Keyframe::Keyframe(int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
 		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent):
 			QObject(parent),QQuickImageProvider(QQmlImageProviderBase::Image),
+			m_start(startIn), m_duration(durationIn),
 			m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
 			m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
 			m_scalex(scalexIn) ,m_scaley(scaleyIn),
 			m_offsetx(offsetxIn), m_offsety(offsetyIn),
-			m_rotation(rotationIn), m_mirror(mirrorIn), m_unknown(unknown) {
+			m_rotation(rotationIn), m_mirror(mirrorIn), m_unknown(unknown)
+		{}
 
+Keyframe::Keyframe(const Keyframe& keyframe): QObject(keyframe.parent()), QQuickImageProvider(QQmlImageProviderBase::Image),
+		m_start(keyframe.getStart()), m_duration(keyframe.getDuration()),
+		m_cutoutID(keyframe.getCutoutID()), m_colortableID(keyframe.getColortableID()),
+		m_anchorx(keyframe.getAnchorX()),m_anchory(keyframe.getAnchorY()) ,
+		m_scalex(keyframe.getScaleX()) ,m_scaley(keyframe.getScaleY()),
+		m_offsetx(keyframe.getOffsetX()), m_offsety(keyframe.getOffsetY()),
+		m_rotation(keyframe.getRotation()), m_mirror(keyframe.getMirror()), m_unknown(keyframe.getUnknown()),
+		m_previous(const_cast<Keyframe*>(keyframe.getPrevious())), m_next(const_cast<Keyframe*>(keyframe.getNext()))
+		{}
+
+void Keyframe::operator =(const Keyframe& keyframe){
+	setStart(keyframe.getStart());
+	setDuration(keyframe.getDuration());
+
+	setCutoutID(keyframe.getCutoutID());
+	setColortableID(keyframe.getColortableID());
+	setAnchorX(keyframe.getAnchorX());
+	setAnchorX(keyframe.getAnchorY());
+
+	setScaleX(keyframe.getScaleX());
+	setScaleY(keyframe.getScaleY());
+
+	setOffsetX(keyframe.getOffsetX());
+	setOffsetY(keyframe.getOffsetY());
+
+	setUnknown(keyframe.getUnknown());
+	setRotation(keyframe.getRotation());
+
+	setMirror(keyframe.getMirror());
+	setPrevious(const_cast<Keyframe*> (keyframe.getPrevious()));
+	setNext(const_cast<Keyframe*> (keyframe.getNext()));
 }
 
-Layer::Layer(const Layer& layer): QObject(layer.parent()), QQuickImageProvider(QQmlImageProviderBase::Image),
-		m_cutoutID(layer.getCutoutID()), m_colortableID(layer.getColortableID()),
-		m_anchorx(layer.getAnchorX()),m_anchory(layer.getAnchorY()) ,
-		m_scalex(layer.getScaleX()) ,m_scaley(layer.getScaleY()),
-		m_offsetx(layer.getOffsetX()), m_offsety(layer.getOffsetY()),
-		m_rotation(layer.getRotation()), m_mirror(layer.getMirror()){
-
+bool Keyframe::operator ==(const Keyframe* keyframe) const{
+	return keyframe && m_cutoutID == keyframe->getCutoutID() && m_colortableID == keyframe->getColortableID()
+			&& m_anchorx == keyframe->getAnchorX() && m_anchory == keyframe->getAnchorY()
+			&& m_scalex == keyframe->getScaleX() && m_scaley == keyframe->getScaleY()
+			&& m_offsetx == keyframe->getOffsetX() && m_offsety == keyframe->getOffsetY()
+			&& m_rotation == keyframe->getRotation() && m_unknown == keyframe->getUnknown()
+			&& m_mirror == keyframe->getMirror();
 }
 
-void Layer::operator =(const Layer& layer){
-	setCutoutID(layer.getCutoutID());
-	setColortableID(layer.getColortableID());
-	setAnchorX(layer.getAnchorX());
-	setAnchorX(layer.getAnchorY());
-
-	setScaleX(layer.getScaleX());
-	setScaleY(layer.getScaleY());
-
-	setOffsetX(layer.getOffsetX());
-	setOffsetY(layer.getOffsetY());
-
-	setRotation(layer.getRotation());
-
-	setMirror(layer.getMirror());
+bool Keyframe::isSame(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+		short anchorxIn, short anchoryIn,
+		unsigned short scalexIn, unsigned short scaleyIn,
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown) const{
+	return  m_cutoutID == cutoutIDIn && m_colortableID == colortableIDIn
+			&& m_anchorx == anchorxIn && m_anchory == anchoryIn
+			&& m_scalex == scalexIn && m_scaley == scaleyIn
+			&& m_offsetx == offsetxIn && m_offsety == offsetyIn
+			&& m_rotation == rotationIn
+			&& m_unknown == unknown && m_mirror == mirrorIn;
 }
 
 //getters
-unsigned int Layer::getCutoutID() const{
+
+int Keyframe::getStart() const{
+	return m_start;
+}
+
+int Keyframe::getDuration() const{
+	return m_duration;
+}
+
+int Keyframe::getEnd() const{
+	return m_start+m_duration;
+}
+
+unsigned int Keyframe::getCutoutID() const{
 	return m_cutoutID;
 }
-unsigned char Layer::getColortableID() const{
+unsigned char Keyframe::getColortableID() const{
 	return m_colortableID;
 }
 
-short Layer::getAnchorX() const{
+short Keyframe::getAnchorX() const{
 	return m_anchorx;
 }
-short Layer::getAnchorY() const{
+short Keyframe::getAnchorY() const{
 	return m_anchory;
 }
 
-unsigned short Layer::getScaleX() const{
+unsigned short Keyframe::getScaleX() const{
 	return m_scalex;
 }
-unsigned short Layer::getScaleY() const{
+unsigned short Keyframe::getScaleY() const{
 	return m_scaley;
 }
 
-short Layer::getOffsetX() const{
+short Keyframe::getOffsetX() const{
 	return m_offsetx;
 }
-short Layer::getOffsetY() const{
+short Keyframe::getOffsetY() const{
 	return m_offsety;
 }
 
-short Layer::getRotation() const{
+short Keyframe::getRotation() const{
 	return m_rotation;
 }
-unsigned char Layer::getMirror() const{
+unsigned char Keyframe::getMirror() const{
 	return m_mirror;
 }
 
-unsigned char Layer::getUnknown() const{
+unsigned char Keyframe::getUnknown() const{
 	return m_unknown;
 }
 
-QImage Layer::getImage() const{
+Keyframe* Keyframe::getNext(){
+	return m_next;
+}
+
+const Keyframe* Keyframe::getNext() const{
+	return m_next;
+}
+
+bool Keyframe::hasNext() const{
+	return m_next;
+}
+
+Keyframe* Keyframe::getPrevious(){
+	return m_previous;
+}
+
+const Keyframe* Keyframe::getPrevious() const{
+	return m_previous;
+}
+
+bool Keyframe::hasPrevious() const{
+	return m_previous;
+}
+
+QImage Keyframe::getImage() const{
 	return QImage("resources/test.jpg");
 }
 
-QImage Layer::requestImage(const QString &id, QSize *size, const QSize &requestedSize){
+QImage Keyframe::requestImage(const QString &id, QSize *size, const QSize &requestedSize){
 	return getImage();
 }
 
 //setters
-void Layer::setCutoutID(unsigned int cutoutIDIn){
+void Keyframe::setStart(int startIn){
+	if(startIn == m_start) return;
+
+	if(m_previous && startIn <= m_previous->getEnd()){
+		m_start = m_previous->getEnd()+1;
+	}else if(m_next && startIn >= m_next->getStart()){
+		m_start = m_next->getStart()-1;
+	}else
+		m_start = startIn;
+	emit onStartChanged();
+}
+
+void Keyframe::setDuration(int durationIn){
+	if(durationIn <= 0 || durationIn == m_duration) return;
+
+	if(m_next && (m_start+durationIn) >= m_next->getStart()){
+		m_duration = m_next->getStart() - m_start;
+	}else
+		m_duration = durationIn;
+	emit onDurationChanged();
+}
+
+void Keyframe::setCutoutID(unsigned int cutoutIDIn){
 	if(cutoutIDIn == m_cutoutID) return;
 	m_cutoutID = cutoutIDIn;
 	emit onCutoutIDChanged();
 }
-void Layer::setColortableID(unsigned char colortableIDIn){
+void Keyframe::setColortableID(unsigned char colortableIDIn){
 	if(colortableIDIn == m_colortableID) return;
 	m_colortableID = colortableIDIn;
 	emit onColortableIDChanged();
 }
 
-void Layer::setAnchorX(short anchorxIn){
+void Keyframe::setAnchorX(short anchorxIn){
 	if(anchorxIn == m_anchorx) return;
 	m_anchorx = anchorxIn;
 	emit onAnchorXChanged();
 }
-void Layer::setAnchorY(short anchoryIn){
+void Keyframe::setAnchorY(short anchoryIn){
 	if(anchoryIn == m_anchory) return;
 	m_anchory = anchoryIn;
 	emit onAnchorYChanged();
 }
 
-void Layer::setScaleX(unsigned short scalexIn){
+void Keyframe::setScaleX(unsigned short scalexIn){
 	if(scalexIn == m_scalex) return;
 	m_scalex = scalexIn;
 	emit onScaleXChanged();
 }
-void Layer::setScaleY(unsigned short scaleyIn){
+void Keyframe::setScaleY(unsigned short scaleyIn){
 	if(scaleyIn == m_scaley) return;
 	m_scaley = scaleyIn;
 	emit onScaleYChanged();
 }
 
-void Layer::setOffsetX(short offsetxIn){
+void Keyframe::setOffsetX(short offsetxIn){
 	if(offsetxIn == m_offsetx) return;
 	m_offsetx = offsetxIn;
 	emit onOffsetXChanged();
 }
-void Layer::setOffsetY(short offsetyIn){
+void Keyframe::setOffsetY(short offsetyIn){
 	if(offsetyIn == m_offsety) return;
 	m_offsety = offsetyIn;
 	emit onOffsetYChanged();
 }
 
-void Layer::setRotation(short rotationIn){
+void Keyframe::setRotation(short rotationIn){
 	if(rotationIn == m_rotation) return;
 	m_rotation = rotationIn;
 	emit onRotationChanged();
 }
-void Layer::setMirror(unsigned char mirrorIn){
+void Keyframe::setMirror(unsigned char mirrorIn){
 	if(mirrorIn == m_mirror) return;
 	m_mirror = mirrorIn;
 	emit onMirrorChanged();
 }
 
-void Layer::setUnknown(unsigned char unknowIn){
+void Keyframe::setUnknown(unsigned char unknowIn){
 	if(unknowIn == m_unknown) return;
 	m_unknown = unknowIn;
 	emit onUnknownChanged();
 }
 
-Layer::~Layer(){
+void Keyframe::setNext(Keyframe* nextIn){
+	m_next = nextIn;
+}
+
+void Keyframe::setPrevious(Keyframe* previousIn){
+	m_previous = previousIn;
+}
+
+Keyframe::~Keyframe(){
 
 }
 
-///// KEYFRAME /////
-Keyframe::Keyframe(QObject *parent)
+///// LAYER /////
+Layer::Layer(QObject *parent)
 : QAbstractListModel(parent)
 {
 
 }
 
-Keyframe::Keyframe(int duration, QObject *parent)
+Layer::Layer(const QString& nameIn, QObject *parent)
     : QAbstractListModel(parent)
 {
-    if(duration <= 0)
-        m_duration = 1;
-    else
-        m_duration = duration;
+    if(nameIn.size())
+    	m_name = nameIn;
 }
 
-Keyframe::Keyframe(const Keyframe &keyframe)
+Layer::Layer(const Layer &layer)
  : QAbstractListModel(nullptr)
 {
-    m_duration = keyframe.getDuration();
+	m_name = layer.getName();
+	m_keyframes = layer.getKeyframes();
 }
 
-void Keyframe::operator =(const Keyframe &keyframe)
+void Layer::operator =(const Layer &layer)
 {
-     m_duration = keyframe.getDuration();
-     m_layers = keyframe.m_layers;
+	m_name = layer.getName();
+	m_keyframes = layer.getKeyframes();
 }
 
-void Keyframe::push_backLayer(Layer* layer){
-	if(!layer) return;
-	m_layers.push_back(layer);
-	emit onNumberOfLayersChanged();
+void Layer::push_backKeyframe(Keyframe* keyframe){
+	if(!keyframe) return;
+	if(m_keyframes.size()){
+		m_keyframes.last()->setNext(keyframe);
+		keyframe->setPrevious(m_keyframes.last());
+	}
+	m_keyframes.push_back(keyframe);
+	emit onNumberOfKeyframesChanged();
 }
-void Keyframe::push_backLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+
+void Layer::push_backKeyframe(int duration, unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
-		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown){
-	push_backLayer(new Layer(cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn, unknown,this ));
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, bool seperate){
+
+	Keyframe* key = nullptr;
+	if(m_keyframes.empty()){
+		key = new Keyframe(0, duration, cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn, unknown,this );
+	}else{
+		if(!seperate && m_keyframes.last()->isSame(cutoutIDIn,colortableIDIn,anchorxIn, anchoryIn, scalexIn, scaleyIn, offsetxIn, offsetyIn, rotationIn, mirrorIn, unknown)){
+			m_keyframes.last()->setDuration(m_keyframes.last()->getDuration()+duration);
+			return;
+		}else
+			key = new Keyframe(m_keyframes.last(), m_keyframes.last()->getEnd(), duration, cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn, unknown,this );
+	}
+
+	push_backKeyframe(key);
 }
 
+void Layer::push_backKeyframe(int start, int duration, unsigned int cutoutIDIn, unsigned char colortableIDIn,
+		short anchorxIn, short anchoryIn,
+		unsigned short scalexIn, unsigned short scaleyIn,
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, bool seperate){
 
-int Keyframe::getDuration() const
+	Keyframe* key = nullptr;
+	if(m_keyframes.empty()){
+		key = new Keyframe(start, duration, cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn, unknown,this );
+	}else{
+		if(!seperate && m_keyframes.last()->getEnd() == start
+				&& m_keyframes.last()->isSame(cutoutIDIn,colortableIDIn,anchorxIn, anchoryIn, scalexIn, scaleyIn, offsetxIn, offsetyIn, rotationIn, mirrorIn, unknown)){
+			m_keyframes.last()->setDuration(m_keyframes.last()->getDuration()+duration);
+			return;
+		}else
+			key = new Keyframe(m_keyframes.last(), start, duration, cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn, unknown,this );
+	}
+
+	push_backKeyframe(key);
+}
+
+const QString& Layer::getName() const{
+	return m_name;
+}
+
+int Layer::getDuration() const
 {
-    return m_duration;
+	if(m_keyframes.empty())
+		return 0;
+	else
+		return m_keyframes.last()->getEnd();
 }
 
-int Keyframe::getNumberOfLayers() const{
-	return m_layers.size();
+
+int Layer::getNumberOfKeyframes() const{
+	return m_keyframes.size();
 }
 
-const QList<Layer*>& Keyframe::getLayers() const{
-	return m_layers;
+const QList<Keyframe*>& Layer::getKeyframes() const{
+	return m_keyframes;
 }
 
-void Keyframe::setDuration(int duration)
-{
-    if(duration <= 0)
-        duration = 1;
-    if(duration != m_duration){
-         m_duration = duration;
-         emit onDurationChanged();
-    }
+void Layer::setName( const QString& name){
+	if(!name.size() || name == m_name) return;
+	m_name = name;
+	emit onNameChanged();
 }
+
 
 // QAbstractListModel
-QVariant Keyframe::data(const QModelIndex & index, int role) const{
+QVariant Layer::data(const QModelIndex & index, int role) const{
 	   if (!index.isValid())
 	        return QVariant();
 
-	    if (index.row() >= getNumberOfLayers())
+	    if (index.row() >= getNumberOfKeyframes())
 	        return QVariant();
 
 	    if (role == Qt::DisplayRole){
-	    	return QVariant::fromValue(m_layers.at(index.row()));
+	    	return QVariant::fromValue(m_keyframes.at(index.row()));
 	    }else
 	        return QVariant();
 }
 
-int Keyframe::rowCount(const QModelIndex & parent) const{
-	return getNumberOfLayers();
+int Layer::rowCount(const QModelIndex & parent) const{
+	return getNumberOfKeyframes();
 }
 
-Keyframe::~Keyframe()
+Layer::~Layer()
 {
 
 }
@@ -333,7 +541,7 @@ SpriteAnimation::SpriteAnimation(unsigned int IDin, const QString& nameIn, QObje
 {}
 
 SpriteAnimation::SpriteAnimation(const SpriteAnimation& ani): QAbstractListModel(ani.parent()),
-		m_ID(ani.getID()),m_name(ani.getName()), m_keyframes(ani.m_keyframes){}
+		m_ID(ani.getID()),m_name(ani.getName()), m_Layers(ani.m_Layers){}
 
 SpriteAnimation::~SpriteAnimation(){
 
@@ -343,20 +551,20 @@ void SpriteAnimation::operator =(const SpriteAnimation& ani){
 	setID(ani.getID());
 	setName(ani.getName());
 
-	m_keyframes = ani.m_keyframes;
-	emit onNumberOfKeyframesChanged();
+	m_Layers = ani.m_Layers;
+	emit onNumberOfLayersChanged();
 }
 
-void SpriteAnimation::push_backKeyframe(int duration){
-	if(duration <= 0) return;
-	m_keyframes.push_back(new Keyframe(duration, this));
-	emit onNumberOfKeyframesChanged();
+void SpriteAnimation::push_backLayer(const QString& name){
+	if(name.size() <= 0) return;
+	m_Layers.push_back(new Layer(name, this));
+	emit onNumberOfLayersChanged();
 }
 
-void SpriteAnimation::push_backKeyframe(Keyframe* key){
-	if(!key) return;
-	m_keyframes.push_back(key);
-	emit onNumberOfKeyframesChanged();
+void SpriteAnimation::push_backLayer(Layer* layer){
+	if(!layer) return;
+	m_Layers.push_back(layer);
+	emit onNumberOfLayersChanged();
 }
 
 //getters
@@ -366,19 +574,24 @@ unsigned int SpriteAnimation::getID() const{
 const QString& SpriteAnimation::getName() const{
 	return m_name;
 }
-int SpriteAnimation::getNumberOfKeyframes() const{
-	return m_keyframes.size();
+int SpriteAnimation::getNumberOfLayers() const{
+	return m_Layers.size();
 }
 
 
-const QList<Keyframe*>& SpriteAnimation::getKeyframes() const{
-	return m_keyframes;
+QList<Layer*>& SpriteAnimation::getLayers(){
+	return m_Layers;
+}
+
+const QList<Layer*>& SpriteAnimation::getLayers() const{
+	return m_Layers;
 }
 
 unsigned int SpriteAnimation::getTotalFrames() const{
 	unsigned int lenght = 0;
-	for(const Keyframe* const key: m_keyframes)
-		lenght += key->getDuration();
+	for(const Layer* const layer: m_Layers)
+		if(lenght< layer->getDuration())
+			lenght = layer->getDuration();
 	return lenght;
 }
 
@@ -400,16 +613,16 @@ QVariant SpriteAnimation::data(const QModelIndex & index, int role) const{
 	   if (!index.isValid())
 	        return QVariant(QVariant::Invalid);
 
-	    if (index.row() >= getNumberOfKeyframes())
+	    if (index.row() >= getNumberOfLayers())
 	        return QVariant(QVariant::Invalid);
 
 	    if (role == Qt::DisplayRole){
-	    	return QVariant::fromValue(m_keyframes.at(index.row()));
+	    	return QVariant::fromValue(m_Layers.at(index.row()));
 	    }else
 	        return QVariant();
 }
 int SpriteAnimation::rowCount(const QModelIndex & parent) const{
-	return getNumberOfKeyframes();
+	return getNumberOfLayers();
 }
 
 ////// SPRITE DATA //////
@@ -435,6 +648,18 @@ bool SpriteData::save(const QString& file){
 	return false;
 }
 
+inline int findCutout(const QList<Cutout*> cutouts,const PG::FILE::shfileCutout& currCutout){
+	int count = 0;
+	for(const Cutout* cut: cutouts){
+		if(cut->isSame(currCutout.x,currCutout.y, currCutout.width,currCutout.height, currCutout.sheet)){
+			return count;
+		}
+		count++;
+	}
+
+	return -1;
+}
+
 bool SpriteData::importSH(const QString& file){
 	PG::FILE::SH sh;
 
@@ -450,43 +675,75 @@ bool SpriteData::importSH(const QString& file){
 		m_aniamtions.push_back(new SpriteAnimation(ani.id, "unknown"+QString::number(aniCount), this));
 
 		const PG::FILE::shfileKeyframe* currKey = &sh.getKeyframes()[ani.start_keyframe];
+		int startOffset = 0;
+		int keyCount = 0;
 		while(currKey->type != 2){
-			Keyframe* key = new Keyframe(currKey->duration,m_aniamtions.back());
-			m_aniamtions.back()->push_backKeyframe(key);
 
 			const PG::FILE::shfileLayers& currlayer = sh.getLayers()[currKey->bundel_index];
+			int layerCount = 0;
+
 			for(unsigned int i = currlayer.start_cutout; i < currlayer.start_cutout+currlayer.number_of_cutouts; i++){
 				const PG::FILE::shfileCutout& currCutout =  sh.getCutouts()[i];
-
+				int cutoutID = -1;
+				//cutout
 				if(currCutout.external_sheet){
 					m_cutouts.push_back(new Cutout(currCutout.external_sheet,currCutout.width,currCutout.height, this));
 				}else{
-					//TODO find a way to reduce the number of cutouts, a way to find the same cutouts
-					Cutout* cutout = new Cutout(this);
-					const PG::UTIL::IDImage& pgimg = sh.getSprtieSheets()[currCutout.sheet];
-					PG::UTIL::IDImage window;
-					PG::UTIL::uvec2 pos(currCutout.x, currCutout.y);
-					PG::UTIL::uvec2 size(
-							((pos.x+currCutout.width > pgimg.getWidth())? pgimg.getWidth()-pos.x : currCutout.width),
-							((pos.y+currCutout.height > pgimg.getHeight())? pgimg.getHeight()-pos.y : currCutout.height));
+					cutoutID = findCutout(m_cutouts, currCutout);
+					if(cutoutID < 0){
+						Cutout* cutout = new Cutout(this);
+						const PG::UTIL::IDImage& pgimg = sh.getSprtieSheets()[currCutout.sheet];
+						PG::UTIL::IDImage window;
+						PG::UTIL::uvec2 pos(currCutout.x, currCutout.y);
+						PG::UTIL::uvec2 size(
+								((pos.x+currCutout.width > pgimg.getWidth())? pgimg.getWidth()-pos.x : currCutout.width),
+								((pos.y+currCutout.height > pgimg.getHeight())? pgimg.getHeight()-pos.y : currCutout.height));
 
-					pgimg.getWindow(pos,size,window);
-					cutout->setCutout(window);
-
-					m_cutouts.push_back(cutout);
+						pgimg.getWindow(pos,size,window);
+						cutout->setCutout(window);
+						cutout->setPosition(currCutout.x,currCutout.y);
+						cutout->setSheetID(currCutout.sheet);
+						cutoutID = m_cutouts.size();
+						m_cutouts.push_back(cutout);
+					}
 				}
 
-				key->push_backLayer(m_cutouts.size()-1,currCutout.colortable,
+				Layer* layer = nullptr;
+				if(layerCount < m_aniamtions.back()->getLayers().size() ){
+					layer = m_aniamtions.back()->getLayers()[layerCount];
+				}else{
+					m_aniamtions.back()->push_backLayer("layer"+QString::number(layerCount));
+					layer = m_aniamtions.back()->getLayers().back();
+				}
+
+				/*
+				if(aniCount == 1 && layerCount == 0 && !layer->getKeyframes().empty()){
+					Keyframe* kT = layer->getKeyframes().last();
+					PG_INFO_STREAM(" __________________ ");
+					PG_INFO_STREAM(kT->getCutoutID() << " == "<<cutoutID);
+					PG_INFO_STREAM(kT->getAnchorX() << " == "<<currCutout.anchorx);
+					PG_INFO_STREAM(kT->getAnchorY() << " == "<<currCutout.anchory);
+					PG_INFO_STREAM(kT->getScaleX() << " == "<<currCutout.scalex);
+					PG_INFO_STREAM(kT->getScaleY() << " == "<<currCutout.scaley);
+					PG_INFO_STREAM(kT->getOffsetX() << " == "<<currCutout.offsetx);
+					PG_INFO_STREAM(kT->getOffsetY() << " == "<<currCutout.offsety);
+					PG_INFO_STREAM(kT->getRotation() << " == "<<currCutout.rotation);
+				}
+				*/
+
+				layer->push_backKeyframe(startOffset, currKey->duration, cutoutID,
+						currCutout.colortable,
 						currCutout.anchorx,currCutout.anchory,
 						currCutout.scalex, currCutout.scaley,
 						currCutout.offsetx, currCutout.offsety,
 						currCutout.rotation, currCutout.mirror, currCutout.unkown0);
 
+				layerCount++;
 			}
-
+			keyCount++;
+			startOffset += currKey->duration;
 			currKey++;
 		}
-
 		aniCount++;
 	}
 
@@ -607,7 +864,7 @@ QVariant SpriteData::data(const QModelIndex & index, int role) const{
 
 	    if (role == Qt::DisplayRole){
 	    	const SpriteAnimation* ani = m_aniamtions.at(index.row());
-	        return QString::number(index.row())+": ID: "+QString::number(ani->getID())+" Name: "+ ani->getName() +" Keyframes: "+QString::number(ani->getNumberOfKeyframes());
+	        return QString::number(index.row())+": ID: "+QString::number(ani->getID())+" Name: "+ ani->getName() +" Duration: "+QString::number(ani->getTotalFrames());
 	    }else
 	        return QVariant();
 }

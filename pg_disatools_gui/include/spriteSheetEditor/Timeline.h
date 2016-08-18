@@ -43,14 +43,6 @@ public:
     int getSteps() const;
     float getTimeScale() const;
     int getSize() const;
-    Q_INVOKABLE int getOffset(int index) const;
-
-
-    /*!
-     * @brief Get the track witch is under the tracker.
-     * @returns -1 when there is no track under the tracker, like when there are no trackes.
-     */
-    int getTrackIndex() const;
 
 
 
@@ -92,9 +84,6 @@ signals:
 
     void render();
 
-    void currentKeyframe(int keyframe);
-    void totalKeyframes(int totalkeyframes);
-
     void currentFrame(int frame);
     void totalFrames(int totalframes);
 
@@ -115,7 +104,6 @@ private:
     //tracker
     int m_tracker = 0;
     int m_totalTrackSize = 0;
-    int m_currentKeyframe = 0;
 
     SpriteAnimation* m_currAnimation = nullptr;
 };

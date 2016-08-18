@@ -34,14 +34,21 @@ class Cutout: public QObject{
     Q_PROPERTY(unsigned char externalSheetID 	READ getExternalSheetID WRITE setExternalSheetID NOTIFY onExternalSheetIDChanged)
 	Q_PROPERTY(unsigned short cutoutWidth 		READ getWidth NOTIFY onWidthChanged)
 	Q_PROPERTY(unsigned short cutoutHeight 		READ getHeight NOTIFY onHeightChanged)
+
+	Q_PROPERTY(int x READ getX WRITE setX NOTIFY onPositionChanged)
+	Q_PROPERTY(int y READ getY WRITE setY NOTIFY onPositionChanged)
+
 	//Q_PROPERTY(QImage cutout READ getCutout WRITE setCutout NOTIFY onCutoutChanged)
 public:
 	explicit Cutout(QObject *parent = 0);
 	explicit Cutout(const PG::UTIL::IDImage& img, QObject *parent = 0);
+	explicit Cutout(const PG::UTIL::IDImage& img, const PG::UTIL::ivec2& position, QObject *parent = 0);
 	explicit Cutout(unsigned char externalSheetIDIn, QObject *parent = 0);
 	explicit Cutout(unsigned char externalSheetIDIn, unsigned short widthIn, unsigned short heightIn,QObject *parent = 0);
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
+
+	bool isSame(int x,int y, int width, int height, int sheetID) const;
 
 	//getters
 	bool isExternalSheet() const;
@@ -50,10 +57,19 @@ public:
 	const PG::UTIL::IDImage& getCutout() const;
 	unsigned short getWidth() const;
 	unsigned short getHeight() const;
+	const PG::UTIL::ivec2& getPosition() const;
+	int getX() const;
+	int getY() const;
+	int getSheetID() const;
 
 	//setters
 	void setExternalSheetID(unsigned short externalSheetIDIn);
 	void setCutout(const PG::UTIL::IDImage& img);
+	void setPosition(const PG::UTIL::ivec2& pos);
+	void setPosition(int x, int y);
+	void setX(int x);
+	void setY(int y);
+	void setSheetID(int id);
 
 signals:
 	void onExternalSheetIDChanged();
@@ -61,16 +77,25 @@ signals:
 	void onCutoutChanged();
 	void onWidthChanged();
 	void onHeightChanged();
+	void onPositionChanged();
 private:
 	unsigned short  m_externalSheetID = 0; // get a sheet from different file by it's ID
 	PG::UTIL::IDImage m_cutout;
+	PG::UTIL::ivec2 m_position = PG::UTIL::ivec2(0,0);
+	int m_sheetID = -1;
 };
 
 Q_DECLARE_METATYPE( Cutout );
 
-class Layer: public QObject, public QQuickImageProvider
+//Forward deceleration
+class Layer;
+
+class Keyframe: public QObject, public QQuickImageProvider
 {
     Q_OBJECT
+    Q_PROPERTY(int start 		READ getStart WRITE setStart NOTIFY onStartChanged)
+    Q_PROPERTY(int duration 	READ getDuration WRITE setDuration NOTIFY onDurationChanged)
+
     Q_PROPERTY(unsigned int cutoutID 		READ getCutoutID WRITE setCutoutID NOTIFY onCutoutIDChanged)
     Q_PROPERTY(unsigned int colortableID 	READ getColortableID WRITE setColortableID NOTIFY onColortableIDChanged)
 	Q_PROPERTY(short anchorx 				READ getAnchorX WRITE setAnchorX NOTIFY onAnchorXChanged)
@@ -86,18 +111,34 @@ class Layer: public QObject, public QQuickImageProvider
 
 	Q_PROPERTY(QImage image		READ getImage NOTIFY onImageChanged)
 
+	friend class Layer;
 public:
-    explicit Layer(QObject *parent = 0);
-    explicit Layer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+    explicit Keyframe(QObject *parent = 0);
+    explicit Keyframe(Keyframe* previousIn, int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
 			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent = 0);
-    Layer(const Layer& layer);
-    virtual ~Layer();
 
-    void operator =(const Layer& layer);
+    explicit Keyframe(int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
+    		short anchorxIn, short anchoryIn,
+			unsigned short scalexIn, unsigned short scaleyIn,
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent = 0);
+    Keyframe(const Keyframe& keyframe);
+    virtual ~Keyframe();
+
+    void operator =(const Keyframe& keyframe);
+    bool operator ==(const Keyframe* keyframe) const;
+    bool isSame(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+    		short anchorxIn, short anchoryIn,
+			unsigned short scalexIn, unsigned short scaleyIn,
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown) const;
+
 
     //getters
+    int getStart() const;
+    int getDuration() const;
+    int getEnd() const;
+
     unsigned int getCutoutID() const;
     unsigned char getColortableID() const;
 
@@ -115,11 +156,21 @@ public:
 
     unsigned char getUnknown() const;
 
+    Keyframe* getNext();
+    const Keyframe* getNext() const;
+    bool hasNext() const;
+    Keyframe* getPrevious();
+    const Keyframe* getPrevious() const;
+    bool hasPrevious() const;
+
     QImage getImage() const;
 
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 
     //setters
+    void setStart(int startIn);
+    void setDuration(int durationIn);
+
     void setCutoutID(unsigned int cutoutIDIn);
     void setColortableID(unsigned char colortableIDIn);
 
@@ -137,6 +188,9 @@ public:
 
     void setUnknown(unsigned char unknowIn);
 signals:
+	void onStartChanged();
+	void onDurationChanged();
+
     void onCutoutIDChanged();
     void onColortableIDChanged();
 
@@ -156,7 +210,14 @@ signals:
 
     void onImageChanged();
 
+protected:
+    void setNext(Keyframe* nextIn);
+    void setPrevious(Keyframe* previousIn);
+
 private:
+    int m_start = 0;
+    int m_duration = 0;
+
 	unsigned int m_cutoutID = 0;
 	unsigned char m_colortableID = 0; // the 16 rgba colortable which the sheet should use
 
@@ -170,61 +231,73 @@ private:
 
 	unsigned char m_mirror = 0;
 	unsigned char m_unknown = 0;
+
+	Keyframe* m_next = nullptr;
+	Keyframe* m_previous = nullptr;
 };
 
-Q_DECLARE_METATYPE( Layer );
-Q_DECLARE_METATYPE( Layer* );
+Q_DECLARE_METATYPE( Keyframe );
+Q_DECLARE_METATYPE( Keyframe* );
 
 
-class Keyframe : public QAbstractListModel
+class Layer : public QAbstractListModel
 {
     Q_OBJECT
-    Q_PROPERTY(int duration READ getDuration WRITE setDuration NOTIFY onDurationChanged)
-    Q_PROPERTY(int layersSize READ getNumberOfLayers NOTIFY onNumberOfLayersChanged)
+    Q_PROPERTY(QString name READ getName WRITE setName NOTIFY onNameChanged)
+    Q_PROPERTY(int duration READ getDuration NOTIFY onDurationChanged)
+    Q_PROPERTY(int keyframesSize READ getNumberOfKeyframes NOTIFY onNumberOfKeyframesChanged)
 public:
-    explicit Keyframe(QObject *parent = 0);
-    explicit Keyframe(int duration, QObject *parent = 0);
-    Keyframe(const Keyframe& keyframe);
-    virtual ~Keyframe();
+    explicit Layer(QObject *parent = 0);
+    explicit Layer(const QString& name, QObject *parent = 0);
+    Layer(const Layer& layer);
+    virtual ~Layer();
 
-    void operator =(const Keyframe& keyframe);
+    void operator =(const Layer& layer);
 
-    void push_backLayer(Layer* layer);
-    void push_backLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
+    void push_backKeyframe(Keyframe* keyframe);
+
+    void push_backKeyframe(int duration, unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
-			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown);
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, bool seperate = false);
+
+    void push_backKeyframe(int start, int duration, unsigned int cutoutIDIn, unsigned char colortableIDIn,
+    		short anchorxIn, short anchoryIn,
+			unsigned short scalexIn, unsigned short scaleyIn,
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, bool seperate = false);
 
     //getters
+    const QString& getName() const;
     int getDuration() const;
-    int getNumberOfLayers() const;
-    const QList<Layer*>& getLayers() const;
+    int getNumberOfKeyframes() const;
+    const QList<Keyframe*>& getKeyframes() const;
 
     //setters
-    void setDuration(int duration);
+    void setName( const QString& name);
 
 	//QAbstractListModel
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
 	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
 
 signals:
+    void onNameChanged();
     void onDurationChanged();
-    void onNumberOfLayersChanged();
+    void onNumberOfKeyframesChanged();
 
 private:
-    int m_duration = 1;
-    QList<Layer*> m_layers;
+    QString m_name;
+    QList<Keyframe*> m_keyframes;
 };
 
-Q_DECLARE_METATYPE( Keyframe );
-Q_DECLARE_METATYPE( Keyframe* );
+Q_DECLARE_METATYPE( Layer );
+Q_DECLARE_METATYPE( Layer* );
 
 class SpriteAnimation: public QAbstractListModel
 {
 	Q_OBJECT
     Q_PROPERTY(unsigned int id READ getID WRITE setID NOTIFY onIDChanged)
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY onNameChanged)
-	Q_PROPERTY(int keyframesSize READ getNumberOfKeyframes NOTIFY onNumberOfKeyframesChanged)
+	Q_PROPERTY(int layerSize READ getNumberOfLayers NOTIFY onNumberOfLayersChanged)
 public:
 	explicit SpriteAnimation(QObject *parent = 0);
 	explicit SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent = 0);
@@ -233,14 +306,16 @@ public:
 
 	void operator =(const SpriteAnimation& ani);
 
-	void push_backKeyframe(int duration);
-	void push_backKeyframe(Keyframe* key);
+	void push_backLayer(const QString& name);
+	void push_backLayer(Layer* layer);
 
 	//getters
 	unsigned int getID() const;
 	const QString& getName() const;
-	int getNumberOfKeyframes() const;
-	const QList<Keyframe*>& getKeyframes() const;
+	int getNumberOfLayers() const;
+
+	QList<Layer*>& getLayers();
+	const QList<Layer*>& getLayers() const;
 	unsigned int getTotalFrames() const;
 
 	//setters
@@ -253,12 +328,12 @@ public:
 signals:
 	void onIDChanged();
 	void onNameChanged();
-	void onNumberOfKeyframesChanged();
+	void onNumberOfLayersChanged();
 
 private:
 	unsigned int m_ID = 0;
 	QString m_name;
-	QList<Keyframe*> m_keyframes;
+	QList<Layer*> m_Layers;
 };
 
 Q_DECLARE_METATYPE( SpriteAnimation );

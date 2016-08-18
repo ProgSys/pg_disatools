@@ -74,8 +74,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	ui->btnNext->setIcon(QIcon("resources/materials/icons/next.png"));
 
 	//keyframes
-	connect(m_player->getTimeline(), SIGNAL(totalKeyframes( int )), this, SLOT(setTotalKeyframes( int)));
-	connect(m_player->getTimeline(), SIGNAL(currentKeyframe( int )), this, SLOT(setCurrentKeyframe( int )));
+	//connect(m_player->getTimeline(), SIGNAL(totalKeyframes( int )), this, SLOT(setTotalKeyframes( int)));
+	//connect(m_player->getTimeline(), SIGNAL(currentKeyframe( int )), this, SLOT(setCurrentKeyframe( int )));
 	connect(m_player->getTimeline(), SIGNAL(totalFrames( int )), this, SLOT(setTotalFrames( int)));
 	connect(m_player->getTimeline(), SIGNAL(currentFrame( int )), this, SLOT(setCurrentFrame( int )));
 
@@ -201,12 +201,6 @@ void SpriteSheetEditor::exportSprites(const QString& filetype){
 	}
 }
 
-void SpriteSheetEditor::setCurrentKeyframe(int currKeyframe){
-	ui->labelCurentKeyframe->setText(QString::number(currKeyframe+1));
-}
-void SpriteSheetEditor::setTotalKeyframes(int totalKeyframes){
-	ui->labelTotalKeyframes->setText(QString::number(totalKeyframes));
-}
 
 void SpriteSheetEditor::setCurrentFrame(int currFrame){
 	ui->labelCurentFrame->setText(QString::number(currFrame));

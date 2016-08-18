@@ -28,9 +28,9 @@ SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
 void SpritePlayer::connectGLWidget(GLWidget *gl){
 	if(!gl) return;
 	m_glView = gl;
-	connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
-	connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
-	connect(this, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
+	connect(m_timeline, SIGNAL( currentFrame(int) ),gl, SLOT( renderFrame(int) ));
+	connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderFrame() ));
+	connect(this, SIGNAL( render() ),gl, SLOT( renderFrame() ));
 
 	//connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
 	//connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
