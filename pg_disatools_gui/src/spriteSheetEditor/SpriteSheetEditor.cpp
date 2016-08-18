@@ -24,6 +24,7 @@
 #include <QColorDialog>
 #include <QtQml>
 #include <spriteSheetEditor/Timeline.h>
+//#include <QShortcut>
 
 inline void about(){
     QMessageBox msgBox;
@@ -64,6 +65,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 
 	m_player = new SpritePlayer(this);
 	m_player->connectGLWidget(ui->openGLWidget);
+	ui->comboBox->setModel(m_player->getSpriteData());
 
 	setWindowIcon(QIcon("resources/sprite_sheet_editor_icon.ico"));
 	setWindowTitle(SpriteSheetEditorTITLE);
@@ -73,8 +75,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	ui->btnNext->setIcon(QIcon("resources/materials/icons/next.png"));
 
 	//keyframes
-	connect(m_player->getTimeline(), SIGNAL(totalKeyframes( int )), this, SLOT(setTotalKeyframes( int)));
-	connect(m_player->getTimeline(), SIGNAL(currentKeyframe( int )), this, SLOT(setCurrentKeyframe( int )));
+	//connect(m_player->getTimeline(), SIGNAL(totalKeyframes( int )), this, SLOT(setTotalKeyframes( int)));
+	//connect(m_player->getTimeline(), SIGNAL(currentKeyframe( int )), this, SLOT(setCurrentKeyframe( int )));
 	connect(m_player->getTimeline(), SIGNAL(totalFrames( int )), this, SLOT(setTotalFrames( int)));
 	connect(m_player->getTimeline(), SIGNAL(currentFrame( int )), this, SLOT(setCurrentFrame( int )));
 
@@ -109,13 +111,12 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->btnPausePlay, SIGNAL(clicked()), this, SLOT(clickPlayPause()));
 	connect(ui->btnNext, SIGNAL(clicked()), m_player->getTimeline(), SLOT(nextKeyframe()));
 	connect(ui->comboBox, SIGNAL(currentIndexChanged( int )), m_player, SLOT(setAnimation( int )));
-	connect(m_player, SIGNAL(animationAdded( const QString& )), this, SLOT(addAnimation( const QString& )));
 	connect(m_player->getTimeline(), SIGNAL(onPlay()), this, SLOT(setImagePause()));
 	connect(m_player->getTimeline(), SIGNAL(onPause()), this, SLOT(setImagePlay()));
 
 
-	connect(this, SIGNAL(dumpSprite( const QString& )), ui->openGLWidget, SLOT(dump( const QString& )));
-	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), ui->openGLWidget, SLOT( exportSprites( const QString& , const QString& ) ) );
+	connect(this, SIGNAL(dumpSprite( const QString& )), m_player->getSpriteData(), SLOT(dump( const QString& )));
+	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSprites( const QString& , const QString& ) ) );
 
 	connect(this, SIGNAL(backgroundColorSelected(  const QColor& )), ui->openGLWidget, SLOT( setBackgroundColor( const QColor& )));
 
@@ -126,6 +127,16 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     qmlRegisterType<Keyframe>("MyKeyframe",0,1, "Keyframe");
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
+
+    m_TimelinePreviewImageProvider = new TimelinePreviewImageProvider(m_player->getSpriteData());
+    ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
+
+    ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
+    ui->spritesView->close();
+    //ui->quickSpriteView->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
+
+    //QShortcut *shortcut = new QShortcut(QKeySequence("Space"), this);
+    // QObject::connect(shortcut, SIGNAL(activated()), receiver, SLOT(yourSlotHere()));
 }
 
 void SpriteSheetEditor::open(){
@@ -159,16 +170,9 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionDump->setEnabled(true);
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
+		ui->comboBox->setCurrentIndex(0);
 	}
 
-}
-
-void SpriteSheetEditor::addAnimation(const QString& animation){
-	ui->comboBox->addItem(animation);
-}
-
-void SpriteSheetEditor::addAnimations(const QStringList& animations){
-	ui->comboBox->addItems(animations);
 }
 
 void SpriteSheetEditor::dump(){
@@ -201,12 +205,6 @@ void SpriteSheetEditor::exportSprites(const QString& filetype){
 	}
 }
 
-void SpriteSheetEditor::setCurrentKeyframe(int currKeyframe){
-	ui->labelCurentKeyframe->setText(QString::number(currKeyframe+1));
-}
-void SpriteSheetEditor::setTotalKeyframes(int totalKeyframes){
-	ui->labelTotalKeyframes->setText(QString::number(totalKeyframes));
-}
 
 void SpriteSheetEditor::setCurrentFrame(int currFrame){
 	ui->labelCurentFrame->setText(QString::number(currFrame));
@@ -253,5 +251,6 @@ void SpriteSheetEditor::pickBackgroundColor(){
 SpriteSheetEditor::~SpriteSheetEditor() {
 	delete m_player;
 	delete ui;
+	//if(m_TimelinePreviewImageProvider) delete m_TimelinePreviewImageProvider;
 }
 

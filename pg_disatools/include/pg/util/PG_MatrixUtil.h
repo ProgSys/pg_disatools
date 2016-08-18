@@ -121,6 +121,25 @@ tMatrix4x4<T> eulerYXZ( const T& yaw, const T& pitch, const T& roll){
 	return rotationMat;
 }
 
+template<typename T>
+tMatrix4x4<T> scale(const T& x, const T& y, const T& z){
+	tMatrix4x4<T> scaleMat;
+	scaleMat[0][0] = x;
+	scaleMat[1][1] = y;
+	scaleMat[2][2] = z;
+	return scaleMat;
+}
+
+template<typename T>
+tMatrix4x4<T> translation(const T& x, const T& y, const T& z){
+	tMatrix4x4<T> translationMat;
+	translationMat[3][0] = x;
+	translationMat[3][1] = y;
+	translationMat[3][2] = z;
+	return translationMat;
+}
+
+
 } /* namespace UTIL */
 } /* namespace PG */
 

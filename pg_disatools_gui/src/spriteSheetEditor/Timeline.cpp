@@ -19,59 +19,17 @@
 #include <spriteSheetEditor/Timeline.h>
 #include <QDebug>
 
-///// KEYFRAME /////
-Keyframe::Keyframe(QObject *parent)
-: QObject(parent)
-{
 
-}
-
-Keyframe::Keyframe(int duration, QObject *parent)
-    : QObject(parent)
-{
-    if(duration <= 0)
-        m_duration = 1;
-    else
-        m_duration = duration;
-}
-
-Keyframe::Keyframe(const Keyframe &keyframe)
- : QObject(nullptr)
-{
-    m_duration = keyframe.getDuration();
-}
-
-void Keyframe::operator =(const Keyframe &keyframe)
-{
-     m_duration = keyframe.getDuration();
-}
-
-int Keyframe::getDuration() const
-{
-    return m_duration;
-}
-
-void Keyframe::setDuration(int duration)
-{
-    if(duration <= 0)
-        duration = 1;
-    if(duration != m_duration){
-         m_duration = duration;
-         emit durationChanged();
-    }
-}
-
-Keyframe::~Keyframe()
-{
-
-}
 
 ///// TIMELINE /////
 
-Timeline::Timeline(QObject *parent)
+Timeline::Timeline(SpriteData* aniData, QObject *parent)
     : QObject(parent)
 {
 	connect(&m_time, SIGNAL(timeout()), this, SLOT(loop()));
+	if(aniData){
+		connect(aniData, SIGNAL(onAnimationChanged(SpriteAnimation* )), this, SLOT(setAnimation(SpriteAnimation*)));
+	}
     //m_keyframes.push_back(new Keyframe(10, this));
     //m_keyframes.push_back(new Keyframe(410, this));
     //m_keyframes.push_back(new Keyframe(15, this));
@@ -93,9 +51,14 @@ int Timeline::getWidth() const
 	return m_totalTrackSize;
 }
 
+QObject* Timeline::getAnimation() const{
+	return m_currAnimation;
+}
+
 int Timeline::getSize() const
 {
-    return m_keyframes.size();
+	if(!m_currAnimation) return 0;
+    return m_currAnimation->getTotalFrames();
 }
 
 int Timeline::getTracker() const
@@ -103,31 +66,6 @@ int Timeline::getTracker() const
     return m_tracker;
 }
 
-int Timeline::getOffset(int index) const
-{
-    int width = 0;
-    for(int i = 0; i < index; ++i)
-         width += static_cast<const Keyframe* const>(m_keyframes[i])->getDuration();
-    return width;
-}
-
-const QList<QObject*> &Timeline::getKeyframes() const
-{
-    return m_keyframes;
-}
-
-int Timeline::getTrackIndex() const{
-	if(m_keyframes.empty()) return -1;
-
-	int width = 0;
-	for(int i = 0; i < m_keyframes.size(); ++i){
-		width += static_cast<const Keyframe* const>(m_keyframes[i])->getDuration();
-		if(m_tracker < width)
-			return i;
-	}
-
-	return m_keyframes.size()-1;
-}
 
 void Timeline::setTracker(int tracker)
 {
@@ -142,45 +80,58 @@ void Timeline::setTracker(int tracker)
     }
 }
 
+void Timeline::setTimeScale(float scale){
+	if(m_timeScale == scale) return;
+	m_timeScale = scale;
+	emit timeScaleChanged();
+}
+
+void Timeline::setSteps(int steps){
+	if(m_steps == steps) return;
+	m_steps = steps;
+	emit stepsChanged();
+}
+
 void Timeline::clear(){
-	m_keyframes.clear();
 	m_tracker = 0;
 	m_totalTrackSize = 0;
 	m_time.stop();
-	m_currentKeyframe = 0;
 
 	emit currentFrame(0);
-	emit currentKeyframe(0);
 	emit totalFrames(0);
-	emit totalKeyframes(0);
 	emit trackerChanged();
-	emit keyframesChanged();
+	emit onAnimationChanged();
 	emit widthChanged();
 }
 
-void Timeline::addKeyframe(Keyframe* key){
-	if(!key) return;
-	m_keyframes.push_back(key);
-	m_totalTrackSize += key->getDuration();
-
-	emit totalFrames(m_totalTrackSize);
-	emit totalKeyframes(m_keyframes.size());
-	emit keyframesChanged();
-	emit widthChanged();
-}
-
-void Timeline::addKeyframe(int duration){
-	if(duration <= 0){
-		qDebug()<<"Duration must be bigger then 0!";
+void Timeline::setAnimation(SpriteAnimation* ani){
+	m_time.stop();
+	if(!ani){
+		m_currAnimation = nullptr;
+		clear();
 		return;
 	}
-	m_keyframes.push_back(new Keyframe(duration, this));
-	m_totalTrackSize += duration;
+
+	if(m_currAnimation == ani){
+		m_tracker = 0;
+		emit currentFrame(0);
+		emit trackerChanged();
+		return;
+	}
+
+	m_currAnimation = ani;
+	qDebug()<<"Animation set to: "<<m_currAnimation->getName() <<" with "<<ani->getNumberOfLayers()<<" layers.";
+	m_tracker = 0;
+	m_totalTrackSize = m_currAnimation->getTotalFrames();
 
 	emit totalFrames(m_totalTrackSize);
-	emit totalKeyframes(m_keyframes.size());
-	emit keyframesChanged();
+	emit currentFrame(0);
+	emit trackerChanged();
+	emit onAnimationChanged();
 	emit widthChanged();
+
+	if(isPlaying())
+		m_time.start(ONEFRAME_ANIMATION_SPEED);
 }
 
 void Timeline::loop(){
@@ -194,11 +145,9 @@ void Timeline::nextFrame(){
 	if(m_tracker > m_totalTrackSize)
 		m_tracker = 0;
 
-	int keyFrame = getTrackIndex();
-	checkRender();
-
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 
 }
 void Timeline::previousFrame(){
@@ -206,48 +155,49 @@ void Timeline::previousFrame(){
 	m_tracker--;
 	if(m_tracker < 0)
 		m_tracker = m_totalTrackSize;
-	int keyFrame = getTrackIndex();
-	checkRender();
+
 
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 }
 void Timeline::nextKeyframe(){
-	if(m_totalTrackSize <= 0) return;
-	int i = getTrackIndex();
-	if(i < 0){
-		m_tracker = 0;
-		checkRender(0);
-		emit trackerChanged();
-		return;
+	if(!m_currAnimation) return;
+
+	int lastFrame = m_totalTrackSize;
+	for(const Layer* lay: m_currAnimation->getLayers()){
+		for(const Keyframe* key: lay->getKeyframes()){
+			if(m_tracker >= key->getStart() && m_tracker < key->getEnd() &&  lastFrame > key->getEnd())
+				lastFrame = key->getEnd();
+		}
 	}
-	i++;
-	if(i >= m_keyframes.size())
-		i = 0;
-	m_tracker = getOffset(i);
-	checkRender(i);
+	if(lastFrame == m_totalTrackSize)
+		m_tracker = 0;
+	else
+		m_tracker = lastFrame;
+
+	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 }
 void Timeline::previousKeyframe(){
-	if(m_totalTrackSize <= 0) return;
-	int i = getTrackIndex();
-	i--;
-	if(i < 0){
-		if(m_keyframes.empty()){
-			m_tracker = 0;
-			checkRender(0);
-		}else{
-			i = m_keyframes.size()-1;
-			m_tracker = getOffset(i);
-			checkRender(i);
-		}
-		emit trackerChanged();
-		return;
-	}
+	if(!m_currAnimation) return;
 
-	m_tracker = getOffset(i);
-	checkRender(i);
+	int lastFrame = 0;
+	for(const Layer* lay: m_currAnimation->getLayers()){
+		for(const Keyframe* key: lay->getKeyframes()){
+			if(m_tracker > key->getStart() && m_tracker <= key->getEnd() &&  lastFrame < key->getStart())
+				lastFrame = key->getStart();
+		}
+	}
+	if(lastFrame == 0)
+		m_tracker = m_totalTrackSize;
+	else
+		m_tracker = lastFrame;
+
+	emit currentFrame(m_tracker);
 	emit trackerChanged();
+	emit render();
 }
 void Timeline::pause(){
 	m_playing = false;
@@ -267,25 +217,14 @@ bool Timeline::isPlaying() const{
 }
 
 void Timeline::checkRender(){
-	int keyFrame = getTrackIndex();
-	if(keyFrame != m_currentKeyframe){
-		m_currentKeyframe = keyFrame;
-		emit render();
-		emit currentKeyframe(m_currentKeyframe);
-	}
+	emit render();
 }
-void Timeline::checkRender(int keyframe){
-	if(keyframe != m_currentKeyframe){
-		m_currentKeyframe = keyframe;
-		emit render();
-		emit currentKeyframe(m_currentKeyframe);
-	}
+void Timeline::checkRender(int frame){
+	emit render();
 }
 
 Timeline::~Timeline()
 {
-    for(QObject* obj: m_keyframes)
-        delete obj;
 }
 
 

@@ -22,6 +22,13 @@
 #include <openGL/PG_GLItem.h>
 #include <pg/util/PG_Image.h>
 
+#define SUPPORT_QT true
+#if SUPPORT_QT
+#include <QImage>
+#include <QList>
+#include <QColor>
+#endif
+
 namespace PG {
 namespace GL {
 
@@ -39,6 +46,10 @@ public:
 	void bind(const PG::UTIL::IDImage& img, Texture::type texType = NORMAL);
 	void bind(const PG::UTIL::RGBImage& img, Texture::type texType = NORMAL);
 	void bind(const PG::UTIL::RGBAImage& img, Texture::type texType = NORMAL);
+#if SUPPORT_QT
+	void bind(const QList<PG::UTIL::rgba>& colors, Texture::type texType = NORMAL);
+	void bind(const QList<QColor>& colors, Texture::type texType = NORMAL);
+#endif
 	void bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType = NORMAL);
 	void bindTGA(const std::string& path, Texture::type texType = NORMAL);
 	void bindPNM(const std::string& path, Texture::type texType = NORMAL);
@@ -49,6 +60,9 @@ public:
 
 	void release() const;
 
+	unsigned int getWidth() const;
+	unsigned int getHeight() const;
+
 	virtual ~Texture();
 private:
 	bool create();
@@ -58,6 +72,8 @@ private:
 			const unsigned int width, const unsigned int height,
 			bool midmap = true, bool freedata = false, bool flipYAxis = false
 			);
+	unsigned int m_width = 0;
+	unsigned int m_height = 0;
 };
 
 } /* namespace GL */

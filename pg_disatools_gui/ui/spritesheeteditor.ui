@@ -13,17 +13,33 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="locale">
+   <locale language="English" country="UnitedStates"/>
+  </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout_2">
-    <item row="0" column="0">
-     <widget class="GLWidget" name="openGLWidget">
-      <property name="minimumSize">
-       <size>
-        <width>100</width>
-        <height>100</height>
-       </size>
-      </property>
-     </widget>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_3">
+    <property name="spacing">
+     <number>2</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <widget class="GLWidget" name="openGLWidget">
+        <property name="minimumSize">
+         <size>
+          <width>100</width>
+          <height>100</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
    </layout>
   </widget>
@@ -44,6 +60,9 @@
     <addaction name="separator"/>
     <addaction name="actionSave"/>
     <addaction name="actionSave_As"/>
+    <addaction name="separator"/>
+    <addaction name="actionImport_SH"/>
+    <addaction name="actionExport_SH"/>
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
@@ -80,10 +99,22 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="dockTimeline">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="minimumSize">
     <size>
-     <width>210</width>
-     <height>128</height>
+     <width>214</width>
+     <height>200</height>
+    </size>
+   </property>
+   <property name="baseSize">
+    <size>
+     <width>0</width>
+     <height>250</height>
     </size>
    </property>
    <property name="locale">
@@ -142,6 +173,9 @@
          <property name="text">
           <string/>
          </property>
+         <property name="shortcut">
+          <string>Space</string>
+         </property>
         </widget>
        </item>
        <item>
@@ -155,7 +189,7 @@
             <number>2</number>
            </property>
            <item>
-            <widget class="QLabel" name="labelCurentKeyframe">
+            <widget class="QLabel" name="labelCurentFrame">
              <property name="maximumSize">
               <size>
                <width>25</width>
@@ -164,7 +198,7 @@
              </property>
              <property name="font">
               <font>
-               <pointsize>8</pointsize>
+               <pointsize>11</pointsize>
               </font>
              </property>
              <property name="text">
@@ -185,62 +219,8 @@
              </property>
              <property name="font">
               <font>
-               <pointsize>8</pointsize>
+               <pointsize>11</pointsize>
               </font>
-             </property>
-             <property name="text">
-              <string>/</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="labelTotalKeyframes">
-             <property name="maximumSize">
-              <size>
-               <width>25</width>
-               <height>23</height>
-              </size>
-             </property>
-             <property name="font">
-              <font>
-               <pointsize>8</pointsize>
-              </font>
-             </property>
-             <property name="text">
-              <string>0</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_3">
-           <property name="spacing">
-            <number>2</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="labelCurentFrame">
-             <property name="maximumSize">
-              <size>
-               <width>25</width>
-               <height>23</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>0</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_3">
-             <property name="maximumSize">
-              <size>
-               <width>7</width>
-               <height>23</height>
-              </size>
              </property>
              <property name="text">
               <string>/</string>
@@ -254,6 +234,11 @@
                <width>25</width>
                <height>23</height>
               </size>
+             </property>
+             <property name="font">
+              <font>
+               <pointsize>11</pointsize>
+              </font>
              </property>
              <property name="text">
               <string>0</string>
@@ -287,6 +272,31 @@
          <height>40</height>
         </size>
        </property>
+       <property name="resizeMode">
+        <enum>QQuickWidget::SizeRootObjectToView</enum>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QDockWidget" name="spritesView">
+   <property name="minimumSize">
+    <size>
+     <width>200</width>
+     <height>40</height>
+    </size>
+   </property>
+   <property name="windowTitle">
+    <string>Sprite View</string>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>1</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_2">
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QQuickWidget" name="quickSpriteView">
        <property name="resizeMode">
         <enum>QQuickWidget::SizeRootObjectToView</enum>
        </property>
@@ -402,6 +412,22 @@
    </property>
    <property name="text">
     <string>Timeline</string>
+   </property>
+  </action>
+  <action name="actionImport_SH">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Import .SH</string>
+   </property>
+  </action>
+  <action name="actionExport_SH">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export .SH</string>
    </property>
   </action>
  </widget>

@@ -18,17 +18,24 @@
 #include <spriteSheetEditor/SpritePlayer.h>
 
 SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
-	m_spriteSheet = new PG::FILE::SpriteAnimation();
-	m_timeline = new Timeline();
+	qRegisterMetaType< SpriteAnimation >("SpriteAnimation");
+	m_aniData = new SpriteData(this);
+	m_timeline = new Timeline(m_aniData, this);
+
+	connect(m_aniData, SIGNAL( onAnimationChanged(SpriteAnimation*) ),m_timeline, SLOT( setAnimation(SpriteAnimation*) ));
 }
 
 void SpritePlayer::connectGLWidget(GLWidget *gl){
 	if(!gl) return;
 	m_glView = gl;
-	connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
-	connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
-	connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
-	connect(this, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
+	connect(m_timeline, SIGNAL( currentFrame(int) ),gl, SLOT( renderFrame(int) ));
+	//connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderFrame() ));
+	connect(this, SIGNAL( render() ),gl, SLOT( renderFrame() ));
+
+	//connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
+	//connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
+	//connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
+	//connect(this, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
 }
 
 Timeline* SpritePlayer::getTimeline() const{
@@ -41,25 +48,13 @@ bool SpritePlayer::openSH(const QString& file){
 	if(file.isEmpty())
 		return false;
 
-	if(m_spriteSheet->importSH(file.toStdString())){
+	if(!m_aniData->importSH(file)){
 		close();
 		return false;
 	}
 
-	if(m_glView)
-		m_glView->open(m_spriteSheet);
+	if(m_glView) m_glView->open(m_aniData);
 	emit render();
-
-	for(const PG::FILE::keyframe& key: m_spriteSheet->getAnimation(m_currentAnimation).keyframes)
-		m_timeline->addKeyframe(key.durration);
-
-	//add animation to dropDown
-	unsigned int i = 0;
-	for(const PG::FILE::animation& ani: m_spriteSheet->getAnimations()){
-		const QString str(QString::number(i)+ ": Size: "+QString::number(ani.keyframes.size())+", ID: "+QString::number(ani.ID)+", name: "+QString::fromStdString(ani.name));
-		emit animationAdded(str);
-		i++;
-	}
 
 	return true;
 
@@ -68,25 +63,32 @@ bool SpritePlayer::openSH(const QString& file){
 void SpritePlayer::close(){
 	m_currentAnimation = 0;
 	m_timeline->clear();
-	m_spriteSheet->clear();
+	m_aniData->close();
 }
 
 bool SpritePlayer::isOpen() const{
-	return m_spriteSheet->isOpen();
+	return m_aniData->isOpen();
+}
+
+SpriteData* SpritePlayer::getSpriteData() const{
+	return m_aniData;
 }
 
 void SpritePlayer::setAnimation(int index){
-	//qDebug()<<" Selected Animation: "<<index<<" last: "<<m_currentAnimation;
-	if(m_currentAnimation == index) return;
-	m_currentAnimation = index;
-	if(m_currentAnimation < 0)
-		m_currentAnimation = 0;
-	if(m_currentAnimation >= m_spriteSheet->getNumberOfAnimations())
-		m_currentAnimation = m_spriteSheet->getNumberOfAnimations()-1;
+	if(m_aniData->getCurrentAnimationIndex() == index) return;
+	m_aniData->setCurrentAnimationByIndex(index);
+	emit render();
+	m_timeline->setTracker(0);
+	if(m_timeline->isPlaying())
+		m_timeline->play();
+	else
+		m_timeline->pause();
+
+	/*
+	if(index)
+	m_aniData->setCurrentAnimationByIndex(index);
 
 	m_timeline->clear();
-	for(const PG::FILE::keyframe& key: m_spriteSheet->getAnimation(m_currentAnimation).keyframes)
-		m_timeline->addKeyframe(key.durration);
 
 	emit onCurrentAnimationChanged(m_currentAnimation);
 	emit render();
@@ -95,12 +97,13 @@ void SpritePlayer::setAnimation(int index){
 		m_timeline->play();
 	else
 		m_timeline->pause();
+		*/
 }
 
 SpritePlayer::~SpritePlayer() {
-	if(m_spriteSheet)
-		delete m_spriteSheet;
 	if(m_timeline)
 		delete m_timeline;
+	if(m_aniData)
+		delete m_aniData;
 }
 

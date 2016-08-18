@@ -177,6 +177,8 @@ void MainWindow::on_btnAbout_clicked()
 
 				"<br>Thank you <b>Krisan Thyme</b> for helping out understanding all the file formats!<br>"
 
+				"<a href='https://github.com/ProgSys/pg_disatools/wiki/Compressed-offset-list-archive'>How to decopress a file, like 'START.DAT'.</a><br>"
+
 				"<br><b>GNU Lesser General Public License (LGPL):</b> <br>"
 				"<br>Copyright (C) 2016  ProgSys"\
                 "<br><br>This program is free software: you can redistribute it and/or modify"\
@@ -217,7 +219,10 @@ void MainWindow::on_btnOpen_clicked()
                 title.append(fileNames[0]);
                 setWindowTitle(title);
         	}else{
-            	ui->statusBar->showMessage(QString("Couldn't open %1").arg(fileNames[0]));
+        		if(fileNames[0].toLower() == "start.dat"){
+        			ui->statusBar->showMessage(QString("Couldn't open START.DAT, you may need to decompress it first! (Click 'About' for more info.)"));
+        		}else
+        			ui->statusBar->showMessage(QString("Couldn't open %1").arg(fileNames[0]));
                 ui->btnInsert->setEnabled(false);
                 ui->btnSaveAs->setEnabled(false);
                 setWindowTitle(WINTITLE);
@@ -266,6 +271,20 @@ void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSe
             ui->btnExtractImage->setEnabled(false);
 		}
 
+}
+
+//helper function to decompress all selected files
+inline void decompressSaveMany(TreeModel* treemodel, QModelIndexList& indexList, const QString& path, bool isFolder, unsigned int* count){
+	for(const QModelIndex& index: indexList){
+		if(treemodel->decompresIMYPack(index, path, isFolder))
+			(*count)++;
+	}
+}
+inline void decompressMany(TreeModel* treemodel, QModelIndexList& indexList,  unsigned int* count){
+	for(const QModelIndex& index: indexList){
+		if(treemodel->decompresIMYPack(index))
+			(*count)++;
+	}
 }
 
 void MainWindow::treeContextMenu(const QPoint &pos){
@@ -386,30 +405,113 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 			}
 
 		}else if(action_decompress == selectedAction){
-	    	QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
-	    										QString::fromStdString(item->name.getPath()), "Any (*)");
-	    	if(fileName.isEmpty() || fileName.isNull()){
-				ui->statusBar->showMessage("Invalid extract file.");
-				return;
-			}
+			 QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
+			 if(!selected.empty()){
+				 bool oneFile = true;
+				 if(selected.size() > 1)
+					 oneFile = false;
 
-	    	setEnabled(false);
-	    	QProgressDialog progress;
-	    	openProgress(progress);
+				QString path;
+				if(oneFile)
+					path = QFileDialog::getSaveFileName(this, tr("Save File"),
+										QString::fromStdString(item->name.getPath()), "Any (*)");
+				else
+					path = QFileDialog::getExistingDirectory(this, tr("Extract Directory"), "/home",QFileDialog::ShowDirsOnly
+						| QFileDialog::DontResolveSymlinks);
 
-	    	QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::decompresIMYPack,pointedItem,fileName );
-	    	while(f1.isRunning()){
-	    		progress.setValue(m_treeModel->getProgress());
-	    		QApplication::processEvents();
-	    	}
-	        if(f1.result()){
-	        	ui->statusBar->showMessage(QString("Extracted decompresed IMY to: %1").arg(fileName));;
-	        }else{
-	        	ui->statusBar->showMessage(QString("Failed to decompres IMY!"));
-	        }
+				QModelIndexList selectedSource;
+				for(const QModelIndex& index: selected)
+					selectedSource.push_back(m_treeSort->mapToSource(index));
 
+				if(!selectedSource.empty()){
+					setEnabled(false);
+					QProgressDialog progress;
+					openProgress(progress);
+
+					unsigned int count = 0;
+					//decompressMany(m_treeModel,selectedSource,progress,dirName,count);
+					QFuture<void> f1 = QtConcurrent::run(decompressSaveMany, m_treeModel,selectedSource,path, !oneFile,&count);
+
+					while(f1.isRunning()){
+						progress.setValue((oneFile)? m_treeModel->getProgress() : (count/(float)selectedSource.size())*100 );
+						QApplication::processEvents();
+					}
+					if(oneFile)
+						if(count)
+							ui->statusBar->showMessage(QString("Decompresed IMY pack to '%1'").arg(path));
+						else
+							ui->statusBar->showMessage(QString("Failed to decompres pack IMY!"));
+					else
+						ui->statusBar->showMessage(QString("%1 of %2 have been decompressed into the folder '%3'").arg(count).arg(selectedSource.size()).arg(path));
+
+				}
+			 }
+			 /*
+			if(selected.size() > 1){
+								 //multiple Files
+			 }else{
+				//one file
+				QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+													QString::fromStdString(item->name.getPath()), "Any (*)");
+				if(fileName.isEmpty() || fileName.isNull()){
+					ui->statusBar->showMessage("Invalid extract file.");
+					return;
+				}
+
+				setEnabled(false);
+				QProgressDialog progress;
+				openProgress(progress);
+
+				QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::decompresIMYPack,pointedItem,fileName,false );
+				while(f1.isRunning()){
+					progress.setValue(m_treeModel->getProgress());
+					QApplication::processEvents();
+				}
+				if(f1.result()){
+					ui->statusBar->showMessage(QString("Extracted decompresed IMY to: %1").arg(fileName));;
+				}else{
+					ui->statusBar->showMessage(QString("Failed to decompres IMY!"));
+				}
+			 }
+			 */
 	        setEnabled(true);
+
+
 		}else if(action_decompress_replace == selectedAction){
+
+			 QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
+			 if(!selected.empty()){
+					 bool oneFile = true;
+					 if(selected.size() > 1)
+						 oneFile = false;
+
+					QModelIndexList selectedSource;
+					for(const QModelIndex& index: selected)
+						selectedSource.push_back(m_treeSort->mapToSource(index));
+
+					if(!selectedSource.empty()){
+						setEnabled(false);
+						QProgressDialog progress;
+						openProgress(progress);
+
+						unsigned int count = 0;
+						QFuture<void> f1 = QtConcurrent::run(decompressMany, m_treeModel,selectedSource,&count);
+
+				    	while(f1.isRunning()){
+				    		progress.setValue((oneFile)? m_treeModel->getProgress() : (count/(float)selectedSource.size())*100 );
+				    		QApplication::processEvents();
+				    	}
+
+				    	if(oneFile)
+							if(count)
+								ui->statusBar->showMessage(QString("Decompresed IMY pack %1").arg(QString::fromStdString(item->name.getPath())));
+							else
+								ui->statusBar->showMessage(QString("Failed to decompres pack IMY!"));
+				    	else
+				    		ui->statusBar->showMessage(QString("%1 of %2 have been decompressed").arg(count).arg(selectedSource.size()));
+					}
+			 }
+			 /*
 	    	setEnabled(false);
 	    	QProgressDialog progress;
 	    	openProgress(progress);
@@ -429,7 +531,7 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 	        	ui->btnSave->setEnabled(true);
 	        	ui->btnSaveAs->setEnabled(true);
 	        }
-
+			*/
 	        setEnabled(true);
 		}
 

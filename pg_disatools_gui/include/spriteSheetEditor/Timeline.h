@@ -22,98 +22,69 @@
 #include <QList>
 #include <QObject>
 #include <QTimer>
+#include <files/SpriteData.h>
 
 #define ONEFRAME_ANIMATION_SPEED 3
-
-class Keyframe : public QObject
-{
-    Q_OBJECT
-    Q_PROPERTY(int duration READ getDuration WRITE setDuration NOTIFY durationChanged)
-public:
-    explicit Keyframe(QObject *parent = 0);
-    explicit Keyframe(int duration, QObject *parent = 0);
-    Keyframe(const Keyframe& keyframe);
-
-    void operator =(const Keyframe& keyframe);
-
-    //getters
-    int getDuration() const;
-
-    //setters
-    void setDuration(int duration);
-
-    ~Keyframe();
-
-signals:
-    void durationChanged();
-
-
-
-private:
-    int m_duration = 1;
-};
 
 
 class Timeline : public QObject
 {
     Q_OBJECT
-    Q_PROPERTY(int steps READ getSteps NOTIFY stepsChanged)
-    Q_PROPERTY(float timeScale READ getTimeScale NOTIFY timeScaleChanged)
-    Q_PROPERTY(QList<QObject*> keyframes READ getKeyframes NOTIFY keyframesChanged)
+    Q_PROPERTY(int steps READ getSteps WRITE setSteps NOTIFY stepsChanged)
+    Q_PROPERTY(float timeScale READ getTimeScale WRITE setTimeScale NOTIFY timeScaleChanged)
+	Q_PROPERTY(QObject* animation READ getAnimation NOTIFY onAnimationChanged)
     Q_PROPERTY(int width READ getWidth NOTIFY widthChanged)
     Q_PROPERTY(int size READ getSize NOTIFY sizeChanged)
     Q_PROPERTY(int tracker READ getTracker WRITE setTracker NOTIFY trackerChanged)
 
 public:
-    explicit Timeline(QObject *parent = 0);
+    explicit Timeline(SpriteData* aniData = nullptr, QObject *parent = 0);
 
     int getSteps() const;
     float getTimeScale() const;
     int getSize() const;
-    Q_INVOKABLE int getOffset(int index) const;
 
-    const QList<QObject*>& getKeyframes() const;
 
-    /*!
-     * @brief Get the track witch is under the tracker.
-     * @returns -1 when there is no track under the tracker, like when there are no trackes.
-     */
-    int getTrackIndex() const;
 
     ~Timeline();
 public slots:
 	void clear();
-	void addKeyframe(Keyframe* key);
-	void addKeyframe(int duration);
 
 	//player
-	int getTracker() const;
-	void setTracker(int tracker);
-	int getWidth() const;
-
 	void nextFrame();
 	void previousFrame();
 	void nextKeyframe();
 	void previousKeyframe();
 	void pause();
 	void play();
+
+	//getters
 	bool isPlaying() const;
+	int getTracker() const;
+	int getWidth() const;
+	QObject* getAnimation() const;
+
+	//setters
+	void setTracker(int tracker);
+	void setTimeScale(float scale);
+	void setSteps(int steps);
+	void setAnimation(SpriteAnimation* ani);
+
+
 
 private slots:
 	void loop();
 
 signals:
+
     void widthChanged();
-    void keyframesChanged();
     void sizeChanged();
     void stepsChanged();
     void timeScaleChanged();
     void trackerChanged();
+    void onAnimationChanged();
 
     void render();
-
-    void currentKeyframe(int keyframe);
-    void totalKeyframes(int totalkeyframes);
 
     void currentFrame(int frame);
     void totalFrames(int totalframes);
@@ -135,9 +106,8 @@ private:
     //tracker
     int m_tracker = 0;
     int m_totalTrackSize = 0;
-    int m_currentKeyframe = 0;
 
-    QList<QObject*> m_keyframes;
+    SpriteAnimation* m_currAnimation = nullptr;
 };
 
 #endif // TIMELINE_H

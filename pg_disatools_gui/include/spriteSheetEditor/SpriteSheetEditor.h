@@ -22,6 +22,7 @@
 #include <QMainWindow>
 #include <QColor>
 #include <spriteSheetEditor/SpritePlayer.h>
+#include <spriteSheetEditor/TimelinePreviewImageProvider.h>
 
 namespace Ui {
 	class SpriteSheetEditorWindow;
@@ -37,14 +38,9 @@ public:
 public slots:
 	void open();
 	void open(const QString& file);
-	void addAnimation(const QString& animation);
-	void addAnimations(const QStringList& animations);
 
 	void dump();
 	void exportSprites(const QString& filetype);
-
-	void setCurrentKeyframe(int currKeyframe);
-	void setTotalKeyframes(int totalKeyframes);
 
 	void setCurrentFrame(int currFrame);
 	void setTotalFrames(int totalFrames);
@@ -60,6 +56,7 @@ signals:
 private:
 	Ui::SpriteSheetEditorWindow *ui;
 	SpritePlayer* m_player;
+	TimelinePreviewImageProvider* m_TimelinePreviewImageProvider;
 
 	void setTitel();
 	void setTitel(const QString& filename);

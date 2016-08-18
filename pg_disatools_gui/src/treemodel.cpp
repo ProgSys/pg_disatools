@@ -285,11 +285,11 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index){
 	const std::string fileName =  temp->fileName().toStdString();
 	PG::FILE::decompressIMYPackage(c,sile_size, fileName, &m_percentIndicator);
 
-	return replace(index, temp->fileName(), true);
+	return !replace(index, temp->fileName(), true);
 }
 
-bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString &filepath) const{
-	if(!m_fileExtractor || !index.isValid() || filepath.isEmpty()) return false;
+bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString &path, bool toFolder) const{
+	if(!m_fileExtractor || !index.isValid() || path.isEmpty()) return false;
 	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
 	if(!item || !item->isCompressed() || !item->isPackage() ){
 		qInfo() << "File isn't a IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
@@ -304,9 +304,14 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString &filepa
 		return false;
 	}
 
-	PG::FILE::decompressIMYPackage(c,sile_size, filepath.toStdString(), &m_percentIndicator);
+	if(toFolder)
+		PG::FILE::decompressIMYPackage(c,sile_size, (path+"/"+QString::fromStdString(item->name.getFile())).toStdString(), &m_percentIndicator);
+	else
+		PG::FILE::decompressIMYPackage(c,sile_size, path.toStdString(), &m_percentIndicator);
 	return true;
 }
+
+
 
 bool TreeModel::hasDataChanged() const{
 	return m_fileExtractor->isChanged();

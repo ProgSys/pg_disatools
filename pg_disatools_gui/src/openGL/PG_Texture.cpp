@@ -32,6 +32,10 @@
 #include <openGL/PG_GLError.h>
 #include <pg/files/PG_ImageFiles.h>
 
+#if SUPPORT_QT
+//#include <QGLWidget>
+#endif
+
 namespace PG {
 namespace GL {
 
@@ -93,6 +97,9 @@ bool Texture::setTexture(unsigned char* imagedata, int type, const unsigned int 
 		bytesPerPixel = 4;
 	}
 
+	m_width = width;
+	m_height = height;
+
 	if(bytesPerPixel == 0){
 		qDebug()<<"glGenTextures returns a error! "<<QString::number(m_GLID);
 		//PG_ERROR_STREAM("Unable to open image, strange number of pixels.");
@@ -147,7 +154,7 @@ bool Texture::setTexture(unsigned char* imagedata, int type, const unsigned int 
 void Texture::bind(const PG::UTIL::IDImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(!img.getWidth() || !img.getHeight() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RED, img.getWidth(), img.getHeight(), texType != SPRITE );
@@ -157,7 +164,7 @@ void Texture::bind(const PG::UTIL::IDImage& img, Texture::type texType){
 void Texture::bind(const PG::UTIL::RGBImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(!img.getWidth() || !img.getHeight() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RGB, img.getWidth(), img.getHeight(), texType != SPRITE );
@@ -167,17 +174,39 @@ void Texture::bind(const PG::UTIL::RGBImage& img, Texture::type texType){
 void Texture::bind(const PG::UTIL::RGBAImage& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(!img.getWidth() || !img.getHeight() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RGBA, img.getWidth(), img.getHeight(), texType != SPRITE );
 	checkGLError();
 }
 
+#if SUPPORT_QT
+void Texture::bind(const QList<PG::UTIL::rgba>& colors, Texture::type texType){
+	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
+	m_GLID = INVALID_OGL_VALUE;
+	if(colors.empty() || !create()) return;
+	setTexParameter(texType);
+	checkGLError();
+	setTexture((unsigned char*) &colors[0], GL_RGBA, colors.size(), 1, texType != SPRITE );
+	checkGLError();
+}
+
+void Texture::bind(const QList<QColor>& colors, Texture::type rgba){
+	std::vector<PG::UTIL::rgba> rgbaImg;
+	rgbaImg.reserve(colors.size());
+	for(const QColor& color: colors){
+		rgbaImg.push_back(PG::UTIL::rgba(color.red(),color.green(),color.blue(),color.alpha()));
+	}
+	bind(rgbaImg, rgba);
+
+}
+#endif
+
 void Texture::bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
-	if(!create()) return;
+	if(img.empty() || !create()) return;
 	setTexParameter(texType);
 	checkGLError();
 	setTexture((unsigned char*) &img[0], GL_RGBA, img.size(), 1, texType != SPRITE );
@@ -210,6 +239,14 @@ void Texture::apply() const{
 
 void Texture::release() const{
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+unsigned int Texture::getWidth() const{
+	return m_width;
+}
+
+unsigned int Texture::getHeight() const{
+	return m_height;
 }
 
 Texture::~Texture() {

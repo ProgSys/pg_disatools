@@ -118,6 +118,7 @@ bool File::exists() const{
 }
 
 bool File::create(const std::string& text) const{
+	if(isEmpty()) return false;
 	std::ofstream outfile (m_path);
 	if(!outfile.is_open()){
 		outfile.close();
@@ -129,7 +130,7 @@ bool File::create(const std::string& text) const{
 }
 
 bool File::rename(const std::string& name) const{
-	if(isEmpty()) return false;
+	if(isEmpty() || name.empty()) return false;
 	return std::rename( m_path.c_str(), name.c_str() );
 }
 bool File::remove() const{
