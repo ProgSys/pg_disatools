@@ -68,3 +68,11 @@
 	- You can now decompress multiple files at the same time!
   * Sprite Sheet Viewer v0.1.4 alpha:
 	- nothing
+
+===  19.08.2016 - v0.4.9 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Viewer v0.1.6 alpha:
+	- Timeline now shows each layer
+	- You can zoom in the timeline
+	- A lot of internal changes in preparation of sprite modification functionality
