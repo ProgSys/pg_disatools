@@ -42,6 +42,7 @@
 
 #include <pg/util/PG_MatrixUtil.h>
 #include <cmath>
+#include <bitset>
 
 #define PI 3.14159265
 #define toRad(x) x * PI / 180.0
@@ -270,7 +271,7 @@ private:
 			//could be multiplied out, but meh fast enogh
 			const float angle = toRad(-lay->getRotation());
 			//modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
-			modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
+			modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
 			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 
@@ -287,12 +288,29 @@ private:
 			shader.setUniform(shader.startLoc, PG::UTIL::vec2(0, 0));
 			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
 
+			PG_INFO_STREAM("mirror: "<<(int)lay->getMirror()<<" - "<<std::bitset<8>(lay->getMirror()) );
+
+			shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2( (lay->getMirror() & 0x08)? 1: 0, (lay->getMirror() & 0x04)? 1: 0));
+
 			/*
-			if(lay->getMirror() == 10 || lay->getMirror() == 8 )
+			if(lay->getMirror() == 25)
 				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 0));
+			else if(lay->getMirror() == 38 )
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 1));
+			else if(lay->getMirror() == 51 )
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 1));
 			else
 				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
-			 	*/
+
+			if(lay->getMirror() == 1  )
+
+			else if(lay->getMirror() == 25 )
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 1));
+			else if(lay->getMirror() == 38 )
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 1));
+			else
+				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
+			*/
 			//set colortable
 			if(cut->isExternalSheet()){
 				shader.setUniform(shader.colorTableStartLoc, (int)0);

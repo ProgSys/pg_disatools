@@ -85,13 +85,13 @@ Layer::Layer(QObject *parent):QObject(parent), QQuickImageProvider(QQmlImageProv
 Layer::Layer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
-		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, QObject *parent):
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent):
 			QObject(parent),QQuickImageProvider(QQmlImageProviderBase::Image),
 			m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
 			m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
 			m_scalex(scalexIn) ,m_scaley(scaleyIn),
 			m_offsetx(offsetxIn), m_offsety(offsetyIn),
-			m_rotation(rotationIn), m_mirror(mirrorIn){
+			m_rotation(rotationIn), m_mirror(mirrorIn), m_unknown(unknown) {
 
 }
 
@@ -155,6 +155,10 @@ short Layer::getRotation() const{
 }
 unsigned char Layer::getMirror() const{
 	return m_mirror;
+}
+
+unsigned char Layer::getUnknown() const{
+	return m_unknown;
 }
 
 QImage Layer::getImage() const{
@@ -221,6 +225,11 @@ void Layer::setMirror(unsigned char mirrorIn){
 	emit onMirrorChanged();
 }
 
+void Layer::setUnknown(unsigned char unknowIn){
+	if(unknowIn == m_unknown) return;
+	m_unknown = unknowIn;
+	emit onUnknownChanged();
+}
 
 Layer::~Layer(){
 
@@ -262,8 +271,8 @@ void Keyframe::push_backLayer(Layer* layer){
 void Keyframe::push_backLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
-		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn){
-	push_backLayer(new Layer(cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn,this ));
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown){
+	push_backLayer(new Layer(cutoutIDIn,colortableIDIn,anchorxIn,anchoryIn,scalexIn,scaleyIn,offsetxIn,offsetyIn,rotationIn,mirrorIn, unknown,this ));
 }
 
 
@@ -471,7 +480,7 @@ bool SpriteData::importSH(const QString& file){
 						currCutout.anchorx,currCutout.anchory,
 						currCutout.scalex, currCutout.scaley,
 						currCutout.offsetx, currCutout.offsety,
-						currCutout.rotation, currCutout.mirror);
+						currCutout.rotation, currCutout.mirror, currCutout.unkown0);
 
 			}
 

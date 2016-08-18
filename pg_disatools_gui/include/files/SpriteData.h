@@ -82,6 +82,7 @@ class Layer: public QObject, public QQuickImageProvider
 
 	Q_PROPERTY(short rotation 				READ getRotation WRITE setRotation NOTIFY onRotationChanged)
 	Q_PROPERTY(unsigned char mirror 		READ getMirror WRITE setMirror NOTIFY onMirrorChanged)
+	Q_PROPERTY(unsigned char unknown 		READ getUnknown WRITE setUnknown NOTIFY onUnknownChanged)
 
 	Q_PROPERTY(QImage image		READ getImage NOTIFY onImageChanged)
 
@@ -90,7 +91,7 @@ public:
     explicit Layer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
-			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, QObject *parent = 0);
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent = 0);
     Layer(const Layer& layer);
     virtual ~Layer();
 
@@ -112,6 +113,8 @@ public:
     short getRotation() const;
     unsigned char getMirror() const;
 
+    unsigned char getUnknown() const;
+
     QImage getImage() const;
 
     QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
@@ -132,6 +135,7 @@ public:
     void setRotation(short rotationIn);
     void setMirror(unsigned char mirrorIn);
 
+    void setUnknown(unsigned char unknowIn);
 signals:
     void onCutoutIDChanged();
     void onColortableIDChanged();
@@ -148,6 +152,8 @@ signals:
     void onRotationChanged();
     void onMirrorChanged();
 
+    void onUnknownChanged();
+
     void onImageChanged();
 
 private:
@@ -163,6 +169,7 @@ private:
 	short m_rotation = 0; // is degree
 
 	unsigned char m_mirror = 0;
+	unsigned char m_unknown = 0;
 };
 
 Q_DECLARE_METATYPE( Layer );
@@ -186,7 +193,7 @@ public:
     void push_backLayer(unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
-			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn);
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown);
 
     //getters
     int getDuration() const;
