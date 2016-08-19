@@ -74,7 +74,7 @@ bool GLWidget::objectShader::bind(){
     modelMatrixLoc = getUniformLocation("modelMatrix");
     projectionMatrixLoc = getUniformLocation("projectionMatrix");
     viewMatrixLoc = getUniformLocation("viewMatrix");
-    textureLoc = getUniformLocation("texture");
+    textureLoc = getUniformLocation("texture01");
     PG::GL::Shader::release();
 
     return true;
@@ -110,6 +110,33 @@ void GLWidget::lineShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UT
 	PG::GL::Shader::setUniform(viewMatrixLoc, viewMatrix  );
 	PG::GL::Shader::setUniform(projectionMatrixLoc, perspectiveMatrix);
 }
+
+bool GLWidget::displayShader::bind(){
+	const bool b = PG::GL::Shader::bind();
+	if(!b) return false;
+	PG::GL::Shader::apply();
+    vertexLoc = getAttributeLocation("vertex");
+    normalLoc = getAttributeLocation("normal");
+    uvLoc = getAttributeLocation("uv");
+
+    modelMatrixLoc = getUniformLocation("modelMatrix");
+    projectionMatrixLoc = getUniformLocation("projectionMatrix");
+    viewMatrixLoc = getUniformLocation("viewMatrix");
+    textureLoc = getUniformLocation("imagetexture");
+    PG::GL::Shader::release();
+
+    return true;
+}
+
+void GLWidget::displayShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+	PG::GL::Shader::apply();
+
+	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
+	PG::GL::Shader::setUniform(viewMatrixLoc, viewMatrix  );
+	PG::GL::Shader::setUniform(projectionMatrixLoc, perspectiveMatrix);
+    PG::GL::Shader::setUniform( textureLoc, 0);
+}
+
 
 
 GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121),m_spriteSheet(nullptr){
@@ -224,6 +251,15 @@ void GLWidget::initializeGL(){
 		exit (EXIT_FAILURE);
     }
 
+    m_displayShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/display.vert");
+    m_displayShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/display.frag");
+
+    if(!m_displayShader.bind()){
+		QMessageBox messageBox;
+		messageBox.critical(0,"Error","Failed to init the 'display' shader!");
+		exit (EXIT_FAILURE);
+    }
+
     //load texture
     {
 		PG::UTIL::RGBAImage img;
@@ -231,6 +267,8 @@ void GLWidget::initializeGL(){
 		m_groundTexture.bind(img);
 		PG::FILE::loadTGA("resources/materials/shadow.tga", img);
 		m_shadowTexture.bind(img);
+		PG::FILE::loadTGA("resources/materials/anchor_target.tga", img);
+		m_anchorTexture.bind(img);
     }
 
     //load geometry
@@ -284,6 +322,12 @@ void GLWidget::paintGL(){
         			//glDisable(GL_DEPTH_TEST);
         			m_lineShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
         	        m_spriteOutline.apply();
+
+        	        PG::UTIL::mat4 anchorModelMatrix = PG::UTIL::translation(keyframe->getOffsetX()/50.0f, -keyframe->getOffsetY()/50.0f,0.0f)*PG::UTIL::scale(0.2f,0.2f,0.2f)*PG::UTIL::translation(-0.5f, 0.5f,0.0f);
+        	        m_displayShader.apply(anchorModelMatrix, viewMatrix, perspectiveMatrix);
+        	        glActiveTexture(GL_TEXTURE0);
+        	        m_anchorTexture.apply();
+        	        m_spriteGeometry.apply();
         	        //glEnable(GL_DEPTH_TEST);
         		}
     		}

@@ -86,6 +86,7 @@ private:
 };
 
 Q_DECLARE_METATYPE( Cutout );
+Q_DECLARE_METATYPE( Cutout* );
 
 //Forward deceleration
 class Layer;
@@ -303,7 +304,7 @@ class SpriteAnimation: public QAbstractListModel
     Q_PROPERTY(unsigned int id READ getID WRITE setID NOTIFY onIDChanged)
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY onNameChanged)
 	Q_PROPERTY(int layerSize READ getNumberOfLayers NOTIFY onNumberOfLayersChanged)
-	Q_PROPERTY(int length READ getTotalFrames NOTIFY onNumberOfLayersChanged)
+	Q_PROPERTY(int length READ getTotalFrames NOTIFY onLengthChanged)
 public:
 	explicit SpriteAnimation(QObject *parent = 0);
 	explicit SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent = 0);
@@ -328,6 +329,8 @@ public:
 	void setID(unsigned int idIn);
 	void setName(const QString& nameIn);
 
+	void refresh();
+
 	//QAbstractListModel
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
 	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
@@ -335,6 +338,7 @@ signals:
 	void onIDChanged();
 	void onNameChanged();
 	void onNumberOfLayersChanged();
+	void onLengthChanged();
 
 private:
 	unsigned int m_ID = 0;
@@ -403,6 +407,8 @@ public slots:
 	Q_INVOKABLE void deselect(Keyframe* key);
 	Q_INVOKABLE void selectToggle(Keyframe* key, bool doClearSelection = false);
 	Keyframe* getLastSelected() const;
+
+	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
 
 signals:
 	void onNumberOfAnimationsChanged();

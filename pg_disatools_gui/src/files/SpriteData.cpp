@@ -310,14 +310,25 @@ bool Keyframe::isSelected() const{
 //setters
 void Keyframe::setStart(int startIn){
 	if(startIn == m_start) return;
+	int end = m_start+m_duration;
 
 	if(m_previous && startIn <= m_previous->getEnd()){
-		m_start = m_previous->getEnd()+1;
+		m_start = m_previous->getEnd();
 	}else if(m_next && startIn >= m_next->getStart()){
 		m_start = m_next->getStart()-1;
 	}else
 		m_start = startIn;
+	if(m_start < 0)
+		m_start = 0;
+	else if(m_start >= end )
+		m_start = end-1;
+
 	emit onStartChanged();
+
+	m_duration = end - m_start;
+	emit onDurationChanged();
+
+
 }
 
 void Keyframe::setDuration(int durationIn){
@@ -567,12 +578,14 @@ void SpriteAnimation::push_backLayer(const QString& name){
 	if(name.size() <= 0) return;
 	m_Layers.push_back(new Layer(name, this));
 	emit onNumberOfLayersChanged();
+	emit onLengthChanged();
 }
 
 void SpriteAnimation::push_backLayer(Layer* layer){
 	if(!layer) return;
 	m_Layers.push_back(layer);
 	emit onNumberOfLayersChanged();
+	emit onLengthChanged();
 }
 
 //getters
@@ -614,6 +627,11 @@ void SpriteAnimation::setName(const QString& nameIn){
 	if(nameIn == m_name) return;
 	m_name = nameIn;
 	emit onNameChanged();
+}
+
+void SpriteAnimation::refresh(){
+	emit onNumberOfLayersChanged();
+	emit onLengthChanged();
 }
 
 // QAbstractListModel
@@ -970,6 +988,11 @@ void SpriteData::selectToggle(Keyframe* key, bool doClearSelection){
 Keyframe* SpriteData::getLastSelected() const{
 	if(m_selectedKeys.isEmpty()) return nullptr;
 	return m_selectedKeys.last();
+}
+
+Cutout* SpriteData::getCutout(int cutoutIndex) const{
+	if(cutoutIndex < 0 || cutoutIndex > m_cutouts.size()) return nullptr;
+	return m_cutouts[cutoutIndex];
 }
 
 void SpriteData::close(){

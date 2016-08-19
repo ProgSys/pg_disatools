@@ -49,20 +49,19 @@
 #define toRad(x) x * PI / 180.0
 #define ANIMATION_SPEED 15
 
-inline PG::UTIL::mat4 scaleMat(const SpriteData* ani, const Keyframe* key){
+inline PG::UTIL::mat4 scaleMat(const Cutout* cut, const Keyframe* key){
 	PG::UTIL::mat4 mat;
-	assert_Test("CutoutID out of bound!", key->getCutoutID() > ani->getCutouts().size());
-	const Cutout* cut = ani->getCutouts()[key->getCutoutID()];
 
 	mat[0][0] = (cut->getWidth()/50.0) * (key->getScaleX()/100.0);
 	mat[1][1] = (cut->getHeight()/50.0) * (key->getScaleY()/100.0);
 	return mat;
 }
 
-inline PG::UTIL::mat4 anchorOffsetMat(const Keyframe* key){
+inline PG::UTIL::mat4 anchorOffsetMat(const Cutout* cut,const Keyframe* key){
 	PG::UTIL::mat4 mat;
-	mat[3][0] = (key->getAnchorX()/50.0);
-	mat[3][1] = (-key->getAnchorY()/50.0);
+
+	mat[3][0] = (key->getAnchorX()/(float)cut->getWidth());
+	mat[3][1] = (-key->getAnchorY()/(float)cut->getHeight());
 	return mat;
 }
 
@@ -210,6 +209,34 @@ private:
 
     } m_lineShader;
 
+    struct displayShader: public PG::GL::Shader{
+
+    	int vertexLoc = -1;
+    	int normalLoc = -1;
+    	int uvLoc = -1;
+
+    	int viewMatrixLoc = -1;
+    	int projectionMatrixLoc = -1;
+    	int modelMatrixLoc = -1;
+
+    	int textureLoc = -1;
+
+
+    	displayShader(){}
+
+    	displayShader(const std::string& vert, const std::string& frag){
+    		addShaderFile(PG::GL::Shader::VERTEX, vert);
+    		addShaderFile(PG::GL::Shader::FRAGMENT, frag);
+    	}
+
+    	bool bind();
+
+    	void apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const;
+
+
+    } m_displayShader;
+
+
 	struct animationInfo{
         //data
     	const SpriteData* spriteData = nullptr;
@@ -294,10 +321,14 @@ private:
 		void setCurrentModelMat( PG::UTIL::mat4& modelmat, const Keyframe* key){
 			assert_Test("Key is nullptr!", !key);
 
-			//could be multiplied out, but meh fast enogh
-			const float angle = toRad(-key->getRotation());
 			//modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
-			modelmat = positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(spriteData, key)*anchorOffsetMat(key);
+			//modelmat = positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(spriteData, key)*anchorOffsetMat(key);
+
+			const float angle = toRad(-key->getRotation());
+			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
+			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
+
+			modelmat = positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(cut, key)*anchorOffsetMat(cut,key);
 			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 

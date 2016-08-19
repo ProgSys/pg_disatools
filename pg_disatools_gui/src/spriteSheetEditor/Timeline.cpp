@@ -135,11 +135,11 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 
 void Timeline::updateTimeline(){
 	emit render();
-	if(m_totalTrackSize < m_currAnimation->getTotalFrames()){
+	if(m_currAnimation && m_totalTrackSize != m_currAnimation->getTotalFrames()){
 		m_totalTrackSize = m_currAnimation->getTotalFrames();
 		emit totalFrames(m_totalTrackSize);
 		emit widthChanged();
-		emit widthChanged();
+		m_currAnimation->refresh();
 	}
 }
 
