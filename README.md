@@ -32,7 +32,7 @@ Note that the position of most files in .DAT is hardcoded, deleting files could 
 This gui application allows you to view and extract Disgaea PC sprite sheets (as .png or .tga).
 Currently it is very basic.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Viewer_v0.1.6_preview.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Viewer_v0.1.7_preview.png)
 
 
 #### TX2Converter.exe
