@@ -76,3 +76,10 @@
 	- Timeline now shows each layer
 	- You can zoom in the timeline
 	- A lot of internal changes in preparation of sprite modification functionality
+	
+===  20.08.2016 - v0.5.0 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Viewer v0.1.7 alpha:
+	- Added basic transformation editing, but you still can't save anything :P
+	- You now can resize a keyframe via click & drop
