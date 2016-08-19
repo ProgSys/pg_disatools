@@ -125,7 +125,9 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	//timeline
     qmlRegisterType<Timeline>("MyTimeLine",0,1, "Timeline");
     qmlRegisterType<Keyframe>("MyKeyframe",0,1, "Keyframe");
+    qmlRegisterType<SpriteData>("MySpriteData",0,1, "SpriteData");
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
+    ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
 
     m_TimelinePreviewImageProvider = new TimelinePreviewImageProvider(m_player->getSpriteData());

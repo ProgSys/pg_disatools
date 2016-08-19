@@ -70,7 +70,7 @@ public slots:
 	void setSteps(int steps);
 	void setAnimation(SpriteAnimation* ani);
 
-
+	Q_INVOKABLE void updateTimeline();
 
 private slots:
 	void loop();
@@ -93,8 +93,6 @@ signals:
     void onPlay();
 
 private:
-    void checkRender();
-    void checkRender(int keyframe);
     //time
 	QTimer m_time;
 	bool m_playing = true;

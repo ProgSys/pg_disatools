@@ -29,7 +29,7 @@ void SpritePlayer::connectGLWidget(GLWidget *gl){
 	if(!gl) return;
 	m_glView = gl;
 	connect(m_timeline, SIGNAL( currentFrame(int) ),gl, SLOT( renderFrame(int) ));
-	//connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderFrame() ));
+	connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderFrame() ));
 	connect(this, SIGNAL( render() ),gl, SLOT( renderFrame() ));
 
 	//connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));

@@ -90,7 +90,7 @@ Q_DECLARE_METATYPE( Cutout );
 //Forward deceleration
 class Layer;
 
-class Keyframe: public QObject, public QQuickImageProvider
+class Keyframe: public QObject
 {
     Q_OBJECT
     Q_PROPERTY(int start 		READ getStart WRITE setStart NOTIFY onStartChanged)
@@ -109,7 +109,7 @@ class Keyframe: public QObject, public QQuickImageProvider
 	Q_PROPERTY(unsigned char mirror 		READ getMirror WRITE setMirror NOTIFY onMirrorChanged)
 	Q_PROPERTY(unsigned char unknown 		READ getUnknown WRITE setUnknown NOTIFY onUnknownChanged)
 
-	Q_PROPERTY(QImage image		READ getImage NOTIFY onImageChanged)
+	Q_PROPERTY(bool selected 		READ isSelected WRITE setSelected NOTIFY onSelectionChanged)
 
 	friend class Layer;
 public:
@@ -163,9 +163,8 @@ public:
     const Keyframe* getPrevious() const;
     bool hasPrevious() const;
 
-    QImage getImage() const;
+    bool isSelected() const;
 
-    QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 
     //setters
     void setStart(int startIn);
@@ -187,6 +186,10 @@ public:
     void setMirror(unsigned char mirrorIn);
 
     void setUnknown(unsigned char unknowIn);
+
+    void setSelected(bool select);
+
+
 signals:
 	void onStartChanged();
 	void onDurationChanged();
@@ -208,7 +211,7 @@ signals:
 
     void onUnknownChanged();
 
-    void onImageChanged();
+    void onSelectionChanged();
 
 protected:
     void setNext(Keyframe* nextIn);
@@ -231,6 +234,8 @@ private:
 
 	unsigned char m_mirror = 0;
 	unsigned char m_unknown = 0;
+
+	bool m_selected = false;
 
 	Keyframe* m_next = nullptr;
 	Keyframe* m_previous = nullptr;
@@ -349,7 +354,10 @@ class SpriteData : public QAbstractListModel{
 	 Q_OBJECT
 	 Q_PROPERTY(int animationsSize READ getNumberOfAnimations NOTIFY onNumberOfAnimationsChanged)
 	 Q_PROPERTY(int currentAnimationIndex READ getCurrentAnimationIndex  WRITE setCurrentAnimationByIndex NOTIFY onCurrentAnimationChanged)
+	 Q_PROPERTY(int cutoutSize READ getNumberOfCutouts  NOTIFY onNumberOfCutoutsChanged)
+	 Q_PROPERTY(int colortableSize READ getNumberOfColortables  NOTIFY onNumberOfColortablesChanged)
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
+	 Q_PROPERTY(Keyframe* selectedKey READ getLastSelected NOTIFY onSelectionChanged)
 public:
 	SpriteData(QObject *parent = 0);
 	virtual ~SpriteData();
@@ -389,12 +397,21 @@ public slots:
 	///if png is false then tga is used
 	int exportSprites(const QString& folder, const QString& type);
 	bool dump(const QString& filepath);
+
+	Q_INVOKABLE void clearSelection();
+	Q_INVOKABLE void select(Keyframe* key);
+	Q_INVOKABLE void deselect(Keyframe* key);
+	Q_INVOKABLE void selectToggle(Keyframe* key, bool doClearSelection = false);
+	Keyframe* getLastSelected() const;
+
 signals:
 	void onNumberOfAnimationsChanged();
 	void onCurrentAnimationChanged();
 	void onAnimationChanged(SpriteAnimation* ani);
 	void onLastFileNameChanged();
-
+	void onSelectionChanged();
+	void onNumberOfCutoutsChanged();
+	void onNumberOfColortablesChanged();
 private:
 	QString m_lastFile;
 
@@ -402,6 +419,8 @@ private:
 	QList<SpriteAnimation*> m_aniamtions;
 	QList<Cutout*> m_cutouts;
 	QList<QColor> m_colortable;
+
+	QList<Keyframe*> m_selectedKeys;
 
 	QList<SpriteSheetInfo> m_spriteSheetInfos;
 	std::vector<PG::UTIL::rgba> m_colortableGL;

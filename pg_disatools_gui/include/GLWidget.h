@@ -37,6 +37,7 @@
 #include <openGL/PG_Shader.h>
 #include <openGL/PG_Texture.h>
 #include <openGL/PG_Plane.h>
+#include <openGL/PG_LinePath.h>
 
 #include <files/SpriteData.h>
 
@@ -107,6 +108,8 @@ private:
 	PG::UTIL::mat4 perspectiveMatrix;
 
     PG::GL::Plane m_spriteGeometry;
+    PG::GL::LinePath m_spriteOutline;
+    PG::GL::Texture m_anchorTexture;
 
     PG::GL::Texture m_groundTexture;
     PG::GL::Plane m_groundGeometry;
@@ -184,6 +187,28 @@ private:
 
 
     } m_objectShader;
+
+    struct lineShader: public PG::GL::Shader{
+
+    	int vertexLoc = -1;
+
+    	int viewMatrixLoc = -1;
+    	int projectionMatrixLoc = -1;
+    	int modelMatrixLoc = -1;
+
+    	lineShader(){}
+
+    	lineShader(const std::string& vert, const std::string& frag){
+    		addShaderFile(PG::GL::Shader::VERTEX, vert);
+    		addShaderFile(PG::GL::Shader::FRAGMENT, frag);
+    	}
+
+    	bool bind();
+
+    	void apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const;
+
+
+    } m_lineShader;
 
 	struct animationInfo{
         //data
@@ -272,7 +297,7 @@ private:
 			//could be multiplied out, but meh fast enogh
 			const float angle = toRad(-key->getRotation());
 			//modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
-			modelmat = positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(key)*scaleMat(spriteData, key);
+			modelmat = positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(spriteData, key)*anchorOffsetMat(key);
 			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 

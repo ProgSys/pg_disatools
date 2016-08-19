@@ -73,7 +73,6 @@ void Timeline::setTracker(int tracker)
     //qDebug()<<"tracker: "<<QString::number(tracker);
     if(m_tracker != tracker){
         m_tracker = tracker;
-        checkRender();
         emit currentFrame(m_tracker);
         emit trackerChanged();
         pause();
@@ -134,6 +133,16 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 		m_time.start(ONEFRAME_ANIMATION_SPEED);
 }
 
+void Timeline::updateTimeline(){
+	emit render();
+	if(m_totalTrackSize < m_currAnimation->getTotalFrames()){
+		m_totalTrackSize = m_currAnimation->getTotalFrames();
+		emit totalFrames(m_totalTrackSize);
+		emit widthChanged();
+		emit widthChanged();
+	}
+}
+
 void Timeline::loop(){
 	nextFrame();
 	m_time.start(ONEFRAME_ANIMATION_SPEED);
@@ -147,7 +156,7 @@ void Timeline::nextFrame(){
 
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
-	emit render();
+	//emit render();
 
 }
 void Timeline::previousFrame(){
@@ -159,7 +168,7 @@ void Timeline::previousFrame(){
 
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
-	emit render();
+	//emit render();
 }
 void Timeline::nextKeyframe(){
 	if(!m_currAnimation) return;
@@ -178,7 +187,7 @@ void Timeline::nextKeyframe(){
 
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
-	emit render();
+	//emit render();
 }
 void Timeline::previousKeyframe(){
 	if(!m_currAnimation) return;
@@ -197,7 +206,7 @@ void Timeline::previousKeyframe(){
 
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
-	emit render();
+	//emit render();
 }
 void Timeline::pause(){
 	m_playing = false;
@@ -216,12 +225,6 @@ bool Timeline::isPlaying() const{
 	return m_playing;
 }
 
-void Timeline::checkRender(){
-	emit render();
-}
-void Timeline::checkRender(int frame){
-	emit render();
-}
 
 Timeline::~Timeline()
 {

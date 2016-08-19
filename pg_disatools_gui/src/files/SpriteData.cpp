@@ -136,7 +136,7 @@ void Cutout::setSheetID(int id){
 
 ///// KEYFRAME /////
 
-Keyframe::Keyframe(QObject *parent):QObject(parent), QQuickImageProvider(QQmlImageProviderBase::Image){
+Keyframe::Keyframe(QObject *parent):QObject(parent){
 
 }
 
@@ -144,7 +144,7 @@ Keyframe::Keyframe(Keyframe* previousIn, int startIn, int durationIn, unsigned i
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
 		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent):
-					QObject(parent),QQuickImageProvider(QQmlImageProviderBase::Image),
+					QObject(parent),
 					m_start(startIn), m_duration(durationIn),
 					m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
 					m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
@@ -161,7 +161,7 @@ Keyframe::Keyframe(int startIn, int durationIn, unsigned int cutoutIDIn, unsigne
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
 		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent):
-			QObject(parent),QQuickImageProvider(QQmlImageProviderBase::Image),
+			QObject(parent),
 			m_start(startIn), m_duration(durationIn),
 			m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
 			m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
@@ -170,7 +170,7 @@ Keyframe::Keyframe(int startIn, int durationIn, unsigned int cutoutIDIn, unsigne
 			m_rotation(rotationIn), m_mirror(mirrorIn), m_unknown(unknown)
 		{}
 
-Keyframe::Keyframe(const Keyframe& keyframe): QObject(keyframe.parent()), QQuickImageProvider(QQmlImageProviderBase::Image),
+Keyframe::Keyframe(const Keyframe& keyframe): QObject(keyframe.parent()),
 		m_start(keyframe.getStart()), m_duration(keyframe.getDuration()),
 		m_cutoutID(keyframe.getCutoutID()), m_colortableID(keyframe.getColortableID()),
 		m_anchorx(keyframe.getAnchorX()),m_anchory(keyframe.getAnchorY()) ,
@@ -301,13 +301,11 @@ bool Keyframe::hasPrevious() const{
 	return m_previous;
 }
 
-QImage Keyframe::getImage() const{
-	return QImage("resources/test.jpg");
+
+bool Keyframe::isSelected() const{
+	return m_selected;
 }
 
-QImage Keyframe::requestImage(const QString &id, QSize *size, const QSize &requestedSize){
-	return getImage();
-}
 
 //setters
 void Keyframe::setStart(int startIn){
@@ -391,6 +389,12 @@ void Keyframe::setUnknown(unsigned char unknowIn){
 	if(unknowIn == m_unknown) return;
 	m_unknown = unknowIn;
 	emit onUnknownChanged();
+}
+
+void Keyframe::setSelected(bool select){
+	if(select == m_selected) return;
+	m_selected = select;
+	emit onSelectionChanged();
 }
 
 void Keyframe::setNext(Keyframe* nextIn){
@@ -779,6 +783,8 @@ bool SpriteData::importSH(const QString& file){
 	endInsertRows();
 
 	emit onLastFileNameChanged();
+	emit onNumberOfColortablesChanged();
+	emit onNumberOfCutoutsChanged();
 	return true;
 }
 bool SpriteData::exportSH(const QString& file){
@@ -916,8 +922,60 @@ bool SpriteData::dump(const QString& filepath){
 	return true;
 }
 
+void SpriteData::clearSelection(){
+	for(Keyframe* key: m_selectedKeys)
+		key->setSelected(false);
+	m_selectedKeys.clear();
+	emit onSelectionChanged();
+}
+
+void SpriteData::select(Keyframe* key){
+	if(!key) return;
+	key->setSelected(true);
+	if(!m_selectedKeys.contains(key)){
+		m_selectedKeys.push_back(key);
+		emit onSelectionChanged();
+	}
+}
+
+void SpriteData::deselect(Keyframe* key){
+	if(!key) return;
+	key->setSelected(false);
+	if(m_selectedKeys.removeOne(key))
+		emit onSelectionChanged();
+}
+
+void SpriteData::selectToggle(Keyframe* key, bool doClearSelection){
+	if(!key) return;
+	if(key->isSelected()){
+		if(doClearSelection){
+			clearSelection();
+		}else{
+			key->setSelected(false);
+			if(m_selectedKeys.removeOne(key))
+				emit onSelectionChanged();
+		}
+	}else{
+		if(doClearSelection)
+			clearSelection();
+		key->setSelected(true);
+		if(!m_selectedKeys.contains(key)){
+			m_selectedKeys.push_back(key);
+			emit onSelectionChanged();
+		}
+	}
+
+}
+
+Keyframe* SpriteData::getLastSelected() const{
+	if(m_selectedKeys.isEmpty()) return nullptr;
+	return m_selectedKeys.last();
+}
 
 void SpriteData::close(){
+	clearSelection();
+
+
 	for(Cutout* cut: m_cutouts)
 		delete cut;
 	m_cutouts.clear();
@@ -932,6 +990,8 @@ void SpriteData::close(){
 
 	m_currentAnimation = -1;
 
+	emit onNumberOfColortablesChanged();
+	emit onNumberOfCutoutsChanged();
 	emit onNumberOfAnimationsChanged();
 	emit onCurrentAnimationChanged();
 	emit onAnimationChanged(nullptr);
@@ -1010,6 +1070,8 @@ void SpriteData::setCurrentAnimationByIndex(int index){
 	if(index < 0) index = 0;
 	else if(index >= m_aniamtions.size()) index = m_aniamtions.size()-1;
 	if(m_currentAnimation == index) return;
+
+	clearSelection();
 	m_currentAnimation = index;
 	emit onCurrentAnimationChanged();
 	emit onAnimationChanged(m_aniamtions[m_currentAnimation]);

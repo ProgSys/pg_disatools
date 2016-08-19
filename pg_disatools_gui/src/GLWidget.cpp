@@ -89,6 +89,28 @@ void GLWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::
     PG::GL::Shader::setUniform( textureLoc, 0);
 }
 
+bool GLWidget::lineShader::bind(){
+	const bool b = PG::GL::Shader::bind();
+	if(!b) return false;
+	PG::GL::Shader::apply();
+    vertexLoc = getAttributeLocation("vertex");
+
+    modelMatrixLoc = getUniformLocation("modelMatrix");
+    projectionMatrixLoc = getUniformLocation("projectionMatrix");
+    viewMatrixLoc = getUniformLocation("viewMatrix");
+    PG::GL::Shader::release();
+
+    return true;
+}
+
+void GLWidget::lineShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+	PG::GL::Shader::apply();
+
+	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
+	PG::GL::Shader::setUniform(viewMatrixLoc, viewMatrix  );
+	PG::GL::Shader::setUniform(projectionMatrixLoc, perspectiveMatrix);
+}
+
 
 GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121),m_spriteSheet(nullptr){
 }
@@ -193,6 +215,15 @@ void GLWidget::initializeGL(){
 		exit (EXIT_FAILURE);
     }
 
+    m_lineShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/line.vert");
+    m_lineShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/line.frag");
+
+    if(!m_lineShader.bind()){
+		QMessageBox messageBox;
+		messageBox.critical(0,"Error","Failed to init the 'line' shader!");
+		exit (EXIT_FAILURE);
+    }
+
     //load texture
     {
 		PG::UTIL::RGBAImage img;
@@ -204,6 +235,7 @@ void GLWidget::initializeGL(){
 
     //load geometry
     m_spriteGeometry.bind(PG::UTIL::vec3(0,-1.f,0),PG::UTIL::vec3(1.f,0,0),PG::UTIL::vec3(0,1.f,0) );
+    m_spriteOutline.bind( PG::UTIL::vec4(0,-1.f,0,1.f), PG::UTIL::vec4(1.f,-1.f,0,1.f), PG::UTIL::vec4(1.f,0,0,1.f ), PG::UTIL::vec4(0,0,0,1.f ),  PG::UTIL::vec4(0,-1.f,0,1.f));
     m_groundGeometry.bind(PG::UTIL::vec3(-5,0,-5),PG::UTIL::vec3(0,0,10),PG::UTIL::vec3(10,0,0), 10.0f );
 
     viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
@@ -240,12 +272,20 @@ void GLWidget::paintGL(){
     		if(keyframe){
         		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
     					continue;
+        		//if(keyframe->isSelected()) continue;
         		//PG_INFO_STREAM("Render Keyframe!");
     			m_animationInfo.setCurrentModelMat(modelMatrix, keyframe);
     			m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
         		m_animationInfo.setUniforms(m_spriteShader, keyframe);
         		m_animationInfo.apply(keyframe);
         		m_spriteGeometry.apply();
+
+        		if(keyframe->isSelected()){
+        			//glDisable(GL_DEPTH_TEST);
+        			m_lineShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
+        	        m_spriteOutline.apply();
+        	        //glEnable(GL_DEPTH_TEST);
+        		}
     		}
     	}
 
@@ -292,6 +332,7 @@ void GLWidget::paintGL(){
     //clean up
     m_spriteShader.release();
     m_spriteGeometry.release();
+
     glPopAttrib();
 }
 
