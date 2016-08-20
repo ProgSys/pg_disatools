@@ -40,7 +40,8 @@ public slots:
 	void open(const QString& file);
 
 	void dump();
-	void exportSprites(const QString& filetype);
+	void exportSprites(const QString& filetype, bool asID = false);
+	void exportColortable();
 
 	void setCurrentFrame(int currFrame);
 	void setTotalFrames(int totalFrames);
@@ -50,6 +51,8 @@ signals:
 	bool openSH( const QString& filepath );
 	bool dumpSprite(const QString& filepath);
 	int exportSprites(const QString& folder, const QString& filetype);
+	int exportSpritesIDs(const QString& folder, const QString& filetype);
+	bool exportColortable(const QString& file);
 
 	void backgroundColorSelected(const QColor& color);
 
@@ -60,6 +63,7 @@ private:
 
 	void setTitel();
 	void setTitel(const QString& filename);
+
 
 private slots:
 	void clickPlayPause();

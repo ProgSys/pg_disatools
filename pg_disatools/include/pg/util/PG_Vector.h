@@ -47,8 +47,8 @@ struct tVector4;
 template<typename T>
 struct tVector2{
 
-	union { T x, r, s; };
-	union { T y, g, t; };
+	union { T x, r, s, width; };
+	union { T y, g, t, height; };
 
 	tVector2(T x = 0, T y  = 0);
 

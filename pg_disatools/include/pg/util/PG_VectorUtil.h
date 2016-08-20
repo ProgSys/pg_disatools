@@ -238,7 +238,7 @@ inline void scaleRGB888to565(tVector4<unsigned char>& vec){
 
 
 
-
+//to ivec
 template<typename T>
 ivec4 toivec4(const tVector4<T>& vec){
 	return PG::UTIL::ivec4((int)vec.x,(int)vec.y,(int)vec.z,(int)vec.a);
@@ -252,6 +252,100 @@ ivec4 toivec4(const tVector3<T>& vec){
 template<typename T>
 ivec4 toivec4(const tVector2<T>& vec){
 	return PG::UTIL::ivec4((int)vec.x,(int)vec.y,0,0);
+}
+
+//to uvec
+//4
+template<typename T>
+uvec4 touvec4(const tVector4<T>& vec){
+	return PG::UTIL::uvec4((unsigned int)vec.x,(unsigned int)vec.y,(unsigned int)vec.z,(unsigned int)vec.a);
+}
+
+template<typename T>
+uvec4 touvec4(const tVector3<T>& vec){
+	return PG::UTIL::uvec4((unsigned int)vec.x,(unsigned int)vec.y,(unsigned int)vec.z,0);
+}
+
+template<typename T>
+uvec4 touvec4(const tVector2<T>& vec){
+	return PG::UTIL::uvec4((unsigned int)vec.x,(unsigned int)vec.y,0,0);
+}
+//3
+template<typename T>
+uvec3 touvec3(const tVector4<T>& vec){
+	return PG::UTIL::uvec3((unsigned int)vec.x,(unsigned int)vec.y,(unsigned int)vec.z);
+}
+
+template<typename T>
+uvec3 touvec3(const tVector3<T>& vec){
+	return PG::UTIL::uvec3((unsigned int)vec.x,(unsigned int)vec.y,(unsigned int)vec.z,0);
+}
+
+template<typename T>
+uvec3 touvec3(const tVector2<T>& vec){
+	return PG::UTIL::uvec3((unsigned int)vec.x,(unsigned int)vec.y,0);
+}
+//2
+template<typename T>
+uvec2 touvec2(const tVector4<T>& vec){
+	return PG::UTIL::uvec2((unsigned int)vec.x,(unsigned int)vec.y);
+}
+
+template<typename T>
+uvec2 touvec2(const tVector3<T>& vec){
+	return PG::UTIL::uvec2((unsigned int)vec.x,(unsigned int)vec.y);
+}
+
+template<typename T>
+uvec2 touvec2(const tVector2<T>& vec){
+	return PG::UTIL::uvec2((unsigned int)vec.x,(unsigned int)vec.y);
+}
+
+//to vec
+//4
+template<typename T>
+vec4 tovec4(const tVector4<T>& vec){
+	return PG::UTIL::vec4((float)vec.x,(float)vec.y,(float)vec.z,(float)vec.a);
+}
+
+template<typename T>
+vec4 tovec4(const tVector3<T>& vec){
+	return PG::UTIL::vec4((float)vec.x,(float)vec.y,(float)vec.z,0);
+}
+
+template<typename T>
+vec4 tovec4(const tVector2<T>& vec){
+	return PG::UTIL::vec4((float)vec.x,(float)vec.y,0,0);
+}
+//3
+template<typename T>
+vec3 tovec3(const tVector4<T>& vec){
+	return PG::UTIL::vec3((float)vec.x,(float)vec.y,(float)vec.z);
+}
+
+template<typename T>
+vec3 tovec3(const tVector3<T>& vec){
+	return PG::UTIL::vec3((float)vec.x,(float)vec.y,(float)vec.z);
+}
+
+template<typename T>
+vec3 tovec3(const tVector2<T>& vec){
+	return PG::UTIL::vec3((float)vec.x,(float)vec.y,0);
+}
+//2
+template<typename T>
+vec2 tovec2(const tVector4<T>& vec){
+	return PG::UTIL::vec2((float)vec.x,(float)vec.y);
+}
+
+template<typename T>
+vec2 tovec2(const tVector3<T>& vec){
+	return PG::UTIL::vec2((float)vec.x,(float)vec.y);
+}
+
+template<typename T>
+vec2 tovec2(const tVector2<T>& vec){
+	return PG::UTIL::vec2((float)vec.x,(float)vec.y);
 }
 
 

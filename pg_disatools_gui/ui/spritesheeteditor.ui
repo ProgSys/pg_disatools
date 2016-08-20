@@ -72,6 +72,8 @@
     <addaction name="separator"/>
     <addaction name="actionExport_sprites_as_PNG"/>
     <addaction name="actionExport_sprites_as_TGA"/>
+    <addaction name="actionExport_sprites_IDs"/>
+    <addaction name="actionExport_color_table"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -428,6 +430,22 @@
    </property>
    <property name="text">
     <string>Export .SH</string>
+   </property>
+  </action>
+  <action name="actionExport_sprites_IDs">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export sprites IDs</string>
+   </property>
+  </action>
+  <action name="actionExport_color_table">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Export color table</string>
    </property>
   </action>
  </widget>

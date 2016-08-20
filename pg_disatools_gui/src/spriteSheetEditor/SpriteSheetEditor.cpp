@@ -88,6 +88,9 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionDump, SIGNAL(triggered()), this, SLOT(dump()));
 	connect(ui->actionExport_sprites_as_PNG, &QAction::triggered, this, [this]{exportSprites("PNG");} );
 	connect(ui->actionExport_sprites_as_TGA, &QAction::triggered, this, [this]{exportSprites("TGA");} );
+	connect(ui->actionExport_sprites_IDs, &QAction::triggered, this, [this]{exportSprites("TGA", true);} );
+
+	connect(ui->actionExport_color_table, &QAction::triggered, this, [this]{exportColortable();} );
 
 	//View
 	connect(ui->action_Pick_color, SIGNAL(triggered()), this, SLOT(pickBackgroundColor()));
@@ -117,6 +120,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 
 	connect(this, SIGNAL(dumpSprite( const QString& )), m_player->getSpriteData(), SLOT(dump( const QString& )));
 	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSprites( const QString& , const QString& ) ) );
+	connect(this, SIGNAL( exportSpritesIDs( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSpritesIDs( const QString& , const QString& ) ) );
+	connect(this, SIGNAL( exportColortable( const QString& ) ), m_player->getSpriteData(), SLOT( exportColortable( const QString& ) ) );
 
 	connect(this, SIGNAL(backgroundColorSelected(  const QColor& )), ui->openGLWidget, SLOT( setBackgroundColor( const QColor& )));
 
@@ -135,7 +140,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
 
     ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
-    ui->spritesView->close();
+    ui->quickSpriteView->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
+    //ui->spritesView->close();
     //ui->quickSpriteView->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
 
     //QShortcut *shortcut = new QShortcut(QKeySequence("Space"), this);
@@ -166,6 +172,8 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionDump->setEnabled(false);
 		ui->actionExport_sprites_as_PNG->setEnabled(false);
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
+		ui->actionExport_sprites_IDs->setEnabled(false);
+		ui->actionExport_color_table->setEnabled(false);
 	}else{
 		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
 		setTitel(file);
@@ -173,6 +181,8 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionDump->setEnabled(true);
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
+		ui->actionExport_sprites_IDs->setEnabled(true);
+		ui->actionExport_color_table->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
 	}
 
@@ -192,7 +202,7 @@ void SpriteSheetEditor::dump(){
 	}
 }
 
-void SpriteSheetEditor::exportSprites(const QString& filetype){
+void SpriteSheetEditor::exportSprites(const QString& filetype, bool asID){
 	QString dir = QFileDialog::getExistingDirectory(this, tr("Extract Directory"), "/home",QFileDialog::ShowDirsOnly
 	                                             | QFileDialog::DontResolveSymlinks);
 
@@ -201,11 +211,23 @@ void SpriteSheetEditor::exportSprites(const QString& filetype){
 		return;
 	}
 
-	if(emit exportSprites(dir, filetype)){
+	if(  (asID)? emit exportSpritesIDs(dir, filetype): emit exportSprites(dir, filetype)   ){
 		ui->statusbar->showMessage(QString("Saved sprites to %1.").arg(dir));
 	}else{
 		ui->statusbar->showMessage(QString("Failed to export sprites to %1.").arg(dir));
 	}
+}
+
+void SpriteSheetEditor::exportColortable(){
+		QString fileName = QFileDialog::getSaveFileName(this, tr("Export color table"),
+														"colortable",
+													   tr("PNG (*.png);;TGA (*.tga)"));
+
+		if(emit exportColortable(fileName)){
+			ui->statusbar->showMessage(QString("Saved color table to %1.").arg(fileName));
+		}else{
+			ui->statusbar->showMessage(QString("Failed to export color table to %1.").arg(fileName));
+		}
 }
 
 

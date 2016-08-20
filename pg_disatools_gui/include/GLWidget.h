@@ -243,7 +243,7 @@ private:
 
     	unsigned int frame = 0;
 
-		std::vector<PG::GL::Texture* > cutoutIDTextures;
+		std::vector<PG::GL::Texture* > spriteSheetIDTextures;
 		PG::GL::Texture* colorTable = nullptr;
 		PG::GL::Texture* externalSheet = nullptr;
 
@@ -269,13 +269,15 @@ private:
 		}
 
 		void setTextures(){
-			cutoutIDTextures.reserve(spriteData->getNumberOfCutouts());
+			spriteSheetIDTextures.reserve(spriteData->getNumberOfSpriteSheets());
 			PG_INFO_STREAM("Number of cutouts: "<<spriteData->getNumberOfCutouts());
-			for(const Cutout* cut: spriteData->getCutouts()){
-				assert_Test("Given cutout is nullptr!", cut == nullptr);
+			PG_INFO_STREAM("Number of sprite sheets: "<<spriteData->getNumberOfSpriteSheets());
+
+			for(const SpriteSheet* spriteSheet: spriteData->getSpriteSheets()){
+				assert_Test("Given sprite sheet has zero size!", spriteSheet->getWidth() <= 0 || spriteSheet->getHeight() <= 0);
 				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(cut->getCutout(), PG::GL::Texture::SPRITE);
-				cutoutIDTextures.push_back(t);
+				t->bind(spriteSheet->getSpriteSheet(), PG::GL::Texture::SPRITE);
+				spriteSheetIDTextures.push_back(t);
 			}
 
 			colorTable = new PG::GL::Texture();
@@ -341,12 +343,15 @@ private:
 				 shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(externalSheet->getWidth(), externalSheet->getHeight()));
 			 else
 				 shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
-			shader.setUniform(shader.startLoc, PG::UTIL::vec2(0, 0));
-			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
+			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut->getX(), cut->getY()));
+			const SpriteSheet* sheet = spriteData->getSpriteSheet(cut->getSheetID());
+			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(sheet->getWidth(), sheet->getHeight()));
+
+			//PG_INFO_STREAM("start: "<<cut->getX()<<", "<< cut->getY()<<" spriteSize: "<<cut->getWidth()<<", "<< cut->getHeight()<<" size: "<<sheet->getWidth()<<", "<< sheet->getHeight()  );
 
 			//PG_INFO_STREAM("mirror: "<<(int)key->getMirror()<<" - "<<std::bitset<8>(key->getMirror()) );
 
-			shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2( (key->getMirror() & 0x08)? 1: 0, (key->getMirror() & 0x04)? 1: 0));
+			//shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2( (key->getMirror() & 0x08)? 1: 0, (key->getMirror() & 0x04)? 1: 0));
 
 			/*
 			if(lay->getMirror() == 25)
@@ -391,8 +396,8 @@ private:
 			if(cut->isExternalSheet()){
 				return externalSheet;
 			}else{
-				assert_Test("Texture index is out of bound!", key->getCutoutID() >= cutoutIDTextures.size());
-				return cutoutIDTextures[key->getCutoutID()];
+				assert_Test("Texture index is out of bound!", cut->getSheetID() >= spriteSheetIDTextures.size());
+				return spriteSheetIDTextures[cut->getSheetID()];
 			}
 		}
 
@@ -408,7 +413,7 @@ private:
 		}
 
 		operator bool() const{
-			return !cutoutIDTextures.empty() && colorTable && spriteData->getNumberOfAnimations();
+			return !spriteSheetIDTextures.empty() && colorTable && spriteData->getNumberOfAnimations();
 		}
 
 		void setFrame(int frameIn){
@@ -439,9 +444,9 @@ private:
 		}
 
 		void clear(){
-			for(PG::GL::Texture* t: cutoutIDTextures)
+			for(PG::GL::Texture* t: spriteSheetIDTextures)
 				delete t;
-			cutoutIDTextures.clear();
+			spriteSheetIDTextures.clear();
 			if(colorTable) delete colorTable;
 			colorTable = nullptr;
 			frame = 0;

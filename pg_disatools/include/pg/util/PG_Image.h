@@ -146,6 +146,13 @@ public:
 			memcpy(&get(start+uvec2(0,y)), &windowIn[y*size.x] , size.x*sizeof(T) );
 	}
 
+	void setWindow(const PG::UTIL::uvec2& start, const PG::UTIL::uvec2& size, const unsigned char* bits){
+		//assert_Test("Window has wrong size!", windowIn.size() < (size.x*size.y));
+		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+size.x) > m_width) || ((start.y+size.y)> m_height));
+
+		for(unsigned int y = 0; y < size.y; ++y)
+			memcpy(&get(start+uvec2(0,y)), bits+(y*size.x*sizeof(T)) , size.x*sizeof(T) );
+	}
 
 	T& operator[](unsigned int index){
 		return m_pixels[index];

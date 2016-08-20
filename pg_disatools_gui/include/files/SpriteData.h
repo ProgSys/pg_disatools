@@ -32,57 +32,62 @@ class Cutout: public QObject{
 	Q_OBJECT
     Q_PROPERTY(bool isExternalSheet 			READ isExternalSheet NOTIFY onExternalSheetIDChanged)
     Q_PROPERTY(unsigned char externalSheetID 	READ getExternalSheetID WRITE setExternalSheetID NOTIFY onExternalSheetIDChanged)
-	Q_PROPERTY(unsigned short cutoutWidth 		READ getWidth NOTIFY onWidthChanged)
-	Q_PROPERTY(unsigned short cutoutHeight 		READ getHeight NOTIFY onHeightChanged)
+	Q_PROPERTY(int id 	READ getSheetID WRITE setSheetID NOTIFY onSheetIDChanged)
 
 	Q_PROPERTY(int x READ getX WRITE setX NOTIFY onPositionChanged)
 	Q_PROPERTY(int y READ getY WRITE setY NOTIFY onPositionChanged)
+	Q_PROPERTY(unsigned short width READ getWidth WRITE setWidth NOTIFY onWidthChanged)
+	Q_PROPERTY(unsigned short height READ getHeight WRITE setHeight NOTIFY onHeightChanged)
 
 	//Q_PROPERTY(QImage cutout READ getCutout WRITE setCutout NOTIFY onCutoutChanged)
 public:
 	explicit Cutout(QObject *parent = 0);
-	explicit Cutout(const PG::UTIL::IDImage& img, QObject *parent = 0);
-	explicit Cutout(const PG::UTIL::IDImage& img, const PG::UTIL::ivec2& position, QObject *parent = 0);
-	explicit Cutout(unsigned char externalSheetIDIn, QObject *parent = 0);
-	explicit Cutout(unsigned char externalSheetIDIn, unsigned short widthIn, unsigned short heightIn,QObject *parent = 0);
+	explicit Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, QObject *parent = 0);
+	explicit Cutout(const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned short externalSheetIDIn, QObject *parent = 0);
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
 
 	bool isSame(int x,int y, int width, int height, int sheetID) const;
 
 	//getters
+	int getSheetID() const;
 	bool isExternalSheet() const;
 	unsigned short getExternalSheetID() const;
 
-	const PG::UTIL::IDImage& getCutout() const;
-	unsigned short getWidth() const;
-	unsigned short getHeight() const;
 	const PG::UTIL::ivec2& getPosition() const;
 	int getX() const;
 	int getY() const;
-	int getSheetID() const;
+	const PG::UTIL::ivec2& getSize() const;
+	unsigned short getWidth() const;
+	unsigned short getHeight() const;
 
 	//setters
+	void setSheetID(int id);
 	void setExternalSheetID(unsigned short externalSheetIDIn);
-	void setCutout(const PG::UTIL::IDImage& img);
+
 	void setPosition(const PG::UTIL::ivec2& pos);
 	void setPosition(int x, int y);
 	void setX(int x);
 	void setY(int y);
-	void setSheetID(int id);
+
+	void setSize(const PG::UTIL::ivec2& size);
+	void setSize(int width, int height);
+	void setWidth(int x);
+	void setHeight(int y);
 
 signals:
 	void onExternalSheetIDChanged();
+	void onSheetIDChanged();
 
 	void onCutoutChanged();
+	void onPositionChanged();
 	void onWidthChanged();
 	void onHeightChanged();
-	void onPositionChanged();
 private:
-	unsigned short  m_externalSheetID = 0; // get a sheet from different file by it's ID
-	PG::UTIL::IDImage m_cutout;
-	PG::UTIL::ivec2 m_position = PG::UTIL::ivec2(0,0);
 	int m_sheetID = -1;
+	unsigned short  m_externalSheetID = 0; // get a sheet from different file by it's ID
+	PG::UTIL::ivec2 m_position = PG::UTIL::ivec2(0,0);
+	PG::UTIL::ivec2 m_size = PG::UTIL::ivec2(0,0);
 };
 
 Q_DECLARE_METATYPE( Cutout );
@@ -349,9 +354,33 @@ private:
 Q_DECLARE_METATYPE( SpriteAnimation );
 
 
-struct SpriteSheetInfo{
-	int width;
-	int height;
+class SpriteSheet: public QObject{
+	Q_OBJECT
+	Q_PROPERTY(int width READ getWidth NOTIFY onWidthChanged)
+	Q_PROPERTY(int height READ getHeight NOTIFY onHeightChanged)
+public:
+	SpriteSheet();
+	SpriteSheet(const PG::UTIL::IDImage& img, QObject *parent = 0);
+	SpriteSheet(const SpriteSheet& sheet);
+	virtual ~SpriteSheet();
+
+	void operator= (const SpriteSheet& sheet);
+
+	//getters
+	int getWidth() const;
+	int getHeight() const;
+
+	PG::UTIL::IDImage& getSpriteSheet();
+	const PG::UTIL::IDImage& getSpriteSheet() const;
+
+	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const;
+	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const;
+
+signals:
+	void onWidthChanged();
+	void onHeightChanged();
+private:
+	PG::UTIL::IDImage m_img;
 };
 
 class SpriteData : public QAbstractListModel{
@@ -381,14 +410,17 @@ public:
 	int getNumberOfAnimations() const;
 	int getNumberOfCutouts() const;
 	int getNumberOfColortables() const;
+	int getNumberOfSpriteSheets() const;
 	int getCurrentAnimationIndex() const;
 	QString getLastFileName() const;
 
 	const SpriteAnimation* getCurrentAnimation() const;
 	const QList<Cutout*>& getCutouts() const;
 	const QList<QColor>& getColortable() const;
-	const std::vector<PG::UTIL::rgba>& getColortableGL() const;
+	const QList<SpriteSheet*>& getSpriteSheets() const;
+	std::vector<PG::UTIL::rgba> getColortableGL() const;
 	QImage getSprite(unsigned int CutoutID, unsigned int ColortableID) const;
+	const SpriteSheet* getSpriteSheet(unsigned int spriteID) const;
 
 	//setters
 	void setCurrentAnimationByIndex(int index);
@@ -400,6 +432,9 @@ public:
 public slots:
 	///if png is false then tga is used
 	int exportSprites(const QString& folder, const QString& type);
+	int exportSpritesIDs(const QString& folder, const QString& type);
+	bool exportColortable(const QString& file);
+
 	bool dump(const QString& filepath);
 
 	Q_INVOKABLE void clearSelection();
@@ -407,7 +442,6 @@ public slots:
 	Q_INVOKABLE void deselect(Keyframe* key);
 	Q_INVOKABLE void selectToggle(Keyframe* key, bool doClearSelection = false);
 	Keyframe* getLastSelected() const;
-
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
 
 signals:
@@ -428,8 +462,7 @@ private:
 
 	QList<Keyframe*> m_selectedKeys;
 
-	QList<SpriteSheetInfo> m_spriteSheetInfos;
-	std::vector<PG::UTIL::rgba> m_colortableGL;
+	QList<SpriteSheet*> m_spriteSheets;
 };
 
 #endif /* INCLUDE_FILES_SPRITEDATA_H_ */
