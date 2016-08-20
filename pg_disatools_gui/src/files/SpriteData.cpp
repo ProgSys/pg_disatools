@@ -30,8 +30,8 @@ Cutout::Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ive
 		QObject(parent),m_sheetID(sheetID),m_position(position), m_size(size)
 {}
 
-Cutout::Cutout(const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned short externalSheetIDIn, QObject *parent):
-		QObject(parent), m_externalSheetID(externalSheetIDIn), m_position(position), m_size(size)
+Cutout::Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, QObject *parent):
+		QObject(parent), m_sheetID(sheetID), m_externalSheetID(externalSheetIDIn), m_position(position), m_size(size)
 {}
 
 Cutout::Cutout(const Cutout& cutout): QObject(cutout.parent()),
@@ -86,7 +86,9 @@ unsigned short Cutout::getHeight() const{
 }
 
 
-
+unsigned int Cutout::getDefaultColorTable() const{
+	return m_defaultColorTable;
+}
 
 //setters
 void Cutout::setSheetID(int id){
@@ -145,6 +147,12 @@ void Cutout::setHeight(int y){
 	if(m_size.y == y) return;
 	m_size.y = y;
 	emit onHeightChanged();
+}
+
+void Cutout::setDefaultColorTable(unsigned int tableID){
+	if(m_defaultColorTable == tableID ) return;
+	m_defaultColorTable = tableID;
+	emit onDefaultColorTableChanged();
 }
 
 ///// KEYFRAME /////
@@ -663,11 +671,12 @@ QVariant SpriteAnimation::data(const QModelIndex & index, int role) const{
 int SpriteAnimation::rowCount(const QModelIndex & parent) const{
 	return getNumberOfLayers();
 }
+
 ////// SpriteSheet //////
 SpriteSheet::SpriteSheet(){}
 
 SpriteSheet::SpriteSheet(const PG::UTIL::IDImage& img, QObject *parent):
-QObject(parent), m_img(img){}
+		QAbstractListModel(parent), m_img(img){}
 
 SpriteSheet::SpriteSheet(const SpriteSheet& sheet):
 	m_img(sheet.getSpriteSheet())
@@ -679,12 +688,44 @@ void SpriteSheet::operator= (const SpriteSheet& sheet){
 	m_img = sheet.getSpriteSheet();
 }
 
+//setters
+void SpriteSheet::push_backCutoutID(int id){
+	if(!m_cutoutsIDs.contains(id)){
+		//if(m_cutoutsIDs.empty())
+			//beginInsertRows(index(0),0,1);
+		//else
+		beginInsertRows(index(0),m_cutoutsIDs.size()+1,m_cutoutsIDs.size()+1);
+		m_cutoutsIDs.push_back(id);
+		endInsertRows();
+		emit onNumberOfCutoutsChanged();
+	}
+}
+
+QVariant SpriteSheet::data(const QModelIndex & index, int role) const{
+	   if (!index.isValid())
+	        return QVariant(QVariant::Invalid);
+
+	    if (index.row() >= m_cutoutsIDs.size())
+	        return QVariant(QVariant::Invalid);
+
+	    if (role == Qt::DisplayRole){
+	    	return QVariant::fromValue(m_cutoutsIDs.at(index.row()));
+	    }else
+	        return QVariant();
+}
+int SpriteSheet::rowCount(const QModelIndex & parent) const{
+	return m_cutoutsIDs.size();
+}
+
 //getters
 int SpriteSheet::getWidth() const{
 	return m_img.getWidth();
 }
 int SpriteSheet::getHeight() const{
 	return m_img.getHeight();
+}
+int SpriteSheet::getNumberOfCutouts() const{
+	return m_cutoutsIDs.size();
 }
 
 PG::UTIL::IDImage& SpriteSheet::getSpriteSheet(){
@@ -755,6 +796,14 @@ QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, cons
 	return sprite;
 }
 
+QList<int>& SpriteSheet::getCutoutIDs(){
+	return m_cutoutsIDs;
+}
+
+const QList<int>& SpriteSheet::getCutoutIDs() const{
+	return m_cutoutsIDs;
+}
+
 ////// SPRITE DATA //////
 
 SpriteData::SpriteData(QObject *parent): QAbstractListModel(parent) {
@@ -797,6 +846,10 @@ bool SpriteData::importSH(const QString& file){
 		return false;
 	}
 
+	//save sheets
+	for(const PG::UTIL::IDImage& sheet : sh.getSprtieSheets())
+		m_spriteSheets.push_back(new SpriteSheet(sheet, this));
+
 	beginInsertRows(index(0),0,sh.getAnimations().size());
 	unsigned int aniCount = 0;
 	m_aniamtions.reserve(sh.getAnimations().size());
@@ -818,12 +871,14 @@ bool SpriteData::importSH(const QString& file){
 				//cutout
 				if(currCutout.external_sheet){
 					cutoutID = m_cutouts.size();
-					m_cutouts.push_back(new Cutout(PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height),currCutout.external_sheet, this));
+					m_cutouts.push_back(new Cutout(cutoutID, currCutout.external_sheet, PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height), this));
 				}else{
 					cutoutID = findCutout(m_cutouts, currCutout);
 					if(cutoutID < 0){
+						assert_Test("Invalid sprite sheet ID!", currCutout.sheet >= m_spriteSheets.size() ||  currCutout.sheet < 0);
 						Cutout* cutout = new Cutout(currCutout.sheet, PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height),this);
 						cutoutID = m_cutouts.size();
+						m_spriteSheets[currCutout.sheet]->push_backCutoutID(cutoutID);
 						m_cutouts.push_back(cutout);
 					}
 				}
@@ -867,9 +922,7 @@ bool SpriteData::importSH(const QString& file){
 		aniCount++;
 	}
 
-	//save sheets
-	for(const PG::UTIL::IDImage& sheet : sh.getSprtieSheets())
-		m_spriteSheets.push_back(new SpriteSheet(sheet, this));
+
 
 	//load colortable
 	m_colortable.reserve(sh.getColortables().size());
@@ -895,6 +948,7 @@ bool SpriteData::importSH(const QString& file){
 	emit onLastFileNameChanged();
 	emit onNumberOfColortablesChanged();
 	emit onNumberOfCutoutsChanged();
+	emit onNumberOfSheetsChanged();
 	return true;
 }
 bool SpriteData::exportSH(const QString& file){
@@ -1126,8 +1180,17 @@ Keyframe* SpriteData::getLastSelected() const{
 }
 
 Cutout* SpriteData::getCutout(int cutoutIndex) const{
-	if(cutoutIndex < 0 || cutoutIndex > m_cutouts.size()) return nullptr;
+	if(cutoutIndex < 0 || cutoutIndex >= m_cutouts.size()) return nullptr;
 	return m_cutouts[cutoutIndex];
+}
+
+SpriteSheet* SpriteData::getSpriteSheet(int spriteSheetIndex) const{
+	if(spriteSheetIndex < 0 || spriteSheetIndex >= m_spriteSheets.size()) return nullptr;
+	return m_spriteSheets[spriteSheetIndex];
+}
+
+void SpriteData::refresh(){
+	emit onRefresh();
 }
 
 void SpriteData::close(){
@@ -1152,6 +1215,7 @@ void SpriteData::close(){
 
 	emit onNumberOfColortablesChanged();
 	emit onNumberOfCutoutsChanged();
+	emit onNumberOfSheetsChanged();
 	emit onNumberOfAnimationsChanged();
 	emit onCurrentAnimationChanged();
 	emit onAnimationChanged(nullptr);

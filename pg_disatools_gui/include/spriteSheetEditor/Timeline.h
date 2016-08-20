@@ -44,8 +44,6 @@ public:
     float getTimeScale() const;
     int getSize() const;
 
-
-
     ~Timeline();
 public slots:
 	void clear();

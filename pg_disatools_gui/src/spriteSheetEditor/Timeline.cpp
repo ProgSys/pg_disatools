@@ -29,6 +29,7 @@ Timeline::Timeline(SpriteData* aniData, QObject *parent)
 	connect(&m_time, SIGNAL(timeout()), this, SLOT(loop()));
 	if(aniData){
 		connect(aniData, SIGNAL(onAnimationChanged(SpriteAnimation* )), this, SLOT(setAnimation(SpriteAnimation*)));
+		connect(aniData, SIGNAL(onRefresh()), this, SLOT(updateTimeline()));
 	}
     //m_keyframes.push_back(new Keyframe(10, this));
     //m_keyframes.push_back(new Keyframe(410, this));

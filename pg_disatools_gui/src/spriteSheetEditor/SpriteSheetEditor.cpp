@@ -98,7 +98,9 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionDisplay_ground, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayGround(bool)));
 	connect(ui->actionDisplay_shadow, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayShadow(bool)));
 	connect(ui->actionTimeline, SIGNAL(triggered(bool)), ui->dockTimeline, SLOT(setVisible(bool)));
+	connect(ui->actionSprite_sheet_view, SIGNAL(triggered(bool)), ui->spritesView, SLOT(setVisible(bool)));
 	connect(ui->dockTimeline, SIGNAL(visibilityChanged(bool)), ui->actionTimeline, SLOT(setChecked(bool)));
+	connect(ui->spritesView, SIGNAL(visibilityChanged(bool)), ui->actionSprite_sheet_view, SLOT(setChecked(bool)));
 
 	//About
 	connect(ui->actionAbout, &QAction::triggered, this, [this]{
@@ -132,15 +134,20 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     qmlRegisterType<Keyframe>("MyKeyframe",0,1, "Keyframe");
     qmlRegisterType<Cutout>("MyCutout",0,1, "Cutout");
     qmlRegisterType<SpriteData>("MySpriteData",0,1, "SpriteData");
+    qmlRegisterType<SpriteSheet>("MySpriteSheet",0,1, "SpriteSheet");
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
 
+
+
+    ui->quickSpriteView->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
+
     m_TimelinePreviewImageProvider = new TimelinePreviewImageProvider(m_player->getSpriteData());
+    ui->quickSpriteView->engine()->addImageProvider(QLatin1String("imageprovider"), m_TimelinePreviewImageProvider);
+    ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
     ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
 
-    ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
-    ui->quickSpriteView->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     //ui->spritesView->close();
     //ui->quickSpriteView->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
 
@@ -276,6 +283,7 @@ void SpriteSheetEditor::pickBackgroundColor(){
 SpriteSheetEditor::~SpriteSheetEditor() {
 	delete m_player;
 	delete ui;
+	delete m_TimelinePreviewImageProvider;
 	//if(m_TimelinePreviewImageProvider) delete m_TimelinePreviewImageProvider;
 }
 

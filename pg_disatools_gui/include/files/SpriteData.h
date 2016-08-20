@@ -32,18 +32,20 @@ class Cutout: public QObject{
 	Q_OBJECT
     Q_PROPERTY(bool isExternalSheet 			READ isExternalSheet NOTIFY onExternalSheetIDChanged)
     Q_PROPERTY(unsigned char externalSheetID 	READ getExternalSheetID WRITE setExternalSheetID NOTIFY onExternalSheetIDChanged)
-	Q_PROPERTY(int id 	READ getSheetID WRITE setSheetID NOTIFY onSheetIDChanged)
+	Q_PROPERTY(int id 	READ getSheetID  NOTIFY onSheetIDChanged)
 
 	Q_PROPERTY(int x READ getX WRITE setX NOTIFY onPositionChanged)
 	Q_PROPERTY(int y READ getY WRITE setY NOTIFY onPositionChanged)
 	Q_PROPERTY(unsigned short width READ getWidth WRITE setWidth NOTIFY onWidthChanged)
 	Q_PROPERTY(unsigned short height READ getHeight WRITE setHeight NOTIFY onHeightChanged)
 
+	Q_PROPERTY(unsigned int colortable READ getDefaultColorTable WRITE setDefaultColorTable NOTIFY onDefaultColorTableChanged)
+
 	//Q_PROPERTY(QImage cutout READ getCutout WRITE setCutout NOTIFY onCutoutChanged)
 public:
 	explicit Cutout(QObject *parent = 0);
 	explicit Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, QObject *parent = 0);
-	explicit Cutout(const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned short externalSheetIDIn, QObject *parent = 0);
+	explicit Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size,  QObject *parent = 0);
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
 
@@ -61,6 +63,8 @@ public:
 	unsigned short getWidth() const;
 	unsigned short getHeight() const;
 
+	unsigned int getDefaultColorTable() const;
+
 	//setters
 	void setSheetID(int id);
 	void setExternalSheetID(unsigned short externalSheetIDIn);
@@ -75,6 +79,8 @@ public:
 	void setWidth(int x);
 	void setHeight(int y);
 
+	void setDefaultColorTable(unsigned int tableID);
+
 signals:
 	void onExternalSheetIDChanged();
 	void onSheetIDChanged();
@@ -83,9 +89,12 @@ signals:
 	void onPositionChanged();
 	void onWidthChanged();
 	void onHeightChanged();
+
+	void onDefaultColorTableChanged();
 private:
 	int m_sheetID = -1;
 	unsigned short  m_externalSheetID = 0; // get a sheet from different file by it's ID
+	unsigned int m_defaultColorTable = 0;
 	PG::UTIL::ivec2 m_position = PG::UTIL::ivec2(0,0);
 	PG::UTIL::ivec2 m_size = PG::UTIL::ivec2(0,0);
 };
@@ -354,10 +363,11 @@ private:
 Q_DECLARE_METATYPE( SpriteAnimation );
 
 
-class SpriteSheet: public QObject{
+class SpriteSheet: public QAbstractListModel{
 	Q_OBJECT
 	Q_PROPERTY(int width READ getWidth NOTIFY onWidthChanged)
 	Q_PROPERTY(int height READ getHeight NOTIFY onHeightChanged)
+	Q_PROPERTY(int cutoutSize READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
 public:
 	SpriteSheet();
 	SpriteSheet(const PG::UTIL::IDImage& img, QObject *parent = 0);
@@ -369,6 +379,7 @@ public:
 	//getters
 	int getWidth() const;
 	int getHeight() const;
+	int getNumberOfCutouts() const;
 
 	PG::UTIL::IDImage& getSpriteSheet();
 	const PG::UTIL::IDImage& getSpriteSheet() const;
@@ -376,12 +387,26 @@ public:
 	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const;
 	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const;
 
+	QList<int>& getCutoutIDs();
+	const QList<int>& getCutoutIDs() const;
+
+	//setters
+	void push_backCutoutID(int id);
+
+	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
+	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
+
 signals:
 	void onWidthChanged();
 	void onHeightChanged();
+	void onNumberOfCutoutsChanged();
 private:
 	PG::UTIL::IDImage m_img;
+	QList<int> m_cutoutsIDs;
 };
+
+Q_DECLARE_METATYPE( SpriteSheet );
+Q_DECLARE_METATYPE( SpriteSheet* );
 
 class SpriteData : public QAbstractListModel{
 	 Q_OBJECT
@@ -389,6 +414,7 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(int currentAnimationIndex READ getCurrentAnimationIndex  WRITE setCurrentAnimationByIndex NOTIFY onCurrentAnimationChanged)
 	 Q_PROPERTY(int cutoutSize READ getNumberOfCutouts  NOTIFY onNumberOfCutoutsChanged)
 	 Q_PROPERTY(int colortableSize READ getNumberOfColortables  NOTIFY onNumberOfColortablesChanged)
+	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets  NOTIFY onNumberOfSheetsChanged)
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
 	 Q_PROPERTY(Keyframe* selectedKey READ getLastSelected NOTIFY onSelectionChanged)
 public:
@@ -443,6 +469,8 @@ public slots:
 	Q_INVOKABLE void selectToggle(Keyframe* key, bool doClearSelection = false);
 	Keyframe* getLastSelected() const;
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
+	Q_INVOKABLE SpriteSheet* getSpriteSheet(int spriteSheetIndex) const;
+	Q_INVOKABLE void refresh();
 
 signals:
 	void onNumberOfAnimationsChanged();
@@ -451,7 +479,10 @@ signals:
 	void onLastFileNameChanged();
 	void onSelectionChanged();
 	void onNumberOfCutoutsChanged();
+	void onNumberOfSheetsChanged();
 	void onNumberOfColortablesChanged();
+
+	void onRefresh();
 private:
 	QString m_lastFile;
 

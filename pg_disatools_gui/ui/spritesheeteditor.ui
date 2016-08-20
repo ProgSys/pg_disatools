@@ -93,6 +93,7 @@
     <addaction name="actionDisplay_ground"/>
     <addaction name="separator"/>
     <addaction name="actionTimeline"/>
+    <addaction name="actionSprite_sheet_view"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuTools"/>
@@ -286,11 +287,11 @@
    <property name="minimumSize">
     <size>
      <width>200</width>
-     <height>40</height>
+     <height>100</height>
     </size>
    </property>
    <property name="windowTitle">
-    <string>Sprite View</string>
+    <string>Sprite sheet view</string>
    </property>
    <attribute name="dockWidgetArea">
     <number>1</number>
@@ -446,6 +447,17 @@
    </property>
    <property name="text">
     <string>Export color table</string>
+   </property>
+  </action>
+  <action name="actionSprite_sheet_view">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Sprite sheet view</string>
    </property>
   </action>
  </widget>

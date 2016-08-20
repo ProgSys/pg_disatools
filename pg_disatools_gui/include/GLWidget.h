@@ -339,13 +339,19 @@ private:
 			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
 
-			 if(cut->isExternalSheet())
-				 shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(externalSheet->getWidth(), externalSheet->getHeight()));
-			 else
-				 shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
+			 //if(cut->isExternalSheet())
+				 //shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(externalSheet->getWidth(), externalSheet->getHeight()));
+			 //else
+			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
 			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut->getX(), cut->getY()));
-			const SpriteSheet* sheet = spriteData->getSpriteSheet(cut->getSheetID());
-			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(sheet->getWidth(), sheet->getHeight()));
+
+			 if(cut->isExternalSheet()){
+				// shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
+				 shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(externalSheet->getWidth(), externalSheet->getHeight()));
+			 }else{
+				const SpriteSheet* sheet = spriteData->getSpriteSheet(cut->getSheetID());
+				shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(sheet->getWidth(), sheet->getHeight()));
+			 }
 
 			//PG_INFO_STREAM("start: "<<cut->getX()<<", "<< cut->getY()<<" spriteSize: "<<cut->getWidth()<<", "<< cut->getHeight()<<" size: "<<sheet->getWidth()<<", "<< sheet->getHeight()  );
 
