@@ -322,10 +322,16 @@ Q_DECLARE_METATYPE( Layer* );
 
 class Marker: public QObject{
 	Q_OBJECT
-
+	Q_PROPERTY(unsigned int start READ getStart WRITE setStart NOTIFY onStartChanged)
+	Q_PROPERTY(unsigned int duration READ getDuration WRITE setDuration NOTIFY onDirationChanged)
+	Q_PROPERTY(unsigned int a READ getA WRITE setA NOTIFY onAChanged)
+	Q_PROPERTY(unsigned int b READ getB WRITE setB NOTIFY onBChanged)
+	Q_PROPERTY(unsigned int type READ getType WRITE setType NOTIFY onTypeChanged)
 public:
 	Marker(QObject *parent = 0);
 	Marker(int start, int duration, short A,unsigned short B, QObject *parent = 0);
+	Marker(int start, int duration, unsigned int type, QObject *parent = 0);
+	Marker(int start, int duration, short A,unsigned short B, unsigned int type, QObject *parent = 0);
 	Marker(const Marker& marker);
 	virtual ~Marker();
 
@@ -336,12 +342,14 @@ public:
 	int getDuration() const;
 	short getA() const;
 	unsigned short getB() const;
+	unsigned int getType() const;
 
 	//setters
 	void setStart(int start);
 	void setDuration(int duration);
 	void setA(short a);
 	void setB(unsigned short b);
+	void setType(unsigned int type);
 
 signals:
 	void onStartChanged();
@@ -349,11 +357,14 @@ signals:
 
 	void onAChanged();
 	void onBChanged();
+
+	void onTypeChanged();
 private:
 	int m_start = 0;
 	int m_duration = 1;
 	short m_B = 0;
 	short m_A = 0;
+	unsigned int m_type = 0;
 };
 
 Q_DECLARE_METATYPE( Marker );
@@ -366,6 +377,7 @@ class SpriteAnimation: public QAbstractListModel
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY onNameChanged)
 	Q_PROPERTY(int layerSize READ getNumberOfLayers NOTIFY onNumberOfLayersChanged)
 	Q_PROPERTY(int length READ getTotalFrames NOTIFY onLengthChanged)
+	Q_PROPERTY(unsigned int markerSize READ getNumberOfMarkers NOTIFY onNumberOfMarkersChanged)
 public:
 	explicit SpriteAnimation(QObject *parent = 0);
 	explicit SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent = 0);
@@ -389,6 +401,7 @@ public:
 	QList<Marker*>& getMarkers();
 	const QList<Marker*>& getMarkers() const;
 	unsigned int getNumberOfMarkers() const;
+	Q_INVOKABLE Marker* getMarker(int index) const;
 
 	//setters
 	void setID(unsigned int idIn);
@@ -404,6 +417,7 @@ signals:
 	void onNameChanged();
 	void onNumberOfLayersChanged();
 	void onLengthChanged();
+	void onNumberOfMarkersChanged();
 
 private:
 	unsigned int m_ID = 0;

@@ -138,6 +138,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     qmlRegisterType<Cutout>("MyCutout",0,1, "Cutout");
     qmlRegisterType<SpriteData>("MySpriteData",0,1, "SpriteData");
     qmlRegisterType<SpriteSheet>("MySpriteSheet",0,1, "SpriteSheet");
+    qmlRegisterType<Marker>("MyMarker",0,1, "Marker");
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));

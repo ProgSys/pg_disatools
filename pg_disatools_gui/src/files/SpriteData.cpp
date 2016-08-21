@@ -597,8 +597,17 @@ Marker::Marker(int start, int duration, short A, unsigned short B, QObject *pare
 		if(m_start < 0) m_start = 0;
 		if(m_duration < 1) m_duration = 1;
 		}
+
+Marker::Marker(int start, int duration, unsigned int type, QObject *parent ): QObject(parent),
+	m_start(start), m_duration(duration), m_A(0), m_B(0), m_type(type)
+{}
+
+Marker::Marker(int start, int duration, short A,unsigned short B, unsigned int type, QObject *parent): QObject(parent),
+		m_start(start), m_duration(duration), m_A(A), m_B(B), m_type(type)
+{}
+
 Marker::Marker(const Marker& marker):
-		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_A(marker.getA()), m_B(marker.getB())
+		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_A(marker.getA()), m_B(marker.getB()), m_type(marker.getType())
 {}
 
 Marker::~Marker(){
@@ -612,6 +621,7 @@ void Marker::operator =(const Marker& marker){
 	setDuration(marker.getDuration());
 	setA(marker.getA());
 	setB(marker.getB());
+	setType(marker.getType());
 
 }
 
@@ -627,6 +637,10 @@ short Marker::getA() const{
 }
 unsigned short Marker::getB() const{
 	return m_B;
+}
+
+unsigned int Marker::getType() const{
+	return m_type;
 }
 
 //setters
@@ -655,6 +669,12 @@ void Marker::setB(unsigned short b){
 	if(m_B == b) return;
 	m_B = b;
 	emit onBChanged();
+}
+
+void Marker::setType(unsigned int type){
+	if(m_type == type) return;
+	m_type = type;
+	emit onTypeChanged();
 }
 
 ////// SPRITEANIMATION //////
@@ -738,6 +758,11 @@ const QList<Marker*>& SpriteAnimation::getMarkers() const{
 
 unsigned int SpriteAnimation::getNumberOfMarkers() const{
 	return m_Markers.size();
+}
+
+Marker* SpriteAnimation::getMarker(int index) const{
+	if(m_Markers.size() <= index) return nullptr;
+	return m_Markers[index];
 }
 
 
@@ -995,6 +1020,18 @@ bool SpriteData::importSH(const QString& file){
 		int startOffset = 0;
 		int keyCount = 0;
 		while(currKey->type != 2){
+			assert_Test("There needs to be a keyframe before a type 3 keyframe!", currKey->type == 3 && keyCount == 0);
+			if(currKey->type == 3){
+				assert_Test("Keyframe of type 3 should have a duration of 0!", currKey->duration);
+				const int startKeyframe = startOffset-((currKey-1)->duration);
+				m_aniamtions.back()->getMarkers().push_back(new Marker( startKeyframe,startOffset-startKeyframe, currKey->unknown2, currKey->unknown3, 3));
+				keyCount++;
+				currKey++;
+				continue;
+			}else if(currKey->type == 15){
+				m_aniamtions.back()->getMarkers().push_back(new Marker( startOffset,currKey->duration, currKey->unknown2, currKey->unknown3, 15));
+			}
+
 			if(keyCount > 60) PG_WARN_STREAM("Key count seams to be too big? Given file may be corrupt!")
 			const PG::FILE::shfileLayers& currlayer = sh.getLayers()[currKey->bundel_index];
 			int layerCount = 0;
@@ -1133,6 +1170,7 @@ bool SpriteData::exportSH(const QString& file){
 					}
 				}
 
+			//insert a keyframe with the propertys of the marker
 			const Marker* foundMarker = nullptr;
 			for(const Marker* mark: ani->getMarkers()){
 				if(!mark->getDuration()) continue;
@@ -1146,12 +1184,16 @@ bool SpriteData::exportSH(const QString& file){
 						nextFrame = mark->getStart()+mark->getDuration();
 					foundMarker = mark;
 					break;
+				}else if(startFrame < mark->getStart() && nextFrame > mark->getStart()){
+					nextFrame = mark->getStart();
 				}
+			}
+			//debug
+			if(ani->getID() == 74){
+				if(foundMarker) PG_INFO_STREAM("marker found: "<<foundMarker->getType());
 			}
 
 			assert_Test("Start frame and end frame are the same!", startFrame == nextFrame);
-			if(foundMarker)
-				PG_INFO_STREAM(ani->getID()<<": Marker found ("<<foundMarker->getStart()<<", "<<foundMarker->getDuration()<<") at "<<startFrame<<" to "<<nextFrame)
 
 			PG::FILE::shfileKeyframe shKey;
 			shKey.duration = ((nextFrame-startFrame) > 255)? 255 : (nextFrame-startFrame);
@@ -1169,6 +1211,8 @@ bool SpriteData::exportSH(const QString& file){
 			if(foundMarker){
 				shKey.unknown2 = foundMarker->getA();
 				shKey.unknown3 = foundMarker->getB();
+				if(foundMarker->getType() == 15)
+					shKey.type = 15;
 			}else{
 				shKey.unknown2 = 0;
 				shKey.unknown3 = 0;
@@ -1227,6 +1271,12 @@ bool SpriteData::exportSH(const QString& file){
 			startFrame += shKey.duration;
 
 			sh.getKeyframes().push_back(shKey);
+			if(foundMarker && foundMarker->getType() == 3){
+				PG::FILE::shfileKeyframe shKeyType3 = shKey;
+				shKeyType3.type = 3;
+				shKeyType3.duration = 0;
+				sh.getKeyframes().push_back(shKeyType3);
+			}
 		}
 
 		PG::FILE::shfileKeyframe shKey = sh.getKeyframes().back();
