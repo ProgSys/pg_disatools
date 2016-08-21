@@ -59,7 +59,7 @@ typedef struct
 	unsigned short bundel_index;
 	unsigned char duration;
 	unsigned char type;
-	unsigned short unknown2;
+	short unknown2;
 	unsigned short unknown3;
 } __attribute__((packed, aligned(1))) shfileKeyframe;
 

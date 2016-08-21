@@ -54,6 +54,7 @@ public:
 
 	//getters
 	int getSheetID() const;
+	int getSheetRealID() const;
 	bool isExternalSheet() const;
 	unsigned short getExternalSheetID() const;
 
@@ -319,6 +320,45 @@ private:
 Q_DECLARE_METATYPE( Layer );
 Q_DECLARE_METATYPE( Layer* );
 
+class Marker: public QObject{
+	Q_OBJECT
+
+public:
+	Marker(QObject *parent = 0);
+	Marker(int start, int duration, short A,unsigned short B, QObject *parent = 0);
+	Marker(const Marker& marker);
+	virtual ~Marker();
+
+	void operator =(const Marker& marker);
+
+	//getters
+	int getStart() const;
+	int getDuration() const;
+	short getA() const;
+	unsigned short getB() const;
+
+	//setters
+	void setStart(int start);
+	void setDuration(int duration);
+	void setA(short a);
+	void setB(unsigned short b);
+
+signals:
+	void onStartChanged();
+	void onDirationChanged();
+
+	void onAChanged();
+	void onBChanged();
+private:
+	int m_start = 0;
+	int m_duration = 1;
+	short m_B = 0;
+	short m_A = 0;
+};
+
+Q_DECLARE_METATYPE( Marker );
+Q_DECLARE_METATYPE( Marker* );
+
 class SpriteAnimation: public QAbstractListModel
 {
 	Q_OBJECT
@@ -340,11 +380,15 @@ public:
 	//getters
 	unsigned int getID() const;
 	const QString& getName() const;
-	int getNumberOfLayers() const;
+	unsigned int getTotalFrames() const;
 
 	QList<Layer*>& getLayers();
 	const QList<Layer*>& getLayers() const;
-	unsigned int getTotalFrames() const;
+	int getNumberOfLayers() const;
+
+	QList<Marker*>& getMarkers();
+	const QList<Marker*>& getMarkers() const;
+	unsigned int getNumberOfMarkers() const;
 
 	//setters
 	void setID(unsigned int idIn);
@@ -365,6 +409,7 @@ private:
 	unsigned int m_ID = 0;
 	QString m_name;
 	QList<Layer*> m_Layers;
+	QList<Marker*> m_Markers;
 };
 
 Q_DECLARE_METATYPE( SpriteAnimation );

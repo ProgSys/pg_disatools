@@ -28,7 +28,8 @@
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_Exception.h>
 
-#define DUMP_ON_OPEN false
+#define DUMP_ON_OPEN true
+
 namespace PG {
 namespace FILE {
 

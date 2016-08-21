@@ -58,6 +58,10 @@ int Cutout::getSheetID() const{
 	return m_sheetID;
 }
 
+int Cutout::getSheetRealID() const{
+	return m_sheetID;
+}
+
 bool Cutout::isExternalSheet() const{
 	return m_externalSheetID;
 }
@@ -582,6 +586,77 @@ Layer::~Layer()
 		delete key;
 }
 
+////// MARKER //////
+
+Marker::Marker(QObject *parent): QObject(parent)
+{}
+
+Marker::Marker(int start, int duration, short A, unsigned short B, QObject *parent): QObject(parent),
+		m_start(start), m_duration(duration), m_A(A), m_B(B)
+		{
+		if(m_start < 0) m_start = 0;
+		if(m_duration < 1) m_duration = 1;
+		}
+Marker::Marker(const Marker& marker):
+		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_A(marker.getA()), m_B(marker.getB())
+{}
+
+Marker::~Marker(){
+
+}
+
+void Marker::operator =(const Marker& marker){
+	setParent(marker.parent());
+
+	setStart(marker.getStart());
+	setDuration(marker.getDuration());
+	setA(marker.getA());
+	setB(marker.getB());
+
+}
+
+//getters
+int Marker::getStart() const{
+	return m_start;
+}
+int Marker::getDuration() const{
+	return m_duration;
+}
+short Marker::getA() const{
+	return m_A;
+}
+unsigned short Marker::getB() const{
+	return m_B;
+}
+
+//setters
+void Marker::setStart(int start){
+	if(m_start == start) return;
+	if(start < 0)
+		m_start = 0;
+	else
+		m_start = start;
+	emit onStartChanged();
+}
+void Marker::setDuration(int duration){
+	if(m_duration == duration) return;
+	if(duration < 1)
+		m_duration = 1;
+	else
+		m_duration = duration;
+	emit onDirationChanged();
+}
+void Marker::setA(short a){
+	if(m_A == a) return;
+	m_A = a;
+	emit onAChanged();
+}
+void Marker::setB(unsigned short b){
+	if(m_B == b) return;
+	m_B = b;
+	emit onBChanged();
+}
+
 ////// SPRITEANIMATION //////
 
 SpriteAnimation::SpriteAnimation(QObject *parent): QAbstractListModel(parent){
@@ -598,6 +673,8 @@ SpriteAnimation::SpriteAnimation(const SpriteAnimation& ani): QAbstractListModel
 SpriteAnimation::~SpriteAnimation(){
 	for(Layer* lay: m_Layers)
 		delete lay;
+	for(Marker* mark: m_Markers)
+		delete mark;
 }
 
 void SpriteAnimation::operator =(const SpriteAnimation& ani){
@@ -629,10 +706,14 @@ unsigned int SpriteAnimation::getID() const{
 const QString& SpriteAnimation::getName() const{
 	return m_name;
 }
-int SpriteAnimation::getNumberOfLayers() const{
-	return m_Layers.size();
-}
 
+unsigned int SpriteAnimation::getTotalFrames() const{
+	unsigned int lenght = 0;
+	for(const Layer* const layer: m_Layers)
+		if(lenght< layer->getDuration())
+			lenght = layer->getDuration();
+	return lenght;
+}
 
 QList<Layer*>& SpriteAnimation::getLayers(){
 	return m_Layers;
@@ -642,13 +723,23 @@ const QList<Layer*>& SpriteAnimation::getLayers() const{
 	return m_Layers;
 }
 
-unsigned int SpriteAnimation::getTotalFrames() const{
-	unsigned int lenght = 0;
-	for(const Layer* const layer: m_Layers)
-		if(lenght< layer->getDuration())
-			lenght = layer->getDuration();
-	return lenght;
+int SpriteAnimation::getNumberOfLayers() const{
+	return m_Layers.size();
 }
+
+
+QList<Marker*>& SpriteAnimation::getMarkers(){
+	return m_Markers;
+}
+
+const QList<Marker*>& SpriteAnimation::getMarkers() const{
+	return m_Markers;
+}
+
+unsigned int SpriteAnimation::getNumberOfMarkers() const{
+	return m_Markers.size();
+}
+
 
 //setters
 void SpriteAnimation::setID(unsigned int idIn){
@@ -900,12 +991,17 @@ bool SpriteData::importSH(const QString& file){
 		m_aniamtions.push_back(new SpriteAnimation(ani.id, "unknown"+QString::number(aniCount), this));
 
 		const PG::FILE::shfileKeyframe* currKey = &sh.getKeyframes()[ani.start_keyframe];
+
 		int startOffset = 0;
 		int keyCount = 0;
 		while(currKey->type != 2){
 			if(keyCount > 60) PG_WARN_STREAM("Key count seams to be too big? Given file may be corrupt!")
 			const PG::FILE::shfileLayers& currlayer = sh.getLayers()[currKey->bundel_index];
 			int layerCount = 0;
+
+			//add marker
+			if(currKey->unknown2 || currKey->unknown3)
+				m_aniamtions.back()->getMarkers().push_back(new Marker(startOffset, currKey->duration, currKey->unknown2, currKey->unknown3));
 
 			for(unsigned int i = currlayer.start_cutout; i < currlayer.start_cutout+currlayer.number_of_cutouts; i++){
 				const PG::FILE::shfileCutout& currCutout =  sh.getCutouts()[i];
@@ -915,7 +1011,7 @@ bool SpriteData::importSH(const QString& file){
 					cutoutID = findCutout(m_cutouts, currCutout);
 					if(cutoutID < 0){
 						cutoutID = m_cutouts.size();
-						m_cutouts.push_back(new Cutout(cutoutID, currCutout.external_sheet, PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height), this));
+						m_cutouts.push_back(new Cutout(currCutout.sheet, currCutout.external_sheet, PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height), this));
 					}
 				}else{
 					cutoutID = findCutout(m_cutouts, currCutout);
@@ -1011,9 +1107,9 @@ bool SpriteData::exportSH(const QString& file){
 
 	for(const SpriteSheet* sheet: m_spriteSheets){
 		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
-		sh.getSheetsInfos().push_back({0,sheet->getWidth(),sheet->getHeight(),4,2056});
+		//TODO set the last two values
+		sh.getSheetsInfos().push_back({0,(short)sheet->getWidth(),(short)sheet->getHeight(),4,2056});
 	}
-	PG_INFO_STREAM("Number of spritesheets: "<<sh.getSprtieSheets().size());
 
 	sh.getColortables() = getColortableGL();
 
@@ -1029,13 +1125,33 @@ bool SpriteData::exportSH(const QString& file){
 		while(startFrame < totalTrackSize){
 			unsigned int nextFrame = totalTrackSize;
 
-
+			//find the end of the next frame
 			for(const Layer* lay: ani->getLayers())
 				for(const Keyframe* key: lay->getKeyframes()){
 					if(startFrame >= key->getStart() && startFrame < key->getEnd() &&  nextFrame > key->getEnd()){
 						nextFrame = key->getEnd();
 					}
 				}
+
+			const Marker* foundMarker = nullptr;
+			for(const Marker* mark: ani->getMarkers()){
+				if(!mark->getDuration()) continue;
+				if(mark->getStart() == startFrame){
+					if(mark->getStart()+mark->getDuration() < nextFrame)
+						nextFrame = mark->getStart()+mark->getDuration();
+					foundMarker = mark;
+					break;
+				}else if(startFrame > mark->getStart() && startFrame < mark->getStart()+mark->getDuration()){
+					if(mark->getStart()+mark->getDuration() < nextFrame)
+						nextFrame = mark->getStart()+mark->getDuration();
+					foundMarker = mark;
+					break;
+				}
+			}
+
+			assert_Test("Start frame and end frame are the same!", startFrame == nextFrame);
+			if(foundMarker)
+				PG_INFO_STREAM(ani->getID()<<": Marker found ("<<foundMarker->getStart()<<", "<<foundMarker->getDuration()<<") at "<<startFrame<<" to "<<nextFrame)
 
 			PG::FILE::shfileKeyframe shKey;
 			shKey.duration = ((nextFrame-startFrame) > 255)? 255 : (nextFrame-startFrame);
@@ -1050,8 +1166,13 @@ bool SpriteData::exportSH(const QString& file){
 			}else
 				shKey.type = 0;
 
-			shKey.unknown2 = 0;
-			shKey.unknown3 = 0;
+			if(foundMarker){
+				shKey.unknown2 = foundMarker->getA();
+				shKey.unknown3 = foundMarker->getB();
+			}else{
+				shKey.unknown2 = 0;
+				shKey.unknown3 = 0;
+			}
 			shKey.bundel_index = sh.getLayers().size();
 
 			//bundels
@@ -1080,7 +1201,7 @@ bool SpriteData::exportSH(const QString& file){
 
 				PG::FILE::shfileCutout shCut;
 				shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
-				shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
+				shCut.sheet = cut->getSheetRealID(); // there is not one big sprite sheet but multiple smaller one
 				shCut.colortable = key->getColortableID(); // the 16 rgba colortable which the sheet should use
 				shCut.anchorx = key->getAnchorX();  // rotation and mirror point
 				shCut.anchory = key->getAnchorY(); // rotation and mirror point
