@@ -40,6 +40,7 @@ class Cutout: public QObject{
 	Q_PROPERTY(unsigned short height READ getHeight WRITE setHeight NOTIFY onHeightChanged)
 
 	Q_PROPERTY(unsigned int colortable READ getDefaultColorTable WRITE setDefaultColorTable NOTIFY onDefaultColorTableChanged)
+	Q_PROPERTY(bool hidden READ isHidden WRITE setHidden NOTIFY onHiddenChanged)
 
 	//Q_PROPERTY(QImage cutout READ getCutout WRITE setCutout NOTIFY onCutoutChanged)
 public:
@@ -64,6 +65,7 @@ public:
 	unsigned short getHeight() const;
 
 	unsigned int getDefaultColorTable() const;
+	bool isHidden() const;
 
 	//setters
 	void setSheetID(int id);
@@ -81,6 +83,8 @@ public:
 
 	void setDefaultColorTable(unsigned int tableID);
 
+	void setHidden(bool hide);
+
 signals:
 	void onExternalSheetIDChanged();
 	void onSheetIDChanged();
@@ -91,12 +95,15 @@ signals:
 	void onHeightChanged();
 
 	void onDefaultColorTableChanged();
+	void onHiddenChanged();
+
 private:
 	int m_sheetID = -1;
 	unsigned short  m_externalSheetID = 0; // get a sheet from different file by it's ID
 	unsigned int m_defaultColorTable = 0;
 	PG::UTIL::ivec2 m_position = PG::UTIL::ivec2(0,0);
 	PG::UTIL::ivec2 m_size = PG::UTIL::ivec2(0,0);
+	bool m_hide = false;
 };
 
 Q_DECLARE_METATYPE( Cutout );
@@ -417,6 +424,7 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets  NOTIFY onNumberOfSheetsChanged)
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
 	 Q_PROPERTY(Keyframe* selectedKey READ getLastSelected NOTIFY onSelectionChanged)
+	 Q_PROPERTY(SpriteAnimation* animation READ getCurrentAnimation NOTIFY onCurrentAnimationChanged)
 public:
 	SpriteData(QObject *parent = 0);
 	virtual ~SpriteData();
@@ -440,6 +448,7 @@ public:
 	int getCurrentAnimationIndex() const;
 	QString getLastFileName() const;
 
+	SpriteAnimation* getCurrentAnimation();
 	const SpriteAnimation* getCurrentAnimation() const;
 	const QList<Cutout*>& getCutouts() const;
 	const QList<QColor>& getColortable() const;
@@ -470,6 +479,8 @@ public slots:
 	Keyframe* getLastSelected() const;
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
 	Q_INVOKABLE SpriteSheet* getSpriteSheet(int spriteSheetIndex) const;
+
+	Q_INVOKABLE void unhideAllCutouts();
 	Q_INVOKABLE void refresh();
 
 signals:

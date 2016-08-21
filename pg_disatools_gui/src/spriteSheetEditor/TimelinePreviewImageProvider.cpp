@@ -68,7 +68,7 @@ QImage TimelinePreviewImageProvider::requestImage(const QString &id, QSize *size
 
 		if(m_data->getNumberOfColortables())
 			for(const Cutout* cut: m_data->getCutouts()){
-				if(cut->isExternalSheet() || cut->getSheetID() != spritesheetID) continue;
+				if(cut->isExternalSheet() || cut->getSheetID() != spritesheetID || cut->isHidden()) continue;
 				for(int y = cut->getY(); y < cut->getY()+cut->getHeight(); y++)
 					for(int x = cut->getX(); x < cut->getX()+cut->getWidth(); x++){
 						const int address = (y*qimg.width()+x)*4;

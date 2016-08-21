@@ -90,6 +90,10 @@ unsigned int Cutout::getDefaultColorTable() const{
 	return m_defaultColorTable;
 }
 
+bool Cutout::isHidden() const{
+	return m_hide;
+}
+
 //setters
 void Cutout::setSheetID(int id){
 	if(m_sheetID == id) return;
@@ -153,6 +157,12 @@ void Cutout::setDefaultColorTable(unsigned int tableID){
 	if(m_defaultColorTable == tableID ) return;
 	m_defaultColorTable = tableID;
 	emit onDefaultColorTableChanged();
+}
+
+void Cutout::setHidden(bool hide){
+	if(m_hide == hide) return;
+	m_hide = hide;
+	emit onHiddenChanged();
 }
 
 ///// KEYFRAME /////
@@ -694,9 +704,13 @@ void SpriteSheet::push_backCutoutID(int id){
 		//if(m_cutoutsIDs.empty())
 			//beginInsertRows(index(0),0,1);
 		//else
-		beginInsertRows(index(0),m_cutoutsIDs.size()+1,m_cutoutsIDs.size()+1);
+		//beginInsertColumns(index(0),m_cutoutsIDs.size(),m_cutoutsIDs.size()+1);
+		beginInsertRows(index(0),m_cutoutsIDs.size(),m_cutoutsIDs.size()+1);
+		//layoutAboutToBeChanged();
 		m_cutoutsIDs.push_back(id);
+		//layoutChanged();
 		endInsertRows();
+		//endInsertColumns();
 		emit onNumberOfCutoutsChanged();
 	}
 }
@@ -1189,6 +1203,11 @@ SpriteSheet* SpriteData::getSpriteSheet(int spriteSheetIndex) const{
 	return m_spriteSheets[spriteSheetIndex];
 }
 
+void SpriteData::unhideAllCutouts(){
+	for(Cutout* cut: m_cutouts)
+		cut->setHidden(false);
+}
+
 void SpriteData::refresh(){
 	emit onRefresh();
 }
@@ -1249,6 +1268,11 @@ int SpriteData::getCurrentAnimationIndex() const{
 
 QString SpriteData::getLastFileName() const{
 	return m_lastFile;
+}
+
+SpriteAnimation* SpriteData::getCurrentAnimation(){
+	if(m_currentAnimation < 0 || m_aniamtions.empty()) return nullptr;
+	return m_aniamtions[m_currentAnimation];
 }
 
 const SpriteAnimation* SpriteData::getCurrentAnimation() const{
