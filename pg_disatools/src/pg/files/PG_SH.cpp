@@ -28,6 +28,7 @@
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_Exception.h>
 
+#define DUMP_ON_OPEN false
 namespace PG {
 namespace FILE {
 
@@ -139,7 +140,7 @@ bool SH::open(const PG::UTIL::File& file){
 		 clear();
 		 return FAILURE;
 	}
-
+#if DEBUG
 	PG_INFO_STREAM("=== OPEN INFO ===")
 
 	PG_INFO_STREAM("Header: ")
@@ -153,15 +154,98 @@ bool SH::open(const PG::UTIL::File& file){
 	PG_INFO_STREAM(" * unknown7: "<<m_header.unknown7)
 	PG_INFO_STREAM("m_animations: "<<m_animations.size());
 	PG_INFO_STREAM("m_layers: "<<m_layers.size());
+	PG_INFO_STREAM(" * start_cutout: "<<m_layers[0].start_cutout)
+	PG_INFO_STREAM(" * number_of_cutouts: "<<m_layers[0].number_of_cutouts)
 	PG_INFO_STREAM("m_numberOfColortables: "<<m_numberOfColortables.size());
+	PG_INFO_STREAM(" * num: "<<m_numberOfColortables[0])
 	PG_INFO_STREAM("m_sheetsInfos: "<<m_sheetsInfos.size());
 	PG_INFO_STREAM("m_keyframesData: "<<m_keyframesData.size());
 	PG_INFO_STREAM("m_cutouts: "<<m_cutouts.size());
+	PG_INFO_STREAM(" * sheet: "<<(int)m_cutouts[0].sheet)
+	PG_INFO_STREAM(" * external_sheet: "<<(int)m_cutouts[0].external_sheet)
+	PG_INFO_STREAM(" * colortable: "<<(int)m_cutouts[0].colortable)
 	PG_INFO_STREAM("m_colortables: "<<m_colortables.size());
 	PG_INFO_STREAM("m_spriteSheets: "<<m_spriteSheets.size());
 
 	PG_INFO_STREAM("=== OPEN INFO END ===")
+#endif
+#if DUMP_ON_OPEN
+	{
+	 ofstream keyframesfile;
+	 keyframesfile.open ((file.getName()+"_Keyframes.txt").c_str());
+	 keyframesfile << "Keyframes:\n";
+	  for(unsigned int i = 0; i < m_keyframesData.size(); i++){
+		  	keyframesfile << " count: "<< i<<"\n";
+		  	keyframesfile << " * bundel_index: "<<m_keyframesData[i].bundel_index <<"\n";
+		  	keyframesfile << " * duration: "<<(int)m_keyframesData[i].duration <<"\n";
+			keyframesfile << " * type: "<<(int)m_keyframesData[i].type <<"\n";
 
+			keyframesfile << " * unknown2: "<<m_keyframesData[i].unknown2 <<"\n";
+			keyframesfile << " * unknown3: "<<m_keyframesData[i].unknown3 <<"\n";
+			keyframesfile << " ===============================\n";
+	  }
+
+	  keyframesfile.close();
+	}
+
+	{
+	 ofstream dump;
+	 dump.open ((file.getName()+"_bundels.txt").c_str());
+	 dump << "Bundels/Layers:\n";
+	 unsigned int count = 0;
+	 for(const shfileLayers& lay: m_layers){
+		 dump << " count: "<< count<<"\n";
+		 dump << " * start_cutout: "<< lay.start_cutout<<"\n";
+		 dump << " * number_of_cutouts: "<< lay.number_of_cutouts<<"\n";
+		 dump << " ===============================\n";
+		 count++;
+	 }
+
+	  dump.close();
+	}
+
+	{
+	 ofstream dump;
+	 dump.open ((file.getName()+"_Cutouts.txt").c_str());
+	 unsigned int count = 0;
+	 dump << "Cutouts\n";
+	 for(const shfileCutout& cut: m_cutouts){
+		 dump << " count: "<< count<<"\n";
+		 dump << " * sheet: "<< (int)cut.sheet<<"\n";
+		 dump << " * external_sheet: "<< (int)cut.external_sheet<<"\n";
+		 dump << " * colortable: "<< (int)cut.colortable<<"\n";
+		 dump << " * mirror: "<< (int)cut.mirror<<"\n";
+		 dump << " * unkown0: "<< (int)cut.unkown0<<"\n";
+		 dump << " * x: "<< cut.x<<"\n";
+		 dump << " * y: "<< cut.y<<"\n";
+		 dump << " * width: "<< cut.width<<"\n";
+		 dump << " * height: "<< cut.height<<"\n";
+		 dump << " * scalex: "<< cut.scalex<<"\n";
+		 dump << " * scaley: "<< cut.scaley<<"\n";
+		 dump << " ===============================\n";
+		 count++;
+	 }
+
+	{
+	 ofstream dump;
+	 dump.open ((file.getName()+"_sheetInfo.txt").c_str());
+	 dump << "SheetInfo\n";
+	 unsigned int count = 0;
+	 for(const shfileSheetInfo& info: m_sheetsInfos){
+		 dump << " count: "<< count<<"\n";
+		 dump << " * offset: "<< info.offset<<"\n";
+		 dump << " * width: "<< info.width<<"\n";
+		 dump << " * height: "<< info.height<<"\n";
+		 dump << " * unknown0: "<< info.unknown0<<"\n";
+		 dump << " * unknown1: "<< info.unknown1<<"\n";
+		 dump << " ===============================\n";
+		 count++;
+	 }
+	}
+
+	  dump.close();
+	}
+#endif
 	return SUCCESS;
 }
 
@@ -196,6 +280,8 @@ bool SH::save(const PG::UTIL::File& file){
 		m_header.number_of_cutouts = m_cutouts.size();
 		m_header.number_of_keyframes = m_keyframesData.size();
 		m_header.number_of_sheets = m_spriteSheets.size();
+		m_header.unknown6 = 1; //??
+		m_header.unknown7  = m_spriteSheets.size();//?
 
 		writer.write((char*)&m_header,sizeof(shfileHeader));
 

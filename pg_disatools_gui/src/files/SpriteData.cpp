@@ -46,7 +46,10 @@ Cutout::~Cutout(){
 }
 
 bool Cutout::isSame(int x,int y, int width, int height, int sheetID) const{
-	return !isExternalSheet() && m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height && m_sheetID == sheetID;
+	if(isExternalSheet())
+		return m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height && m_externalSheetID == sheetID;
+	else
+		return m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height && m_sheetID == sheetID;
 }
 
 //getters
@@ -840,7 +843,7 @@ bool SpriteData::save(const QString& file){
 inline int findCutout(const QList<Cutout*> cutouts,const PG::FILE::shfileCutout& currCutout){
 	int count = 0;
 	for(const Cutout* cut: cutouts){
-		if(cut->isSame(currCutout.x,currCutout.y, currCutout.width,currCutout.height, currCutout.sheet)){
+		if(cut->isSame(currCutout.x,currCutout.y, currCutout.width,currCutout.height, (currCutout.external_sheet)? currCutout.external_sheet : currCutout.sheet)){
 			return count;
 		}
 		count++;
@@ -909,8 +912,11 @@ bool SpriteData::importSH(const QString& file){
 				int cutoutID = -1;
 				//cutout
 				if(currCutout.external_sheet){
-					cutoutID = m_cutouts.size();
-					m_cutouts.push_back(new Cutout(cutoutID, currCutout.external_sheet, PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height), this));
+					cutoutID = findCutout(m_cutouts, currCutout);
+					if(cutoutID < 0){
+						cutoutID = m_cutouts.size();
+						m_cutouts.push_back(new Cutout(cutoutID, currCutout.external_sheet, PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height), this));
+					}
 				}else{
 					cutoutID = findCutout(m_cutouts, currCutout);
 					if(cutoutID < 0){
@@ -1005,6 +1011,7 @@ bool SpriteData::exportSH(const QString& file){
 
 	for(const SpriteSheet* sheet: m_spriteSheets){
 		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
+		sh.getSheetsInfos().push_back({0,sheet->getWidth(),sheet->getHeight(),4,2056});
 	}
 	PG_INFO_STREAM("Number of spritesheets: "<<sh.getSprtieSheets().size());
 
@@ -1033,13 +1040,19 @@ bool SpriteData::exportSH(const QString& file){
 			PG::FILE::shfileKeyframe shKey;
 			shKey.duration = ((nextFrame-startFrame) > 255)? 255 : (nextFrame-startFrame);
 
-			if(first)
+			if(ani->getID() == 1 || ani->getID() == 6)
+				PG_INFO_STREAM(ani->getID()<<" nextFrame: "<<nextFrame<<" durr: "<<(int)shKey.duration)
+
+
+			if(first){
 				shKey.type = 1;
-			else
+				first = false;
+			}else
 				shKey.type = 0;
 
 			shKey.unknown2 = 0;
 			shKey.unknown3 = 0;
+			shKey.bundel_index = sh.getLayers().size();
 
 			//bundels
 			QList<const Keyframe*> keys;
@@ -1096,6 +1109,7 @@ bool SpriteData::exportSH(const QString& file){
 		}
 
 		PG::FILE::shfileKeyframe shKey = sh.getKeyframes().back();
+		shKey.duration = 0;
 		shKey.type = 2;
 		sh.getKeyframes().push_back(shKey);
 

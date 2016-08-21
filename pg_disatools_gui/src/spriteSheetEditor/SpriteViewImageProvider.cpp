@@ -42,8 +42,12 @@ QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, con
 		if(m_data->getNumberOfColortables())
 			for(const Cutout* cut: m_data->getCutouts()){
 				if(cut->isExternalSheet() || cut->getSheetID() != spritesheetID || cut->isHidden()) continue;
-				for(int y = cut->getY(); y < cut->getY()+cut->getHeight(); y++)
-					for(int x = cut->getX(); x < cut->getX()+cut->getWidth(); x++){
+				const int trueEndX = (cut->getX()+cut->getWidth() > qimg.width())? qimg.width() : cut->getX()+cut->getWidth();
+				const int trueEndY = (cut->getY()+cut->getHeight() > qimg.height())? qimg.height() : cut->getY()+cut->getHeight();
+				if(trueEndY <= 0 || trueEndX <= 0) continue;
+
+				for(int y = cut->getY(); y < trueEndY; y++)
+					for(int x = cut->getX(); x < trueEndX; x++){
 						const int address = (y*qimg.width()+x)*4;
 						assert_Test("Address out of bound!", address >= qimg.width()*qimg.height()*4);
 						const int id = sheetID.get(x,y);
