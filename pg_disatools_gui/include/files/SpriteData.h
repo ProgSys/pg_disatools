@@ -429,15 +429,6 @@ public:
 	SpriteData(QObject *parent = 0);
 	virtual ~SpriteData();
 
-	// functions
-	bool open(const QString& file);
-	bool save(const QString& file);
-
-	bool importSH(const QString& file);
-	bool exportSH(const QString& file);
-
-	void close();
-
 
 	// getters
 	bool isOpen() const;
@@ -465,6 +456,15 @@ public:
 	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
 
 public slots:
+	// functions
+	bool open(const QString& file);
+	bool save(const QString& file);
+
+	bool importSH(const QString& file);
+	bool exportSH(const QString& file);
+
+	void close();
+
 	///if png is false then tga is used
 	int exportSprites(const QString& folder, const QString& type);
 	int exportSpritesIDs(const QString& folder, const QString& type);

@@ -856,7 +856,32 @@ bool SpriteData::importSH(const QString& file){
 	PG::FILE::SH sh;
 
 	if(sh.open(file.toStdString())){
-		qDebug() << "Couldn't read sh file!";
+		qInfo() << "Couldn't read sh file!";
+		return false;
+	}
+
+	if(sh.getSprtieSheets().empty() || sh.getSheetsInfos().size() != sh.getSprtieSheets().size()){
+		qInfo() << "There are no sprite sheets inside the SH file! File may be corrupt!";
+		return false;
+	}
+
+	if(sh.getAnimations().empty()){
+		qInfo() << "Animation data is missing! File may be corrupt!";
+		return false;
+	}
+
+	if(sh.getKeyframes().empty()){
+		qInfo() << "Keyframes data is missing! File may be corrupt!";
+		return false;
+	}
+
+	if(sh.getCutouts().empty()){
+		qInfo() << "Cutouts data is missing! File may be corrupt!";
+		return false;
+	}
+
+	if(sh.getColortables().size() < 15){
+		qInfo() << "Colortable is too small! File may be corrupt!";
 		return false;
 	}
 
@@ -875,7 +900,7 @@ bool SpriteData::importSH(const QString& file){
 		int startOffset = 0;
 		int keyCount = 0;
 		while(currKey->type != 2){
-
+			if(keyCount > 60) PG_WARN_STREAM("Key count seams to be too big? Given file may be corrupt!")
 			const PG::FILE::shfileLayers& currlayer = sh.getLayers()[currKey->bundel_index];
 			int layerCount = 0;
 
@@ -931,7 +956,14 @@ bool SpriteData::importSH(const QString& file){
 			}
 			keyCount++;
 			startOffset += currKey->duration;
+			if(currKey == &sh.getKeyframes().back()){
+				PG_ERROR_STREAM("No end key found! File may be corrupt!");
+				close();
+				return false;
+			}
+
 			currKey++;
+
 		}
 		aniCount++;
 	}
@@ -966,8 +998,111 @@ bool SpriteData::importSH(const QString& file){
 	return true;
 }
 bool SpriteData::exportSH(const QString& file){
-	//TODO
-	return false;
+	if(file.size() == 0) return false;
+
+	PG::FILE::SH sh;
+
+
+	for(const SpriteSheet* sheet: m_spriteSheets){
+		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
+	}
+	PG_INFO_STREAM("Number of spritesheets: "<<sh.getSprtieSheets().size());
+
+	sh.getColortables() = getColortableGL();
+
+	for(const SpriteAnimation* ani: m_aniamtions){
+		assert_Test("Value is too big!", sh.getKeyframes().size() > 65534 || ani->getID()  > 65534 );
+		sh.getAnimations().push_back({(unsigned short)sh.getKeyframes().size(), (unsigned short)ani->getID()});
+
+		unsigned int startFrame = 0;
+		const unsigned int totalTrackSize = ani->getTotalFrames();
+
+		//write keys
+		bool first = true;
+		while(startFrame < totalTrackSize){
+			unsigned int nextFrame = totalTrackSize;
+
+
+			for(const Layer* lay: ani->getLayers())
+				for(const Keyframe* key: lay->getKeyframes()){
+					if(startFrame >= key->getStart() && startFrame < key->getEnd() &&  nextFrame > key->getEnd()){
+						nextFrame = key->getEnd();
+					}
+				}
+
+			PG::FILE::shfileKeyframe shKey;
+			shKey.duration = ((nextFrame-startFrame) > 255)? 255 : (nextFrame-startFrame);
+
+			if(first)
+				shKey.type = 1;
+			else
+				shKey.type = 0;
+
+			shKey.unknown2 = 0;
+			shKey.unknown3 = 0;
+
+			//bundels
+			QList<const Keyframe*> keys;
+			for(const Layer* lay: ani->getLayers())
+				for(const Keyframe* key: lay->getKeyframes()){
+					if(key->getStart() <= startFrame && key->getEnd() > startFrame)
+						keys.push_back(key);
+				}
+
+			//TODO
+			if(keys.isEmpty()) {
+				PG_INFO_STREAM("There can't be an empty area!")
+				return false;
+			}
+
+			PG::FILE::shfileLayers bundle;
+			bundle.start_cutout = sh.getCutouts().size();
+			bundle.number_of_cutouts = keys.size();
+			sh.getLayers().push_back(bundle);
+
+			//writeCutouts
+			for(const Keyframe* key: keys){
+				const Cutout* cut = m_cutouts[key->getCutoutID()];
+				assert_Test("Cutout is nullptr!", !cut);
+
+				PG::FILE::shfileCutout shCut;
+				shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
+				shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
+				shCut.colortable = key->getColortableID(); // the 16 rgba colortable which the sheet should use
+				shCut.anchorx = key->getAnchorX();  // rotation and mirror point
+				shCut.anchory = key->getAnchorY(); // rotation and mirror point
+
+				//sprite info
+				shCut.x = cut->getX();
+				shCut.y = cut->getY();
+				shCut.width  = cut->getWidth();
+				shCut.height = cut->getHeight();
+				shCut.scalex = key->getScaleX();
+				shCut.scaley = key->getScaleY();
+
+				shCut.offsetx = key->getOffsetX();
+				shCut.offsety  = key->getOffsetY();
+				shCut.rotation = key->getRotation();
+
+				shCut.mirror = key->getMirror();
+				shCut.unkown0 = key->getUnknown();
+
+				sh.getCutouts().push_back(shCut);
+			}
+
+			startFrame += shKey.duration;
+
+			sh.getKeyframes().push_back(shKey);
+		}
+
+		PG::FILE::shfileKeyframe shKey = sh.getKeyframes().back();
+		shKey.type = 2;
+		sh.getKeyframes().push_back(shKey);
+
+	}
+
+	PG_INFO_STREAM("START SAVING!")
+	return !sh.save(file.toStdString());
 }
 
 ///if png is false then tga is used

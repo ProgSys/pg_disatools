@@ -40,6 +40,8 @@ public slots:
 	void open();
 	void open(const QString& file);
 
+	void exportSH();
+
 	void dump();
 	void exportSprites(const QString& filetype, bool asID = false);
 	void exportColortable();
@@ -50,6 +52,7 @@ public slots:
 signals:
 
 	bool openSH( const QString& filepath );
+	bool exportSH( const QString& filepath );
 	bool dumpSprite(const QString& filepath);
 	int exportSprites(const QString& folder, const QString& filetype);
 	int exportSpritesIDs(const QString& folder, const QString& filetype);

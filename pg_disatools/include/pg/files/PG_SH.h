@@ -96,7 +96,6 @@ typedef struct
 	unsigned short scalex; // 0-100
 	unsigned short scaley; // 0-100
 
-	// only rotationx and rotationz seam to have a effect on 2D sprites
 	short offsetx; // offset from the anchor
 	short offsety; // offset from the anchor
 	short rotation; // is degree
@@ -116,21 +115,38 @@ public:
 	// functions
 	bool open(const std::string& file);
 	bool open(const PG::UTIL::File& file);
+	bool save(const std::string& file);
+	bool save(const PG::UTIL::File& file);
 	void clear();
 
 	// getters
 	bool isOpen() const;
+
 	inline const PG::UTIL::File& getOpenedFile() const { return m_openedFile;};
 	inline const shfileHeader& getHeader() const { return m_header;};
 	inline const std::vector<unsigned int>& getAdresses() const { return m_addresses;};
+
+	inline std::vector<shfileAnimation>& getAnimations() { return m_animations;};
 	inline const std::vector<shfileAnimation>& getAnimations() const { return m_animations;};
+
+	inline  std::vector<shfileLayers>& getLayers() { return m_layers;};
 	inline const std::vector<shfileLayers>& getLayers() const { return m_layers;};
+
 	inline const std::vector<unsigned int>& getNumberOfColortables() const { return m_numberOfColortables;};
+
+	inline std::vector<shfileSheetInfo>& getSheetsInfos() { return m_sheetsInfos;};
 	inline const std::vector<shfileSheetInfo>& getSheetsInfos() const { return m_sheetsInfos;};
+
+	inline std::vector<shfileKeyframe>& getKeyframes() { return m_keyframesData;};
 	inline const std::vector<shfileKeyframe>& getKeyframes() const { return m_keyframesData;};
+
+	inline std::vector<shfileCutout>& getCutouts() { return m_cutouts;};
 	inline const std::vector<shfileCutout>& getCutouts() const { return m_cutouts;};
 
+	inline ColorTable& getColortables() { return m_colortables;};
 	inline const ColorTable& getColortables() const { return m_colortables;};
+
+	inline std::vector< PG::UTIL::IDImage >& getSprtieSheets() { return m_spriteSheets;};
 	inline const std::vector< PG::UTIL::IDImage >& getSprtieSheets() const { return m_spriteSheets;};
 
 private:

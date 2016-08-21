@@ -83,6 +83,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	//ui->openGLWidget->openSprite("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
 	//files
 	connect(ui->actionOpen_File, SIGNAL(triggered()), this, SLOT(open()));
+	connect(ui->actionExport_SH, SIGNAL(triggered()), this, SLOT(exportSH()));
 
 	//tools
 	connect(ui->actionDump, SIGNAL(triggered()), this, SLOT(dump()));
@@ -111,7 +112,6 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	} );
 
 	//player functions
-	connect(this, SIGNAL(openSH( const QString& )), m_player, SLOT(openSH( const QString& )));
 	connect(ui->btnPrevious, SIGNAL(clicked()), m_player->getTimeline(), SLOT(previousKeyframe()));
 	connect(ui->btnPausePlay, SIGNAL(clicked()), this, SLOT(clickPlayPause()));
 	connect(ui->btnNext, SIGNAL(clicked()), m_player->getTimeline(), SLOT(nextKeyframe()));
@@ -120,7 +120,10 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(m_player->getTimeline(), SIGNAL(onPause()), this, SLOT(setImagePlay()));
 
 
-	connect(this, SIGNAL(dumpSprite( const QString& )), m_player->getSpriteData(), SLOT(dump( const QString& )));
+	connect(this, SIGNAL(openSH( const QString& )), m_player, SLOT(openSH( const QString& )));
+	connect(this, SIGNAL(exportSH( const QString& )), m_player->getSpriteData(), SLOT(exportSH( const QString& )));
+
+	connect(this, SIGNAL( dumpSprite( const QString& )), m_player->getSpriteData(), SLOT(dump( const QString& )));
 	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSprites( const QString& , const QString& ) ) );
 	connect(this, SIGNAL( exportSpritesIDs( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSpritesIDs( const QString& , const QString& ) ) );
 	connect(this, SIGNAL( exportColortable( const QString& ) ), m_player->getSpriteData(), SLOT( exportColortable( const QString& ) ) );
@@ -176,6 +179,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->statusbar->showMessage(QString("Failed to opened %1.").arg(file));
 		setTitel();
 
+		ui->actionExport_SH->setEnabled(false);
 		ui->actionDump->setEnabled(false);
 		ui->actionExport_sprites_as_PNG->setEnabled(false);
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
@@ -185,6 +189,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
 		setTitel(file);
 
+		ui->actionExport_SH->setEnabled(true);
 		ui->actionDump->setEnabled(true);
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
@@ -193,6 +198,20 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->comboBox->setCurrentIndex(0);
 	}
 
+}
+
+void SpriteSheetEditor::exportSH(){
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Export SH file"),
+										QFileInfo(m_player->getSpriteData()->getLastFileName()).baseName()+"_export",
+	                                   tr("sh (*.sh)"));
+
+	if (fileName.isEmpty()) return;
+
+	if(emit exportSH(fileName)){
+		ui->statusbar->showMessage(QString("SH exported to %1.").arg(fileName));
+	}else{
+		ui->statusbar->showMessage(QString("Failed to export SH file to %1.").arg(fileName));
+	}
 }
 
 void SpriteSheetEditor::dump(){
