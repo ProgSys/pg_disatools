@@ -23,6 +23,7 @@
 #include <QColor>
 #include <spriteSheetEditor/SpritePlayer.h>
 #include <spriteSheetEditor/TimelinePreviewImageProvider.h>
+#include <spriteSheetEditor/SpriteViewImageProvider.h>
 
 namespace Ui {
 	class SpriteSheetEditorWindow;
@@ -59,7 +60,8 @@ signals:
 private:
 	Ui::SpriteSheetEditorWindow *ui;
 	SpritePlayer* m_player;
-	TimelinePreviewImageProvider* m_TimelinePreviewImageProvider;
+	//TimelinePreviewImageProvider* m_TimelinePreviewImageProvider;
+	//SpriteViewImageProvider* m_SpriteViewImageProvider;
 
 	void setTitel();
 	void setTitel(const QString& filename);

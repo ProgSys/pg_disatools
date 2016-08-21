@@ -1219,7 +1219,9 @@ void SpriteData::close(){
 	for(Cutout* cut: m_cutouts)
 		delete cut;
 	m_cutouts.clear();
+
 	m_colortable.clear();
+
 	for(SpriteSheet* sheet: m_spriteSheets)
 		delete sheet;
 	m_spriteSheets.clear();
@@ -1238,6 +1240,7 @@ void SpriteData::close(){
 	emit onNumberOfAnimationsChanged();
 	emit onCurrentAnimationChanged();
 	emit onAnimationChanged(nullptr);
+
 }
 
 // getters

@@ -47,6 +47,7 @@ QImage TimelinePreviewImageProvider::requestImage(const QString &id, QSize *size
 	if(!m_data || idSplit.size() != 2)
 		return QImage();
 
+	/*
 	if(idSplit[0] == "sheet"){
 		const unsigned int spritesheetID = idSplit[1].toInt();
 		if(spritesheetID >= m_data->getNumberOfSpriteSheets() ) return QImage("resources/test.jpg");
@@ -90,7 +91,7 @@ QImage TimelinePreviewImageProvider::requestImage(const QString &id, QSize *size
 		return qimg;
 
 	}
-
+	*/
 	const unsigned int cutoutID = idSplit[0].toInt();
 	const unsigned int colortableID = idSplit[1].toInt();
 	//qInfo() <<"Requested preview image: '"<<cutoutID<<"' '"<<colortableID<<"'";
