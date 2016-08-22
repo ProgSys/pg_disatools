@@ -172,21 +172,29 @@ bool SH::open(const PG::UTIL::File& file){
 #endif
 #if DUMP_ON_OPEN
 	{
+	auto tiani = m_animations.begin();
 	 ofstream keyframesfile;
 	 keyframesfile.open ((file.getName()+"_Keyframes.txt").c_str());
 	 keyframesfile << "Keyframes:\n";
-	  for(unsigned int i = 0; i < m_keyframesData.size(); i++){
-		  	keyframesfile << " count: "<< i<<"\n";
-		  	keyframesfile << " * bundel_index: "<<m_keyframesData[i].bundel_index <<"\n";
-		  	keyframesfile << " * duration: "<<(int)m_keyframesData[i].duration <<"\n";
-			keyframesfile << " * type: "<<(int)m_keyframesData[i].type <<"\n";
+	for(unsigned int i = 0; i < m_keyframesData.size(); i++){
 
-			keyframesfile << " * unknown2: "<<m_keyframesData[i].unknown2 <<"\n";
-			keyframesfile << " * unknown3: "<<m_keyframesData[i].unknown3 <<"\n";
-			keyframesfile << " ===============================\n";
-	  }
+		if(tiani != m_animations.end() && tiani->start_keyframe == i){
+			keyframesfile << " Keyframe Start: "<< i<<" ID: "<<tiani->id<<"\n";
+			tiani++;
+		}else
+			keyframesfile << " Keyframe: "<< i<<"\n";
+
+		//keyframesfile << " * bundel_index: "<<m_keyframesData[i].bundel_index <<"\n";
+		keyframesfile << " * duration: "<<(int)m_keyframesData[i].duration <<"\n";
+		keyframesfile << " * type: "<<(int)m_keyframesData[i].type <<"\n";
+
+		keyframesfile << " * unknown2: "<<m_keyframesData[i].unknown2 <<"\n";
+		keyframesfile << " * unknown3: "<<m_keyframesData[i].unknown3 <<"\n";
+		keyframesfile << " ===============================\n";
+	}
 
 	  keyframesfile.close();
+
 	}
 
 	{
