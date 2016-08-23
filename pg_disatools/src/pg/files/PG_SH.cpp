@@ -28,7 +28,7 @@
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_Exception.h>
 
-#define DUMP_ON_OPEN true
+#define DUMP_ON_OPEN false
 
 namespace PG {
 namespace FILE {
@@ -141,7 +141,7 @@ bool SH::open(const PG::UTIL::File& file){
 		 clear();
 		 return FAILURE;
 	}
-#if DEBUG
+#ifdef DEBUG
 	PG_INFO_STREAM("=== OPEN INFO ===")
 
 	PG_INFO_STREAM("Header: ")
@@ -169,7 +169,7 @@ bool SH::open(const PG::UTIL::File& file){
 	PG_INFO_STREAM("m_spriteSheets: "<<m_spriteSheets.size());
 
 	PG_INFO_STREAM("=== OPEN INFO END ===")
-#endif
+
 #if DUMP_ON_OPEN
 	{
 	auto tiani = m_animations.begin();
@@ -254,6 +254,7 @@ bool SH::open(const PG::UTIL::File& file){
 
 	  dump.close();
 	}
+#endif
 #endif
 	return SUCCESS;
 }

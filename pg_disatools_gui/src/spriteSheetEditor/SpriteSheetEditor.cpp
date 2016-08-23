@@ -24,6 +24,7 @@
 #include <QColorDialog>
 #include <QtQml>
 #include <spriteSheetEditor/Timeline.h>
+#include <files/SpriteData.h>
 //#include <QShortcut>
 
 inline void about(){
@@ -139,6 +140,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     qmlRegisterType<SpriteData>("MySpriteData",0,1, "SpriteData");
     qmlRegisterType<SpriteSheet>("MySpriteSheet",0,1, "SpriteSheet");
     qmlRegisterType<Marker>("MyMarker",0,1, "Marker");
+    qmlRegisterType<MarkersList>("MyMarkersList",0,1, "MarkersList");
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));

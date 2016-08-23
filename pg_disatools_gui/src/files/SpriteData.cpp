@@ -446,6 +446,108 @@ void Keyframe::setSelected(bool select){
 	emit onSelectionChanged();
 }
 
+bool Keyframe::swapNext(){
+	if(!hasNext()) return false;
+
+	//buffvalues
+	const unsigned int cutoutID = m_next->getCutoutID();
+	const unsigned char colortableID =  m_next->getColortableID();
+
+	const short anchorx =  m_next->getAnchorX();
+	const short anchory =  m_next->getAnchorY();
+	const unsigned short scalex =  m_next->getScaleX();
+	const unsigned short scaley =  m_next->getScaleY();
+	const short offsetx =  m_next->getOffsetX();
+	const short offsety =  m_next->getOffsetY();
+	const short rotation =  m_next->getRotation();
+
+	const unsigned char mirror = m_next->getMirror();
+	const unsigned char unknown = m_next->getUnknown();
+
+	//copy them over
+	m_next->setCutoutID(m_cutoutID);
+	m_next->setColortableID(m_colortableID);
+
+	m_next->setAnchorX(m_anchorx);
+	m_next->setAnchorY(m_anchory);
+	m_next->setScaleX(m_scalex);
+	m_next->setScaleY(m_scaley);
+	m_next->setOffsetX(m_offsetx);
+	m_next->setOffsetY(m_offsety);
+	m_next->setRotation(m_rotation);
+
+	m_next->setMirror(m_mirror);
+	m_next->setUnknown(m_unknown);
+
+	//copy buffer values
+	setCutoutID(cutoutID);
+	setColortableID(colortableID);
+
+	setAnchorX(anchorx);
+	setAnchorY(anchory);
+	setScaleX(scalex);
+	setScaleY(scaley);
+	setOffsetX(offsetx);
+	setOffsetY(offsety);
+	setRotation(m_rotation);
+
+	setMirror(mirror);
+	setUnknown(unknown);
+
+	return true;
+}
+
+bool Keyframe::swapPrevious(){
+	if(!hasPrevious()) return false;
+
+	//buffvalues
+	const unsigned int cutoutID = m_previous->getCutoutID();
+	const unsigned char colortableID =  m_previous->getColortableID();
+
+	const short anchorx =  m_previous->getAnchorX();
+	const short anchory =  m_previous->getAnchorY();
+	const unsigned short scalex =  m_previous->getScaleX();
+	const unsigned short scaley =  m_previous->getScaleY();
+	const short offsetx =  m_previous->getOffsetX();
+	const short offsety =  m_previous->getOffsetY();
+	const short rotation =  m_previous->getRotation();
+
+	const unsigned char mirror = m_previous->getMirror();
+	const unsigned char unknown = m_previous->getUnknown();
+
+	//copy them over
+	m_previous->setCutoutID(m_cutoutID);
+	m_previous->setColortableID(m_colortableID);
+
+	m_previous->setAnchorX(m_anchorx);
+	m_previous->setAnchorY(m_anchory);
+	m_previous->setScaleX(m_scalex);
+	m_previous->setScaleY(m_scaley);
+	m_previous->setOffsetX(m_offsetx);
+	m_previous->setOffsetY(m_offsety);
+	m_previous->setRotation(m_rotation);
+
+	m_previous->setMirror(m_mirror);
+	m_previous->setUnknown(m_unknown);
+
+	//copy buffer values
+	setCutoutID(cutoutID);
+	setColortableID(colortableID);
+
+	setAnchorX(anchorx);
+	setAnchorY(anchory);
+	setScaleX(scalex);
+	setScaleY(scaley);
+	setOffsetX(offsetx);
+	setOffsetY(offsety);
+	setRotation(m_rotation);
+
+	setMirror(mirror);
+	setUnknown(unknown);
+
+	return true;
+}
+
 void Keyframe::setNext(Keyframe* nextIn){
 	m_next = nextIn;
 }
@@ -534,6 +636,118 @@ void Layer::push_backKeyframe(int start, int duration, unsigned int cutoutIDIn, 
 	push_backKeyframe(key);
 }
 
+bool Layer::insertKeyframe(int frame){
+	if(frame < 0) return false;
+
+	if(m_keyframes.empty() ){
+		beginInsertRows(QModelIndex(), m_keyframes.size(), m_keyframes.size());
+		m_keyframes.push_back(new Keyframe(frame, 10,  0,0,  0,0,  100,100,  0,0, 0, 0,0,this));
+		endInsertRows();
+		emit onDurationChanged();
+		emit onNumberOfKeyframesChanged();
+		return true;
+	}else if(frame >= m_keyframes.last()->getEnd()){
+		beginInsertRows(QModelIndex(), m_keyframes.size(), m_keyframes.size());
+		Keyframe* lastKey = m_keyframes.last();
+		m_keyframes.push_back(new Keyframe(frame, 10,  0,0,  0,0,  100,100,  0,0, 0, 0,0,this));
+		m_keyframes.last()->setPrevious(lastKey);
+		lastKey->setNext(m_keyframes.last());
+		endInsertRows();
+
+		emit onDurationChanged();
+		emit onNumberOfKeyframesChanged();
+		return true;
+	}
+
+	Keyframe* key = m_keyframes.first();
+	while(key){
+		Keyframe* next = key->getNext();
+		if(!next) break;
+
+		if(key->getEnd() != next->getStart() && frame >=  key->getEnd() && frame <= next->getStart()){
+			const int indexOf = m_keyframes.indexOf(next);
+			assert_Test("Index of is invalid!", indexOf == -1);
+
+			beginInsertRows(QModelIndex(), indexOf, indexOf);
+			Keyframe* newKey = new Keyframe(frame, next->getStart()-frame, 0,0,  0,0,100,100,0,0,0,0,0,this);
+			newKey->setPrevious(key);
+			newKey->setNext(next);
+			key->setNext(newKey);
+			next->setPrevious(newKey);
+			m_keyframes.insert(indexOf, newKey);
+			endInsertRows();
+			emit onNumberOfKeyframesChanged();
+			return true;
+		}
+		key = next;
+	}
+
+	return false;
+}
+
+
+bool Layer::splitKeyframe(int frame){
+	if(frame <= 0) return false;
+	for(Keyframe* key: m_keyframes){
+		if(key->getStart() < frame && frame < key->getEnd()){
+			const int indexOf = m_keyframes.indexOf(key);
+			assert_Test("Index of is invalid!", indexOf == -1);
+
+			beginInsertRows(QModelIndex(), indexOf+1, indexOf+1);
+			const int oldKeyDuration = frame - key->getStart();
+			const int newKeyDuration = key->getEnd()-frame;
+			key->setDuration(oldKeyDuration);
+
+			Keyframe* newKey = new Keyframe(frame, newKeyDuration,
+					key->getCutoutID(), key->getColortableID(),
+					key->getAnchorX(), key->getAnchorY(),
+					key->getScaleX(), key->getScaleY(),
+					key->getOffsetX(), key->getOffsetY(),
+					key->getRotation(), key->getMirror(), key->getUnknown());
+
+
+			Keyframe* after = key->getNext();
+
+			newKey->setPrevious(key);
+			newKey->setNext(after);
+
+			if(after) after->setPrevious(newKey);
+			key->setNext(newKey);
+
+			m_keyframes.insert(indexOf+1, newKey);
+			endInsertRows();
+			emit onNumberOfKeyframesChanged();
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Layer::removeKeyframe(Keyframe* keyframe){
+	if(!keyframe) return false;
+	int indexof = m_keyframes.indexOf(keyframe);
+
+	if(indexof != -1){
+		beginRemoveRows(QModelIndex(), indexof, indexof);
+		Keyframe* before = keyframe->getPrevious();
+		Keyframe* after = keyframe->getNext();
+
+		if(after) after->setPrevious(before);
+		if(before) before->setNext(after);
+
+		m_keyframes.removeAt(indexof);
+		endRemoveRows();
+
+	    emit onDurationChanged();
+	    emit onNumberOfKeyframesChanged();
+
+		return true;
+	}
+
+	return false;
+
+}
+
 const QString& Layer::getName() const{
 	return m_name;
 }
@@ -577,6 +791,8 @@ QVariant Layer::data(const QModelIndex & index, int role) const{
 }
 
 int Layer::rowCount(const QModelIndex & parent) const{
+    if(parent.isValid())
+        return 0;
 	return getNumberOfKeyframes();
 }
 
@@ -586,115 +802,24 @@ Layer::~Layer()
 		delete key;
 }
 
-////// MARKER //////
-
-Marker::Marker(QObject *parent): QObject(parent)
-{}
-
-Marker::Marker(int start, int duration, short A, unsigned short B, QObject *parent): QObject(parent),
-		m_start(start), m_duration(duration), m_A(A), m_B(B)
-		{
-		if(m_start < 0) m_start = 0;
-		if(m_duration < 1) m_duration = 1;
-		}
-
-Marker::Marker(int start, int duration, unsigned int type, QObject *parent ): QObject(parent),
-	m_start(start), m_duration(duration), m_A(0), m_B(0), m_type(type)
-{}
-
-Marker::Marker(int start, int duration, short A,unsigned short B, unsigned int type, QObject *parent): QObject(parent),
-		m_start(start), m_duration(duration), m_A(A), m_B(B), m_type(type)
-{}
-
-Marker::Marker(const Marker& marker):
-		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_A(marker.getA()), m_B(marker.getB()), m_type(marker.getType())
-{}
-
-Marker::~Marker(){
-
-}
-
-void Marker::operator =(const Marker& marker){
-	setParent(marker.parent());
-
-	setStart(marker.getStart());
-	setDuration(marker.getDuration());
-	setA(marker.getA());
-	setB(marker.getB());
-	setType(marker.getType());
-
-}
-
-//getters
-int Marker::getStart() const{
-	return m_start;
-}
-int Marker::getDuration() const{
-	return m_duration;
-}
-short Marker::getA() const{
-	return m_A;
-}
-unsigned short Marker::getB() const{
-	return m_B;
-}
-
-unsigned int Marker::getType() const{
-	return m_type;
-}
-
-//setters
-void Marker::setStart(int start){
-	if(m_start == start) return;
-	if(start < 0)
-		m_start = 0;
-	else
-		m_start = start;
-	emit onStartChanged();
-}
-void Marker::setDuration(int duration){
-	if(m_duration == duration) return;
-	if(duration < 1)
-		m_duration = 1;
-	else
-		m_duration = duration;
-	emit onDirationChanged();
-}
-void Marker::setA(short a){
-	if(m_A == a) return;
-	m_A = a;
-	emit onAChanged();
-}
-void Marker::setB(unsigned short b){
-	if(m_B == b) return;
-	m_B = b;
-	emit onBChanged();
-}
-
-void Marker::setType(unsigned int type){
-	if(m_type == type) return;
-	m_type = type;
-	emit onTypeChanged();
-}
 
 ////// SPRITEANIMATION //////
 
-SpriteAnimation::SpriteAnimation(QObject *parent): QAbstractListModel(parent){
+SpriteAnimation::SpriteAnimation(QObject *parent): QAbstractListModel(parent), m_Markers(new MarkersList(this)){
 
 }
 
 SpriteAnimation::SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent): QAbstractListModel(parent),
-		m_ID(IDin), m_name(nameIn)
+		m_ID(IDin), m_name(nameIn), m_Markers(new MarkersList(this))
 {}
 
 SpriteAnimation::SpriteAnimation(const SpriteAnimation& ani): QAbstractListModel(ani.parent()),
-		m_ID(ani.getID()),m_name(ani.getName()), m_Layers(ani.m_Layers){}
+		m_ID(ani.getID()),m_name(ani.getName()), m_Layers(ani.m_Layers), m_Markers(new MarkersList(this)){}
 
 SpriteAnimation::~SpriteAnimation(){
 	for(Layer* lay: m_Layers)
 		delete lay;
-	for(Marker* mark: m_Markers)
-		delete mark;
+	delete m_Markers;
 }
 
 void SpriteAnimation::operator =(const SpriteAnimation& ani){
@@ -735,6 +860,15 @@ unsigned int SpriteAnimation::getTotalFrames() const{
 	return lenght;
 }
 
+unsigned int SpriteAnimation::getTotalWorkspace() const{
+	unsigned int lenght = getTotalFrames();
+	for(const Marker* const mark: m_Markers->getList())
+		if(lenght < mark->getStart()+mark->getDuration())
+			lenght = mark->getStart()+mark->getDuration();
+	return lenght;
+
+}
+
 QList<Layer*>& SpriteAnimation::getLayers(){
 	return m_Layers;
 }
@@ -747,23 +881,18 @@ int SpriteAnimation::getNumberOfLayers() const{
 	return m_Layers.size();
 }
 
+int SpriteAnimation::getNumberOfMarkers() const{
+	return m_Markers->size();
+}
 
-QList<Marker*>& SpriteAnimation::getMarkers(){
+MarkersList* SpriteAnimation::getMarkers(){
 	return m_Markers;
 }
 
-const QList<Marker*>& SpriteAnimation::getMarkers() const{
+const MarkersList* SpriteAnimation::getMarkers() const{
 	return m_Markers;
 }
 
-unsigned int SpriteAnimation::getNumberOfMarkers() const{
-	return m_Markers.size();
-}
-
-Marker* SpriteAnimation::getMarker(int index) const{
-	if(m_Markers.size() <= index) return nullptr;
-	return m_Markers[index];
-}
 
 
 //setters
@@ -784,6 +913,33 @@ void SpriteAnimation::refresh(){
 	emit onLengthChanged();
 }
 
+bool SpriteAnimation::moveMarker(Marker* mark, int frame ){
+	assert_Test("You are trying to move a marker but the animation dosn't even have any!", m_Markers->empty());
+	assert_Test("The marker is not inside this animation!", !m_Markers->contains(mark));
+
+	int newframe = m_Markers->findNextFreeframe(frame);
+	if(frame < newframe  && newframe > mark->getStart()) frame = mark->getStart();
+	else frame = newframe;
+	if(frame >= 0){
+		PG_INFO_STREAM("moving mark to frame: "<<frame)
+		mark->setStart(frame);
+		emit onLengthChanged();
+		return true;
+	}
+	return false;
+}
+
+bool SpriteAnimation::addMarker(int frame, int type, short a, short b){
+	if(frame < 0 || type == 0) return false;
+	frame = m_Markers->findNextFreeframe(frame);
+	if(frame >= 0) m_Markers->add(new Marker(frame, 1, type,a,b));
+	return true;
+}
+
+bool SpriteAnimation::removeMarker(Marker* mark){
+	return m_Markers->remove(mark);
+}
+
 // QAbstractListModel
 QVariant SpriteAnimation::data(const QModelIndex & index, int role) const{
 	   if (!index.isValid())
@@ -798,6 +954,8 @@ QVariant SpriteAnimation::data(const QModelIndex & index, int role) const{
 	        return QVariant();
 }
 int SpriteAnimation::rowCount(const QModelIndex & parent) const{
+    if(parent.isValid())
+        return 0;
 	return getNumberOfLayers();
 }
 
@@ -847,6 +1005,8 @@ QVariant SpriteSheet::data(const QModelIndex & index, int role) const{
 	        return QVariant();
 }
 int SpriteSheet::rowCount(const QModelIndex & parent) const{
+    if(parent.isValid())
+        return 0;
 	return m_cutoutsIDs.size();
 }
 
@@ -871,7 +1031,7 @@ const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() const{
 PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const{
 	if(!cut) return PG::UTIL::RGBAImage();
 
-	assert_Test("Color table ID out of bound!", ColortableID*16+16 >= colortable.size());
+	assert_Test("Color table ID out of bound!", ColortableID*16+16 > colortable.size());
 
 	const int trueWidth = (cut->getX() + cut->getWidth() >= m_img.getWidth())? m_img.getWidth()-cut->getX(): cut->getWidth();
 	const int trueHeight = (cut->getY() + cut->getHeight() >= m_img.getHeight())? m_img.getHeight()-cut->getY(): cut->getHeight();
@@ -902,7 +1062,7 @@ PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int Col
 QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const{
 	if(!cut) return QImage();
 
-	assert_Test("Color table ID out of bound!", ColortableID*16+16 >= colortable.size());
+	assert_Test("Color table ID out of bound!", ColortableID*16+16 > colortable.size());
 
 	const int trueWidth = (cut->getX() + cut->getWidth() >= m_img.getWidth())? m_img.getWidth()-cut->getX(): cut->getWidth();
 	const int trueHeight = (cut->getY() + cut->getHeight() >= m_img.getHeight())? m_img.getHeight()-cut->getY(): cut->getHeight();
@@ -1008,37 +1168,41 @@ bool SpriteData::importSH(const QString& file){
 	for(const PG::UTIL::IDImage& sheet : sh.getSprtieSheets())
 		m_spriteSheets.push_back(new SpriteSheet(sheet, this));
 
+	//load colortable
+	m_colortable.reserve(sh.getColortables().size());
+	for(const PG::UTIL::rgba& color: sh.getColortables()){
+		m_colortable.push_back(QColor(color.r,color.g,color.b,color.a));
+	}
+
 	beginInsertRows(index(0),0,sh.getAnimations().size());
 	unsigned int aniCount = 0;
 	m_aniamtions.reserve(sh.getAnimations().size());
-	for(const PG::FILE::shfileAnimation& ani: sh.getAnimations()){
 
-		m_aniamtions.push_back(new SpriteAnimation(ani.id, "unknown"+QString::number(aniCount), this));
+	auto currAni = sh.getAnimations().begin();
+	while(currAni != sh.getAnimations().end()){
 
-		const PG::FILE::shfileKeyframe* currKey = &sh.getKeyframes()[ani.start_keyframe];
+		m_aniamtions.push_back(new SpriteAnimation(currAni->id, "unknown"+QString::number(aniCount), this));
+
+		auto currKey = sh.getKeyframes().begin() + currAni->start_keyframe;
 
 		int startOffset = 0;
 		int keyCount = 0;
-		while(currKey->type != 2){
-			assert_Test("There needs to be a keyframe before a type 3 keyframe!", currKey->type == 3 && keyCount == 0);
-			if(currKey->type == 3){
-				assert_Test("Keyframe of type 3 should have a duration of 0!", currKey->duration);
-				const int startKeyframe = startOffset-((currKey-1)->duration);
-				m_aniamtions.back()->getMarkers().push_back(new Marker( startKeyframe,startOffset-startKeyframe, currKey->unknown2, currKey->unknown3, 3));
-				keyCount++;
-				currKey++;
-				continue;
-			}else if(currKey->type == 15){
-				m_aniamtions.back()->getMarkers().push_back(new Marker( startOffset,currKey->duration, currKey->unknown2, currKey->unknown3, 15));
-			}
+		while(currKey != sh.getKeyframes().end() && ((currAni+1) == sh.getAnimations().end())? true :  currKey < (sh.getKeyframes().begin()+(currAni+1)->start_keyframe )){
+			if(currKey == sh.getKeyframes().end() ) break; // why
+			assert_Test("Current key can't be the end key", currKey == sh.getKeyframes().end());
 
-			if(keyCount > 60) PG_WARN_STREAM("Key count seams to be too big? Given file may be corrupt!")
-			const PG::FILE::shfileLayers& currlayer = sh.getLayers()[currKey->bundel_index];
-			int layerCount = 0;
 
 			//add marker
-			if(currKey->unknown2 || currKey->unknown3)
-				m_aniamtions.back()->getMarkers().push_back(new Marker(startOffset, currKey->duration, currKey->unknown2, currKey->unknown3));
+			if(currKey->unknown2 || currKey->unknown3 || ( currKey->type != 0 &&  currKey->type != 3 &&  currKey->type != 2))
+				m_aniamtions.back()->getMarkers()->push_back(new Marker(startOffset, 1, currKey->type, currKey->unknown2, currKey->unknown3));
+
+			if(currKey->duration == 0 || currKey->type == 3  || currKey->type == 2 ){
+				currKey++;
+				continue;
+			}
+
+			const PG::FILE::shfileLayers& currlayer = sh.getLayers()[currKey->bundel_index];
+			int layerCount = 0;
 
 			for(unsigned int i = currlayer.start_cutout; i < currlayer.start_cutout+currlayer.number_of_cutouts; i++){
 				const PG::FILE::shfileCutout& currCutout =  sh.getCutouts()[i];
@@ -1054,6 +1218,7 @@ bool SpriteData::importSH(const QString& file){
 					cutoutID = findCutout(m_cutouts, currCutout);
 					if(cutoutID < 0){
 						assert_Test("Invalid sprite sheet ID!", currCutout.sheet >= m_spriteSheets.size() ||  currCutout.sheet < 0);
+						assert_Test("Invalid color table ID!", currCutout.colortable*16 +16 > m_colortable.size());
 						Cutout* cutout = new Cutout(currCutout.sheet, PG::UTIL::ivec2(currCutout.x,currCutout.y), PG::UTIL::ivec2(currCutout.width,currCutout.height),this);
 						cutoutID = m_cutouts.size();
 						m_spriteSheets[currCutout.sheet]->push_backCutoutID(cutoutID);
@@ -1095,25 +1260,17 @@ bool SpriteData::importSH(const QString& file){
 			}
 			keyCount++;
 			startOffset += currKey->duration;
-			if(currKey == &sh.getKeyframes().back()){
-				PG_ERROR_STREAM("No end key found! File may be corrupt!");
-				close();
-				return false;
-			}
 
 			currKey++;
 
 		}
 		aniCount++;
+		currAni++;
 	}
 
 
 
-	//load colortable
-	m_colortable.reserve(sh.getColortables().size());
-	for(const PG::UTIL::rgba& color: sh.getColortables()){
-		m_colortable.push_back(QColor(color.r,color.g,color.b,color.a));
-	}
+
 	if(m_aniamtions.empty()){
 		m_currentAnimation = -1;
 		emit onNumberOfAnimationsChanged();
@@ -1151,14 +1308,14 @@ bool SpriteData::exportSH(const QString& file){
 	sh.getColortables() = getColortableGL();
 
 	for(const SpriteAnimation* ani: m_aniamtions){
-		assert_Test("Value is too big!", sh.getKeyframes().size() > 65534 || ani->getID()  > 65534 );
+		assert_Test("Value is too big!", ani->getID()  > 65534 );
 		sh.getAnimations().push_back({(unsigned short)sh.getKeyframes().size(), (unsigned short)ani->getID()});
 
 		unsigned int startFrame = 0;
+		unsigned int keyCount = 0;
 		const unsigned int totalTrackSize = ani->getTotalFrames();
 
 		//write keys
-		bool first = true;
 		while(startFrame < totalTrackSize){
 			unsigned int nextFrame = totalTrackSize;
 
@@ -1172,52 +1329,31 @@ bool SpriteData::exportSH(const QString& file){
 
 			//insert a keyframe with the propertys of the marker
 			const Marker* foundMarker = nullptr;
-			for(const Marker* mark: ani->getMarkers()){
-				if(!mark->getDuration()) continue;
+			for(const Marker* mark: ani->getMarkers()->getList()){
 				if(mark->getStart() == startFrame){
-					if(mark->getStart()+mark->getDuration() < nextFrame)
-						nextFrame = mark->getStart()+mark->getDuration();
 					foundMarker = mark;
-					break;
-				}else if(startFrame > mark->getStart() && startFrame < mark->getStart()+mark->getDuration()){
-					if(mark->getStart()+mark->getDuration() < nextFrame)
-						nextFrame = mark->getStart()+mark->getDuration();
-					foundMarker = mark;
-					break;
-				}else if(startFrame < mark->getStart() && nextFrame > mark->getStart()){
+				}else if(startFrame < mark->getStart() && mark->getStart() < nextFrame){
 					nextFrame = mark->getStart();
 				}
 			}
-			//debug
-			if(ani->getID() == 74){
-				if(foundMarker) PG_INFO_STREAM("marker found: "<<foundMarker->getType());
-			}
+
 
 			assert_Test("Start frame and end frame are the same!", startFrame == nextFrame);
 
 			PG::FILE::shfileKeyframe shKey;
 			shKey.duration = ((nextFrame-startFrame) > 255)? 255 : (nextFrame-startFrame);
-
-			if(ani->getID() == 1 || ani->getID() == 6)
-				PG_INFO_STREAM(ani->getID()<<" nextFrame: "<<nextFrame<<" durr: "<<(int)shKey.duration)
-
-
-			if(first){
-				shKey.type = 1;
-				first = false;
-			}else
-				shKey.type = 0;
+			shKey.type = 0;
+			shKey.unknown2 = 0;
+			shKey.unknown3 = 0;
+			shKey.bundel_index = sh.getLayers().size();
 
 			if(foundMarker){
 				shKey.unknown2 = foundMarker->getA();
 				shKey.unknown3 = foundMarker->getB();
-				if(foundMarker->getType() == 15)
-					shKey.type = 15;
-			}else{
-				shKey.unknown2 = 0;
-				shKey.unknown3 = 0;
+
+				if(foundMarker->getType() != 0 && foundMarker->getType() != 2 && foundMarker->getType() != 3)
+					shKey.type = foundMarker->getType();
 			}
-			shKey.bundel_index = sh.getLayers().size();
 
 			//bundels
 			QList<const Keyframe*> keys;
@@ -1271,12 +1407,17 @@ bool SpriteData::exportSH(const QString& file){
 			startFrame += shKey.duration;
 
 			sh.getKeyframes().push_back(shKey);
-			if(foundMarker && foundMarker->getType() == 3){
-				PG::FILE::shfileKeyframe shKeyType3 = shKey;
-				shKeyType3.type = 3;
-				shKeyType3.duration = 0;
-				sh.getKeyframes().push_back(shKeyType3);
-			}
+
+			if(shKey.type == 1)
+				if(keyCount != 0 && nextFrame != totalTrackSize){
+					PG::FILE::shfileKeyframe skKeyType3 = shKey;
+					skKeyType3.duration = 0;
+					skKeyType3.type = 3;
+					skKeyType3.unknown2 = shKey.unknown2;
+					skKeyType3.unknown3 = shKey.unknown3;
+					sh.getKeyframes().push_back(skKeyType3);
+				}
+			keyCount++;
 		}
 
 		PG::FILE::shfileKeyframe shKey = sh.getKeyframes().back();
@@ -1463,56 +1604,6 @@ bool SpriteData::dump(const QString& filepath){
 	return true;
 }
 
-void SpriteData::clearSelection(){
-	for(Keyframe* key: m_selectedKeys)
-		key->setSelected(false);
-	m_selectedKeys.clear();
-	emit onSelectionChanged();
-}
-
-void SpriteData::select(Keyframe* key){
-	if(!key) return;
-	key->setSelected(true);
-	if(!m_selectedKeys.contains(key)){
-		m_selectedKeys.push_back(key);
-		emit onSelectionChanged();
-	}
-}
-
-void SpriteData::deselect(Keyframe* key){
-	if(!key) return;
-	key->setSelected(false);
-	if(m_selectedKeys.removeOne(key))
-		emit onSelectionChanged();
-}
-
-void SpriteData::selectToggle(Keyframe* key, bool doClearSelection){
-	if(!key) return;
-	if(key->isSelected()){
-		if(doClearSelection){
-			clearSelection();
-		}else{
-			key->setSelected(false);
-			if(m_selectedKeys.removeOne(key))
-				emit onSelectionChanged();
-		}
-	}else{
-		if(doClearSelection)
-			clearSelection();
-		key->setSelected(true);
-		if(!m_selectedKeys.contains(key)){
-			m_selectedKeys.push_back(key);
-			emit onSelectionChanged();
-		}
-	}
-
-}
-
-Keyframe* SpriteData::getLastSelected() const{
-	if(m_selectedKeys.isEmpty()) return nullptr;
-	return m_selectedKeys.last();
-}
-
 Cutout* SpriteData::getCutout(int cutoutIndex) const{
 	if(cutoutIndex < 0 || cutoutIndex >= m_cutouts.size()) return nullptr;
 	return m_cutouts[cutoutIndex];
@@ -1533,8 +1624,9 @@ void SpriteData::refresh(){
 }
 
 void SpriteData::close(){
-	clearSelection();
-
+	m_currentAnimation = -1;
+	emit onAnimationChanged(nullptr);
+	emit onCurrentAnimationChanged();
 
 	for(Cutout* cut: m_cutouts)
 		delete cut;
@@ -1546,20 +1638,16 @@ void SpriteData::close(){
 		delete sheet;
 	m_spriteSheets.clear();
 
-	beginRemoveRows(index(0),0,m_aniamtions.size());
+	beginRemoveRows(QModelIndex(),0,m_aniamtions.size());
 	for(SpriteAnimation* ani: m_aniamtions)
 		delete ani;
 	m_aniamtions.clear();
 	endRemoveRows();
 
-	m_currentAnimation = -1;
-
 	emit onNumberOfColortablesChanged();
 	emit onNumberOfCutoutsChanged();
 	emit onNumberOfSheetsChanged();
 	emit onNumberOfAnimationsChanged();
-	emit onCurrentAnimationChanged();
-	emit onAnimationChanged(nullptr);
 
 }
 
@@ -1654,7 +1742,6 @@ void SpriteData::setCurrentAnimationByIndex(int index){
 	else if(index >= m_aniamtions.size()) index = m_aniamtions.size()-1;
 	if(m_currentAnimation == index) return;
 
-	clearSelection();
 	m_currentAnimation = index;
 	emit onCurrentAnimationChanged();
 	emit onAnimationChanged(m_aniamtions[m_currentAnimation]);

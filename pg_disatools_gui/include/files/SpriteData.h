@@ -18,6 +18,7 @@
 #ifndef INCLUDE_FILES_SPRITEDATA_H_
 #define INCLUDE_FILES_SPRITEDATA_H_
 
+#include <files/Marker.h>
 #include <QList>
 #include <QObject>
 #include <QImage>
@@ -26,7 +27,6 @@
 #include <QColor>
 #include <pg/util/PG_Image.h>
 #include <vector>
-#include <QQuickImageProvider>
 
 class Cutout: public QObject{
 	Q_OBJECT
@@ -134,6 +134,9 @@ class Keyframe: public QObject
 
 	Q_PROPERTY(bool selected 		READ isSelected WRITE setSelected NOTIFY onSelectionChanged)
 
+	Q_PROPERTY(bool hasNext READ hasNext NOTIFY onStartChanged)
+	Q_PROPERTY(bool hasPrevious READ hasPrevious NOTIFY onStartChanged)
+
 	friend class Layer;
 public:
     explicit Keyframe(QObject *parent = 0);
@@ -212,6 +215,8 @@ public:
 
     void setSelected(bool select);
 
+    Q_INVOKABLE bool swapNext();
+    Q_INVOKABLE bool swapPrevious();
 
 signals:
 	void onStartChanged();
@@ -294,6 +299,11 @@ public:
 			unsigned short scalexIn, unsigned short scaleyIn,
 			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, bool seperate = false);
 
+    Q_INVOKABLE bool insertKeyframe(int frame);
+    Q_INVOKABLE bool splitKeyframe(int frame);
+    Q_INVOKABLE bool removeKeyframe(Keyframe* keyframe);
+
+
     //getters
     const QString& getName() const;
     int getDuration() const;
@@ -320,55 +330,9 @@ private:
 Q_DECLARE_METATYPE( Layer );
 Q_DECLARE_METATYPE( Layer* );
 
-class Marker: public QObject{
-	Q_OBJECT
-	Q_PROPERTY(unsigned int start READ getStart WRITE setStart NOTIFY onStartChanged)
-	Q_PROPERTY(unsigned int duration READ getDuration WRITE setDuration NOTIFY onDirationChanged)
-	Q_PROPERTY(unsigned int a READ getA WRITE setA NOTIFY onAChanged)
-	Q_PROPERTY(unsigned int b READ getB WRITE setB NOTIFY onBChanged)
-	Q_PROPERTY(unsigned int type READ getType WRITE setType NOTIFY onTypeChanged)
-public:
-	Marker(QObject *parent = 0);
-	Marker(int start, int duration, short A,unsigned short B, QObject *parent = 0);
-	Marker(int start, int duration, unsigned int type, QObject *parent = 0);
-	Marker(int start, int duration, short A,unsigned short B, unsigned int type, QObject *parent = 0);
-	Marker(const Marker& marker);
-	virtual ~Marker();
 
-	void operator =(const Marker& marker);
 
-	//getters
-	int getStart() const;
-	int getDuration() const;
-	short getA() const;
-	unsigned short getB() const;
-	unsigned int getType() const;
 
-	//setters
-	void setStart(int start);
-	void setDuration(int duration);
-	void setA(short a);
-	void setB(unsigned short b);
-	void setType(unsigned int type);
-
-signals:
-	void onStartChanged();
-	void onDirationChanged();
-
-	void onAChanged();
-	void onBChanged();
-
-	void onTypeChanged();
-private:
-	int m_start = 0;
-	int m_duration = 1;
-	short m_B = 0;
-	short m_A = 0;
-	unsigned int m_type = 0;
-};
-
-Q_DECLARE_METATYPE( Marker );
-Q_DECLARE_METATYPE( Marker* );
 
 class SpriteAnimation: public QAbstractListModel
 {
@@ -377,7 +341,7 @@ class SpriteAnimation: public QAbstractListModel
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY onNameChanged)
 	Q_PROPERTY(int layerSize READ getNumberOfLayers NOTIFY onNumberOfLayersChanged)
 	Q_PROPERTY(int length READ getTotalFrames NOTIFY onLengthChanged)
-	Q_PROPERTY(unsigned int markerSize READ getNumberOfMarkers NOTIFY onNumberOfMarkersChanged)
+	Q_PROPERTY(int workspacelength READ getTotalWorkspace NOTIFY onLengthChanged)
 public:
 	explicit SpriteAnimation(QObject *parent = 0);
 	explicit SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent = 0);
@@ -393,21 +357,24 @@ public:
 	unsigned int getID() const;
 	const QString& getName() const;
 	unsigned int getTotalFrames() const;
+	unsigned int getTotalWorkspace() const;
 
 	QList<Layer*>& getLayers();
 	const QList<Layer*>& getLayers() const;
 	int getNumberOfLayers() const;
+	int getNumberOfMarkers() const;
 
-	QList<Marker*>& getMarkers();
-	const QList<Marker*>& getMarkers() const;
-	unsigned int getNumberOfMarkers() const;
-	Q_INVOKABLE Marker* getMarker(int index) const;
-
+	Q_INVOKABLE MarkersList* getMarkers();
+	const MarkersList* getMarkers() const;
 	//setters
+
 	void setID(unsigned int idIn);
 	void setName(const QString& nameIn);
 
 	void refresh();
+	Q_INVOKABLE bool moveMarker(Marker* mark, int frame );
+	Q_INVOKABLE bool addMarker(int frame, int type = 1, short a = 0, short b = 0 );
+	Q_INVOKABLE bool removeMarker(Marker* mark);
 
 	//QAbstractListModel
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
@@ -417,13 +384,11 @@ signals:
 	void onNameChanged();
 	void onNumberOfLayersChanged();
 	void onLengthChanged();
-	void onNumberOfMarkersChanged();
-
 private:
 	unsigned int m_ID = 0;
 	QString m_name;
 	QList<Layer*> m_Layers;
-	QList<Marker*> m_Markers;
+	MarkersList* m_Markers;
 };
 
 Q_DECLARE_METATYPE( SpriteAnimation );
@@ -482,7 +447,6 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(int colortableSize READ getNumberOfColortables  NOTIFY onNumberOfColortablesChanged)
 	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets  NOTIFY onNumberOfSheetsChanged)
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
-	 Q_PROPERTY(Keyframe* selectedKey READ getLastSelected NOTIFY onSelectionChanged)
 	 Q_PROPERTY(SpriteAnimation* animation READ getCurrentAnimation NOTIFY onCurrentAnimationChanged)
 public:
 	SpriteData(QObject *parent = 0);
@@ -531,11 +495,6 @@ public slots:
 
 	bool dump(const QString& filepath);
 
-	Q_INVOKABLE void clearSelection();
-	Q_INVOKABLE void select(Keyframe* key);
-	Q_INVOKABLE void deselect(Keyframe* key);
-	Q_INVOKABLE void selectToggle(Keyframe* key, bool doClearSelection = false);
-	Keyframe* getLastSelected() const;
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
 	Q_INVOKABLE SpriteSheet* getSpriteSheet(int spriteSheetIndex) const;
 
@@ -560,8 +519,6 @@ private:
 	QList<SpriteAnimation*> m_aniamtions;
 	QList<Cutout*> m_cutouts;
 	QList<QColor> m_colortable;
-
-	QList<Keyframe*> m_selectedKeys;
 
 	QList<SpriteSheet*> m_spriteSheets;
 };

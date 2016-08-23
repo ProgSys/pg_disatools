@@ -120,7 +120,7 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 	}
 
 	m_currAnimation = ani;
-	qDebug()<<"Animation set to: "<<m_currAnimation->getName() <<" with "<<ani->getNumberOfLayers()<<" layers.";
+	qDebug()<<" [Timeline:"<<__LINE__<<"]: "<<"Animation set to: "<<m_currAnimation->getName() <<" with "<<ani->getNumberOfLayers()<<" layers and "<<ani->getNumberOfMarkers()<<" marks." ;
 	m_tracker = 0;
 	m_totalTrackSize = m_currAnimation->getTotalFrames();
 
@@ -229,6 +229,7 @@ bool Timeline::isPlaying() const{
 
 Timeline::~Timeline()
 {
+	m_currAnimation = nullptr;
 }
 
 
