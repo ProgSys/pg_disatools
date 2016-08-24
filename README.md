@@ -14,6 +14,8 @@ You can download the latest version of the tools here:
 * [Version v0.4.9 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.9%20alpha.zip)
 * [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
 * [Version v0.5.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.1%20alpha.zip)
+* [Version v0.5.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.2%20alpha.zip)
+
 ---
 
 [![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
@@ -34,7 +36,7 @@ You can export them back to the original game format to view them ingame, but th
 so if there are any problems let me know.
 Also you can export the srite sheets as .png or .tga but you can't import images back, but this will definitely come in a future update.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.0_preview.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.1_preview.png)
 
 
 #### TX2Converter.exe

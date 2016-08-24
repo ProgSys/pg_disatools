@@ -279,6 +279,7 @@ class Layer : public QAbstractListModel
     Q_PROPERTY(QString name READ getName WRITE setName NOTIFY onNameChanged)
     Q_PROPERTY(int duration READ getDuration NOTIFY onDurationChanged)
     Q_PROPERTY(int keyframesSize READ getNumberOfKeyframes NOTIFY onNumberOfKeyframesChanged)
+	Q_PROPERTY(bool hidden READ isHidden WRITE setHidden NOTIFY hiddenChanged)
 public:
     explicit Layer(QObject *parent = 0);
     explicit Layer(const QString& name, QObject *parent = 0);
@@ -309,9 +310,11 @@ public:
     int getDuration() const;
     int getNumberOfKeyframes() const;
     const QList<Keyframe*>& getKeyframes() const;
+    bool isHidden() const;
 
     //setters
     void setName( const QString& name);
+    void setHidden(bool hidden);
 
 	//QAbstractListModel
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
@@ -321,17 +324,16 @@ signals:
     void onNameChanged();
     void onDurationChanged();
     void onNumberOfKeyframesChanged();
+    void hiddenChanged();
 
 private:
     QString m_name;
     QList<Keyframe*> m_keyframes;
+    bool m_hidden = false;
 };
 
 Q_DECLARE_METATYPE( Layer );
 Q_DECLARE_METATYPE( Layer* );
-
-
-
 
 
 class SpriteAnimation: public QAbstractListModel
@@ -372,9 +374,20 @@ public:
 	void setName(const QString& nameIn);
 
 	void refresh();
+
+	//markers
 	Q_INVOKABLE bool moveMarker(Marker* mark, int frame );
 	Q_INVOKABLE bool addMarker(int frame, int type = 1, short a = 0, short b = 0 );
 	Q_INVOKABLE bool removeMarker(Marker* mark);
+
+	//layers
+	Q_INVOKABLE  bool moveUp(Layer* lay);
+	Q_INVOKABLE  bool moveDown(Layer* lay);
+	Q_INVOKABLE  void move(Layer* lay, int newPosition);
+
+	Q_INVOKABLE  bool addLayer();
+	Q_INVOKABLE  bool addLayer(Layer* lay);
+	Q_INVOKABLE  bool remove(Layer* lay);
 
 	//QAbstractListModel
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
@@ -420,6 +433,8 @@ public:
 
 	QList<int>& getCutoutIDs();
 	const QList<int>& getCutoutIDs() const;
+	bool removeCutoutID(int ID);
+	void refresh();
 
 	//setters
 	void push_backCutoutID(int id);
@@ -448,6 +463,7 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets  NOTIFY onNumberOfSheetsChanged)
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
 	 Q_PROPERTY(SpriteAnimation* animation READ getCurrentAnimation NOTIFY onCurrentAnimationChanged)
+	 Q_PROPERTY(Keyframe* selectedKey READ getSelectedKey WRITE setSelectedKey NOTIFY selectedKeyChanged)
 public:
 	SpriteData(QObject *parent = 0);
 	virtual ~SpriteData();
@@ -470,9 +486,11 @@ public:
 	std::vector<PG::UTIL::rgba> getColortableGL() const;
 	QImage getSprite(unsigned int CutoutID, unsigned int ColortableID) const;
 	const SpriteSheet* getSpriteSheet(unsigned int spriteID) const;
+	Keyframe* getSelectedKey();
 
 	//setters
 	void setCurrentAnimationByIndex(int index);
+	void setSelectedKey(Keyframe* key);
 
 	// QAbstractListModel
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
@@ -497,7 +515,11 @@ public slots:
 
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
 	Q_INVOKABLE SpriteSheet* getSpriteSheet(int spriteSheetIndex) const;
+	Q_INVOKABLE bool addCutout(int sheetID);
+	bool removeCutout(Cutout* cut);
+	Q_INVOKABLE bool removeCutoutID(int id);
 
+	Q_INVOKABLE void clearSelectedKey();
 	Q_INVOKABLE void unhideAllCutouts();
 	Q_INVOKABLE void refresh();
 
@@ -510,6 +532,7 @@ signals:
 	void onNumberOfCutoutsChanged();
 	void onNumberOfSheetsChanged();
 	void onNumberOfColortablesChanged();
+	void selectedKeyChanged();
 
 	void onRefresh();
 private:
@@ -521,6 +544,8 @@ private:
 	QList<QColor> m_colortable;
 
 	QList<SpriteSheet*> m_spriteSheets;
+
+	Keyframe* m_selectedKeyframe;
 };
 
 #endif /* INCLUDE_FILES_SPRITEDATA_H_ */

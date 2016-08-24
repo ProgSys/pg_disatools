@@ -93,3 +93,11 @@
 	- You can split and insert a keyframe 
 	- There is now a sprite sheet view, where you can view and edit the cutouts position and size
 	- curretly you can't add a new cutout or change the sprite sheet ID's
+===  25.08.2016 - v0.5.2 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- START.DAT filenames have bean updated, thanks to Krisan Thyme for his findings
+  * Sprite Sheet Editor v0.2.1 alpha:
+	- you now can modify the layers (move, add and delete)
+	- you can turn off visibility for layers
+	- you now can add and delete the cutouts (untested)
+	- added a mouse position indicator in the sprite sheet view

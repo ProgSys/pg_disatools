@@ -22,6 +22,7 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <pg/util/PG_VectorUtil.h>
+#include <QMessageBox>
 
 Cutout::Cutout(QObject *parent): QObject(parent){
 
@@ -769,12 +770,21 @@ const QList<Keyframe*>& Layer::getKeyframes() const{
 	return m_keyframes;
 }
 
+bool Layer::isHidden() const{
+	return m_hidden;
+}
+
 void Layer::setName( const QString& name){
 	if(!name.size() || name == m_name) return;
 	m_name = name;
 	emit onNameChanged();
 }
 
+void Layer::setHidden(bool hidden){
+	if(m_hidden == hidden) return;
+	m_hidden = hidden;
+	emit hiddenChanged();
+}
 
 // QAbstractListModel
 QVariant Layer::data(const QModelIndex & index, int role) const{
@@ -940,6 +950,76 @@ bool SpriteAnimation::removeMarker(Marker* mark){
 	return m_Markers->remove(mark);
 }
 
+
+bool SpriteAnimation::moveUp(Layer* lay){
+	if(!lay) return false;
+	const int indexOf = m_Layers.indexOf(lay);
+	if(indexOf <= 0) return false;
+
+	m_Layers[indexOf] = m_Layers[indexOf-1];
+	m_Layers[indexOf-1] = lay;
+	emit dataChanged(index(indexOf-1), index(indexOf));
+	return true;
+}
+
+bool SpriteAnimation::moveDown(Layer* lay){
+	if(!lay) return false;
+	const int indexOf = m_Layers.indexOf(lay);
+	if(indexOf == -1 || indexOf >= m_Layers.size()-1) return false;
+
+	m_Layers[indexOf] = m_Layers[indexOf+1];
+	m_Layers[indexOf+1] = lay;
+	emit dataChanged(index(indexOf), index(indexOf+1));
+	return true;
+}
+
+void SpriteAnimation::move(Layer* lay, int newPosition){
+	if(newPosition < 0 || newPosition > m_Layers.size()) return;
+	int indexOf = m_Layers.indexOf(lay);
+	if(indexOf == -1 || newPosition == indexOf) return;
+
+	m_Layers.takeAt(indexOf);
+	m_Layers.insert(newPosition, lay);
+	emit dataChanged(index(0), index(m_Layers.size()));
+
+}
+
+bool SpriteAnimation::addLayer(){
+	beginInsertRows(QModelIndex(), m_Layers.size(), m_Layers.size());
+	m_Layers.push_back(new Layer("layer"+QString::number(m_Layers.size())));
+	endInsertRows();
+	emit onNumberOfLayersChanged();
+	return true;
+}
+
+bool SpriteAnimation::addLayer(Layer* lay){
+	const int indexOf = m_Layers.indexOf(lay);
+	if(indexOf != -1){
+		beginInsertRows(QModelIndex(), indexOf, indexOf);
+		m_Layers.insert(indexOf, new Layer("layer"+QString::number(m_Layers.size())));
+		endInsertRows();
+		emit onNumberOfLayersChanged();
+		return true;
+	}
+
+
+	return false;
+}
+
+bool SpriteAnimation::remove(Layer* lay){
+	if(!lay) return false;
+	const int indexOf = m_Layers.indexOf(lay);
+	if(indexOf != -1){
+		beginRemoveRows(QModelIndex(), indexOf, indexOf);
+		m_Layers.removeAt(indexOf);
+		delete lay;
+		endRemoveRows();
+		emit onNumberOfLayersChanged();
+		return true;
+	}
+	return false;
+}
+
 // QAbstractListModel
 QVariant SpriteAnimation::data(const QModelIndex & index, int role) const{
 	   if (!index.isValid())
@@ -949,7 +1029,7 @@ QVariant SpriteAnimation::data(const QModelIndex & index, int role) const{
 	        return QVariant(QVariant::Invalid);
 
 	    if (role == Qt::DisplayRole){
-	    	return QVariant::fromValue(m_Layers.at(index.row()));
+	    	return QVariant::fromValue(m_Layers.at( index.row()));
 	    }else
 	        return QVariant();
 }
@@ -975,14 +1055,30 @@ void SpriteSheet::operator= (const SpriteSheet& sheet){
 	m_img = sheet.getSpriteSheet();
 }
 
+bool SpriteSheet::removeCutoutID(int ID){
+	if(ID <= 0) return false; // zero sheet cant be removed
+
+	const int indexOf = m_cutoutsIDs.indexOf(ID);
+	if(indexOf != -1){
+		beginRemoveRows(QModelIndex(),indexOf,indexOf);
+		m_cutoutsIDs.removeAt(indexOf);
+		endRemoveRows();
+
+		return true;
+	}
+	return false;
+}
+
+void SpriteSheet::refresh(){
+	layoutAboutToBeChanged();
+	layoutChanged();
+	emit dataChanged(index(0), index(m_cutoutsIDs.size()));
+}
+
 //setters
 void SpriteSheet::push_backCutoutID(int id){
 	if(!m_cutoutsIDs.contains(id)){
-		//if(m_cutoutsIDs.empty())
-			//beginInsertRows(index(0),0,1);
-		//else
-		//beginInsertColumns(index(0),m_cutoutsIDs.size(),m_cutoutsIDs.size()+1);
-		beginInsertRows(index(0),m_cutoutsIDs.size(),m_cutoutsIDs.size()+1);
+		beginInsertRows(QModelIndex(),m_cutoutsIDs.size(),m_cutoutsIDs.size());
 		//layoutAboutToBeChanged();
 		m_cutoutsIDs.push_back(id);
 		//layoutChanged();
@@ -1174,7 +1270,7 @@ bool SpriteData::importSH(const QString& file){
 		m_colortable.push_back(QColor(color.r,color.g,color.b,color.a));
 	}
 
-	beginInsertRows(index(0),0,sh.getAnimations().size());
+	beginInsertRows(QModelIndex(),0,sh.getAnimations().size());
 	unsigned int aniCount = 0;
 	m_aniamtions.reserve(sh.getAnimations().size());
 
@@ -1614,6 +1710,10 @@ SpriteSheet* SpriteData::getSpriteSheet(int spriteSheetIndex) const{
 	return m_spriteSheets[spriteSheetIndex];
 }
 
+void SpriteData::clearSelectedKey(){
+	setSelectedKey(nullptr);
+}
+
 void SpriteData::unhideAllCutouts(){
 	for(Cutout* cut: m_cutouts)
 		cut->setHidden(false);
@@ -1624,6 +1724,7 @@ void SpriteData::refresh(){
 }
 
 void SpriteData::close(){
+	clearSelectedKey();
 	m_currentAnimation = -1;
 	emit onAnimationChanged(nullptr);
 	emit onCurrentAnimationChanged();
@@ -1736,6 +1837,10 @@ const SpriteSheet* SpriteData::getSpriteSheet(unsigned int spriteID) const{
 	return m_spriteSheets[spriteID];
 }
 
+Keyframe* SpriteData::getSelectedKey(){
+	return m_selectedKeyframe;
+}
+
 //setters
 void SpriteData::setCurrentAnimationByIndex(int index){
 	if(index < 0) index = 0;
@@ -1745,6 +1850,77 @@ void SpriteData::setCurrentAnimationByIndex(int index){
 	m_currentAnimation = index;
 	emit onCurrentAnimationChanged();
 	emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
+}
+
+void SpriteData::setSelectedKey(Keyframe* key){
+	if(m_selectedKeyframe == key) return;
+	m_selectedKeyframe = key;
+	//if(m_selectedKeyframe)
+		//PG_INFO_STREAM("key selected: "<<m_selectedKeyframe->getCutoutID());
+	emit selectedKeyChanged();
+}
+
+bool  SpriteData::addCutout(int sheetID){
+	if(sheetID < 0 || sheetID >= m_spriteSheets.size()) return false;
+
+	m_cutouts.push_back(new Cutout(sheetID, PG::UTIL::ivec2(0,0), PG::UTIL::ivec2(100,100) ));
+	emit onNumberOfCutoutsChanged();
+	m_spriteSheets[sheetID]->push_backCutoutID(m_cutouts.size()-1);
+
+	return true;
+}
+
+bool SpriteData::removeCutout(Cutout* cut){
+	return removeCutoutID(m_cutouts.indexOf(cut));
+}
+
+bool SpriteData::removeCutoutID(int id){
+	if(id == 0){
+		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
+						"You can't delete the zero sprite!",
+					 QMessageBox::Ok);
+		return false;
+	}
+
+
+	QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Delete sprite?",
+					"Are you sure you want to delete the sprite?",
+				 QMessageBox::Yes|QMessageBox::Cancel);
+
+	if(reply == QMessageBox::No)
+		return false;
+
+	if(id > 0){
+		delete m_cutouts[id];
+		m_cutouts.removeAt(id);
+
+		//fix the keyframes
+		for(SpriteAnimation* ani: m_aniamtions){
+			for(Layer* lay: ani->getLayers()){
+				for(Keyframe* key: lay->getKeyframes()){
+					if(key->getCutoutID() == id){
+						key->setCutoutID(0);
+					}else if(key->getCutoutID() > id){
+						key->setCutoutID(key->getCutoutID()-1);
+					}
+				}
+			}
+		}
+
+		//fix the spritesheets
+		for(SpriteSheet* sheet: m_spriteSheets){
+			if(sheet->removeCutoutID(id)) break;
+		}
+
+		for(SpriteSheet* sheet: m_spriteSheets){
+			for(int& i: sheet->getCutoutIDs())
+				if(i > id) i--;
+			sheet->refresh();
+		}
+
+		emit onNumberOfCutoutsChanged();
+	}
+	return false;
 }
 
 // QAbstractListModel

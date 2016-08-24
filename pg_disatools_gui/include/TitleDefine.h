@@ -20,7 +20,7 @@
 
 
 #define WINTITLE "Disa PC File Manager v0.4.8 alpha"
-#define SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.0 alpha"
+#define SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.1 alpha"
 
 
 #endif /* INCLUDE_TITLEDEFINE_H_ */

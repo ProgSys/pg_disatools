@@ -305,7 +305,7 @@ void GLWidget::paintGL(){
     	//glDepthMask(false);
 
     	for(const Layer* lay: m_animationInfo.getCurrentAnimation()->getLayers()){
-    		//PG_INFO_STREAM("Render Layer '"<<lay->getName().toStdString()<<"'!");
+    		if(lay->isHidden()) continue;
     		const Keyframe* keyframe = m_animationInfo.getCurrentKeyframe(lay);
     		if(keyframe){
         		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
