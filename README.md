@@ -29,8 +29,10 @@ Note that the position of most files in .DAT is hardcoded, deleting files could 
 
 #### Sprite Sheet Viewer
 
-This gui application allows you to view and extract Disgaea PC sprite sheets (as .png or .tga).
-Currently it is very basic.
+This gui application allows you to view and perform some basic editing to Disgaea PC sprite sheets.
+You can export them back to the original game format to view them ingame, but this function is currently not fully tested, 
+so if there are any problems let me know.
+Also you can export the srite sheets as .png or .tga but you can't import images back, but this will definitely come in a future update.
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.0_preview.png)
 
