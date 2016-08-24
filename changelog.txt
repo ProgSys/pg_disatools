@@ -83,3 +83,13 @@
   * Sprite Sheet Viewer v0.1.7 alpha:
 	- Added basic transformation editing, but you still can't save anything :P
 	- You now can resize a keyframe via click & drop
+===  24.08.2016 - v0.5.1 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.0 alpha:
+	- Renamed 'Sprite Sheet Viewer' to 'Sprite Sheet Editor' as it now can export a SH file, 
+		but this function is not fully tested yet, so make a backup!
+	- Added a seperate track for markers, what the values of the marker do I'm not sure
+	- You can split and insert a keyframe 
+	- There is now a sprite sheet view, where you can view and edit the cutouts position and size
+	- curretly you can't add a new cutout or change the sprite sheet ID's
