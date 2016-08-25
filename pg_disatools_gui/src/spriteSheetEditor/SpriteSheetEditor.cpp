@@ -93,6 +93,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionExport_sprites_IDs, &QAction::triggered, this, [this]{exportSprites("TGA", true);} );
 
 	connect(ui->actionExport_color_table, &QAction::triggered, this, [this]{exportColortable();} );
+	connect(ui->actionImport_color_table, &QAction::triggered, this, [this]{importColortable();} );
 
 	//View
 	connect(ui->action_Pick_color, SIGNAL(triggered()), this, SLOT(pickBackgroundColor()));
@@ -128,6 +129,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(this, SIGNAL( exportSprites( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSprites( const QString& , const QString& ) ) );
 	connect(this, SIGNAL( exportSpritesIDs( const QString& , const QString& ) ), m_player->getSpriteData(), SLOT( exportSpritesIDs( const QString& , const QString& ) ) );
 	connect(this, SIGNAL( exportColortable( const QString& ) ), m_player->getSpriteData(), SLOT( exportColortable( const QString& ) ) );
+	connect(this, SIGNAL( importColortable( const QString& ) ), m_player->getSpriteData(), SLOT( importColortable( const QString& ) ) );
+
 
 	connect(this, SIGNAL(backgroundColorSelected(  const QColor& )), ui->openGLWidget, SLOT( setBackgroundColor( const QColor& )));
 
@@ -188,6 +191,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
 		ui->actionExport_sprites_IDs->setEnabled(false);
 		ui->actionExport_color_table->setEnabled(false);
+		ui->actionImport_color_table->setEnabled(false);
 	}else{
 		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
 		setTitel(file);
@@ -198,6 +202,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
 		ui->actionExport_sprites_IDs->setEnabled(true);
 		ui->actionExport_color_table->setEnabled(true);
+		ui->actionImport_color_table->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
 	}
 
@@ -257,6 +262,26 @@ void SpriteSheetEditor::exportColortable(){
 		}else{
 			ui->statusbar->showMessage(QString("Failed to export color table to %1.").arg(fileName));
 		}
+}
+
+void SpriteSheetEditor::importColortable(){
+    QFileDialog openDialog(this);
+    openDialog.setNameFilter(tr("TGA (*.tga);;PNG (*.png)"));
+
+    QStringList fileNames;
+	if (openDialog.exec()){
+		fileNames = openDialog.selectedFiles();
+		if(fileNames.size() > 0){
+			if(emit importColortable(fileNames[0])){
+				ui->statusbar->showMessage(QString("Color table imported from %1.").arg(fileNames[0]));
+			}else{
+				ui->statusbar->showMessage(QString("Failed to import color table from %1.").arg(fileNames[0]));
+			}
+
+		}
+	}
+
+
 }
 
 

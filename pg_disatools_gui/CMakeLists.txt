@@ -46,6 +46,7 @@ QT5_WRAP_UI(UIMainWindowSrcs ui/mainwindow.ui)
 QT5_WRAP_UI(UIFileInfoBoxSrcs ui/fileinfobox.ui)
 QT5_WRAP_UI(UISpriteSheetEditorSrcs ui/spritesheeteditor.ui)
 QT5_WRAP_UI(UIEnterValueSrcs ui/entervaluedialog.ui)
+QT5_WRAP_UI(UIEnterValueSrcs ui/createNewSpriteSheet.ui)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")

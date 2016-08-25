@@ -45,6 +45,7 @@ public slots:
 	void dump();
 	void exportSprites(const QString& filetype, bool asID = false);
 	void exportColortable();
+	void importColortable();
 
 	void setCurrentFrame(int currFrame);
 	void setTotalFrames(int totalFrames);
@@ -57,6 +58,7 @@ signals:
 	int exportSprites(const QString& folder, const QString& filetype);
 	int exportSpritesIDs(const QString& folder, const QString& filetype);
 	bool exportColortable(const QString& file);
+	bool importColortable(const QString& file);
 
 	void backgroundColorSelected(const QColor& color);
 

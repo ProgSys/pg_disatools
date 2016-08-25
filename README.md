@@ -15,6 +15,7 @@ You can download the latest version of the tools here:
 * [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
 * [Version v0.5.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.1%20alpha.zip)
 * [Version v0.5.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.2%20alpha.zip)
+* [Version v0.5.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.3%20alpha.zip)
 
 ---
 
@@ -34,9 +35,9 @@ Note that the position of most files in .DAT is hardcoded, deleting files could 
 This gui application allows you to view and perform some basic editing to Disgaea PC sprite sheets.
 You can export them back to the original game format to view them ingame, but this function is currently not fully tested, 
 so if there are any problems let me know.
-Also you can export the srite sheets as .png or .tga but you can't import images back, but this will definitely come in a future update.
+Also you can export the sprites as .png or .tga and import them back!
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.1_preview.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.2_preview.png)
 
 
 #### TX2Converter.exe

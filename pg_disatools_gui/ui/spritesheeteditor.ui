@@ -74,6 +74,8 @@
     <addaction name="actionExport_sprites_as_TGA"/>
     <addaction name="actionExport_sprites_IDs"/>
     <addaction name="actionExport_color_table"/>
+    <addaction name="separator"/>
+    <addaction name="actionImport_color_table"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -458,6 +460,14 @@
    </property>
    <property name="text">
     <string>Sprite sheet view</string>
+   </property>
+  </action>
+  <action name="actionImport_color_table">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Import color table</string>
    </property>
   </action>
  </widget>

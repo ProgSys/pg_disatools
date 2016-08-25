@@ -205,6 +205,25 @@ void GLWidget::setBackgroundColor(const QColor& color){
 	update();
 }
 
+void GLWidget::updateSpriteSheet(int sheetID){
+	if( sheetID < 0 || sheetID >= m_animationInfo.spriteSheetIDTextures.size() ) return;
+
+	delete m_animationInfo.spriteSheetIDTextures[sheetID];
+	PG::GL::Texture* t = new PG::GL::Texture();
+	t->bind(m_spriteSheet->getSpriteSheets()[sheetID]->getSpriteSheet(), PG::GL::Texture::SPRITE);
+	m_animationInfo.spriteSheetIDTextures[sheetID] = t;
+	update();
+
+}
+
+void GLWidget::updateSpriteSheetAdded(){
+	if(m_animationInfo.spriteSheetIDTextures.size() == m_spriteSheet->getSpriteSheets().size()) return;
+
+	PG::GL::Texture* t = new PG::GL::Texture();
+	t->bind(m_spriteSheet->getSpriteSheets().last()->getSpriteSheet(), PG::GL::Texture::SPRITE);
+	m_animationInfo.spriteSheetIDTextures.push_back(t);
+}
+
 void GLWidget::initializeGL(){
 	GLenum err = glewInit();
 	if(err != GLEW_OK){

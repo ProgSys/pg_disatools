@@ -414,6 +414,7 @@ class SpriteSheet: public QAbstractListModel{
 	Q_PROPERTY(int cutoutSize READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
 public:
 	SpriteSheet();
+	SpriteSheet(int width, int height, QObject *parent = 0);
 	SpriteSheet(const PG::UTIL::IDImage& img, QObject *parent = 0);
 	SpriteSheet(const SpriteSheet& sheet);
 	virtual ~SpriteSheet();
@@ -429,7 +430,10 @@ public:
 	const PG::UTIL::IDImage& getSpriteSheet() const;
 
 	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const;
-	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const;
+	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable, bool alpha = false) const;
+
+	PG::UTIL::IDImage getSpritePGIDs(const Cutout* cut) const;
+	QImage getSpriteIDs(const Cutout* cut) const;
 
 	QList<int>& getCutoutIDs();
 	const QList<int>& getCutoutIDs() const;
@@ -474,6 +478,7 @@ public:
 	int getNumberOfAnimations() const;
 	int getNumberOfCutouts() const;
 	int getNumberOfColortables() const;
+	int getMaxUsedColortable() const;
 	int getNumberOfSpriteSheets() const;
 	int getCurrentAnimationIndex() const;
 	QString getLastFileName() const;
@@ -507,17 +512,33 @@ public slots:
 	void close();
 
 	///if png is false then tga is used
-	int exportSprites(const QString& folder, const QString& type);
-	int exportSpritesIDs(const QString& folder, const QString& type);
-	bool exportColortable(const QString& file);
+	Q_INVOKABLE int exportSprites(const QString& folder, const QString& type);
+	Q_INVOKABLE int exportSpritesIDs(const QString& folder, const QString& type);
+
+	Q_INVOKABLE bool exportSprite(int cutoutID);
+	Q_INVOKABLE bool exportSprite(int cutoutID, const QString& file);
+	Q_INVOKABLE bool exportSpriteIDs(int cutoutID);
+	Q_INVOKABLE bool exportSpriteIDs(int cutoutID, const QString& file);
+
+	Q_INVOKABLE bool exportColortable(const QString& file);
+	Q_INVOKABLE bool importColortable(const QString& file);
+
+	Q_INVOKABLE bool importSpriteAsIDs(int cutoutID);
+	Q_INVOKABLE bool importSpriteAsIDs(int cutoutID, const QString& file);
+	Q_INVOKABLE bool importSpriteAsColor(int cutoutID);
+	Q_INVOKABLE bool importSpriteAsColor(int cutoutID, const QString& file);
 
 	bool dump(const QString& filepath);
 
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
 	Q_INVOKABLE SpriteSheet* getSpriteSheet(int spriteSheetIndex) const;
 	Q_INVOKABLE bool addCutout(int sheetID);
+	Q_INVOKABLE bool addCutout(int sheetID,unsigned int x,unsigned int y = 0,unsigned int height = 100,unsigned int width = 100);
 	bool removeCutout(Cutout* cut);
 	Q_INVOKABLE bool removeCutoutID(int id);
+
+	Q_INVOKABLE bool addNewSpriteSheet();
+	Q_INVOKABLE bool addNewSpriteSheet(int width, int height);
 
 	Q_INVOKABLE void clearSelectedKey();
 	Q_INVOKABLE void unhideAllCutouts();
@@ -533,6 +554,8 @@ signals:
 	void onNumberOfSheetsChanged();
 	void onNumberOfColortablesChanged();
 	void selectedKeyChanged();
+	void spriteSheetChanged(int spritesheetID);
+	void spriteSheetAdded();
 
 	void onRefresh();
 private:
