@@ -37,7 +37,7 @@ You can export them back to the original game format to view them ingame, but th
 so if there are any problems let me know.
 Also you can export the sprites as .png or .tga and import them back!
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.2_preview.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.2_preview.gif)
 
 
 #### TX2Converter.exe
