@@ -49,6 +49,7 @@ void CreateEmptySpriteSheet::accepted(){
 	m_width = comboBox_width->currentText().toInt();
 	m_height = comboBox_height->currentText().toInt();
 	m_accepted = true;
+
 	emit ok(m_width, m_height);
 	close();
 }

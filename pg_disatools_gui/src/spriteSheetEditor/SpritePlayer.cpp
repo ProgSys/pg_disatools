@@ -33,6 +33,7 @@ void SpritePlayer::connectGLWidget(GLWidget *gl){
 	connect(this, SIGNAL( render() ),gl, SLOT( renderFrame() ));
 	connect(m_aniData, SIGNAL( spriteSheetChanged( int ) ), gl, SLOT( updateSpriteSheet( int ) ) );
 	connect(m_aniData, SIGNAL( spriteSheetAdded( ) ), gl, SLOT( updateSpriteSheetAdded() ) );
+	connect(m_aniData, SIGNAL( colortableChanged() ), gl, SLOT( updateColortable() ) );
 
 	//connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
 	//connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));

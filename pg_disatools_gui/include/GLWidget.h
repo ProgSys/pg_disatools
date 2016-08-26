@@ -95,6 +95,7 @@ public slots:
 	void displayShadow(bool display);
 
 	void setBackgroundColor(const QColor& color);
+	void updateColortable();
 	void updateSpriteSheet(int sheetID);
 	void updateSpriteSheetAdded();
 

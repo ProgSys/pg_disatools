@@ -483,11 +483,15 @@ public:
 	int getCurrentAnimationIndex() const;
 	QString getLastFileName() const;
 
+	const QList<SpriteAnimation*>& getAnimations() const;
+	bool push_backAnimation(const QString& name, int ID);
+	bool removeAnimation(int index);
 	SpriteAnimation* getCurrentAnimation();
 	const SpriteAnimation* getCurrentAnimation() const;
 	const QList<Cutout*>& getCutouts() const;
 	const QList<QColor>& getColortable() const;
 	const QList<SpriteSheet*>& getSpriteSheets() const;
+
 	std::vector<PG::UTIL::rgba> getColortableGL() const;
 	QImage getSprite(unsigned int CutoutID, unsigned int ColortableID) const;
 	const SpriteSheet* getSpriteSheet(unsigned int spriteID) const;
@@ -554,6 +558,7 @@ signals:
 	void onNumberOfSheetsChanged();
 	void onNumberOfColortablesChanged();
 	void selectedKeyChanged();
+	void colortableChanged();
 	void spriteSheetChanged(int spritesheetID);
 	void spriteSheetAdded();
 

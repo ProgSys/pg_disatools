@@ -25,6 +25,7 @@
 #include <QtQml>
 #include <spriteSheetEditor/Timeline.h>
 #include <files/SpriteData.h>
+#include <SpriteSheetEditor/CreateNewAnimation.h>
 //#include <QShortcut>
 
 inline void about(){
@@ -121,6 +122,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(m_player->getTimeline(), SIGNAL(onPlay()), this, SLOT(setImagePause()));
 	connect(m_player->getTimeline(), SIGNAL(onPause()), this, SLOT(setImagePlay()));
 
+	connect(ui->pushButton_newanimation, SIGNAL(clicked()), this,  SLOT(createNewAnimation()) );
+
 
 	connect(this, SIGNAL(openSH( const QString& )), m_player, SLOT(openSH( const QString& )));
 	connect(this, SIGNAL(exportSH( const QString& )), m_player->getSpriteData(), SLOT(exportSH( const QString& )));
@@ -192,6 +195,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_IDs->setEnabled(false);
 		ui->actionExport_color_table->setEnabled(false);
 		ui->actionImport_color_table->setEnabled(false);
+		ui->pushButton_newanimation->setEnabled(false);
 	}else{
 		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
 		setTitel(file);
@@ -203,6 +207,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_IDs->setEnabled(true);
 		ui->actionExport_color_table->setEnabled(true);
 		ui->actionImport_color_table->setEnabled(true);
+		ui->pushButton_newanimation->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
 	}
 
@@ -282,6 +287,15 @@ void SpriteSheetEditor::importColortable(){
 	}
 
 
+}
+
+void SpriteSheetEditor::createNewAnimation(){
+	CreateNewAnimation create(m_player->getSpriteData(), this);
+	create.exec();
+
+	if(create.isAccepted()){
+		m_player->getSpriteData()->push_backAnimation(create.getName(), create.getID());
+	}
 }
 
 

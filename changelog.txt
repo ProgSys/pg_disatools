@@ -112,3 +112,10 @@
 	- you now can export a sprite as a ID image or color Image
 	- you can inport a ID image or color Image into a sprite
 	- you can create an new empty sprite sheet
+
+===  26.08.2016 - v0.5.4 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.3 alpha:
+	- fixed import/export of the colortable
+	- you now can add a new animation

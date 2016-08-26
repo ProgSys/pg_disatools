@@ -50,6 +50,8 @@ public slots:
 	void setCurrentFrame(int currFrame);
 	void setTotalFrames(int totalFrames);
 
+	void createNewAnimation();
+
 signals:
 
 	bool openSH( const QString& filepath );
@@ -59,6 +61,7 @@ signals:
 	int exportSpritesIDs(const QString& folder, const QString& filetype);
 	bool exportColortable(const QString& file);
 	bool importColortable(const QString& file);
+
 
 	void backgroundColorSelected(const QColor& color);
 

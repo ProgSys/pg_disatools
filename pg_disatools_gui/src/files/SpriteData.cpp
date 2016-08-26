@@ -1754,13 +1754,13 @@ bool SpriteData::exportColortable(const QString& file){
 		}
 		PG::FILE::saveTGA(file.toStdString(),img);
 	}else if(!ext.isEmpty()){
-		QImage img(m_colortable.size(),1,QImage::Format_ARGB32);
+		QImage img(m_colortable.size(),1,QImage::Format_RGBA8888);
 		unsigned int i = 0;
 		for(const QColor& color: m_colortable){
-			img.bits()[i] = color.alpha();
-			img.bits()[i+1] = color.red();
-			img.bits()[i+2] = color.green();
-			img.bits()[i+3] = color.blue();
+			img.bits()[i] = color.red();
+			img.bits()[i+1] = color.green();
+			img.bits()[i+2] = color.blue();
+			img.bits()[i+3] = color.alpha();
 			i+=4;
 		}
 		return img.save(file, 0, 100);
@@ -1774,9 +1774,10 @@ bool SpriteData::importColortable(const QString& file){
 
 	QImage colorTable(file);
 	const int imageSize = (colorTable.width()*colorTable.height());
-	if(imageSize < 256){
+	PG_INFO_STREAM("Color table size: "<<imageSize);
+	if(imageSize < 16){
 		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
-						"Color table is too small! There must be minimum 256 colors!",
+						"Color table is too small! There must be minimum 16 colors!",
 					 QMessageBox::Ok);
 		return false;
 	}
@@ -1806,9 +1807,12 @@ bool SpriteData::importColortable(const QString& file){
 	}
 
 	m_colortable.clear();
-	for(int i = 0; i < imageSize; i++)
-		m_colortable.push_back(QColor(colorTable.color(i)));
-
+	for(int y = 0; y < colorTable.height(); y++)
+		for(int x = 0; x < colorTable.width(); x++){
+			m_colortable.push_back(QColor(colorTable.pixel(x,y)));
+			m_colortable.back().setAlpha(qAlpha(colorTable.pixel(x, y)));
+		}
+	emit colortableChanged();
 	emit onNumberOfColortablesChanged();
 	return true;
 }
@@ -2072,6 +2076,35 @@ int SpriteData::getCurrentAnimationIndex() const{
 
 QString SpriteData::getLastFileName() const{
 	return m_lastFile;
+}
+
+const QList<SpriteAnimation*>& SpriteData::getAnimations() const{
+	return m_aniamtions;
+}
+
+bool SpriteData::push_backAnimation(const QString& name, int ID){
+	if(name.isEmpty() || ID < 0) return false;
+
+	beginInsertRows(QModelIndex(), m_aniamtions.size(), m_aniamtions.size());
+	m_aniamtions.push_back(new SpriteAnimation(ID, name));
+	m_aniamtions.back()->push_backLayer(new Layer("layer0",m_aniamtions.back()));
+	m_aniamtions.back()->getLayers().back()->push_backKeyframe(10,0,0,  0,0, 100, 100, 0,0, 0,0,0);
+	endInsertRows();
+
+	emit onNumberOfAnimationsChanged();
+	return true;
+}
+
+bool SpriteData::removeAnimation(int index){
+	if(index < 0 || index >= m_aniamtions.size()) return false;
+
+	beginRemoveRows(QModelIndex(),index,index);
+	delete m_aniamtions[index];
+	m_aniamtions.removeAt(index);
+	endRemoveRows();
+
+	emit onNumberOfAnimationsChanged();
+	return true;
 }
 
 SpriteAnimation* SpriteData::getCurrentAnimation(){

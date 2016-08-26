@@ -13,9 +13,10 @@ You can download the latest version of the tools here:
 * [Version v0.4.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.7%20alpha.zip)
 * [Version v0.4.9 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.9%20alpha.zip)
 * [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
-* [Version v0.5.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.1%20alpha.zip)
 * [Version v0.5.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.2%20alpha.zip)
 * [Version v0.5.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.3%20alpha.zip)
+* [Version v0.5.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.4%20alpha.zip)
+
 
 ---
 

@@ -112,7 +112,7 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>214</width>
+     <width>296</width>
      <height>150</height>
     </size>
    </property>
@@ -137,7 +137,7 @@
       <number>2</number>
      </property>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout" stretch="15,0,0,1,0">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="15,0,0,0,1,0">
        <property name="spacing">
         <number>6</number>
        </property>
@@ -151,6 +151,16 @@
            <width>16777215</width>
            <height>23</height>
           </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="pushButton_newanimation">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>New animation</string>
          </property>
         </widget>
        </item>

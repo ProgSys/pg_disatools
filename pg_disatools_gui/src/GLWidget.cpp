@@ -205,6 +205,16 @@ void GLWidget::setBackgroundColor(const QColor& color){
 	update();
 }
 
+void GLWidget::updateColortable(){
+	if(m_spriteSheet->getColortableGL().empty()) return;
+
+	if(m_animationInfo.colorTable) delete m_animationInfo.colorTable;
+	m_animationInfo.colorTable = new PG::GL::Texture();
+	m_animationInfo.colorTable->bind(m_spriteSheet->getColortableGL(), PG::GL::Texture::SPRITE);
+
+	update();
+}
+
 void GLWidget::updateSpriteSheet(int sheetID){
 	if( sheetID < 0 || sheetID >= m_animationInfo.spriteSheetIDTextures.size() ) return;
 

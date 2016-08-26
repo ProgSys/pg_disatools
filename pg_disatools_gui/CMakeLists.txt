@@ -46,7 +46,8 @@ QT5_WRAP_UI(UIMainWindowSrcs ui/mainwindow.ui)
 QT5_WRAP_UI(UIFileInfoBoxSrcs ui/fileinfobox.ui)
 QT5_WRAP_UI(UISpriteSheetEditorSrcs ui/spritesheeteditor.ui)
 QT5_WRAP_UI(UIEnterValueSrcs ui/entervaluedialog.ui)
-QT5_WRAP_UI(UIEnterValueSrcs ui/createNewSpriteSheet.ui)
+QT5_WRAP_UI(UICreateNewSpriteSrcs ui/createNewSpriteSheet.ui)
+QT5_WRAP_UI(UISreateNewAnimationSrcs ui/createNewAnimation.ui)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")
@@ -166,7 +167,7 @@ add_executable(
 		"spriteEditor.cpp"
 		${PG_QT_HEADERS}
 		${PG_QT_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
 		
 )
 else()
@@ -176,7 +177,7 @@ add_executable(
 		"spriteEditor.cpp"
 		${PG_QT_HEADERS}
 		${PG_QT_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
 		
 )
 endif()
