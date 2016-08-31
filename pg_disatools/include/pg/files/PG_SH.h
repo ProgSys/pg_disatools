@@ -75,8 +75,9 @@ typedef struct
 	unsigned short width;
 	unsigned short height;
 
-	unsigned short unknown0;
-	unsigned short unknown1;
+	unsigned short power_colortablesize;
+	unsigned char power_width;
+	unsigned char power_height;
 
 }__attribute__((packed, aligned(1))) shfileSheetInfo;
 

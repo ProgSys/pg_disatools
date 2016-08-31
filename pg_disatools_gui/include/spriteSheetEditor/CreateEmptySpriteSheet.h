@@ -22,7 +22,8 @@ public:
 	bool isAccepted() const;
 	int getWidth() const;
 	int getHeight() const;
-
+	int getColorTablePower() const;
+	int getColorTableSize() const;
 
 	virtual ~CreateEmptySpriteSheet();
 public slots:
@@ -35,6 +36,7 @@ private:
 	 bool m_accepted = false;
 	 int m_width = 0;
 	 int m_height = 0;
+	 int m_colorTablePower = 0;
 };
 
 #endif /* INCLUDE_SPRITESHEETEDITOR_CREATEEMPTYSPRITESHEET_H_ */

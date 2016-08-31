@@ -28,6 +28,8 @@ SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
 void SpritePlayer::connectGLWidget(GLWidget *gl){
 	if(!gl) return;
 	m_glView = gl;
+	//if(m_glView) m_glView->open(m_aniData);
+
 	connect(m_timeline, SIGNAL( currentFrame(int) ),gl, SLOT( renderFrame(int) ));
 	connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderFrame() ));
 	connect(this, SIGNAL( render() ),gl, SLOT( renderFrame() ));
@@ -45,7 +47,25 @@ Timeline* SpritePlayer::getTimeline() const{
 	return m_timeline;
 }
 
-bool SpritePlayer::openSH(const QString& file){
+bool SpritePlayer::open(const QString& file){
+	close();
+
+	if(file.isEmpty())
+		return false;
+
+	if(!m_aniData->open(file)){
+		close();
+		return false;
+	}
+
+	if(m_glView) m_glView->open(m_aniData);
+	emit render();
+
+	return true;
+
+}
+
+bool SpritePlayer::importSH(const QString& file){
 	close();
 
 	if(file.isEmpty())
@@ -60,7 +80,6 @@ bool SpritePlayer::openSH(const QString& file){
 	emit render();
 
 	return true;
-
 }
 
 void SpritePlayer::close(){

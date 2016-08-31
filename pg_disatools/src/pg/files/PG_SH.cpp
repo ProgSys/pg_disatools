@@ -27,8 +27,9 @@
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_Exception.h>
+#include <math.h>
 
-#define DUMP_ON_OPEN false
+#define DUMP_ON_OPEN true
 
 namespace PG {
 namespace FILE {
@@ -116,7 +117,7 @@ bool SH::open(const PG::UTIL::File& file){
 		for(const shfileSheetInfo& sheet: m_sheetsInfos){
 			PG::UTIL::IDImage sheetIDs(sheet.width,sheet.height);
 			reader.seek(sheet.offset);
-			if(sheet.unknown0 == 8)
+			if(sheet.power_colortablesize == 8) // 2^sheet.power_colortablesize
 				//color table 256
 				reader.read((char*) &sheetIDs[0], sheetIDs.size());
 			else
@@ -160,6 +161,12 @@ bool SH::open(const PG::UTIL::File& file){
 	PG_INFO_STREAM("m_numberOfColortables: "<<m_numberOfColortables.size());
 	PG_INFO_STREAM(" * num: "<<m_numberOfColortables[0])
 	PG_INFO_STREAM("m_sheetsInfos: "<<m_sheetsInfos.size());
+	PG_INFO_STREAM(" * offset: "<<m_sheetsInfos[0].offset)
+	PG_INFO_STREAM(" * height: "<<m_sheetsInfos[0].height)
+	PG_INFO_STREAM(" * width: "<<m_sheetsInfos[0].width)
+	PG_INFO_STREAM(" * power_colortablesize: "<<m_sheetsInfos[0].power_colortablesize)
+	PG_INFO_STREAM(" * power_width: "<<int(m_sheetsInfos[0].power_width))
+	PG_INFO_STREAM(" * power_height: "<<int(m_sheetsInfos[0].power_height))
 	PG_INFO_STREAM("m_keyframesData: "<<m_keyframesData.size());
 	PG_INFO_STREAM("m_cutouts: "<<m_cutouts.size());
 	PG_INFO_STREAM(" * sheet: "<<(int)m_cutouts[0].sheet)
@@ -245,8 +252,9 @@ bool SH::open(const PG::UTIL::File& file){
 		 dump << " * offset: "<< info.offset<<"\n";
 		 dump << " * width: "<< info.width<<"\n";
 		 dump << " * height: "<< info.height<<"\n";
-		 dump << " * unknown0: "<< info.unknown0<<"\n";
-		 dump << " * unknown1: "<< info.unknown1<<"\n";
+		 dump << " * power_colortablesize: "<< info.power_colortablesize<<"\n";
+		 dump << " * power_width: "<< (int)info.power_width<<"\n";
+		 dump << " * power_height: "<< (int)info.power_height<<"\n";
 		 dump << " ===============================\n";
 		 count++;
 	 }
@@ -333,17 +341,24 @@ bool SH::save(const PG::UTIL::File& file){
 			info.width = sheetIDs.getWidth();
 			info.height = sheetIDs.getHeight();
 
-			for(unsigned char c: sheetIDs)
-				if(c > 16){
-					info.unknown0 = 8;
-					break;
-				}
+			info.power_width =  log10(sheetIDs.getWidth())/0.301029995; //sqrt (sheetIDs.getWidth());
+			info.power_height = log10(sheetIDs.getHeight())/0.301029995;
 
-			if(info.unknown0 == 8)
-				address_to_image += sheetIDs.size();
-			else
-				address_to_image += sheetIDs.size()/2;
+			//if(info.power_colortablesize <= 0){
+				int maxValue = 0;
+				for(unsigned char c: sheetIDs)
+					if(c > maxValue) maxValue = c;
 
+				if(maxValue > 16)
+					info.power_colortablesize  = 8;
+				else
+					info.power_colortablesize  = 4;
+
+				if(info.power_colortablesize > 4)
+					address_to_image += sheetIDs.size();
+				else
+					address_to_image += sheetIDs.size()/2;
+			//}
 			count++;
 		}
 
@@ -376,7 +391,7 @@ bool SH::save(const PG::UTIL::File& file){
 		//write sheet color IDs
 		count = 0;
 		for(const PG::UTIL::IDImage& sheetIDs : m_spriteSheets){
-			if(m_sheetsInfos[count].unknown0 == 8){
+			if(m_sheetsInfos[count].power_colortablesize == 8){
 				writer.write((char*) &sheetIDs[0], sheetIDs.size());
 			}else{
 				//color table 16

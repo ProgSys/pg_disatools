@@ -326,12 +326,13 @@ void GLWidget::paintGL(){
 		glDepthMask(true);
     }
 
-    if(m_animationInfo){
+    if(m_animationInfo && m_animationInfo.getCurrentAnimation()){
     	//PG_INFO_STREAM("RENDER!");
     	//sprite
     	modelMatrix = PG::UTIL::mat4();
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
+
 
     	for(const Layer* lay: m_animationInfo.getCurrentAnimation()->getLayers()){
     		if(lay->isHidden()) continue;

@@ -388,8 +388,9 @@ private:
 				if(key->getColortableID() >= spriteData->getNumberOfColortables()){
 					shader.setUniform(shader.colorTableStartLoc, (int)0);
 				}else{
+					const int colorTableSize = spriteData->getSpriteSheet(cut->getSheetID())->getSizeOfColorTable();
 					//qDebug()<<QString::number(__LINE__)<<": sheet "<<QString::number(cut.sheet)<<" size "<<QString::number(spriteSheet.getColorTables().size());
-					shader.setUniform(shader.colorTableStartLoc, (int)key->getColortableID());
+					shader.setUniform(shader.colorTableStartLoc, (int)key->getColortableID()*colorTableSize);
 				}
 			}
 

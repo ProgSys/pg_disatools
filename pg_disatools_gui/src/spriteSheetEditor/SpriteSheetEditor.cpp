@@ -85,7 +85,11 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	//ui->openGLWidget->openSprite("C:/Users/ProgSys/Desktop/Disgaea/PC/IMY/LAHARL.SH");
 	//files
 	connect(ui->actionOpen_File, SIGNAL(triggered()), this, SLOT(open()));
-	connect(ui->actionExport_SH, SIGNAL(triggered()), this, SLOT(exportSH()));
+	connect(ui->actionSave, SIGNAL(triggered()), this, SLOT(save()));
+	connect(ui->actionSave_As, SIGNAL(triggered()), this, SLOT(saveAs()));
+
+	connect(ui->actionImport_SH, SIGNAL(triggered()), this, SLOT(import()));
+	connect(ui->actionExport_SH, SIGNAL(triggered()), this, SLOT(exportIt()));
 
 	//tools
 	connect(ui->actionDump, SIGNAL(triggered()), this, SLOT(dump()));
@@ -125,7 +129,9 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->pushButton_newanimation, SIGNAL(clicked()), this,  SLOT(createNewAnimation()) );
 
 
-	connect(this, SIGNAL(openSH( const QString& )), m_player, SLOT(openSH( const QString& )));
+	connect(this, SIGNAL(openSH( const QString& )),  m_player, SLOT(open( const QString& )));
+	connect(this, SIGNAL(saveSH( const QString& )),  m_player->getSpriteData(), SLOT(save( const QString& )));
+	connect(this, SIGNAL(importSH( const QString& )), m_player, SLOT(importSH( const QString& )));
 	connect(this, SIGNAL(exportSH( const QString& )), m_player->getSpriteData(), SLOT(exportSH( const QString& )));
 
 	connect(this, SIGNAL( dumpSprite( const QString& )), m_player->getSpriteData(), SLOT(dump( const QString& )));
@@ -169,7 +175,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 
 void SpriteSheetEditor::open(){
     QFileDialog openDialog(this);
-    openDialog.setNameFilter(tr("SPRITE (*.sh);;DATA (*.dat)"));
+    openDialog.setNameFilter(tr("PG SPRITE (*.spg)"));
 
     QStringList fileNames;
 	if (openDialog.exec()){
@@ -188,18 +194,25 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->statusbar->showMessage(QString("Failed to opened %1.").arg(file));
 		setTitel();
 
+		ui->actionSave->setEnabled(false);
+		ui->actionSave_As->setEnabled(false);
 		ui->actionExport_SH->setEnabled(false);
 		ui->actionDump->setEnabled(false);
+
 		ui->actionExport_sprites_as_PNG->setEnabled(false);
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
 		ui->actionExport_sprites_IDs->setEnabled(false);
 		ui->actionExport_color_table->setEnabled(false);
 		ui->actionImport_color_table->setEnabled(false);
+
 		ui->pushButton_newanimation->setEnabled(false);
+		m_lastOpendFile.clear();
 	}else{
 		ui->statusbar->showMessage(QString("Opened %1.").arg(file));
 		setTitel(file);
 
+		ui->actionSave->setEnabled(true);
+		ui->actionSave_As->setEnabled(true);
 		ui->actionExport_SH->setEnabled(true);
 		ui->actionDump->setEnabled(true);
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
@@ -213,7 +226,83 @@ void SpriteSheetEditor::open(const QString& file){
 
 }
 
-void SpriteSheetEditor::exportSH(){
+void SpriteSheetEditor::save(){
+	if(m_lastOpendFile.isEmpty()){
+		saveAs();
+	}else
+		save(m_lastOpendFile);
+}
+
+void SpriteSheetEditor::save(const QString& file){
+	if(emit saveSH(file)){
+		ui->statusbar->showMessage(QString("Saved to %1.").arg(file));
+		m_lastOpendFile = file;
+	}else{
+		ui->statusbar->showMessage(QString("Failed save to %1.").arg(file));
+	}
+
+}
+void SpriteSheetEditor::saveAs(){
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save sprite sheet"),
+										QFileInfo(m_player->getSpriteData()->getLastFileName()).baseName(),
+	                                   tr("PG SPRITE (*.spg)"));
+	if (fileName.isEmpty()) return;
+
+	save(fileName);
+}
+
+void SpriteSheetEditor::import(){
+    QFileDialog openDialog(this);
+    openDialog.setNameFilter(tr("SPRITE (*.sh);;DATA (*.dat)"));
+
+    QStringList fileNames;
+	if (openDialog.exec()){
+		fileNames = openDialog.selectedFiles();
+		if(fileNames.size() > 0){
+			import(fileNames[0]);
+		}
+	}
+}
+
+void SpriteSheetEditor::import(const QString& file){
+	ui->comboBox->clear();
+
+	qDebug()<<"Inporting: "<<file;
+	if(file.isEmpty() || !(emit importSH(file))){
+		ui->statusbar->showMessage(QString("Failed to import %1.").arg(file));
+		setTitel();
+
+		ui->actionSave->setEnabled(false);
+		ui->actionSave_As->setEnabled(false);
+		ui->actionExport_SH->setEnabled(false);
+		ui->actionDump->setEnabled(false);
+
+		ui->actionExport_sprites_as_PNG->setEnabled(false);
+		ui->actionExport_sprites_as_TGA->setEnabled(false);
+		ui->actionExport_sprites_IDs->setEnabled(false);
+		ui->actionExport_color_table->setEnabled(false);
+		ui->actionImport_color_table->setEnabled(false);
+
+		ui->pushButton_newanimation->setEnabled(false);
+	}else{
+		ui->statusbar->showMessage(QString("Imported %1.").arg(file));
+		setTitel(file);
+
+		ui->actionSave->setEnabled(true);
+		ui->actionSave_As->setEnabled(true);
+		ui->actionExport_SH->setEnabled(true);
+		ui->actionDump->setEnabled(true);
+		ui->actionExport_sprites_as_PNG->setEnabled(true);
+		ui->actionExport_sprites_as_TGA->setEnabled(true);
+		ui->actionExport_sprites_IDs->setEnabled(true);
+		ui->actionExport_color_table->setEnabled(true);
+		ui->actionImport_color_table->setEnabled(true);
+		ui->pushButton_newanimation->setEnabled(true);
+		ui->comboBox->setCurrentIndex(0);
+	}
+}
+
+void SpriteSheetEditor::exportIt(){
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Export SH file"),
 										QFileInfo(m_player->getSpriteData()->getLastFileName()).baseName()+"_export",
 	                                   tr("sh (*.sh)"));
@@ -224,6 +313,7 @@ void SpriteSheetEditor::exportSH(){
 		ui->statusbar->showMessage(QString("SH exported to %1.").arg(fileName));
 	}else{
 		ui->statusbar->showMessage(QString("Failed to export SH file to %1.").arg(fileName));
+		m_lastOpendFile.clear();
 	}
 }
 

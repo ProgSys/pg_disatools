@@ -37,7 +37,8 @@ public slots:
 	/*!
 	 * @returns true on success
 	 */
-	bool openSH(const QString& file);
+	bool open(const QString& file);
+	bool importSH(const QString& file);
 	void close();
 	bool isOpen() const;
 	void setAnimation(int index);

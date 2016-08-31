@@ -46,7 +46,9 @@ class Cutout: public QObject{
 public:
 	explicit Cutout(QObject *parent = 0);
 	explicit Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, QObject *parent = 0);
+	explicit Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned int defaultColorTable, QObject *parent = 0);
 	explicit Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size,  QObject *parent = 0);
+	explicit Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned int defaultColorTable, QObject *parent = 0);
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
 
@@ -411,11 +413,12 @@ class SpriteSheet: public QAbstractListModel{
 	Q_OBJECT
 	Q_PROPERTY(int width READ getWidth NOTIFY onWidthChanged)
 	Q_PROPERTY(int height READ getHeight NOTIFY onHeightChanged)
+	Q_PROPERTY(int colors READ getSizeOfColorTable NOTIFY numberOfColorsChanged)
 	Q_PROPERTY(int cutoutSize READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
 public:
 	SpriteSheet();
-	SpriteSheet(int width, int height, QObject *parent = 0);
-	SpriteSheet(const PG::UTIL::IDImage& img, QObject *parent = 0);
+	SpriteSheet(int width, int height, int powerColorTable = 4, QObject *parent = 0);
+	SpriteSheet(const PG::UTIL::IDImage& img, int powerColorTable = 4 , QObject *parent = 0);
 	SpriteSheet(const SpriteSheet& sheet);
 	virtual ~SpriteSheet();
 
@@ -425,6 +428,8 @@ public:
 	int getWidth() const;
 	int getHeight() const;
 	int getNumberOfCutouts() const;
+	int getPowerOfColorTable() const;
+	int getSizeOfColorTable() const;
 
 	PG::UTIL::IDImage& getSpriteSheet();
 	const PG::UTIL::IDImage& getSpriteSheet() const;
@@ -434,6 +439,7 @@ public:
 
 	PG::UTIL::IDImage getSpritePGIDs(const Cutout* cut) const;
 	QImage getSpriteIDs(const Cutout* cut) const;
+
 
 	QList<int>& getCutoutIDs();
 	const QList<int>& getCutoutIDs() const;
@@ -449,9 +455,11 @@ public:
 signals:
 	void onWidthChanged();
 	void onHeightChanged();
+	void numberOfColorsChanged();
 	void onNumberOfCutoutsChanged();
 private:
 	PG::UTIL::IDImage m_img;
+	int m_powerOfColoTable = -1;
 	QList<int> m_cutoutsIDs;
 };
 
@@ -542,7 +550,7 @@ public slots:
 	Q_INVOKABLE bool removeCutoutID(int id);
 
 	Q_INVOKABLE bool addNewSpriteSheet();
-	Q_INVOKABLE bool addNewSpriteSheet(int width, int height);
+	Q_INVOKABLE bool addNewSpriteSheet(int width, int height, int powerOfColorTable = 4);
 
 	Q_INVOKABLE void clearSelectedKey();
 	Q_INVOKABLE void unhideAllCutouts();

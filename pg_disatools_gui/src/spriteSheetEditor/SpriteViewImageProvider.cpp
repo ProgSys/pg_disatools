@@ -25,7 +25,6 @@ SpriteViewImageProvider::SpriteViewImageProvider(SpriteData* data):
 QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize){
 	//return QImage("resources/test.jpg");
 
-
 	if(!m_data || id.isEmpty())
 		return QImage();
 
@@ -34,8 +33,15 @@ QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, con
 	if(spritesheetID >= 0 && spritesheetID < m_data->getNumberOfSpriteSheets() ){
 		if(spritesheetID >= m_data->getNumberOfSpriteSheets() ) return QImage("resources/test.jpg");
 
+
+
 		assert_Test("Sprite sheet ID out of bound!", spritesheetID >= m_data->getNumberOfSpriteSheets());
-		const PG::UTIL::IDImage& sheetID = m_data->getSpriteSheet(spritesheetID)->getSpriteSheet();
+		const SpriteSheet* sheet = m_data->getSpriteSheet(spritesheetID);
+
+		const int colorTableSize = sheet->getSizeOfColorTable();
+		assert_Test("Colortable size is invalid!", colorTableSize <= 0);
+
+		const PG::UTIL::IDImage& sheetID = sheet->getSpriteSheet();
 		QImage qimg( sheetID.getWidth() , sheetID.getHeight(), QImage::Format_RGBA8888 );
 
 		unsigned int count = 0;
@@ -46,7 +52,6 @@ QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, con
 			qimg.bits()[count+3] = 255;
 			count+=4;
 		}
-
 
 
 		if(m_data->getNumberOfColortables())
@@ -62,9 +67,12 @@ QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, con
 						assert_Test("Address out of bound!", address >= qimg.width()*qimg.height()*4);
 						const int id = sheetID.get(x,y);
 						assert_Test("ID out of bound!", m_data->getColortable().size() <= id);
-						const unsigned int colorTableID = (cut->getDefaultColorTable() >= m_data->getNumberOfColortables())? 0 :  cut->getDefaultColorTable();
-						assert_Test("Color table ID out of bound!", colorTableID*16 + id >= m_data->getColortable().size());
-						const QColor& color = m_data->getColortable()[colorTableID*16 + id];
+
+						const unsigned int colorTableIndex = cut->getDefaultColorTable()*colorTableSize + id;
+
+						assert_Test("Color table Index out of bound!", colorTableIndex >= m_data->getColortable().size());
+
+						const QColor& color = m_data->getColortable()[colorTableIndex];
 
 						qimg.bits()[address] = color.red();
 						qimg.bits()[address+1] = color.green();

@@ -39,8 +39,13 @@ public:
 public slots:
 	void open();
 	void open(const QString& file);
+	void save();
+	void save(const QString& file);
+	void saveAs();
 
-	void exportSH();
+	void import();
+	void import(const QString& file);
+	void exportIt();
 
 	void dump();
 	void exportSprites(const QString& filetype, bool asID = false);
@@ -55,6 +60,8 @@ public slots:
 signals:
 
 	bool openSH( const QString& filepath );
+	bool saveSH( const QString& filepath );
+	bool importSH( const QString& filepath );
 	bool exportSH( const QString& filepath );
 	bool dumpSprite(const QString& filepath);
 	int exportSprites(const QString& folder, const QString& filetype);
@@ -68,6 +75,7 @@ signals:
 private:
 	Ui::SpriteSheetEditorWindow *ui;
 	SpritePlayer* m_player;
+	QString m_lastOpendFile;
 	//TimelinePreviewImageProvider* m_TimelinePreviewImageProvider;
 	//SpriteViewImageProvider* m_SpriteViewImageProvider;
 
