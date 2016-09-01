@@ -96,8 +96,10 @@ public slots:
 
 	void setBackgroundColor(const QColor& color);
 	void updateColortable();
+
 	void updateSpriteSheet(int sheetID);
 	void updateSpriteSheetAdded();
+	void updateSpriteSheetRemove(int sheetID);
 
 private:
 	//data
@@ -388,9 +390,9 @@ private:
 				if(key->getColortableID() >= spriteData->getNumberOfColortables()){
 					shader.setUniform(shader.colorTableStartLoc, (int)0);
 				}else{
-					const int colorTableSize = spriteData->getSpriteSheet(cut->getSheetID())->getSizeOfColorTable();
+					//const int colorTableSize = spriteData->getSpriteSheet(cut->getSheetID())->getSizeOfColorTable();
 					//qDebug()<<QString::number(__LINE__)<<": sheet "<<QString::number(cut.sheet)<<" size "<<QString::number(spriteSheet.getColorTables().size());
-					shader.setUniform(shader.colorTableStartLoc, (int)key->getColortableID()*colorTableSize);
+					shader.setUniform(shader.colorTableStartLoc, (int)key->getColortableID()*16);
 				}
 			}
 

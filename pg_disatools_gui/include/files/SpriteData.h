@@ -131,8 +131,8 @@ class Keyframe: public QObject
 	Q_PROPERTY(short offsety 				READ getOffsetY WRITE setOffsetY NOTIFY onOffsetYChanged)
 
 	Q_PROPERTY(short rotation 				READ getRotation WRITE setRotation NOTIFY onRotationChanged)
-	Q_PROPERTY(unsigned char mirror 		READ getMirror WRITE setMirror NOTIFY onMirrorChanged)
-	Q_PROPERTY(unsigned char unknown 		READ getUnknown WRITE setUnknown NOTIFY onUnknownChanged)
+	Q_PROPERTY(int mirror 		READ getMirror WRITE setMirror NOTIFY onMirrorChanged)
+	Q_PROPERTY(int unknown 		READ getUnknown WRITE setUnknown NOTIFY onUnknownChanged)
 
 	Q_PROPERTY(bool selected 		READ isSelected WRITE setSelected NOTIFY onSelectionChanged)
 
@@ -303,6 +303,7 @@ public:
 			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, bool seperate = false);
 
     Q_INVOKABLE bool insertKeyframe(int frame);
+    //Q_INVOKABLE bool pushBackKeyframe();
     Q_INVOKABLE bool splitKeyframe(int frame);
     Q_INVOKABLE bool removeKeyframe(Keyframe* keyframe);
 
@@ -448,6 +449,7 @@ public:
 
 	//setters
 	void push_backCutoutID(int id);
+	void set(int width, int height, int powerColorTable = 4);
 
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
 	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
@@ -547,10 +549,12 @@ public slots:
 	Q_INVOKABLE bool addCutout(int sheetID);
 	Q_INVOKABLE bool addCutout(int sheetID,unsigned int x,unsigned int y = 0,unsigned int height = 100,unsigned int width = 100);
 	bool removeCutout(Cutout* cut);
-	Q_INVOKABLE bool removeCutoutID(int id);
+	Q_INVOKABLE bool removeCutoutID(int id, bool warning = true);
 
 	Q_INVOKABLE bool addNewSpriteSheet();
 	Q_INVOKABLE bool addNewSpriteSheet(int width, int height, int powerOfColorTable = 4);
+	Q_INVOKABLE bool removeSpriteSheet(unsigned int index);
+	Q_INVOKABLE bool editSpriteSheet(unsigned int index);
 
 	Q_INVOKABLE void clearSelectedKey();
 	Q_INVOKABLE void unhideAllCutouts();
@@ -567,8 +571,10 @@ signals:
 	void onNumberOfColortablesChanged();
 	void selectedKeyChanged();
 	void colortableChanged();
+
 	void spriteSheetChanged(int spritesheetID);
 	void spriteSheetAdded();
+	void spriteSheetRemoved(int spritesheetID);
 
 	void onRefresh();
 private:

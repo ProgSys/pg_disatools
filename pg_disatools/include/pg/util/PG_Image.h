@@ -130,6 +130,22 @@ public:
 
 	}
 
+	void getAnyWindow(const PG::UTIL::ivec2& start, Image<T>& windowOut) const{
+		const int width = windowOut.getWidth();
+		const int height = windowOut.getHeight();
+		if(width <= 0 || height <= 0) return;
+
+		const int copyWidth = min((int)getWidth(), start.x+width) - max(start.x,0);
+		if(copyWidth <= 0) return;
+		const int copyHeight = min((int)getHeight(), start.y+height) - max(start.y,0);
+		if(copyHeight <= 0) return;
+		uvec2 startCopy(max(start.x,0), max(start.y,0));
+		uvec2 startWrite( -min(start.x,0), -min(start.y,0));
+
+		for(unsigned int y = 0; y < copyHeight; ++y)
+			memcpy(&windowOut.get(startWrite+uvec2(0,y)), &get(startCopy+uvec2(0,y)), copyWidth*sizeof(T) );
+	}
+
 	void setWindow(const PG::UTIL::uvec2& start, const Image<T>& windowIn){
 		assert_Test("Window is out of bound!", (start.x >= m_width) || (start.y >= m_height) || ( (start.x+windowIn.getWidth()) > m_width) || ((start.y+windowIn.getHeight())> m_height));
 
@@ -165,15 +181,11 @@ public:
 	void resize(unsigned int width, unsigned int height){
 		m_width = width;
 		m_height = height;
-
 		m_pixels.resize(m_width*m_height);
 	}
 
 	void resize(const uvec2& size){
-		m_width = size.x;
-		m_height = size.y;
-
-		m_pixels.resize(m_width*m_height);
+		resize(size.x,size.y);
 	}
 
 	// for iterators

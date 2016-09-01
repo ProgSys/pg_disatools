@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
     SpriteSheetEditor w;
     w.show();
-    if(argc == 2) w.open(QString(argv[1]));
+    if(argc == 2) w.import(QString(argv[1]));
     return a.exec();
 }
 

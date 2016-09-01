@@ -222,6 +222,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionImport_color_table->setEnabled(true);
 		ui->pushButton_newanimation->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
+		m_lastOpendFile = file;
 	}
 
 }
@@ -284,6 +285,7 @@ void SpriteSheetEditor::import(const QString& file){
 		ui->actionImport_color_table->setEnabled(false);
 
 		ui->pushButton_newanimation->setEnabled(false);
+		m_lastOpendFile.clear();
 	}else{
 		ui->statusbar->showMessage(QString("Imported %1.").arg(file));
 		setTitel(file);
@@ -299,6 +301,7 @@ void SpriteSheetEditor::import(const QString& file){
 		ui->actionImport_color_table->setEnabled(true);
 		ui->pushButton_newanimation->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
+		//m_lastOpendFile = file;
 	}
 }
 

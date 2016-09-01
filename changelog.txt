@@ -119,3 +119,14 @@
   * Sprite Sheet Editor v0.2.3 alpha:
 	- fixed import/export of the colortable
 	- you now can add a new animation
+	
+===  1.09.2016 - v0.5.5 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.4 alpha:
+	- You can add a keyframe with the right click menu of the layer
+	- You now can select the color table size when creating a sprite sheet
+	- You can now change the settings of a sprite sheet
+	- In the sprite sheet settings you can also delete the sprite sheet (except the first one)
+	- Added my own file format, if you want to open/save a .SH file, use import/export SH
+	- Fixed some bugs when importing a color sprite

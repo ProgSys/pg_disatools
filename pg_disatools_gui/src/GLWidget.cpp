@@ -234,6 +234,13 @@ void GLWidget::updateSpriteSheetAdded(){
 	m_animationInfo.spriteSheetIDTextures.push_back(t);
 }
 
+void GLWidget::updateSpriteSheetRemove(int sheetID){
+	if(sheetID >= m_spriteSheet->getSpriteSheets().size()) return;
+	PG::GL::Texture* t = m_animationInfo.spriteSheetIDTextures[sheetID];
+	m_animationInfo.spriteSheetIDTextures.erase(m_animationInfo.spriteSheetIDTextures.begin()+sheetID);
+	delete t;
+}
+
 void GLWidget::initializeGL(){
 	GLenum err = glewInit();
 	if(err != GLEW_OK){

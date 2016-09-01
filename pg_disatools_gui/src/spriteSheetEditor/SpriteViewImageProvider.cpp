@@ -16,6 +16,7 @@
  *	or http://www.gnu.org/licenses/
  */
 #include <spriteSheetEditor/SpriteViewImageProvider.h>
+#include <QDebug>
 
 SpriteViewImageProvider::SpriteViewImageProvider(SpriteData* data):
 	QQuickImageProvider(QQmlImageProviderBase::Image),
@@ -38,8 +39,7 @@ QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, con
 		assert_Test("Sprite sheet ID out of bound!", spritesheetID >= m_data->getNumberOfSpriteSheets());
 		const SpriteSheet* sheet = m_data->getSpriteSheet(spritesheetID);
 
-		const int colorTableSize = sheet->getSizeOfColorTable();
-		assert_Test("Colortable size is invalid!", colorTableSize <= 0);
+		assert_Test("Colortable size is invalid!", sheet->getSizeOfColorTable() <= 0);
 
 		const PG::UTIL::IDImage& sheetID = sheet->getSpriteSheet();
 		QImage qimg( sheetID.getWidth() , sheetID.getHeight(), QImage::Format_RGBA8888 );
@@ -68,7 +68,7 @@ QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, con
 						const int id = sheetID.get(x,y);
 						assert_Test("ID out of bound!", m_data->getColortable().size() <= id);
 
-						const unsigned int colorTableIndex = cut->getDefaultColorTable()*colorTableSize + id;
+						const unsigned int colorTableIndex = cut->getDefaultColorTable()*16 + id;
 
 						assert_Test("Color table Index out of bound!", colorTableIndex >= m_data->getColortable().size());
 

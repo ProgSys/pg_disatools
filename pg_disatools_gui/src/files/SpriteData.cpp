@@ -649,11 +649,22 @@ void Layer::push_backKeyframe(int start, int duration, unsigned int cutoutIDIn, 
 }
 
 bool Layer::insertKeyframe(int frame){
-	if(frame < 0) return false;
-
 	if(m_keyframes.empty() ){
 		beginInsertRows(QModelIndex(), m_keyframes.size(), m_keyframes.size());
-		m_keyframes.push_back(new Keyframe(frame, 10,  0,0,  0,0,  100,100,  0,0, 0, 0,0,this));
+		m_keyframes.push_back(new Keyframe(frame, 10,  0,0,  0,0,  100,100,  0,0, 0, 128,0,this));
+		endInsertRows();
+		emit onDurationChanged();
+		emit onNumberOfKeyframesChanged();
+		return true;
+	}else if(frame < 0){
+		beginInsertRows(QModelIndex(), m_keyframes.size(), m_keyframes.size());
+		Keyframe* currentBack = m_keyframes.back();
+		m_keyframes.push_back(new Keyframe(currentBack,currentBack->getEnd(), 10,
+				currentBack->getCutoutID(),currentBack->getColortableID(),
+				currentBack->getAnchorX(),currentBack->getAnchorY(),
+				currentBack->getScaleX(),currentBack->getScaleY(),
+				currentBack->getOffsetX(),currentBack->getOffsetY(),
+				currentBack->getRotation(), 128,0,this));
 		endInsertRows();
 		emit onDurationChanged();
 		emit onNumberOfKeyframesChanged();
@@ -661,9 +672,20 @@ bool Layer::insertKeyframe(int frame){
 	}else if(frame >= m_keyframes.last()->getEnd()){
 		beginInsertRows(QModelIndex(), m_keyframes.size(), m_keyframes.size());
 		Keyframe* lastKey = m_keyframes.last();
-		m_keyframes.push_back(new Keyframe(frame, 10,  0,0,  0,0,  100,100,  0,0, 0, 0,0,this));
+		m_keyframes.push_back(new Keyframe(frame, 10,  0,0,  0,0,  100,100,  0,0, 0, 128,0,this));
 		m_keyframes.last()->setPrevious(lastKey);
 		lastKey->setNext(m_keyframes.last());
+		endInsertRows();
+
+		emit onDurationChanged();
+		emit onNumberOfKeyframesChanged();
+		return true;
+	}else if(frame < m_keyframes.first()->getStart()){
+		beginInsertRows(QModelIndex(), 0, 0);
+		Keyframe* currentFront  = m_keyframes.first();
+		m_keyframes.push_front(new Keyframe(frame, ( (frame+ 10) > currentFront->getStart())? currentFront->getStart()-frame: 10,  0,0,  0,0,  100,100,  0,0, 0, 128,0,this));
+		m_keyframes.first()->setNext(currentFront);
+		currentFront->setPrevious(m_keyframes.first());
 		endInsertRows();
 
 		emit onDurationChanged();
@@ -681,7 +703,7 @@ bool Layer::insertKeyframe(int frame){
 			assert_Test("Index of is invalid!", indexOf == -1);
 
 			beginInsertRows(QModelIndex(), indexOf, indexOf);
-			Keyframe* newKey = new Keyframe(frame, next->getStart()-frame, 0,0,  0,0,100,100,0,0,0,0,0,this);
+			Keyframe* newKey = new Keyframe(frame, next->getStart()-frame, 0,0,  0,0,100,100,0,0,0,128,0,this);
 			newKey->setPrevious(key);
 			newKey->setNext(next);
 			key->setNext(newKey);
@@ -1089,6 +1111,7 @@ bool SpriteSheet::removeCutoutID(int ID){
 	return false;
 }
 
+
 void SpriteSheet::refresh(){
 	layoutAboutToBeChanged();
 	layoutChanged();
@@ -1110,6 +1133,21 @@ void SpriteSheet::push_backCutoutID(int id){
 	else assert_Test("Sprite sheet already has a cutout with the same ID!", true);
 #endif
 
+}
+
+void SpriteSheet::set(int width, int height, int powerColorTable){
+	if(m_powerOfColoTable != powerColorTable){
+		m_powerOfColoTable  = powerColorTable;
+		emit onNumberOfCutoutsChanged();
+	}
+
+	if(getWidth() != width || getHeight() != height){
+		PG::UTIL::IDImage buffer(m_img);
+		m_img.resize(width,height);
+		buffer.getAnyWindow(PG::UTIL::ivec2(0,0), m_img);
+		emit onHeightChanged();
+		emit onWidthChanged();
+	}
 }
 
 QVariant SpriteSheet::data(const QModelIndex & index, int role) const{
@@ -1178,10 +1216,8 @@ inline bool getCutoutImageHelper(PG::UTIL::IDImage& outCutoutImage, const PG::UT
 
 PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const{
 	if(!cut) return PG::UTIL::RGBAImage();
-	const int colortableSize = getSizeOfColorTable();
-	assert_Test("Colortable size is invalid!", colortableSize <= 0);
-
-	assert_Test("Color table ID out of bound!", ColortableID*colortableSize+colortableSize > colortable.size());
+	assert_Test("Colortable size is invalid!", getSizeOfColorTable() <= 0);
+	assert_Test("Color table ID out of bound!", ColortableID*16+16 > colortable.size());
 
 	PG::UTIL::IDImage spriteIDs;
 	if(!getCutoutImageHelper(spriteIDs,m_img,cut))
@@ -1190,7 +1226,7 @@ PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int Col
 	PG::UTIL::RGBAImage sprite(spriteIDs.getWidth(), spriteIDs.getHeight());
 	unsigned int i = 0;
 	for(const unsigned char id: spriteIDs){
-		int colorIndex = ColortableID*colortableSize + int(id);
+		int colorIndex = ColortableID*16 + int(id);
 		if(colorIndex >= colortable.size()) colorIndex = colortable.size()-1;
 		const QColor& color = colortable[ colorIndex];
 		sprite[i].r = color.red();
@@ -1205,10 +1241,9 @@ PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int Col
 
 QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable, bool alpha) const{
 	if(!cut) return QImage();
-	const int colortableSize = getSizeOfColorTable();
-	assert_Test("Colortable size is invalid!", colortableSize <= 0);
 
-	assert_Test("Color table ID out of bound!", ColortableID*colortableSize+colortableSize > colortable.size());
+	assert_Test("Colortable size is invalid!", getSizeOfColorTable() <= 0);
+	assert_Test("Color table ID out of bound!", ColortableID*16+16 > colortable.size());
 
 	PG::UTIL::IDImage spriteIDs;
 	if(!getCutoutImageHelper(spriteIDs,m_img,cut))
@@ -1219,7 +1254,7 @@ QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, cons
 		QImage sprite(spriteIDs.getWidth(), spriteIDs.getHeight(), QImage::Format_RGBA8888);
 		unsigned int i = 0;
 		for(const unsigned char id: spriteIDs){
-			int colorIndex = ColortableID*colortableSize + int(id);
+			int colorIndex = ColortableID*16 + int(id);
 			if(colorIndex >= colortable.size()) colorIndex = colortable.size()-1;
 			const QColor& color = colortable[ colorIndex];
 			sprite.bits()[i] = color.red();
@@ -1234,14 +1269,19 @@ QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, cons
 	}
 
 	QImage sprite(spriteIDs.getWidth(), spriteIDs.getHeight(), QImage::Format_RGB888);
+#ifdef DEBUG
+	if(spriteIDs.getWidth() != cut->getWidth()) PG_INFO_STREAM("Original Width: "<<cut->getWidth()<<" new: "<<spriteIDs.getWidth());
+	if(spriteIDs.getHeight() != cut->getHeight()) PG_INFO_STREAM("Original Height: "<<cut->getHeight()<<" new: "<<spriteIDs.getHeight());
+
+#endif
+
 	//uchar * data = new uchar[cutout->getWidth()*cutout->getHeight()*3];
 	unsigned int i = 0;
 	for(const unsigned char id: spriteIDs){
 		const QColor& color = colortable[ ColortableID*16 + int(id)];
-		sprite.bits()[i] = color.red();
-		sprite.bits()[i+1] = color.green();
-		sprite.bits()[i+2] = color.blue();
-		i += 3;
+		const unsigned int y = (i/cut->getWidth());
+		sprite.setPixel( i - y*cut->getWidth(), y, qRgb(color.red(),color.green(), color.blue()) );
+		i ++;
 	}
 
 	return sprite;
@@ -1334,10 +1374,8 @@ bool SpriteData::open(const QString& file){
 	quint16 number_uint16;
 	quint32 number_uint32;
 
-	//qDebug()<<__LINE__<<": "<<number_uint32;
 	QString text;
-	text = readQString(in);
-	//in >> text; //info text
+	text = readQString(in);//info text
 	qDebug()<<__LINE__<<": "<<text;
 	if(text.isEmpty()) return false;
 	text = readQString(in);
@@ -1345,14 +1383,13 @@ bool SpriteData::open(const QString& file){
 
 
 	in >> number_uint16;
-	qDebug()<<__LINE__<<": "<<number_uint16;
 	for(unsigned int i = 0; i < number_uint16; i++){
 		quint8 r,g,b,a;
 		in >> r >> g >> b >> a;
 		m_colortable.push_back(QColor(r,g,b,a));
 	}
-	//in >> text; //SpriteSheets
-	text = readQString(in);
+
+	text = readQString(in);//SpriteSheets
 
 	in >> number_uint16;
 	for(unsigned int i = 0; i < number_uint16; i++){
@@ -1381,8 +1418,7 @@ bool SpriteData::open(const QString& file){
 
 	}
 
-	//in >> text; //Cutouts
-	text = readQString(in);
+	text = readQString(in);//Cutouts
 	in >> number_uint32;
 	for(unsigned int i = 0; i < number_uint32; i++){
 		quint16 externalSheetID, sheetRealID,x,y,w,h,dc;
@@ -1396,8 +1432,7 @@ bool SpriteData::open(const QString& file){
 		}
 	}
 
-	//in >> text; //Animations
-	text = readQString(in);
+	text = readQString(in);//Animations
 	in >> number_uint32;
 	qDebug()<<__LINE__<<": Ani Size: "<<number_uint32;
 	beginInsertRows(QModelIndex(),0,number_uint32);
@@ -1414,8 +1449,6 @@ bool SpriteData::open(const QString& file){
 		}
 
 
-		//qDebug()<<__LINE__<<": AniName: "<<name<<" ID: "<<id<<" markers: "<<markers;
-
 		SpriteAnimation* ani = new SpriteAnimation(id,name);
 		m_aniamtions.push_back(ani);
 		for(unsigned int m = 0; m < markers; m++){
@@ -1423,7 +1456,7 @@ bool SpriteData::open(const QString& file){
 			qint16 a;
 			quint16 b;
 			in >>  start>> duration>> type>> a >> b;
-			qDebug()<<__LINE__<<"_Markers: start: "<<start<<" duration: "<<duration<<" type: "<<type<<" a: "<<a<<" b: "<<b;
+			//qDebug()<<__LINE__<<"_Markers: start: "<<start<<" duration: "<<duration<<" type: "<<type<<" a: "<<a<<" b: "<<b;
 			assert_Test("Marker duration should be 1!", duration != 1 );
 			ani->getMarkers()->push_back(new Marker(start,duration,type,a,b,ani));
 			//ani->addMarker(start,type,a,b);
@@ -1802,8 +1835,9 @@ bool SpriteData::exportSH(const QString& file){
 
 	for(const SpriteSheet* sheet: m_spriteSheets){
 		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
-		//TODO set the last two values
-		sh.getSheetsInfos().push_back({0,(short)sheet->getWidth(),(short)sheet->getHeight(),4,2056});
+		//TODO set the last values
+		const unsigned short p = sheet->getPowerOfColorTable();
+		sh.getSheetsInfos().push_back({0,(short)sheet->getWidth(),(short)sheet->getHeight(),p,0,0});
 	}
 
 	sh.getColortables() = getColortableGL();
@@ -2227,9 +2261,9 @@ bool SpriteData::importSpriteAsColor(int cutoutID, const QString& file){
 			QColor col(newColorCutout.pixel(x,y));
 			int alpha = qAlpha(newColorCutout.pixel(x, y));
 
-			int indexOf = findColorIndex(cut, m_colortable, col, alpha, colortableSize);
+			int indexOf = findColorIndex(cut, m_colortable, col, alpha, 16);
 
-			const int colortableID = indexOf - cut->getDefaultColorTable()*colortableSize;
+			const int colortableID = indexOf - cut->getDefaultColorTable()*16;
 			if(indexOf < getColortable().size() && colortableID >= 0 ){
 				idImage.set(x,y, (colortableID >= colortableSize)? 0 : colortableID);
 			}else{
@@ -2555,7 +2589,7 @@ bool SpriteData::removeCutout(Cutout* cut){
 	return removeCutoutID(m_cutouts.indexOf(cut));
 }
 
-bool SpriteData::removeCutoutID(int id){
+bool SpriteData::removeCutoutID(int id, bool warning){
 	PG_INFO_STREAM("Delete cutout: "<<id);
 	if(id == 0){
 		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
@@ -2565,12 +2599,14 @@ bool SpriteData::removeCutoutID(int id){
 	}
 
 
-	QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Delete sprite?",
-					"Are you sure you want to delete the sprite?",
-				 QMessageBox::Yes|QMessageBox::Cancel);
+	if(warning){
+		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Delete sprite?",
+						"Are you sure you want to delete the sprite?",
+					 QMessageBox::Yes|QMessageBox::Cancel);
 
-	if(reply == QMessageBox::No)
-		return false;
+		if(reply == QMessageBox::No)
+			return false;
+	}
 
 	if(id > 0){
 		delete m_cutouts[id];
@@ -2624,6 +2660,57 @@ bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable)
 	PG_INFO_STREAM("Sprite sheet added!");
 	emit spriteSheetAdded();
 	emit onNumberOfSheetsChanged();
+}
+
+bool SpriteData::removeSpriteSheet(unsigned int index){
+	if(index >= m_spriteSheets.size()) return false;
+	SpriteSheet* editTarget = m_spriteSheets[index];
+	for(int id: editTarget->getCutoutIDs())
+		removeCutoutID(id, false);
+
+	for(Cutout* cut: m_cutouts){
+		if(!cut->isExternalSheet() && cut->getSheetID() >= index){
+			cut->setSheetID(cut->getSheetID()-1);
+		}
+	}
+
+
+	m_spriteSheets.removeAt(index);
+	emit onNumberOfSheetsChanged();
+	emit spriteSheetRemoved(index);
+	return true;
+}
+
+bool SpriteData::editSpriteSheet(unsigned int index){
+	if(index >= m_spriteSheets.size()) return false;
+	SpriteSheet* editTarget = m_spriteSheets[index];
+
+	CreateEmptySpriteSheet create(editTarget->getWidth(), editTarget->getHeight(), editTarget->getPowerOfColorTable());
+	create.exec();
+	if(create.isAccepted()){
+		if(create.isDelete()){
+			if(index == 0){
+				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
+								"You can't delete the first sprite sheet!",
+							 QMessageBox::Ok);
+				return false;
+			}
+
+			QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Delete sprite sheet?",
+							"Are you sure you want to delete the sprite sheet?",
+						 QMessageBox::Yes|QMessageBox::Cancel);
+
+			if(reply == QMessageBox::No)
+				return false;
+
+			return removeSpriteSheet(index);
+
+		}
+
+		editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower());
+		return true;
+	}
+	return false;
 }
 
 // QAbstractListModel

@@ -117,16 +117,18 @@ bool SH::open(const PG::UTIL::File& file){
 		for(const shfileSheetInfo& sheet: m_sheetsInfos){
 			PG::UTIL::IDImage sheetIDs(sheet.width,sheet.height);
 			reader.seek(sheet.offset);
-			if(sheet.power_colortablesize == 8) // 2^sheet.power_colortablesize
-				//color table 256
-				reader.read((char*) &sheetIDs[0], sheetIDs.size());
-			else
+			if(sheet.power_colortablesize == 4) // 2^sheet.power_colortablesize
 				//color table 16
 				for(unsigned int i = 0; i < sheetIDs.size(); i+=2){
 					const char c = reader.readChar();
 					sheetIDs[i] =  c & 0x0F;
 					sheetIDs[i+1] = (c >> 4) & 0x0F ;
 				}
+			else
+				//color table 256
+				reader.read((char*) &sheetIDs[0], sheetIDs.size());
+
+
 
 
 			m_spriteSheets.push_back(sheetIDs);
@@ -344,21 +346,21 @@ bool SH::save(const PG::UTIL::File& file){
 			info.power_width =  log10(sheetIDs.getWidth())/0.301029995; //sqrt (sheetIDs.getWidth());
 			info.power_height = log10(sheetIDs.getHeight())/0.301029995;
 
-			//if(info.power_colortablesize <= 0){
+			if(info.power_colortablesize <= 0){
 				int maxValue = 0;
 				for(unsigned char c: sheetIDs)
 					if(c > maxValue) maxValue = c;
 
-				if(maxValue > 16)
+				if(maxValue > 255)
 					info.power_colortablesize  = 8;
 				else
 					info.power_colortablesize  = 4;
 
-				if(info.power_colortablesize > 4)
-					address_to_image += sheetIDs.size();
-				else
-					address_to_image += sheetIDs.size()/2;
-			//}
+			}
+			if(info.power_colortablesize > 4)
+				address_to_image += sheetIDs.size();
+			else
+				address_to_image += sheetIDs.size()/2;
 			count++;
 		}
 
@@ -391,14 +393,14 @@ bool SH::save(const PG::UTIL::File& file){
 		//write sheet color IDs
 		count = 0;
 		for(const PG::UTIL::IDImage& sheetIDs : m_spriteSheets){
-			if(m_sheetsInfos[count].power_colortablesize == 8){
-				writer.write((char*) &sheetIDs[0], sheetIDs.size());
-			}else{
+			if(m_sheetsInfos[count].power_colortablesize == 4){
 				//color table 16
 				for(unsigned int i = 0; i < sheetIDs.size(); i+=2){
 					const char c = (sheetIDs[i] & 0x0F) | (sheetIDs[i+1] & 0x0F) << 4;
 					writer.writeChar(c);
 				}
+			}else{
+				writer.write((char*) &sheetIDs[0], sheetIDs.size());
 			}
 			count++;
 		}
