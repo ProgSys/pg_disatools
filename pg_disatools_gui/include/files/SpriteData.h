@@ -474,6 +474,7 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(int currentAnimationIndex READ getCurrentAnimationIndex  WRITE setCurrentAnimationByIndex NOTIFY onCurrentAnimationChanged)
 	 Q_PROPERTY(int cutoutSize READ getNumberOfCutouts  NOTIFY onNumberOfCutoutsChanged)
 	 Q_PROPERTY(int colortableSize READ getNumberOfColortables  NOTIFY onNumberOfColortablesChanged)
+	 Q_PROPERTY(int colorsSize READ getNumberOfColors  NOTIFY onNumberOfColortablesChanged)
 	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets  NOTIFY onNumberOfSheetsChanged)
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
 	 Q_PROPERTY(SpriteAnimation* animation READ getCurrentAnimation NOTIFY onCurrentAnimationChanged)
@@ -488,6 +489,7 @@ public:
 	int getNumberOfAnimations() const;
 	int getNumberOfCutouts() const;
 	int getNumberOfColortables() const;
+	int getNumberOfColors() const;
 	int getMaxUsedColortable() const;
 	int getNumberOfSpriteSheets() const;
 	int getCurrentAnimationIndex() const;
@@ -559,6 +561,9 @@ public slots:
 	Q_INVOKABLE void clearSelectedKey();
 	Q_INVOKABLE void unhideAllCutouts();
 	Q_INVOKABLE void refresh();
+
+	Q_INVOKABLE QColor getColor(int index) const;
+	Q_INVOKABLE void setColor(int index,const QColor& color);
 
 signals:
 	void onNumberOfAnimationsChanged();

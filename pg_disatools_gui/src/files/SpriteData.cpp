@@ -2378,6 +2378,18 @@ void SpriteData::refresh(){
 	emit onRefresh();
 }
 
+QColor SpriteData::getColor(int index) const{
+	if(index >= m_colortable.size()) return m_colortable.last();
+	return m_colortable[index];
+}
+
+void SpriteData::setColor(int index,const QColor& color){
+	if(index < m_colortable.size() && m_colortable[index] != color){
+		m_colortable[index] = color;
+		emit colortableChanged();
+	}
+}
+
 void SpriteData::close(){
 	clearSelectedKey();
 	m_currentAnimation = -1;
@@ -2423,6 +2435,10 @@ int SpriteData::getNumberOfCutouts() const{
 
 int SpriteData::getNumberOfColortables() const{
 	return m_colortable.size()/16;
+}
+
+int SpriteData::getNumberOfColors() const{
+	return m_colortable.size();
 }
 
 int SpriteData::getMaxUsedColortable() const{
@@ -2482,6 +2498,8 @@ SpriteAnimation* SpriteData::getCurrentAnimation(){
 	if(m_currentAnimation < 0 || m_aniamtions.empty()) return nullptr;
 	return m_aniamtions[m_currentAnimation];
 }
+
+
 
 const SpriteAnimation* SpriteData::getCurrentAnimation() const{
 	if(m_currentAnimation < 0 || m_aniamtions.empty()) return nullptr;

@@ -107,8 +107,10 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionDisplay_shadow, SIGNAL(triggered(bool)), ui->openGLWidget, SLOT(displayShadow(bool)));
 	connect(ui->actionTimeline, SIGNAL(triggered(bool)), ui->dockTimeline, SLOT(setVisible(bool)));
 	connect(ui->actionSprite_sheet_view, SIGNAL(triggered(bool)), ui->spritesView, SLOT(setVisible(bool)));
+	connect(ui->actionColor_table_view, SIGNAL(triggered(bool)), ui->dockWidgetColorTable, SLOT(setVisible(bool)));
 	connect(ui->dockTimeline, SIGNAL(visibilityChanged(bool)), ui->actionTimeline, SLOT(setChecked(bool)));
 	connect(ui->spritesView, SIGNAL(visibilityChanged(bool)), ui->actionSprite_sheet_view, SLOT(setChecked(bool)));
+	connect(ui->dockWidgetColorTable, SIGNAL(visibilityChanged(bool)), ui->actionColor_table_view, SLOT(setChecked(bool)));
 
 	//About
 	connect(ui->actionAbout, &QAction::triggered, this, [this]{
@@ -166,11 +168,9 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
     ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), new TimelinePreviewImageProvider(m_player->getSpriteData()));
 
-    //ui->spritesView->close();
-    //ui->quickSpriteView->engine()->addImageProvider(QLatin1String("previewprovider"), m_TimelinePreviewImageProvider);
+    ui->quickColorTable->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
+    ui->quickColorTable->setSource(QUrl::fromLocalFile("QML/ColorTableView.qml"));
 
-    //QShortcut *shortcut = new QShortcut(QKeySequence("Space"), this);
-    // QObject::connect(shortcut, SIGNAL(activated()), receiver, SLOT(yourSlotHere()));
 }
 
 void SpriteSheetEditor::open(){
