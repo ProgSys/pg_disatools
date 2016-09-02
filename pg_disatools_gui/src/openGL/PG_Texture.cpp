@@ -227,6 +227,24 @@ void Texture::bindPNM(const std::string& path, Texture::type texType){
 	}
 }
 
+void Texture::update(const PG::UTIL::IDImage& img){
+	if (m_GLID != INVALID_OGL_VALUE){
+		glBindTexture( GL_TEXTURE_2D, m_GLID);
+		glTexImage2D(GL_TEXTURE_2D, 0,GL_R8, img.getWidth(), img.getHeight(), 0, GL_RED, GL_UNSIGNED_BYTE, &(img[0]));
+		glBindTexture(GL_TEXTURE_2D, 0);
+		checkGLError();
+	}
+}
+
+void Texture::update(const std::vector<PG::UTIL::rgba>& img){
+	if (m_GLID != INVALID_OGL_VALUE){
+		glBindTexture( GL_TEXTURE_2D, m_GLID);
+		glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, img.size(), 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, &(img[0]));
+		glBindTexture(GL_TEXTURE_2D, 0);
+		checkGLError();
+	}
+}
+
 void Texture::clear(){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;

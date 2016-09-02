@@ -158,7 +158,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
-
+    ui->dockWidgetColorTable->close();
 
 
     ui->quickSpriteView->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());

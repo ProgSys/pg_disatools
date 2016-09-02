@@ -324,8 +324,8 @@
   <widget class="QDockWidget" name="dockWidgetColorTable">
    <property name="minimumSize">
     <size>
-     <width>50</width>
-     <height>40</height>
+     <width>60</width>
+     <height>80</height>
     </size>
    </property>
    <property name="windowTitle">
