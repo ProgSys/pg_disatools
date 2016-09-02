@@ -130,3 +130,13 @@
 	- In the sprite sheet settings you can also delete the sprite sheet (except the first one)
 	- Added my own file format, if you want to open/save a .SH file, use import/export SH
 	- Fixed some bugs when importing a color sprite
+
+===  2.09.2016 - v0.5.6 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- Added a color table view (View > Color table view)
+	- Fixed a crash when setting a color table offset
+	- Hidden layers are now saved and loaded correctly
+	- Hidden layers will not get exported in into a SH file
+	- Added option to keep the keyframes docked when resized via click & drop

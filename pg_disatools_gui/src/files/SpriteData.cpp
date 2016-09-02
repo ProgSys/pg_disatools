@@ -358,9 +358,22 @@ bool Keyframe::isSelected() const{
 
 
 //setters
-void Keyframe::setStart(int startIn){
-	if(startIn == m_start) return;
+void Keyframe::setStart(int startIn, bool keepDocked){
+	if(startIn < 0) startIn = 0;
+	if(startIn == m_start ) return;
 	int end = m_start+m_duration;
+
+	if(keepDocked && m_previous
+			&& (startIn < m_previous->getEnd() || m_previous->getEnd() == getStart())){
+
+		if(startIn-m_previous->getStart() < 1)
+			startIn = m_previous->getStart()+1;
+		else if(startIn >= end){
+			startIn = end-1;
+		}
+		m_previous->setDurationDirrect(startIn-m_previous->getStart());
+
+	}
 
 	if(m_previous && startIn <= m_previous->getEnd()){
 		m_start = m_previous->getEnd();
@@ -381,15 +394,50 @@ void Keyframe::setStart(int startIn){
 
 }
 
-void Keyframe::setDuration(int durationIn){
+void Keyframe::setDuration(int durationIn, bool keepDocked){
 	if(durationIn <= 0 || durationIn == m_duration) return;
 
-	if(m_next && (m_start+durationIn) >= m_next->getStart()){
-		m_duration = m_next->getStart() - m_start;
-	}else
-		m_duration = durationIn;
+    if(keepDocked && m_next && (getStart()+durationIn > m_next->getStart() || getEnd() == m_next->getStart())){
+        const int diff = getStart()+durationIn - m_next->getStart();
+        if((m_next->getEnd() - m_next->getStart() - diff) > 1 ){
+        	m_next->setStartDirrect(m_next->getStart()+diff);
+        	m_next->setDuration(m_next->getDuration()-diff);
+        }else{
+        	m_next->setStartDirrect(m_next->getEnd()-1);
+        	m_next->setDuration(1);
+        	durationIn = m_next->getEnd() - getStart();
+        	/*
+			Keyframe* key = m_next;
+			while(key){
+				key->setStartDirrect(key->getStart()+diff);
+				key = key->getNext();
+			}
+			*/
+        }
+    }
+
+    if(m_next && (m_start+durationIn) >= m_next->getStart()){
+        m_duration = m_next->getStart() - m_start;
+    }else
+        m_duration = durationIn;
 	emit onDurationChanged();
 }
+
+void Keyframe::moveTo(int frame){
+    if(m_previous && m_previous->getEnd() < frame)
+        frame = m_previous->getEnd();
+    else if( frame < 0) frame = 0;
+
+    const int diff = frame - m_start;
+    m_start = frame;
+    Keyframe* key = m_next;
+    while(key){
+        key->setStartDirrect(key->getStart()+diff);
+        key = key->getNext();
+    }
+    emit onStartChanged();
+}
+
 
 void Keyframe::setCutoutID(unsigned int cutoutIDIn){
 	if(cutoutIDIn == m_cutoutID) return;
@@ -568,6 +616,20 @@ void Keyframe::setPrevious(Keyframe* previousIn){
 	m_previous = previousIn;
 }
 
+void Keyframe::setDurationDirrect(int durr){
+	if(durr < 1) durr = 1;
+	if(durr == m_duration) return;
+	m_duration = durr;
+	emit onDurationChanged();
+}
+
+void Keyframe::setStartDirrect(int frame){
+    if(frame < 0) frame = 0;
+    if(m_start == frame) return;
+    m_start = frame;
+    emit onStartChanged();
+}
+
 Keyframe::~Keyframe(){
 
 }
@@ -582,6 +644,13 @@ Layer::Layer(QObject *parent)
 Layer::Layer(const QString& nameIn, QObject *parent)
     : QAbstractListModel(parent)
 {
+    if(nameIn.size())
+    	m_name = nameIn;
+}
+
+Layer::Layer(const QString& nameIn, bool hidden, QObject *parent)
+	: QAbstractListModel(parent), m_hidden(hidden){
+
     if(nameIn.size())
     	m_name = nameIn;
 }
@@ -1475,7 +1544,7 @@ bool SpriteData::open(const QString& file){
 			QString name;// = readQString(in);
 			quint8 isHidden;
 			in >> name>>isHidden;
-			Layer* lay = new Layer(name, ani);
+			Layer* lay = new Layer(name, isHidden, ani);
 			ani->getLayers().push_back(lay);
 			quint32 keyframes;
 			in >> keyframes;
@@ -1616,7 +1685,7 @@ bool SpriteData::save(const QString& file){
 		for(const Layer* lay: ani->getLayers()){
 			//writeText(out, lay->getName());
 			out << lay->getName();
-			out << (quint8) lay->isHidden();
+            out << (quint8) lay->isHidden();
 
 			out << (quint32) lay->getNumberOfKeyframes();
 			for(const Keyframe* key: lay->getKeyframes()){
@@ -1855,12 +1924,14 @@ bool SpriteData::exportSH(const QString& file){
 			unsigned int nextFrame = totalTrackSize;
 
 			//find the end of the next frame
-			for(const Layer* lay: ani->getLayers())
+			for(const Layer* lay: ani->getLayers()){
+				if(lay->isHidden()) continue;
 				for(const Keyframe* key: lay->getKeyframes()){
 					if(startFrame >= key->getStart() && startFrame < key->getEnd() &&  nextFrame > key->getEnd()){
 						nextFrame = key->getEnd();
 					}
 				}
+			}
 
 			//insert a keyframe with the propertys of the marker
 			const Marker* foundMarker = nullptr;
@@ -1892,11 +1963,13 @@ bool SpriteData::exportSH(const QString& file){
 
 			//bundels
 			QList<const Keyframe*> keys;
-			for(const Layer* lay: ani->getLayers())
+			for(const Layer* lay: ani->getLayers()){
+				if(lay->isHidden()) continue;
 				for(const Keyframe* key: lay->getKeyframes()){
 					if(key->getStart() <= startFrame && key->getEnd() > startFrame)
 						keys.push_back(key);
 				}
+			}
 
 			//TODO
 			if(keys.isEmpty()) {
@@ -2542,7 +2615,12 @@ QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) c
 	if(cutout->isExternalSheet())
 		return QImage("resources/external.png");
 
-	return m_spriteSheets[cutout->getSheetID()]->getSprite(cutout,ColortableID, m_colortable);
+	const SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
+	if(ColortableID*16+sheet->getSizeOfColorTable() >= m_colortable.size())
+		ColortableID = 0;
+	assert_Test("Color table Index out of bound!", ColortableID*16+sheet->getSizeOfColorTable() >= m_colortable.size());
+
+	return sheet->getSprite(cutout,ColortableID, m_colortable);
 }
 
 const SpriteSheet* SpriteData::getSpriteSheet(unsigned int spriteID) const{

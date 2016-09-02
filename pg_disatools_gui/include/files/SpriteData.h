@@ -195,8 +195,9 @@ public:
 
 
     //setters
-    void setStart(int startIn);
-    void setDuration(int durationIn);
+    Q_INVOKABLE void setStart(int startIn, bool keepDocked = false);
+    Q_INVOKABLE void setDuration(int durationIn, bool keepDocked = false);
+    Q_INVOKABLE void moveTo(int frame);
 
     void setCutoutID(unsigned int cutoutIDIn);
     void setColortableID(unsigned char colortableIDIn);
@@ -246,7 +247,8 @@ signals:
 protected:
     void setNext(Keyframe* nextIn);
     void setPrevious(Keyframe* previousIn);
-
+    void setDurationDirrect(int durr);
+    void setStartDirrect(int frame);
 private:
     int m_start = 0;
     int m_duration = 0;
@@ -285,6 +287,7 @@ class Layer : public QAbstractListModel
 public:
     explicit Layer(QObject *parent = 0);
     explicit Layer(const QString& name, QObject *parent = 0);
+    explicit Layer(const QString& name, bool hidden, QObject *parent = 0);
     Layer(const Layer& layer);
     virtual ~Layer();
 
