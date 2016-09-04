@@ -19,6 +19,9 @@
 #include <ui_dataEditor.h>
 #include <TitleDefine.h>
 #include <QMessageBox>
+#include <files/DungeonDAT.h>
+#include <QFileDialog>
+#include <QDebug>
 
 inline void aboutDataEditor(){
     QMessageBox msgBox;
@@ -65,9 +68,17 @@ DataEditor::DataEditor(QWidget *parent):
 	connect(actionAbout_Qt, &QAction::triggered, this, [this]{
 		 QMessageBox::aboutQt(this);
 	} );
-	/*
-	*/
 
+	m_file = new DungeonDAT(this);
+
+	connect(this, SIGNAL(openFile(const QString&)), m_file, SLOT(open(const QString&) ));
+	connect(this, SIGNAL(saveFile(const QString&)), m_file, SLOT(save(const QString&) ));
+
+	treeView->setModel(m_file);
+
+	connect(actionOpen, SIGNAL(triggered()), this, SLOT(open()));
+	connect(actionSave, SIGNAL(triggered()), this, SLOT(save()));
+	connect(actionSave_As, SIGNAL(triggered()), this, SLOT(saveAs()));
 }
 
 DataEditor::~DataEditor() {
@@ -76,21 +87,71 @@ DataEditor::~DataEditor() {
 
 
 void DataEditor::open(){
+    QFileDialog openDialog(this);
+    openDialog.setNameFilter(tr("DATA (*.DAT)"));
 
+    QStringList fileNames;
+	if (openDialog.exec()){
+		fileNames = openDialog.selectedFiles();
+		if(fileNames.size() > 0){
+			open(fileNames[0]);
+		}
+	}
 }
 
 void DataEditor::open(const QString& file){
-
+	qDebug()<<"Openning: "<<file;
+	if(file.isEmpty() || !(emit openFile(file))){
+		setTitel();
+		m_fileName.clear();
+		//statusbar->showMessage(QString("Failed to opened %1.").arg(file));
+		actionSave->setEnabled(false);
+		actionSave_As->setEnabled(false);
+	}else{
+		setTitel(file);
+		m_fileName = file;
+		actionSave->setEnabled(true);
+		actionSave_As->setEnabled(true);
+		//statusbar->showMessage(QString("Opened %1.").arg(file));
+	}
 }
 
 void DataEditor::save(){
-
+	if(m_fileName.isEmpty()){
+		saveAs();
+	}else
+		save(m_fileName);
 }
 
 void DataEditor::save(const QString& file){
-
+	if(emit saveFile(file)){
+		//statusbar->showMessage(QString("Saved to %1.").arg(file));
+		m_fileName = file;
+	}else{
+		//ui->statusbar->showMessage(QString("Failed save to %1.").arg(file));
+	}
 }
 
 void DataEditor::saveAs(){
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save sprite sheet"),
+										QFileInfo(m_fileName).baseName(),
+	                                   tr("DATA (*.DAT)"));
+	if (fileName.isEmpty()) return;
 
+	save(fileName);
+}
+
+void DataEditor::setTitel(){
+	setWindowTitle(DATAEditorTITLE);
+}
+
+void DataEditor::setTitel(const QString& filename){
+	 if(filename.isEmpty()){
+		 setTitel();
+		 return;
+	 }
+	 QString title(DATAEditorTITLE);
+	 title.append(" - ");
+	 title.append(filename);
+	 setWindowTitle(title);
 }

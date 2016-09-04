@@ -23,6 +23,7 @@
 #include <QString>
 #include <QMainWindow>
 #include <ui_dataEditor.h>
+#include <files/DataFile.h>
 
 class DataEditor: public QMainWindow, public Ui::DataEditorUI {
 	Q_OBJECT
@@ -38,7 +39,12 @@ public slots:
 signals:
 	bool openFile(const QString& file);
 	bool saveFile(const QString& file);
+private:
+	void setTitel();
+	void setTitel(const QString& filename);
 
+	DataFile* m_file = nullptr;
+	QString m_fileName;
 };
 
 #endif /* INCLUDE_DATAEDITOR_DATAEDITOR_H_ */
