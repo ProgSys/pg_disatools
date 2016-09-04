@@ -35,8 +35,7 @@ inline void about(){
     //msgBox.setWindowIcon(QMessageBox::Information);
     msgBox.setTextFormat(Qt::RichText);
     msgBox.setText(
-    			"This gui application allows you to view and extract Disgaea PC sprite sheets.<br>"\
-    			"Currently it is very basic.<br>"\
+    			"This gui application allows you to view, edit and extract Disgaea PC sprite sheets.<br>"\
 
 				"You can find the source code here: <a href='https://github.com/ProgSys/pg_disatools/'>https://github.com/ProgSys/pg_disatools</a><br>"
 

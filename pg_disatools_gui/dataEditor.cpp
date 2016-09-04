@@ -15,12 +15,22 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_TITLEDEFINE_H_
-#define INCLUDE_TITLEDEFINE_H_
+#ifndef DATADITOR_CPP_
+#define DATADITOR_CPP_
 
 
-#define WINTITLE "Disa PC File Manager v0.4.8 alpha"
-#define SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.5 alpha"
-#define DATAEditorTITLE "Data Editor v0.0.1 alpha"
+#include <dataEditor/DataEditor.h>
+#include <QApplication>
 
-#endif /* INCLUDE_TITLEDEFINE_H_ */
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    DataEditor w;
+    w.show();
+   // if(argc == 2) w.import(QString(argv[1]));
+    return a.exec();
+}
+
+
+
+#endif /* DATADITOR_CPP_ */

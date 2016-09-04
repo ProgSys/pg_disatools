@@ -15,12 +15,30 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_TITLEDEFINE_H_
-#define INCLUDE_TITLEDEFINE_H_
+#ifndef INCLUDE_DATAEDITOR_DATAEDITOR_H_
+#define INCLUDE_DATAEDITOR_DATAEDITOR_H_
 
 
-#define WINTITLE "Disa PC File Manager v0.4.8 alpha"
-#define SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.5 alpha"
-#define DATAEditorTITLE "Data Editor v0.0.1 alpha"
 
-#endif /* INCLUDE_TITLEDEFINE_H_ */
+#include <QString>
+#include <QMainWindow>
+#include <ui_dataEditor.h>
+
+class DataEditor: public QMainWindow, public Ui::DataEditorUI {
+	Q_OBJECT
+public:
+	DataEditor(QWidget *parent = 0);
+	virtual ~DataEditor();
+public slots:
+	void open();
+	void open(const QString& file);
+	void save();
+	void save(const QString& file);
+	void saveAs();
+signals:
+	bool openFile(const QString& file);
+	bool saveFile(const QString& file);
+
+};
+
+#endif /* INCLUDE_DATAEDITOR_DATAEDITOR_H_ */

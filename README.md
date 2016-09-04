@@ -31,7 +31,7 @@ Note that the position of most files in .DAT is hardcoded, deleting files could 
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview7.png)
 
-#### Sprite Sheet Viewer
+#### Sprite Sheet Editor
 
 This gui application allows you to view and perform some basic editing to Disgaea PC sprite sheets.
 You can export them back to the original game format to view them ingame, but this function is currently not fully tested, 
