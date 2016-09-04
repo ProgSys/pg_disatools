@@ -75,7 +75,10 @@ bool DungeonDAT::open(const QString& filepath){
 		QString mapName = decoder->toUnicode(shift_JIS_String, find_zero);
 		delete shift_JIS_String;
 		quint16 bonusRank,mapID,scriptID;
-		in >> bonusRank >> mapID >> scriptID;
+		in.setByteOrder(QDataStream::BigEndian);
+		in >> bonusRank;
+		in.setByteOrder(QDataStream::LittleEndian);
+		in >> mapID >> scriptID;
 		QList<QVariant> testData;
 		testData<< mapName<< bonusRank<<mapID<<scriptID;
 		m_root->appendChild(new TreeItem(testData, m_root));
@@ -450,7 +453,10 @@ bool DungeonDAT::save(const QString& filepath){
 		out.writeRawData(bites.constData(), bites.size());
 		for(unsigned int i = bites.size(); i < 34; i++)
 			out<<(quint8) 0;
-		out << (quint16) child->data(1).toInt() << (quint16) child->data(2).toInt() << (quint16) child->data(3).toInt();
+		out.setByteOrder(QDataStream::BigEndian);
+		out << (quint16) child->data(1).toInt();
+		out.setByteOrder(QDataStream::LittleEndian);
+		out << (quint16) child->data(2).toInt() << (quint16) child->data(3).toInt();
 	}
 
 	//delete encoder;

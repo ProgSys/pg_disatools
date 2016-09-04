@@ -140,3 +140,12 @@
 	- Hidden layers are now saved and loaded correctly
 	- Hidden layers will not get exported in into a SH file
 	- Added option to keep the keyframes docked when resized via click & drop
+	
+===  5.09.2016 - v0.5.7 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.1 alpha:
+	- a new tool to edit some .DAT files
+	- currently can only open and save DUNGEON.DAT, this file defines the teleport ladies menu

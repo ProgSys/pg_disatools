@@ -119,8 +119,14 @@ void DataEditor::open(const QString& file){
 void DataEditor::save(){
 	if(m_fileName.isEmpty()){
 		saveAs();
-	}else
-		save(m_fileName);
+	}else{
+		QMessageBox::StandardButton reply = QMessageBox::question(nullptr, "Continue?",
+						"Do you want to save and overwrite the file?",
+					 QMessageBox::Yes|QMessageBox::Cancel);
+		if(reply == QMessageBox::Yes){
+			save(m_fileName);
+		}
+	}
 }
 
 void DataEditor::save(const QString& file){
