@@ -47,9 +47,9 @@ This tool allows you to edit some .DAT files.
 
 Supported files:
 
-[DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT) - Contains the listing of all maps, that can appear in the menu of the teleport lady. 
-[HOSPITAL.DAT](https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT) - Contains the listing of the conditions you need to achieve to get the rewards from the hospital. 
-[CHAR_C.DAT](https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT) - Contains the listing of all characters and their attributes 
+* [DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT) - Contains the listing of all maps, that can appear in the menu of the teleport lady. 
+* [HOSPITAL.DAT](https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT) - Contains the listing of the conditions you need to achieve to get the rewards from the hospital. 
+* [CHAR_C.DAT](https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT) - Contains the listing of all characters and their attributes 
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Data%20Editor%20v0.0.1%20alpha_preview.png)
 
