@@ -149,3 +149,14 @@
   * Data Editor v0.0.1 alpha:
 	- a new tool to edit some .DAT files
 	- currently can only open and save DUNGEON.DAT, this file defines the teleport ladies menu
+	
+===  5.09.2016 - v0.5.8 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.2 alpha:
+	- 'HOSPITAL.DAT' and 'CHAR_E.DAT' are now supported
+	- you now can create new entrys 
+	- you now can delete entrys
+	- you now can export the file as a .csv (separated with commas)

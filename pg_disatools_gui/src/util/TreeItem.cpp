@@ -48,34 +48,108 @@
 **
 ****************************************************************************/
 
-#ifndef TREEITEM_H
-#define TREEITEM_H
+/*
+    treeitem.cpp
 
-#include <QList>
-#include <QVariant>
+    A container for items of data supplied by the simple tree model.
+*/
 
-class TreeItem
+#include <QStringList>
+
+#include "util/TreeItem.h"
+
+TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent)
 {
-public:
-    explicit TreeItem(const QList<QVariant> &data, TreeItem *parentItem = 0);
-    ~TreeItem();
+    m_parentItem = parent;
+    m_itemData = data;
+}
 
-    void appendChild(TreeItem *child);
+TreeItem::~TreeItem()
+{
+    qDeleteAll(m_childItems);
+}
 
-    TreeItem *child(int row);
-    const QList<TreeItem*>& getChilderen() const;
-    int childCount() const;
-    int columnCount() const;
-    QVariant data(int column) const;
-    bool setData(int column, const QVariant& data);
-    int row() const;
-    TreeItem *parentItem();
-    void clear();
+void TreeItem::appendChild(TreeItem *item)
+{
+    m_childItems.append(item);
+}
 
-private:
-    QList<TreeItem*> m_childItems;
-    QList<QVariant> m_itemData;
-    TreeItem *m_parentItem;
-};
+TreeItem *TreeItem::child(int row)
+{
+    return m_childItems.value(row);
+}
 
-#endif // TREEITEM_H
+QList<TreeItem*>& TreeItem::getChilderen(){
+	return m_childItems;
+}
+
+const QList<TreeItem*>& TreeItem::getChilderen() const{
+	return m_childItems;
+}
+
+int TreeItem::childCount() const
+{
+    return m_childItems.count();
+}
+
+int TreeItem::columnCount() const
+{
+    return m_itemData.count();
+}
+
+QVariant TreeItem::data(int column) const
+{
+    return m_itemData.value(column);
+}
+
+QList<QVariant>& TreeItem::getData(){
+	return m_itemData;
+}
+
+const QList<QVariant>& TreeItem::getData() const
+{
+	return m_itemData;
+}
+
+bool TreeItem::setData(int column, const QVariant& data){
+	if(column >= m_itemData.size() ) return false;
+	m_itemData[column] = data;
+	return true;
+}
+
+TreeItem *TreeItem::parentItem()
+{
+    return m_parentItem;
+}
+
+void TreeItem::clear(){
+	 qDeleteAll(m_childItems);
+	 m_childItems.clear();
+}
+
+void TreeItem::insertFront(TreeItem *item){
+	m_childItems.push_front(item);
+}
+
+void TreeItem::insertBack(TreeItem *item){
+	m_childItems.push_back(item);
+}
+
+void TreeItem::insertAt(int index, TreeItem *item){
+	if(index < 0 || index >= m_childItems.size()) insertBack(item);
+	else m_childItems.insert(index, item);
+}
+
+void TreeItem::removeAt(int index){
+	if(index < 0 || index >= m_childItems.size()) return;
+	delete m_childItems[index];
+	m_childItems.removeAt(index);
+}
+
+int TreeItem::row() const
+{
+    if (m_parentItem)
+        return m_parentItem->m_childItems.indexOf(const_cast<TreeItem*>(this));
+
+    return 0;
+}

@@ -25,6 +25,13 @@
 #include <ui_dataEditor.h>
 #include <files/DataFile.h>
 
+class PreviewDAT: public DataFile  {
+	Q_OBJECT
+public:
+	PreviewDAT(QObject *parent = 0);
+	virtual ~PreviewDAT();
+};
+
 class DataEditor: public QMainWindow, public Ui::DataEditorUI {
 	Q_OBJECT
 public:
@@ -36,10 +43,18 @@ public slots:
 	void save();
 	void save(const QString& file);
 	void saveAs();
+
+	void exportCSV();
+	void exportCSV(const QString& file);
+
+	 void contextMenu(const QPoint &pos);
+
 signals:
 	bool openFile(const QString& file);
 	bool saveFile(const QString& file);
+	bool exportCSVFile(const QString& file);
 private:
+    void setModel(DataFile* model);
 	void setTitel();
 	void setTitel(const QString& filename);
 

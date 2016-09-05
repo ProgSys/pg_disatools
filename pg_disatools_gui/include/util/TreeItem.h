@@ -48,76 +48,44 @@
 **
 ****************************************************************************/
 
-/*
-    treeitem.cpp
+#ifndef TREEITEM_H
+#define TREEITEM_H
 
-    A container for items of data supplied by the simple tree model.
-*/
+#include <QList>
+#include <QVariant>
 
-#include <QStringList>
-
-#include "files/TreeItem.h"
-
-TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent)
+class TreeItem
 {
-    m_parentItem = parent;
-    m_itemData = data;
-}
+public:
+    explicit TreeItem(const QList<QVariant> &data, TreeItem *parentItem = 0);
+    ~TreeItem();
 
-TreeItem::~TreeItem()
-{
-    qDeleteAll(m_childItems);
-}
+    void appendChild(TreeItem *child);
 
-void TreeItem::appendChild(TreeItem *item)
-{
-    m_childItems.append(item);
-}
+    TreeItem *child(int row);
+    QList<TreeItem*>& getChilderen();
+    const QList<TreeItem*>& getChilderen() const;
+    int childCount() const;
+    int columnCount() const;
+    QVariant data(int column) const;
+    QList<QVariant>& getData();
+    const QList<QVariant>& getData() const;
+    bool setData(int column, const QVariant& data);
+    int row() const;
+    TreeItem *parentItem();
 
-TreeItem *TreeItem::child(int row)
-{
-    return m_childItems.value(row);
-}
+    void clear();
 
-const QList<TreeItem*>& TreeItem::getChilderen() const{
-	return m_childItems;
-}
+    void insertFront(TreeItem *item);
+	void insertBack(TreeItem *item);
+	void insertAt(int index, TreeItem *item);
+    void removeAt(int index);
 
-int TreeItem::childCount() const
-{
-    return m_childItems.count();
-}
 
-int TreeItem::columnCount() const
-{
-    return m_itemData.count();
-}
+private:
+    QList<TreeItem*> m_childItems;
+    QList<QVariant> m_itemData;
+    TreeItem *m_parentItem;
+};
 
-QVariant TreeItem::data(int column) const
-{
-    return m_itemData.value(column);
-}
-
-bool TreeItem::setData(int column, const QVariant& data){
-	if(column >= m_itemData.size() ) return false;
-	m_itemData[column] = data;
-	return true;
-}
-
-TreeItem *TreeItem::parentItem()
-{
-    return m_parentItem;
-}
-
-void TreeItem::clear(){
-	 qDeleteAll(m_childItems);
-	 m_childItems.clear();
-}
-
-int TreeItem::row() const
-{
-    if (m_parentItem)
-        return m_parentItem->m_childItems.indexOf(const_cast<TreeItem*>(this));
-
-    return 0;
-}
+#endif // TREEITEM_H

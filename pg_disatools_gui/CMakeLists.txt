@@ -107,6 +107,7 @@ message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 file(GLOB PG_QT_SRC
 	#"*.cpp"
 	"src/*.cpp"
+	"src/util/*.cpp"
 	"src/openGL/*.cpp"
 	"src/files/*.cpp"
 	"src/spriteSheetEditor/*.cpp"
@@ -116,6 +117,7 @@ file(GLOB PG_QT_SRC
 file(GLOB PG_QT_HEADERS
 	#"*.h"
 	"include/*.h"
+	"include/util/*.h"
 	"include/openGL/*.h"
 	"include/files/*.h"
 	"include/spriteSheetEditor/*.h"

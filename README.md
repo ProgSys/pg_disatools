@@ -17,6 +17,7 @@ You can download the latest version of the tools here:
 * [Version v0.5.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.4%20alpha.zip)
 * [Version v0.5.6 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.6%20alpha.zip)
 * [Version v0.5.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.7%20alpha.zip)
+* [Version v0.5.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.8%20alpha.zip)
 
 ---
 
@@ -42,7 +43,13 @@ Also you can export the sprites as .png or .tga and import them back!
 
 #### Data Editor
 
-This tool allows you to edit some .DAT files, but it currently can only open and save '[DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT)'.
+This tool allows you to edit some .DAT files.
+
+Supported files:
+
+[DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT) - Contains the listing of all maps, that can appear in the menu of the teleport lady. 
+[HOSPITAL.DAT](https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT) - Contains the listing of the conditions you need to achieve to get the rewards from the hospital. 
+[CHAR_C.DAT](https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT) - Contains the listing of all characters and their attributes 
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Data%20Editor%20v0.0.1%20alpha_preview.png)
 
