@@ -39,6 +39,7 @@ public slots:
 	virtual bool insertAt(int index);
 	virtual bool removeAt(int index);
 protected:
+
 	TreeItem* m_root = nullptr;
 };
 

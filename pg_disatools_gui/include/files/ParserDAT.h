@@ -15,20 +15,54 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_FILES_HOSPITALDAT_H_
-#define INCLUDE_FILES_HOSPITALDAT_H_
+#ifndef SRC_FILES_PARSERDAT_H_
+#define SRC_FILES_PARSERDAT_H_
 
+#include <util/TreeItem.h>
+#include <QString>
 #include <files/DataFile.h>
 #include <QList>
-#include <util/TreeItem.h>
 
-class HospitalDAT: public DataFile  {
+struct rowFormat{
+	enum type{ ZERO, INT,UINT, SHIFT_JIS };
+	rowFormat(){}
+	rowFormat(type rowTypeIn, int byteSizeIn):rowType(rowTypeIn), byteSize(byteSizeIn){}
+
+	type rowType = UINT;
+	int byteSize = -1;
+};
+
+struct column{
+	enum columnFLAGS{ NONE = Qt::ItemIsEditable, NOEDIT = Qt::NoItemFlags};
+	enum columnType{ DEFAULT, INDEX};
+	QString name = "Noname";
+	columnFLAGS flag = NONE;
+	columnType type = DEFAULT;
+
+	column(){}
+	column(const QString& nameIn): name(nameIn){}
+
+	bool operator==(const QString& str){
+		return name == str;
+	}
+};
+
+struct parse{
+	QList<column> header;
+	QList<rowFormat> formats;
+
+	void clear(){
+		header.clear();
+		formats.clear();
+	}
+};
+
+class ParserDAT: public DataFile  {
 	Q_OBJECT
 public:
-	HospitalDAT(QObject *parent = 0);
-	virtual ~HospitalDAT();
-
-	Qt::ItemFlags flags(const QModelIndex &index) const final;
+	ParserDAT(const QString& defFile, QObject *parent = 0);
+	virtual ~ParserDAT();
+    Qt::ItemFlags flags(const QModelIndex &index) const final;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) final;
 
 public slots:
@@ -39,7 +73,8 @@ public slots:
 	bool insertBack() final;
 	bool insertAt(int index) final;
 	bool removeAt(int index) final;
-
+private:
+	parse m_dataStructure;
 };
 
-#endif /* INCLUDE_FILES_HOSPITALDAT_H_ */
+#endif /* SRC_FILES_PARSERDAT_H_ */

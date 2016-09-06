@@ -21,27 +21,39 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDebug>
+#include <QDir>
+
 
 #include <files/DungeonDAT.h>
 #include <files/HospitalDAT.h>
 #include <files/CharDAT.h>
+#include <files/ParserDAT.h>
 
 PreviewDAT::PreviewDAT(QObject *parent): DataFile(parent){
 	QList<QVariant> data;
-	data << "Supported files" << "Description" << "File starting name";
+	data << "Definition file" << "Description" << "File starting name";
 	m_root = new TreeItem(data);
 
-	data.clear();
-	data << "DUNGEON.DAT" << "Contains the listing of all maps, that can appear in the menu of the teleport lady."<<"DUNGEON";
-	m_root->appendChild(new TreeItem(data, m_root));
 
-	data.clear();
-	data << "HOSPITAL.DAT" << "Contains the listing of the conditions you need to achieve to get the rewards from the hospital."<<"HOSPITAL";
-	m_root->appendChild(new TreeItem(data, m_root));
+	QFile qfile("resources/dataFiles/descriptions.txt");
+	if(qfile.open(QIODevice::ReadOnly)){
+		QTextStream in(&qfile);
 
-	data.clear();
-	data << "CHAR_E.DAT" << "Contains the listing of all characters and their attributes."<<"CHAR";
-	m_root->appendChild(new TreeItem(data, m_root));
+
+		qfile.close();
+	}
+
+
+	QDir myDir("resources/dataFiles/");
+	QStringList filters;
+	filters.push_back("*.DEF");
+	QFileInfoList filesList = myDir.entryInfoList(filters );
+
+	for(const QFileInfo& info: filesList){
+		data.clear();
+		data << info.fileName() << "No description available"<<info.baseName();
+		m_root->appendChild(new TreeItem(data, m_root));
+	}
 }
 
 PreviewDAT::~PreviewDAT(){}
@@ -148,9 +160,11 @@ void DataEditor::open(const QString& file){
 
 	QString filename = QFileInfo(file).baseName();
 	if(filename.left(7).toUpper() == "DUNGEON"){
-		setModel(new DungeonDAT(this));
+		//setModel(new DungeonDAT(this));
+		setModel(new ParserDAT("resources/dataFiles/DUNGEON.DEF",this));
 	}else if(filename.left(8).toUpper() == "HOSPITAL"){
-		setModel(new HospitalDAT(this));
+		//setModel(new HospitalDAT(this));
+		setModel(new ParserDAT("resources/dataFiles/HOSPITAL.DEF",this));
 	}else if(filename.left(4).toUpper() == "CHAR"){
 		setModel(new CharDAT(this));
 	}else{
