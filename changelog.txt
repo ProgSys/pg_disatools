@@ -160,3 +160,11 @@
 	- you now can create new entrys 
 	- you now can delete entrys
 	- you now can export the file as a .csv (separated with commas)
+	
+===  6.09.2016 - v0.5.9 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.3 alpha:
+	- The file formats are now not hardcoded, you can easily edit them or add new formats, they are located at 'resources/dataFiles'

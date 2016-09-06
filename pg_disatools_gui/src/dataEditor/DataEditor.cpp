@@ -22,23 +22,26 @@
 #include <QFileDialog>
 #include <QDebug>
 #include <QDir>
+#include <QMap>
 
-
-#include <files/DungeonDAT.h>
-#include <files/HospitalDAT.h>
-#include <files/CharDAT.h>
 #include <files/ParserDAT.h>
 
 PreviewDAT::PreviewDAT(QObject *parent): DataFile(parent){
 	QList<QVariant> data;
 	data << "Definition file" << "Description" << "File starting name";
 	m_root = new TreeItem(data);
-
+	QMap<QString,QString> descriptions;
 
 	QFile qfile("resources/dataFiles/descriptions.txt");
 	if(qfile.open(QIODevice::ReadOnly)){
 		QTextStream in(&qfile);
 
+		while(!in.atEnd()){
+			QString line = in.readLine();
+			QStringList sep = line.split(':');
+			if(sep.size() > 1) descriptions[sep[0]] = sep[1];
+
+		}
 
 		qfile.close();
 	}
@@ -51,7 +54,12 @@ PreviewDAT::PreviewDAT(QObject *parent): DataFile(parent){
 
 	for(const QFileInfo& info: filesList){
 		data.clear();
-		data << info.fileName() << "No description available"<<info.baseName();
+		data << info.fileName();
+		if(descriptions.contains(info.baseName())){
+			data<< descriptions[info.baseName()];
+		}else
+			data<< "No description available";
+		data <<info.baseName();
 		m_root->appendChild(new TreeItem(data, m_root));
 	}
 }
@@ -159,21 +167,30 @@ void DataEditor::open(const QString& file){
 	if(file.isEmpty()) return;
 
 	QString filename = QFileInfo(file).baseName();
-	if(filename.left(7).toUpper() == "DUNGEON"){
-		//setModel(new DungeonDAT(this));
-		setModel(new ParserDAT("resources/dataFiles/DUNGEON.DEF",this));
-	}else if(filename.left(8).toUpper() == "HOSPITAL"){
-		//setModel(new HospitalDAT(this));
-		setModel(new ParserDAT("resources/dataFiles/HOSPITAL.DEF",this));
-	}else if(filename.left(4).toUpper() == "CHAR"){
-		setModel(new CharDAT(this));
-	}else{
+
+
+	QDir myDir("resources/dataFiles/");
+	QStringList filters;
+	filters.push_back("*.DEF");
+	QFileInfoList filesList = myDir.entryInfoList(filters );
+
+	bool found = false;
+	for(const QFileInfo& info: filesList){
+		const QString baseFileName = info.baseName();
+		if(filename.left(baseFileName.size()).toUpper() == baseFileName.toUpper()){
+			qDebug()<<"Parsing: "<<info.absoluteFilePath();
+			setModel(new ParserDAT(info.absoluteFilePath(),this));
+			found = true;
+			break;
+		}
+	}
+
+	if(!found){
 		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
 			"File as a unknown name, make sure the file starts with the correct string!",
 		 QMessageBox::Ok);
 		return;
 	}
-
 
 	if(!(emit openFile(file))){
 		setTitel();

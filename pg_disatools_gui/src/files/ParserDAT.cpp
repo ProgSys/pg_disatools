@@ -207,6 +207,30 @@ struct defParther{
 		return true;
 	}
 
+	bool readParamters(QStringList& paramter){
+		skip();
+		if( currentChar != '(') return errorAt("(multiple) Parameters need to start with '('!");
+		getNextChar();
+		while(!in.atEnd()){
+			skip();
+			QString para;
+			if(!read(para)) return false;
+			paramter.push_back(para);
+			skip();
+			if( currentChar == ')') {
+				getNextChar();
+				return true;
+			}
+			if(currentChar != ',') return errorAt("Parameters should be separated with a ',' or end with ')'!");
+			getNextChar();
+		}
+
+
+		if( currentChar != ')') return errorAt("(multiple) Parameters need to end with ')'!");
+		getNextChar();
+		return true;
+	}
+
 	bool readRowFormat(parse& data){
 		skip();
 		if( currentChar != '{') return errorAt("A RowFormat black need to start with '{'!");
@@ -220,25 +244,38 @@ struct defParther{
 				return true;
 			}
 
-			QString command, para;
+			QString command;
 			if(!read(command)) return false;
 			if(command.isEmpty()) return errorAt("Given command is empty!");
-			qDebug()<<" Command: "<<command;
-			if(!readSingleParamter(para)) return false;
+
+			QStringList paras;
+			if(!readParamters(paras)) return false;
+			if(paras.empty()) return errorAt("RowFormat has zero parameters!");
 
 			bool ok;
-			int bytes = para.toInt(&ok);
+			int bytes = paras[0].toInt(&ok);
 			if(!ok) return errorAt("Given parameter for a row format is not a number!");
 
+			int numberOf = 1;
+			if(paras.size() > 1){
+				numberOf = paras[1].toInt(&ok);
+				if(!ok || numberOf < 1) return errorAt("RowFormat 'number of' is invalid!");
+			}
+
+			qDebug()<<" Command: "<<command<<" number of "<<numberOf;
 			command = command.toLower();
 			if(command == "uint"){
-				data.formats.push_back(rowFormat(rowFormat::UINT, bytes));
+				for(int i = 0; i < numberOf; i++)
+					data.formats.push_back(rowFormat(rowFormat::UINT, bytes));
 			}else if(command == "int"){
-				data.formats.push_back(rowFormat(rowFormat::INT, bytes));
+				for(int i = 0; i < numberOf; i++)
+					data.formats.push_back(rowFormat(rowFormat::INT, bytes));
 			}else if(command == "shiftjis"){
-				data.formats.push_back(rowFormat(rowFormat::SHIFT_JIS, bytes));
+				for(int i = 0; i < numberOf; i++)
+					data.formats.push_back(rowFormat(rowFormat::SHIFT_JIS, bytes));
 			}else if(command == "zero"){
-				data.formats.push_back(rowFormat(rowFormat::ZERO, bytes));
+				for(int i = 0; i < numberOf; i++)
+					data.formats.push_back(rowFormat(rowFormat::ZERO, bytes));
 			}else{
 				return errorAt("Row format '"+command +"' is unknown!");
 			}

@@ -15,8 +15,8 @@ You can download the latest version of the tools here:
 * [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
 * [Version v0.5.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.2%20alpha.zip)
 * [Version v0.5.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.4%20alpha.zip)
-* [Version v0.5.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.7%20alpha.zip)
 * [Version v0.5.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.8%20alpha.zip)
+* [Version v0.5.9 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.9%20alpha.zip)
 
 ---
 
@@ -43,6 +43,8 @@ Also you can export the sprites as .png or .tga and import them back!
 #### Data Editor
 
 This tool allows you to edit some .DAT files.
+The file formats are not hardcoded you can easily edit them or add new formats.
+You can find the definition files at `resources/dataFiles`.
 
 Supported files:
 
