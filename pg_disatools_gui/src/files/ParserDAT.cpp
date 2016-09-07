@@ -26,7 +26,8 @@
 #include <QTextCodec>
 #include <QByteArray>
 #include <util/ShiftJISEncoder.h>
-
+#include <pg/util/PG_Exception.h>
+#include <QBrush>
 
 inline bool errorAt(const QString& info = ""){
 	QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
@@ -89,122 +90,22 @@ struct defParther{
 
 	bool read(QString& out, const QString& endvalues = " \n\t\r,();{}"){
 		skip();
+		bool isString = false;
 		while(!in.atEnd()){
-			for(const QChar& v: endvalues)
-				if(currentChar == v) return true;
+			if(currentChar == '\"'){
+				isString = !isString;
+				getNextChar();
+				continue;
+			}
+			if(!isString)
+				for(const QChar& v: endvalues)
+					if(currentChar == v) return true;
 			out.push_back(currentChar);
 			getNextChar();
 		}
+		if(isString)
+			return errorAt("A string needs to end with a '\"'!");
 		return errorAt("Failed to read value!");
-	}
-
-	bool readStr(QString& out){
-		skip();
-		if( currentChar != '\"') return errorAt("A string needs to start with a '\"'!");
-		getNextChar();
-
-		while(!in.atEnd()){
-			if(currentChar == '\"') {
-				getNextChar();
-				return true;
-			}
-			out.push_back(currentChar);
-			getNextChar();
-		}
-		return errorAt("A string needs to end with a '\"'!");
-	}
-
-	bool readHeaderParamters(parse& data){
-		skip();
-		if( currentChar != '(') return errorAt("Parameters need to start with '('!");
-		getNextChar();
-		while(!in.atEnd()){
-			QString str;
-			if(!readStr(str)) return false;
-			qDebug()<<" Header: "<<str;
-
-			data.header.push_back(column(str));
-			skip();
-			if( currentChar == ')') {
-				getNextChar();
-				return true;
-			}
-			if(currentChar != ',') return errorAt("Parameters should be separated with a ',' or end with ')'!");
-			getNextChar();
-		}
-		return errorAt("Parameters need to end with ')'!");
-	}
-
-	bool readSetColumnFlag(parse& data){
-		skip();
-		if( currentChar != '(') return errorAt("Parameters need to start with '('!");
-		getNextChar();
-		QString ColumnStr, flag;
-		if(!readStr(ColumnStr)) return false;
-		if(currentChar != ',') return errorAt("Parameters should be separated with a ',' or end with ')'!");
-		getNextChar();
-		if(!read(flag)) return false;
-		skip();
-		if( currentChar != ')') return errorAt("'SetColumnFlag' has 2 parameters!");
-		getNextChar();
-
-		flag = flag.toLower();
-		for(column& col : data.header){
-			if(col == ColumnStr){
-				if(flag == "none"){
-					col.flag = column::columnFLAGS::NONE;
-				}else if(flag == "noedit"){
-					col.flag = column::columnFLAGS::NOEDIT;
-				}else{
-					return errorAt("Unknown column flag '"+flag + "' is used!");
-				}
-
-				return true;
-			}
-		}
-		return errorAt("Column with the name '"+ColumnStr + "' not found!");
-	}
-
-	bool readSetColumnType(parse& data){
-		skip();
-		if( currentChar != '(') return errorAt("Parameters need to start with '('!");
-		getNextChar();
-		QString ColumnStr, type;
-		if(!readStr(ColumnStr)) return false;
-		if(currentChar != ',') return errorAt("Parameters should be separated with a ',' or end with ')'!");
-		getNextChar();
-		if(!read(type)) return false;
-		skip();
-		if( currentChar != ')') return errorAt("'SetColumnType' has 2 parameters!");
-		getNextChar();
-
-		type = type.toLower();
-		for(column& col : data.header){
-			if(col == ColumnStr){
-				if(type == "default"){
-					col.type = column::columnType::DEFAULT;
-				}else if(type == "index"){
-					col.type = column::columnType::INDEX;
-				}else{
-					return errorAt("Unknown column type '"+type + "' is used!");
-				}
-
-				return true;
-			}
-		}
-		return errorAt("Column with the name '"+ColumnStr + "' not found!");
-	}
-
-	bool readSingleParamter(QString& paramter){
-		skip();
-		if( currentChar != '(') return errorAt("(single) Parameters need to start with '('!");
-		getNextChar();
-
-		if(!read(paramter)) return false;
-		skip();
-		if( currentChar != ')') return errorAt("There should be only one parameter!");
-		getNextChar();
-		return true;
 	}
 
 	bool readParamters(QStringList& paramter){
@@ -231,6 +132,110 @@ struct defParther{
 		return true;
 	}
 
+	inline QList<int> getColums(const QString& parameter, const parse& data){
+		QList<int> list;
+		if(parameter[0] == '$'){
+			QStringList vals = parameter.mid(1).split('-');
+			if(vals.size() != 2) return list;
+			int start = vals[0].toUInt();
+			int end = vals[1].toUInt();
+			for(unsigned int i = start; i < data.header.size() && i <= end; i++)
+				list.push_back(i);
+		}else{
+			for(int i = 0; i < data.header.size(); i++)
+				if(data.header[i] == parameter) list.push_back(i);
+		}
+		return list;
+	}
+
+	bool readSetColumnFlag(parse& data){
+		skip();
+
+		QStringList paras;
+		if(!readParamters(paras)) return false;
+		if(paras.size() != 2) errorAt("'SetColumnFlag(column, FLAG)': Has 2 parameters!");
+		QList<int> columns = getColums(paras[0],data);
+
+		const QString flag = paras[1].toLower();
+		for(int i: columns){
+			column& col = data.header[i];
+			if(flag == "none"){
+				col.flag = column::columnFLAGS::NONE;
+			}else if(flag == "noedit"){
+				col.flag = column::columnFLAGS::NOEDIT;
+			}else{
+				return errorAt("'SetColumnFlag(column, FLAG)': Unknown FLAG '"+flag + "' is used!");
+			}
+		}
+
+		return true;
+	}
+
+	bool readSetColumnType(parse& data){
+		skip();
+
+		QStringList paras;
+		if(!readParamters(paras)) return false;
+		if(paras.size() != 2) errorAt("'SetColumnType(column, TYPE)': Has 2 parameters!");
+		QList<int> columns = getColums(paras[0],data);
+
+
+		const QString type = paras[1].toLower();
+		for(int i: columns){
+				column& col = data.header[i];
+				if(type == "default"){
+					col.type = column::columnType::DEFAULT;
+				}else if(type == "index"){
+					col.type = column::columnType::INDEX;
+				}else{
+					return errorAt("'SetColumnType(column, TYPE)': Unknown TYPE '"+type + "' is used!");
+				}
+		}
+
+		return true;
+	}
+
+	bool readSetColumnColor(parse& data){
+		skip();
+
+		QStringList paras;
+		if(!readParamters(paras)) return false;
+		if(paras.isEmpty()) errorAt("SetColumnColor(column, r,g,b, [r2,g2,b2, [min, max]]): Can have 4, 7 or 9 parameters, but you have zero!");
+
+		QList<int> colums = getColums(paras[0],data);
+
+		if(paras.size() == 4){
+			qDebug()<<"SetColumnColor(4) of "<<paras[0];
+			for(int i: colums){
+				column& col = data.header[i];
+				col.hasColor = true;
+				col.colorMinBackground.setRgb(paras[1].toUInt(), paras[2].toUInt(), paras[3].toUInt());
+				col.colorMaxBackground = col.colorMinBackground;
+			}
+		}else if(paras.size() == 7){
+			qDebug()<<"SetColumnColor(7) of "<<paras[0];
+				for(int i: colums){
+				column& col = data.header[i];
+				col.hasColor = true;
+				col.colorMinBackground.setRgb(paras[1].toUInt(), paras[2].toUInt(), paras[3].toUInt());
+				col.colorMaxBackground.setRgb(paras[4].toUInt(), paras[5].toUInt(), paras[6].toUInt());
+			}
+		}else if(paras.size() == 9){
+			qDebug()<<"SetColumnColor(9) of "<<paras[0];
+			for(int i: colums){
+				column& col = data.header[i];
+				col.hasColor = true;
+				col.colorMinBackground.setRgb(paras[1].toUInt(), paras[2].toUInt(), paras[3].toUInt());
+				col.colorMaxBackground.setRgb(paras[4].toUInt(), paras[5].toUInt(), paras[6].toUInt());
+				col.colorMin = paras[7].toUInt();
+				col.colorMax = paras[8].toUInt();
+			}
+		}else{
+			return errorAt("SetColumnColor(column, r,g,b, [r2,g2,b2, [min, max]]): Can have 4, 7 or 9 parameters!");
+		}
+		return true;
+	}
+
 	bool readRowFormat(parse& data){
 		skip();
 		if( currentChar != '{') return errorAt("A RowFormat black need to start with '{'!");
@@ -241,6 +246,7 @@ struct defParther{
 				getNextChar();
 				continue;
 			}else if(currentChar == '}'){
+				getNextChar();
 				return true;
 			}
 
@@ -285,6 +291,66 @@ struct defParther{
 		return errorAt("A RowFormat block need to end with '}'!");
 	}
 
+	bool readHeaderFormat(parse& data){
+		skip();
+		if( currentChar != '{') return errorAt("A HeaderFormat black need to start with '{'!");
+		getNextChar();
+		while(!in.atEnd()){
+			skip();
+			if(currentChar == ';') {
+				getNextChar();
+				continue;
+			}else if(currentChar == '}'){
+				getNextChar();
+				return true;
+			}
+
+			QString command;
+			if(!read(command)) return false;
+			if(command.isEmpty()) return errorAt("Given command is empty!");
+
+			QStringList paras;
+			if(!readParamters(paras)) return false;
+			if(paras.empty()) return errorAt("HeaderFormat has zero parameters!");
+
+			bool ok;
+			int bytes = paras[0].toInt(&ok);
+			if(!ok) return errorAt("Given parameter for a row format is not a number!");
+
+			int numberOf = 1;
+			if(paras.size() > 1){
+				numberOf = paras[1].toInt(&ok);
+				if(!ok || numberOf < 1) return errorAt("HeaderFormat 'number of' is invalid!");
+			}
+
+			headerFormat::type headerType = headerFormat::KEEP;
+			if(paras.size() > 2 && paras[2].toLower() == "row_size"){
+				headerType = headerFormat::ROW_SIZE;
+			}
+
+			qDebug()<<" Command: "<<command<<" number of "<<numberOf;
+			command = command.toLower();
+			if(command == "uint"){
+				for(int i = 0; i < numberOf; i++)
+					data.headerFormats.push_back(headerFormat(rowFormat::UINT, bytes,headerType));
+			}else if(command == "int"){
+				for(int i = 0; i < numberOf; i++)
+					data.headerFormats.push_back(headerFormat(rowFormat::INT, bytes,headerType));
+			}else if(command == "shiftjis"){
+				for(int i = 0; i < numberOf; i++)
+					data.headerFormats.push_back(headerFormat(rowFormat::SHIFT_JIS, bytes,headerType));
+			}else if(command == "zero"){
+				for(int i = 0; i < numberOf; i++)
+					data.headerFormats.push_back(headerFormat(rowFormat::ZERO, bytes,headerType));
+			}else{
+				return errorAt("HeaderFormat '"+command +"' is unknown!");
+			}
+
+
+		}
+		return errorAt("A HeaderFormat block need to end with '}'!");
+	}
+
 	bool readTableBlock(parse& data){
 		skip();
 		if( currentChar != '{') return errorAt("A table block need to start with '{'!");
@@ -305,9 +371,14 @@ struct defParther{
 				if(!readSetColumnFlag(data)) return false;
 			}else if(command == "setcolumntype"){
 				if(!readSetColumnType(data)) return false;
+			}else if(command == "setcolumncolor"){
+				if(!readSetColumnColor(data)) return false;
 			}else if(command == "rowformat"){
 				qDebug() <<"Read RowFormat block";
 				if(!readRowFormat(data)) return false;
+			}else if(command == "headerformat"){
+				qDebug() <<"Read HeaderFormat block";
+				if(!readHeaderFormat(data)) return false;
 			}else{
 				return errorAt("Command '"+command+"' is unknown!");
 			}
@@ -320,7 +391,13 @@ struct defParther{
 		qDebug() <<"Read Header";
 		if(!compare("TABLE")) return false;
 		qDebug() <<"Read Header paras";
-		if(!readHeaderParamters(data)) return false;
+		QStringList headers;
+		if(!readParamters(headers)) return false;
+		for(QString& header: headers){
+			if(header[0] == '$')
+				header[0] = '€';
+			data.header.push_back(column(header));
+		}
 		qDebug() <<"Read table block";
 		if(!readTableBlock(data)) return false;
 
@@ -335,6 +412,16 @@ ParserDAT::ParserDAT(const QString& defFile, QObject *parent): DataFile(parent) 
 	defParther p(qfile);
 	if(p.parseDef(m_dataStructure)){
 		qDebug() <<"Parsing SUCCESSFUL!";
+		//set column format index
+		int a = 0;
+		for(unsigned int i = 0; i < m_dataStructure.formats.size() && a < m_dataStructure.header.size(); i++){
+			const rowFormat& format = m_dataStructure.formats[i];
+			if(format.rowType == rowFormat::ZERO)
+				continue;
+			m_dataStructure.header[a].formatIndex = i;
+			a ++;
+		}
+
 
 		QList<QVariant> rootData;
 		for(const column& col: m_dataStructure.header){
@@ -357,6 +444,133 @@ ParserDAT::~ParserDAT() {
 	// TODO Auto-generated destructor stub
 }
 
+int ParserDAT::getColumnWidth(int index) const{
+	if(index < 0 || index >= m_dataStructure.header.size()) return 30;
+
+	const column& col = m_dataStructure.header[index];
+	if(col.formatIndex < 0) return 30;
+	assert_Test("Format index is out of bounds!", col.formatIndex >= m_dataStructure.formats.size());
+
+	const rowFormat& format = m_dataStructure.formats[col.formatIndex];
+
+	if(format.rowType == rowFormat::SHIFT_JIS){
+		return format.byteSize*4;
+	}else{
+		if(format.byteSize >= 4) return 100;
+		if(format.byteSize >= 2) return 50;
+	}
+
+	return 30;
+}
+
+inline bool readFormat(const rowFormat& format, QDataStream& in, QTextDecoder *decoder, QList<QVariant>& dataOut){
+	if(format.rowType == rowFormat::INT){
+		switch (format.byteSize) {
+			case 0:
+			case 1:
+			{
+				qint8 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			case 2:
+			case 16:
+			{
+				qint16 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			case 4:
+			case 32:
+			{
+				qint32 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			case 8:
+			case 64:
+			{
+				qint64 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			default:
+			{
+				qDebug() <<"(Int) Invalid byteSize: "<<format.byteSize;
+				qint8 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+		}
+	}else if(format.rowType == rowFormat::UINT){
+		switch (format.byteSize) {
+			case 0:
+			case 1:
+			{
+				quint8 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			case 2:
+			case 16:
+			{
+				quint16 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			case 4:
+			case 32:
+			{
+				quint32 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			case 8:
+			case 64:
+			{
+				quint64 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+			default:
+			{
+				qDebug() <<"(UInt) Invalid byteSize: "<<format.byteSize;
+				quint8 v;
+				in >> v;
+				dataOut<< v;
+			}
+				break;
+		}
+	}else if(format.rowType == rowFormat::ZERO){
+		if(format.byteSize > 0)
+			in.skipRawData(format.byteSize);
+		//dataOut<< 0;
+		return false;
+	}else if(format.rowType == rowFormat::SHIFT_JIS){
+
+		char* shift_JIS_String = new char[format.byteSize];
+		in.readRawData(shift_JIS_String, format.byteSize);
+		int find_zero = 0;
+		for(; find_zero < format.byteSize; find_zero++)
+			if(shift_JIS_String[find_zero] == 0) break;
+		if(find_zero > format.byteSize) find_zero = format.byteSize;
+		QString str = decoder->toUnicode(shift_JIS_String, find_zero);
+		delete shift_JIS_String;
+		dataOut<< str;
+	}
+
+	return true;
+}
+
 bool ParserDAT::open(const QString& filepath){
 	if(!m_root || m_dataStructure.header.empty() || m_dataStructure.formats.empty() || filepath.isEmpty()) return false;
 
@@ -365,133 +579,44 @@ bool ParserDAT::open(const QString& filepath){
 
 	beginRemoveRows(QModelIndex(),0,m_root->childCount());
 	m_root->clear();
+	m_headerData.clear();
 	endRemoveRows();
+
+	QTextCodec * strcodec = QTextCodec::codecForName("Shift-JIS");
+	QTextDecoder *decoder = strcodec->makeDecoder();
+
 
 	QDataStream in(&qfile);
 	in.setByteOrder(QDataStream::LittleEndian);
-	quint32 size;
-	in >> size;
-	quint32 sizeAgain;
-	in >> sizeAgain;
+	quint32 size = 0;
+
+	for(const headerFormat& format: m_dataStructure.headerFormats){
+		readFormat(format.format, in, decoder, m_headerData);
+		if(format.headerType == headerFormat::ROW_SIZE && format.format.rowType != rowFormat::ZERO){
+			quint32 testSize = m_headerData.last().toUInt();
+			if(size == 0) {
+				size = testSize;
+			}else if(size != testSize){
+				qDebug()<<"Both sizes should be the same! ("<<size<<" != "<<testSize<<")";
+				return false;
+			}
+		}
+	}
+
 	if(size > 9000){
 		qDebug()<<"Size is too big! ("<<size<<")";
 		return false;
 	}
-	if(size != sizeAgain){
-		qDebug()<<"Both sizes should be the same! ("<<size<<" != "<<sizeAgain<<")";
-		return false;
-	}
+
+
 	qDebug()<<"Found "<<size<<" Entry's!";
 
-	QTextCodec * strcodec = QTextCodec::codecForName("Shift-JIS");
-	QTextDecoder *decoder = strcodec->makeDecoder();
 
 	beginInsertRows(QModelIndex(),0,size);
 	for(unsigned int i = 0; i < size; i++){
 		QList<QVariant> testData;
 		for(const rowFormat& format: m_dataStructure.formats){
-			if(format.rowType == rowFormat::INT){
-				switch (format.byteSize) {
-					case 0:
-					case 1:
-					{
-						qint8 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					case 2:
-					case 16:
-					{
-						qint16 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					case 4:
-					case 32:
-					{
-						qint32 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					case 8:
-					case 64:
-					{
-						qint64 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					default:
-					{
-						qDebug() <<"(Int) Invalid byteSize: "<<format.byteSize;
-						qint8 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-				}
-			}else if(format.rowType == rowFormat::UINT){
-				switch (format.byteSize) {
-					case 0:
-					case 1:
-					{
-						quint8 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					case 2:
-					case 16:
-					{
-						quint16 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					case 4:
-					case 32:
-					{
-						quint32 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					case 8:
-					case 64:
-					{
-						quint64 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-					default:
-					{
-						qDebug() <<"(UInt) Invalid byteSize: "<<format.byteSize;
-						quint8 v;
-						in >> v;
-						testData<< v;
-					}
-						break;
-				}
-			}else if(format.rowType == rowFormat::ZERO){
-				if(format.byteSize > 0)
-					in.skipRawData(format.byteSize);
-			}else if(format.rowType == rowFormat::SHIFT_JIS){
-
-				char* shift_JIS_String = new char[format.byteSize];
-				in.readRawData(shift_JIS_String, format.byteSize);
-				int find_zero = 0;
-				for(; find_zero < format.byteSize; find_zero++)
-					if(shift_JIS_String[find_zero] == 0) break;
-				if(find_zero > format.byteSize) find_zero = format.byteSize;
-				QString str = decoder->toUnicode(shift_JIS_String, find_zero);
-				delete shift_JIS_String;
-				testData<< str;
-			}
-
+			readFormat(format, in, decoder, testData);
 		}
 		m_root->appendChild(new TreeItem(testData, m_root));
 	}
@@ -499,6 +624,90 @@ bool ParserDAT::open(const QString& filepath){
 	endInsertRows();
 
 	qfile.close();
+	return true;
+}
+
+inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVariant& dataOut){
+	if(format.rowType == rowFormat::INT){
+		switch (format.byteSize) {
+			case 0:
+			case 1:
+			{
+				out <<(qint8) dataOut.toInt();
+			}
+				break;
+			case 2:
+			case 16:
+			{
+				out <<(qint16) dataOut.toInt();
+			}
+				break;
+			case 4:
+			case 32:
+			{
+				out <<(qint32) dataOut.toInt();
+			}
+				break;
+			case 8:
+			case 64:
+			{
+				out <<(qint64) dataOut.toLongLong();
+			}
+				break;
+			default:
+			{
+				qDebug() <<"(Int w) Invalid byteSize: "<<format.byteSize;
+				out <<(qint8) dataOut.toInt();
+			}
+				break;
+		}
+	}else if(format.rowType == rowFormat::UINT){
+		switch (format.byteSize) {
+			case 0:
+			case 1:
+			{
+				out <<(quint8) dataOut.toUInt();
+			}
+				break;
+			case 2:
+			case 16:
+			{
+				out <<(quint16) dataOut.toUInt();
+			}
+				break;
+			case 4:
+			case 32:
+			{
+				out <<(quint32) dataOut.toUInt();
+			}
+				break;
+			case 8:
+			case 64:
+			{
+				out <<(quint64) dataOut.toULongLong();
+			}
+				break;
+			default:
+			{
+				qDebug() <<"(UInt w) Invalid byteSize: "<<format.byteSize;
+				out <<(quint8) dataOut.toUInt();
+			}
+				break;
+		}
+	}else if(format.rowType == rowFormat::ZERO){
+		for(unsigned int i = 0; i < format.byteSize; i++)
+			out <<(quint8) 0;
+		return false;
+	}else if(format.rowType == rowFormat::SHIFT_JIS){
+		QString str = dataOut.toString();
+		if(str.size() > format.byteSize/2) str = str.left( format.byteSize/2);
+
+		QByteArray bites = encodeToShiftJIS(str);// encoder->fromUnicode(mapName);
+		out.writeRawData(bites.constData(), bites.size());
+		for(unsigned int i = bites.size(); i < format.byteSize; i++)
+			out<<(quint8) 0;
+		bites.clear();
+	}
 	return true;
 }
 
@@ -510,98 +719,21 @@ bool ParserDAT::save(const QString& filepath){
 	QDataStream out(&qfile);
 	out.setByteOrder(QDataStream::LittleEndian);
 
-	out << (quint32) m_root->childCount();
-	out << (quint32) m_root->childCount();
-
-
+	unsigned int a = 0;
+	for(const headerFormat& format: m_dataStructure.headerFormats){
+		if(format.headerType == headerFormat::ROW_SIZE)
+			writeFormat(format.format,out,m_root->childCount());
+		else
+			writeFormat(format.format,out,m_headerData[a]);
+		a++;
+	}
 
 	for(const TreeItem* child: m_root->getChilderen()){
 		unsigned int i = 0;
 		for(unsigned int a = 0; a < m_dataStructure.formats.size(); a++){
 			const rowFormat& format =  m_dataStructure.formats[a];
-
-			if(format.rowType == rowFormat::INT){
-				switch (format.byteSize) {
-					case 0:
-					case 1:
-					{
-						out <<(qint8) child->data(i).toInt();
-					}
-						break;
-					case 2:
-					case 16:
-					{
-						out <<(qint16) child->data(i).toInt();
-					}
-						break;
-					case 4:
-					case 32:
-					{
-						out <<(qint32) child->data(i).toInt();
-					}
-						break;
-					case 8:
-					case 64:
-					{
-						out <<(qint64) child->data(i).toLongLong();
-					}
-						break;
-					default:
-					{
-						qDebug() <<"(Int w) Invalid byteSize: "<<format.byteSize;
-						out <<(qint8) child->data(i).toInt();
-					}
-						break;
-				}
+			if(writeFormat(format,out,child->data(i)))
 				i++;
-			}else if(format.rowType == rowFormat::UINT){
-				switch (format.byteSize) {
-					case 0:
-					case 1:
-					{
-						out <<(quint8) child->data(i).toUInt();
-					}
-						break;
-					case 2:
-					case 16:
-					{
-						out <<(quint16) child->data(i).toUInt();
-					}
-						break;
-					case 4:
-					case 32:
-					{
-						out <<(quint32) child->data(i).toUInt();
-					}
-						break;
-					case 8:
-					case 64:
-					{
-						out <<(quint8) child->data(i).toULongLong();
-					}
-						break;
-					default:
-					{
-						qDebug() <<"(UInt w) Invalid byteSize: "<<format.byteSize;
-						out <<(quint8) child->data(i).toUInt();
-					}
-						break;
-				}
-				i++;
-			}else if(format.rowType == rowFormat::ZERO){
-				for(unsigned int i = 0; i < format.byteSize; i++)
-					out <<(quint8) 0;
-			}else if(format.rowType == rowFormat::SHIFT_JIS){
-				QString str = child->data(i).toString();
-				if(str.size() > format.byteSize/2) str = str.left( format.byteSize/2);
-
-				QByteArray bites = encodeToShiftJIS(str);// encoder->fromUnicode(mapName);
-				out.writeRawData(bites.constData(), bites.size());
-				for(unsigned int i = bites.size(); i < format.byteSize; i++)
-					out<<(quint8) 0;
-				bites.clear();
-				i++;
-			}
 		}
 	}
 
@@ -611,6 +743,46 @@ bool ParserDAT::save(const QString& filepath){
 	return true;
 }
 
+inline QColor interpolate(const QColor& start, const QColor& end, float value){
+    if(value > 1.0) value = 1.0;
+    else if(value < 0) value = 0;
+
+    return QColor(
+    		start.red()*(1.0f-value)+end.red()*value,
+			start.green()*(1.0f-value)+end.green()*value,
+			start.blue()*(1.0f-value)+end.blue()*value
+    		);
+}
+
+QVariant ParserDAT::data(const QModelIndex &index, int role) const{
+    if (!m_root || m_dataStructure.header.isEmpty() || !index.isValid())
+        return QVariant();
+
+
+    if( role == Qt::BackgroundRole ){ //ForegroundRole
+    	 const column& c = m_dataStructure.header[index.column()];
+    	 if(!c.hasColor || c.formatIndex < 0 ) return QVariant();
+    	 const rowFormat& f = m_dataStructure.formats[c.formatIndex];
+
+    	 if(f.rowType == rowFormat::INT || f.rowType == rowFormat::UINT){
+    		 if(c.colorMinBackground == c.colorMaxBackground)
+    			 return QBrush( c.colorMinBackground);
+    		 else{
+    		     TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+    		     int v = item->data(index.column()).toInt();
+    		      float p = (v-c.colorMin) / (float)(c.colorMax - c.colorMin);
+
+    		      return QBrush( interpolate(c.colorMinBackground, c.colorMaxBackground, p));
+    		 }
+    	 }
+    	 return QVariant();
+
+    }else if(role == Qt::EditRole || role == Qt::DisplayRole){
+        TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+        return item->data(index.column());
+    }else
+    	return QVariant();
+}
 
 Qt::ItemFlags ParserDAT::flags(const QModelIndex &index) const{
     if (!m_root || !index.isValid())
@@ -630,18 +802,13 @@ bool ParserDAT::setData(const QModelIndex &index, const QVariant &value, int rol
 	if(!parentItem) return false;
 
 
-	if(value.type() != QVariant::String) return false;
+	//if(value.type() != QVariant::String) return false;
 	QString val = value.toString();
 
-	int a = 0;
-	for(unsigned int i = 0; i < index.column(); i++){
-		if(m_dataStructure.formats[a].rowType == rowFormat::ZERO)
-			a ++;
-		a ++;
-	}
-	if(m_dataStructure.formats[a].rowType == rowFormat::ZERO)
-		a ++;
 
+	int a  = m_dataStructure.header[index.column()].formatIndex;
+	if(a < 0) return false;
+	assert_Test("Format index is out of bounds!", a >= m_dataStructure.formats.size());
 	const rowFormat& format = m_dataStructure.formats[a];
 
 	qDebug()<<"Set Data: "<<value<<" role: "<<role << " byte size: "<<QString::number(format.byteSize) << " at column: "<<QString::number(index.column());

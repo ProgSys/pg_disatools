@@ -17,6 +17,7 @@ class DataFile : public QAbstractListModel {
 public:
 	DataFile(QObject *parent = 0);
 	virtual ~DataFile();
+	virtual int getColumnWidth(int index) const;
 
 	virtual QVariant data(const QModelIndex &index, int role) const Q_DECL_OVERRIDE;
 	virtual Qt::ItemFlags flags(const QModelIndex &index) const Q_DECL_OVERRIDE;

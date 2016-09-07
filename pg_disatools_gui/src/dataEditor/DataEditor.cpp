@@ -26,6 +26,8 @@
 
 #include <files/ParserDAT.h>
 
+
+
 PreviewDAT::PreviewDAT(QObject *parent): DataFile(parent){
 	QList<QVariant> data;
 	data << "Definition file" << "Description" << "File starting name";
@@ -118,10 +120,11 @@ DataEditor::DataEditor(QWidget *parent):
 	connect(actionExport_as_csv, SIGNAL(triggered()), this, SLOT(exportCSV()));
 
 	m_file = new PreviewDAT(this);
-	treeView->setModel(m_file);
+	tableView->setModel(m_file);
+	tableView->setColumnWidth(1, 280);
 
-	treeView->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(treeView, SIGNAL(customContextMenuRequested(const QPoint &)),
+	tableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(tableView, SIGNAL(customContextMenuRequested(const QPoint &)),
     		this, SLOT(contextMenu(const QPoint &)));
 
     actionExport_as_csv->setEnabled(false);
@@ -137,7 +140,7 @@ void DataEditor::setModel(DataFile* model){
 		disconnect(this, SIGNAL(openFile(const QString&)), m_file, SLOT(open(const QString&) ));
 		disconnect(this, SIGNAL(saveFile(const QString&)), m_file, SLOT(save(const QString&) ));
 		disconnect(this, SIGNAL(exportCSVFile(const QString&)), m_file, SLOT(exportCSV(const QString&) ));
-		treeView->setModel(nullptr);
+		tableView->setModel(nullptr);
 		delete m_file;
 	}
 	m_file = model;
@@ -145,8 +148,10 @@ void DataEditor::setModel(DataFile* model){
 	connect(this, SIGNAL(openFile(const QString&)), m_file, SLOT(open(const QString&) ));
 	connect(this, SIGNAL(saveFile(const QString&)), m_file, SLOT(save(const QString&) ));
 	connect(this, SIGNAL(exportCSVFile(const QString&)), m_file, SLOT(exportCSV(const QString&) ));
-
-	treeView->setModel(m_file);
+	tableView->setModel(m_file);
+	for (int col=0; col<m_file->columnCount(); col++) {
+		tableView->setColumnWidth(col, m_file->getColumnWidth(col));
+	}
 }
 
 void DataEditor::open(){
@@ -260,8 +265,8 @@ void DataEditor::exportCSV(const QString& file){
 
 void DataEditor::contextMenu(const QPoint &pos){
 	if(!m_file) return;
-	QPoint globalpos = treeView->mapToGlobal(pos);
-	QModelIndex pointedItem = treeView->indexAt(pos);
+	QPoint globalpos = tableView->mapToGlobal(pos);
+	QModelIndex pointedItem = tableView->indexAt(pos);
 
 	if(pointedItem.isValid()){
 		QMenu menu(this);

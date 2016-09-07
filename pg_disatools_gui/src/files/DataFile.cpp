@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QTextStream>
 
+
 DataFile::DataFile(QObject *parent): QAbstractListModel(parent) {
 	// TODO Auto-generated constructor stub
 
@@ -20,6 +21,11 @@ DataFile::~DataFile() {
 
 bool DataFile::open(const QString& filepath){return false;}
 bool DataFile::save(const QString& filepath){return false;}
+
+
+int DataFile::getColumnWidth(int index) const{
+	return 150;
+}
 
 bool DataFile::exportCSV(const QString& filepath) const{
 	if(!m_root || filepath.isEmpty()) return false;
@@ -95,12 +101,12 @@ QVariant DataFile::data(const QModelIndex &index, int role) const{
     if (!m_root || !index.isValid())
         return QVariant();
 
-    if (role != Qt::DisplayRole)
-        return QVariant();
+    if(role == Qt::EditRole || role == Qt::DisplayRole){
+        TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
+        return item->data(index.column());
+    }else
+    	return QVariant();
 
-    TreeItem *item = static_cast<TreeItem*>(index.internalPointer());
-
-    return item->data(index.column());
 
 }
 

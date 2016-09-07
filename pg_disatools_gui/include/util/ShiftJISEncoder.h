@@ -25,6 +25,7 @@
 inline short encodeToShiftJIS(const QChar& c){
 	//http://unicode-table.com/de/#arabic-presentation-forms-b
 	//http://www.rtpro.yamaha.co.jp/RT/docs/misc/kanji-sjis.html
+	//http://seiai.ed.jp/sys/text/java/shiftjis_table.html
 	switch (c.row() << 8 | c.cell()) {
 		//numbers
 		case ' ':
@@ -373,9 +374,34 @@ inline short encodeToShiftJIS(const QChar& c){
 		case 0xFF04: //Fullwidth dolar
 			return 0x8190;
 			break;
-		//case '\n':
-		//case 0x2424:
-			//break;
+		case 0x3016: //Left white lenticular bracket
+		case 0x3010: //Left black lenticular bracket
+			return 0x8179;
+			break;
+		case 0x3017: //Right white lenticular bracket
+		case 0x3011: //Right black lenticular bracket
+			return 0x817a;
+			break;
+
+		case 0x3014: //Left tortoise shell bracket
+			return 0x816b;
+			break;
+		case 0x3015: //Left tortoise shell bracket
+			return 0x816c;
+			break;
+
+		case 0x300c: //Left tortoise shell bracket
+			return 0x8175;
+			break;
+		case 0x300d: //Right corner bracket
+			return 0x8176;
+			break;
+		case 0x300e: //Left tortoise shell bracket
+			return 0x8177;
+			break;
+		case 0x300f: //Right corner bracket
+			return 0x8178;
+			break;
 		default:
 		{
 			qDebug() <<"Unknown ShiftJIS conversion of: '"<<c<<"' ("<<(c.row() << 8 | c.cell())<<")";

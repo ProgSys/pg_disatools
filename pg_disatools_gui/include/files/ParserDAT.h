@@ -23,6 +23,8 @@
 #include <files/DataFile.h>
 #include <QList>
 
+#include <QColor>
+
 struct rowFormat{
 	enum type{ ZERO, INT,UINT, SHIFT_JIS };
 	rowFormat(){}
@@ -32,23 +34,41 @@ struct rowFormat{
 	int byteSize = -1;
 };
 
+struct headerFormat{
+	enum type{ KEEP, ROW_SIZE };
+	headerFormat(){}
+	headerFormat(rowFormat::type rowTypeIn, int byteSizeIn, type headerTypeIn): format(rowTypeIn,byteSizeIn),headerType(headerTypeIn) {}
+
+	rowFormat format;
+	type headerType = KEEP;
+};
+
 struct column{
 	enum columnFLAGS{ NONE = Qt::ItemIsEditable, NOEDIT = Qt::NoItemFlags};
 	enum columnType{ DEFAULT, INDEX};
+
 	QString name = "Noname";
 	columnFLAGS flag = NONE;
 	columnType type = DEFAULT;
+	int formatIndex = -1;
+
+	bool hasColor = false;
+	QColor colorMinBackground = QColor(255,255,255);
+	QColor colorMaxBackground = QColor(255,255,255);
+	int colorMin = -1;
+	int colorMax = -1;
 
 	column(){}
 	column(const QString& nameIn): name(nameIn){}
 
-	bool operator==(const QString& str){
+	bool operator==(const QString& str) const{
 		return name == str;
 	}
 };
 
 struct parse{
 	QList<column> header;
+	QList<headerFormat> headerFormats;
 	QList<rowFormat> formats;
 
 	void clear(){
@@ -62,6 +82,10 @@ class ParserDAT: public DataFile  {
 public:
 	ParserDAT(const QString& defFile, QObject *parent = 0);
 	virtual ~ParserDAT();
+
+	int getColumnWidth(int index) const;
+
+	QVariant data(const QModelIndex &index, int role) const final;
     Qt::ItemFlags flags(const QModelIndex &index) const final;
     bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) final;
 
@@ -75,6 +99,7 @@ public slots:
 	bool removeAt(int index) final;
 private:
 	parse m_dataStructure;
+	QList<QVariant> m_headerData;
 };
 
 #endif /* SRC_FILES_PARSERDAT_H_ */
