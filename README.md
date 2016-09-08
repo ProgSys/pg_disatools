@@ -48,9 +48,9 @@ You can find the definition files at `resources/dataFiles`.
 
 Base supported files:
 
-* [DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT) - Contains all maps, that can appear in the menu of the teleport lady. (https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT)
-* [HOSPITAL.DAT](https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT) - Contains the conditions you need to achieve to get the rewards from the hospital. (https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT)
-* [CHAR_C.DAT](https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT) - Contains all the characters and their attributes. (https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT)
+* [DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT) - Contains all maps, that can appear in the menu of the teleport lady. 
+* [HOSPITAL.DAT](https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT) - Contains the conditions you need to achieve to get the rewards from the hospital. 
+* [CHAR_C.DAT](https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT) - Contains all the characters and their attributes. 
 * CHAR_C -  Like CHAR just used unicode strings.
 * CHAR_K -  Like CHAR just used unicode strings.
 * MUSICSHOP - Contains all the music you can buy.
