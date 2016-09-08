@@ -168,3 +168,19 @@
 	- nothing
   * Data Editor v0.0.3 alpha:
 	- The file formats are now not hardcoded, you can easily edit them or add new formats, they are located at 'resources/dataFiles'
+
+===  8.09.2016 - v0.6.0 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.5 alpha:
+	- Change the view to QTableView
+	- On edit the text is keept inside the edit box
+	- Wrote my own custom Shift Jis encoder/decoder
+        - Definition file:
+	  * you now need to set the 'headerFormat'  
+          * you now can set the color of the colums with 'SetColumnColor(column, r,g,b, [r2,g2,b2, [min, max]])'
+          * added support for unicode strings, 'unicode(bytes, [number of them])'
+          * you now can specify the column as a index, example: "$1" or "$1-42"(from 1 to 42)
+	  * Added .DEF files for CHAR_C.DEF, CHAR_K.DEF, CHARHELP.DEF, HABIT.DEF, MAGIC.DEF and MUSICSHOP.DEF

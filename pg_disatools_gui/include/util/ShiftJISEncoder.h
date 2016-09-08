@@ -21,6 +21,37 @@
 #include <QString>
 #include <QByteArray>
 #include <QDebug>
+#include <QMap>
+
+class shiftJisToUnicodeST{
+public:
+	shiftJisToUnicodeST();
+
+	virtual ~shiftJisToUnicodeST(){};
+
+	inline const QMap<short, short>& getMap() const{
+		return map;
+	}
+	QMap<short, short> map;
+};
+
+class shiftUnicodeToJisST{
+public:
+	shiftUnicodeToJisST();
+
+	virtual ~shiftUnicodeToJisST(){};
+
+	inline const QMap<short, short>& getMap() const{
+		return map;
+	}
+	QMap<short, short> map;
+};
+
+
+static shiftJisToUnicodeST shiftJisToUnicode;
+static shiftUnicodeToJisST shiftUnicodeToJis;
+
+
 
 inline short encodeToShiftJIS(const QChar& c){
 	//http://unicode-table.com/de/#arabic-presentation-forms-b
@@ -411,16 +442,36 @@ inline short encodeToShiftJIS(const QChar& c){
 	}
 }
 
-inline QByteArray encodeToShiftJIS(const QString& str){
+inline QByteArray encodeUnicodeToShiftJis(const QString& str){
 	QByteArray bytes;
 	for(const QChar& c: str){
-		short s = encodeToShiftJIS(c);
+		short s = 0x8147;
+		try {
+			s = shiftUnicodeToJis.map[c.row() << 8 | c.cell()];
+		} catch (...) {
+			qDebug()<<"Unicode Char not found: "<< s<<" : " << QString::number((unsigned short)s, 16);
+		}
+
 		s = ((s >> 8) & 0x00FF) | (s << 8) ;
 		bytes.append((char*) &s, 2);
 	}
 	return bytes;
 }
 
+inline QString encodeShiftJisToUnicode(char* shift_JIS_String, int size){
+	QString out;
+	for(unsigned int i = 0; i < size; i+=2){
+		short s = (shift_JIS_String[i] << 8) | (shift_JIS_String[i+1] & 0x00FF);
+
+		try {
+			out.push_back(shiftJisToUnicode.getMap()[s]);
+		} catch (...) {
+			qDebug()<<"ShiftJIS Char not found: "<< s<<" : " << QString::number((unsigned short)s, 16);
+			out.push_back(0x00BF);
+		}
+	}
+	return out;
+}
 
 
 

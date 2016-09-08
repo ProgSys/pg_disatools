@@ -36,11 +36,11 @@ inline bool errorAt(const QString& info = ""){
 	return false;
 }
 
-struct defParther{
+struct defParser{
 	QTextStream in;
 	QChar currentChar = ' ';
 
-	defParther(QFile& file): in(&file){
+	defParser(QFile& file): in(&file){
 
 	}
 
@@ -136,6 +136,13 @@ struct defParther{
 		QList<int> list;
 		if(parameter[0] == '$'){
 			QStringList vals = parameter.mid(1).split('-');
+			if(vals.isEmpty()) return list;
+			if(vals.size() == 1){
+				int num = vals[0].toUInt();
+				if(num > 0 || num < data.header.size())
+					list.push_back(num);
+				return list;
+			}
 			if(vals.size() != 2) return list;
 			int start = vals[0].toUInt();
 			int end = vals[1].toUInt();
@@ -279,6 +286,9 @@ struct defParther{
 			}else if(command == "shiftjis"){
 				for(int i = 0; i < numberOf; i++)
 					data.formats.push_back(rowFormat(rowFormat::SHIFT_JIS, bytes));
+			}else if(command == "unicode"){
+				for(int i = 0; i < numberOf; i++)
+					data.formats.push_back(rowFormat(rowFormat::UNICODE, bytes));
 			}else if(command == "zero"){
 				for(int i = 0; i < numberOf; i++)
 					data.formats.push_back(rowFormat(rowFormat::ZERO, bytes));
@@ -405,11 +415,120 @@ struct defParther{
 	}
 };
 
+#define UNICODESCRIPT false
+
+#if UNICODESCRIPT
+struct unicodeParser{
+	QTextStream in;
+	QChar currentChar = '?';
+
+	QChar getNextChar(){
+		if(in.atEnd()) return '!';
+		QChar c;
+		in >> c;
+		currentChar = c;
+		return c;
+	}
+
+	void skip(){
+		while(!in.atEnd()){
+			if(currentChar == ' ' || currentChar == '\n' || currentChar == '\t' ){
+				getNextChar();
+				continue;
+			}
+			break;
+		}
+	}
+
+	QString read(){
+		skip();
+		QString out;
+		if(currentChar == '\\'){
+			getNextChar();
+			for(unsigned int i = 0; i < 5; i++){
+				out.push_back(currentChar);
+				getNextChar();
+			}
+		}else{
+			while(!in.atEnd()){
+				if(currentChar == ' ' || currentChar == '\n' || currentChar == '\t'){
+					getNextChar();
+					return out;
+				}
+				out.push_back(currentChar);
+				getNextChar();
+			}
+		}
+
+
+		return out;
+	}
+
+	unicodeParser(QFile& file): in(&file){
+
+	}
+
+	bool parse(){
+
+		unsigned int jis = 0x8140;
+		QFile jisToUnicode("jisToUnicode.txt");
+		QFile unicodeToJis("UnicodeToJis.txt");
+		if(!jisToUnicode.open(QIODevice::WriteOnly)) return false;
+		if(!unicodeToJis.open(QIODevice::WriteOnly)) return false;
+		QTextStream jisToUnicodeSS(&jisToUnicode);
+		QTextStream unicodeToJisSS(&unicodeToJis);
+		//jisToUnicodeSS <<"{\n";
+		unsigned int count = 0;
+		getNextChar();
+		while(!in.atEnd()){
+			QString unicode = read();
+			if(unicode[0] != 'u'){
+				bool ok;
+				jis = unicode.toUInt(&ok, 16);
+				qDebug()<<"new jis: "<<QString::number(jis, 16);
+				/*
+				if(count < 15){
+					jis += 16-count;
+				}else if(count > 15){
+					qDebug() << "ERROR count is bigger 15!";
+				}
+				*/
+				continue;
+			}
+			unicode = unicode.mid(1, 4);
+			if(unicode == "000d" || unicode == "000a") continue;
+			if(unicode != "30fb"){
+				//qDebug() << "{"<<QString::number(jis, 16) <<", 0x"<<unicode<<"}";
+				//jisToUnicodeSS << "{ 0x"<<QString::number(jis, 16) <<", 0x"<<unicode<<"},\n";
+				jisToUnicodeSS << "map[0x"<<QString::number(jis, 16) <<"] = 0x"<<unicode<<";\n";
+				unicodeToJisSS  << "map[0x"<< unicode<<"] = 0x"<<QString::number(jis, 16)<<";\n";
+			}
+			jis++;
+			count++;
+		}
+		//jisToUnicodeSS <<"}";
+		jisToUnicode.close();
+		unicodeToJis.close();
+
+		return true;
+	}
+};
+
+#endif
+
 ParserDAT::ParserDAT(const QString& defFile, QObject *parent): DataFile(parent) {
+#if UNICODESCRIPT
+	QFile unicodes("resources/dataFiles/shiftJisAsUnicode.txt");
+	if(!unicodes.open(QIODevice::ReadOnly)) return;
+	unicodeParser par(unicodes);
+	par.parse();
+	unicodes.close();
+#endif
+
 	QFile qfile(defFile);
 	if(!qfile.open(QIODevice::ReadOnly)) return;
 
-	defParther p(qfile);
+	defParser p(qfile);
 	if(p.parseDef(m_dataStructure)){
 		qDebug() <<"Parsing SUCCESSFUL!";
 		//set column format index
@@ -463,7 +582,7 @@ int ParserDAT::getColumnWidth(int index) const{
 	return 30;
 }
 
-inline bool readFormat(const rowFormat& format, QDataStream& in, QTextDecoder *decoder, QList<QVariant>& dataOut){
+inline bool readFormat(const rowFormat& format, QDataStream& in, QList<QVariant>& dataOut){
 	if(format.rowType == rowFormat::INT){
 		switch (format.byteSize) {
 			case 0:
@@ -563,8 +682,23 @@ inline bool readFormat(const rowFormat& format, QDataStream& in, QTextDecoder *d
 		for(; find_zero < format.byteSize; find_zero++)
 			if(shift_JIS_String[find_zero] == 0) break;
 		if(find_zero > format.byteSize) find_zero = format.byteSize;
-		QString str = decoder->toUnicode(shift_JIS_String, find_zero);
+		QString str = encodeShiftJisToUnicode(shift_JIS_String, find_zero); //decoder->toUnicode(shift_JIS_String, find_zero);
 		delete shift_JIS_String;
+		dataOut<< str;
+	}else if(format.rowType == rowFormat::UNICODE){
+		char* string = new char[format.byteSize];
+		in.readRawData(string, format.byteSize);
+
+		int find_zero = 0;
+		for(; find_zero+1 < format.byteSize ; find_zero+=2)
+			if(string[find_zero] == 0 && string[find_zero+1] == 0) break;
+
+		if(find_zero > format.byteSize) find_zero = format.byteSize;
+		QString str;
+		for(unsigned int i = 0; i < find_zero; i+=2)
+			str.push_back(QChar(string[i],string[i+1]));
+
+		delete string;
 		dataOut<< str;
 	}
 
@@ -582,16 +716,13 @@ bool ParserDAT::open(const QString& filepath){
 	m_headerData.clear();
 	endRemoveRows();
 
-	QTextCodec * strcodec = QTextCodec::codecForName("Shift-JIS");
-	QTextDecoder *decoder = strcodec->makeDecoder();
-
 
 	QDataStream in(&qfile);
 	in.setByteOrder(QDataStream::LittleEndian);
 	quint32 size = 0;
 
 	for(const headerFormat& format: m_dataStructure.headerFormats){
-		readFormat(format.format, in, decoder, m_headerData);
+		readFormat(format.format, in, m_headerData);
 		if(format.headerType == headerFormat::ROW_SIZE && format.format.rowType != rowFormat::ZERO){
 			quint32 testSize = m_headerData.last().toUInt();
 			if(size == 0) {
@@ -608,7 +739,7 @@ bool ParserDAT::open(const QString& filepath){
 		return false;
 	}
 
-
+	//size--;
 	qDebug()<<"Found "<<size<<" Entry's!";
 
 
@@ -616,11 +747,10 @@ bool ParserDAT::open(const QString& filepath){
 	for(unsigned int i = 0; i < size; i++){
 		QList<QVariant> testData;
 		for(const rowFormat& format: m_dataStructure.formats){
-			readFormat(format, in, decoder, testData);
+			readFormat(format, in, testData);
 		}
 		m_root->appendChild(new TreeItem(testData, m_root));
 	}
-	delete decoder;
 	endInsertRows();
 
 	qfile.close();
@@ -702,11 +832,24 @@ inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVarian
 		QString str = dataOut.toString();
 		if(str.size() > format.byteSize/2) str = str.left( format.byteSize/2);
 
-		QByteArray bites = encodeToShiftJIS(str);// encoder->fromUnicode(mapName);
-		out.writeRawData(bites.constData(), bites.size());
-		for(unsigned int i = bites.size(); i < format.byteSize; i++)
+		QByteArray bytes = encodeUnicodeToShiftJis(str);// encoder->fromUnicode(mapName);
+		out.writeRawData(bytes.constData(), bytes.size());
+		for(unsigned int i = bytes.size(); i < format.byteSize; i++)
 			out<<(quint8) 0;
-		bites.clear();
+		bytes.clear();
+	}else if(format.rowType == rowFormat::UNICODE){
+		QString str = dataOut.toString();
+		if(str.size() > format.byteSize/2) str = str.left( format.byteSize/2);
+
+		QByteArray bytes;
+		for(const QChar& c: str){
+			bytes.append(c.cell());
+			bytes.append(c.row());
+		}
+		out.writeRawData(bytes.constData(), bytes.size());
+		for(unsigned int i = bytes.size(); i < format.byteSize; i++)
+			out<<(quint8) 0;
+		bytes.clear();
 	}
 	return true;
 }

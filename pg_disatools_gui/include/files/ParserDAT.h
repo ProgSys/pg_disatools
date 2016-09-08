@@ -26,7 +26,7 @@
 #include <QColor>
 
 struct rowFormat{
-	enum type{ ZERO, INT,UINT, SHIFT_JIS };
+	enum type{ ZERO, INT,UINT, SHIFT_JIS, UNICODE };
 	rowFormat(){}
 	rowFormat(type rowTypeIn, int byteSizeIn):rowType(rowTypeIn), byteSize(byteSizeIn){}
 

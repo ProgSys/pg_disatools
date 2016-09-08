@@ -15,9 +15,8 @@ You can download the latest version of the tools here:
 * [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
 * [Version v0.5.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.2%20alpha.zip)
 * [Version v0.5.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.4%20alpha.zip)
-* [Version v0.5.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.8%20alpha.zip)
 * [Version v0.5.9 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.9%20alpha.zip)
-
+* [Version v0.6.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.0%20alpha.zip)
 ---
 
 [![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
@@ -46,13 +45,19 @@ This tool allows you to edit some .DAT files.
 The file formats are not hardcoded you can easily edit them or add new formats.
 You can find the definition files at `resources/dataFiles`.
 
-Supported files:
+Base supported files:
 
-* [DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT) - Contains the listing of all maps, that can appear in the menu of the teleport lady. 
-* [HOSPITAL.DAT](https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT) - Contains the listing of the conditions you need to achieve to get the rewards from the hospital. 
-* [CHAR_C.DAT](https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT) - Contains the listing of all characters and their attributes 
+* [DUNGEON.DAT](https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT) - Contains all maps, that can appear in the menu of the teleport lady. (https://github.com/ProgSys/pg_disatools/wiki/DUNGEON.DAT)
+* [HOSPITAL.DAT](https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT) - Contains the conditions you need to achieve to get the rewards from the hospital. (https://github.com/ProgSys/pg_disatools/wiki/HOSPITAL.DAT)
+* [CHAR_C.DAT](https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT) - Contains all the characters and their attributes. (https://github.com/ProgSys/pg_disatools/wiki/CHAR.DAT)
+* CHAR_C -  Like CHAR just used unicode strings.
+* CHAR_K -  Like CHAR just used unicode strings.
+* MUSICSHOP - Contains all the music you can buy.
+* MAGIC - Contains all the spells and their attributes.
+* HABIT - Contains job titles and their attributes.
+* CHARHELP - Contains descriptions of all characters.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Data%20Editor%20v0.0.3%20alpha_preview.png)
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Data%20Editor%20v0.0.5%20alpha_preview.png)
 
 #### TX2Converter.exe
 

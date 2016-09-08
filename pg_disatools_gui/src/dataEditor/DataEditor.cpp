@@ -179,18 +179,23 @@ void DataEditor::open(const QString& file){
 	filters.push_back("*.DEF");
 	QFileInfoList filesList = myDir.entryInfoList(filters );
 
-	bool found = false;
+
+
+	QFileInfo foundFile;
+	unsigned int size = 0;
 	for(const QFileInfo& info: filesList){
 		const QString baseFileName = info.baseName();
-		if(filename.left(baseFileName.size()).toUpper() == baseFileName.toUpper()){
-			qDebug()<<"Parsing: "<<info.absoluteFilePath();
-			setModel(new ParserDAT(info.absoluteFilePath(),this));
-			found = true;
-			break;
+		if(baseFileName.size() > size && filename.left(baseFileName.size()).toUpper() == baseFileName.toUpper()){
+			size = baseFileName.size() ;
+			foundFile = info;
 		}
 	}
 
-	if(!found){
+
+	if(size){
+		qDebug()<<"Parsing: "<<foundFile.absoluteFilePath();
+		setModel(new ParserDAT(foundFile.absoluteFilePath(),this));
+	}else{
 		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
 			"File as a unknown name, make sure the file starts with the correct string!",
 		 QMessageBox::Ok);
