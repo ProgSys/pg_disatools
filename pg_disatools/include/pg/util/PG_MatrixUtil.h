@@ -131,11 +131,30 @@ tMatrix4x4<T> scale(const T& x, const T& y, const T& z){
 }
 
 template<typename T>
+tMatrix4x4<T> scale(const tVector3<T>& vec){
+	tMatrix4x4<T> scaleMat;
+	scaleMat[0][0] = vec.x;
+	scaleMat[1][1] = vec.y;
+	scaleMat[2][2] = vec.z;
+	return scaleMat;
+}
+
+
+template<typename T>
 tMatrix4x4<T> translation(const T& x, const T& y, const T& z){
 	tMatrix4x4<T> translationMat;
 	translationMat[3][0] = x;
 	translationMat[3][1] = y;
 	translationMat[3][2] = z;
+	return translationMat;
+}
+
+template<typename T>
+tMatrix4x4<T> translation(const tVector3<T>& vec){
+	tMatrix4x4<T> translationMat;
+	translationMat[3][0] = vec.x;
+	translationMat[3][1] = vec.y;
+	translationMat[3][2] = vec.z;
 	return translationMat;
 }
 

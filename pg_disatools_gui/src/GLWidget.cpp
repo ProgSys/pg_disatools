@@ -431,12 +431,49 @@ void GLWidget::paintGL(){
 
 void GLWidget::resizeGL(int w, int h){
 	//perspectiveMatrix = PG::UTIL::perspective(90.0f, w, h, 0.01f, 3.0f);
-	const float wf = w/400.f;
-	const float hf = h/400.f;
+	const float wf = w/m_scale;
+	const float hf = h/m_scale;
 	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf+0.5f, hf+0.5f, -1.f, 10.0f);
 
 }
 
+void GLWidget::mousePressEvent(QMouseEvent * event){
+	qDebug()<< "Mouse pressed: "<<event->x()<<", "<<event->y();
+	if(event->buttons() & Qt::LeftButton){
+		m_mouse.x = event->x();
+		m_mouse.y = event->y();
+	}
+}
+
+void GLWidget::mouseMoveEvent(QMouseEvent *event){
+	if(event->buttons() & Qt::LeftButton){
+		//qDebug()<< "Mouse move: "<<event->x()<<", "<<event->y()<<" but: "<<event->buttons();
+
+		PG::UTIL::ivec2 mouseDelta = m_mouse - PG::UTIL::ivec2(event->x(),event->y());
+		//viewMatrix = viewMatrix * PG::UTIL::translation(-mouseDiff.x/1000.0f, 0.0f, -mouseDiff.y/1000.0f);
+		const PG::UTIL::vec3 vy = PG::UTIL::vec3(1,0,1)* (-mouseDelta.y/200.0f);
+		const PG::UTIL::vec3 vx = PG::UTIL::vec3(1,0,-1)* (-mouseDelta.x/200.0f);
+		viewMatrix = viewMatrix * PG::UTIL::translation(vy+vx);
+		m_mouse.x = event->x();
+		m_mouse.y = event->y();
+		update();
+	}
+}
+
+void GLWidget::wheelEvent ( QWheelEvent * event ){
+	m_scale += event->delta()/10.0f;
+
+	if(m_scale < 200.0f)
+		m_scale = 200.f;
+
+	if(m_scale > 800.0f)
+		m_scale = 800.f;
+
+	const float wf = width()/m_scale;
+	const float hf = height()/m_scale;
+	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf+0.5f, hf+0.5f, -1.f, 12.0f);
+	update();
+}
 
 GLWidget::~GLWidget() {
 	m_animationInfo.clearAll();

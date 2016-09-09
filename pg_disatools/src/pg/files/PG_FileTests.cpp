@@ -25,7 +25,7 @@
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/files/PG_TX2.h>
-#include <pg/files/PG_SpriteSheet.h>
+#include <pg/files/PG_SH.h>
 
 namespace PG {
 namespace FILE {
@@ -224,8 +224,8 @@ bool isSpriteSheet(const PG::UTIL::File& file){
 
 bool isSpriteSheet(PG::STREAM::InByteFile& reader){
 	const unsigned int startPos = reader.pos();
-	spriteSheetHeader header;
-	reader.read((char*)&header, sizeof(spriteSheetHeader));
+	shfileHeader header;
+	reader.read((char*)&header, sizeof(shfileHeader));
 
 	std::vector<unsigned int> pointers(4);
 	reader.read((char*)&pointers[0], 4*sizeof(unsigned int));

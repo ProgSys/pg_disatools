@@ -24,7 +24,7 @@
 #else
 	#include <GL/glew.h>
 #endif
-
+#include <QMouseEvent>
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
 
@@ -44,6 +44,7 @@
 #include <pg/util/PG_MatrixUtil.h>
 #include <cmath>
 #include <bitset>
+
 
 #define PI 3.14159265
 #define toRad(x) x * PI / 180.0
@@ -82,6 +83,10 @@ public:
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
 
+    void mousePressEvent(QMouseEvent * event);
+    void mouseMoveEvent(QMouseEvent *event);
+    void wheelEvent ( QWheelEvent * event );
+
     virtual ~GLWidget();
 public slots:
 	///returns true on success
@@ -110,6 +115,9 @@ private:
     PG::UTIL::mat4 modelMatrix;
 	PG::UTIL::mat4 viewMatrix;
 	PG::UTIL::mat4 perspectiveMatrix;
+
+	PG::UTIL::ivec2 m_mouse;
+	float m_scale = 400;
 
     PG::GL::Plane m_spriteGeometry;
     PG::GL::LinePath m_spriteOutline;
@@ -335,7 +343,7 @@ private:
 			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
 
-			modelmat = positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(cut, key)*anchorOffsetMat(cut,key);
+			modelmat = PG::UTIL::translation(0.0f, 0.0f, 0.2f) * positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(cut, key)*anchorOffsetMat(cut,key);
 			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 
