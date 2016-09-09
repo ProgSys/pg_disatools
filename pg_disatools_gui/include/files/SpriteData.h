@@ -28,6 +28,8 @@
 #include <pg/util/PG_Image.h>
 #include <vector>
 
+typedef QList<QColor> QColorTable;
+
 class Cutout: public QObject{
 	Q_OBJECT
     Q_PROPERTY(bool isExternalSheet 			READ isExternalSheet NOTIFY onExternalSheetIDChanged)
@@ -131,8 +133,11 @@ class Keyframe: public QObject
 	Q_PROPERTY(short offsety 				READ getOffsetY WRITE setOffsetY NOTIFY onOffsetYChanged)
 
 	Q_PROPERTY(short rotation 				READ getRotation WRITE setRotation NOTIFY onRotationChanged)
-	Q_PROPERTY(int mirror 		READ getMirror WRITE setMirror NOTIFY onMirrorChanged)
-	Q_PROPERTY(int unknown 		READ getUnknown WRITE setUnknown NOTIFY onUnknownChanged)
+	Q_PROPERTY(int transparency		READ getTransparency WRITE setTransparency NOTIFY onTransparencyChanged)
+	Q_PROPERTY(int mic 		READ getMic WRITE setMic NOTIFY onMicChanged)
+	Q_PROPERTY(bool mirroredHorizontally 	READ isMirroredHorizontally WRITE setMirroredHorizontally NOTIFY horizontalMirrorChanged)
+	Q_PROPERTY(bool mirroredVertically 		READ isMirroredVertically WRITE setMirroredVertically NOTIFY verticalMirrorChanged)
+	Q_PROPERTY(bool adaptive 		READ isAdaptive WRITE setAdaptive NOTIFY adaptiveChanged)
 
 	Q_PROPERTY(bool selected 		READ isSelected WRITE setSelected NOTIFY onSelectionChanged)
 
@@ -145,12 +150,12 @@ public:
     explicit Keyframe(Keyframe* previousIn, int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
-			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent = 0);
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char transparencyIn, unsigned char micIn, QObject *parent = 0);
 
     explicit Keyframe(int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
-			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent = 0);
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char transparencyIn, unsigned char micIn, QObject *parent = 0);
     Keyframe(const Keyframe& keyframe);
     virtual ~Keyframe();
 
@@ -159,7 +164,7 @@ public:
     bool isSame(unsigned int cutoutIDIn, unsigned char colortableIDIn,
     		short anchorxIn, short anchoryIn,
 			unsigned short scalexIn, unsigned short scaleyIn,
-			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown) const;
+			short offsetxIn, short offsetyIn, short rotationIn, unsigned char transparencyIn, unsigned char micIn) const;
 
 
     //getters
@@ -180,9 +185,13 @@ public:
     short getOffsetY() const;
 
     short getRotation() const;
-    unsigned char getMirror() const;
+    unsigned char getTransparency() const;
 
-    unsigned char getUnknown() const;
+    //mirror and render mods
+    unsigned char getMic() const;
+    bool isMirroredHorizontally() const;
+    bool isMirroredVertically() const;
+    bool isAdaptive() const;
 
     Keyframe* getNext();
     const Keyframe* getNext() const;
@@ -212,9 +221,12 @@ public:
     void setOffsetY(short offsetyIn);
 
     void setRotation(short rotationIn);
-    void setMirror(unsigned char mirrorIn);
+    void setTransparency(unsigned char transparencyIn);
 
-    void setUnknown(unsigned char unknowIn);
+    void setMic(unsigned char micIn);
+    void setMirroredHorizontally(bool mirrored);
+    void setMirroredVertically(bool mirrored);
+    void setAdaptive(bool addaptive);
 
     void setSelected(bool select);
 
@@ -238,9 +250,13 @@ signals:
     void onOffsetYChanged();
 
     void onRotationChanged();
-    void onMirrorChanged();
 
-    void onUnknownChanged();
+    void onTransparencyChanged();
+    void onMicChanged();
+
+    void horizontalMirrorChanged();
+    void verticalMirrorChanged();
+    void adaptiveChanged();
 
     void onSelectionChanged();
 
@@ -264,8 +280,8 @@ private:
 	short m_offsety = 0; // offset from the anchor
 	short m_rotation = 0; // is degree
 
-	unsigned char m_mirror = 0;
-	unsigned char m_unknown = 0;
+	unsigned char m_transparency = 128;
+	unsigned char m_mic = 0;
 
 	bool m_selected = false;
 
@@ -504,7 +520,7 @@ public:
 	SpriteAnimation* getCurrentAnimation();
 	const SpriteAnimation* getCurrentAnimation() const;
 	const QList<Cutout*>& getCutouts() const;
-	const QList<QColor>& getColortable() const;
+	const QColorTable& getColortable() const;
 	const QList<SpriteSheet*>& getSpriteSheets() const;
 
 	std::vector<PG::UTIL::rgba> getColortableGL() const;
@@ -591,7 +607,7 @@ private:
 	int m_currentAnimation = -1;
 	QList<SpriteAnimation*> m_aniamtions;
 	QList<Cutout*> m_cutouts;
-	QList<QColor> m_colortable;
+	QColorTable m_colortable;
 
 	QList<SpriteSheet*> m_spriteSheets;
 

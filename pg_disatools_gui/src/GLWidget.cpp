@@ -48,6 +48,7 @@ bool GLWidget::spriteShader::bind(){
     sizeLoc = getUniformLocation("size");
     mirrorLoc = getUniformLocation("mirror");
     colorTableStartLoc = getUniformLocation("colortableStart");
+    alphaMultLoc = getUniformLocation("alphaMult");
 
     PG::GL::Shader::release();
     return true;
@@ -61,6 +62,7 @@ void GLWidget::spriteShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::
 	PG::GL::Shader::setUniform(projectionMatrixLoc, perspectiveMatrix);
     PG::GL::Shader::setUniform( idtextureLoc, 0);
     PG::GL::Shader::setUniform( colorTableLoc, 1);
+    PG::GL::Shader::setUniform(alphaMultLoc, 1.0f);
 }
 
 bool GLWidget::objectShader::bind(){
@@ -345,13 +347,24 @@ void GLWidget::paintGL(){
     		if(keyframe){
         		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
     					continue;
-        		//if(keyframe->isSelected()) continue;
-        		//PG_INFO_STREAM("Render Keyframe!");
+
+        		if(keyframe->isAdaptive()){
+        			//http://www.andersriggelsen.dk/glblendfunc.php
+        			//glEnable(GL_BLEND);
+        			glBlendFunc(GL_SRC_ALPHA, GL_DST_ALPHA);
+        			glBlendEquation(GL_FUNC_ADD);
+        		}
+
     			m_animationInfo.setCurrentModelMat(modelMatrix, keyframe);
     			m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
         		m_animationInfo.setUniforms(m_spriteShader, keyframe);
         		m_animationInfo.apply(keyframe);
         		m_spriteGeometry.apply();
+
+        		if(keyframe->isAdaptive())
+        			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
 
         		if(keyframe->isSelected()){
         			//glDisable(GL_DEPTH_TEST);
@@ -365,6 +378,7 @@ void GLWidget::paintGL(){
         	        m_spriteGeometry.apply();
         	        //glEnable(GL_DEPTH_TEST);
         		}
+
     		}
     	}
 

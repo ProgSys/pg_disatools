@@ -184,3 +184,12 @@
           * added support for unicode strings, 'unicode(bytes, [number of them])'
           * you now can specify the column as a index, example: "$1" or "$1-42"(from 1 to 42)
 	  * Added .DEF files for CHAR_C.DEF, CHAR_K.DEF, CHARHELP.DEF, HABIT.DEF, MAGIC.DEF and MUSICSHOP.DEF
+
+===  9.09.2016 - v0.6.1 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.6 alpha:
+	- added support for sprite mirror (horizontall/verticall)
+	- added support for sprite blend render mode
+  * Data Editor v0.0.5 alpha:
+	- nothing

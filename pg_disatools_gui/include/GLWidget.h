@@ -140,13 +140,13 @@ private:
     	int projectionMatrixLoc = -1;
     	int modelMatrixLoc = -1;
 
-
     	int spriteSizeLoc = -1;
     	int startLoc = -1;
     	int sizeLoc = -1;
     	int mirrorLoc = -1;
 
     	int colorTableStartLoc = -1;
+    	int alphaMultLoc = -1;
 
     	int idtextureLoc = -1;
     	int colorTableLoc = -1;
@@ -344,9 +344,7 @@ private:
 			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
 
-			 //if(cut->isExternalSheet())
-				 //shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(externalSheet->getWidth(), externalSheet->getHeight()));
-			 //else
+
 			shader.setUniform(shader.spriteSizeLoc, PG::UTIL::vec2(cut->getWidth(), cut->getHeight()));
 			shader.setUniform(shader.startLoc, PG::UTIL::vec2(cut->getX(), cut->getY()));
 
@@ -358,31 +356,12 @@ private:
 				shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(sheet->getWidth(), sheet->getHeight()));
 			 }
 
-			//PG_INFO_STREAM("start: "<<cut->getX()<<", "<< cut->getY()<<" spriteSize: "<<cut->getWidth()<<", "<< cut->getHeight()<<" size: "<<sheet->getWidth()<<", "<< sheet->getHeight()  );
+			 //mirror
+			// qDebug()<< "Mirror: "<<key->isMirroredVertically()<<", "<<key->isMirroredHorizontally();
+			 shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2( key->isMirroredVertically(), key->isMirroredHorizontally()));
+			 //transparency
+			 shader.setUniform(shader.alphaMultLoc, key->getTransparency()/128.0f);
 
-			//PG_INFO_STREAM("mirror: "<<(int)key->getMirror()<<" - "<<std::bitset<8>(key->getMirror()) );
-
-			//shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2( (key->getMirror() & 0x08)? 1: 0, (key->getMirror() & 0x04)? 1: 0));
-
-			/*
-			if(lay->getMirror() == 25)
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 0));
-			else if(lay->getMirror() == 38 )
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 1));
-			else if(lay->getMirror() == 51 )
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 1));
-			else
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
-
-			if(lay->getMirror() == 1  )
-
-			else if(lay->getMirror() == 25 )
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(1, 1));
-			else if(lay->getMirror() == 38 )
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 1));
-			else
-				shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(0, 0));
-			*/
 			//set colortable
 			if(cut->isExternalSheet()){
 				shader.setUniform(shader.colorTableStartLoc, (int)0);

@@ -193,14 +193,14 @@ Keyframe::Keyframe(QObject *parent):QObject(parent){
 Keyframe::Keyframe(Keyframe* previousIn, int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
-		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent):
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char transparencyIn, unsigned char micIn, QObject *parent):
 					QObject(parent),
 					m_start(startIn), m_duration(durationIn),
 					m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
 					m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
 					m_scalex(scalexIn) ,m_scaley(scaleyIn),
 					m_offsetx(offsetxIn), m_offsety(offsetyIn),
-					m_rotation(rotationIn), m_mirror(mirrorIn), m_unknown(unknown),
+					m_rotation(rotationIn), m_transparency(transparencyIn), m_mic(micIn),
 					m_previous(previousIn)
 		{
 			if(previousIn && m_start < previousIn->getEnd())
@@ -210,14 +210,14 @@ Keyframe::Keyframe(Keyframe* previousIn, int startIn, int durationIn, unsigned i
 Keyframe::Keyframe(int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
-		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, QObject *parent):
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char transparencyIn, unsigned char micIn, QObject *parent):
 			QObject(parent),
 			m_start(startIn), m_duration(durationIn),
 			m_cutoutID(cutoutIDIn), m_colortableID(colortableIDIn),
 			m_anchorx(anchorxIn),m_anchory(anchoryIn) ,
 			m_scalex(scalexIn) ,m_scaley(scaleyIn),
 			m_offsetx(offsetxIn), m_offsety(offsetyIn),
-			m_rotation(rotationIn), m_mirror(mirrorIn), m_unknown(unknown)
+			m_rotation(rotationIn), m_transparency(transparencyIn), m_mic(micIn)
 		{}
 
 Keyframe::Keyframe(const Keyframe& keyframe): QObject(keyframe.parent()),
@@ -226,7 +226,7 @@ Keyframe::Keyframe(const Keyframe& keyframe): QObject(keyframe.parent()),
 		m_anchorx(keyframe.getAnchorX()),m_anchory(keyframe.getAnchorY()) ,
 		m_scalex(keyframe.getScaleX()) ,m_scaley(keyframe.getScaleY()),
 		m_offsetx(keyframe.getOffsetX()), m_offsety(keyframe.getOffsetY()),
-		m_rotation(keyframe.getRotation()), m_mirror(keyframe.getMirror()), m_unknown(keyframe.getUnknown()),
+		m_rotation(keyframe.getRotation()), m_transparency(keyframe.getTransparency()), m_mic(keyframe.getMic()),
 		m_previous(const_cast<Keyframe*>(keyframe.getPrevious())), m_next(const_cast<Keyframe*>(keyframe.getNext()))
 		{}
 
@@ -245,10 +245,10 @@ void Keyframe::operator =(const Keyframe& keyframe){
 	setOffsetX(keyframe.getOffsetX());
 	setOffsetY(keyframe.getOffsetY());
 
-	setUnknown(keyframe.getUnknown());
 	setRotation(keyframe.getRotation());
+	setTransparency(keyframe.getTransparency());
+	setMic(keyframe.getMic());
 
-	setMirror(keyframe.getMirror());
 	setPrevious(const_cast<Keyframe*> (keyframe.getPrevious()));
 	setNext(const_cast<Keyframe*> (keyframe.getNext()));
 }
@@ -258,20 +258,20 @@ bool Keyframe::operator ==(const Keyframe* keyframe) const{
 			&& m_anchorx == keyframe->getAnchorX() && m_anchory == keyframe->getAnchorY()
 			&& m_scalex == keyframe->getScaleX() && m_scaley == keyframe->getScaleY()
 			&& m_offsetx == keyframe->getOffsetX() && m_offsety == keyframe->getOffsetY()
-			&& m_rotation == keyframe->getRotation() && m_unknown == keyframe->getUnknown()
-			&& m_mirror == keyframe->getMirror();
+			&& m_rotation == keyframe->getRotation() && m_transparency == keyframe->getTransparency()
+			&& m_mic == keyframe->getMic();
 }
 
 bool Keyframe::isSame(unsigned int cutoutIDIn, unsigned char colortableIDIn,
 		short anchorxIn, short anchoryIn,
 		unsigned short scalexIn, unsigned short scaleyIn,
-		short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown) const{
+		short offsetxIn, short offsetyIn, short rotationIn, unsigned char transparencyIn, unsigned char micIn) const{
 	return  m_cutoutID == cutoutIDIn && m_colortableID == colortableIDIn
 			&& m_anchorx == anchorxIn && m_anchory == anchoryIn
 			&& m_scalex == scalexIn && m_scaley == scaleyIn
 			&& m_offsetx == offsetxIn && m_offsety == offsetyIn
 			&& m_rotation == rotationIn
-			&& m_unknown == unknown && m_mirror == mirrorIn;
+			&& m_transparency == transparencyIn && m_mic == micIn;
 }
 
 //getters
@@ -319,12 +319,24 @@ short Keyframe::getOffsetY() const{
 short Keyframe::getRotation() const{
 	return m_rotation;
 }
-unsigned char Keyframe::getMirror() const{
-	return m_mirror;
+unsigned char Keyframe::getTransparency() const{
+	return m_transparency;
 }
 
-unsigned char Keyframe::getUnknown() const{
-	return m_unknown;
+unsigned char Keyframe::getMic() const{
+	return m_mic;
+}
+
+bool Keyframe::isMirroredHorizontally() const{
+	return m_mic & 0x10;
+}
+
+bool Keyframe::isMirroredVertically() const{
+	return m_mic & 0x08;
+}
+
+bool Keyframe::isAdaptive() const{
+	return m_mic & 0x04;
 }
 
 Keyframe* Keyframe::getNext(){
@@ -488,16 +500,40 @@ void Keyframe::setRotation(short rotationIn){
 	m_rotation = rotationIn;
 	emit onRotationChanged();
 }
-void Keyframe::setMirror(unsigned char mirrorIn){
-	if(mirrorIn == m_mirror) return;
-	m_mirror = mirrorIn;
-	emit onMirrorChanged();
+void Keyframe::setTransparency(unsigned char transparencyIn){
+	if(transparencyIn == m_transparency) return;
+	m_transparency = transparencyIn;
+	emit onTransparencyChanged();
 }
 
-void Keyframe::setUnknown(unsigned char unknowIn){
-	if(unknowIn == m_unknown) return;
-	m_unknown = unknowIn;
-	emit onUnknownChanged();
+void Keyframe::setMic(unsigned char micIn){
+	if(micIn == m_mic) return;
+	m_mic = micIn;
+	emit onMicChanged();
+	emit horizontalMirrorChanged();
+	emit verticalMirrorChanged();
+	emit adaptiveChanged();
+}
+
+void Keyframe::setMirroredHorizontally(bool mirrored){
+	if(isMirroredHorizontally() == mirrored) return;
+	m_mic ^= 0x10;
+	emit onMicChanged();
+	emit horizontalMirrorChanged();
+}
+
+void Keyframe::setMirroredVertically(bool mirrored){
+	if(isMirroredVertically() == mirrored) return;
+	m_mic ^= 0x08;
+	emit onMicChanged();
+	emit verticalMirrorChanged();
+}
+
+void Keyframe::setAdaptive(bool addaptive){
+	if(isAdaptive() == addaptive) return;
+	m_mic ^= 0x04;
+	emit onMicChanged();
+	emit adaptiveChanged();
 }
 
 void Keyframe::setSelected(bool select){
@@ -521,8 +557,8 @@ bool Keyframe::swapNext(){
 	const short offsety =  m_next->getOffsetY();
 	const short rotation =  m_next->getRotation();
 
-	const unsigned char mirror = m_next->getMirror();
-	const unsigned char unknown = m_next->getUnknown();
+	const unsigned char trans = m_next->getTransparency();
+	const unsigned char mic  = m_next->getMic();
 
 	//copy them over
 	m_next->setCutoutID(m_cutoutID);
@@ -536,8 +572,8 @@ bool Keyframe::swapNext(){
 	m_next->setOffsetY(m_offsety);
 	m_next->setRotation(m_rotation);
 
-	m_next->setMirror(m_mirror);
-	m_next->setUnknown(m_unknown);
+	m_next->setTransparency(m_transparency);
+	m_next->setMic(m_mic);
 
 	//copy buffer values
 	setCutoutID(cutoutID);
@@ -551,8 +587,8 @@ bool Keyframe::swapNext(){
 	setOffsetY(offsety);
 	setRotation(m_rotation);
 
-	setMirror(mirror);
-	setUnknown(unknown);
+	setTransparency(trans);
+	setMic(mic);
 
 	return true;
 }
@@ -572,8 +608,8 @@ bool Keyframe::swapPrevious(){
 	const short offsety =  m_previous->getOffsetY();
 	const short rotation =  m_previous->getRotation();
 
-	const unsigned char mirror = m_previous->getMirror();
-	const unsigned char unknown = m_previous->getUnknown();
+	const unsigned char trans = m_previous->getTransparency();
+	const unsigned char mic  = m_previous->getMic();
 
 	//copy them over
 	m_previous->setCutoutID(m_cutoutID);
@@ -587,8 +623,8 @@ bool Keyframe::swapPrevious(){
 	m_previous->setOffsetY(m_offsety);
 	m_previous->setRotation(m_rotation);
 
-	m_previous->setMirror(m_mirror);
-	m_previous->setUnknown(m_unknown);
+	m_previous->setTransparency(m_transparency);
+	m_previous->setMic(m_mic);
 
 	//copy buffer values
 	setCutoutID(cutoutID);
@@ -602,8 +638,8 @@ bool Keyframe::swapPrevious(){
 	setOffsetY(offsety);
 	setRotation(m_rotation);
 
-	setMirror(mirror);
-	setUnknown(unknown);
+	setTransparency(trans);
+	setMic(mic);
 
 	return true;
 }
@@ -806,7 +842,7 @@ bool Layer::splitKeyframe(int frame){
 					key->getAnchorX(), key->getAnchorY(),
 					key->getScaleX(), key->getScaleY(),
 					key->getOffsetX(), key->getOffsetY(),
-					key->getRotation(), key->getMirror(), key->getUnknown());
+					key->getRotation(), key->getTransparency(), key->getMic());
 
 
 			Keyframe* after = key->getNext();
@@ -1704,8 +1740,8 @@ bool SpriteData::save(const QString& file){
 				out << (qint16) key->getScaleY();
 
 				out << (qint16) key->getRotation();
-				out << (qint16) key->getMirror();
-				out << (qint16) key->getUnknown();
+				out << (qint16) key->getTransparency();
+				out << (qint16) key->getMic();
 			}
 		}
 
@@ -1857,7 +1893,7 @@ bool SpriteData::importSH(const QString& file){
 						currCutout.anchorx,currCutout.anchory,
 						currCutout.scalex, currCutout.scaley,
 						currCutout.offsetx, currCutout.offsety,
-						currCutout.rotation, currCutout.mirror, currCutout.unkown0);
+						currCutout.rotation, currCutout.transparency, currCutout.mic);
 
 				layerCount++;
 			}
@@ -2006,8 +2042,8 @@ bool SpriteData::exportSH(const QString& file){
 				shCut.offsety  = key->getOffsetY();
 				shCut.rotation = key->getRotation();
 
-				shCut.mirror = key->getMirror();
-				shCut.unkown0 = key->getUnknown();
+				shCut.transparency = key->getTransparency();
+				shCut.mic = key->getMic();
 
 				sh.getCutouts().push_back(shCut);
 			}
@@ -2307,7 +2343,9 @@ bool SpriteData::importSpriteAsColor(int cutoutID){
 	return false;
 }
 
-inline int findColorIndex(const Cutout* cut, const QList<QColor>& colortable, const QColor& color, int alpha, int colortableSize){
+
+
+inline int findColorIndex(const Cutout* cut, const QColorTable& colortable, const QColor& color, int alpha, int colortableSize = 16){
 	for(unsigned int i = cut->getDefaultColorTable()*colortableSize; i < colortable.size(); i++){
 		const QColor& comparecolor = colortable[i];
 
@@ -2316,6 +2354,37 @@ inline int findColorIndex(const Cutout* cut, const QList<QColor>& colortable, co
 			return i;
 	}
 	return -1;
+}
+
+inline bool compareColorTables(const Cutout* cut, int colortableSize , const QColorTable& colorTable, const QColorTable& compareTable){
+	for(const QColor& rgba: colorTable){
+		if(findColorIndex(cut, compareTable, rgba, rgba.alpha(), colortableSize) < 0) return false;
+	}
+	return true;
+}
+
+inline QColorTable buildColorTable(const QImage& image){
+	QColorTable table;
+
+	for(int y = 0; y < image.height(); y++)
+		for(int x = 0;  x < image.width(); x++){
+			QColor col(image.pixel(x,y));
+			int alpha = qAlpha(image.pixel(x, y));
+
+			bool found = false;
+			for(const QColor& rgba: table){
+				if(alpha == 0 && rgba.alpha() == 0){
+					found = true;
+					break;
+				}
+				if(rgba.red() == col.red() && rgba.green() == col.green() && rgba.blue() == col.blue() && rgba.alpha() == alpha){
+					found = true;
+					break;
+				}
+			}
+			if(!found ) table.push_back(QColor(col.red(), col.green(), col.blue(), alpha));
+		}
+	return table;
 }
 
 bool SpriteData::importSpriteAsColor(int cutoutID, const QString& file){
@@ -2327,6 +2396,31 @@ bool SpriteData::importSpriteAsColor(int cutoutID, const QString& file){
 	QImage newColorCutout(file);
 	const int imageSize = (newColorCutout.width()*newColorCutout.height());
 	if(imageSize <= 0) return false;
+
+	QColorTable newTable = buildColorTable(newColorCutout);
+	if(newTable.size() >= sheet->getSizeOfColorTable()){
+		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
+						"Given color image has more colors than the sprite sheet supports! ("+QString::number(newTable.size())+")",
+					 QMessageBox::Ok);
+		return false;
+	}
+
+	if(!compareColorTables(cut, 16, newTable, m_colortable)){
+		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Continue?",
+					"Given color image uses a color that is not inside the color table! Should the colors be insert into the color table?",
+				 QMessageBox::Yes|QMessageBox::Cancel);
+		if(reply == QMessageBox::Yes){
+			for(unsigned int i = 0; i < newTable.size(); i++){
+				unsigned int offset = i+ cut->getDefaultColorTable()*16;
+				m_colortable[offset] = newTable[i];
+			}
+			emit colortableChanged();
+		}else{
+			return false;
+		}
+	}
+
+
 
 	PG::UTIL::IDImage idImage(newColorCutout.width(), newColorCutout.height());
 	for(int y = 0; y < newColorCutout.height(); y++)
@@ -2398,8 +2492,8 @@ bool SpriteData::dump(const QString& filepath){
 					out<<"\n\t\t\t\tScaleY: "<<key->getScaleY();
 
 					out<<"\n\t\t\t\tRotation: "<<key->getRotation();
-					out<<"\n\t\t\t\tMirror: "<<(int)key->getMirror();
-					out<<"\n\t\t\t\tUnknown: "<<(int)key->getUnknown();
+					out<<"\n\t\t\t\tTransparency: "<<(int)key->getTransparency();
+					out<<"\n\t\t\t\tMic: "<<(int)key->getMic();
 
 					out<<"\n\t\t\t\tCutout:";
 					const Cutout* cut = m_cutouts[key->getCutoutID()];

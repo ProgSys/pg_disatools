@@ -232,8 +232,8 @@ bool SH::open(const PG::UTIL::File& file){
 		 dump << " * sheet: "<< (int)cut.sheet<<"\n";
 		 dump << " * external_sheet: "<< (int)cut.external_sheet<<"\n";
 		 dump << " * colortable: "<< (int)cut.colortable<<"\n";
-		 dump << " * mirror: "<< (int)cut.mirror<<"\n";
-		 dump << " * unkown0: "<< (int)cut.unkown0<<"\n";
+		 dump << " * transparency: "<< (int)cut.transparency<<"\n";
+		 dump << " * mic: "<< (int)cut.mic<<"\n";
 		 dump << " * x: "<< cut.x<<"\n";
 		 dump << " * y: "<< cut.y<<"\n";
 		 dump << " * width: "<< cut.width<<"\n";

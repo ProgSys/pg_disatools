@@ -101,8 +101,8 @@ typedef struct
 	short offsety; // offset from the anchor
 	short rotation; // is degree
 
-	unsigned char mirror; //not confirmed
-	unsigned char unkown0; //not confirmed
+	unsigned char transparency;
+	unsigned char mic; //mirror, rendermode
 
 } __attribute__((packed, aligned(1))) shfileCutout;
 
