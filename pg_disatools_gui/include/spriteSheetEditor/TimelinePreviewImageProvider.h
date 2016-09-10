@@ -20,7 +20,7 @@
 
 #include <QImage>
 #include <QQuickImageProvider>
-#include <files/SpriteData.h>
+#include <spriteSheetEditor/SpriteData.h>
 
 
 class TimelinePreviewImageProvider : public QQuickImageProvider{

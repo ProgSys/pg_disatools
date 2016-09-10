@@ -13,7 +13,7 @@
 #include <QWidget>
 #include <QDialog>
 #include <QValidator>
-#include <files/SpriteData.h>
+#include <spriteSheetEditor/SpriteData.h>
 #include <QString>
 
 class CreateNewAnimation: public QDialog, public Ui::NewAnimationDialog {

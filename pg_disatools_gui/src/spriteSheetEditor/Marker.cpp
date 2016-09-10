@@ -15,9 +15,8 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#include <files/Marker.h>
+#include <spriteSheetEditor/Marker.h>
 #include <pg/util/PG_Exception.h>
-
 
 ////// MARKER //////
 

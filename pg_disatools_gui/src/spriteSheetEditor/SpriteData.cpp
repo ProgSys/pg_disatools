@@ -15,7 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#include <files/SpriteData.h>
+#include <spriteSheetEditor/SpriteData.h>
 #include <QException>
 #include <pg/files/PG_SH.h>
 #include <pg/files/PG_ImageFiles.h>
@@ -25,6 +25,7 @@
 #include <QMessageBox>
 #include <QFileDialog>
 #include <spriteSheetEditor/CreateEmptySpriteSheet.h>
+#include <pg/util/PG_Exception.h>
 
 Cutout::Cutout(QObject *parent): QObject(parent){
 

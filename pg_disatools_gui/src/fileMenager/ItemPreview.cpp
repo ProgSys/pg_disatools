@@ -16,7 +16,7 @@
  *	or http://www.gnu.org/licenses/
  */
 
-#include "ItemPreview.h"
+#include "fileMenager/ItemPreview.h"
 #include <QMenu>
 #include <QDebug>
 #include <QContextMenuEvent>

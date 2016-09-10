@@ -49,6 +49,7 @@ QT5_WRAP_UI(UIEnterValueSrcs ui/entervaluedialog.ui)
 QT5_WRAP_UI(UICreateNewSpriteSrcs ui/createNewSpriteSheet.ui)
 QT5_WRAP_UI(UISreateNewAnimationSrcs ui/createNewAnimation.ui)
 QT5_WRAP_UI(UIDataEditor ui/dataEditor.ui)
+QT5_WRAP_UI(UIMapEditor ui/mapEditor.ui)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")
@@ -68,6 +69,13 @@ if(MINGW)
 SET(DATA_EDITOR_EXE_SRCS ${DATA_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/data_editor_icon.res")
 message (STATUS "Data editor icon File: ${DATA_EDITOR_EXE_SRCS} ")
 endif(MINGW)
+
+SET(MAP_EDITOR_EXE_SRCS "")
+if(MINGW)
+SET(MAP_EDITOR_EXE_SRCS ${MAP_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/map_editor_icon.res")
+message (STATUS "Map editor icon File: ${MAP_EDITOR_EXE_SRCS} ")
+endif(MINGW)
+
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	message (STATUS "DEBUG is ON")
@@ -102,32 +110,21 @@ message (STATUS "Project binary dir: ${PROJECT_BINARY_DIR}")
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 
 #===============================================
-#   PG_QT
+#   pg_disatools_gui Files
 #===============================================
-file(GLOB PG_QT_SRC
+file(GLOB PG_FILE_MENEGER_SRC
 	#"*.cpp"
 	"src/*.cpp"
 	"src/util/*.cpp"
-	"src/openGL/*.cpp"
-	"src/files/*.cpp"
-	"src/spriteSheetEditor/*.cpp"
-	"src/dataEditor/*.cpp"
+	"src/fileMenager/*.cpp"
 )
 
-file(GLOB PG_QT_HEADERS
+file(GLOB PG_FILE_MENEGER_HEADERS
 	#"*.h"
 	"include/*.h"
 	"include/util/*.h"
-	"include/openGL/*.h"
-	"include/files/*.h"
-	"include/spriteSheetEditor/*.h"
-	"include/dataEditor/*.h"
+	"include/fileMenager/*.h"
 )
-
-GroupSources("include/pg")
-GroupSources("src/pg")
-
-message (${PG_QT_SRC})
 
 #===============================================
 # pg_disatools_gui
@@ -135,20 +132,20 @@ message (${PG_QT_SRC})
 if(DEBUG_COMPILE)
 add_executable( 
 	pg_disatools_gui
-		"main.cpp"
-		${PG_QT_HEADERS}
-		${PG_QT_SRC}
-		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs} ${UIEnterValueSrcs}
+		"fileManager.cpp"
+		${PG_FILE_MENEGER_HEADERS}
+		${PG_FILE_MENEGER_SRC}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}  ${UIEnterValueSrcs}
 		
 )
 else()
 add_executable( 
 	pg_disatools_gui
 		WIN32
-		"main.cpp"
-		${PG_QT_HEADERS}
-		${PG_QT_SRC}
-		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs} ${UISpriteSheetEditorSrcs} ${UIEnterValueSrcs}
+		"fileManager.cpp"
+		${PG_FILE_MENEGER_HEADERS}
+		${PG_FILE_MENEGER_SRC}
+		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}  ${UIEnterValueSrcs}
 		
 )
 endif()
@@ -159,14 +156,30 @@ target_link_libraries(
 	${GLEW_LIBRARY}
 	
 	Qt5::Widgets
-	Qt5::OpenGL
-	Qt5::Qml
-	Qt5::Quick
-	Qt5::QuickWidgets
+	#Qt5::OpenGL
 	${PG_DISATOOLS_LIBRARY}
 	${sim_EXE_SRCS}
 )
 
+
+#===============================================
+#   pg_sprite_editor Files
+#===============================================
+file(GLOB PG_SPRITE_EDITOR_SRC
+	#"*.cpp"
+	"src/*.cpp"
+	"src/util/*.cpp"
+	"src/openGL/*.cpp"
+	"src/spriteSheetEditor/*.cpp"
+)
+
+file(GLOB PG_SPRITE_EDITOR_HEADERS
+	#"*.h"
+	"include/*.h"
+	"include/util/*.h"
+	"include/openGL/*.h"
+	"include/spriteSheetEditor/*.h"
+)
 
 #===============================================
 # pg_sprite_editor
@@ -176,9 +189,9 @@ if(DEBUG_COMPILE)
 add_executable( 
 	pg_sprite_editor
 		"spriteEditor.cpp"
-		${PG_QT_HEADERS}
-		${PG_QT_SRC}
-		${MOCSrcs} ${UIDataEditor} 
+		${PG_SPRITE_EDITOR_HEADERS}
+		${PG_SPRITE_EDITOR_SRC}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
 		
 )
 else()
@@ -186,9 +199,9 @@ add_executable(
 	pg_sprite_editor
 		WIN32
 		"spriteEditor.cpp"
-		${PG_QT_HEADERS}
-		${PG_QT_SRC}
-		${MOCSrcs} ${UIDataEditor} 
+		${PG_SPRITE_EDITOR_HEADERS}
+		${PG_SPRITE_EDITOR_SRC}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs} 
 		
 )
 endif()
@@ -208,6 +221,23 @@ target_link_libraries(
 )
 
 #===============================================
+#   pg_data_editor Files
+#===============================================
+file(GLOB PG_DATA_EDITOR_SRC
+	#"*.cpp"
+	"src/*.cpp"
+	"src/util/*.cpp"
+	"src/dataEditor/*.cpp"
+)
+
+file(GLOB PG_DATA_EDITOR_HEADERS
+	#"*.h"
+	"include/*.h"
+	"include/util/*.h"
+	"include/dataEditor/*.h"
+)
+
+#===============================================
 # pg_data_editor
 #===============================================
 
@@ -215,9 +245,9 @@ if(DEBUG_COMPILE)
 add_executable( 
 	pg_data_editor
 		"dataEditor.cpp"
-		${PG_QT_HEADERS}
-		${PG_QT_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
+		${PG_DATA_EDITOR_HEADERS}
+		${PG_DATA_EDITOR_SRC}
+		${MOCSrcs} ${UIDataEditor} 
 		
 )
 else()
@@ -225,9 +255,9 @@ add_executable(
 	pg_data_editor
 		WIN32
 		"dataEditor.cpp"
-		${PG_QT_HEADERS}
-		${PG_QT_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
+		${PG_DATA_EDITOR_HEADERS}
+		${PG_DATA_EDITOR_SRC}
+		${MOCSrcs} ${UIDataEditor}  
 		
 )
 endif()
@@ -238,19 +268,72 @@ target_link_libraries(
 	${GLEW_LIBRARY}
 	
 	Qt5::Widgets
-	Qt5::OpenGL
-	Qt5::Qml
-	Qt5::Quick
-	Qt5::QuickWidgets
 	${PG_DISATOOLS_LIBRARY}
 	${DATA_EDITOR_EXE_SRCS}
 )
 
 #===============================================
+#   pg_map_editor Files
+#===============================================
+file(GLOB PG_MAP_EDITOR_SRC
+	#"*.cpp"
+	"src/*.cpp"
+	"src/util/*.cpp"
+	"src/files/*.cpp"
+	"src/mapEditor/*.cpp"
+)
+
+file(GLOB PG_MAP_EDITOR_HEADERS
+	#"*.h"
+	"include/*.h"
+	"include/util/*.h"
+	"include/files/*.h"
+	"include/mapEditor/*.h"
+)
+
+#===============================================
+# pg_map_editor
+#===============================================
+
+if(DEBUG_COMPILE)
+add_executable( 
+	pg_map_editor
+		"mapEditor.cpp"
+		${PG_MAP_EDITOR_HEADERS}
+		${PG_MAP_EDITOR_SRC}
+		${MOCSrcs} ${UIMapEditor}
+		
+)
+else()
+add_executable( 
+	pg_map_editor
+		WIN32
+		"mapEditor.cpp"
+		${PG_MAP_EDITOR_HEADERS}
+		${PG_MAP_EDITOR_SRC}
+		${MOCSrcs} ${UIMapEditor} 
+		
+)
+endif()
+
+target_link_libraries(
+	pg_map_editor
+	${OpenGL3_LIBRARY}
+	${GLEW_LIBRARY}
+	Qt5::Widgets
+	Qt5::OpenGL
+	${PG_DISATOOLS_LIBRARY}
+	${MAP_EDITOR_EXE_SRCS}
+)
+
+GroupSources("include/pg")
+GroupSources("src/pg")
+#[[]]
+#===============================================
 # install pg_disatools_gui
 #===============================================
 install(
-	TARGETS pg_disatools_gui pg_sprite_editor pg_data_editor
+	TARGETS pg_disatools_gui pg_sprite_editor pg_data_editor pg_map_editor
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static

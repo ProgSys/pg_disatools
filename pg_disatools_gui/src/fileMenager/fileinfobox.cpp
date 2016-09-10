@@ -15,7 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#include "fileinfobox.h"
+#include "fileMenager/fileinfobox.h"
 #include "ui_fileinfobox.h"
 
 FileInfoBox::FileInfoBox(QWidget *parent) :

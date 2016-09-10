@@ -23,7 +23,7 @@
 #include <QString>
 #include <QMainWindow>
 #include <ui_dataEditor.h>
-#include <files/DataFile.h>
+#include <dataEditor/DataFile.h>
 
 class PreviewDAT: public DataFile  {
 	Q_OBJECT

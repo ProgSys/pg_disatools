@@ -17,7 +17,7 @@
  */
 
 
-#include "treemodel.h"
+#include "fileMenager/treemodel.h"
 
 #include <iostream>
 #include <QGraphicsPixmapItem>
@@ -35,7 +35,7 @@
 #include <pg/files/PG_FileTests.h>
 #include <pg/files/PG_IMY.h>
 
-#include <EnterValue.h>
+#include <fileMenager/EnterValue.h>
 
 inline void openProgress(QProgressDialog& progress, const QString& title = "In progress"){
 	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint ); // | Qt::WindowStaysOnTopHint

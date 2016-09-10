@@ -22,7 +22,7 @@
 #include <QList>
 #include <QObject>
 #include <QTimer>
-#include <files/SpriteData.h>
+#include <spriteSheetEditor/SpriteData.h>
 
 #define ONEFRAME_ANIMATION_SPEED 3
 

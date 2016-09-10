@@ -29,7 +29,7 @@
 #include <pg/util/PG_Exception.h>
 #include <math.h>
 
-#define DUMP_ON_OPEN true
+#define DUMP_ON_OPEN false
 
 namespace PG {
 namespace FILE {

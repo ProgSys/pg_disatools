@@ -1,5 +1,5 @@
 /*
- *  GNU Lesser General Public License (LGPL):
+mapEditor *  GNU Lesser General Public License (LGPL):
  *
  *	Copyright (C) 2016  ProgSys
  *

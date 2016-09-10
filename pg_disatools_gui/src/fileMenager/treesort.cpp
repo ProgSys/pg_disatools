@@ -16,7 +16,7 @@
  *	or http://www.gnu.org/licenses/
  */
 
-#include <treesort.h>
+#include <fileMenager/treesort.h>
 
 TreeSort::TreeSort(QObject *parent):
 QSortFilterProxyModel(parent){

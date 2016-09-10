@@ -15,7 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#include <EnterValue.h>
+#include <fileMenager/EnterValue.h>
 #include "ui_entervaluedialog.h"
 
 #include <QIntValidator>

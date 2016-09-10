@@ -16,7 +16,7 @@
  *	or http://www.gnu.org/licenses/
  */
 
-#include <include/files/ParserDAT.h>
+#include <dataEditor/ParserDAT.h>
 #include <QDataStream>
 #include <QDebug>
 #include <QFileInfo>

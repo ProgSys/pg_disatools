@@ -24,7 +24,7 @@
 #include <QDir>
 #include <QMap>
 
-#include <files/ParserDAT.h>
+#include <dataEditor/ParserDAT.h>
 
 
 

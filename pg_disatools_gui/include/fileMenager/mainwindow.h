@@ -22,8 +22,8 @@
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include <QItemSelection>
-#include "treemodel.h"
-#include "treesort.h"
+#include "fileMenager/treemodel.h"
+#include "fileMenager/treesort.h"
 
 
 namespace Ui {

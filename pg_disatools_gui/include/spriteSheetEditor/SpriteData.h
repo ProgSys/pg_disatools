@@ -18,7 +18,7 @@
 #ifndef INCLUDE_FILES_SPRITEDATA_H_
 #define INCLUDE_FILES_SPRITEDATA_H_
 
-#include <files/Marker.h>
+#include <spriteSheetEditor/Marker.h>
 #include <QList>
 #include <QObject>
 #include <QImage>

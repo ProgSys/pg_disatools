@@ -1,5 +1,5 @@
 /*
- *  GNU Lesser General Public License (LGPL):
+mapEditor *  GNU Lesser General Public License (LGPL):
  *
  *	Copyright (C) 2016  ProgSys
  *
@@ -15,13 +15,21 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_TITLEDEFINE_H_
-#define INCLUDE_TITLEDEFINE_H_
+#ifndef MAPDITOR_CPP_
+#define MAPDITOR_CPP_
 
 
-#define WINTITLE "Disa PC File Manager v0.4.8 alpha"
-#define SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.7 alpha"
-#define DATAEditorTITLE "Data Editor v0.0.5 alpha"
-#define MapEditorTITLE "Map Viewer v0.0.1 alpha"
+#include <mapEditor/MapEditor.h>
+#include <QApplication>
 
-#endif /* INCLUDE_TITLEDEFINE_H_ */
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    MapEditor w;
+    w.show();
+    return a.exec();
+}
+
+
+
+#endif /* MAPDITOR_CPP_ */

@@ -16,7 +16,7 @@
  *	or http://www.gnu.org/licenses/
  */
 
-#include "mainwindow.h"
+#include "fileMenager/mainwindow.h"
 #include <QApplication>
 
 int main(int argc, char *argv[])

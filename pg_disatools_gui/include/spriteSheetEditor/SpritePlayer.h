@@ -21,7 +21,7 @@
 #include <QObject>
 #include <spriteSheetEditor/Timeline.h>
 #include <pg/files/PG_SpriteAnimation.h>
-#include <files/SpriteData.h>
+#include <spriteSheetEditor/SpriteData.h>
 #include <spriteSheetEditor/GLSpriteWidget.h>
 
 class SpritePlayer: public QObject {

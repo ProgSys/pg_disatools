@@ -39,7 +39,7 @@
 #include <openGL/PG_Plane.h>
 #include <openGL/PG_LinePath.h>
 
-#include <files/SpriteData.h>
+#include <spriteSheetEditor/SpriteData.h>
 
 #include <pg/util/PG_MatrixUtil.h>
 #include <cmath>

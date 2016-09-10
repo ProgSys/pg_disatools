@@ -17,9 +17,9 @@
  */
 
 
-#include "mainwindow.h"
+#include "fileMenager/mainwindow.h"
 #include "ui_mainwindow.h"
-#include "fileinfobox.h"
+#include "fileMenager/fileinfobox.h"
 
 #include <QMessageBox>
 #include <QFileDialog>

@@ -24,7 +24,7 @@
 #include <QColorDialog>
 #include <QtQml>
 #include <spriteSheetEditor/Timeline.h>
-#include <files/SpriteData.h>
+#include <spriteSheetEditor/SpriteData.h>
 #include <SpriteSheetEditor/CreateNewAnimation.h>
 //#include <QShortcut>
 
