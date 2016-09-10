@@ -2710,9 +2710,10 @@ QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) c
 		return QImage("resources/external.png");
 
 	const SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
-	if(ColortableID*16+sheet->getSizeOfColorTable() >= m_colortable.size())
+	if(ColortableID*16+sheet->getSizeOfColorTable() > m_colortable.size())
 		ColortableID = 0;
-	assert_Test("Color table Index out of bound!", ColortableID*16+sheet->getSizeOfColorTable() >= m_colortable.size());
+
+	assert_Test("Color table Index out of bound!", ColortableID*16+sheet->getSizeOfColorTable() > m_colortable.size());
 
 	return sheet->getSprite(cutout,ColortableID, m_colortable);
 }

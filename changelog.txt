@@ -200,5 +200,6 @@
   * Sprite Sheet Editor v0.2.7 alpha:
 	- added mouse navigation and zoom to the GL sprite view
 	- you can reset the camera via "View > Reset camera"
+	- fixed the position marker being at the wrong place when scrolling horizontally
   * Data Editor v0.0.5 alpha:
 	- nothing
