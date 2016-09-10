@@ -27,7 +27,7 @@ You can download the latest version of the tools here:
 #### Disa PC File Manager
 
 This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.
-Note that the position of most files in .DAT is hardcoded, deleting files could break the file order and so the archive itself.
+Note that the position of most files in .DAT are hardcoded, deleting files could break the file order and so the archive itself.
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview7.png)
 

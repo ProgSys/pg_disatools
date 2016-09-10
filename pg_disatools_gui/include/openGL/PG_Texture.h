@@ -57,6 +57,8 @@ public:
 	void update(const PG::UTIL::IDImage& img);
 	void update(const std::vector<PG::UTIL::rgba>& img);
 
+	void changeType(Texture::type texType = NORMAL);
+
 	void clear();
 
 	void apply() const;

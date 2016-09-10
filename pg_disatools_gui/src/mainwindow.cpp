@@ -775,7 +775,7 @@ void MainWindow::on_btnDelete_clicked()
 
 	if(m_treeModel->getOpenedType() == "DAT"){
 		QMessageBox::StandardButton reply = QMessageBox::warning(this, "You are sure you want to delete the selected files?",
-				"The position of most files (like .TX2) is hardcoded ingame, deleting items could destroy the file order and break the archive! Continue?",
+				"The position of most files (like .TX2) are hardcoded ingame, deleting items could destroy the file order and break the archive! Continue?",
 				 QMessageBox::Yes|QMessageBox::No);
 		if(reply == QMessageBox::No) return;
 	}

@@ -241,6 +241,15 @@ void GLWidget::updateSpriteSheetRemove(int sheetID){
 	delete t;
 }
 
+void GLWidget::resetCamera(){
+	viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
+	m_scale = 400;
+	const float wf = width()/m_scale;
+	const float hf = height()/m_scale;
+	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf+0.5f, hf+0.5f, -1.f, 12.0f);
+	update();
+}
+
 void GLWidget::initializeGL(){
 	GLenum err = glewInit();
 	if(err != GLEW_OK){
@@ -312,7 +321,7 @@ void GLWidget::initializeGL(){
     m_spriteOutline.bind( PG::UTIL::vec4(0,-1.f,0,1.f), PG::UTIL::vec4(1.f,-1.f,0,1.f), PG::UTIL::vec4(1.f,0,0,1.f ), PG::UTIL::vec4(0,0,0,1.f ),  PG::UTIL::vec4(0,-1.f,0,1.f));
     m_groundGeometry.bind(PG::UTIL::vec3(-5,0,-5),PG::UTIL::vec3(0,0,10),PG::UTIL::vec3(10,0,0), 10.0f );
 
-    viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
+    resetCamera();
 
     m_animationInfo.init();
 }
@@ -451,8 +460,8 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event){
 
 		PG::UTIL::ivec2 mouseDelta = m_mouse - PG::UTIL::ivec2(event->x(),event->y());
 		//viewMatrix = viewMatrix * PG::UTIL::translation(-mouseDiff.x/1000.0f, 0.0f, -mouseDiff.y/1000.0f);
-		const PG::UTIL::vec3 vy = PG::UTIL::vec3(1,0,1)* (-mouseDelta.y/200.0f);
-		const PG::UTIL::vec3 vx = PG::UTIL::vec3(1,0,-1)* (-mouseDelta.x/200.0f);
+		const PG::UTIL::vec3 vy = PG::UTIL::vec3(1,0,1)* (-(mouseDelta.y*2)/m_scale);
+		const PG::UTIL::vec3 vx = PG::UTIL::vec3(1,0,-1)* (-(mouseDelta.x*2)/m_scale);
 		viewMatrix = viewMatrix * PG::UTIL::translation(vy+vx);
 		m_mouse.x = event->x();
 		m_mouse.y = event->y();
@@ -461,17 +470,17 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event){
 }
 
 void GLWidget::wheelEvent ( QWheelEvent * event ){
-	m_scale += event->delta()/10.0f;
+	m_scale += event->delta();///2.0f;
 
-	if(m_scale < 200.0f)
-		m_scale = 200.f;
+	if(m_scale < 250.0f)
+		m_scale = 250.f;
 
-	if(m_scale > 800.0f)
-		m_scale = 800.f;
+	if(m_scale > 900.0f)
+		m_scale = 900.f;
 
 	const float wf = width()/m_scale;
 	const float hf = height()/m_scale;
-	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf+0.5f, hf+0.5f, -1.f, 12.0f);
+	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf+0.5f, hf+0.5f, -2.f, 10.0f);
 	update();
 }
 

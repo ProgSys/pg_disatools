@@ -106,6 +106,8 @@ public slots:
 	void updateSpriteSheetAdded();
 	void updateSpriteSheetRemove(int sheetID);
 
+	void resetCamera();
+
 private:
 	//data
 	const SpriteData* m_spriteSheet;
@@ -292,6 +294,9 @@ private:
 				t->bind(spriteSheet->getSpriteSheet(), PG::GL::Texture::SPRITE);
 				spriteSheetIDTextures.push_back(t);
 			}
+
+
+			//spriteSheetIDTextures[0]->changeType();
 
 			colorTable = new PG::GL::Texture();
 			colorTable->bind(spriteData->getColortableGL(), PG::GL::Texture::SPRITE);

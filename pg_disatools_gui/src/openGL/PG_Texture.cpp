@@ -245,6 +245,15 @@ void Texture::update(const std::vector<PG::UTIL::rgba>& img){
 	}
 }
 
+void Texture::changeType(Texture::type texType){
+	if (m_GLID != INVALID_OGL_VALUE){
+		glBindTexture( GL_TEXTURE_2D, m_GLID);
+		setTexParameter(texType);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		checkGLError();
+	}
+}
+
 void Texture::clear(){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
 	m_GLID = INVALID_OGL_VALUE;
