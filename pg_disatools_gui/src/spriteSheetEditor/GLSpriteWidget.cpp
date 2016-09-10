@@ -15,8 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#include <GLWidget.h>
-
+#include <spriteSheetEditor/GLSpriteWidget.h>
 #include <QMessagebox>
 #include <QImage>
 #include <QFile>
@@ -29,7 +28,7 @@
 #include <qdebug.h>
 
 
-bool GLWidget::spriteShader::bind(){
+bool GLSpriteWidget::spriteShader::bind(){
 	const bool b = PG::GL::Shader::bind();
 	if(!b) return false;
 	PG::GL::Shader::apply();
@@ -54,7 +53,7 @@ bool GLWidget::spriteShader::bind(){
     return true;
 }
 
-void GLWidget::spriteShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+void GLSpriteWidget::spriteShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
 	PG::GL::Shader::apply();
 
 	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
@@ -65,7 +64,7 @@ void GLWidget::spriteShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::
     PG::GL::Shader::setUniform(alphaMultLoc, 1.0f);
 }
 
-bool GLWidget::objectShader::bind(){
+bool GLSpriteWidget::objectShader::bind(){
 	const bool b = PG::GL::Shader::bind();
 	if(!b) return false;
 	PG::GL::Shader::apply();
@@ -82,7 +81,7 @@ bool GLWidget::objectShader::bind(){
     return true;
 }
 
-void GLWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+void GLSpriteWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
 	PG::GL::Shader::apply();
 
 	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
@@ -91,7 +90,7 @@ void GLWidget::objectShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::
     PG::GL::Shader::setUniform( textureLoc, 0);
 }
 
-bool GLWidget::lineShader::bind(){
+bool GLSpriteWidget::lineShader::bind(){
 	const bool b = PG::GL::Shader::bind();
 	if(!b) return false;
 	PG::GL::Shader::apply();
@@ -105,7 +104,7 @@ bool GLWidget::lineShader::bind(){
     return true;
 }
 
-void GLWidget::lineShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+void GLSpriteWidget::lineShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
 	PG::GL::Shader::apply();
 
 	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
@@ -113,7 +112,7 @@ void GLWidget::lineShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UT
 	PG::GL::Shader::setUniform(projectionMatrixLoc, perspectiveMatrix);
 }
 
-bool GLWidget::displayShader::bind(){
+bool GLSpriteWidget::displayShader::bind(){
 	const bool b = PG::GL::Shader::bind();
 	if(!b) return false;
 	PG::GL::Shader::apply();
@@ -130,7 +129,7 @@ bool GLWidget::displayShader::bind(){
     return true;
 }
 
-void GLWidget::displayShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
+void GLSpriteWidget::displayShader::apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const{
 	PG::GL::Shader::apply();
 
 	PG::GL::Shader::setUniform(modelMatrixLoc, modelMatrix);
@@ -141,17 +140,17 @@ void GLWidget::displayShader::apply(const PG::UTIL::mat4& modelMatrix, const PG:
 
 
 
-GLWidget::GLWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121),m_spriteSheet(nullptr){
+GLSpriteWidget::GLSpriteWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121),m_spriteSheet(nullptr){
 }
 
-void GLWidget::setUpConnections(QWidget *parent){
+void GLSpriteWidget::setUpConnections(QWidget *parent){
 	//connect(this, SIGNAL(animationAdded( const QString& )), parent, SLOT(addAnimation( const QString& )));
 
 	//connect(this, SIGNAL(totalFrames( unsigned int )), parent, SLOT(setTotalFrames( unsigned int)));
 	//connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
 }
 
-bool GLWidget::open(const SpriteData* spriteSheet){
+bool GLSpriteWidget::open(const SpriteData* spriteSheet){
 
 	m_spriteSheet = spriteSheet;
 	if(!m_spriteSheet)
@@ -165,11 +164,11 @@ bool GLWidget::open(const SpriteData* spriteSheet){
 	return true;
 }
 
-void GLWidget::renderFrame(){
+void GLSpriteWidget::renderFrame(){
 	update();
 }
 
-void GLWidget::renderFrame(int frame){
+void GLSpriteWidget::renderFrame(int frame){
 	if(m_currentFrame == frame) return;
 
 	//is there a visual difference?
@@ -187,33 +186,33 @@ void GLWidget::renderFrame(int frame){
 	m_animationInfo.setFrame(frame);
 }
 
-void GLWidget::displayExternalReferences(bool display){
+void GLSpriteWidget::displayExternalReferences(bool display){
 	m_displayExternalReferences = display;
 	update();
 }
 
-void GLWidget::displayGround(bool display){
+void GLSpriteWidget::displayGround(bool display){
 	m_displayGround = display;
 	update();
 }
 
-void GLWidget::displayShadow(bool display){
+void GLSpriteWidget::displayShadow(bool display){
 	m_displayShadow = display;
 	update();
 }
 
-void GLWidget::setBackgroundColor(const QColor& color){
+void GLSpriteWidget::setBackgroundColor(const QColor& color){
 	m_clearcolor = color;
 	update();
 }
 
-void GLWidget::updateColortable(){
+void GLSpriteWidget::updateColortable(){
 	if(m_spriteSheet->getColortableGL().empty()) return;
 	m_animationInfo.colorTable->update(m_spriteSheet->getColortableGL());
 	update();
 }
 
-void GLWidget::updateSpriteSheet(int sheetID){
+void GLSpriteWidget::updateSpriteSheet(int sheetID){
 	if( sheetID < 0 || sheetID >= m_animationInfo.spriteSheetIDTextures.size() ) return;
 	m_animationInfo.spriteSheetIDTextures[sheetID]->update(m_spriteSheet->getSpriteSheets()[sheetID]->getSpriteSheet());
 	/*
@@ -226,7 +225,7 @@ void GLWidget::updateSpriteSheet(int sheetID){
 
 }
 
-void GLWidget::updateSpriteSheetAdded(){
+void GLSpriteWidget::updateSpriteSheetAdded(){
 	if(m_animationInfo.spriteSheetIDTextures.size() == m_spriteSheet->getSpriteSheets().size()) return;
 
 	PG::GL::Texture* t = new PG::GL::Texture();
@@ -234,14 +233,14 @@ void GLWidget::updateSpriteSheetAdded(){
 	m_animationInfo.spriteSheetIDTextures.push_back(t);
 }
 
-void GLWidget::updateSpriteSheetRemove(int sheetID){
+void GLSpriteWidget::updateSpriteSheetRemove(int sheetID){
 	if(sheetID >= m_spriteSheet->getSpriteSheets().size()) return;
 	PG::GL::Texture* t = m_animationInfo.spriteSheetIDTextures[sheetID];
 	m_animationInfo.spriteSheetIDTextures.erase(m_animationInfo.spriteSheetIDTextures.begin()+sheetID);
 	delete t;
 }
 
-void GLWidget::resetCamera(){
+void GLSpriteWidget::resetCamera(){
 	viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(1,1,1),PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,1,0));
 	m_scale = 400;
 	const float wf = width()/m_scale;
@@ -250,7 +249,7 @@ void GLWidget::resetCamera(){
 	update();
 }
 
-void GLWidget::initializeGL(){
+void GLSpriteWidget::initializeGL(){
 	GLenum err = glewInit();
 	if(err != GLEW_OK){
 		QMessageBox messageBox;
@@ -326,7 +325,7 @@ void GLWidget::initializeGL(){
     m_animationInfo.init();
 }
 
-void GLWidget::paintGL(){
+void GLSpriteWidget::paintGL(){
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glClearColor(m_clearcolor.red()/255.0,m_clearcolor.green()/255.0,m_clearcolor.blue()/255.0,1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -438,7 +437,7 @@ void GLWidget::paintGL(){
     glPopAttrib();
 }
 
-void GLWidget::resizeGL(int w, int h){
+void GLSpriteWidget::resizeGL(int w, int h){
 	//perspectiveMatrix = PG::UTIL::perspective(90.0f, w, h, 0.01f, 3.0f);
 	const float wf = w/m_scale;
 	const float hf = h/m_scale;
@@ -446,7 +445,7 @@ void GLWidget::resizeGL(int w, int h){
 
 }
 
-void GLWidget::mousePressEvent(QMouseEvent * event){
+void GLSpriteWidget::mousePressEvent(QMouseEvent * event){
 	qDebug()<< "Mouse pressed: "<<event->x()<<", "<<event->y();
 	if(event->buttons() & Qt::LeftButton){
 		m_mouse.x = event->x();
@@ -454,7 +453,7 @@ void GLWidget::mousePressEvent(QMouseEvent * event){
 	}
 }
 
-void GLWidget::mouseMoveEvent(QMouseEvent *event){
+void GLSpriteWidget::mouseMoveEvent(QMouseEvent *event){
 	if(event->buttons() & Qt::LeftButton){
 		//qDebug()<< "Mouse move: "<<event->x()<<", "<<event->y()<<" but: "<<event->buttons();
 
@@ -469,7 +468,7 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event){
 	}
 }
 
-void GLWidget::wheelEvent ( QWheelEvent * event ){
+void GLSpriteWidget::wheelEvent ( QWheelEvent * event ){
 	m_scale += event->delta();///2.0f;
 
 	if(m_scale < 250.0f)
@@ -484,7 +483,7 @@ void GLWidget::wheelEvent ( QWheelEvent * event ){
 	update();
 }
 
-GLWidget::~GLWidget() {
+GLSpriteWidget::~GLSpriteWidget() {
 	m_animationInfo.clearAll();
 }
 

@@ -25,7 +25,7 @@ SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
 	connect(m_aniData, SIGNAL( onAnimationChanged(SpriteAnimation*) ),m_timeline, SLOT( setAnimation(SpriteAnimation*) ));
 }
 
-void SpritePlayer::connectGLWidget(GLWidget *gl){
+void SpritePlayer::connectGLWidget(GLSpriteWidget *gl){
 	if(!gl) return;
 	m_glView = gl;
 	//if(m_glView) m_glView->open(m_aniData);

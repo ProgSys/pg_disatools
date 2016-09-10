@@ -193,3 +193,12 @@
 	- added support for sprite blend render mode
   * Data Editor v0.0.5 alpha:
 	- nothing
+	
+===  ??? - v0.6.2 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.7 alpha:
+	- added mouse navigation and zoom to the GL sprite view
+	- you can reset the camera via "View > Reset camera"
+  * Data Editor v0.0.5 alpha:
+	- nothing

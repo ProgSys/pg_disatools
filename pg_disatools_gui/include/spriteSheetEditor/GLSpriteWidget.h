@@ -15,8 +15,8 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_GLWIDGET_H_
-#define INCLUDE_GLWIDGET_H_
+#ifndef INCLUDE_GLSPRITEWIDGET_H_
+#define INCLUDE_GLSPRITEWIDGET_H_
 
 // Open GL
 #if __APPLE__
@@ -73,10 +73,10 @@ inline PG::UTIL::mat4 positionOffsetMat(const Keyframe* key){
 	return mat;
 }
 
-class GLWidget : public QOpenGLWidget {
+class GLSpriteWidget : public QOpenGLWidget {
 	Q_OBJECT
 public:
-	explicit GLWidget(QWidget *parent = 0);
+	explicit GLSpriteWidget(QWidget *parent = 0);
 	void setUpConnections(QWidget *parent);
 
     void initializeGL() Q_DECL_OVERRIDE;
@@ -87,7 +87,7 @@ public:
     void mouseMoveEvent(QMouseEvent *event);
     void wheelEvent ( QWheelEvent * event );
 
-    virtual ~GLWidget();
+    virtual ~GLSpriteWidget();
 public slots:
 	///returns true on success
 	bool open(const SpriteData* spriteSheet);
@@ -352,7 +352,7 @@ private:
 			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 
-		void setUniforms(GLWidget::spriteShader& shader, const Keyframe* key){
+		void setUniforms(GLSpriteWidget::spriteShader& shader, const Keyframe* key){
 			assert_Test("Key is nullptr!", !key);
 			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
@@ -467,4 +467,4 @@ private:
 
 };
 
-#endif /* INCLUDE_GLWIDGET_H_ */
+#endif /* INCLUDE_GLSPRITEWIDGET_H_ */

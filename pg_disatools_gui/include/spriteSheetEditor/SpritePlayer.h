@@ -21,14 +21,14 @@
 #include <QObject>
 #include <spriteSheetEditor/Timeline.h>
 #include <pg/files/PG_SpriteAnimation.h>
-#include <GLWidget.h>
 #include <files/SpriteData.h>
+#include <spriteSheetEditor/GLSpriteWidget.h>
 
 class SpritePlayer: public QObject {
 	Q_OBJECT
 public:
 	SpritePlayer(QWidget *parent = 0);
-	void connectGLWidget(GLWidget *gl);
+	void connectGLWidget(GLSpriteWidget *gl);
 
 	Timeline* getTimeline() const;
 
@@ -50,7 +50,7 @@ signals:
 private:
 	Timeline* m_timeline = nullptr;
 	SpriteData* m_aniData = nullptr;
-	GLWidget* m_glView = nullptr;
+	GLSpriteWidget* m_glView = nullptr;
 	int m_currentAnimation = 0;
 };
 
