@@ -105,7 +105,7 @@ struct tVector3{
 
 	tVector3(T x = 0, T y  = 0, T z = 0);
 
-	tVector3(const tVector2<T>& tvec);
+	tVector3(const tVector2<T>& tvec, T zIn = 0);
 	tVector3(const tVector3<T>& tvec);
 	tVector3(const tVector4<T>& tvec);
 	tVector3(const std::vector<T>& tvec);
@@ -160,8 +160,8 @@ struct tVector4{
 	//tVector4(): x(0),y(0), z(0), w(0) {};
 	tVector4(T x = 0, T y  = 0, T z = 0, T w = 0);
 
-	tVector4(const tVector2<T>& tvec);
-	tVector4(const tVector3<T>& tvec);
+	tVector4(const tVector2<T>& tvec, T zIn = 0, T wIn = 1);
+	tVector4(const tVector3<T>& tvec, T wIn = 1);
 	tVector4(const tVector4<T>& tvec);
 
 	unsigned int length() const;
@@ -321,6 +321,10 @@ void tVector2<T>::dump(std::ostream& o) const{
 	o<<"("<<x<<", "<<y<<")";
 }
 
+template<typename T>
+tVector2<T> operator*(T f, const tVector2<T>& tvec){
+	return tVector2<T>(f*tvec.x, f*tvec.y);
+}
 
 
 /////////////////////// VECTOR 3 DEFINITIONS ///////////////////////
@@ -328,7 +332,7 @@ template<typename T>
 tVector3<T>::tVector3(T x, T y, T z): x(x),y(y), z(z) {};
 
 template<typename T>
-tVector3<T>::tVector3(const tVector2<T>& tvec): x(tvec.x),y(tvec.y), z(0) {};
+tVector3<T>::tVector3(const tVector2<T>& tvec, T zIn): x(tvec.x),y(tvec.y), z(zIn) {};
 
 template<typename T>
 tVector3<T>::tVector3(const tVector3<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z){};
@@ -442,16 +446,21 @@ void tVector3<T>::clear(T value){
 	z = value;
 }
 
+template<typename T>
+tVector3<T> operator*(T f, const tVector3<T>& tvec){
+	return tVector3<T>(f*tvec.x, f*tvec.y, f*tvec.z);
+}
+
 
 /////////////////////// VECTOR 4 DEFINITIONS ///////////////////////
 template<typename T>
 tVector4<T>::tVector4(T x, T y, T z, T w): x(x),y(y), z(z), w(w) {};
 
 template<typename T>
-tVector4<T>::tVector4(const tVector2<T>& tvec): x(tvec.x),y(tvec.y), z(0), w(0) {};
+tVector4<T>::tVector4(const tVector2<T>& tvec, T zIn,T wIn): x(tvec.x),y(tvec.y), z(zIn), w(wIn) {};
 
 template<typename T>
-tVector4<T>::tVector4(const tVector3<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z), w(0) {};
+tVector4<T>::tVector4(const tVector3<T>& tvec,T wIn): x(tvec.x),y(tvec.y), z(tvec.z), w(wIn) {};
 
 template<typename T>
 tVector4<T>::tVector4(const tVector4<T>& tvec): x(tvec.x),y(tvec.y), z(tvec.z), w(tvec.w) {};
@@ -488,6 +497,7 @@ template<typename D>
 tVector4<T> tVector4<T>::operator*(D f) const{
 	return tVector4<T>(x*f, y*f, z*f, w*f);
 }
+
 
 template<typename T>
 template<typename D>
@@ -648,6 +658,12 @@ T const& tVector4<T>::minRGB() const{
 			return z;
 	}
 }
+
+template<typename T>
+tVector4<T> operator*(T f, const tVector4<T>& tvec){
+	return tVector4<T>(f*tvec.x, f*tvec.y, f*tvec.z, f*tvec.w);
+}
+
 /*
 template<typename T>
 void tVector4<T>::dump(std::ostream& o) const{

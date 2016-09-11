@@ -51,10 +51,19 @@
 
 int main(int argc, char* argv[]){
 	OUTSTR("Start");
+
+	PG::UTIL::vec4 v(1,2,3);
+	v = 0.4f * v;
+	v =  v * 1.4f;
+	OUTSTR(v);
+	OUTSTR("END");
+	/*
+
 	PG::FILE::MPD mpd;
 
 	mpd.open("D:/Users/ProgSys/ownCloudHome/Public/Work/Modding/Disgaea/Maps/MP00202.MPD");
 	mpd.dump("mpdDump.txt");
 
-	OUTSTR("END");
+
+	*/
 }

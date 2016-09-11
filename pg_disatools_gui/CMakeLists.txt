@@ -279,7 +279,7 @@ file(GLOB PG_MAP_EDITOR_SRC
 	#"*.cpp"
 	"src/*.cpp"
 	"src/util/*.cpp"
-	"src/files/*.cpp"
+	"src/openGL/*.cpp"
 	"src/mapEditor/*.cpp"
 )
 
@@ -287,7 +287,7 @@ file(GLOB PG_MAP_EDITOR_HEADERS
 	#"*.h"
 	"include/*.h"
 	"include/util/*.h"
-	"include/files/*.h"
+	"include/openGL/*.h"
 	"include/mapEditor/*.h"
 )
 

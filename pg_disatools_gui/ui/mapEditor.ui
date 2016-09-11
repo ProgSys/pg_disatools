@@ -30,7 +30,7 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="QOpenGLWidget" name="openGLWidget"/>
+       <widget class="GLMapWidget" name="openGLWidget"/>
       </item>
      </layout>
     </item>
@@ -239,6 +239,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>GLMapWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>mapEditor/GLMapWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

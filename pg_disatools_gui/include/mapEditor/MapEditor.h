@@ -17,6 +17,16 @@ class MapEditor: public QMainWindow, public Ui::MapEditorWindow  {
 public:
 	MapEditor(QWidget *parent = 0);
 	virtual ~MapEditor();
+public slots:
+	void open();
+	void open(const QString& file);
+signals:
+	bool openMPD( const QString& filepath );
+private:
+	QString m_lastOpendFile;
+
+	void setTitel();
+	void setTitel(const QString& filename);
 };
 
 #endif /* INCLUDE_MAPEDITOR_MAPEDITOR_H_ */
