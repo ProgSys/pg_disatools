@@ -84,6 +84,8 @@ void GLMapWidget::initializeGL(){
 		PG::UTIL::RGBAImage img;
 		PG::FILE::loadTGA("resources/materials/ground_noalpha.tga", img);
 		m_tileTex.bind(img);
+		PG::FILE::loadTGA("resources/materials/grass_test.tga", img);
+		m_grassTestTex.bind(img);
     }
     //load geometry
     m_groundGeometry.bind(PG::UTIL::vec3(0,0,0),PG::UTIL::vec3(0,0,100),PG::UTIL::vec3(100,0,0), 100.0f );
@@ -117,10 +119,11 @@ void GLMapWidget::paintGL(){
 
 	if(!m_mapTiles.empty()) {
 
+		glActiveTexture(GL_TEXTURE0);
+		m_grassTestTex.apply();
+
 		for(const mapTile* tile: m_mapTiles){
 			m_objectShader.apply(tile->modelMatrix, camera.getVewMatrix(), perspectiveMatrix);
-			glActiveTexture(GL_TEXTURE0);
-			m_tileTex.apply();
 			tile->box.apply();
 			//tile->planeTest.apply();
 		}
@@ -163,10 +166,13 @@ bool GLMapWidget::openMPD( const QString& filepath ){
 
 			  mapTile* t = new mapTile;
 
-			  t->modelMatrix = PG::UTIL::translation(chunk.info.header.map_offset_x+tile.x, 0.f, chunk.info.header.map_offset_z-tile.z);
+			  // chunk.info.header.map_offset_x
+			  t->modelMatrix = PG::UTIL::translation((float)tile.x, 0.f, (float)-tile.z);
+			  const PG::UTIL::vec2 uvStart((chunk.info.header.map_offset_x+tile.x)/10.f,(chunk.info.header.map_offset_z-tile.z)/10.f);
 			  t->box.bind(PG::UTIL::vec3(0,-tile.corners[2]/10.f,0), PG::UTIL::vec3(0,-tile.corners[0]/10.f,1), PG::UTIL::vec3(1,-tile.corners[3]/10.f,0), PG::UTIL::vec3(1,-tile.corners[1]/10.f,1),
 					  PG::UTIL::vec3(0,-tile.corners2[2]/10.f,0), PG::UTIL::vec3(0,-tile.corners2[0]/10.f,1), PG::UTIL::vec3(1,-tile.corners2[2]/10.f,0), PG::UTIL::vec3(1,-tile.corners2[3]/10.f,1),
-					  PG::UTIL::vec2(0,0),  PG::UTIL::vec2(0,1),  PG::UTIL::vec2(1,0),  PG::UTIL::vec2(1,1),
+
+					  uvStart,  uvStart+PG::UTIL::vec2(0,0.1),  uvStart+PG::UTIL::vec2(0.1,0),  uvStart+PG::UTIL::vec2(0.1,0.1),
 					  //PG::UTIL::vec2(tile.textures[2].u/255.f,tile.textures[2].v/255.f),  PG::UTIL::vec2(tile.textures[0].u/255.f,tile.textures[0].v/255.f),  PG::UTIL::vec2(tile.textures[3].u/255.f,tile.textures[3].v/255.f),  PG::UTIL::vec2(tile.textures[1].u/255.f,tile.textures[1].v/255.f),
 					  PG::UTIL::vec2(0,0),  PG::UTIL::vec2(0,1),  PG::UTIL::vec2(1,0),  PG::UTIL::vec2(1,1),
 					  PG::UTIL::vec2(0,0),  PG::UTIL::vec2(0,1),  PG::UTIL::vec2(1,0),  PG::UTIL::vec2(1,1)
@@ -186,7 +192,7 @@ bool GLMapWidget::openMPD( const QString& filepath ){
 
 		//viewMatrix = PG::UTIL::lookAt(PG::UTIL::vec3(m_mapTiles.last()->modelMatrix[3])+PG::UTIL::vec3(14,14,14), PG::UTIL::vec3(m_mapTiles.last()->modelMatrix[3]), PG::UTIL::vec3(0,1.f,0));
 	}
-
+	mpd.dump("mapLoadDump.txt");
 	 update();
 	return true;
 }

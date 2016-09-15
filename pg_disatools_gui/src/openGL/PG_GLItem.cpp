@@ -30,6 +30,10 @@ void GLItem::release() const{
 
 }
 
+bool GLItem::isValid() const{
+	return m_GLID != INVALID_OGL_VALUE;
+}
+
 GLItem::operator bool() const{
 	return m_GLID != INVALID_OGL_VALUE;
 }

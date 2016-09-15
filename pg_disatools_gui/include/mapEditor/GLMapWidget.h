@@ -56,6 +56,7 @@ public slots:
 private:
     QColor m_clearcolor = QColor(5,79,121);
     PG::GL::Texture m_tileTex;
+    PG::GL::Texture m_grassTestTex;
     PG::GL::Plane m_groundGeometry;
 
     PG::GL::CAM::CameraFreeFly camera;

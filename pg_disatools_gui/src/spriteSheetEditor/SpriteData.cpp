@@ -1638,6 +1638,7 @@ bool SpriteData::open(const QString& file){
 	emit onNumberOfColortablesChanged();
 	emit onNumberOfCutoutsChanged();
 	emit onNumberOfSheetsChanged();
+	emit colortableChanged();
 
 	return true;
 }
@@ -1931,6 +1932,8 @@ bool SpriteData::importSH(const QString& file){
 	emit onNumberOfColortablesChanged();
 	emit onNumberOfCutoutsChanged();
 	emit onNumberOfSheetsChanged();
+	emit colortableChanged();
+
 	return true;
 }
 bool SpriteData::exportSH(const QString& file){
@@ -2399,9 +2402,9 @@ bool SpriteData::importSpriteAsColor(int cutoutID, const QString& file){
 	if(imageSize <= 0) return false;
 
 	QColorTable newTable = buildColorTable(newColorCutout);
-	if(newTable.size() >= sheet->getSizeOfColorTable()){
+	if(newTable.size() > sheet->getSizeOfColorTable()){
 		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
-						"Given color image has more colors than the sprite sheet supports! ("+QString::number(newTable.size())+")",
+				"Your image has "+QString::number(newTable.size())+" colors, but the sprite sheet supports max "+ QString::number(sheet->getSizeOfColorTable())+" colors!",
 					 QMessageBox::Ok);
 		return false;
 	}
@@ -2546,6 +2549,13 @@ void SpriteData::refresh(){
 	emit onRefresh();
 }
 
+QColorTable& SpriteData::getColorTable(){
+	return m_colortable;
+}
+const QColorTable& SpriteData::getColorTable() const{
+	return m_colortable;
+}
+
 QColor SpriteData::getColor(int index) const{
 	if(index >= m_colortable.size()) return m_colortable.last();
 	return m_colortable[index];
@@ -2554,6 +2564,36 @@ QColor SpriteData::getColor(int index) const{
 void SpriteData::setColor(int index,const QColor& color){
 	if(index < m_colortable.size() && m_colortable[index] != color){
 		m_colortable[index] = color;
+		emit colortableChanged();
+	}
+}
+
+void SpriteData::addColors(int index, int number){
+	if(m_currentAnimation  != -1){
+
+		if(index < 0 || index >= m_colortable.size()){
+			for(unsigned int i = 0; i <number; i++)
+				m_colortable.push_back( QColor(0,0,0,255));
+		}else
+			for(unsigned int i = 0; i <number; i++)
+				m_colortable.insert(index, QColor(0,0,0,255));
+
+		emit onNumberOfColortablesChanged();
+		emit colortableChanged();
+	}
+}
+
+void SpriteData::removeColors(int index, int number){
+	if(m_currentAnimation  != -1 && m_colortable.size() > 16){
+
+		if(index < 0 || index >= m_colortable.size()){
+			for(unsigned int i = 0; i <number; i++)
+				m_colortable.removeLast();
+		}else
+			for(unsigned int i = 0; i <number; i++)
+				m_colortable.removeAt(index);
+
+		emit onNumberOfColortablesChanged();
 		emit colortableChanged();
 	}
 }

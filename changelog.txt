@@ -194,12 +194,14 @@
   * Data Editor v0.0.5 alpha:
 	- nothing
 	
-===  ??? - v0.6.2 ===
+===  15.09.2016 - v0.6.2 ===
   * Disa PC File Manager v0.4.8 alpha:
 	- nothing
   * Sprite Sheet Editor v0.2.7 alpha:
 	- added mouse navigation and zoom to the GL sprite view
 	- you can reset the camera via "View > Reset camera"
 	- fixed the position marker being at the wrong place when scrolling horizontally
+        - fixed error in importing color sprites if the amount of colors is the same as the number of supported colors
+        - inside the color table view, you now can add and remove a set (16) colors
   * Data Editor v0.0.5 alpha:
 	- nothing

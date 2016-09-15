@@ -498,6 +498,7 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
 	 Q_PROPERTY(SpriteAnimation* animation READ getCurrentAnimation NOTIFY onCurrentAnimationChanged)
 	 Q_PROPERTY(Keyframe* selectedKey READ getSelectedKey WRITE setSelectedKey NOTIFY selectedKeyChanged)
+	 Q_PROPERTY(QColorTable colortable READ getColorTable NOTIFY colortableChanged)
 public:
 	SpriteData(QObject *parent = 0);
 	virtual ~SpriteData();
@@ -581,8 +582,12 @@ public slots:
 	Q_INVOKABLE void unhideAllCutouts();
 	Q_INVOKABLE void refresh();
 
+	Q_INVOKABLE QColorTable& getColorTable();
+	Q_INVOKABLE const QColorTable& getColorTable() const;
 	Q_INVOKABLE QColor getColor(int index) const;
 	Q_INVOKABLE void setColor(int index,const QColor& color);
+	Q_INVOKABLE void addColors(int index, int number = 16);
+	Q_INVOKABLE void removeColors(int index, int number = 16);
 
 signals:
 	void onNumberOfAnimationsChanged();

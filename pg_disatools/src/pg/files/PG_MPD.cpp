@@ -138,7 +138,6 @@ void MPD::dump(const std::string& file) const{
 	  myfile << " * unknown5:"<<m_header.unknown5<<"\n";
 	  myfile << " * unknown6:"<<m_header.unknown6<<"\n";
 	  myfile << "Chunks:\n";
-	  PG::UTIL::IDImage heightMap(100,100);
 
 	  for(const mpdfileChunk& chunk: m_chunks){
 		  myfile << "  Chunk Header:\n";
@@ -165,23 +164,29 @@ void MPD::dump(const std::string& file) const{
 
 		  for(const mpdfileTile& tile: chunk.tiles){
 			  myfile << "        Tile:\n";
+			  for(unsigned int t = 0; t < 12; t++){
+				  myfile << "        Texture:\n";
+				  myfile << "           * u: "<<(int)tile.textures[t].u<<"\n";
+				  myfile << "           * v: "<<(int)tile.textures[t].v<<"\n";
+				  myfile << "           * 0: "<<(int)tile.textures[t].unk[0]<<"\n";
+				  myfile << "           * 1: "<<(int)tile.textures[t].unk[1]<<"\n";
+				  myfile << "           * 2: "<<(int)tile.textures[t].unk[2]<<"\n";
+				  myfile << "           * 3: "<<(int)tile.textures[t].unk[3]<<"\n";
+				  myfile << "           * 4: "<<(int)tile.textures[t].unk[4]<<"\n";
+				  myfile << "           * 5: "<<(int)tile.textures[t].unk[5]<<"\n";
+			  }
+			  /*
 			  myfile << "           * x: "<<(int)tile.x<<"\n";
 			  myfile << "           * z: "<<(int)tile.z<<"\n";
 			  myfile << "           * CA: "<<(int)tile.corners[0]<<"\n";
 			  myfile << "           * CB: "<<(int)tile.corners[1]<<"\n";
 			  myfile << "           * CC: "<<(int)tile.corners[2]<<"\n";
 			  myfile << "           * CD: "<<(int)tile.corners[3]<<"\n";
-			  heightMap.set(tile.x*2, tile.z*2, abs(tile.corners[0]));
-			  heightMap.set(tile.x*2+1, tile.z*2, abs(tile.corners[1]));
-			  heightMap.set(tile.x*2, tile.z*2+1, abs(tile.corners[2]));
-			  heightMap.set(tile.x*2+1, tile.z*2+1, abs(tile.corners[3]));
-
-
+			  */
 		  }
 	  }
 
 	  myfile.close();
-	  PG::FILE::saveTGA("D:/Users/ProgSys/pg_disatools/dependencies/pg_disatools/debug/mingw/bin/heightMpa.tga", heightMap);
 }
 
 

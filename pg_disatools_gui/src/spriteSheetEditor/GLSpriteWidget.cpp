@@ -155,7 +155,7 @@ bool GLSpriteWidget::open(const SpriteData* spriteSheet){
 	m_spriteSheet = spriteSheet;
 	if(!m_spriteSheet)
 		return false;
-
+	makeCurrent();
 	if(!m_animationInfo.open(spriteSheet)){
 		qDebug()<<"Coudn't load sprites for open GL!";
 		return false;
@@ -207,27 +207,23 @@ void GLSpriteWidget::setBackgroundColor(const QColor& color){
 }
 
 void GLSpriteWidget::updateColortable(){
-	if(m_spriteSheet->getColortableGL().empty()) return;
+	if(!m_spriteSheet || m_spriteSheet->getNumberOfColors() <= 0 || !m_animationInfo.colorTable || !m_animationInfo.colorTable->isValid()) return;
+	makeCurrent();
 	m_animationInfo.colorTable->update(m_spriteSheet->getColortableGL());
 	update();
 }
 
 void GLSpriteWidget::updateSpriteSheet(int sheetID){
-	if( sheetID < 0 || sheetID >= m_animationInfo.spriteSheetIDTextures.size() ) return;
+	if( !m_spriteSheet || sheetID < 0 || sheetID >= m_animationInfo.spriteSheetIDTextures.size() || !m_animationInfo.spriteSheetIDTextures[sheetID]->isValid()) return;
+	makeCurrent();
 	m_animationInfo.spriteSheetIDTextures[sheetID]->update(m_spriteSheet->getSpriteSheets()[sheetID]->getSpriteSheet());
-	/*
-	delete m_animationInfo.spriteSheetIDTextures[sheetID];
-	PG::GL::Texture* t = new PG::GL::Texture();
-	t->bind(m_spriteSheet->getSpriteSheets()[sheetID]->getSpriteSheet(), PG::GL::Texture::SPRITE);
-	m_animationInfo.spriteSheetIDTextures[sheetID] = t;
-	*/
 	update();
 
 }
 
 void GLSpriteWidget::updateSpriteSheetAdded(){
 	if(m_animationInfo.spriteSheetIDTextures.size() == m_spriteSheet->getSpriteSheets().size()) return;
-
+	makeCurrent();
 	PG::GL::Texture* t = new PG::GL::Texture();
 	t->bind(m_spriteSheet->getSpriteSheets().last()->getSpriteSheet(), PG::GL::Texture::SPRITE);
 	m_animationInfo.spriteSheetIDTextures.push_back(t);
@@ -235,6 +231,7 @@ void GLSpriteWidget::updateSpriteSheetAdded(){
 
 void GLSpriteWidget::updateSpriteSheetRemove(int sheetID){
 	if(sheetID >= m_spriteSheet->getSpriteSheets().size()) return;
+	makeCurrent();
 	PG::GL::Texture* t = m_animationInfo.spriteSheetIDTextures[sheetID];
 	m_animationInfo.spriteSheetIDTextures.erase(m_animationInfo.spriteSheetIDTextures.begin()+sheetID);
 	delete t;

@@ -30,6 +30,7 @@ public:
 	virtual void apply() const;
 	virtual void release() const;
 
+	virtual bool isValid() const;
 	virtual operator bool() const;
 
 	unsigned int getGLID() const;
