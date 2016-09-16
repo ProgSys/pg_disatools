@@ -168,11 +168,26 @@ bool GLMapWidget::openMPD( const QString& filepath ){
 
 			  // chunk.info.header.map_offset_x
 			  t->modelMatrix = PG::UTIL::translation((float)tile.x, 0.f, (float)-tile.z);
-			  const PG::UTIL::vec2 uvStart((chunk.info.header.map_offset_x+tile.x)/10.f,(chunk.info.header.map_offset_z-tile.z)/10.f);
+
+
+			  PG::UTIL::vec2 uvStartLayer1(tile.textures[9].u/255.0f, tile.textures[9].v/255.0f);
+			  PG::UTIL::vec2 uvEndLayer1(uvStartLayer1.x+tile.textures[9].width/255.0f, uvStartLayer1.y+tile.textures[9].height/255.0f);
+
+			  if(tile.textures[9].mirror & 0x04){
+				  float b = uvStartLayer1.x;
+				  uvStartLayer1.x = uvEndLayer1.x;
+				  uvEndLayer1.x = b;
+			  }
+			  if (tile.textures[9].mirror & 0x01) {
+				  float b = uvStartLayer1.y;
+				  uvStartLayer1.y = uvEndLayer1.y;
+				  uvEndLayer1.y = b;
+			  }
+
 			  t->box.bind(PG::UTIL::vec3(0,-tile.corners[2]/10.f,0), PG::UTIL::vec3(0,-tile.corners[0]/10.f,1), PG::UTIL::vec3(1,-tile.corners[3]/10.f,0), PG::UTIL::vec3(1,-tile.corners[1]/10.f,1),
 					  PG::UTIL::vec3(0,-tile.corners2[2]/10.f,0), PG::UTIL::vec3(0,-tile.corners2[0]/10.f,1), PG::UTIL::vec3(1,-tile.corners2[2]/10.f,0), PG::UTIL::vec3(1,-tile.corners2[3]/10.f,1),
 
-					  uvStart,  uvStart+PG::UTIL::vec2(0,0.1),  uvStart+PG::UTIL::vec2(0.1,0),  uvStart+PG::UTIL::vec2(0.1,0.1),
+					  uvStartLayer1,  PG::UTIL::vec2(uvStartLayer1.x,uvEndLayer1.y),  PG::UTIL::vec2(uvEndLayer1.x,uvStartLayer1.y),  uvEndLayer1,
 					  //PG::UTIL::vec2(tile.textures[2].u/255.f,tile.textures[2].v/255.f),  PG::UTIL::vec2(tile.textures[0].u/255.f,tile.textures[0].v/255.f),  PG::UTIL::vec2(tile.textures[3].u/255.f,tile.textures[3].v/255.f),  PG::UTIL::vec2(tile.textures[1].u/255.f,tile.textures[1].v/255.f),
 					  PG::UTIL::vec2(0,0),  PG::UTIL::vec2(0,1),  PG::UTIL::vec2(1,0),  PG::UTIL::vec2(1,1),
 					  PG::UTIL::vec2(0,0),  PG::UTIL::vec2(0,1),  PG::UTIL::vec2(1,0),  PG::UTIL::vec2(1,1)
@@ -182,7 +197,6 @@ bool GLMapWidget::openMPD( const QString& filepath ){
 					  //PG::UTIL::vec2(tile.textures[8].u,tile.textures[8].v),  PG::UTIL::vec2(tile.textures[9].u,tile.textures[9].v),  PG::UTIL::vec2(tile.textures[10].u,tile.textures[10].v),  PG::UTIL::vec2(tile.textures[11].u,tile.textures[11].v)
 					  );
 			  m_mapTiles.push_back(t);
-			  PG_INFO_STREAM("c: "<<(int)tile.textures[1].u);
 		  }
 	}
 	//glPopAttrib();

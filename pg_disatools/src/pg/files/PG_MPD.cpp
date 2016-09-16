@@ -168,12 +168,7 @@ void MPD::dump(const std::string& file) const{
 				  myfile << "        Texture:\n";
 				  myfile << "           * u: "<<(int)tile.textures[t].u<<"\n";
 				  myfile << "           * v: "<<(int)tile.textures[t].v<<"\n";
-				  myfile << "           * 0: "<<(int)tile.textures[t].unk[0]<<"\n";
-				  myfile << "           * 1: "<<(int)tile.textures[t].unk[1]<<"\n";
-				  myfile << "           * 2: "<<(int)tile.textures[t].unk[2]<<"\n";
-				  myfile << "           * 3: "<<(int)tile.textures[t].unk[3]<<"\n";
-				  myfile << "           * 4: "<<(int)tile.textures[t].unk[4]<<"\n";
-				  myfile << "           * 5: "<<(int)tile.textures[t].unk[5]<<"\n";
+				  myfile << "           * t: "<<(int)tile.textures[t].textureIndex<<"\n";
 			  }
 			  /*
 			  myfile << "           * x: "<<(int)tile.x<<"\n";

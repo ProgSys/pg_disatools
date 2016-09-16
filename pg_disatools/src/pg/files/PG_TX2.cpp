@@ -246,8 +246,8 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 		memcpy(&bytesOut[0], &width, 2);
 		memcpy(&bytesOut[2], &height, 2);
 
-		bytesOut[6] = 0x08;
-		bytesOut[7] = 0x08;
+		bytesOut[6] = log10(width)/0.301029995;
+		bytesOut[7] = log10(height)/0.301029995;
 		const unsigned int size = width*height;
 		memcpy(&bytesOut[12], &size, 4);
 		std::vector<DXT1block> blocks;
@@ -269,10 +269,10 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 			memcpy(&bytesOut[0], &width, 2);
 			memcpy(&bytesOut[2], &height, 2);
 			bytesOut[4] = 0x02;
-			bytesOut[6] = 0x08;
-			bytesOut[7] = 0x08;
-			const unsigned int size = width*height;
-			memcpy(&bytesOut[12], &size, 4);
+			bytesOut[6] = log10(width)/0.301029995;
+			bytesOut[7] = log10(height)/0.301029995;
+			const unsigned int dimantion = width*4*16;
+			memcpy(&bytesOut[12], &dimantion, 4);
 			std::vector<DXT5block> blocks;
 
 			if(PG::FILE::compressS3(imageIn,blocks)){
@@ -289,8 +289,8 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 			memcpy(&bytesOut[0], &width, 2);
 			memcpy(&bytesOut[2], &height, 2);
 			bytesOut[4] = 0x03;
-			bytesOut[6] = 0x08;
-			bytesOut[7] = 0x08;
+			bytesOut[6] = log10(width)/0.301029995;
+			bytesOut[7] = log10(height)/0.301029995;
 			const unsigned int dimantion = width*height;
 			memcpy(&bytesOut[12], &dimantion, 4);
 

@@ -66,8 +66,14 @@ typedef struct // 4 byte
 
 
 typedef struct  { //8 bytes
-  unsigned char u, v;
-  unsigned char unk[6];        // TBD
+  unsigned char u;
+  unsigned char stretch; //?
+  unsigned char v;
+  unsigned char width;
+  unsigned char size_stretch; //?
+  unsigned char height;
+  unsigned char textureIndex;
+  unsigned char mirror;
 } __attribute__((packed, aligned(1))) mpdfileTexdata;
 
 typedef struct  {

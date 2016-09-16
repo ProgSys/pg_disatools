@@ -362,6 +362,7 @@ bool MPP::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 				}
 				new_info.offset = writer.getPosition();
 				c = new char[info.size];
+				reader_file.read(c, info.size);
 				reader_file.close();
 				writer.write(c, info.size);
 				delete c;

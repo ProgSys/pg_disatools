@@ -64,7 +64,7 @@ tMatrix4x4<T> lookAt( tVector3<T> eyePos, tVector3<T> lookAtPoint, tVector3<T> u
 
 template<typename T>
 tMatrix4x4<T> perspective(T fovy, T aspectRatio, T nearZ, T farZ){
-	assert_Test("Aspect ratio is 0!", abs(aspectRatio - std::numeric_limits<T>::epsilon()) <= static_cast<T>(0));
+	assert_Test("Aspect ratio is 0!", std::abs(aspectRatio - std::numeric_limits<T>::epsilon()) <= static_cast<T>(0));
 
 	const T tanHalfFovy = tan(fovy / static_cast<T>(2));
 

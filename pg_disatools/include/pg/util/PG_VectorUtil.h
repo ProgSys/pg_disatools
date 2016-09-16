@@ -145,6 +145,22 @@ float distanceXYZ(const tVector4<T>& A,const tVector4<T>& B){
 	return  std::sqrt(std::pow(A.x-B.x, 2.0)+std::pow(A.y-B.y, 2.0)+std::pow(A.z-B.z, 2.0));
 }
 
+/////// abs ///////
+template<typename T>
+tVector2<T> abs(const tVector2<T>& A){
+	return  tVector2<T>(std::abs(A.x),std::abs(A.y));
+}
+
+template<typename T>
+tVector3<T> abs(const tVector3<T>& A){
+	return  tVector3<T>(std::abs(A.x),std::abs(A.y),std::abs(A.z));
+}
+
+template<typename T>
+tVector4<T> abs(const tVector4<T>& A){
+	return  tVector4<T>(std::abs(A.x),std::abs(A.y),std::abs(A.z), std::abs(A.w));
+}
+
 /////// grayscale ///////
 template<typename T>
 T grayscale(const tVector3<T>& A){
