@@ -32,6 +32,7 @@
 
 #include <pg/util/PG_Vector.h>
 #include <pg/util/PG_Matrix.h>
+#include <QString>
 
 namespace PG {
 namespace GL {
@@ -49,7 +50,8 @@ public:
 
 	Shader();
 
-	void addShaderFile(Shader::type shaderType, const std::string& filepath);
+	void addShaderFile(Shader::type shaderType, const QString& filepath);
+	void addShaderFileStd(Shader::type shaderType, const std::string& filepath);
 	void addShader(Shader::type shaderType, const std::string& shaderText);
 
 	///Some call it link

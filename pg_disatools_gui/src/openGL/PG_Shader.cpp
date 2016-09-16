@@ -35,11 +35,11 @@ Shader::Shader() {
 
 }
 
-void Shader::addShaderFile(Shader::type shaderType, const std::string& filepath){
+void Shader::addShaderFile(Shader::type shaderType, const QString& filepath){
 	std::string fileContent;
 	//open file and "parse" input
 
-	QFile inputFile(QString::fromStdString(filepath));
+	QFile inputFile(filepath);
 	if (inputFile.open(QIODevice::ReadOnly))
 	{
 	   QTextStream in(&inputFile);
@@ -51,31 +51,11 @@ void Shader::addShaderFile(Shader::type shaderType, const std::string& filepath)
 	   inputFile.close();
 	}
 
-	/*
-	// why does this not work in release o.0
-	try{
-		std::ifstream file(filepath);
-		if (file.is_open()) {
-			while (getline (file, line)){
-				fileContent += line + "\n";
-				PG_INFO_STREAM(line);
-			}
-			file.close();
-		}
-		else{
-			PG_ERROR_STREAM("Unable to open shader file '" << filepath<<"'!" );
-			return;
-		}
-	}catch (const std::ifstream::failure & e) {
-		PG_ERROR_STREAM("Unable to open shader file '" << filepath<<"' "<<e.what()<<"!" );
-		return;
-	}catch (...) {
-		PG_ERROR_STREAM("Unable to open shader file '" << filepath<<"'!" );
-		return;
-	}
-	*/
-
 	addShader(shaderType, fileContent);
+}
+
+void Shader::addShaderFileStd(Shader::type shaderType, const std::string& filepath){
+	addShaderFile(shaderType, QString::fromStdString(filepath));
 }
 
 void Shader::addShader(Shader::type shaderType, const std::string& shaderText){

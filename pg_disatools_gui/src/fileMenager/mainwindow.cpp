@@ -35,8 +35,6 @@
 #include <QMutableListIterator>
 #include <QProcess>
 
-#include <TitleDefine.h>
-
 #include <iostream>
 #include <EnterValue.h>
 
@@ -58,9 +56,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    setWindowIcon(QIcon("resources/disa_tools_icon.ico"));
+    setWindowIcon(QIcon( ":/disa_tools_icon.ico"));
 
-    setWindowTitle(WINTITLE);
+
+    //setWindowTitle(QCoreApplication::applicationDirPath()+"/resources/disa_tools_icon.ico");
+    setWindowTitle(FileManagerTITLE);
 
     m_treeModel = new TreeModel(this);
     //m_treeModel = new TreeModel("C:/Users/ProgSys/Desktop/Disgaea/PC/DATA.DAT",this);
@@ -214,7 +214,7 @@ void MainWindow::on_btnOpen_clicked()
             	ui->statusBar->showMessage(QString("Found %1 files.").arg(m_treeModel->rowCount()));
                 ui->btnInsert->setEnabled(true);
                 ui->btnSaveAs->setEnabled(true);
-                QString title(WINTITLE);
+                QString title(FileManagerTITLE);
                 title.append(" - ");
                 title.append(fileNames[0]);
                 setWindowTitle(title);
@@ -225,7 +225,7 @@ void MainWindow::on_btnOpen_clicked()
         			ui->statusBar->showMessage(QString("Couldn't open %1").arg(fileNames[0]));
                 ui->btnInsert->setEnabled(false);
                 ui->btnSaveAs->setEnabled(false);
-                setWindowTitle(WINTITLE);
+                setWindowTitle(FileManagerTITLE);
         	}
             ui->btnSave->setEnabled(false);
             ui->btnDelete->setEnabled(false);
@@ -677,6 +677,8 @@ void MainWindow::on_btnInsert_clicked()
 
 void MainWindow::on_btnSave_clicked()
 {
+	if(!m_treeModel) return;
+
     if(m_treeModel->hasDataChanged()){
     	if(!checkValid())
     		return;
@@ -756,7 +758,7 @@ void MainWindow::on_btnSaveAs_clicked()
 
     	if(f1.result()){
     		ui->statusBar->showMessage(QString("Saved to %1.").arg(fileName));
-            QString title(WINTITLE);
+            QString title(FileManagerTITLE);
             title.append(" - ");
             title.append(fileName);
             setWindowTitle(title);

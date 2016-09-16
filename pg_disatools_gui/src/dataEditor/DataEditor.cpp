@@ -17,7 +17,6 @@
  */
 #include <dataEditor/DataEditor.h>
 #include <ui_dataEditor.h>
-#include <TitleDefine.h>
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QDebug>
@@ -102,7 +101,7 @@ DataEditor::DataEditor(QWidget *parent):
 	QMainWindow(parent){
 	setupUi(this);
 
-	setWindowIcon(QIcon("resources/data_editor_icon.ico"));
+	setWindowIcon(QIcon(":/data_editor_icon.ico"));
 	setWindowTitle(DATAEditorTITLE);
 
 

@@ -26,6 +26,7 @@
 #include <pg/util/PG_MatrixUtil.h>
 
 #include <qdebug.h>
+#include <QCoreApplication>
 
 
 bool GLSpriteWidget::spriteShader::bind(){
@@ -265,8 +266,8 @@ void GLSpriteWidget::initializeGL(){
     glClearColor(0.196,0.38,0.6588,1);
 
     //load shader
-	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/sprite.vert");
-	m_spriteShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/sprite.frag");
+	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, QCoreApplication::applicationDirPath()+"/resources/shaders/sprite.vert");
+	m_spriteShader.addShaderFile(PG::GL::Shader::FRAGMENT, QCoreApplication::applicationDirPath()+"/resources/shaders/sprite.frag");
 
     if(!m_spriteShader.bind()){
 		QMessageBox messageBox;
@@ -274,8 +275,8 @@ void GLSpriteWidget::initializeGL(){
 		exit (EXIT_FAILURE);
     }
 
-    m_objectShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/simple.vert");
-    m_objectShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/simple.frag");
+    m_objectShader.addShaderFile(PG::GL::Shader::VERTEX, QCoreApplication::applicationDirPath()+"/resources/shaders/simple.vert");
+    m_objectShader.addShaderFile(PG::GL::Shader::FRAGMENT, QCoreApplication::applicationDirPath()+"/resources/shaders/simple.frag");
 
     if(!m_objectShader.bind()){
 		QMessageBox messageBox;
@@ -283,8 +284,8 @@ void GLSpriteWidget::initializeGL(){
 		exit (EXIT_FAILURE);
     }
 
-    m_lineShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/line.vert");
-    m_lineShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/line.frag");
+    m_lineShader.addShaderFile(PG::GL::Shader::VERTEX, QCoreApplication::applicationDirPath()+"/resources/shaders/line.vert");
+    m_lineShader.addShaderFile(PG::GL::Shader::FRAGMENT, QCoreApplication::applicationDirPath()+"/resources/shaders/line.frag");
 
     if(!m_lineShader.bind()){
 		QMessageBox messageBox;
@@ -292,8 +293,8 @@ void GLSpriteWidget::initializeGL(){
 		exit (EXIT_FAILURE);
     }
 
-    m_displayShader.addShaderFile(PG::GL::Shader::VERTEX, "resources/shaders/display.vert");
-    m_displayShader.addShaderFile(PG::GL::Shader::FRAGMENT, "resources/shaders/display.frag");
+    m_displayShader.addShaderFile(PG::GL::Shader::VERTEX, QCoreApplication::applicationDirPath()+"/resources/shaders/display.vert");
+    m_displayShader.addShaderFile(PG::GL::Shader::FRAGMENT, QCoreApplication::applicationDirPath()+"/resources/shaders/display.frag");
 
     if(!m_displayShader.bind()){
 		QMessageBox messageBox;
@@ -304,11 +305,11 @@ void GLSpriteWidget::initializeGL(){
     //load texture
     {
 		PG::UTIL::RGBAImage img;
-		PG::FILE::loadTGA("resources/materials/ground.tga", img);
+		PG::FILE::loadTGA("./resources/materials/ground.tga", img);
 		m_groundTexture.bind(img);
-		PG::FILE::loadTGA("resources/materials/shadow.tga", img);
+		PG::FILE::loadTGA("./resources/materials/shadow.tga", img);
 		m_shadowTexture.bind(img);
-		PG::FILE::loadTGA("resources/materials/anchor_target.tga", img);
+		PG::FILE::loadTGA("./resources/materials/anchor_target.tga", img);
 		m_anchorTexture.bind(img);
     }
 

@@ -14,6 +14,16 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake") 
 
+set (FileManagerTITLE "Disa PC File Manager v0.4.9 alpha")
+set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.7 alpha")
+set (DATAEditorTITLE "Data Editor v0.0.5 alpha")
+set (MapEditorTITLE "Map Viewer v0.0.1 alpha")
+
+
+
+#add_definitions(-DSpriteSheetEditorTITLE=${SpriteSheetEditorTITLE})
+#add_definitions(-DDATAEditorTITLE=${DATAEditorTITLE})
+#add_definitions(-DMapEditorTITLE=${MapEditorTITLE})
 
 if(DEBUG_COMPILE)
 	SET(CMAKE_BUILD_TYPE Debug CACHE FILEPATH "" FORCE)
@@ -58,18 +68,21 @@ SET(sim_EXE_SRCS ${sim_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/disa_tools_icon
 message (STATUS "Icon File: ${sim_EXE_SRCS} ")
 endif(MINGW)
 
+#windres sprite_sheet_editor_icon.rc -O coff -o sprite_sheet_editor_icon.res
 SET(SPRITE_EDITOR_EXE_SRCS "")
 if(MINGW)
 SET(SPRITE_EDITOR_EXE_SRCS ${SPRITE_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/sprite_sheet_editor_icon.res")
 message (STATUS "Sprite editor icon File: ${SPRITE_EDITOR_EXE_SRCS} ")
 endif(MINGW)
 
+#windres data_editor_icon.rc -O coff -o data_editor_icon.res
 SET(DATA_EDITOR_EXE_SRCS "")
 if(MINGW)
 SET(DATA_EDITOR_EXE_SRCS ${DATA_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/data_editor_icon.res")
 message (STATUS "Data editor icon File: ${DATA_EDITOR_EXE_SRCS} ")
 endif(MINGW)
 
+#windres map_editor_icon.rc -O coff -o map_editor_icon.res
 SET(MAP_EDITOR_EXE_SRCS "")
 if(MINGW)
 SET(MAP_EDITOR_EXE_SRCS ${MAP_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/map_editor_icon.res")
@@ -127,11 +140,11 @@ file(GLOB PG_FILE_MENEGER_HEADERS
 )
 
 #===============================================
-# pg_disatools_gui
+# pg_file_manager
 #===============================================
 if(DEBUG_COMPILE)
 add_executable( 
-	pg_disatools_gui
+	pg_file_manager
 		"fileManager.cpp"
 		${PG_FILE_MENEGER_HEADERS}
 		${PG_FILE_MENEGER_SRC}
@@ -140,7 +153,7 @@ add_executable(
 )
 else()
 add_executable( 
-	pg_disatools_gui
+	pg_file_manager
 		WIN32
 		"fileManager.cpp"
 		${PG_FILE_MENEGER_HEADERS}
@@ -148,10 +161,11 @@ add_executable(
 		${MOCSrcs} ${UIMainWindowSrcs} ${UIFileInfoBoxSrcs}  ${UIEnterValueSrcs}
 		
 )
+set_target_properties(pg_file_manager PROPERTIES OUTPUT_NAME ${FileManagerTITLE})
 endif()
 
 target_link_libraries(
-	pg_disatools_gui
+	pg_file_manager
 	${OpenGL3_LIBRARY}
 	${GLEW_LIBRARY}
 	
@@ -204,6 +218,7 @@ add_executable(
 		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs} 
 		
 )
+set_target_properties(pg_sprite_editor PROPERTIES OUTPUT_NAME ${SpriteSheetEditorTITLE})
 endif()
 
 target_link_libraries(
@@ -260,6 +275,7 @@ add_executable(
 		${MOCSrcs} ${UIDataEditor}  
 		
 )
+set_target_properties(pg_data_editor PROPERTIES OUTPUT_NAME ${DATAEditorTITLE})
 endif()
 
 target_link_libraries(
@@ -314,6 +330,7 @@ add_executable(
 		${MOCSrcs} ${UIMapEditor} 
 		
 )
+set_target_properties(pg_map_editor PROPERTIES OUTPUT_NAME ${MapEditorTITLE})
 endif()
 
 target_link_libraries(
@@ -326,14 +343,19 @@ target_link_libraries(
 	${MAP_EDITOR_EXE_SRCS}
 )
 
+target_compile_definitions(pg_file_manager PRIVATE FileManagerTITLE="${FileManagerTITLE}" SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}")
+target_compile_definitions(pg_sprite_editor PRIVATE SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}")
+target_compile_definitions(pg_data_editor PRIVATE DATAEditorTITLE="${DATAEditorTITLE}")
+target_compile_definitions(pg_map_editor PRIVATE MapEditorTITLE="${MapEditorTITLE}")
+
 GroupSources("include/pg")
 GroupSources("src/pg")
 #[[]]
 #===============================================
-# install pg_disatools_gui
+# install 
 #===============================================
 install(
-	TARGETS pg_disatools_gui pg_sprite_editor pg_data_editor pg_map_editor
+	TARGETS pg_file_manager pg_sprite_editor pg_data_editor pg_map_editor
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static

@@ -19,7 +19,6 @@
 #include "ui_spritesheeteditor.h"
 
 #include <QFileDialog>
-#include <TitleDefine.h>
 #include <QMessageBox>
 #include <QColorDialog>
 #include <QtQml>
@@ -68,12 +67,12 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	m_player->connectGLWidget(ui->openGLWidget);
 	ui->comboBox->setModel(m_player->getSpriteData());
 
-	setWindowIcon(QIcon("resources/sprite_sheet_editor_icon.ico"));
+	setWindowIcon(QIcon(":/sprite_sheet_editor_icon.ico"));
 	setWindowTitle(SpriteSheetEditorTITLE);
 
-	ui->btnPrevious->setIcon(QIcon("resources/materials/icons/previous.png"));
-	ui->btnPausePlay->setIcon(QIcon("resources/materials/icons/pause.png"));
-	ui->btnNext->setIcon(QIcon("resources/materials/icons/next.png"));
+	ui->btnPrevious->setIcon(QIcon(QCoreApplication::applicationDirPath()+"/resources/materials/icons/previous.png"));
+	ui->btnPausePlay->setIcon(QIcon(QCoreApplication::applicationDirPath()+"/resources/materials/icons/pause.png"));
+	ui->btnNext->setIcon(QIcon(QCoreApplication::applicationDirPath()+"/resources/materials/icons/next.png"));
 
 	//keyframes
 	//connect(m_player->getTimeline(), SIGNAL(totalKeyframes( int )), this, SLOT(setTotalKeyframes( int)));

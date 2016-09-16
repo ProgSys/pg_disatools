@@ -425,19 +425,19 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const{
     if(role == Qt::DecorationRole && index.column() == 0){
     		if(item->isCompressed())
     			if(item->isPackage())
-    				return QPixmap("resources/compress.png");
+    				return QPixmap("./resources/materials/icons/compress.png");
     			else
-    				return QPixmap("resources/compress_file.png");
+    				return QPixmap("./resources/materials/icons/compress_file.png");
     		else if(item->isPackage())
-    			return QPixmap("resources/archive.png");
+    			return QPixmap("./resources/materials/icons/archive.png");
     		else if(exp == "PNG" || exp == "TX2")
-				return QPixmap("resources/image.png");
+				return QPixmap("./resources/materials/icons/image.png");
 			else if(exp == "OGG")
-				return QPixmap("resources/note.png");
+				return QPixmap("./resources/materials/icons/note.png");
 			else if(exp == "GEO" || exp == "MPP")
-				return QPixmap("resources/geometry.png");
+				return QPixmap("./resources/materials/icons/geometry.png");
 			else if(item->fileType == PG::FILE::fileInfo::SH)
-				return QPixmap("resources/sprite.png");
+				return QPixmap("./resources/materials/icons/sprite.png");
 			return QVariant();
     }else if(role == Qt::DisplayRole){
 		switch (index.column()) {

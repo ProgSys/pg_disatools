@@ -205,3 +205,13 @@
         - inside the color table view, you now can add and remove a set (16) colors
   * Data Editor v0.0.5 alpha:
 	- nothing
+	
+===  16.09.2016 - v0.6.3 ===
+   - Icons no read from the resource file
+  * Disa PC File Manager v0.4.9 alpha:
+	- maybe fixed a crash on save, needs more testing
+	- moved file icons into a different folder
+  * Sprite Sheet Editor v0.2.7 alpha:
+	- included files that i forgot to include
+  * Data Editor v0.0.5 alpha:
+	- nothing

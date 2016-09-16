@@ -6,7 +6,6 @@
  */
 
 #include <mapEditor/MapEditor.h>
-#include <include/TitleDefine.h>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <qdebug.h>
@@ -44,7 +43,7 @@ inline void about(){
 MapEditor::MapEditor(QWidget *parent): QMainWindow(parent) {
 	setupUi(this);
 
-	setWindowIcon(QIcon("resources/map_editor_icon.ico"));
+	setWindowIcon(QIcon(":/map_editor_icon.ico"));
 	setWindowTitle(MapEditorTITLE);
 
 	//About

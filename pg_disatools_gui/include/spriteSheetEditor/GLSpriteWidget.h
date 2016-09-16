@@ -165,8 +165,8 @@ private:
     	spriteShader(){}
 
     	spriteShader(const std::string& vert, const std::string& frag){
-    		addShaderFile(PG::GL::Shader::VERTEX, vert);
-    		addShaderFile(PG::GL::Shader::FRAGMENT, frag);
+    		addShaderFileStd(PG::GL::Shader::VERTEX, vert);
+    		addShaderFileStd(PG::GL::Shader::FRAGMENT, frag);
     	}
 
     	bool bind();
@@ -191,8 +191,8 @@ private:
     	objectShader(){}
 
     	objectShader(const std::string& vert, const std::string& frag){
-    		addShaderFile(PG::GL::Shader::VERTEX, vert);
-    		addShaderFile(PG::GL::Shader::FRAGMENT, frag);
+    		addShaderFileStd(PG::GL::Shader::VERTEX, vert);
+    		addShaderFileStd(PG::GL::Shader::FRAGMENT, frag);
     	}
 
     	bool bind();
@@ -213,8 +213,8 @@ private:
     	lineShader(){}
 
     	lineShader(const std::string& vert, const std::string& frag){
-    		addShaderFile(PG::GL::Shader::VERTEX, vert);
-    		addShaderFile(PG::GL::Shader::FRAGMENT, frag);
+    		addShaderFileStd(PG::GL::Shader::VERTEX, vert);
+    		addShaderFileStd(PG::GL::Shader::FRAGMENT, frag);
     	}
 
     	bool bind();
@@ -240,8 +240,8 @@ private:
     	displayShader(){}
 
     	displayShader(const std::string& vert, const std::string& frag){
-    		addShaderFile(PG::GL::Shader::VERTEX, vert);
-    		addShaderFile(PG::GL::Shader::FRAGMENT, frag);
+    		addShaderFileStd(PG::GL::Shader::VERTEX, vert);
+    		addShaderFileStd(PG::GL::Shader::FRAGMENT, frag);
     	}
 
     	bool bind();
