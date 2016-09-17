@@ -58,6 +58,9 @@ void fileInfo::operator=(const fileInfo& info){
 const PG::UTIL::File& fileInfo::getName() const{
 	return name;
 }
+char const* fileInfo::getNameConst() const{
+	return name.getPath().c_str();
+}
 unsigned int fileInfo::getSize() const{
 	return size;
 }
@@ -70,6 +73,10 @@ const PG::UTIL::File& fileInfo::getExternalName() const{
 
 std::string fileInfo::getFileExtension() const{
 	return name.getFileExtension();
+}
+
+char const* fileInfo::getFileExtensionConst() const{
+	return name.getFileExtension().c_str();
 }
 
 void fileInfo::setName(const PG::UTIL::File& _name){
@@ -101,7 +108,7 @@ bool fileInfo::isCompressed() const{
 	return fileType == IMY || fileType == COLA;
 }
 bool fileInfo::isPackage() const{
-	return fileType == OLA || fileType == PSPFS_V1 || fileType == PSPFS_V1 || fileType == COLA || fileType == SOLA;
+	return fileType == OLA || fileType == PSPFS_V1|| fileType == COLA || fileType == SOLA;
 }
 
 bool fileInfo::isTexture() const{
@@ -154,14 +161,11 @@ bool ExtractorBase::insert(const PG::UTIL::File& file){
 
 	if(it != m_fileInfos.end()){
 		(*it).externalFile = file;
-		//tests
-		fileProperties prop((*it));
-		getFileProperties(prop);
+		getFileProperties(*it);
 	}else{
 		fileInfo info(fileName, file.size(), m_fileInfos.back().offset+m_fileInfos.back().size );
 		info.externalFile = file;
-		fileProperties prop(info);
-		getFileProperties(prop);
+		getFileProperties(info);
 		m_fileInfos.push_back(info);
 	}
 
@@ -372,70 +376,85 @@ fileInfo* ExtractorBase::getDataPointer(unsigned int index) const{
 	return const_cast<fileInfo*>(&m_fileInfos[index]);
 }
 
-void ExtractorBase::getFileProperties(fileProperties& target) const{
+fileProperties ExtractorBase::getFileProperties(fileInfo& info) const{
 	if(isEmpty() || getOpendFile().isEmpty()){
 		PG_ERROR_STREAM("No archive is opened.");
-		return;
+		return fileProperties("");
 	}
 
 	PG::STREAM::InByteFile reader;
-	if(target.info.isValid() && target.info.fileType == fileInfo::UNKNOWN){
-		unsigned int resetPos = 0;
-		if(target.info.isExternalFile()){
-			reader.open(target.info.externalFile);
+	unsigned int resetPos = 0;
+	if(info.isValid()){
+		if(info.isExternalFile()){
+			reader.open(info.externalFile);
 			if(!reader.isopen()){
-				PG_ERROR_STREAM("Couldn't open external file '"<<target.info.externalFile<<"'!");
-				return;
+				PG_ERROR_STREAM("Couldn't open external file '"<<info.externalFile<<"'!");
+				return fileProperties("");
 			}
 		}else{
 			reader.open(getOpendFile());
-			resetPos = target.info.offset;
+			resetPos = info.offset;
 			if(!reader.isopen()){
-				PG_ERROR_STREAM("Couldn't open '"<<target.info.externalFile<<"'!");
-				return;
+				PG_ERROR_STREAM("Couldn't open '"<<info.externalFile<<"'!");
+				return fileProperties("");
 			}
-			reader.seek(target.info.offset);
+			reader.seek(info.offset);
 		}
+	}else return fileProperties("");
 
-		if( (target.info.decompressedFileSize = isIMYPackage(reader)) ){
+	fileProperties properties(info.name.getFile().c_str());
+	properties.size = info.size;
+	properties.offset = info.offset;
+	properties.type = info.fileType;
+	properties.isExternal = info.isExternalFile();
+
+	if(properties.type == fileInfo::UNKNOWN){
+		if( (info.decompressedFileSize = isIMYPackage(reader)) ){
 			reader.close();
-			target.info.fileType = fileInfo::COLA;
-			return;
+			properties.type = fileInfo::COLA;
+			info.fileType = fileInfo::COLA;
+			return properties;
 		}
 
 		reader.seek(resetPos);
 		if( isIMY(reader) ){
 			reader.close();
-			target.info.fileType = fileInfo::IMY;
-			return;
+			properties.type = fileInfo::IMY;
+			info.fileType = fileInfo::IMY;
+			return properties;
 		}
 
 		reader.seek(resetPos);
 		if( isTX2(reader)){
 
-			target.info.fileType = fileInfo::TX2;
+			properties.type = fileInfo::TX2;
+			info.fileType = fileInfo::TX2;
 
-			reader.seek(target.info.offset);
-			target.textureCompression = getTX2CompressionType(reader);
+			reader.seek(info.offset);
+			properties.textureCompression = getTX2CompressionType(reader);
 			reader.close();
-			return;
+			return properties;
 		}
 
 		reader.seek(resetPos);
 		if( isPSPFS(reader)){
 			reader.close();
-			target.info.fileType = fileInfo::PSPFS_V1;
-			return;
+			properties.type = fileInfo::PSPFS_V1;
+			info.fileType = fileInfo::PSPFS_V1;
+			return properties;
 		}else{
-			target.info.fileType = fileInfo::UNKNOWN;
+			properties.type =  fileInfo::UNKNOWN;
 		}
 		reader.close();
-	}else if(target.info.fileType == fileInfo::TX2){
-		reader.seek(target.info.offset);
-		target.textureCompression = getTX2CompressionType(reader);
+
+
+
+	}else if(properties.type == fileInfo::TX2){
+		reader.seek(info.offset);
+		properties.textureCompression = getTX2CompressionType(reader);
 	}
 
-
+	return properties;
 }
 
 bool ExtractorBase::replace(fileInfo& target,const PG::UTIL::File& file, bool keepName){
@@ -446,16 +465,14 @@ bool ExtractorBase::replace(fileInfo& target,const PG::UTIL::File& file, bool ke
 
 	target.externalFile = file;
 	target.size = file.size();
-	//tests
-	fileProperties prop(target);
-	getFileProperties(prop);
 
 	if(!keepName){
 		target.name = file.getFile();
 		target.name = target.name.toUpper();
+
 	}
 
-
+	getFileProperties(target);
 
 	m_changed = true;
 	return SUCCESS;

@@ -161,8 +161,7 @@ bool PSPFS::insert(const PG::UTIL::File& file){
 	addFile.externalFile = file;
 	addFile.setSize(file.size());
 
-	fileProperties prop(addFile);
-	getFileProperties(prop);
+	getFileProperties(addFile);
 
 	//file is already inside?
 	auto it = std::find_if(m_fileInfos.begin(), m_fileInfos.end(), [addFile](const fileInfo& info){

@@ -58,7 +58,7 @@ public:
     int columnCount(const QModelIndex &parent = QModelIndex()) const Q_DECL_OVERRIDE;
 
     float getProgress() const;
-    void getFileProperties(PG::FILE::fileProperties& target) const;
+    PG::FILE::fileProperties getFileProperties(PG::FILE::fileInfo *item) const;
 
     virtual ~TreeModel();
 public slots:

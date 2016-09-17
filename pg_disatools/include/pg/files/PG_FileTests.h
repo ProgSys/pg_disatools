@@ -27,6 +27,7 @@
 #include <pg/util/PG_File.h>
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/util/PG_ApiUtil.h>
+#include <pg/files/PG_TX2.h>
 
 namespace PG {
 namespace FILE {
@@ -43,7 +44,8 @@ EXPORT bool isSpriteSheetPackage(PG::STREAM::InByteFile& reader);
 EXPORT bool isTX2(const PG::UTIL::File& file);
 EXPORT bool isTX2(PG::STREAM::InByteFile& reader);
 
-EXPORT std::string getTX2CompressionType(PG::STREAM::InByteFile& reader);
+EXPORT tx2Type getTX2CompressionType(PG::STREAM::InByteFile& reader);
+EXPORT std::string asString(tx2Type type);
 
 //TODO
 EXPORT bool isSpriteSheet(const PG::UTIL::File& file);

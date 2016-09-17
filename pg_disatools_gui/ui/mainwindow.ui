@@ -407,7 +407,7 @@ QPushButton:!enabled
   <customwidget>
    <class>ItemPreview</class>
    <extends>QGraphicsView</extends>
-   <header>ItemPreview.h</header>
+   <header>include/fileMenager/ItemPreview.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

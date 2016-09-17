@@ -24,7 +24,6 @@
 #include <pg/files/PG_FileTests.h>
 #include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
-#include <pg/files/PG_TX2.h>
 #include <pg/files/PG_SH.h>
 
 namespace PG {
@@ -169,10 +168,58 @@ bool isTX2(PG::STREAM::InByteFile& reader){
 }
 
 
-std::string getTX2CompressionType(PG::STREAM::InByteFile& reader){
+tx2Type getTX2CompressionType(PG::STREAM::InByteFile& reader){
 	reader.skip(4);
 	const unsigned short type = reader.readUnsignedShort();
 
+	switch (type) {
+		case tx2Type::DXT1:
+		{
+			return tx2Type::DXT1;
+		}
+			break;
+		case tx2Type::DXT5:
+		{
+			return tx2Type::DXT5;
+		}
+			break;
+		case tx2Type::BGRA:
+		{
+			return tx2Type::BGRA;
+		}
+			break;
+		case tx2Type::COLORTABLE_RGBA256:
+		{
+			return tx2Type::COLORTABLE_RGBA256;
+		}
+			break;
+		case tx2Type::COLORTABLE_BGRA256:
+		{
+			return tx2Type::COLORTABLE_BGRA256;
+		}
+			break;
+		case tx2Type::COLORTABLE_BGRA16:
+		{
+			return tx2Type::COLORTABLE_BGRA16;
+		}
+			break;
+		case tx2Type::COLORTABLE_RGBA16:
+		{
+			return  tx2Type::COLORTABLE_RGBA16;
+		}
+			break;
+		default:
+		{
+			PG_INFO_STREAM("Unknown texture type: "<<type);
+			return tx2Type::ERROR;
+		}
+			break;
+	}
+
+	return tx2Type::ERROR;
+}
+
+std::string asString(tx2Type type){
 	switch (type) {
 		case tx2Type::DXT1:
 		{
@@ -213,8 +260,6 @@ std::string getTX2CompressionType(PG::STREAM::InByteFile& reader){
 			return "";
 			break;
 	}
-
-	return "";
 }
 
 

@@ -14,9 +14,9 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake") 
 
-set (FileManagerTITLE "Disa PC File Manager v0.4.9 alpha")
+set (FileManagerTITLE "Disa PC File Manager v0.5.0 alpha")
 set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.7 alpha")
-set (DATAEditorTITLE "Data Editor v0.0.5 alpha")
+set (DATAEditorTITLE "Data Editor v0.0.6 alpha")
 set (MapEditorTITLE "Map Viewer v0.0.1 alpha")
 
 
@@ -119,6 +119,7 @@ link_directories(
 	"${PROJECT_SOURCE_DIR}"
 )
 
+message (STATUS "PG_DISATOOLS_INCLUDE_PATH: ${PG_DISATOOLS_INCLUDE_PATH}")
 message (STATUS "Project binary dir: ${PROJECT_BINARY_DIR}")
 message (STATUS "Project source dir: ${PROJECT_SOURCE_DIR}")
 
@@ -343,7 +344,7 @@ target_link_libraries(
 	${MAP_EDITOR_EXE_SRCS}
 )
 
-target_compile_definitions(pg_file_manager PRIVATE FileManagerTITLE="${FileManagerTITLE}" SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}")
+target_compile_definitions(pg_file_manager PRIVATE FileManagerTITLE="${FileManagerTITLE}" SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}" DATAEditorTITLE="${DATAEditorTITLE}")
 target_compile_definitions(pg_sprite_editor PRIVATE SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}")
 target_compile_definitions(pg_data_editor PRIVATE DATAEditorTITLE="${DATAEditorTITLE}")
 target_compile_definitions(pg_map_editor PRIVATE MapEditorTITLE="${MapEditorTITLE}")
@@ -359,13 +360,6 @@ install(
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static
-)
-
-# install include files
-install(
-	DIRECTORY include
-		DESTINATION ${CMAKE_INSTALL_PREFIX}
-		FILES_MATCHING PATTERN "*.h"
 )
 
 #===============================================

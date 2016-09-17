@@ -207,7 +207,7 @@
 	- nothing
 	
 ===  16.09.2016 - v0.6.3 ===
-   - Icons no read from the resource file
+   - Icons now are read from the resource file
   * Disa PC File Manager v0.4.9 alpha:
 	- maybe fixed a crash on save, needs more testing
 	- moved file icons into a different folder
@@ -215,3 +215,12 @@
 	- included files that i forgot to include
   * Data Editor v0.0.5 alpha:
 	- nothing
+
+===  17.09.2016 - v0.6.4 ===
+  * Disa PC File Manager v0.5.0 alpha:
+	- fixed crash on open
+	- fixed crash opening file info dialog
+  * Sprite Sheet Editor v0.2.7 alpha:
+	- nothing
+  * Data Editor v0.0.6 alpha:
+	- added support to open files from File Manager

@@ -32,6 +32,7 @@
 
 #include <pg/util/PG_PercentIndicator.h>
 #include <pg/util/PG_ApiUtil.h>
+#include <pg/files/PG_TX2.h>
 
 namespace PG {
 namespace FILE {
@@ -78,10 +79,12 @@ struct fileInfo{
 	EXPORT void operator=(const fileInfo& info);
 
 	EXPORT const PG::UTIL::File& getName() const;
+	EXPORT char const* getNameConst() const;
 	EXPORT unsigned int getSize() const;
 	EXPORT unsigned int getOffset() const;
 	EXPORT const PG::UTIL::File& getExternalName() const;
 	EXPORT std::string getFileExtension() const;
+	EXPORT char const* getFileExtensionConst() const;
 
 	EXPORT void setName(const PG::UTIL::File& name);
 	EXPORT void setSize(unsigned int size);
@@ -100,10 +103,31 @@ struct fileInfo{
 };
 
 struct fileProperties{
-	fileProperties(fileInfo& fInfo): info(fInfo){}
-	fileInfo& info;
-	std::string textureCompression;
-	unsigned short characterID = 0;
+	fileProperties(char const* nameIn): name(nameIn) {}
+
+	char const* name;
+	unsigned int size = 0;
+	unsigned int offset = 0;
+
+	PG::FILE::fileInfo::type type = PG::FILE::fileInfo::UNKNOWN;
+	PG::FILE::tx2Type textureCompression = PG::FILE::tx2Type::BGRA;
+
+	bool isExternal = false;
+	inline bool isExternalFile() const{
+		return isExternal;
+	}
+	inline bool isCompressed() const{
+		return type == PG::FILE::fileInfo::IMY || type == PG::FILE::fileInfo::COLA;
+	}
+	inline bool isPackage() const{
+		return type == PG::FILE::fileInfo::OLA || type == PG::FILE::fileInfo::PSPFS_V1 || type == PG::FILE::fileInfo::COLA || type == PG::FILE::fileInfo::SOLA;
+	}
+	inline bool isTexture() const{
+		return type == PG::FILE::fileInfo::TX2 ;
+	}
+	inline bool isValid() const{
+		return size != 0 && offset != 0;
+	}
 };
 
 /*!
@@ -266,7 +290,7 @@ public:
 	/*!
 	 * @brief Gathers informations about the target file.
 	 */
-	EXPORT void getFileProperties(fileProperties& target) const;
+	EXPORT fileProperties getFileProperties(fileInfo& info) const;
 
 	EXPORT virtual ~ExtractorBase();
 protected:

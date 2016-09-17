@@ -20,7 +20,7 @@
 
 #include <util/TreeItem.h>
 #include <QString>
-#include <files/DataFile.h>
+#include <dataEditor/DataFile.h>
 #include <QList>
 
 #include <QColor>

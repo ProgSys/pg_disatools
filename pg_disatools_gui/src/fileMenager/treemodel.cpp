@@ -594,8 +594,9 @@ float TreeModel::getProgress() const{
 	return m_percentIndicator.percent;
 }
 
-void TreeModel::getFileProperties(PG::FILE::fileProperties& target) const{
-	if(m_fileExtractor) m_fileExtractor->getFileProperties(target);
+PG::FILE::fileProperties TreeModel::getFileProperties(PG::FILE::fileInfo *item) const{
+	if(m_fileExtractor) return m_fileExtractor->getFileProperties(*item);
+	return PG::FILE::fileProperties("");
 }
 
 

@@ -31,11 +31,11 @@ FileInfoBox::~FileInfoBox()
 }
 
 void FileInfoBox::setModel(const PG::FILE::fileProperties& info){
-	ui->label_Name->setText(QString::fromStdString(info.info.name.getPath()));
-	ui->label_Size->setText(QString::number(info.info.size));
-	ui->label_offset->setText(QString::number(info.info.offset));
+	ui->label_Name->setText(info.name);
+	ui->label_Size->setText(QString::number(info.size));
+	ui->label_offset->setText(QString::number(info.offset));
 
-	switch (info.info.fileType) {
+	switch (info.type) {
 		case PG::FILE::fileInfo::PSPFS_V1:
 				ui->label_type->setText("PSPFS_V1");
 			break;
@@ -68,17 +68,44 @@ void FileInfoBox::setModel(const PG::FILE::fileProperties& info){
 			break;
 	}
 
-	if(info.info.isExternalFile())
+	if(info.isExternalFile())
 		ui->label_external->setText("Yes");
 
-	if(info.info.isPackage())
+	if(info.isPackage())
 		ui->label_pack->setText("Yes");
 
-	if(info.info.isCompressed())
+	if(info.isCompressed())
 		ui->label_imy->setText("Yes");
 
-	if(info.info.isTexture())
-		ui->label_img->setText(QString::fromStdString(info.textureCompression));
+	if(info.isTexture()){
+		switch (info.textureCompression) {
+				case PG::FILE::tx2Type::DXT1:
+					ui->label_img->setText("DXT1");
+				break;
+				case PG::FILE::tx2Type::DXT5:
+					ui->label_img->setText("DXT5");
+				break;
+				case PG::FILE::tx2Type::BGRA:
+					ui->label_img->setText("BGRA");
+				break;
+				case PG::FILE::tx2Type::COLORTABLE_BGRA16:
+					ui->label_img->setText("COLORTABLE_BGRA16");
+				break;
+				case PG::FILE::tx2Type::COLORTABLE_BGRA256:
+					ui->label_img->setText("COLORTABLE_BGRA256");
+				break;
+				case PG::FILE::tx2Type::COLORTABLE_RGBA16:
+					ui->label_img->setText("COLORTABLE_RGBA16");
+				break;
+				case PG::FILE::tx2Type::COLORTABLE_RGBA256:
+					ui->label_img->setText("COLORTABLE_RGBA256");
+				break;
+				default:
+					ui->label_img->setText("Unknown texture type");
+				break;
+		}
+	}
+
 
 }
 

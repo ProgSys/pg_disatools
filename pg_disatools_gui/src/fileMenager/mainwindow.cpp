@@ -36,7 +36,7 @@
 #include <QProcess>
 
 #include <iostream>
-#include <EnterValue.h>
+#include <fileMenager/EnterValue.h>
 
 inline void openProgress(QProgressDialog& progress, const QString& title = "In progress"){
 	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint | Qt::WindowStaysOnTopHint);
@@ -305,7 +305,7 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 		action_replaceKeep->setToolTip("Replace the selected file but keep the original name.");
 		menu.addSeparator();
 		QAction* action_open = nullptr;
-		const std::string ext = item->getFileExtension();
+		const QString ext = item->getFileExtensionConst();
 		if(ext == "OGG"){
 			action_open = menu.addAction("Play");
 			action_open->setToolTip("Play the OGG in your default app.");
@@ -315,6 +315,9 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 		}else if(ext == "SH"){
 			action_open = menu.addAction("Open");
 			action_open->setToolTip("Open sprite sheet in the viewer.");
+		}else if(ext == "DAT"){
+			action_open = menu.addAction("Open");
+			action_open->setToolTip("Open data in the data editor.");
 		}
 
 		QAction* action_decompress = nullptr;
@@ -332,8 +335,7 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 			return;
 		else if(action_Info == selectedAction){
             FileInfoBox infobox(this);
-            PG::FILE::fileProperties properties(*item);
-            m_treeModel->getFileProperties(properties);
+             PG::FILE::fileProperties properties = m_treeModel->getFileProperties(item);
             infobox.setModel(properties);
             infobox.exec();
 		}else if(action_replace == selectedAction || action_replaceKeep == selectedAction){
@@ -402,7 +404,27 @@ void MainWindow::treeContextMenu(const QPoint &pos){
 					m_tempFiles.push_back(temp);
 				}else
 					delete temp;
+			}else if(ext == "DAT"){
+				QTemporaryFile* temp = new QTemporaryFile(tempFile+"-tempXXXXXX.sh", this);
+				if(temp->open()){
+					temp->close();
+					m_treeModel->extractFileName(pointedItem,temp->fileName());
+
+#ifdef DEBUG
+					QString file = QString("pg_data_editor.exe \"")+temp->fileName()+"\"";
+#else
+					QString file = "\""+QString(DATAEditorTITLE)+".exe\" \""+temp->fileName()+"\"";
+#endif
+					setEnabled(false);
+					QApplication::processEvents();
+					QProcess::execute(file);
+					setEnabled(true);
+
+					m_tempFiles.push_back(temp);
+				}else
+					delete temp;
 			}
+
 
 		}else if(action_decompress == selectedAction){
 			 QModelIndexList selected =  ui->treeView->selectionModel()->selectedRows();
