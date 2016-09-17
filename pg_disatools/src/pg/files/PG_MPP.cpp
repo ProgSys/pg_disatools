@@ -428,19 +428,19 @@ void MPP::clear(){
 }
 
 
-std::string MPP::getError(){
+char const* MPP::getError(){
 	std::string errorMsg = ExtractorBase::getError();
-	if(!errorMsg.empty()) return errorMsg;
+	if(!errorMsg.empty()) return errorMsg.c_str();
 
 	if(!m_fileInfos.empty() && ( std::distance(m_fileInfos.begin(), m_texturesEnd) != std::distance(m_texturesEnd, m_normalsEnd) && m_hasNormals )){
 		errorMsg = "The number of normal textures should be the same as the number of textures!";
 		PG_WARN_STREAM(errorMsg);
-		return errorMsg;
+		return errorMsg.c_str();
 	}
 	return "";
 }
 
-std::string MPP::getType() const{
+char const* MPP::getType() const{
 	return "MPP";
 }
 

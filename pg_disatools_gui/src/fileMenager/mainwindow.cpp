@@ -219,7 +219,7 @@ void MainWindow::on_btnOpen_clicked()
                 title.append(fileNames[0]);
                 setWindowTitle(title);
         	}else{
-        		if(fileNames[0].toLower() == "start.dat"){
+        		if(QFileInfo(fileNames[0]).baseName().left(5).toUpper() == "START"){
         			ui->statusBar->showMessage(QString("Couldn't open START.DAT, you may need to decompress it first! (Click 'About' for more info.)"));
         		}else
         			ui->statusBar->showMessage(QString("Couldn't open %1").arg(fileNames[0]));
@@ -704,6 +704,9 @@ void MainWindow::on_btnSave_clicked()
         	ui->btnSave->setEnabled(false);
         }else{
         	checkValid();
+    		QMessageBox::critical(this, "Saving failed!",
+    						"Make sure the file is not open by any other program, like the game.",
+    					 QMessageBox::Ok);
         	ui->statusBar->showMessage("Saving failed, file is maybe broken now.");
         }
 
@@ -764,6 +767,9 @@ void MainWindow::on_btnSaveAs_clicked()
             setWindowTitle(title);
     	}else{
     		checkValid();
+    		QMessageBox::critical(this, "Saving failed!",
+    						"Make sure the file is not open by any other program, like the game.",
+    					 QMessageBox::Ok);
     		ui->statusBar->showMessage("Saving failed, file is maybe broken now.");
         }
     	progress.close();
@@ -817,7 +823,7 @@ void MainWindow::on_btnExtractImage_clicked()
 
 bool MainWindow::checkValid(){
 	QString msg;
-	if(!m_treeModel->checkIsValid(msg)){
+	if(m_treeModel && !m_treeModel->checkIsValid(msg)){
 		QMessageBox messageBox(this);
 		messageBox.critical(0,"Error",msg);
 		messageBox.setFixedSize(500,200);

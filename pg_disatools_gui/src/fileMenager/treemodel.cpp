@@ -555,12 +555,9 @@ bool TreeModel::saveImage(const QModelIndex& index, const QString& targetfile){
 
 bool TreeModel::checkIsValid(QString& outMessage) const{
 	if(m_fileExtractor){
-		std::string errorMSG;
-		if(  !(errorMSG = m_fileExtractor->getError()).empty()){
-			outMessage = QString::fromStdString(errorMSG);
-			return false;
-		}
-		return true;
+		outMessage.clear();
+		outMessage =  m_fileExtractor->getError();
+		return outMessage.isEmpty();
 	}else{
 		outMessage = "There is no file opened!";
 		return false;
@@ -581,7 +578,7 @@ const QString& TreeModel::getOpenedType() const{
 
 QString TreeModel::getType() const{
 	if(m_fileExtractor){
-		return QString::fromStdString(m_fileExtractor->getType());
+		return m_fileExtractor->getType();
 	}else
 		return "";
 }

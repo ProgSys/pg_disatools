@@ -484,7 +484,7 @@ void SOLA::clear(){
 	ExtractorBase::clear();
 }
 
-std::string SOLA::getType() const{
+char const* SOLA::getType() const{
 	return "SOLA";
 }
 

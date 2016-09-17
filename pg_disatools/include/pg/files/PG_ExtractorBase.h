@@ -249,7 +249,7 @@ public:
 	 *
 	 * @returns string is empty, if archive is valid and no error messages are in the stack
 	 */
-	EXPORT virtual std::string getError();
+	EXPORT virtual char const* getError();
 	/*!
 	 * @brief Get the current opned archive.
 	 * @returns File of the current opned archive.
@@ -257,7 +257,7 @@ public:
 	EXPORT const PG::UTIL::File& getOpendFile() const;
 
 
-	EXPORT virtual std::string getType() const = 0;
+	EXPORT virtual char const* getType() const = 0;
 
 	EXPORT fileInfo& get(unsigned int index);
 	EXPORT const fileInfo& get(unsigned int index) const;

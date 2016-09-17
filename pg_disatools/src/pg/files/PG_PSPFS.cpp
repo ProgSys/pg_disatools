@@ -419,7 +419,7 @@ void PSPFS::clear(){
 	ExtractorBase::clear();
 }
 
-std::string PSPFS::getType() const{
+char const* PSPFS::getType() const{
 	return "PSPFS_V1";
 }
 

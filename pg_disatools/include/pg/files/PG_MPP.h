@@ -51,9 +51,9 @@ public:
 	EXPORT bool remove(fileInfo& target);
 	EXPORT void clear();
 
-	EXPORT std::string getError();
+	EXPORT char const* getError();
 
-	EXPORT std::string getType() const;
+	EXPORT char const* getType() const;
 
 	EXPORT virtual ~MPP();
 private:

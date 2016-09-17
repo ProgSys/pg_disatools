@@ -64,10 +64,11 @@ StartDAT::StartDAT(const PG::UTIL::File& file){
 
 
 void StartDAT::readFileNames(){
-	std::string filename = m_file.getFile();
+	std::string filename = m_file.getFile().substr(0, 5);
 	std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper );
+	if(filename != "START") return;
 
-	PG::STREAM::InByteFile reader("resources/"+filename+".csv");
+	PG::STREAM::InByteFile reader("resources/START.DAT.csv");
 	if(reader.isopen()){
 		skipSCVLine(reader);
 
@@ -352,7 +353,7 @@ void StartDAT::clear(){
 	ExtractorBase::clear();
 }
 
-std::string StartDAT::getType() const{
+char const* StartDAT::getType() const{
 	if(m_isCompressed)
 		return "COLA";
 	else

@@ -266,8 +266,8 @@ void GLSpriteWidget::initializeGL(){
     glClearColor(0.196,0.38,0.6588,1);
 
     //load shader
-	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, QCoreApplication::applicationDirPath()+"/resources/shaders/sprite.vert");
-	m_spriteShader.addShaderFile(PG::GL::Shader::FRAGMENT, QCoreApplication::applicationDirPath()+"/resources/shaders/sprite.frag");
+	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, "./resources/shaders/sprite.vert");
+	m_spriteShader.addShaderFile(PG::GL::Shader::FRAGMENT,"./resources/shaders/sprite.frag");
 
     if(!m_spriteShader.bind()){
 		QMessageBox messageBox;

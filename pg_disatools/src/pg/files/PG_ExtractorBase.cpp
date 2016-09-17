@@ -347,11 +347,12 @@ bool ExtractorBase::isChanged() const{
 	return m_changed;
 }
 
-std::string ExtractorBase::getError(){
+char const* ExtractorBase::getError(){
+
 	if(!m_errors.empty()){
 		const std::string errorMessageOut = m_errors.top();
 		m_errors.pop();
-		return errorMessageOut;
+		return errorMessageOut.c_str();
 	}
 
 	return "";

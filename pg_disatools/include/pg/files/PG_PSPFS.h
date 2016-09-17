@@ -67,7 +67,7 @@ public:
 
 	EXPORT void clear();
 
-	EXPORT std::string getType() const;
+	EXPORT char const* getType() const;
 
 	EXPORT virtual ~PSPFS();
 
