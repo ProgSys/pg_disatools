@@ -36,6 +36,8 @@
 namespace PG {
 namespace FILE {
 
+typedef std::vector<PG::UTIL::rgba> ColorTable;
+
 enum tx2Type: unsigned short {
 	DXT1 = 0, DXT5 = 2, BGRA = 3,  COLORTABLE_BGRA16 = 16, COLORTABLE_RGBA16 = 17, COLORTABLE_BGRA256 = 256 , COLORTABLE_RGBA256 = 257 , TX2ERROR = 999
 };
@@ -46,6 +48,7 @@ struct tx2Image{
 		unsigned short height = 0;
 		tx2Type type = TX2ERROR;
 		unsigned short colortableSize = 0;
+		std::vector<ColorTable> colortables;
 
 		tx2header(){}
 		tx2header(tx2Type typeIn, unsigned short w, unsigned short h, unsigned short colortableSizeIn = 0): type(typeIn),width(w),height(h), colortableSize(colortableSizeIn){}

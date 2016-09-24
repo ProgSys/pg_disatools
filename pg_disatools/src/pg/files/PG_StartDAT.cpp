@@ -64,11 +64,12 @@ StartDAT::StartDAT(const PG::UTIL::File& file){
 
 
 void StartDAT::readFileNames(){
-	std::string filename = m_file.getFile().substr(0, 5);
+	m_namesTable.clear();
+	std::string filename = m_file.getFile();
 	std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper );
-	if(filename != "START") return;
+	//if(filename != "START") return;
 
-	PG::STREAM::InByteFile reader("resources/START.DAT.csv");
+	PG::STREAM::InByteFile reader("resources/"+filename+".csv");
 	if(reader.isopen()){
 		skipSCVLine(reader);
 

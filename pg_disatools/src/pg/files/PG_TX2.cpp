@@ -104,18 +104,6 @@ bool decompressTX2(PG::STREAM::In* instream,const tx2Image::tx2header& img, PG::
 					return true;
 				}
 
-				std::vector<PG::UTIL::rgba> colortable(img.colortableSize);
-				instream->read((char*)&colortable[0], img.colortableSize*sizeof(PG::UTIL::rgba));
-
-				if(img.type == tx2Type::COLORTABLE_BGRA16)
-					//flip R and B channel
-					for(PG::UTIL::rgba& color: colortable){
-						const char r = color.r;
-						color.r = color.b;
-						color.b = r;
-					}
-
-
 				imageOut.resize(img.width,img.height);
 
 
@@ -123,8 +111,8 @@ bool decompressTX2(PG::STREAM::In* instream,const tx2Image::tx2header& img, PG::
 					const char c = instream->readUnsignedChar();
 
 					const unsigned int pos = i*2;
-					imageOut[pos] = colortable[ c & 0x0F];
-					imageOut[pos+1] = colortable[ (c >> 4) & 0x0F ];
+					imageOut[pos] = img.colortables[0][ c & 0x0F];
+					imageOut[pos+1] = img.colortables[0][ (c >> 4) & 0x0F ];
 				}
 
 		}else if(img.type == tx2Type::COLORTABLE_BGRA256 || img.type == tx2Type::COLORTABLE_RGBA256){
@@ -141,22 +129,12 @@ bool decompressTX2(PG::STREAM::In* instream,const tx2Image::tx2header& img, PG::
 				return true;
 			}
 
-			std::vector<PG::UTIL::rgba> colortable(img.colortableSize);
-			instream->read((char*)&colortable[0], img.colortableSize*sizeof(PG::UTIL::rgba));
 
 			imageOut.resize(img.width,img.height);
 
-			if(img.type == tx2Type::COLORTABLE_BGRA256 ){
-				for(unsigned int i = 0; i < total_number_of_bytes; i++){
-					imageOut[i] = colortable[instream->readUnsignedChar()];
-					char r = imageOut[i].r;
-					imageOut[i].r = imageOut[i].b;
-					imageOut[i].b = r;
-				}
-			}else
-				for(unsigned int i = 0; i < total_number_of_bytes; i++){
-					imageOut[i] = colortable[instream->readUnsignedChar()];
-				}
+			for(unsigned int i = 0; i < total_number_of_bytes; i++){
+				imageOut[i] = img.colortables[0][instream->readUnsignedChar()];
+			}
 
 
 		}else{
@@ -180,7 +158,28 @@ bool readTX2Header(PG::STREAM::In* instream, tx2Image::tx2header& header){
 	header.type = static_cast<tx2Type>(instream->readUnsignedShort());
 	instream->skip(2);
 	header.colortableSize = instream->readUnsignedShort();
-	instream->skip(6);
+	const unsigned short numberOfColortables = instream->readUnsignedShort();
+	header.colortables.resize((numberOfColortables)? numberOfColortables: 1);
+
+	instream->skip(4);
+
+
+	for(ColorTable& colortable: header.colortables ){
+		colortable.resize(header.colortableSize);
+		instream->read((char*)&colortable[0], header.colortableSize*sizeof(PG::UTIL::rgba));
+
+
+		if(header.type == tx2Type::COLORTABLE_BGRA16 || header.type == tx2Type::COLORTABLE_BGRA256)
+			//flip R and B channel
+			for(PG::UTIL::rgba& color: colortable){
+				const char r = color.r;
+				color.r = color.b;
+				color.b = r;
+			}
+	}
+
+
+
 	return false;
 }
 
@@ -195,9 +194,10 @@ bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 	}
 
 	tx2Image::tx2header header;
-	if(readTX2Header(instream, header)){
+	if(readTX2Header(instream, header))
 		return true;
-	}
+
+
 	return decompressTX2(instream, header, imageOut);
 }
 

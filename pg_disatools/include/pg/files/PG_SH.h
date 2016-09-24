@@ -30,6 +30,7 @@
 #include <pg/util/PG_File.h>
 #include <pg/util/PG_Vector.h>
 #include <pg/util/PG_Image.h>
+#include <pg/files/PG_TX2.h>
 
 namespace PG {
 namespace FILE {
@@ -105,8 +106,6 @@ typedef struct
 	unsigned char mic; //mirror, rendermode
 
 } __attribute__((packed, aligned(1))) shfileCutout;
-
-typedef std::vector<PG::UTIL::rgba> ColorTable;
 
 class SH {
 public:

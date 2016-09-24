@@ -161,7 +161,7 @@ std::string getSpriteName(unsigned short id){
 	}else{
 		o.fill('0');
 		o.width(4);
-		o<<id<<"_SPRITE_SHEET.SH";
+		o<<id<<"_FILE.SH";
 	}
 
 	return o.str();
@@ -362,7 +362,16 @@ bool SOLA::open(const PG::UTIL::File& file, PercentIndicator* percent){
 
 		auto it = m_fileInfos.begin();
 		for(unsigned short id: m_chractersIDs){
-			(*it).name = getSpriteName(id);
+			std::string fileName = getSpriteName(id);
+			reader.seek((*it).offset);
+			if(PG::FILE::isTX2(reader)){
+				(*it).name = fileName.substr(0, fileName.size()-3)+".TX2";
+				(*it).fileType = fileInfo::type::TX2;
+
+			}else{
+				(*it).name = fileName;
+				(*it).fileType = fileInfo::type::SH;
+			}
 			it++;
 		}
 
