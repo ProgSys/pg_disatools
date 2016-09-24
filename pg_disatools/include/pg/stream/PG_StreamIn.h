@@ -25,6 +25,7 @@
 #define INCLUDE_PG_STREAM_PG_StreamIn_H_
 
 #include <string>
+#include <vector>
 
 namespace PG {
 namespace STREAM {
@@ -67,6 +68,10 @@ public:
 	virtual std::string readString(unsigned int length)  = 0;
 	///Read some bytes.
 	virtual void read(char* data, unsigned int length)  = 0;
+	inline void read(std::vector<char>& data, unsigned int length){data.resize(length);read(&data.front(),length);}
+	inline void read(std::vector<unsigned char>& data, unsigned int length){data.resize(length);read((char*)&data.front(),length);}
+	inline void read(std::vector<char>& data){read(&data.front(),data.size());}
+	inline void read(std::vector<unsigned char>& data){read((char*)&data.front(),data.size());}
 
 	///Skip the given number of bytes
 	virtual void skip(unsigned int skip)  = 0;

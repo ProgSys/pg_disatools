@@ -59,7 +59,7 @@ MapEditor::MapEditor(QWidget *parent): QMainWindow(parent) {
 
 
 
-	connect(this,  SIGNAL(openMPD(const QString&)), openGLWidget, SLOT(openMPD(const QString&)));
+	connect(this,  SIGNAL(openMPD(const QString&)), openGLWidget, SLOT(openMap(const QString&)));
 
 
 }

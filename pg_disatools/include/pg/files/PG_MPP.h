@@ -30,6 +30,7 @@
 #include <pg/util/PG_ApiUtil.h>
 #include <pg/util/PG_Exception.h>
 #include <pg/files/PG_ExtractorBase.h>
+#include <pg/files/PG_TX2.h>
 
 namespace PG {
 namespace FILE {
@@ -50,6 +51,15 @@ public:
 	EXPORT bool insert(const PG::UTIL::File& file);
 	EXPORT bool remove(fileInfo& target);
 	EXPORT void clear();
+
+	EXPORT bool hasModels() const;
+	EXPORT bool hasTextures() const;
+	EXPORT bool hasNormalMaps() const;
+	EXPORT int getNumberOfModels() const;
+	EXPORT int getNumberOfTextures() const;
+	EXPORT int getNumberOfNormalMaps() const;
+	EXPORT bool getTexture(int index, tx2Image& imgOut) const;
+
 
 	EXPORT char const* getError();
 

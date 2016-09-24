@@ -181,6 +181,51 @@ void Texture::bind(const PG::UTIL::RGBAImage& img, Texture::type texType){
 	checkGLError();
 }
 
+void Texture::bind(const PG::FILE::tx2Image& img, Texture::type texType){
+	if(img.header.type == PG::FILE::tx2Type::TX2ERROR) return;
+
+	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);
+	m_GLID = INVALID_OGL_VALUE;
+	if(!img.header.width || !img.header.height || !create()) return;
+	setTexParameter(texType);
+	checkGLError();
+
+	glBindTexture( GL_TEXTURE_2D, m_GLID);
+	switch (img.header.type) {
+		case  PG::FILE::tx2Type::DXT1:
+			glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB_S3TC_DXT1_EXT, img.header.width, img.header.height, 0, img.data.size(), &img.data[0]);
+			break;
+		case  PG::FILE::tx2Type::DXT5:
+			glCompressedTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, img.header.width, img.header.height, 0, img.data.size(), &img.data[0]);
+			break;
+		case  PG::FILE::tx2Type::BGRA:
+			glTexImage2D(GL_TEXTURE_2D, 0,GL_BGRA, img.header.width, img.header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &img.data[0]);
+			break;
+		case  PG::FILE::tx2Type::COLORTABLE_BGRA16:
+		case  PG::FILE::tx2Type::COLORTABLE_BGRA256:
+		case  PG::FILE::tx2Type::COLORTABLE_RGBA16:
+		case  PG::FILE::tx2Type::COLORTABLE_RGBA256:
+		{
+			PG::UTIL::RGBAImage imgrgba;
+			PG::FILE::decompressTX2(img, imgrgba);
+			glTexImage2D(GL_TEXTURE_2D, 0,GL_RGBA, img.header.width, img.header.height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &imgrgba[0]);
+		}
+			break;
+		default:
+		{
+			PG_ERROR_STREAM("Image format not supported! "<<img.header.type);
+			throw "Image format not supported!";
+		}
+			break;
+	}
+
+    //ImageTexture settings
+    if(texType != SPRITE && img.header.width > 16 && img.header.height > 16)
+    	glGenerateMipmap(GL_TEXTURE_2D);
+
+	checkGLError();
+}
+
 #if SUPPORT_QT
 void Texture::bind(const QList<PG::UTIL::rgba>& colors, Texture::type texType){
 	if (m_GLID != INVALID_OGL_VALUE) glDeleteTextures(1, &m_GLID);

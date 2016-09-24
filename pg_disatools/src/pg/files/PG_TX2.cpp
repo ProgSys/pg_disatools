@@ -33,6 +33,157 @@
 namespace PG {
 namespace FILE {
 
+
+
+bool decompressTX2(PG::STREAM::In* instream,const tx2Image::tx2header& img, PG::UTIL::RGBAImage& imageOut ){
+	if(img.type == tx2Type::DXT1){
+			//DXT1
+			instream->skip(img.colortableSize*4);
+
+			const unsigned int number_of_blocks_width = (img.width/4);
+			const unsigned int number_of_blocks_height = (img.height/4);
+			const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+
+			//wrong file size?
+			if( instream->size() < (number_of_blocks_4x4*8+16)){
+				PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(number_of_blocks_4x4*8+16)<<")");
+				return true;
+			}
+
+			std::vector<PG::FILE::DXT1block> blocks(number_of_blocks_4x4);
+			instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT1block));
+
+			PG::FILE::decompressS3(img.width,img.height, blocks, imageOut);
+
+		}else if(img.type ==  tx2Type::DXT5){
+			//DXT5
+			instream->skip(img.colortableSize*4);
+
+			const unsigned int number_of_blocks_width = (img.width/4);
+			const unsigned int number_of_blocks_height = (img.height/4);
+			const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+
+			//wrong file size?
+			if( instream->size() < (number_of_blocks_4x4*16+16)){
+				PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(number_of_blocks_4x4*16+16)<<")");
+				return true;
+			}
+
+			std::vector<PG::FILE::DXT5block> blocks(number_of_blocks_4x4);
+			instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT5block));
+
+
+			PG::FILE::decompressS3(img.width,img.height, blocks, imageOut);
+
+		}else if(img.type == tx2Type::BGRA){
+			//BGRA
+			if( instream->size() < (img.width*img.height*4+16)){
+				PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(img.width*img.height*4+16)<<")");
+				return true;
+			}
+
+			imageOut.resize(img.width,img.height);
+			instream->read((char*)&imageOut[0], imageOut.size()*sizeof(PG::UTIL::rgba));
+
+			//flip r and b
+			for(PG::UTIL::rgba& rgba: imageOut){
+				const unsigned char r =  rgba.r;
+				rgba.r = rgba.b;
+				rgba.b = r;
+			}
+		}else if(img.type == tx2Type::COLORTABLE_BGRA16 || img.type == tx2Type::COLORTABLE_RGBA16){
+				//lookup table RGBA with max 16 values
+
+				if(img.colortableSize > 16){
+					PG_WARN_STREAM("Color table is too big!  ("<<img.colortableSize<<" but should be 16)");
+				}
+
+				const unsigned int total_number_of_bytes = (img.width*img.height)/2; // every byte holds two table values
+				if( instream->size() < (total_number_of_bytes+img.colortableSize+16)){
+					PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < " << (total_number_of_bytes+img.colortableSize+16)<<") ");
+					return true;
+				}
+
+				std::vector<PG::UTIL::rgba> colortable(img.colortableSize);
+				instream->read((char*)&colortable[0], img.colortableSize*sizeof(PG::UTIL::rgba));
+
+				if(img.type == tx2Type::COLORTABLE_BGRA16)
+					//flip R and B channel
+					for(PG::UTIL::rgba& color: colortable){
+						const char r = color.r;
+						color.r = color.b;
+						color.b = r;
+					}
+
+
+				imageOut.resize(img.width,img.height);
+
+
+				for(unsigned int i = 0; i < total_number_of_bytes; ++i){
+					const char c = instream->readUnsignedChar();
+
+					const unsigned int pos = i*2;
+					imageOut[pos] = colortable[ c & 0x0F];
+					imageOut[pos+1] = colortable[ (c >> 4) & 0x0F ];
+				}
+
+		}else if(img.type == tx2Type::COLORTABLE_BGRA256 || img.type == tx2Type::COLORTABLE_RGBA256){
+			//lookup table RGBA
+
+			if(img.colortableSize > 256){
+				PG_ERROR_STREAM("Color table is too big!");
+				return true;
+			}
+
+			const unsigned int total_number_of_bytes = (img.width*img.height);
+			if( instream->size() < (total_number_of_bytes+img.colortableSize+16)){
+				PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < " << (total_number_of_bytes+img.colortableSize+16)<<") ");
+				return true;
+			}
+
+			std::vector<PG::UTIL::rgba> colortable(img.colortableSize);
+			instream->read((char*)&colortable[0], img.colortableSize*sizeof(PG::UTIL::rgba));
+
+			imageOut.resize(img.width,img.height);
+
+			if(img.type == tx2Type::COLORTABLE_BGRA256 ){
+				for(unsigned int i = 0; i < total_number_of_bytes; i++){
+					imageOut[i] = colortable[instream->readUnsignedChar()];
+					char r = imageOut[i].r;
+					imageOut[i].r = imageOut[i].b;
+					imageOut[i].b = r;
+				}
+			}else
+				for(unsigned int i = 0; i < total_number_of_bytes; i++){
+					imageOut[i] = colortable[instream->readUnsignedChar()];
+				}
+
+
+		}else{
+			PG_ERROR_STREAM("Unknown format not supported!");
+			return true;
+		}
+
+		return false;
+}
+
+bool readTX2Header(PG::STREAM::In* instream, tx2Image::tx2header& header){
+	header.width = instream->readUnsignedShort();
+	header.height = instream->readUnsignedShort();
+
+	//invalid with or height
+	if(header.width <= 0 || header.width > 15000 || header.height <= 0 || header.height > 15000){
+		PG_ERROR_STREAM("Invalid width or height!");
+		return true;
+	}
+
+	header.type = static_cast<tx2Type>(instream->readUnsignedShort());
+	instream->skip(2);
+	header.colortableSize = instream->readUnsignedShort();
+	instream->skip(6);
+	return false;
+}
+
 bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 	if(instream == nullptr){
 		PG_ERROR_STREAM("InStream is nullptr!");
@@ -43,154 +194,18 @@ bool decompressTX2(PG::STREAM::In* instream, PG::UTIL::RGBAImage& imageOut  ){
 		return true;
 	}
 
-	int widthOut = instream->readUnsignedShort();
-	int heightOut = instream->readUnsignedShort();
-
-	//invalid with or height
-	if(widthOut <= 0 || widthOut > 15000 || heightOut <= 0 || heightOut > 15000){
-		PG_ERROR_STREAM("Invalid width or height!");
+	tx2Image::tx2header header;
+	if(readTX2Header(instream, header)){
 		return true;
 	}
+	return decompressTX2(instream, header, imageOut);
+}
 
-	const unsigned short compressiontype = instream->readUnsignedShort();
-	const unsigned short noidear = instream->readUnsignedShort(); //seams always to be 2056?
+bool decompressTX2(const tx2Image& img, PG::UTIL::RGBAImage& imageOut ){
 
-	const unsigned short color_table_size = instream->readUnsignedShort();
-	const unsigned short noidear2 = instream->readUnsignedShort();
-
-	const unsigned int total_texture_bytes = instream->readUnsignedInt(); //without the header and colortable
-
-
-
-	if(compressiontype == tx2Type::DXT1){
-		//DXT1
-		instream->skip(color_table_size*4);
-
-		const unsigned int number_of_blocks_width = (widthOut/4);
-		const unsigned int number_of_blocks_height = (heightOut/4);
-		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
-
-		//wrong file size?
-		if( instream->size() < (number_of_blocks_4x4*8+16)){
-			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(number_of_blocks_4x4*8+16)<<")");
-			return true;
-		}
-
-		std::vector<PG::FILE::DXT1block> blocks(number_of_blocks_4x4);
-		instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT1block));
-
-		PG::FILE::decompressS3(widthOut,heightOut, blocks, imageOut);
-
-	}else if(compressiontype ==  tx2Type::DXT5){
-		//DXT5
-		instream->skip(color_table_size*4);
-
-		const unsigned int number_of_blocks_width = (widthOut/4);
-		const unsigned int number_of_blocks_height = (heightOut/4);
-		const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
-
-		//wrong file size?
-		if( instream->size() < (number_of_blocks_4x4*16+16)){
-			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(number_of_blocks_4x4*16+16)<<")");
-			return true;
-		}
-
-		std::vector<PG::FILE::DXT5block> blocks(number_of_blocks_4x4);
-		instream->read((char*)&blocks[0], number_of_blocks_4x4*sizeof(PG::FILE::DXT5block));
-
-
-		PG::FILE::decompressS3(widthOut,heightOut, blocks, imageOut);
-
-	}else if(compressiontype == tx2Type::BGRA){
-		//BGRA
-		if( instream->size() < (widthOut*heightOut*4+16)){
-			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < "<<(widthOut*heightOut*4+16)<<")");
-			return true;
-		}
-
-		imageOut.resize(widthOut,heightOut);
-		instream->read((char*)&imageOut[0], imageOut.size()*sizeof(PG::UTIL::rgba));
-
-		//flip r and b
-		for(PG::UTIL::rgba& rgba: imageOut){
-			const unsigned char r =  rgba.r;
-			rgba.r = rgba.b;
-			rgba.b = r;
-		}
-	}else if(compressiontype == tx2Type::COLORTABLE_BGRA16 || compressiontype == tx2Type::COLORTABLE_RGBA16){
-			//lookup table RGBA with max 16 values
-
-			if(color_table_size > 16){
-				PG_WARN_STREAM("Color table is too big!  ("<<color_table_size<<" but should be 16)");
-			}
-
-			const unsigned int total_number_of_bytes = (widthOut*heightOut)/2; // every byte holds two table values
-			if( instream->size() < (total_number_of_bytes+color_table_size+16)){
-				PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < " << (total_number_of_bytes+color_table_size+16)<<") ");
-				return true;
-			}
-
-			std::vector<PG::UTIL::rgba> colortable(color_table_size);
-			instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
-
-			if(compressiontype == tx2Type::COLORTABLE_BGRA16)
-				//flip R and B channel
-				for(PG::UTIL::rgba& color: colortable){
-					const char r = color.r;
-					color.r = color.b;
-					color.b = r;
-				}
-
-
-			imageOut.resize(widthOut,heightOut);
-
-
-			for(unsigned int i = 0; i < total_number_of_bytes; ++i){
-				const char c = instream->readUnsignedChar();
-
-				const unsigned int pos = i*2;
-				imageOut[pos] = colortable[ c & 0x0F];
-				imageOut[pos+1] = colortable[ (c >> 4) & 0x0F ];
-			}
-
-	}else if(compressiontype == tx2Type::COLORTABLE_BGRA256 || compressiontype == tx2Type::COLORTABLE_RGBA256){
-		//lookup table RGBA
-
-		if(color_table_size > 256){
-			PG_ERROR_STREAM("Color table is too big!");
-			return true;
-		}
-
-		const unsigned int total_number_of_bytes = (widthOut*heightOut);
-		if( instream->size() < (total_number_of_bytes+color_table_size+16)){
-			PG_ERROR_STREAM("File too small! ("<<instream->size()<<" < " << (total_number_of_bytes+color_table_size+16)<<") ");
-			return true;
-		}
-
-		std::vector<PG::UTIL::rgba> colortable(color_table_size);
-		instream->read((char*)&colortable[0], color_table_size*sizeof(PG::UTIL::rgba));
-
-		imageOut.resize(widthOut,heightOut);
-
-		if(compressiontype == tx2Type::COLORTABLE_BGRA256 ){
-			for(unsigned int i = 0; i < total_number_of_bytes; i++){
-				imageOut[i] = colortable[instream->readUnsignedChar()];
-				char r = imageOut[i].r;
-				imageOut[i].r = imageOut[i].b;
-				imageOut[i].b = r;
-			}
-		}else
-			for(unsigned int i = 0; i < total_number_of_bytes; i++){
-				imageOut[i] = colortable[instream->readUnsignedChar()];
-			}
-
-
-	}else{
-		PG_ERROR_STREAM("Unknown format not supported!");
-		return true;
-	}
-
-	return false;
+	PG::STREAM::InByteArray reader(&img.data[0], img.data.size());
+	const bool s = decompressTX2((PG::STREAM::In*) &reader, img.header, imageOut);
+	return s;
 }
 
 bool decompressTX2(const PG::UTIL::File& file, PG::UTIL::RGBAImage& imageOut ){

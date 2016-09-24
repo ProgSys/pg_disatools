@@ -60,6 +60,10 @@ public:
 	std::string readString(unsigned int length) final;
 
 	void read(char* data, unsigned int length) final;
+	inline void read(std::vector<char>& data, unsigned int length){data.resize(length);read(&data.front(),length);}
+	inline void read(std::vector<unsigned char>& data, unsigned int length){data.resize(length);read((char*)&data.front(),length);}
+	inline void read(std::vector<char>& data){read(&data.front(),data.size());}
+	inline void read(std::vector<unsigned char>& data){read((char*)&data.front(),data.size());}
 
 	void skip(unsigned int skip) final;
 

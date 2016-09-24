@@ -21,6 +21,7 @@
 #include <vector>
 #include <openGL/PG_GLItem.h>
 #include <pg/util/PG_Image.h>
+#include <pg/files/PG_TX2.h>
 
 #define SUPPORT_QT true
 #if SUPPORT_QT
@@ -46,6 +47,7 @@ public:
 	void bind(const PG::UTIL::IDImage& img, Texture::type texType = NORMAL);
 	void bind(const PG::UTIL::RGBImage& img, Texture::type texType = NORMAL);
 	void bind(const PG::UTIL::RGBAImage& img, Texture::type texType = NORMAL);
+	void bind(const PG::FILE::tx2Image& img, Texture::type texType = NORMAL);
 #if SUPPORT_QT
 	void bind(const QList<PG::UTIL::rgba>& colors, Texture::type texType = NORMAL);
 	void bind(const QList<QColor>& colors, Texture::type texType = NORMAL);

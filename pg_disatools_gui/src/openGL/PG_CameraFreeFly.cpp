@@ -1,10 +1,20 @@
 /*
- * CameraFreeFly.cpp
+ *  GNU Lesser General Public License (LGPL):
  *
- *  Created on: 11.09.2016
- *      Author: ProgSys
+ *	Copyright (C) 2016  ProgSys
+ *
+ *	This program is free software: you can redistribute it and/or modify
+ *	it under the terms of the GNU Lesser General Public License as published by
+ *	the Free Software Foundation, version 3 of the License.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU Lesser General Public License for more details.
+ *
+ *	You should have received a copy of the GNU Lesser General Public License
+ *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
+ *	or http://www.gnu.org/licenses/
  */
-
 #include <openGL/PG_CameraFreeFly.h>
 #include <pg/util/PG_MatrixUtil.h>
 #include <pg/util/PG_VectorUtil.h>
@@ -40,13 +50,13 @@ UTIL::vec4 CameraFreeFly::operator*(const PG::UTIL::vec4& tvec4) const{
 	return m_viewMat * tvec4;
 }
 
-void CameraFreeFly::mousePressEvent(QMouseEvent * event){
+void CameraFreeFly::mousePressEvent(QMouseEvent * event, float deltaTime){
 	if(event->buttons() & Qt::LeftButton){
 		m_mouseLast.x = event->x();
 		m_mouseLast.y = event->y();
 	}
 }
-void CameraFreeFly::mouseMoveEvent(QMouseEvent *event){
+void CameraFreeFly::mouseMoveEvent(QMouseEvent *event, float deltaTime){
 
     float xoffset = event->x() - m_mouseLast.x;
     float yoffset = m_mouseLast.y - event->y() ;
@@ -73,7 +83,7 @@ void CameraFreeFly::mouseMoveEvent(QMouseEvent *event){
     update();
 }
 
-void CameraFreeFly::keyPressEvent(QKeyEvent * event){
+void CameraFreeFly::keyPressEvent(QKeyEvent * event, float deltaTime){
     if(event->key() == Qt::Key_W)
        m_cameraPos += m_cameraSpeed * m_cameraLookVec;
     else if(event->key() == Qt::Key_S)

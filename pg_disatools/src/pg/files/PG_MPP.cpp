@@ -29,6 +29,7 @@
 #include <pg/stream/PG_StreamOutByteFile.h>
 #include <pg/util/PG_StringUtil.h>
 #include <pg/util/PG_Exception.h>
+#include <pg/stream/PG_StreamInByteArray.h>
 
 namespace PG {
 namespace FILE {
@@ -427,6 +428,47 @@ void MPP::clear(){
 	//m_lastError.clear();
 }
 
+
+bool MPP::hasModels() const{
+	return getNumberOfModels();
+}
+
+bool MPP::hasTextures() const{
+	return getNumberOfTextures();
+}
+
+bool MPP::hasNormalMaps() const{
+	return getNumberOfNormalMaps();
+}
+
+int MPP::getNumberOfModels() const{
+	return std::distance<std::vector<fileInfo>::const_iterator>(m_normalsEnd, m_fileInfos.end());
+}
+
+int MPP::getNumberOfTextures() const{
+	return std::distance<std::vector<fileInfo>::const_iterator>(m_fileInfos.begin(),m_texturesEnd);
+}
+int MPP::getNumberOfNormalMaps() const{
+	return std::distance(m_texturesEnd, m_normalsEnd);
+}
+
+bool MPP::getTexture(int index, tx2Image& imgOut) const{
+	if(index >= getNumberOfTextures()) return false;
+	char* data = nullptr;
+
+	unsigned int size = ExtractorBase::extract( m_fileInfos[index],data);
+	if(size < 17) {
+		delete data;
+		return false;
+	}
+
+	PG::STREAM::InByteArray reader(data,size);
+	PG::FILE::readTX2Header(&reader, imgOut.header);
+	reader.read(imgOut.data, size-16);
+	reader.close();
+	delete data;
+	return true;
+}
 
 char const* MPP::getError(){
 	std::string errorMsg = ExtractorBase::getError();

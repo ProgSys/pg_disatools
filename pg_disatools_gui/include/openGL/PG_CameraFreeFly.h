@@ -29,9 +29,9 @@ public:
 	PG::UTIL::mat4 operator*(const PG::UTIL::mat4& tma4) const;
 	PG::UTIL::vec4 operator*(const PG::UTIL::vec4& tvec4) const;
 
-    void mousePressEvent(QMouseEvent * event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void keyPressEvent(QKeyEvent * event);
+    void mousePressEvent(QMouseEvent * event, float deltaTime);
+    void mouseMoveEvent(QMouseEvent *event, float deltaTime);
+    void keyPressEvent(QKeyEvent * event, float deltaTime);
 
     void update();
 

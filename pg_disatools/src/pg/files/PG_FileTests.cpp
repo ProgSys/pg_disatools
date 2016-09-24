@@ -211,12 +211,12 @@ tx2Type getTX2CompressionType(PG::STREAM::InByteFile& reader){
 		default:
 		{
 			PG_INFO_STREAM("Unknown texture type: "<<type);
-			return tx2Type::ERROR;
+			return tx2Type::TX2ERROR;
 		}
 			break;
 	}
 
-	return tx2Type::ERROR;
+	return tx2Type::TX2ERROR;
 }
 
 std::string asString(tx2Type type){

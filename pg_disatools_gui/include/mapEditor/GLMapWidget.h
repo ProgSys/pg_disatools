@@ -1,8 +1,19 @@
 /*
- * GLMapWidget.h
+ *  GNU Lesser General Public License (LGPL):
  *
- *  Created on: 10.09.2016
- *      Author: ProgSys
+ *	Copyright (C) 2016  ProgSys
+ *
+ *	This program is free software: you can redistribute it and/or modify
+ *	it under the terms of the GNU Lesser General Public License as published by
+ *	the Free Software Foundation, version 3 of the License.
+ *
+ *	This program is distributed in the hope that it will be useful,
+ *	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *	GNU Lesser General Public License for more details.
+ *
+ *	You should have received a copy of the GNU Lesser General Public License
+ *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
+ *	or http://www.gnu.org/licenses/
  */
 
 #ifndef INCLUDE_MAPEDITOR_GLMAPWIDGET_H_
@@ -24,7 +35,7 @@
 #include <QList>
 
 #include <pg/util/PG_MatrixUtil.h>
-#include <openGL/PG_Box.h>
+#include <openGL/PG_TilePlane.h>
 #include <openGL/PG_Texture.h>
 #include <openGL/PG_Shader.h>
 #include <openGL/PG_Plane.h>
@@ -32,8 +43,12 @@
 
 
 struct mapTile{
-	PG::GL::Box box;
+	PG::GL::TilePlane topPlane;
 	PG::UTIL::mat4 modelMatrix;
+
+	int iChannel0Index = -1;
+	int iChannel1Index = -1;
+	float transparency = 1.0f;
 };
 
 class GLMapWidget  : public QOpenGLWidget{
@@ -52,17 +67,24 @@ public:
     void keyPressEvent(QKeyEvent * event);
 
 public slots:
+	bool openMap( const QString& filepath );
 	bool openMPD( const QString& filepath );
+	bool openMPP( const QString& filepath );
 private:
     QColor m_clearcolor = QColor(5,79,121);
+
+    PG::GL::Texture m_groundTex;
     PG::GL::Texture m_tileTex;
-    PG::GL::Texture m_grassTestTex;
+    QList<PG::GL::Texture*> m_textures;
+    QList<PG::GL::Texture*> m_normalMaps;
+
     PG::GL::Plane m_groundGeometry;
 
     PG::GL::CAM::CameraFreeFly camera;
 	PG::UTIL::mat4 perspectiveMatrix;
 
 	QList<mapTile*> m_mapTiles;
+	float m_deltaTime = 0;
 
 
     struct objectShader: public PG::GL::Shader{
@@ -75,7 +97,10 @@ private:
     	int projectionMatrixLoc = -1;
     	int modelMatrixLoc = -1;
 
-    	int textureLoc = -1;
+    	int iChannel0Loc = -1;
+    	int iChannel1Loc = -1;
+    	int shadowmapLoc = -1;
+    	int iChannel1AlphaLoc = -1;
 
     	objectShader(){}
 
@@ -86,7 +111,7 @@ private:
 
     	bool bind();
 
-    	void apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix) const;
+    	void apply(const PG::UTIL::mat4& modelMatrix, const PG::UTIL::mat4& viewMatrix, const PG::UTIL::mat4& perspectiveMatrix, float channel1Alpha = 0.0) const;
 
 
     } m_objectShader;

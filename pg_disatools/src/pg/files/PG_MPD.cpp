@@ -149,6 +149,7 @@ void MPD::dump(const std::string& file) const{
 		  myfile << "  Chunk objects:\n";
 		  myfile << "    * unk1: "<<chunk.info.objects[0].unk1<<"\n";
 		  myfile << "    * unk2: "<<chunk.info.objects[0].unk2<<"\n";
+		  /*
 		  myfile << "  Chunk event tiles:\n";
 		  for(unsigned int i = 0; i < 16; i++){
 			  myfile << "    Event tile:\n";
@@ -156,7 +157,7 @@ void MPD::dump(const std::string& file) const{
 			  myfile << "      * x: "<<(int)chunk.info.eventTiles[i].x<<"\n";
 			  myfile << "      * z: "<<(int)chunk.info.eventTiles[i].z<<"\n";
 		  }
-
+*/
 
 		  myfile << "      Tiles ("<< chunk.tiles.size()<< "):\n";
 
@@ -164,11 +165,14 @@ void MPD::dump(const std::string& file) const{
 
 		  for(const mpdfileTile& tile: chunk.tiles){
 			  myfile << "        Tile:\n";
-			  for(unsigned int t = 0; t < 12; t++){
-				  myfile << "        Texture:\n";
+			  for(unsigned int t = 9; t < 10; t++){
+				  myfile << "        Texture"<<t<<":\n";
 				  myfile << "           * u: "<<(int)tile.textures[t].u<<"\n";
 				  myfile << "           * v: "<<(int)tile.textures[t].v<<"\n";
+				  myfile << "           * w: "<<(int)tile.textures[t].width<<"\n";
+				  myfile << "           * h: "<<(int)tile.textures[t].height<<"\n";
 				  myfile << "           * t: "<<(int)tile.textures[t].textureIndex<<"\n";
+				  myfile << "           * m: "<<(int)tile.textures[t].mirror<<"\n";
 			  }
 			  /*
 			  myfile << "           * x: "<<(int)tile.x<<"\n";
