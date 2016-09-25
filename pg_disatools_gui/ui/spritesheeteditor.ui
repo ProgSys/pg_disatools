@@ -30,7 +30,7 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_4">
       <item>
-       <widget class="GLWidget" name="openGLWidget">
+       <widget class="GLSpriteWidget" name="openGLWidget">
         <property name="minimumSize">
          <size>
           <width>100</width>
@@ -73,9 +73,6 @@
     <addaction name="actionExport_sprites_as_PNG"/>
     <addaction name="actionExport_sprites_as_TGA"/>
     <addaction name="actionExport_sprites_IDs"/>
-    <addaction name="actionExport_color_table"/>
-    <addaction name="separator"/>
-    <addaction name="actionImport_color_table"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -528,9 +525,9 @@
    <header>QtQuickWidgets/QQuickWidget</header>
   </customwidget>
   <customwidget>
-   <class>GLWidget</class>
+   <class>GLSpriteWidget</class>
    <extends>QOpenGLWidget</extends>
-   <header>GLWidget.h</header>
+   <header>spriteSheetEditor/GLSpriteWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

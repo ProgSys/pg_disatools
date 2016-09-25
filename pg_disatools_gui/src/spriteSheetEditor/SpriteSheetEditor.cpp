@@ -95,9 +95,6 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionExport_sprites_as_TGA, &QAction::triggered, this, [this]{exportSprites("TGA");} );
 	connect(ui->actionExport_sprites_IDs, &QAction::triggered, this, [this]{exportSprites("TGA", true);} );
 
-	connect(ui->actionExport_color_table, &QAction::triggered, this, [this]{exportColortable();} );
-	connect(ui->actionImport_color_table, &QAction::triggered, this, [this]{importColortable();} );
-
 	//View
 	connect(ui->action_Pick_color, SIGNAL(triggered()), this, SLOT(pickBackgroundColor()));
 	connect(ui->actionReset_camera, SIGNAL(triggered()), ui->openGLWidget, SLOT(resetCamera()));
@@ -202,8 +199,6 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_as_PNG->setEnabled(false);
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
 		ui->actionExport_sprites_IDs->setEnabled(false);
-		ui->actionExport_color_table->setEnabled(false);
-		ui->actionImport_color_table->setEnabled(false);
 
 		ui->pushButton_newanimation->setEnabled(false);
 		m_lastOpendFile.clear();
@@ -218,8 +213,6 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
 		ui->actionExport_sprites_IDs->setEnabled(true);
-		ui->actionExport_color_table->setEnabled(true);
-		ui->actionImport_color_table->setEnabled(true);
 		ui->pushButton_newanimation->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
 		m_lastOpendFile = file;
@@ -281,8 +274,6 @@ void SpriteSheetEditor::import(const QString& file){
 		ui->actionExport_sprites_as_PNG->setEnabled(false);
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
 		ui->actionExport_sprites_IDs->setEnabled(false);
-		ui->actionExport_color_table->setEnabled(false);
-		ui->actionImport_color_table->setEnabled(false);
 
 		ui->pushButton_newanimation->setEnabled(false);
 		m_lastOpendFile.clear();
@@ -297,8 +288,6 @@ void SpriteSheetEditor::import(const QString& file){
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
 		ui->actionExport_sprites_IDs->setEnabled(true);
-		ui->actionExport_color_table->setEnabled(true);
-		ui->actionImport_color_table->setEnabled(true);
 		ui->pushButton_newanimation->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
 		//m_lastOpendFile = file;

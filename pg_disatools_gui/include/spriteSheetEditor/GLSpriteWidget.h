@@ -90,7 +90,7 @@ public:
     virtual ~GLSpriteWidget();
 public slots:
 	///returns true on success
-	bool open(const SpriteData* spriteSheet);
+	void setData(const SpriteData* spriteSheet);
 
 	void renderFrame(int frame);
 	void renderFrame();
@@ -100,8 +100,13 @@ public slots:
 	void displayShadow(bool display);
 
 	void setBackgroundColor(const QColor& color);
-	void updateColortable();
 
+	void updateAllColortables();
+	void updateColortable(int index);
+	void addColortable(int index);
+	void removeColortable(int index);
+
+	void updateAllSpriteSheets();
 	void updateSpriteSheet(int sheetID);
 	void updateSpriteSheetAdded();
 	void updateSpriteSheetRemove(int sheetID);
@@ -109,11 +114,7 @@ public slots:
 	void resetCamera();
 
 private:
-	//data
-	const SpriteData* m_spriteSheet;
-
     //render
-
     PG::UTIL::mat4 modelMatrix;
 	PG::UTIL::mat4 viewMatrix;
 	PG::UTIL::mat4 perspectiveMatrix;
@@ -259,7 +260,7 @@ private:
     	unsigned int frame = 0;
 
 		std::vector<PG::GL::Texture* > spriteSheetIDTextures;
-		PG::GL::Texture* colorTable = nullptr;
+		std::vector<PG::GL::Texture* > colorTables;
 		PG::GL::Texture* externalSheet = nullptr;
 
 
@@ -269,37 +270,6 @@ private:
 				externalSheet = new PG::GL::Texture();
 				externalSheet->bindTGA("resources/materials/external_sheet.tga", PG::GL::Texture::SPRITE);
 			}
-		}
-
-		bool open(const SpriteData* spriteSheetIn){
-			spriteData = nullptr;
-			clear();
-			if(!spriteSheetIn)
-				return false;
-			spriteData = spriteSheetIn;
-
-			setTextures();
-
-			return true;
-		}
-
-		void setTextures(){
-			spriteSheetIDTextures.reserve(spriteData->getNumberOfSpriteSheets());
-			PG_INFO_STREAM("Number of cutouts: "<<spriteData->getNumberOfCutouts());
-			PG_INFO_STREAM("Number of sprite sheets: "<<spriteData->getNumberOfSpriteSheets());
-
-			for(const SpriteSheet* spriteSheet: spriteData->getSpriteSheets()){
-				assert_Test("Given sprite sheet has zero size!", spriteSheet->getWidth() <= 0 || spriteSheet->getHeight() <= 0);
-				PG::GL::Texture* t = new PG::GL::Texture();
-				t->bind(spriteSheet->getSpriteSheet(), PG::GL::Texture::SPRITE);
-				spriteSheetIDTextures.push_back(t);
-			}
-
-
-			//spriteSheetIDTextures[0]->changeType();
-
-			colorTable = new PG::GL::Texture();
-			colorTable->bind(spriteData->getColortableGL(), PG::GL::Texture::SPRITE);
 		}
 
 		const SpriteAnimation* getCurrentAnimation() const{
@@ -406,7 +376,7 @@ private:
 		}
 
 		PG::GL::Texture* getCurrentColorTable() const{
-			return colorTable;
+			return colorTables[spriteData->getCurrentColorTable()];
 		}
 
 		void apply(const Keyframe* key) const{
@@ -417,7 +387,7 @@ private:
 		}
 
 		operator bool() const{
-			return !spriteSheetIDTextures.empty() && colorTable && spriteData->getNumberOfAnimations();
+			return !spriteSheetIDTextures.empty() && !colorTables.empty() && spriteData->getNumberOfAnimations();
 		}
 
 		void setFrame(int frameIn){
@@ -451,8 +421,9 @@ private:
 			for(PG::GL::Texture* t: spriteSheetIDTextures)
 				delete t;
 			spriteSheetIDTextures.clear();
-			if(colorTable) delete colorTable;
-			colorTable = nullptr;
+			for(PG::GL::Texture* t: colorTables)
+				delete t;
+			colorTables.clear();
 			frame = 0;
 			//m_spriteSheet->clear();
 		}

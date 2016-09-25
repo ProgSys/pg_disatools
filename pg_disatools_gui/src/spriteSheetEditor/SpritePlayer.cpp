@@ -28,15 +28,26 @@ SpritePlayer::SpritePlayer(QWidget *parent): QObject(parent) {
 void SpritePlayer::connectGLWidget(GLSpriteWidget *gl){
 	if(!gl) return;
 	m_glView = gl;
+	m_glView->setData(m_aniData);
 	//if(m_glView) m_glView->open(m_aniData);
 
 	connect(m_timeline, SIGNAL( currentFrame(int) ),gl, SLOT( renderFrame(int) ));
 	connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderFrame() ));
 	connect(this, SIGNAL( render() ),gl, SLOT( renderFrame() ));
+
+
+	connect(m_aniData, SIGNAL( allSpriteSheetsChanged() ), gl, SLOT( updateAllSpriteSheets() ) );
 	connect(m_aniData, SIGNAL( spriteSheetChanged( int ) ), gl, SLOT( updateSpriteSheet( int ) ) );
 	connect(m_aniData, SIGNAL( spriteSheetAdded( ) ), gl, SLOT( updateSpriteSheetAdded() ) );
 	connect(m_aniData, SIGNAL( spriteSheetRemoved( int ) ), gl, SLOT( updateSpriteSheetRemove( int ) ) );
-	connect(m_aniData, SIGNAL( colortableChanged() ), gl, SLOT( updateColortable() ) );
+
+	connect(m_aniData, SIGNAL( refresh() ), gl, SLOT( renderFrame() ) );
+
+	connect(m_aniData, SIGNAL( currentColorTableChanged() ), gl, SLOT( renderFrame() ) );
+	connect(m_aniData, SIGNAL( allColorTablesChanged() ), gl, SLOT( updateAllColortables() ) );
+	connect(m_aniData, SIGNAL( colorTableChanged(int) ), gl, SLOT( updateColortable(int) ) );
+	connect(m_aniData, SIGNAL( colorTableAdded(int) ), gl, SLOT( addColortable(int) ) );
+	connect(m_aniData, SIGNAL( colorTableRemoved(int) ), gl, SLOT( removeColortable(int) ) );
 
 	//connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
 	//connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
@@ -59,7 +70,7 @@ bool SpritePlayer::open(const QString& file){
 		return false;
 	}
 
-	if(m_glView) m_glView->open(m_aniData);
+	//if(m_glView) m_glView->open(m_aniData);
 	emit render();
 
 	return true;
@@ -77,7 +88,7 @@ bool SpritePlayer::importSH(const QString& file){
 		return false;
 	}
 
-	if(m_glView) m_glView->open(m_aniData);
+	//if(m_glView) m_glView->open(m_aniData);
 	emit render();
 
 	return true;

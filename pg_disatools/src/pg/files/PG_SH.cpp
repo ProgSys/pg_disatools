@@ -85,8 +85,8 @@ bool SH::open(const PG::UTIL::File& file){
 
 		m_animations.resize(m_header.number_of_animations);
 		m_layers.resize(m_header.number_of_bundels);
-		m_numberOfColortables.resize(m_header.number_of_colortablesSets);
-		m_sheetsInfos.resize(m_header.number_of_sheets);
+		m_numberOfColortables.resize(m_header.number_of_colortables);
+		m_sheetsInfos.resize(m_header.number_of_sheetInfos);
 
 		m_keyframesData.resize(m_header.number_of_keyframes);
 		m_cutouts.resize(m_header.number_of_cutouts);
@@ -103,15 +103,18 @@ bool SH::open(const PG::UTIL::File& file){
 
 		//read colortables
 		reader.seek(m_addresses[2]);
-
-		m_colortables.resize(16*m_numberOfColortables[0]);
-		reader.read((char*)&m_colortables[0],m_colortables.size()*sizeof(PG::UTIL::rgba) );
-		//flip Red and Blue
-		for(PG::UTIL::rgba& color: m_colortables){
-			const char r = color.r;
-			color.r = color.b;
-			color.b = r;
+		m_colortables.resize(m_header.number_of_colortables);
+		for(ColorTable& colortable: m_colortables){
+			colortable.resize(16*m_numberOfColortables[0]);
+			reader.read((char*)&colortable[0],colortable.size()*sizeof(PG::UTIL::rgba) );
+			//flip Red and Blue
+			for(PG::UTIL::rgba& color: colortable){
+				const char r = color.r;
+				color.r = color.b;
+				color.b = r;
+			}
 		}
+
 
 		//read sheet color IDs
 		for(const shfileSheetInfo& sheet: m_sheetsInfos){
@@ -150,12 +153,12 @@ bool SH::open(const PG::UTIL::File& file){
 	PG_INFO_STREAM("Header: ")
 	PG_INFO_STREAM(" * number_of_animations: "<<m_header.number_of_animations)
 	PG_INFO_STREAM(" * number_of_bundels: "<<m_header.number_of_bundels)
-	PG_INFO_STREAM(" * number_of_colortablesSets: "<<m_header.number_of_colortablesSets)
+	PG_INFO_STREAM(" * number_of_colortables: "<<m_header.number_of_colortables)
+	PG_INFO_STREAM(" * number_of_sheetInfos: "<<m_header.number_of_sheetInfos)
 	PG_INFO_STREAM(" * number_of_cutouts: "<<m_header.number_of_cutouts)
 	PG_INFO_STREAM(" * number_of_keyframes: "<<m_header.number_of_keyframes)
-	PG_INFO_STREAM(" * number_of_sheets: "<<m_header.number_of_sheets)
-	PG_INFO_STREAM(" * unknown6: "<<m_header.unknown6)
-	PG_INFO_STREAM(" * unknown7: "<<m_header.unknown7)
+	PG_INFO_STREAM(" * number_of_colortable_data: "<<m_header.number_of_colortable_data)
+	PG_INFO_STREAM(" * number_of_sheet_data: "<<m_header.number_of_sheet_data)
 	PG_INFO_STREAM("m_animations: "<<m_animations.size());
 	PG_INFO_STREAM("m_layers: "<<m_layers.size());
 	PG_INFO_STREAM(" * start_cutout: "<<m_layers[0].start_cutout)
@@ -284,6 +287,13 @@ bool SH::save(const PG::UTIL::File& file){
 		return FAILURE;
 	}
 
+	for(ColorTable& colortable: m_colortables){
+		if(colortable.size() != m_colortables.front().size()){
+			PG_ERROR_STREAM("All color tables need to have the same size!");
+			return FAILURE;
+		}
+	}
+
 	try{
 		PG::STREAM::OutByteFile writer(file);
 
@@ -296,32 +306,32 @@ bool SH::save(const PG::UTIL::File& file){
 		//write header
 		m_header.number_of_animations = m_animations.size();
 		m_header.number_of_bundels = m_layers.size();
-		m_header.number_of_colortablesSets = 1; //TODO
+		m_header.number_of_colortables = m_colortables.size();
+		m_header.number_of_sheetInfos = m_spriteSheets.size();
 		m_header.number_of_cutouts = m_cutouts.size();
 		m_header.number_of_keyframes = m_keyframesData.size();
-		m_header.number_of_sheets = m_spriteSheets.size();
-		m_header.unknown6 = 1; //??
-		m_header.unknown7  = m_spriteSheets.size();//?
+
+		m_header.number_of_colortable_data = m_colortables.size();
+		m_header.number_of_sheet_data  = m_spriteSheets.size();
 
 		writer.write((char*)&m_header,sizeof(shfileHeader));
 
 		//prepare data
-		m_numberOfColortables.resize(m_header.number_of_colortablesSets);
-		m_numberOfColortables[0] = m_colortables.size()/16;
+		m_numberOfColortables.resize(m_header.number_of_colortables);
+		for(unsigned int& i : m_numberOfColortables)
+			i = m_colortables[i].size()/16;
 
 
 		m_sheetsInfos.resize(m_spriteSheets.size());
 
 		//prepere colortable
-		//flip Red and Blue
-		ColorTable colortablesBuff(m_colortables.size());
-		auto it = colortablesBuff.begin();
-		for(PG::UTIL::rgba& color: m_colortables){
-			(*it).r = color.b;
-			(*it).g = color.g;
-			(*it).b = color.r;
-			(*it).a = color.a;
-			it++;
+		for(ColorTable& colortable: m_colortables){
+			//flip Red and Blue
+			for(PG::UTIL::rgba& color: colortable){
+				const char r = color.r;
+				color.r = color.b;
+				color.b = r;
+			}
 		}
 
 		//prepere adresses
@@ -331,7 +341,7 @@ bool SH::save(const PG::UTIL::File& file){
 				+ m_sheetsInfos.size()*sizeof(shfileSheetInfo);
 		m_addresses[1] = m_addresses[0] + m_keyframesData.size()*sizeof(shfileKeyframe);
 		m_addresses[2] = m_addresses[1] + m_cutouts.size()*sizeof(shfileCutout);
-		m_addresses[3] = m_addresses[2] + colortablesBuff.size()*sizeof(PG::UTIL::rgba);
+		m_addresses[3] = m_addresses[2] + m_colortables.size()*m_colortables.front().size()*sizeof(PG::UTIL::rgba);
 
 		//prepere sheets infos
 		unsigned int count = 0;
@@ -387,7 +397,8 @@ bool SH::save(const PG::UTIL::File& file){
 		assert_Test("Color table start address is wrong", m_addresses[2] != writer.pos());
 		//m_addresses[2] = writer.pos();
 
-		writer.write((char*)&colortablesBuff[0],colortablesBuff.size()*sizeof(PG::UTIL::rgba) );
+		for(ColorTable& colortable: m_colortables)
+			writer.write((char*)&colortable[0],colortable.size()*sizeof(PG::UTIL::rgba) );
 
 
 		//write sheet color IDs

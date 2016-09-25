@@ -39,13 +39,13 @@ typedef struct
 {
 	unsigned short number_of_animations;
 	unsigned short number_of_bundels;
-	unsigned short number_of_colortablesSets; //data between animations and sheets
-	unsigned short number_of_sheets;
+	unsigned short number_of_colortables;
+	unsigned short number_of_sheetInfos;
 
 	unsigned short number_of_keyframes;
 	unsigned short number_of_cutouts;
-	unsigned short unknown6;
-	unsigned short unknown7;
+	unsigned short number_of_colortable_data;
+	unsigned short number_of_sheet_data;
 
 } __attribute__((packed, aligned(1))) shfileHeader;
 
@@ -143,8 +143,8 @@ public:
 	inline std::vector<shfileCutout>& getCutouts() { return m_cutouts;};
 	inline const std::vector<shfileCutout>& getCutouts() const { return m_cutouts;};
 
-	inline ColorTable& getColortables() { return m_colortables;};
-	inline const ColorTable& getColortables() const { return m_colortables;};
+	inline std::vector<ColorTable>& getColortables() { return m_colortables;};
+	inline const std::vector<ColorTable>& getColortables() const { return m_colortables;};
 
 	inline std::vector< PG::UTIL::IDImage >& getSprtieSheets() { return m_spriteSheets;};
 	inline const std::vector< PG::UTIL::IDImage >& getSprtieSheets() const { return m_spriteSheets;};
@@ -163,7 +163,7 @@ private:
 	std::vector<shfileKeyframe> m_keyframesData;
 	std::vector<shfileCutout> m_cutouts;
 
-	ColorTable m_colortables;
+	std::vector<ColorTable> m_colortables;
 	std::vector< PG::UTIL::IDImage > m_spriteSheets;
 };
 

@@ -141,7 +141,7 @@ void GLSpriteWidget::displayShader::apply(const PG::UTIL::mat4& modelMatrix, con
 
 
 
-GLSpriteWidget::GLSpriteWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121),m_spriteSheet(nullptr){
+GLSpriteWidget::GLSpriteWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121){
 }
 
 void GLSpriteWidget::setUpConnections(QWidget *parent){
@@ -151,19 +151,10 @@ void GLSpriteWidget::setUpConnections(QWidget *parent){
 	//connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
 }
 
-bool GLSpriteWidget::open(const SpriteData* spriteSheet){
-
-	m_spriteSheet = spriteSheet;
-	if(!m_spriteSheet)
-		return false;
-	makeCurrent();
-	if(!m_animationInfo.open(spriteSheet)){
-		qDebug()<<"Coudn't load sprites for open GL!";
-		return false;
-	}
-
-	return true;
+void GLSpriteWidget::setData(const SpriteData* spriteSheet){
+	m_animationInfo.spriteData = spriteSheet;
 }
+
 
 void GLSpriteWidget::renderFrame(){
 	update();
@@ -207,31 +198,95 @@ void GLSpriteWidget::setBackgroundColor(const QColor& color){
 	update();
 }
 
-void GLSpriteWidget::updateColortable(){
-	if(!m_spriteSheet || m_spriteSheet->getNumberOfColors() <= 0 || !m_animationInfo.colorTable || !m_animationInfo.colorTable->isValid()) return;
+void GLSpriteWidget::updateAllColortables(){
+	assert_Test("Sprite data is nullptr!", !m_animationInfo.spriteData);
 	makeCurrent();
-	m_animationInfo.colorTable->update(m_spriteSheet->getColortableGL());
+
+	if(m_animationInfo.colorTables.size() > m_animationInfo.spriteData->getNumberOfColortables()){
+		for(unsigned int i = m_animationInfo.spriteData->getNumberOfColortables(); i < m_animationInfo.colorTables.size(); i++){
+			delete m_animationInfo.colorTables[i];
+		}
+		m_animationInfo.colorTables.erase(m_animationInfo.colorTables.begin()+m_animationInfo.spriteData->getNumberOfColortables(),m_animationInfo.colorTables.end());
+	}
+
+	for(unsigned int i = 0; i < m_animationInfo.spriteData->getNumberOfColortables(); i++){
+		if(i >= m_animationInfo.colorTables.size()){
+			PG::GL::Texture* colorTable = new PG::GL::Texture();
+			colorTable->bind(m_animationInfo.spriteData->getColortableGL(i), PG::GL::Texture::SPRITE);
+			m_animationInfo.colorTables.push_back(colorTable);
+		}else{
+			 m_animationInfo.colorTables[i]->update(m_animationInfo.spriteData->getColortableGL(i));
+		}
+	}
+	update();
+}
+
+void GLSpriteWidget::updateColortable(int index){
+	if(!m_animationInfo.spriteData || index < 0 || index >= m_animationInfo.colorTables.size() || !m_animationInfo.colorTables[index]->isValid()) return;
+	makeCurrent();
+	m_animationInfo.colorTables[index]->update(m_animationInfo.spriteData->getColortableGL(index));
+	update();
+}
+
+void GLSpriteWidget::addColortable(int index){
+	if(!m_animationInfo.spriteData || index < 0) return;
+	makeCurrent();
+	PG::GL::Texture* colorTable = new PG::GL::Texture();
+	colorTable->bind(m_animationInfo.spriteData->getColortableGL(index), PG::GL::Texture::SPRITE);
+	m_animationInfo.colorTables.insert(m_animationInfo.colorTables.begin()+index, colorTable);
+	update();
+}
+
+void GLSpriteWidget::removeColortable(int index){
+	if(!m_animationInfo.spriteData || index < 0) return;
+	makeCurrent();
+	delete m_animationInfo.colorTables[index];
+	m_animationInfo.colorTables.erase(m_animationInfo.colorTables.begin()+index);
+	update();
+}
+
+void GLSpriteWidget::updateAllSpriteSheets(){
+	assert_Test("Sprite data is nullptr!", !m_animationInfo.spriteData);
+	makeCurrent();
+
+	if(m_animationInfo.spriteSheetIDTextures.size() > m_animationInfo.spriteData->getNumberOfSpriteSheets()){
+		for(unsigned int i = m_animationInfo.spriteData->getNumberOfSpriteSheets(); i < m_animationInfo.spriteSheetIDTextures.size(); i++){
+			delete m_animationInfo.spriteSheetIDTextures[i];
+		}
+		m_animationInfo.spriteSheetIDTextures.erase(m_animationInfo.spriteSheetIDTextures.begin()+m_animationInfo.spriteData->getNumberOfSpriteSheets(),m_animationInfo.spriteSheetIDTextures.end());
+	}
+
+	for(unsigned int i = 0; i < m_animationInfo.spriteData->getNumberOfSpriteSheets(); i++){
+		if(i >= m_animationInfo.spriteSheetIDTextures.size()){
+			PG::GL::Texture* t = new PG::GL::Texture();
+			t->bind(m_animationInfo.spriteData->getSpriteSheets()[i]->getSpriteSheet(), PG::GL::Texture::SPRITE);
+			m_animationInfo.spriteSheetIDTextures.push_back(t);
+		}else{
+			m_animationInfo.spriteSheetIDTextures[i]->update(m_animationInfo.spriteData->getSpriteSheets()[i]->getSpriteSheet());
+		}
+	}
+
+
 	update();
 }
 
 void GLSpriteWidget::updateSpriteSheet(int sheetID){
-	if( !m_spriteSheet || sheetID < 0 || sheetID >= m_animationInfo.spriteSheetIDTextures.size() || !m_animationInfo.spriteSheetIDTextures[sheetID]->isValid()) return;
+	if( !m_animationInfo.spriteData || sheetID < 0 || sheetID >= m_animationInfo.spriteSheetIDTextures.size() || !m_animationInfo.spriteSheetIDTextures[sheetID]->isValid()) return;
 	makeCurrent();
-	m_animationInfo.spriteSheetIDTextures[sheetID]->update(m_spriteSheet->getSpriteSheets()[sheetID]->getSpriteSheet());
+	m_animationInfo.spriteSheetIDTextures[sheetID]->update(m_animationInfo.spriteData->getSpriteSheets()[sheetID]->getSpriteSheet());
 	update();
-
 }
 
 void GLSpriteWidget::updateSpriteSheetAdded(){
-	if(m_animationInfo.spriteSheetIDTextures.size() == m_spriteSheet->getSpriteSheets().size()) return;
+	if(m_animationInfo.spriteSheetIDTextures.size() == m_animationInfo.spriteData->getSpriteSheets().size()) return;
 	makeCurrent();
 	PG::GL::Texture* t = new PG::GL::Texture();
-	t->bind(m_spriteSheet->getSpriteSheets().last()->getSpriteSheet(), PG::GL::Texture::SPRITE);
+	t->bind(m_animationInfo.spriteData->getSpriteSheets().last()->getSpriteSheet(), PG::GL::Texture::SPRITE);
 	m_animationInfo.spriteSheetIDTextures.push_back(t);
 }
 
 void GLSpriteWidget::updateSpriteSheetRemove(int sheetID){
-	if(sheetID >= m_spriteSheet->getSpriteSheets().size()) return;
+	if(sheetID >= m_animationInfo.spriteData->getSpriteSheets().size()) return;
 	makeCurrent();
 	PG::GL::Texture* t = m_animationInfo.spriteSheetIDTextures[sheetID];
 	m_animationInfo.spriteSheetIDTextures.erase(m_animationInfo.spriteSheetIDTextures.begin()+sheetID);
@@ -351,7 +406,7 @@ void GLSpriteWidget::paintGL(){
     		if(lay->isHidden()) continue;
     		const Keyframe* keyframe = m_animationInfo.getCurrentKeyframe(lay);
     		if(keyframe){
-        		if(!m_displayExternalReferences && m_spriteSheet->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
+        		if(!m_displayExternalReferences && m_animationInfo.spriteData->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
     					continue;
 
         		if(keyframe->isAdaptive()){
