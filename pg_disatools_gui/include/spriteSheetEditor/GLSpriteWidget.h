@@ -349,7 +349,8 @@ private:
 			if(cut->isExternalSheet()){
 				shader.setUniform(shader.colorTableStartLoc, (int)0);
 			}else{
-				if(key->getColortableID() >= spriteData->getNumberOfColortables()){
+				const SpriteSheet* sheet = spriteData->getSpriteSheet(cut->getSheetID());
+				if(key->getColortableID() >= spriteData->getNumberOfColors()/sheet->getSizeOfColorTable()){
 					shader.setUniform(shader.colorTableStartLoc, (int)0);
 				}else{
 					//const int colorTableSize = spriteData->getSpriteSheet(cut->getSheetID())->getSizeOfColorTable();

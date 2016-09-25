@@ -493,7 +493,8 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(int animationsSize READ getNumberOfAnimations NOTIFY onNumberOfAnimationsChanged)
 	 Q_PROPERTY(int currentAnimationIndex READ getCurrentAnimationIndex  WRITE setCurrentAnimationByIndex NOTIFY onCurrentAnimationChanged)
 	 Q_PROPERTY(int cutoutSize READ getNumberOfCutouts  NOTIFY onNumberOfCutoutsChanged)
-	 Q_PROPERTY(int colortableSize READ getNumberOfColortables  NOTIFY numberOfColorTablesChanged)
+	 Q_PROPERTY(int colortableSize READ getNumberOfColortableSets  NOTIFY numberOfColorTablesChanged)
+	 Q_PROPERTY(int colorTablesNumber READ getNumberOfColortables  NOTIFY numberOfColorTablesChanged)
 	 Q_PROPERTY(int colorsSize READ getNumberOfColors  NOTIFY numberOfColorTablesChanged)
 	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets  NOTIFY numberOfSheetsChanged)
 	 Q_PROPERTY(int colorTable READ getCurrentColorTable WRITE setCurrentColorTable   NOTIFY currentColorTableChanged)
@@ -512,6 +513,7 @@ public:
 	int getNumberOfAnimations() const;
 	int getNumberOfCutouts() const;
 	int getNumberOfColortables() const;
+	int getNumberOfColortableSets() const;
 	int getNumberOfColors() const;
 	int getMaxUsedColortable() const;
 	int getNumberOfSpriteSheets() const;

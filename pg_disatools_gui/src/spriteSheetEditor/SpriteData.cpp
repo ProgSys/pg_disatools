@@ -2263,7 +2263,7 @@ int SpriteData::exportSprites(const QString& folder, const QString& type){
 			for(const Keyframe* key: lay->getKeyframes()){
 				const Cutout* cut = m_cutouts[key->getCutoutID()];
 				if(cut->isExternalSheet() || cut->getSheetID() < 0 || cut->getSheetID() >= m_spriteSheets.size() ) continue;
-				if(key->getColortableID() >= getNumberOfColortables()) continue;
+				if(key->getColortableID() >= getNumberOfColors()/16) continue;
 
 
 				const PG::UTIL::RGBAImage sprite = m_spriteSheets[cut->getSheetID()]->getSpritePG(cut, key->getColortableID(), getColorTable());
@@ -2938,6 +2938,11 @@ int SpriteData::getNumberOfColortables() const{
 	return m_colortables.size();
 }
 
+int SpriteData::getNumberOfColortableSets() const{
+	if(m_colortables.empty()) return 0;
+	return m_colortables.front().size()/16;
+}
+
 int SpriteData::getNumberOfColors() const{
 	if(m_colortables.empty()) return 0;
 	return m_colortables.front().size();
@@ -3034,7 +3039,7 @@ PG::FILE::ColorTable SpriteData::getColortableGL(int index) const{
 }
 
 QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) const{
-	if(CutoutID >= m_cutouts.size() || ColortableID >= getNumberOfColortables()){
+	if(CutoutID >= m_cutouts.size() || ColortableID >= getNumberOfColors()/16){
 		qInfo() <<"Invalid CutoutID or ColortableID: "<<CutoutID<<", "<<ColortableID;
 		return QImage();
 	}
