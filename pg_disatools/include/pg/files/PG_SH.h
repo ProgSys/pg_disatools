@@ -76,7 +76,8 @@ typedef struct
 	unsigned short width;
 	unsigned short height;
 
-	unsigned short power_colortablesize;
+	unsigned char power_colortablesize;
+	unsigned char unknown;
 	unsigned char power_width;
 	unsigned char power_height;
 

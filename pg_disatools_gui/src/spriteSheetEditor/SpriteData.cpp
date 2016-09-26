@@ -2106,8 +2106,8 @@ bool SpriteData::exportSH(const QString& file){
 	for(const SpriteSheet* sheet: m_spriteSheets){
 		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
 		//TODO set the last values
-		const unsigned short p = sheet->getPowerOfColorTable();
-		sh.getSheetsInfos().push_back({0,(short)sheet->getWidth(),(short)sheet->getHeight(),p,0,0});
+		const unsigned char p = sheet->getPowerOfColorTable();
+		sh.getSheetsInfos().push_back({0,(short)sheet->getWidth(),(short)sheet->getHeight(),p,0,0,0});
 	}
 
 	for(unsigned int i = 0; i < m_colortables.size(); i++)
@@ -3049,10 +3049,12 @@ QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) c
 		return QImage("resources/external.png");
 
 	const SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
+	if(sheet->getPowerOfColorTable() > 14) return QImage(); // cant be that big?
+
 	assert_Test("Color table index out of bound!", m_currentColorTable < 0 || m_currentColorTable >= m_colortables.size());
 	const QColorTable& colortable = m_colortables[m_currentColorTable];
 
-	if(ColortableID*16+sheet->getSizeOfColorTable() > colortable.size())
+	if(sheet->getSizeOfColorTable() < 0 || ColortableID*16+sheet->getSizeOfColorTable() > colortable.size())
 		ColortableID = 0;
 
 	assert_Test("Color table Index out of bound!", ColortableID*16+sheet->getSizeOfColorTable() > colortable.size());

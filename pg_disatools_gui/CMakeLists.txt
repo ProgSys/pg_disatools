@@ -15,7 +15,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake") 
 
 set (FileManagerTITLE "Disa PC File Manager v0.5.1 alpha")
-set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.8 alpha")
+set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.9 alpha")
 set (DATAEditorTITLE "Data Editor v0.0.6 alpha")
 set (MapEditorTITLE "Map Viewer v0.0.1 development")
 set (TX2EditorTITLE "TX2 Editor v0.0.1 development")
@@ -90,10 +90,10 @@ SET(MAP_EDITOR_EXE_SRCS ${MAP_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/m
 message (STATUS "Map editor icon File: ${MAP_EDITOR_EXE_SRCS} ")
 endif(MINGW)
 
-#windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
+#windres tx2_editor_icon.rc -O coff -o tx2_editor_icon.res
 SET(TX2_EDITOR_EXE_SRCS "")
 if(MINGW)
-SET(TX2_EDITOR_EXE_SRCS ${sim_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/disa_tools_icon.res")
+SET(TX2_EDITOR_EXE_SRCS ${TX2_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/tx2_editor_icon.res")
 message (STATUS "TX2 editor icon File: ${TX2_EDITOR_EXE_SRCS} ")
 endif(MINGW)
 
@@ -402,7 +402,7 @@ target_link_libraries(
 	Qt5::Quick
 	Qt5::QuickWidgets
 	${PG_DISATOOLS_LIBRARY}
-	${SPRITE_EDITOR_EXE_SRCS}
+	${TX2_EDITOR_EXE_SRCS}
 )
 
 target_compile_definitions(pg_file_manager PRIVATE FileManagerTITLE="${FileManagerTITLE}" SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}" DATAEditorTITLE="${DATAEditorTITLE}")

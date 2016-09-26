@@ -235,3 +235,11 @@
 	- moved color table export/import to color table view
   * Data Editor v0.0.6 alpha:
 	- nothing
+
+===  26.09.2016 - v0.6.6 ===
+  * Disa PC File Manager v0.5.1 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.9 alpha:
+	- fixed crash, the color table power was read wrong
+  * Data Editor v0.0.6 alpha:
+	- nothing
