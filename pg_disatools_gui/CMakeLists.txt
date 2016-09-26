@@ -17,8 +17,8 @@ set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake")
 set (FileManagerTITLE "Disa PC File Manager v0.5.1 alpha")
 set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.8 alpha")
 set (DATAEditorTITLE "Data Editor v0.0.6 alpha")
-set (MapEditorTITLE "Map Viewer v0.0.1 alpha")
-
+set (MapEditorTITLE "Map Viewer v0.0.1 development")
+set (TX2EditorTITLE "TX2 Editor v0.0.1 development")
 
 
 #add_definitions(-DSpriteSheetEditorTITLE=${SpriteSheetEditorTITLE})
@@ -60,6 +60,7 @@ QT5_WRAP_UI(UICreateNewSpriteSrcs ui/createNewSpriteSheet.ui)
 QT5_WRAP_UI(UISreateNewAnimationSrcs ui/createNewAnimation.ui)
 QT5_WRAP_UI(UIDataEditor ui/dataEditor.ui)
 QT5_WRAP_UI(UIMapEditor ui/mapEditor.ui)
+QT5_WRAP_UI(UIMapEditor ui/tx2Editor.ui)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")
@@ -89,6 +90,12 @@ SET(MAP_EDITOR_EXE_SRCS ${MAP_EDITOR_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/m
 message (STATUS "Map editor icon File: ${MAP_EDITOR_EXE_SRCS} ")
 endif(MINGW)
 
+#windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
+SET(TX2_EDITOR_EXE_SRCS "")
+if(MINGW)
+SET(TX2_EDITOR_EXE_SRCS ${sim_EXE_SRCS} "${PROJECT_SOURCE_DIR}/../icons/disa_tools_icon.res")
+message (STATUS "TX2 editor icon File: ${TX2_EDITOR_EXE_SRCS} ")
+endif(MINGW)
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	message (STATUS "DEBUG is ON")
@@ -344,10 +351,65 @@ target_link_libraries(
 	${MAP_EDITOR_EXE_SRCS}
 )
 
+#===============================================
+#   pg_tx2_editor Files
+#===============================================
+file(GLOB PG_TX2_EDITOR_SRC
+	#"*.cpp"
+	"src/*.cpp"
+	"src/util/*.cpp"
+	"src/tx2Editor/*.cpp"
+)
+
+file(GLOB PG_TX2_EDITOR_HEADERS
+	#"*.h"
+	"include/*.h"
+	"include/util/*.h"
+	"include/tx2Editor/*.h"
+)
+
+#===============================================
+# pg_tx2_editor
+#===============================================
+
+if(DEBUG_COMPILE)
+add_executable( 
+	pg_tx2_editor
+		"tx2Editor.cpp"
+		${PG_TX2_EDITOR_HEADERS}
+		${PG_TX2_EDITOR_SRC}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
+		
+)
+else()
+add_executable( 
+	pg_tx2_editor
+		WIN32
+		"tx2Editor.cpp"
+		${PG_TX2_EDITOR_HEADERS}
+		${PG_TX2_EDITOR_SRC}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs} 
+		
+)
+set_target_properties(pg_tx2_editor PROPERTIES OUTPUT_NAME ${TX2EditorTITLE})
+endif()
+
+target_link_libraries(
+	pg_tx2_editor
+	
+	Qt5::Widgets
+	Qt5::Qml
+	Qt5::Quick
+	Qt5::QuickWidgets
+	${PG_DISATOOLS_LIBRARY}
+	${SPRITE_EDITOR_EXE_SRCS}
+)
+
 target_compile_definitions(pg_file_manager PRIVATE FileManagerTITLE="${FileManagerTITLE}" SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}" DATAEditorTITLE="${DATAEditorTITLE}")
 target_compile_definitions(pg_sprite_editor PRIVATE SpriteSheetEditorTITLE="${SpriteSheetEditorTITLE}")
 target_compile_definitions(pg_data_editor PRIVATE DATAEditorTITLE="${DATAEditorTITLE}")
 target_compile_definitions(pg_map_editor PRIVATE MapEditorTITLE="${MapEditorTITLE}")
+target_compile_definitions(pg_tx2_editor PRIVATE TX2EditorTITLE="${TX2EditorTITLE}")
 
 GroupSources("include/pg")
 GroupSources("src/pg")
@@ -356,7 +418,7 @@ GroupSources("src/pg")
 # install 
 #===============================================
 install(
-	TARGETS pg_file_manager pg_sprite_editor pg_data_editor pg_map_editor
+	TARGETS pg_file_manager pg_sprite_editor pg_data_editor pg_map_editor pg_tx2_editor
 		RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
 		LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
 		ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/static
