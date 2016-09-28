@@ -159,7 +159,8 @@ bool readTX2Header(PG::STREAM::In* instream, tx2Image::tx2header& header){
 	instream->skip(2);
 	header.colortableSize = instream->readUnsignedShort();
 	const unsigned short numberOfColortables = instream->readUnsignedShort();
-	header.colortables.resize((numberOfColortables)? numberOfColortables: 1);
+
+	header.colortables.resize((numberOfColortables)? numberOfColortables: (header.type == tx2Type::BGRA || header.type == tx2Type::DXT1 || header.type == tx2Type::DXT5 || header.type == tx2Type::TX2ERROR)? 0: 1);
 
 	instream->skip(4);
 
