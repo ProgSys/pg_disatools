@@ -2335,7 +2335,7 @@ bool SpriteData::exportSprite(int cutoutID){
 }
 
 bool SpriteData::exportSprite(int cutoutID, const QString& file){
-	if(file.isEmpty() || file.isEmpty() || m_cutouts.empty() || cutoutID < 0 || cutoutID >= m_cutouts.size()) return false;
+	if(file.isEmpty() || m_cutouts.empty() || cutoutID < 0 || cutoutID >= m_cutouts.size()) return false;
 
 	const Cutout* cut = m_cutouts[cutoutID];
 	assert_Test("Cutout is nullptr", !cut);
@@ -2352,6 +2352,8 @@ bool SpriteData::exportSprite(int cutoutID, const QString& file){
 	}
 	return false;
 }
+
+
 bool SpriteData::exportSpriteIDs(int cutoutID){
 	QString fileName = QFileDialog::getSaveFileName(nullptr, tr("Export IDs sprite"),
 													QFileInfo(m_lastFile).baseName()+"_SpriteIds"+QString::number(cutoutID),
@@ -3100,7 +3102,7 @@ bool  SpriteData::addCutout(int sheetID){
 	return true;
 }
 
-bool  SpriteData::addCutout(int sheetID,unsigned int x,unsigned int y,unsigned int height,unsigned int width){
+bool  SpriteData::addCutout(int sheetID,unsigned int x,unsigned int y,unsigned int width,unsigned int height,unsigned char colorID){
 	if(sheetID < 0 || sheetID >= m_spriteSheets.size()) return false;
 	SpriteSheet* sheet = m_spriteSheets[sheetID];
 
@@ -3113,7 +3115,7 @@ bool  SpriteData::addCutout(int sheetID,unsigned int x,unsigned int y,unsigned i
 	if(x+width >= sheet->getWidth() ) width = sheet->getWidth()-x;
 	if(y+height >= sheet->getHeight() ) height = sheet->getHeight()-y;
 
-	m_cutouts.push_back(new Cutout(sheetID, PG::UTIL::ivec2(x,y), PG::UTIL::ivec2(width,height), this ));
+	m_cutouts.push_back(new Cutout(sheetID, PG::UTIL::ivec2(x,y), PG::UTIL::ivec2(width,height),colorID, this ));
 	emit onNumberOfCutoutsChanged();
 	sheet->push_backCutoutID(m_cutouts.size()-1);
 

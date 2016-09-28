@@ -557,6 +557,7 @@ public slots:
 
 	Q_INVOKABLE bool exportSprite(int cutoutID);
 	Q_INVOKABLE bool exportSprite(int cutoutID, const QString& file);
+
 	Q_INVOKABLE bool exportSpriteIDs(int cutoutID);
 	Q_INVOKABLE bool exportSpriteIDs(int cutoutID, const QString& file);
 
@@ -570,7 +571,7 @@ public slots:
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
 	Q_INVOKABLE SpriteSheet* getSpriteSheet(int spriteSheetIndex) const;
 	Q_INVOKABLE bool addCutout(int sheetID);
-	Q_INVOKABLE bool addCutout(int sheetID,unsigned int x,unsigned int y = 0,unsigned int height = 100,unsigned int width = 100);
+	Q_INVOKABLE bool addCutout(int sheetID,unsigned int x,unsigned int y = 0,unsigned int width = 100,unsigned int height = 100,unsigned char colorID = 0);
 	bool removeCutout(Cutout* cut);
 	Q_INVOKABLE bool removeCutoutID(int id, bool warning = true);
 
