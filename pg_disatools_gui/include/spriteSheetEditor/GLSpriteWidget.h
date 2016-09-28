@@ -296,6 +296,51 @@ private:
 			return nullptr;
 		}
 
+
+		const Marker* getCurrentMarker(int frame) const{
+			const SpriteAnimation* currani = getCurrentAnimation();
+			if(!currani) return nullptr;
+			Marker* foundmarker = nullptr;
+
+			for(Marker* maker: currani->getMarkers()->getList()){
+				if(maker->getStart() > frame) continue;
+				if(maker->getStart() == frame) {
+					foundmarker = maker;
+					break;
+				}
+				if(foundmarker){
+					if(maker->getStart() > foundmarker ->getStart())
+						foundmarker = maker;
+				}else{
+					foundmarker = maker;
+				}
+			}
+
+			return foundmarker;
+
+		}
+
+
+		const void getCurrentMarker(unsigned short& type, PG::UTIL::vec2& globalOffset, int frame) const{
+			const Marker* foundmarker = getCurrentMarker(frame);
+			if(foundmarker){
+				type = foundmarker->getType();
+				globalOffset.x = foundmarker->getX();
+				globalOffset.y = foundmarker->getY();
+			}else{
+				type = 0;
+				globalOffset.x = 0;
+				globalOffset.y = 0;
+			}
+
+		}
+
+		const void getCurrentMarker(unsigned short& type, PG::UTIL::vec2& globalOffset) const{
+			getCurrentMarker(type,globalOffset,frame);
+		}
+
+
+
 		const Keyframe* getCurrentKeyframe(const Layer* lay) const{
 			return getCurrentKeyframe(lay,frame);
 		}
@@ -308,7 +353,7 @@ private:
 			return spriteData->getCutouts()[key->getCutoutID()];
 		}
 
-		void setCurrentModelMat( PG::UTIL::mat4& modelmat, const Keyframe* key){
+		void setCurrentModelMat( PG::UTIL::mat4& modelmat, const Keyframe* key,const PG::UTIL::vec2& globalOffset){
 			assert_Test("Key is nullptr!", !key);
 
 			//modelmat = positionOffsetMat(lay)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*anchorOffsetMat(lay)*scaleMat(spriteData, lay);
@@ -318,7 +363,7 @@ private:
 			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
 
-			modelmat = PG::UTIL::translation(0.0f, 0.0f, 0.2f) * positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(cut, key)*anchorOffsetMat(cut,key);
+			modelmat = PG::UTIL::translation(globalOffset.x/50.0f, -globalOffset.y/50.0f, 0.2f) *positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(cut, key)*anchorOffsetMat(cut,key);
 			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
 		}
 

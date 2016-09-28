@@ -1867,8 +1867,8 @@ bool SpriteData::save(const QString& file){
 			out << (quint32) mark->getStart();
 			out << (quint32) mark->getDuration();
 			out << (quint32) mark->getType();
-			out << (qint16) mark->getA();
-			out << (quint16) mark->getB();
+			out << (qint16) mark->getX();
+			out << (quint16) mark->getY();
 		}
 
 		out << (quint32) ani->getNumberOfLayers();
@@ -1991,8 +1991,8 @@ bool SpriteData::importSH(const QString& file){
 
 
 			//add marker
-			if(currKey->unknown2 || currKey->unknown3 || ( currKey->type != 0 &&  currKey->type != 3 &&  currKey->type != 2))
-				m_aniamtions.back()->getMarkers()->push_back(new Marker(startOffset, 1, currKey->type, currKey->unknown2, currKey->unknown3));
+			if(currKey->global_x || currKey->global_y || ( currKey->type != 0 &&  currKey->type != 3 &&  currKey->type != 2))
+				m_aniamtions.back()->getMarkers()->push_back(new Marker(startOffset, 1, currKey->type, currKey->global_x, currKey->global_y));
 
 			if(currKey->duration == 0 || currKey->type == 3  || currKey->type == 2 ){
 				currKey++;
@@ -2151,13 +2151,13 @@ bool SpriteData::exportSH(const QString& file){
 			PG::FILE::shfileKeyframe shKey;
 			shKey.duration = ((nextFrame-startFrame) > 255)? 255 : (nextFrame-startFrame);
 			shKey.type = 0;
-			shKey.unknown2 = 0;
-			shKey.unknown3 = 0;
+			shKey.global_x = 0;
+			shKey.global_y = 0;
 			shKey.bundel_index = sh.getLayers().size();
 
 			if(foundMarker){
-				shKey.unknown2 = foundMarker->getA();
-				shKey.unknown3 = foundMarker->getB();
+				shKey.global_x = foundMarker->getX();
+				shKey.global_y = foundMarker->getY();
 
 				if(foundMarker->getType() != 0 && foundMarker->getType() != 2 && foundMarker->getType() != 3)
 					shKey.type = foundMarker->getType();
@@ -2223,8 +2223,8 @@ bool SpriteData::exportSH(const QString& file){
 					PG::FILE::shfileKeyframe skKeyType3 = shKey;
 					skKeyType3.duration = 0;
 					skKeyType3.type = 3;
-					skKeyType3.unknown2 = shKey.unknown2;
-					skKeyType3.unknown3 = shKey.unknown3;
+					skKeyType3.global_x = shKey.global_x;
+					skKeyType3.global_y = shKey.global_y;
 					sh.getKeyframes().push_back(skKeyType3);
 				}
 			keyCount++;

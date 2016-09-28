@@ -669,8 +669,6 @@ void MainWindow::on_btnInsert_clicked()
 {
     QFileDialog openDialog(this);
     openDialog.setFileMode(QFileDialog::ExistingFiles); //multiple files
-    if(m_treeModel->getType() == "SOLA")
-    	openDialog.setNameFilter(tr("SPRITE SHEET (*.SH)"));
 
     QStringList fileNames;
     if (openDialog.exec() ){

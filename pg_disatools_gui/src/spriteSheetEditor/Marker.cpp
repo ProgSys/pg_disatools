@@ -23,23 +23,23 @@
 Marker::Marker(QObject *parent): QObject(parent)
 {}
 
-Marker::Marker(int start, int duration, short A, unsigned short B, QObject *parent): QObject(parent),
-		m_start(start), m_duration(duration), m_A(A), m_B(B)
+Marker::Marker(int start, int duration, short x, short y, QObject *parent): QObject(parent),
+		m_start(start), m_duration(duration), m_global_x(x), m_global_y(y)
 		{
 		if(m_start < 0) m_start = 0;
 		if(m_duration < 1) m_duration = 1;
 		}
 
 Marker::Marker(int start, int duration, unsigned int type, QObject *parent ): QObject(parent),
-	m_start(start), m_duration(duration), m_A(0), m_B(0), m_type(type)
+	m_start(start), m_duration(duration), m_global_x(0), m_global_y(0), m_type(type)
 {}
 
-Marker::Marker(int start, int duration,  unsigned int type, short A,unsigned short B, QObject *parent): QObject(parent),
-		m_start(start), m_duration(duration), m_A(A), m_B(B), m_type(type)
+Marker::Marker(int start, int duration,  unsigned int type, short x, short y, QObject *parent): QObject(parent),
+		m_start(start), m_duration(duration), m_global_x(x), m_global_y(y), m_type(type)
 {}
 
 Marker::Marker(const Marker& marker):
-		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_A(marker.getA()), m_B(marker.getB()), m_type(marker.getType())
+		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_global_x(marker.getX()), m_global_y(marker.getY()), m_type(marker.getType())
 {}
 
 Marker::~Marker(){
@@ -51,8 +51,8 @@ void Marker::operator =(const Marker& marker){
 
 	setStart(marker.getStart());
 	setDuration(marker.getDuration());
-	setA(marker.getA());
-	setB(marker.getB());
+	setX(marker.getX());
+	setY(marker.getY());
 	setType(marker.getType());
 
 }
@@ -64,11 +64,11 @@ int Marker::getStart() const{
 int Marker::getDuration() const{
 	return m_duration;
 }
-short Marker::getA() const{
-	return m_A;
+short Marker::getX() const{
+	return m_global_x;
 }
-unsigned short Marker::getB() const{
-	return m_B;
+short Marker::getY() const{
+	return m_global_y;
 }
 
 unsigned int Marker::getType() const{
@@ -92,15 +92,15 @@ void Marker::setDuration(int duration){
 		m_duration = duration;
 	emit onDirationChanged();
 }
-void Marker::setA(short a){
-	if(m_A == a) return;
-	m_A = a;
-	emit onAChanged();
+void Marker::setX(short x){
+	if(m_global_x == x) return;
+	m_global_x = x;
+	emit onXChanged();
 }
-void Marker::setB(unsigned short b){
-	if(m_B == b) return;
-	m_B = b;
-	emit onBChanged();
+void Marker::setY(short y){
+	if(m_global_y == y) return;
+	m_global_y = y;
+	emit onYChanged();
 }
 
 void Marker::setType(unsigned int type){

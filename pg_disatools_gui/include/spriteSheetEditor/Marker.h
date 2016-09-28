@@ -26,14 +26,14 @@ class Marker: public QObject{
 	Q_OBJECT
 	Q_PROPERTY(unsigned int start READ getStart WRITE setStart NOTIFY onStartChanged)
 	Q_PROPERTY(unsigned int duration READ getDuration WRITE setDuration NOTIFY onDirationChanged)
-	Q_PROPERTY(unsigned int a READ getA WRITE setA NOTIFY onAChanged)
-	Q_PROPERTY(unsigned int b READ getB WRITE setB NOTIFY onBChanged)
+	Q_PROPERTY(short x READ getX WRITE setX NOTIFY onXChanged)
+	Q_PROPERTY(short y READ getY WRITE setY NOTIFY onYChanged)
 	Q_PROPERTY(unsigned int type READ getType WRITE setType NOTIFY onTypeChanged)
 public:
 	Marker(QObject *parent = 0);
-	Marker(int start, int duration, short A,unsigned short B, QObject *parent = 0);
+	Marker(int start, int duration, short x, short y, QObject *parent = 0);
 	Marker(int start, int duration, unsigned int type, QObject *parent = 0);
-	Marker(int start, int duration, unsigned int type, short A,unsigned short B,  QObject *parent = 0);
+	Marker(int start, int duration, unsigned int type, short x, short y,  QObject *parent = 0);
 	Marker(const Marker& marker);
 	virtual ~Marker();
 
@@ -42,30 +42,30 @@ public:
 	//getters
 	int getStart() const;
 	int getDuration() const;
-	short getA() const;
-	unsigned short getB() const;
+	short getX() const;
+	short getY() const;
 	unsigned int getType() const;
 
 	//setters
 	void setStart(int start);
 	void setDuration(int duration);
-	void setA(short a);
-	void setB(unsigned short b);
+	void setX(short x);
+	void setY(short y);
 	void setType(unsigned int type);
 
 signals:
 	void onStartChanged();
 	void onDirationChanged();
 
-	void onAChanged();
-	void onBChanged();
+	void onXChanged();
+	void onYChanged();
 
 	void onTypeChanged();
 private:
 	int m_start = 0;
 	int m_duration = 1;
-	short m_B = 0;
-	short m_A = 0;
+	short m_global_x = 0;
+	short m_global_y = 0;
 	unsigned int m_type = 0;
 };
 

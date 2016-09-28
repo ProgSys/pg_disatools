@@ -14,8 +14,8 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake") 
 
-set (FileManagerTITLE "Disa PC File Manager v0.5.1 alpha")
-set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.2.9 alpha")
+set (FileManagerTITLE "Disa PC File Manager v0.5.2 alpha")
+set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.3.0 alpha")
 set (DATAEditorTITLE "Data Editor v0.0.6 alpha")
 set (MapEditorTITLE "Map Viewer v0.0.1 development")
 set (TX2EditorTITLE "TX2 Editor v0.0.1 development")

@@ -166,7 +166,7 @@ void GLSpriteWidget::renderFrame(int frame){
 	//is there a visual difference?
 	for(const Layer* lay: m_animationInfo.getCurrentAnimation()->getLayers()){
 
-		if(m_animationInfo.getCurrentKeyframe(lay,m_currentFrame) != m_animationInfo.getCurrentKeyframe(lay,frame)){
+		if(m_animationInfo.getCurrentKeyframe(lay,m_currentFrame) != m_animationInfo.getCurrentKeyframe(lay,frame) || m_animationInfo.getCurrentMarker(m_currentFrame) != m_animationInfo.getCurrentMarker(frame)){
 			m_currentFrame = frame;
 			m_animationInfo.setFrame(frame);
 			update();
@@ -401,6 +401,9 @@ void GLSpriteWidget::paintGL(){
     	glDepthFunc(GL_ALWAYS);
     	//glDepthMask(false);
 
+    	unsigned short type; // not used
+    	PG::UTIL::vec2 globalOffset;
+    	m_animationInfo.getCurrentMarker(type, globalOffset);
 
     	for(const Layer* lay: m_animationInfo.getCurrentAnimation()->getLayers()){
     		if(lay->isHidden()) continue;
@@ -416,7 +419,7 @@ void GLSpriteWidget::paintGL(){
         			glBlendEquation(GL_FUNC_ADD);
         		}
 
-    			m_animationInfo.setCurrentModelMat(modelMatrix, keyframe);
+    			m_animationInfo.setCurrentModelMat(modelMatrix, keyframe, globalOffset);
     			m_spriteShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
         		m_animationInfo.setUniforms(m_spriteShader, keyframe);
         		m_animationInfo.apply(keyframe);

@@ -60,8 +60,8 @@ typedef struct
 	unsigned short bundel_index;
 	unsigned char duration;
 	unsigned char type;
-	short unknown2;
-	unsigned short unknown3;
+	short global_x;
+	short global_y;
 } __attribute__((packed, aligned(1))) shfileKeyframe;
 
 typedef struct

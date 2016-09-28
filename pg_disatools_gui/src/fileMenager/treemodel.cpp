@@ -170,7 +170,7 @@ int TreeModel::add(const QStringList &files){
 	openProgress(progress, "Insert in progress");
 
 	int filesAddedOrChanged = 0;
-	if(m_fileExtractor->getType() == "SOLA"){ //sprite sheets also need a ID
+	if(getType() == "SOLA"){ //sprite sheets also need a ID
 		PG::FILE::SOLA* sola = static_cast<PG::FILE::SOLA*>(m_fileExtractor);
 		if(!sola){
 			qInfo()<<"SOLA cast failed!";
@@ -180,19 +180,19 @@ int TreeModel::add(const QStringList &files){
 		 for(const QString& str: files){
 			 if(true && sola->exists(str.toStdString())){
 				 if(sola->insert(str.toStdString())){
-					qInfo() << "Couldn't add file: '"<<str<<"'";
+					qInfo() <<__LINE__<< ": Couldn't add file: '"<<str<<"'";
 				 }else
 					 filesAddedOrChanged++;
 			 }else{
 				 //will be added to the back
 				 int id = 0;
 				 progress.hide();
-				 if(EnterValue::openEnterIntDialog(id, 1, 65535, "Please enter a ID", "Please enter a ID for the sprite sheet:\n '"+QFileInfo(str).fileName()+"'")
+				 if(EnterValue::openEnterIntDialog(id, 1, 65535, "Please enter a ID", "Please enter a ID for the file:\n '"+QFileInfo(str).fileName()+"'")
 				 	 	 && !sola->insert(str.toStdString(), id)
 						 ){
 					 filesAddedOrChanged++;
 				 }else
-					qInfo() << "Couldn't add file: '"<<str<<"'";
+					 qInfo() <<__LINE__<< ": Couldn't add file: '"<<str<<"'";
 				 progress.show();
 				 m_percentIndicator.percent = (filesAddedOrChanged/float(files.size()))*100;
 				 progress.setValue( m_percentIndicator.percent);
@@ -201,7 +201,7 @@ int TreeModel::add(const QStringList &files){
 	}else //normal add
 	 for(const QString& str: files){
 		 if(m_fileExtractor->insert(str.toStdString())){
-		 		qInfo() << "Couldn't add file: '"<<str<<"'";
+			 qInfo() <<__LINE__<< ": Couldn't add file: '"<<str<<"'";
 		 }else
 			 filesAddedOrChanged++;
 		 m_percentIndicator.percent = (filesAddedOrChanged/float(files.size()))*100;
@@ -219,7 +219,7 @@ bool TreeModel::replace(const QModelIndex& index, const QString &file, bool keep
 
 	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
 	if(m_fileExtractor->replace(*item, file.toStdString(), keepName)){
-		qInfo() << "Couldn't remove file: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		qInfo() <<__LINE__<< ": Couldn't remove file: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return true;
 	}
 	return false;
@@ -231,7 +231,7 @@ bool TreeModel::remove(const QModelIndex& index){
 	QAbstractItemModel::layoutAboutToBeChanged();
 	PG::FILE::fileInfo *item = static_cast<PG::FILE::fileInfo*>(index.internalPointer());
 	if(m_fileExtractor->remove(*item)){
-		qInfo() << "Couldn't remove file: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		qInfo() <<__LINE__<< ": Couldn't remove file: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return true;
 	}
 	QAbstractItemModel::layoutChanged();
@@ -261,14 +261,14 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index){
 	if(!m_fileExtractor || !index.isValid()) return false;
 	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
 	if(!item || !item->isCompressed() || !item->isPackage() ){
-		qInfo() << "File isn't a IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
+		qInfo() <<__LINE__<< ": File isn't a IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return false;
 	}
 
 	QTemporaryFile* temp = new QTemporaryFile(QString::fromStdString(item->name.getPath()) , this);
 	if(!temp->open()){
 		delete temp;
-		qInfo() << "Couldn't create temp file for IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
+		qInfo() <<__LINE__<< ": Couldn't create temp file for IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return false;
 	}
 	temp->close();
@@ -278,7 +278,7 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index){
 	unsigned int sile_size = 0;
 	if( (sile_size = m_fileExtractor->extract(*item, c)) == 0){
 		if(c) delete c;
-		qInfo() << "Couldn't extract IMY pack: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		qInfo() <<__LINE__<< ": Couldn't extract IMY pack: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return false;
 	}
 
@@ -292,7 +292,7 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString &path, 
 	if(!m_fileExtractor || !index.isValid() || path.isEmpty()) return false;
 	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
 	if(!item || !item->isCompressed() || !item->isPackage() ){
-		qInfo() << "File isn't a IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
+		qInfo() <<__LINE__<< ": File isn't a IMY pack '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return false;
 	}
 
@@ -300,7 +300,7 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString &path, 
 	unsigned int sile_size = 0;
 	if( (sile_size = m_fileExtractor->extract(*item, c)) == 0){
 		if(c) delete c;
-		qInfo() << "Couldn't extract IMY pack: '"<<QString::fromStdString(item->name.getPath())<<"'";
+		qInfo() <<__LINE__<< ": Couldn't extract IMY pack: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return false;
 	}
 
