@@ -328,6 +328,161 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 	return false;
 }
 
+
+bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, tx2Image& imageOut){
+	if(compressionTypeIn == DXT1){
+			const unsigned short width =  imageIn.getWidth();
+			const unsigned short height =  imageIn.getHeight();
+			const unsigned int number_of_blocks_width = (width/4);
+			const unsigned int number_of_blocks_height = (height/4);
+			const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+
+			imageOut.data.resize(number_of_blocks_4x4*8);
+			imageOut.header.width = width;
+			imageOut.header.height = height;
+
+			const unsigned int size = width*height;
+
+			std::vector<DXT1block> blocks;
+
+			if(PG::FILE::compressS3(imageIn,blocks)){
+				PG_ERROR_STREAM("Couldn't compress image.");
+				imageOut.header.type = TX2ERROR;
+				return FAILURE;
+			}
+			memcpy(&imageOut.data[0], &blocks[0], number_of_blocks_4x4*8);
+		}else if(compressionTypeIn == DXT5){
+				const unsigned short width =  imageIn.getWidth();
+				const unsigned short height =  imageIn.getHeight();
+				const unsigned int number_of_blocks_width = (width/4);
+				const unsigned int number_of_blocks_height = (height/4);
+				const unsigned int number_of_blocks_4x4 = number_of_blocks_width*number_of_blocks_height;
+
+				imageOut.data.resize(number_of_blocks_4x4*16);
+				imageOut.header.width = width;
+				imageOut.header.height = height;
+
+				std::vector<DXT5block> blocks;
+
+				if(PG::FILE::compressS3(imageIn,blocks)){
+					PG_ERROR_STREAM("Couldn't compress image.");
+					imageOut.header.type = TX2ERROR;
+					return FAILURE;
+				}
+			memcpy(&imageOut.data[0], &blocks[0], number_of_blocks_4x4*16);
+		}else if(compressionTypeIn == BGRA){
+
+				imageOut.header.width = imageIn.getWidth();
+				imageOut.header.height = imageIn.getHeight();
+				imageOut.data.resize(imageOut.header.width*imageOut.header.height*4);
+
+				unsigned int i = 0;
+				for(const PG::UTIL::rgba& color: imageIn){
+					imageOut.data[i] = color.b;
+					imageOut.data[i+1] = color.g;
+					imageOut.data[i+2] = color.r;
+					imageOut.data[i+3] = color.a;
+					i += 4;
+				}
+		}else if(compressionTypeIn == COLORTABLE_RGBA256 || compressionTypeIn == COLORTABLE_BGRA256){
+			std::vector<PG::UTIL::rgba> colortable;
+			colortable.reserve(256);
+			imageOut.header.type = compressionTypeIn;
+			imageOut.header.width = imageIn.getWidth();
+			imageOut.header.height = imageIn.getHeight();
+
+			for(const PG::UTIL::rgba& color: imageIn){
+				bool found = false;
+				for(const PG::UTIL::rgba& color2: colortable)
+					if(color == color2){
+						found = true;
+						break;
+					}
+				if(colortable.size() >= 256){
+					PG_INFO_STREAM("There are more then 256 colors inside color table!");
+					break;
+				}
+				if(!found) colortable.push_back(color);
+			}
+
+			colortable.resize(256);
+
+			imageOut.data.resize(imageOut.header.width*imageOut.header.height);
+			imageOut.header.colortableSize = 256;
+			imageOut.header.colortables.insert(imageOut.header.colortables.begin(),colortable);
+
+			auto it = imageOut.data.begin();
+			for(const PG::UTIL::rgba& color: imageIn){
+				unsigned int i = 0;
+				for(unsigned int a = 0; a < colortable.size(); a++){
+					if(color == colortable[a]){
+						i = a;
+						break;
+					}
+				}
+				(*it) = i;
+				it++;
+			}
+		}else if(compressionTypeIn == COLORTABLE_RGBA16 || compressionTypeIn == COLORTABLE_BGRA16){
+			std::vector<PG::UTIL::rgba> colortable;
+			colortable.reserve(16);
+			imageOut.header.width = imageIn.getWidth();
+			imageOut.header.height = imageIn.getHeight();
+
+			for(const PG::UTIL::rgba& color: imageIn){
+				bool found = false;
+				for(const PG::UTIL::rgba& color2: colortable)
+					if(color == color2){
+						found = true;
+						break;
+					}
+				if(colortable.size() >= 16) {
+					PG_INFO_STREAM("There are more then 16 colors inside color table!");
+					break;
+				}
+				if(!found) colortable.push_back(color);
+			}
+
+			colortable.resize(16);
+
+			imageOut.data.resize(imageOut.header.width*imageOut.header.height*0.5);
+			imageOut.header.colortableSize = 16;
+			imageOut.header.colortables.insert(imageOut.header.colortables.begin(),colortable);
+
+			unsigned int i = 0;
+			for(char& c:  imageOut.data){
+				const PG::UTIL::rgba& color1 = imageIn[i];
+				const PG::UTIL::rgba& color2 = imageIn[i+1];
+				unsigned int i1 = 0;
+				unsigned int i2 = 0;
+				for(unsigned int a = 0; a < colortable.size(); a++){
+					if(color1 == colortable[a]){
+						i1 = a;
+						break;
+					}
+				}
+				for(unsigned int a = 0; a < colortable.size(); a++){
+					if(color2 == colortable[a]){
+						i2 = a;
+						break;
+					}
+				}
+
+				c = (i1 & 0x0F) | ((i2 << 4) & 0xF0);
+				i += 2;
+			}
+
+		}else{
+			PG_ERROR_STREAM("Compression type not supported, please choose another one.");
+			imageOut.header.type = TX2ERROR;
+			return FAILURE;
+		}
+
+		imageOut.header.type = compressionTypeIn;
+
+		return SUCCESS;
+}
+
 tx2Image::~tx2Image(){}
 
 bool tx2Image::save(const std::string& file) const{
@@ -345,6 +500,18 @@ bool tx2Image::save(const std::string& file) const{
 		writer.writeShort(header.colortableSize);
 		writer.writeShort(header.colortables.size());
 		writer.writeInt(header.width*header.height);
+
+		for(const ColorTable& table: header.colortables){
+			if(header.type == COLORTABLE_BGRA16 || header.type == COLORTABLE_BGRA256){
+				for(const PG::UTIL::rgba& color: table){
+					writer.writeChar(color.b);
+					writer.writeChar(color.g);
+					writer.writeChar(color.r);
+					writer.writeChar(color.a);
+				}
+			}else
+				writer.write((char*)&table[0].r, table.size()*sizeof(PG::UTIL::rgba));
+		}
 
 		writer.write((char*)&data[0], data.size());
 
@@ -477,30 +644,8 @@ void tx2Image::getRGBAData(char* rgbaOut, unsigned short colortable) const{
 			}
 		}
 			break;
-		case tx2Type::COLORTABLE_BGRA16:
-		{
-			assert_Test("Color table ID out of bound!", colortable >= header.colortables.size());
-			const ColorTable& table =  header.colortables[colortable];
-			for(unsigned int i = 0; i < data.size(); ++i){
-				const char c = data[i];
-
-				const unsigned int pos1 = i*2*sizeof(PG::UTIL::rgba);
-				const unsigned int pos2 = pos1+sizeof(PG::UTIL::rgba);
-				const PG::UTIL::rgba& co1 = table[ c & 0x0F];
-				const PG::UTIL::rgba& co2 = table[ (c >> 4) & 0x0F ];
-				rgbaOut[pos1] = co1.b;
-				rgbaOut[pos1+1] = co1.g;
-				rgbaOut[pos1+2] = co1.r;
-				rgbaOut[pos1+3] = co1.a;
-
-				rgbaOut[pos2] = co2.b;
-				rgbaOut[pos2+1] = co2.g;
-				rgbaOut[pos2+2] = co2.r;
-				rgbaOut[pos2+3] = co2.a;
-			}
-		}
-			break;
 		case tx2Type::COLORTABLE_RGBA16:
+		case tx2Type::COLORTABLE_BGRA16:
 		{
 			assert_Test("Color table ID out of bound!", colortable >= header.colortables.size());
 			const ColorTable& table =  header.colortables[colortable];
@@ -523,22 +668,8 @@ void tx2Image::getRGBAData(char* rgbaOut, unsigned short colortable) const{
 			}
 		}
 			break;
-		case tx2Type::COLORTABLE_BGRA256:
-		{
-			assert_Test("Color table ID out of bound!", colortable >= header.colortables.size());
-			const ColorTable& table =  header.colortables[colortable];
-			for(unsigned int i = 0; i < data.size(); ++i){
-				const unsigned int pos = i*sizeof(PG::UTIL::rgba);
-
-				const PG::UTIL::rgba& co = table[ data[i]];
-				rgbaOut[pos] = co.b;
-				rgbaOut[pos+1] = co.g;
-				rgbaOut[pos+2] = co.r;
-				rgbaOut[pos+3] = co.a;
-			}
-		}
-			break;
 		case tx2Type::COLORTABLE_RGBA256:
+		case tx2Type::COLORTABLE_BGRA256:
 		{
 			assert_Test("Color table ID out of bound!", colortable >= header.colortables.size());
 			const ColorTable& table =  header.colortables[colortable];
@@ -574,7 +705,42 @@ void tx2Image::setWithRGBA(unsigned short width, unsigned short height, const ch
 
 }
 
-void tx2Image::convertTo(tx2Type compressionTypeIn){
+bool tx2Image::convertTo(tx2Type compressionTypeIn){
+	if(compressionTypeIn == tx2Type::TX2ERROR || compressionTypeIn == header.type || getWidth() == 0 || getHeight() == 0 ) return FAILURE;
+
+	if(( compressionTypeIn == COLORTABLE_RGBA16 || compressionTypeIn == COLORTABLE_BGRA16 ) && ( header.type == COLORTABLE_RGBA16 || header.type == COLORTABLE_BGRA16) ){
+		header.type = compressionTypeIn;
+	}else if(( compressionTypeIn == COLORTABLE_RGBA256 || compressionTypeIn == COLORTABLE_BGRA256 ) && ( header.type == COLORTABLE_RGBA256 || header.type == COLORTABLE_BGRA256) ){
+		header.type = compressionTypeIn;
+
+	}else if((compressionTypeIn == COLORTABLE_RGBA256 || compressionTypeIn == COLORTABLE_BGRA256)  && (header.type == COLORTABLE_RGBA16 || header.type == COLORTABLE_BGRA16)){
+		header.type = compressionTypeIn;
+		header.colortableSize = 256;
+		for(ColorTable& table: header.colortables)
+			table.resize(256);
+
+		std::vector<char> newdata(getWidth()*getHeight());
+		for(unsigned int i = 0; i < data.size(); ++i){
+			const char c = data[i];
+
+			const unsigned int pos = i*2;
+			newdata[pos] = c & 0x0F;
+			newdata[pos+1] = (c >> 4) & 0x0F;
+		}
+		data = newdata;
+
+	}else{
+		PG::UTIL::RGBAImage rgbaImage(getWidth(), getHeight());
+		getRGBAData((char*)&rgbaImage[0].r, 0);
+		compressTX2(rgbaImage,compressionTypeIn, *this);
+	}
+
+	if(header.type == DXT1 || header.type == DXT5 || header.type == BGRA){
+		header.colortables.clear();
+		header.colortableSize = 0;
+	}
+
+	return SUCCESS;
 
 }
 

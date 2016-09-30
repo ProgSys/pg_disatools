@@ -180,6 +180,42 @@ static bool compressS3(const PG::UTIL::RGBAImage& imageIn, std::vector<blockType
 	return false;
 }
 
+template<class blockType>
+static bool compressS3(unsigned int width, unsigned int height,const char* inRGBA, std::vector<blockType>& blocksOut, S3CompressionMethod method = FIND_BEST){
+	static_assert(std::is_base_of<PG::FILE::S3Base, blockType>::value, "blockType must inherit from S3Base");
+
+	//PG_INFO_STREAM(imageIn.getWidth() << " "<<imageIn.getHeight());
+
+
+	if( width == 0 || height == 0 || width % 4 != 0 || height % 4 != 0){
+		PG_ERROR_STREAM("Image dimensions need to mod 4!");
+		return true;
+	}
+
+	const unsigned int block_width = width/4.0;
+	const unsigned int block_height = height/4.0;
+
+	//read this http://stackoverflow.com/questions/470690/how-to-automatically-generate-n-distinct-colors
+	blocksOut.resize(block_width*block_height);
+
+	//extract 4x4 blocks and compress them
+	for(unsigned int y = 0; y < block_height; ++y){
+			for(unsigned int x = 0; x < block_width; ++x){
+				PG::UTIL::RGBAImage window(4,4); //4x4 window
+
+				for(unsigned int yi = 0; yi < 4; ++yi){
+					PG::UTIL::uvec2 p = uvec2(x*4,y*4)+uvec2(0,yi);
+					memcpy(&window.getRow(yi), &inRGBA[p.y*width+p.x], 4*4);
+				}
+
+				blockType& block = blocksOut[y*block_width+x];
+				block.compress(window, method);
+			}
+	}
+
+
+	return false;
+}
 } /* namespace FILE */
 } /* namespace PG */
 

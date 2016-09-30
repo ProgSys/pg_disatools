@@ -60,7 +60,8 @@ QT5_WRAP_UI(UICreateNewSpriteSrcs ui/createNewSpriteSheet.ui)
 QT5_WRAP_UI(UISreateNewAnimationSrcs ui/createNewAnimation.ui)
 QT5_WRAP_UI(UIDataEditor ui/dataEditor.ui)
 QT5_WRAP_UI(UIMapEditor ui/mapEditor.ui)
-QT5_WRAP_UI(UIMapEditor ui/tx2Editor.ui)
+QT5_WRAP_UI(UItx2Editor ui/tx2Editor.ui)
+QT5_WRAP_UI(UItx2ConvertTo ui/tx2ConvertTo.ui)
 
 #windres disa_tools_icon.rc -O coff -o disa_tools_icon.res
 SET(sim_EXE_SRCS "")
@@ -378,7 +379,7 @@ add_executable(
 		"tx2Editor.cpp"
 		${PG_TX2_EDITOR_HEADERS}
 		${PG_TX2_EDITOR_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
+		${MOCSrcs} ${UItx2Editor} ${UItx2ConvertTo} 
 		
 )
 else()
@@ -388,7 +389,7 @@ add_executable(
 		"tx2Editor.cpp"
 		${PG_TX2_EDITOR_HEADERS}
 		${PG_TX2_EDITOR_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs} 
+		${MOCSrcs} ${UItx2Editor} ${UItx2ConvertTo} 
 		
 )
 set_target_properties(pg_tx2_editor PROPERTIES OUTPUT_NAME ${TX2EditorTITLE})

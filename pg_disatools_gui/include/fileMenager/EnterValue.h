@@ -29,7 +29,7 @@ class Dialog;
 class EnterValue: public QDialog {
     Q_OBJECT
 public:
-	EnterValue(QWidget *parent);
+	EnterValue(QWidget *parent = 0);
 
 	EnterValue(
 			QValidator* validator = nullptr,

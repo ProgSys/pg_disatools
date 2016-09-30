@@ -45,6 +45,8 @@ public slots:
 	bool saveTX2(const QString& filepath);
 	bool saveImage(const QString& filepath);
 
+	void convertTo(PG::FILE::tx2Type type);
+
 signals:
 	void imageChanged();
 
@@ -63,13 +65,18 @@ public slots:
 	void saveAs();
 	void save(const QString& filepath);
 
+	void convertTo();
+
 	void updateInfo();
 signals:
 	bool openTX2(const QString& filepath);
 	bool openImage(const QString& filepath);
 	bool saveTX2(const QString& filepath);
 	bool saveImage(const QString& filepath);
+	void convertTo(PG::FILE::tx2Type type);
 private:
+	void buttonsEnable(bool enable = true);
+
 	TX2EditorModel* m_model;
 	QString m_currentOpendFile;
 };

@@ -23,6 +23,7 @@
 #include <QImage>
 #include <QtQml>
 #include <tx2Editor/TX2ImageProvider.h>
+#include <tx2Editor/TX2ConvertToDialog.h>
 
 
 
@@ -99,6 +100,14 @@ bool TX2EditorModel::saveImage(const QString& filepath){
 }
 
 
+void TX2EditorModel::convertTo(PG::FILE::tx2Type type){
+	image->convertTo(type);
+	if(image->header.type == PG::FILE::tx2Type::TX2ERROR)
+		image->clear();
+	qDebug() <<" Convert to: "<<type;
+	emit imageChanged();
+}
+
 inline void aboutTX2Editor(){
     QMessageBox msgBox;
     msgBox.setIcon(QMessageBox::Information);
@@ -160,12 +169,16 @@ TX2Editor::TX2Editor(QWidget *parent):
 	connect(pushButton_save, SIGNAL( clicked() ),  this, SLOT( save() ));
 	connect(pushButton_saveAs, SIGNAL( clicked() ),  this, SLOT( saveAs() ));
 
+	connect(pushButton_convertTo, SIGNAL( clicked() ),  this, SLOT( convertTo() ));
+
 	connect(this, SIGNAL( openTX2(const QString&) ),  m_model, SLOT( openTX2(const QString&) ));
 	connect(this, SIGNAL( openImage(const QString&) ),  m_model, SLOT( openImage(const QString&) ));
 
-
 	connect(this, SIGNAL( saveTX2(const QString&) ),  m_model, SLOT( saveTX2(const QString&) ));
 	connect(this, SIGNAL( saveImage(const QString&) ),  m_model, SLOT( saveImage(const QString&) ));
+
+	qRegisterMetaType<PG::FILE::tx2Type>("PG::FILE::tx2Type");
+	connect(this, SIGNAL( convertTo(PG::FILE::tx2Type) ),  m_model, SLOT( convertTo(PG::FILE::tx2Type) ));
 
 	connect(m_model, SIGNAL( imageChanged() ),  this, SLOT( updateInfo() ));
 }
@@ -194,23 +207,19 @@ void TX2Editor::open(const QString& filepath){
 		if(emit openTX2(filepath)){
 			QMainWindow::statusBar()->showMessage(QString("Opened TX2 %1").arg(filepath));
 			m_currentOpendFile = filepath;
-			pushButton_save->setEnabled(true);
-			pushButton_saveAs->setEnabled(true);
+			buttonsEnable(true);
 		}else{
 			QMainWindow::statusBar()->showMessage(QString("Couldn't open TX2 %1").arg(filepath));
-			pushButton_save->setEnabled(false);
-			pushButton_saveAs->setEnabled(false);
+			buttonsEnable(false);
 		}
 	}else{
 		if(emit openImage(filepath)){
 			QMainWindow::statusBar()->showMessage(QString("Opened image %1").arg(filepath));
-			pushButton_save->setEnabled(true);
-			pushButton_saveAs->setEnabled(true);
 			m_currentOpendFile = filepath;
+			buttonsEnable(true);
 		}else{
 			QMainWindow::statusBar()->showMessage(QString("Couldn't open image %1").arg(filepath));
-			pushButton_save->setEnabled(false);
-			pushButton_saveAs->setEnabled(false);
+			buttonsEnable(false);
 		}
 	}
 }
@@ -247,6 +256,43 @@ void TX2Editor::save(const QString& filepath){
 
 }
 
+void TX2Editor::convertTo(){
+	TX2ConvertToDialog dialog(this);
+	dialog.exec();
+	if(dialog.isAccepted()){
+		QMainWindow::statusBar()->showMessage(QString("Please wait this can take a while!"));
+		if(dialog.getResult() == "DXT1")
+			emit convertTo( PG::FILE::tx2Type::DXT1);
+		else if(dialog.getResult() == "DXT5")
+			emit convertTo( PG::FILE::tx2Type::DXT5);
+		else if(dialog.getResult() == "BGRA8888")
+			emit convertTo( PG::FILE::tx2Type::BGRA);
+		else if(dialog.getResult() == "COLORTABLE RGBA16")
+			emit convertTo( PG::FILE::tx2Type::COLORTABLE_RGBA16);
+		else if(dialog.getResult() == "COLORTABLE BGRA16")
+			emit convertTo( PG::FILE::tx2Type::COLORTABLE_BGRA16);
+		else if(dialog.getResult() == "COLORTABLE RGBA256")
+			emit convertTo( PG::FILE::tx2Type::COLORTABLE_RGBA256);
+		else if(dialog.getResult() == "COLORTABLE BGRA256")
+			emit convertTo( PG::FILE::tx2Type::COLORTABLE_BGRA256);
+		else
+			QMainWindow::statusBar()->showMessage(QString("Unknown target '%1'!").arg(dialog.getResult()));
+		QMainWindow::statusBar()->showMessage(QString("Convert to done!"));
+	}else{
+		QMainWindow::statusBar()->showMessage(QString("Convert to canceled."));
+	}
+}
+
+
+void TX2Editor::buttonsEnable(bool enable){
+	pushButton_save->setEnabled(enable);
+	pushButton_saveAs->setEnabled(enable);
+	actionSave->setEnabled(enable);
+	actionSave_As->setEnabled(enable);
+	pushButton_convertTo->setEnabled(enable);
+}
+
+
 void TX2Editor::updateInfo(){
 	switch (m_model->image->header.type) {
 		case PG::FILE::tx2Type::DXT1:
@@ -280,5 +326,5 @@ void TX2Editor::updateInfo(){
 	value_width->setText(QString::number(m_model->getWidth()));
 	value_height->setText(QString::number(m_model->getHeight()));
 
-	value_colortables->setText(QString::number(m_model->image->header.colortableSize));
+	value_colortables->setText(QString::number(m_model->image->header.colortables.size()));
 }

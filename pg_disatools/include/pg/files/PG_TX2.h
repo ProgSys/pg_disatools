@@ -84,7 +84,7 @@ public:
 	 */
 	void setWithRGBA(unsigned short width, unsigned short height, const char* rgbaIn );
 
-	void convertTo(tx2Type compressionTypeIn);
+	bool convertTo(tx2Type compressionTypeIn);
 
 	void clear(tx2Type type = tx2Type::TX2ERROR);
 };
@@ -137,6 +137,7 @@ EXPORT bool decompressTX2(const char* bytesIn, unsigned int lenghtIn, PG::UTIL::
 
 
 EXPORT bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, std::vector<char>& bytesOut);
+EXPORT bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, tx2Image& imageOut);
 
 } /* namespace FILE */
 } /* namespace PG */
