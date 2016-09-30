@@ -82,7 +82,7 @@ private:
 };
 
 template<class blockType>
-static bool decompressS3(unsigned int width, unsigned int height, const std::vector<blockType>& inData, char* outRGBAData){
+static bool decompressS3(unsigned int width, unsigned int height,const char* inData, unsigned int inDataSize, char* outRGBAData){
 	static_assert(std::is_base_of<PG::FILE::S3Base, blockType>::value, "blockType must inherit from S3Base");
 
 	if(width == 0 || height == 0){
@@ -93,8 +93,8 @@ static bool decompressS3(unsigned int width, unsigned int height, const std::vec
 	const unsigned int block_width = width/4.0;
 	const unsigned int block_height = height/4.0;
 
-	if(inData.size() < block_width*block_height){
-		PG_ERROR_STREAM("Not enough blocks given! Expected "<<block_width*block_height<<" given "<<inData.size()<<" .");
+	if(inDataSize < block_width*block_height){
+		PG_ERROR_STREAM("Not enough blocks given! Expected "<<block_width*block_height<<" given "<<inDataSize<<" .");
 		return true;
 	}
 
@@ -105,8 +105,9 @@ static bool decompressS3(unsigned int width, unsigned int height, const std::vec
 			const unsigned int current_start_index = (y*width*4+x*4)*4;
 			assert_Test("current_start_index is out if bound!", current_start_index > width*height*4);
 			std::vector<PG::UTIL::rgba> RGBAData;
-			const blockType& block = inData[current_block];
-			block.decompress(RGBAData);
+			const blockType* block = (blockType*) &inData[current_block*sizeof(blockType)];
+			//const blockType& block = reinterpret_cast<blockType>( &inData[current_block*sizeof(blockType)] );
+			block->decompress(RGBAData);
 
 			for(unsigned int by = 0; by < 4; ++by)
 			{
@@ -120,15 +121,25 @@ static bool decompressS3(unsigned int width, unsigned int height, const std::vec
 }
 
 template<class blockType>
+static bool decompressS3(unsigned int width, unsigned int height, const std::vector<char>& inData, char* outRGBAData){
+	return decompressS3<blockType>(width, height, (char*) &inData[0], inData.size()/sizeof(blockType), outRGBAData);
+}
+
+template<class blockType>
+static bool decompressS3(unsigned int width, unsigned int height, const std::vector<blockType>& inData, char* outRGBAData){
+	return decompressS3<blockType>(width, height, (char*) &inData[0], inData.size(), outRGBAData);
+}
+
+template<class blockType>
 static bool decompressS3(unsigned int width, unsigned int height, const std::vector<blockType>& inData, std::vector<PG::UTIL::rgba>& outRGBAData){
 	outRGBAData.resize(width*height);
-	return uncompressS3(width, height, inData, (char*) &outRGBAData[0].r);
+	return decompressS3<blockType>(width, height, inData, (char*) &outRGBAData[0].r);
 }
 
 template<class blockType>
 static bool decompressS3(unsigned int width, unsigned int height, const std::vector<blockType>& inData, PG::UTIL::RGBAImage& outRGBAData){
 	outRGBAData.resize(width, height);
-	return decompressS3(width, height, inData, (char*)&outRGBAData[0].r);
+	return decompressS3<blockType>(width, height, inData, (char*)&outRGBAData[0].r);
 }
 
 

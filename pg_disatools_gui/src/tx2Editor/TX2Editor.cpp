@@ -23,11 +23,11 @@
 #include <QImage>
 #include <QtQml>
 #include <tx2Editor/TX2ImageProvider.h>
-#include <pg/files/PG_TX2.h>
+
 
 
 TX2EditorModel::TX2EditorModel(QObject *parent){
-	image = new PG::UTIL::RGBAImage();
+	image = new PG::FILE::tx2Image();
 }
 
 TX2EditorModel::~TX2EditorModel(){
@@ -35,17 +35,16 @@ TX2EditorModel::~TX2EditorModel(){
 }
 
 unsigned int TX2EditorModel::getWidth() const{
-	return image->getWidth();
+	return image->header.width;
 }
 
 unsigned int TX2EditorModel::getHeight() const{
-	return image->getHeight();
+	return image->header.height;
 }
 
 
 bool TX2EditorModel::openTX2(const QString& filepath){
-	if(PG::FILE::decompressTX2(filepath.toStdString(), *image)){
-		image->resize(0,0);
+	if(image->open(filepath.toStdString())){
 		emit imageChanged();
 		return false;
 	}
@@ -56,24 +55,48 @@ bool TX2EditorModel::openTX2(const QString& filepath){
 bool TX2EditorModel::openImage(const QString& filepath){
 	QImage qImg(filepath);
 	if(qImg.width() <= 0 || qImg.height() <= 0) {
-		image->resize(0,0);
 		emit imageChanged();
 		return false;
 	}
 
-	image->resize(qImg.width(),qImg.height());
+
+	std::vector<char> data(qImg.width()*qImg.height()*4);
 	for(unsigned int y = 0; y < qImg.height(); y++)
 		for(unsigned int x = 0; x < qImg.width(); x++){
 			const QRgb& rgb = qImg.pixel(x, y);
 			const int alpha =  qAlpha(rgb);
 			const QColor color(rgb);
-			image->set(x, y, PG::UTIL::rgba(color.red(), color.green(), color.blue(), alpha));
+			const unsigned int pos = (x+y*qImg.width())*4;
+			data[pos] = color.red();
+			data[pos+1] = color.green();
+			data[pos+2] = color.blue();
+			data[pos+3] = alpha;
 		}
+
+	image->setWithRGBA(qImg.width(), qImg.height(), (char*)&data[0]);
+
 	emit imageChanged();
 	return true;
 }
 
+bool TX2EditorModel::saveTX2(const QString& filepath){
+	if(image->header.type == PG::FILE::tx2Type::TX2ERROR ||  image->getWidth() == 0  || image->getHeight() == 0) return false;
 
+	image->save(filepath.toStdString());
+
+	return true;
+}
+
+
+bool TX2EditorModel::saveImage(const QString& filepath){
+	if(image->header.type == PG::FILE::tx2Type::TX2ERROR ||  image->getWidth() == 0  || image->getHeight() == 0) return false;
+
+	QImage img(image->getWidth(), image->getHeight(), QImage::Format_RGBA8888);
+	image->getRGBAData((char*)img.bits(), 0);
+	img.save(filepath);
+
+	return true;
+}
 
 
 inline void aboutTX2Editor(){
@@ -134,8 +157,15 @@ TX2Editor::TX2Editor(QWidget *parent):
 	connect(actionOpen, SIGNAL( triggered() ),  this, SLOT( open() ));
 	connect(pushButton_open, SIGNAL( clicked() ),  this, SLOT( open() ));
 
+	connect(pushButton_save, SIGNAL( clicked() ),  this, SLOT( save() ));
+	connect(pushButton_saveAs, SIGNAL( clicked() ),  this, SLOT( saveAs() ));
+
 	connect(this, SIGNAL( openTX2(const QString&) ),  m_model, SLOT( openTX2(const QString&) ));
 	connect(this, SIGNAL( openImage(const QString&) ),  m_model, SLOT( openImage(const QString&) ));
+
+
+	connect(this, SIGNAL( saveTX2(const QString&) ),  m_model, SLOT( saveTX2(const QString&) ));
+	connect(this, SIGNAL( saveImage(const QString&) ),  m_model, SLOT( saveImage(const QString&) ));
 
 	connect(m_model, SIGNAL( imageChanged() ),  this, SLOT( updateInfo() ));
 }
@@ -161,31 +191,94 @@ void TX2Editor::open(const QString& filepath){
 	if(filepath.isEmpty()) return;
 
 	if(filepath.right(4).toLower() == ".tx2"){
-		if(emit openTX2(filepath))
+		if(emit openTX2(filepath)){
 			QMainWindow::statusBar()->showMessage(QString("Opened TX2 %1").arg(filepath));
-		else
+			m_currentOpendFile = filepath;
+			pushButton_save->setEnabled(true);
+			pushButton_saveAs->setEnabled(true);
+		}else{
 			QMainWindow::statusBar()->showMessage(QString("Couldn't open TX2 %1").arg(filepath));
+			pushButton_save->setEnabled(false);
+			pushButton_saveAs->setEnabled(false);
+		}
 	}else{
-		if(emit openImage(filepath))
+		if(emit openImage(filepath)){
 			QMainWindow::statusBar()->showMessage(QString("Opened image %1").arg(filepath));
-		else
+			pushButton_save->setEnabled(true);
+			pushButton_saveAs->setEnabled(true);
+			m_currentOpendFile = filepath;
+		}else{
 			QMainWindow::statusBar()->showMessage(QString("Couldn't open image %1").arg(filepath));
+			pushButton_save->setEnabled(false);
+			pushButton_saveAs->setEnabled(false);
+		}
 	}
 }
 
 
 void TX2Editor::save(){
-
+	save(m_currentOpendFile);
 }
 
 void TX2Editor::saveAs(){
-
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save image"),
+				QFileInfo(m_currentOpendFile).baseName(),
+			   tr("TX2 image (*.tx2);;PNG (*.png);;TGA (*.tga);;JPG (*.jpg)"));
+	save(fileName);
 }
 void TX2Editor::save(const QString& filepath){
+	if(filepath.isEmpty()) return;
+
+	if(filepath.right(4).toLower() == ".tx2"){
+		if(emit saveTX2(filepath)){
+			QMainWindow::statusBar()->showMessage(QString("Saved TX2 %1").arg(filepath));
+			m_currentOpendFile = filepath;
+		}else{
+			QMainWindow::statusBar()->showMessage(QString("Couldn't save TX2 %1").arg(filepath));
+		}
+	}else{
+		if(emit saveImage(filepath)){
+			QMainWindow::statusBar()->showMessage(QString("Saved image %1").arg(filepath));
+			m_currentOpendFile = filepath;
+		}else{
+			QMainWindow::statusBar()->showMessage(QString("Couldn't save image %1").arg(filepath));
+		}
+	}
 
 }
 
 void TX2Editor::updateInfo(){
+	switch (m_model->image->header.type) {
+		case PG::FILE::tx2Type::DXT1:
+				value_type->setText("DXT1");
+			break;
+		case PG::FILE::tx2Type::DXT5:
+				value_type->setText("DXT5");
+			break;
+		case PG::FILE::tx2Type::BGRA:
+				value_type->setText("BGRA");
+			break;
+		case PG::FILE::tx2Type::COLORTABLE_BGRA16:
+				value_type->setText("COLORTABLE_BGRA16");
+			break;
+		case PG::FILE::tx2Type::COLORTABLE_RGBA16:
+				value_type->setText("COLORTABLE_RGBA16");
+			break;
+		case PG::FILE::tx2Type::COLORTABLE_BGRA256:
+				value_type->setText("COLORTABLE_BGRA256");
+			break;
+		case PG::FILE::tx2Type::COLORTABLE_RGBA256:
+				value_type->setText("COLORTABLE_RGBA256");
+			break;
+		default:
+			value_type->setText("NONE");
+			break;
+	}
+
+
+	value_colors->setText(QString::number(m_model->image->header.colortableSize));
 	value_width->setText(QString::number(m_model->getWidth()));
 	value_height->setText(QString::number(m_model->getHeight()));
+
+	value_colortables->setText(QString::number(m_model->image->header.colortableSize));
 }

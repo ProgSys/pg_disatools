@@ -42,7 +42,8 @@ enum tx2Type: unsigned short {
 	DXT1 = 0, DXT5 = 2, BGRA = 3,  COLORTABLE_BGRA16 = 16, COLORTABLE_RGBA16 = 17, COLORTABLE_BGRA256 = 256 , COLORTABLE_RGBA256 = 257 , TX2ERROR = 999
 };
 
-struct tx2Image{
+class tx2Image{
+public:
 	struct tx2header{
 		unsigned short width = 0;
 		unsigned short height = 0;
@@ -65,6 +66,27 @@ struct tx2Image{
 	tx2Image(tx2Type typeIn, unsigned short w, unsigned short h, unsigned short colortableSizeIn, const std::vector<char>& dataIn):
 		header(typeIn,w,h,colortableSizeIn),data(dataIn){}
 
+	virtual ~tx2Image();
+	bool save(const std::string& file) const;
+	bool open(const std::string& file);
+
+	inline unsigned short getWidth() const{
+		return header.width;
+	}
+	inline unsigned short getHeight() const{
+		return header.height;
+	}
+	unsigned int getRGBADataSize() const;
+	void getRGBAData(char* rgbaOut, unsigned short colortable = 0) const;
+
+	/*!
+	 * @brief Set the image with RGBA data. Note the format tx2 type will become BGRA!
+	 */
+	void setWithRGBA(unsigned short width, unsigned short height, const char* rgbaIn );
+
+	void convertTo(tx2Type compressionTypeIn);
+
+	void clear(tx2Type type = tx2Type::TX2ERROR);
 };
 
 bool readTX2Header(PG::STREAM::In* instream, tx2Image::tx2header& header);

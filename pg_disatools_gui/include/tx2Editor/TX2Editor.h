@@ -20,6 +20,7 @@
 #include <QMainWindow>
 #include <ui_tx2Editor.h>
 #include <pg/util/PG_Image.h>
+#include <pg/files/PG_TX2.h>
 
 #ifndef INCLUDE_TX2EDITOR_TX2EDITOR_H_
 #define INCLUDE_TX2EDITOR_TX2EDITOR_H_
@@ -35,11 +36,14 @@ public:
 	unsigned int getWidth() const;
 	unsigned int getHeight() const;
 
-	PG::UTIL::RGBAImage* image;
+	PG::FILE::tx2Image* image;
 
 public slots:
 	bool openTX2(const QString& filepath);
 	bool openImage(const QString& filepath);
+
+	bool saveTX2(const QString& filepath);
+	bool saveImage(const QString& filepath);
 
 signals:
 	void imageChanged();
@@ -63,8 +67,11 @@ public slots:
 signals:
 	bool openTX2(const QString& filepath);
 	bool openImage(const QString& filepath);
+	bool saveTX2(const QString& filepath);
+	bool saveImage(const QString& filepath);
 private:
 	TX2EditorModel* m_model;
+	QString m_currentOpendFile;
 };
 
 #endif /* INCLUDE_TX2EDITOR_TX2EDITOR_H_ */
