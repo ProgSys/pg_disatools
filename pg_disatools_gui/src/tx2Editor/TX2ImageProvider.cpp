@@ -17,7 +17,7 @@
  */
 #include <tx2Editor/TX2ImageProvider.h>
 
-TX2ImageProvider::TX2ImageProvider(PG::FILE::tx2Image* image):
+TX2ImageProvider::TX2ImageProvider(TX2EditorModel* image):
 	QQuickImageProvider(QQmlImageProviderBase::Image),
 	m_image(image){
 	// TODO Auto-generated constructor stub
@@ -25,15 +25,16 @@ TX2ImageProvider::TX2ImageProvider(PG::FILE::tx2Image* image):
 }
 
 QImage TX2ImageProvider::requestImage(const QString &id, QSize *size, const QSize &requestedSize){
-	if(!m_image || m_image->getWidth() == 0 || m_image->getHeight() == 0) return QImage("resources/disgaea-d2-artwork-3.jpg");
+	if(!m_image || m_image->getWidth() == 0 || m_image->getHeight() == 0) return QImage();
 
 	QImage img(m_image->getWidth(), m_image->getHeight(), QImage::Format_RGBA8888);
-	m_image->getRGBAData((char*)img.bits(), 0);
+	assert_Test("Current color table out of bound!", m_image->getCurrentColorTable() != 0 && m_image->getCurrentColorTable() >= m_image->getNumberOfColorTables());
+	m_image->image->getRGBAData((char*)img.bits(), m_image->getCurrentColorTable());
 
 	return img;
 }
 
-void TX2ImageProvider::setModel(PG::FILE::tx2Image* image){
+void TX2ImageProvider::setModel(TX2EditorModel* image){
 	m_image = image;
 }
 

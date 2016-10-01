@@ -18,6 +18,7 @@ You can download the latest version of the tools here:
 * [Version v0.6.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.4%20alpha.zip)
 * [Version v0.6.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.7%20alpha.zip)
 * [Version v0.6.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.8%20alpha.zip)
+* [Version v0.6.9 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.9%20alpha.zip)
 
 ---
 
@@ -60,6 +61,13 @@ Base supported files:
 * CHARHELP - Contains descriptions of all characters.
 
 ![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Data%20Editor%20v0.0.5%20alpha_preview.png)
+
+
+#### TX2 Editor
+
+This tool allows you to open, view, convert and export TX2 images.
+
+![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 
 #### TX2Converter.exe
 

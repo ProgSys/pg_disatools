@@ -135,6 +135,9 @@
      <property name="topMargin">
       <number>2</number>
      </property>
+     <property name="bottomMargin">
+      <number>1</number>
+     </property>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout" stretch="15,0,0,0,1,0">
        <property name="spacing">
@@ -309,6 +312,21 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_2">
     <layout class="QGridLayout" name="gridLayout">
+     <property name="leftMargin">
+      <number>1</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>1</number>
+     </property>
+     <property name="bottomMargin">
+      <number>1</number>
+     </property>
+     <property name="spacing">
+      <number>0</number>
+     </property>
      <item row="0" column="0">
       <widget class="QQuickWidget" name="quickSpriteView">
        <property name="resizeMode">
@@ -334,6 +352,21 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_3">
     <layout class="QGridLayout" name="gridLayout_2">
+     <property name="leftMargin">
+      <number>1</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>1</number>
+     </property>
+     <property name="bottomMargin">
+      <number>1</number>
+     </property>
+     <property name="spacing">
+      <number>0</number>
+     </property>
      <item row="0" column="0">
       <widget class="QQuickWidget" name="quickColorTable">
        <property name="resizeMode">

@@ -647,7 +647,7 @@ void tx2Image::getRGBAData(char* rgbaOut, unsigned short colortable) const{
 		case tx2Type::COLORTABLE_RGBA16:
 		case tx2Type::COLORTABLE_BGRA16:
 		{
-			assert_Test("Color table ID out of bound!", colortable >= header.colortables.size());
+			if(colortable >=  header.colortables.size()) return;
 			const ColorTable& table =  header.colortables[colortable];
 			for(unsigned int i = 0; i < data.size(); ++i){
 				const char c = data[i];
@@ -671,7 +671,7 @@ void tx2Image::getRGBAData(char* rgbaOut, unsigned short colortable) const{
 		case tx2Type::COLORTABLE_RGBA256:
 		case tx2Type::COLORTABLE_BGRA256:
 		{
-			assert_Test("Color table ID out of bound!", colortable >= header.colortables.size());
+			if(colortable >=  header.colortables.size()) return;
 			const ColorTable& table =  header.colortables[colortable];
 			for(unsigned int i = 0; i < data.size(); ++i){
 				const unsigned int pos = i*sizeof(PG::UTIL::rgba);
@@ -705,7 +705,7 @@ void tx2Image::setWithRGBA(unsigned short width, unsigned short height, const ch
 
 }
 
-bool tx2Image::convertTo(tx2Type compressionTypeIn){
+bool tx2Image::convertTo(tx2Type compressionTypeIn, unsigned int colorTableIndex){
 	if(compressionTypeIn == tx2Type::TX2ERROR || compressionTypeIn == header.type || getWidth() == 0 || getHeight() == 0 ) return FAILURE;
 
 	if(( compressionTypeIn == COLORTABLE_RGBA16 || compressionTypeIn == COLORTABLE_BGRA16 ) && ( header.type == COLORTABLE_RGBA16 || header.type == COLORTABLE_BGRA16) ){
@@ -731,7 +731,8 @@ bool tx2Image::convertTo(tx2Type compressionTypeIn){
 
 	}else{
 		PG::UTIL::RGBAImage rgbaImage(getWidth(), getHeight());
-		getRGBAData((char*)&rgbaImage[0].r, 0);
+		if(colorTableIndex >= header.colortables.size()) colorTableIndex = 0;
+		getRGBAData((char*)&rgbaImage[0].r, colorTableIndex);
 		compressTX2(rgbaImage,compressionTypeIn, *this);
 	}
 

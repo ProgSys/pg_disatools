@@ -84,7 +84,7 @@ public:
 	 */
 	void setWithRGBA(unsigned short width, unsigned short height, const char* rgbaIn );
 
-	bool convertTo(tx2Type compressionTypeIn);
+	bool convertTo(tx2Type compressionTypeIn, unsigned int colorTableIndex = 0);
 
 	void clear(tx2Type type = tx2Type::TX2ERROR);
 };

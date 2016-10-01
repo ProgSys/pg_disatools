@@ -29,12 +29,34 @@ class TX2EditorModel: public QObject{
 	Q_OBJECT
 	Q_PROPERTY(unsigned int width READ getWidth NOTIFY imageChanged)
 	Q_PROPERTY(unsigned int height READ getHeight NOTIFY imageChanged)
+	Q_PROPERTY(unsigned int numberOfColors READ getNumberOfColors NOTIFY imageChanged)
+	Q_PROPERTY(unsigned int numberOfColorTables READ getNumberOfColorTables NOTIFY imageChanged)
+	Q_PROPERTY(int currColorTable READ getCurrentColorTable WRITE setCurrentColorTable NOTIFY imageChanged)
 public:
 	TX2EditorModel(QObject *parent = 0);
 	virtual ~TX2EditorModel();
 
 	unsigned int getWidth() const;
 	unsigned int getHeight() const;
+	unsigned int getNumberOfColors() const;
+	unsigned int getNumberOfColorTables() const;
+
+	int getCurrentColorTable() const;
+	void setCurrentColorTable(int current);
+
+	Q_INVOKABLE QColor getColor(unsigned int index ) const;
+	Q_INVOKABLE QColor getColor(unsigned int index, unsigned int colorTableIndex) const;
+
+	Q_INVOKABLE void setColor(const QColor& color, unsigned int index );
+	Q_INVOKABLE void setColor(const QColor& color, unsigned int index, unsigned int colorTableIndex);
+
+	Q_INVOKABLE void addColorTable(unsigned int atColorTableIndex, bool copy = false );
+	Q_INVOKABLE void removeColorTable(unsigned int atColorTableIndex );
+
+	Q_INVOKABLE void exportColorTable(unsigned int colorTableIndex) const;
+	Q_INVOKABLE void exportColorTable(unsigned int colorTableIndex, const QString filePath) const;
+	Q_INVOKABLE void importColorTable(unsigned int colorTableIndex);
+	Q_INVOKABLE void importColorTable(unsigned int colorTableIndex, const QString filePath);
 
 	PG::FILE::tx2Image* image;
 
@@ -49,6 +71,9 @@ public slots:
 
 signals:
 	void imageChanged();
+
+private:
+	int m_currentColorTable = 0;
 
 };
 
@@ -76,6 +101,8 @@ signals:
 	void convertTo(PG::FILE::tx2Type type);
 private:
 	void buttonsEnable(bool enable = true);
+	void setTitel();
+	void setTitel(const QString& filename);
 
 	TX2EditorModel* m_model;
 	QString m_currentOpendFile;

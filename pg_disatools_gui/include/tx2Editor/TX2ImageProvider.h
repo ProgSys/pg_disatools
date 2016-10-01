@@ -17,22 +17,22 @@
  */
 #include <QImage>
 #include <QQuickImageProvider>
-#include <spriteSheetEditor/SpriteData.h>
 #include <pg/files/PG_TX2.h>
+#include <tx2Editor/TX2Editor.h>
 
 #ifndef INCLUDE_TX2EDITOR_TX2IMAGEPROVIDER_H_
 #define INCLUDE_TX2EDITOR_TX2IMAGEPROVIDER_H_
 
 class TX2ImageProvider: public QQuickImageProvider {
 public:
-	TX2ImageProvider(PG::FILE::tx2Image* image = nullptr);
+	TX2ImageProvider(TX2EditorModel* image = nullptr);
 	QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 	virtual ~TX2ImageProvider();
 
-	void setModel(PG::FILE::tx2Image* image = nullptr);
+	void setModel(TX2EditorModel* image = nullptr);
 
 private:
-	PG::FILE::tx2Image* m_image;
+	TX2EditorModel* m_image;
 };
 
 #endif /* INCLUDE_TX2EDITOR_TX2IMAGEPROVIDER_H_ */
