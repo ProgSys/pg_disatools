@@ -164,9 +164,15 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->quickSpriteView->engine()->addImageProvider(QLatin1String("imageprovider"), new SpriteViewImageProvider(m_player->getSpriteData()));
     ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
     ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), new TimelinePreviewImageProvider(m_player->getSpriteData()));
-
     ui->quickColorTable->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->quickColorTable->setSource(QUrl::fromLocalFile("QML/ColorTableView.qml"));
+
+    //QML connect
+
+    QObject* spriteViewQML = (QObject*)(ui->quickSpriteView->rootObject());
+    QObject* timelineQML = (QObject*)(ui->timelineQML->rootObject());
+
+    connect( spriteViewQML, SIGNAL( cutoutSelected(  QVariant , QVariant )), timelineQML, SLOT( cutoutSelected( QVariant , QVariant  )));
 
 }
 

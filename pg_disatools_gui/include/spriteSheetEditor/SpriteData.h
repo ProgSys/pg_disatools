@@ -561,10 +561,13 @@ public slots:
 	Q_INVOKABLE bool exportSpriteIDs(int cutoutID);
 	Q_INVOKABLE bool exportSpriteIDs(int cutoutID, const QString& file);
 
-	Q_INVOKABLE bool importSpriteAsIDs(int cutoutID);
-	Q_INVOKABLE bool importSpriteAsIDs(int cutoutID, const QString& file);
-	Q_INVOKABLE bool importSpriteAsColor(int cutoutID);
-	Q_INVOKABLE bool importSpriteAsColor(int cutoutID, const QString& file);
+	Q_INVOKABLE bool importSpriteAsIDs(int cutoutID, const QString& file = "");
+	Q_INVOKABLE bool importSpriteAsIDs(int sheetID, int x, int y, int width, int height, const QString& file = "");
+	Q_INVOKABLE bool importSpriteAsIDs(Cutout& cut, const QString& file = "");
+
+	Q_INVOKABLE bool importSpriteAsColor(int cutoutID, const QString& file = "");
+	Q_INVOKABLE bool importSpriteAsColor(int sheetID, int x, int y, int width, int height, int colorTableOffset = -1, const QString& file = "");
+	Q_INVOKABLE bool importSpriteAsColor(Cutout& cut, const QString& file = "");
 
 	bool dump(const QString& filepath);
 

@@ -150,6 +150,7 @@ void Timeline::loop(){
 	m_time.start(ONEFRAME_ANIMATION_SPEED);
 }
 
+
 void Timeline::nextFrame(){
 	if(m_totalTrackSize <= 0) return;
 	m_tracker++;

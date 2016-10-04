@@ -33,6 +33,8 @@
 #include <pg/stream/PG_StreamOut.h>
 #include <pg/stream/PG_StreamOutByteFile.h>
 
+#include <pg/util/PG_ImageUtil.h>
+
 namespace PG {
 namespace FILE {
 
@@ -134,7 +136,6 @@ bool decompressTX2(PG::STREAM::In* instream,const tx2Image::tx2header& img, PG::
 			}
 		}else if(img.type == tx2Type::COLORTABLE_BGRA16 || img.type == tx2Type::COLORTABLE_RGBA16){
 				//lookup table RGBA with max 16 values
-
 				if(img.colortableSize > 16){
 					PG_WARN_STREAM("Color table is too big!  ("<<img.colortableSize<<" but should be 16)");
 				}
@@ -385,13 +386,17 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 					i += 4;
 				}
 		}else if(compressionTypeIn == COLORTABLE_RGBA256 || compressionTypeIn == COLORTABLE_BGRA256){
+			PG::UTIL::RGBAImage imgReduced = imageIn;
+			//PG::UTIL::reduceColors(imgReduced,256);
+
+
 			std::vector<PG::UTIL::rgba> colortable;
 			colortable.reserve(256);
 			imageOut.header.type = compressionTypeIn;
-			imageOut.header.width = imageIn.getWidth();
-			imageOut.header.height = imageIn.getHeight();
+			imageOut.header.width = imgReduced.getWidth();
+			imageOut.header.height = imgReduced.getHeight();
 
-			for(const PG::UTIL::rgba& color: imageIn){
+			for(const PG::UTIL::rgba& color: imgReduced){
 				bool found = false;
 				for(const PG::UTIL::rgba& color2: colortable)
 					if(color == color2){
@@ -412,7 +417,7 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 			imageOut.header.colortables.insert(imageOut.header.colortables.begin(),colortable);
 
 			auto it = imageOut.data.begin();
-			for(const PG::UTIL::rgba& color: imageIn){
+			for(const PG::UTIL::rgba& color: imgReduced){
 				unsigned int i = 0;
 				for(unsigned int a = 0; a < colortable.size(); a++){
 					if(color == colortable[a]){
@@ -424,12 +429,15 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 				it++;
 			}
 		}else if(compressionTypeIn == COLORTABLE_RGBA16 || compressionTypeIn == COLORTABLE_BGRA16){
+			PG::UTIL::RGBAImage imgReduced = imageIn;
+			//PG::UTIL::reduceColors(imgReduced,16);
+
 			std::vector<PG::UTIL::rgba> colortable;
 			colortable.reserve(16);
-			imageOut.header.width = imageIn.getWidth();
-			imageOut.header.height = imageIn.getHeight();
+			imageOut.header.width = imgReduced.getWidth();
+			imageOut.header.height = imgReduced.getHeight();
 
-			for(const PG::UTIL::rgba& color: imageIn){
+			for(const PG::UTIL::rgba& color: imgReduced){
 				bool found = false;
 				for(const PG::UTIL::rgba& color2: colortable)
 					if(color == color2){
@@ -451,8 +459,8 @@ bool compressTX2(const PG::UTIL::RGBAImage& imageIn, tx2Type compressionTypeIn, 
 
 			unsigned int i = 0;
 			for(char& c:  imageOut.data){
-				const PG::UTIL::rgba& color1 = imageIn[i];
-				const PG::UTIL::rgba& color2 = imageIn[i+1];
+				const PG::UTIL::rgba& color1 = imgReduced[i];
+				const PG::UTIL::rgba& color2 = imgReduced[i+1];
 				unsigned int i1 = 0;
 				unsigned int i2 = 0;
 				for(unsigned int a = 0; a < colortable.size(); a++){

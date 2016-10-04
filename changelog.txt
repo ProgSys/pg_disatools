@@ -270,3 +270,14 @@
   * TX2 Editor v0.0.1 alpha:
 	- tool has bean released!
 	- gui tool allows you to open, view, convert and export TX2 images
+	
+===  4.10.2016 - v0.7.0 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.2 alpha:
+	- you now can import a entire sprite sheet
+	- there is now a menu item for keyframes which alows you to replace and replace fit a sprite
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.1 alpha:
+	- nothing

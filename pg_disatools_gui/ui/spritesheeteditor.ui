@@ -411,7 +411,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Export sprites as PNG</string>
+    <string>Export sheets as PNG</string>
    </property>
   </action>
   <action name="actionExport_sprites_as_TGA">
@@ -419,7 +419,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Export sprites as TGA</string>
+    <string>Export sheets as TGA</string>
    </property>
   </action>
   <action name="actionAbout">
@@ -507,7 +507,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Export sprites IDs</string>
+    <string>Export sheets as IDs</string>
    </property>
   </action>
   <action name="actionExport_color_table">
