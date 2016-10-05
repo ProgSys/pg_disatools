@@ -658,7 +658,7 @@ void tx2Image::getRGBAData(char* rgbaOut, unsigned short colortable) const{
 			if(colortable >=  header.colortables.size()) return;
 			const ColorTable& table =  header.colortables[colortable];
 			for(unsigned int i = 0; i < data.size(); ++i){
-				const char c = data[i];
+				const unsigned char c = data[i];
 
 				const unsigned int pos1 = i*2*sizeof(PG::UTIL::rgba);
 				const unsigned int pos2 = pos1+sizeof(PG::UTIL::rgba);
@@ -680,11 +680,13 @@ void tx2Image::getRGBAData(char* rgbaOut, unsigned short colortable) const{
 		case tx2Type::COLORTABLE_BGRA256:
 		{
 			if(colortable >=  header.colortables.size()) return;
+
 			const ColorTable& table =  header.colortables[colortable];
 			for(unsigned int i = 0; i < data.size(); ++i){
 				const unsigned int pos = i*sizeof(PG::UTIL::rgba);
-
-				const PG::UTIL::rgba& co = table[ data[i]];
+				assert_Test("Color table offset out of bound!" , (unsigned char)data[i] >= 256);
+				assert_Test(SSTR("Color table offset out of table bound! ("<<(unsigned char)data[i]<<" != "<<table.size()<<")" ), ((unsigned char)data[i]) >= table.size());
+				const PG::UTIL::rgba& co = table[ (unsigned char)data[i]];
 				rgbaOut[pos] = co.r;
 				rgbaOut[pos+1] = co.g;
 				rgbaOut[pos+2] = co.b;

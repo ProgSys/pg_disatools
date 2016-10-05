@@ -281,3 +281,13 @@
 	- nothing
   * TX2 Editor v0.0.1 alpha:
 	- nothing
+	
+===  6.10.2016 - v0.7.1 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.2 alpha:
+	- QML: replace fit now takes in account also the previous scale
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- fixed wrong color table reading of COLORTABLE_256 TX2 images
