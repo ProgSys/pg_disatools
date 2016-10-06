@@ -1,11 +1,25 @@
 # Unofficial tools for Disgaea PC
 
-## Last Build
+## Builds
 
 Please make a backup of your files before using this tools!
 
 You can download the latest version of the tools here:
 
+###Newest version
+** [Version v0.7.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.2%20alpha.zip) **
+
+[Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
+```
+===  7.10.2016 - v0.7.2 ===
+  * Sprite Sheet Editor v0.3.3 alpha:
+	- added basic click & drop support to move (top left corner) and resize (bottom right corner) of a sprite in sprite sheet view
+	- a selected sprite now gets deselected when you click the background
+	- a keyframe gets a light blue background if it's sprite is selected in sprite sheet view
+	- the resize question options on sprite import changed to Yes and No instead of Yes and Cancel
+```
+
+###Older versions:
 * [Version v0.3.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.1%20alpha.zip)
 * [Version v0.3.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.8%20alpha.zip)
 * [Version v0.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
@@ -18,7 +32,6 @@ You can download the latest version of the tools here:
 * [Version v0.6.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.4%20alpha.zip)
 * [Version v0.6.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.7%20alpha.zip)
 * [Version v0.6.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.8%20alpha.zip)
-* [Version v0.7.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.1%20alpha.zip)
 
 ---
 

@@ -37,8 +37,8 @@ class Cutout: public QObject{
     Q_PROPERTY(unsigned char externalSheetID 	READ getExternalSheetID WRITE setExternalSheetID NOTIFY onExternalSheetIDChanged)
 	Q_PROPERTY(int id 	READ getSheetID  NOTIFY onSheetIDChanged)
 
-	Q_PROPERTY(int x READ getX WRITE setX NOTIFY onPositionChanged)
-	Q_PROPERTY(int y READ getY WRITE setY NOTIFY onPositionChanged)
+	Q_PROPERTY(int x READ getX WRITE setX NOTIFY onXChanged)
+	Q_PROPERTY(int y READ getY WRITE setY NOTIFY onYChanged)
 	Q_PROPERTY(unsigned short width READ getWidth WRITE setWidth NOTIFY onWidthChanged)
 	Q_PROPERTY(unsigned short height READ getHeight WRITE setHeight NOTIFY onHeightChanged)
 
@@ -97,6 +97,8 @@ signals:
 
 	void onCutoutChanged();
 	void onPositionChanged();
+	void onXChanged();
+	void onYChanged();
 	void onWidthChanged();
 	void onHeightChanged();
 

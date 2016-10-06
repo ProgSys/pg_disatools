@@ -131,6 +131,8 @@ void Cutout::setExternalSheetID(unsigned short externalSheetIDIn){
 void Cutout::setPosition(const PG::UTIL::ivec2& pos){
 	if(m_position.x == pos.x && m_position.y == pos.y) return;
 	m_position = pos;
+	emit onXChanged();
+	emit onYChanged();
 	emit onPositionChanged();
 }
 
@@ -144,12 +146,14 @@ void Cutout::setPosition(int x, int y){
 void Cutout::setX(int x){
 	if(m_position.x == x) return;
 	m_position.x = x;
+	emit onXChanged();
 	emit onPositionChanged();
 }
 
 void Cutout::setY(int y){
 	if(m_position.y == y) return;
 	m_position.y = y;
+	emit onYChanged();
 	emit onPositionChanged();
 }
 
@@ -2411,9 +2415,9 @@ bool SpriteData::importSpriteAsIDs(Cutout& cut, const QString& fileIn){
 	if(imageSize <= 0) return false;
 
 	if(cut.getWidth() != newCutout.width() || cut.getHeight() != newCutout.height()){
-		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Continue?",
+		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Resize?",
 						"Given image has a different size then the sprite! Should the sprite be resized?",
-					 QMessageBox::Yes|QMessageBox::Cancel);
+					 QMessageBox::Yes|QMessageBox::No);
 		if(reply == QMessageBox::Yes){
 			cut.setWidth( (cut.getX()+newCutout.width() >= sheet->getWidth())? sheet->getWidth()- cut.getX(): newCutout.width() );
 			cut.setHeight((cut.getY()+newCutout.height() >= sheet->getHeight())? sheet->getHeight()- cut.getY(): newCutout.height()  );
@@ -2563,9 +2567,9 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, const QString& fileIn){
 
 	//PG_INFO_STREAM(cut.getWidth()<<" != "<<idImage.getWidth()  <<" : "<<cut.getHeight()<<" != "<<idImage.getHeight() );
 	if(cut.getWidth() != idImage.getWidth() || cut.getHeight() != idImage.getHeight()){
-		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Continue?",
+		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Resize?",
 						"Given image has a different size then the sprite! Should the sprite be resized?",
-					 QMessageBox::Yes|QMessageBox::Cancel);
+					 QMessageBox::Yes|QMessageBox::No);
 		if(reply == QMessageBox::Yes){
 			cut.setWidth( (cut.getX()+newColorCutout.width() >= sheet->getWidth())? sheet->getWidth()- cut.getX(): newColorCutout.width() );
 			cut.setHeight((cut.getY()+newColorCutout.height() >= sheet->getHeight())? sheet->getHeight()- cut.getY(): newColorCutout.height()  );
