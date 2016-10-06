@@ -13,7 +13,7 @@ You can download the latest version of the tools here:
 ```
 ===  7.10.2016 - v0.7.2 ===
   * Sprite Sheet Editor v0.3.3 alpha:
-	- added basic click & drop support to move (top left corner) and resize (bottom right corner) of a sprite in sprite sheet view
+	- added basic click & drop support to move (top left corner) and resize (bottom right corner) a sprite in sprite sheet view
 	- a selected sprite now gets deselected when you click the background
 	- a keyframe gets a light blue background if it's sprite is selected in sprite sheet view
 	- the resize question options on sprite import changed to Yes and No instead of Yes and Cancel
