@@ -90,9 +90,9 @@ Make a backup of your files before using this tool!!!
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
 
-## Disa PC File Manager & Sprite Sheet Viewer
-This projects uses the Qt Library, which requires the GNU LESSER GENERAL PUBLIC LICENSE.
-The source code is located in the folder 'pg_disatools_gui'
+## QT projects
+All the QT projects (whith use the Qt Librarys), requires the GNU LESSER GENERAL PUBLIC LICENSE.
+The source code of these projects are located in the folder 'pg_disatools_gui'
 
 ### GNU Lesser General Public License (LGPL)
 
