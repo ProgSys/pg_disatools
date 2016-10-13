@@ -17,7 +17,7 @@ You can download the latest version of the tools here:
   * Sprite Sheet Editor v0.3.4 alpha:
 	- fixed crash on import color sheet and color table being too small
 	- out of bound color tables indexes are now displayed as pink
-	- updated performance for adding/removing color table sets
+	- improved performance for adding/removing color table sets
 ```
 
 ###Older versions:
