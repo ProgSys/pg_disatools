@@ -255,7 +255,7 @@ void MainWindow::treeSelectionChanged (const QItemSelection & sel,const  QItemSe
 	if(!item) return;
 
         QString itemName = QString::fromStdString(item->name.getPath());
-        if( !itemName.isEmpty() && itemName.contains(".TX2")){
+        if( !itemName.isEmpty() && ( itemName.contains(".tx2",Qt::CaseInsensitive) || itemName.contains(".txp",Qt::CaseInsensitive ))){
             ui->btnExtractImage->setEnabled(true);
             ui->btnExtractImage->setText(QString("Export %1").arg(itemName));
             if(ui->imagePreview->isPreviewEnabled()){

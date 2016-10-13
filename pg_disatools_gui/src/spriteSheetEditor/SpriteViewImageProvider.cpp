@@ -66,7 +66,16 @@ QImage SpriteViewImageProvider::requestImage(const QString &id, QSize *size, con
 						const int address = (y*qimg.width()+x)*4;
 						assert_Test("Address out of bound!", address >= qimg.width()*qimg.height()*4);
 						const int id = sheetID.get(x,y);
-						assert_Test("ID out of bound!", m_data->getColorTable().size() <= id);
+
+						//ID out of bound!
+						if(m_data->getColorTable().size() <= id){
+							qimg.bits()[address] = 255;
+							qimg.bits()[address+1] = 0;
+							qimg.bits()[address+2] = 255;
+							qimg.bits()[address+3] = 255;
+							continue;
+						}
+						//assert_Test("ID out of bound!", m_data->getColorTable().size() <= id);
 
 						unsigned int colorTableIndex = cut->getDefaultColorTable()*16 + id;
 						if(colorTableIndex >= m_data->getColorTable().size())

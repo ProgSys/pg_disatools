@@ -34,6 +34,8 @@
 #include <pg/files/PG_SOLA.h>
 #include <pg/files/PG_FileTests.h>
 #include <pg/files/PG_IMY.h>
+#include <pg/files/PG_NISPACK.h>
+#include <pg/files/PG_DSARCFL.h>
 
 #include <fileMenager/EnterValue.h>
 
@@ -75,6 +77,10 @@ bool TreeModel::open(const QString &file){
 		m_openedFileType = "DAT";
 		if(PG::FILE::isPSPFS(file.toStdString())){
 			m_fileExtractor = new PG::FILE::PSPFS();
+		}else if(PG::FILE::isNISPACK(file.toStdString())){
+			m_fileExtractor = new PG::FILE::NISPACK();
+		}else if(PG::FILE::isDSARC_FL(file.toStdString())){
+			m_fileExtractor = new PG::FILE::DSARC_FL();
 		}else if(PG::FILE::isSpriteSheetPackage(file.toStdString())){
 			m_fileExtractor = new PG::FILE::SOLA();
 		}else{
@@ -356,9 +362,10 @@ bool TreeModel::getImage(const QModelIndex& index, PG::UTIL::RGBAImage& imageOut
 	if(!m_fileExtractor) return false;
 
 	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
-
-	if(item->name.getFileExtension() != "TX2"){
-		qInfo() << "File is not a TX2: '"<<QString::fromStdString(item->name.getPath())<<"'";
+	std::string fileExt = item->name.getFileExtension();
+	std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), ::tolower);
+	if(fileExt != "tx2" && fileExt != "txp"){
+		qInfo() << "File is not a TX: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return true;
 	}
 

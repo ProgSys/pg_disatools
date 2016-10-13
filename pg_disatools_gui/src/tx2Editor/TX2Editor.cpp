@@ -344,7 +344,7 @@ TX2Editor::~TX2Editor() {
 
 void TX2Editor::open(){
     QFileDialog openDialog(this);
-    openDialog.setNameFilter(tr("Images (*.tx2;*.png;*.tga;*.jpg);;TX2 image (*.tx2);;PNG (*.png);;TGA (*.tga);;JPG (*.jpg)"));
+    openDialog.setNameFilter(tr("Images (*.tx2;*.txp;*.png;*.tga;*.jpg);;TX2 image (*.tx2);;PNG (*.png);;TGA (*.tga);;JPG (*.jpg)"));
 
     QStringList fileNames;
 	if (openDialog.exec()){
@@ -357,7 +357,7 @@ void TX2Editor::open(){
 void TX2Editor::open(const QString& filepath){
 	if(filepath.isEmpty()) return;
 
-	if(filepath.right(4).toLower() == ".tx2"){
+	if(filepath.right(4).toLower() == ".tx2" || filepath.right(4).toLower() == ".txp"){
 		if(emit openTX2(filepath)){
 			QMainWindow::statusBar()->showMessage(QString("Opened TX2 %1").arg(filepath));
 			m_currentOpendFile = filepath;
@@ -393,7 +393,7 @@ void TX2Editor::save(){
 void TX2Editor::saveAs(){
 	QString fileName = QFileDialog::getSaveFileName(this, tr("Save image"),
 				QFileInfo(m_currentOpendFile).baseName(),
-			   tr("TX2 image (*.tx2);;PNG (*.png);;TGA (*.tga);;JPG (*.jpg)"));
+			   tr("TX2 image (*.tx2;*.txp);;PNG (*.png);;TGA (*.tga);;JPG (*.jpg)"));
 	save(fileName);
 }
 void TX2Editor::save(const QString& filepath){
