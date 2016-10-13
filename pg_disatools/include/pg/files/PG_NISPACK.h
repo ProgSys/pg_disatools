@@ -21,46 +21,59 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  */
-#ifndef INCLUDE_PG_FILES_PG_FILETESTS_H_
-#define INCLUDE_PG_FILES_PG_FILETESTS_H_
+#ifndef INCLUDE_PG_FILES_PG_NISPACK_H_
+#define INCLUDE_PG_FILES_PG_NISPACK_H_
 
+
+#include <string>
+#include <vector>
 #include <pg/util/PG_File.h>
-#include <pg/stream/PG_StreamInByteFile.h>
 #include <pg/util/PG_ApiUtil.h>
-#include <pg/files/PG_TX2.h>
+#include <pg/files/PG_ExtractorBase.h>
+#include <iostream>
 
 namespace PG {
 namespace FILE {
 
-EXPORT bool isIMY(const PG::UTIL::File& file);
-EXPORT bool isIMY(PG::STREAM::InByteFile& reader);
+class NISPACK: public ExtractorBase {
+public:
+	NISPACK();
+	NISPACK(const PG::UTIL::File& file);
+	NISPACK(const std::string& file);
+	virtual ~NISPACK();
 
-EXPORT unsigned int isIMYPackage(const PG::UTIL::File& file);
-EXPORT unsigned int isIMYPackage(PG::STREAM::InByteFile& reader);
+	/*!
+	 * @brief Opens the given PSPFS file.
+	 * @return true on error
+	 */
+	EXPORT bool open(const PG::UTIL::File& file, PercentIndicator* percent = nullptr);
+	/*!
+	 * @brief Saves the changes done with insert or remove.
+	 * @return true on error
+	 */
+	EXPORT bool save(const PG::UTIL::File& targetfile, PercentIndicator* percent = nullptr);
+	/*!
+	 * @brief Add a file into the archive. Changes will only be applied when you save.
+	 * @return true on error
+	 * @see save()
+	 */
+	//EXPORT bool insert(const PG::UTIL::File& file);
+	/*!
+	 * @brief Remove a file from the archive. Changes will only be applied when you save.
+	 * @return true on error
+	 * @see save()
+	 */
+	//EXPORT bool remove(fileInfo& target);
 
-EXPORT bool isSpriteSheetPackage(const PG::UTIL::File& file);
-EXPORT bool isSpriteSheetPackage(PG::STREAM::InByteFile& reader);
 
-EXPORT bool isTX2(const PG::UTIL::File& file);
-EXPORT bool isTX2(PG::STREAM::InByteFile& reader);
+	//EXPORT void clear();
 
-EXPORT bool isNISPACK(const PG::UTIL::File& file);
-EXPORT bool isNISPACK(PG::STREAM::InByteFile& reader);
-
-EXPORT bool isDSARC_FL(const PG::UTIL::File& file);
-EXPORT bool isDSARC_FL(PG::STREAM::InByteFile& reader);
-
-EXPORT tx2Type getTX2CompressionType(PG::STREAM::InByteFile& reader);
-EXPORT std::string asString(tx2Type type);
-
-//TODO
-EXPORT bool isSpriteSheet(const PG::UTIL::File& file);
-EXPORT bool isSpriteSheet(PG::STREAM::InByteFile& reader);
-
-EXPORT bool isPSPFS(PG::STREAM::InByteFile& reader);
-EXPORT bool isPSPFS(const PG::UTIL::File& file);
+	EXPORT char const* getType() const;
+private:
+	PG::UTIL::File m_file_buffer;
+};
 
 } /* namespace FILE */
 } /* namespace PG */
 
-#endif /* INCLUDE_PG_FILES_PG_FILETESTS_H_ */
+#endif /* INCLUDE_PG_FILES_PG_NISPACK_H_ */

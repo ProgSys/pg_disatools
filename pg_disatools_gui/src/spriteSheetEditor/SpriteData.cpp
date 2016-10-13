@@ -1249,7 +1249,7 @@ void SpriteSheet::push_backCutoutID(int id){
 void SpriteSheet::set(int width, int height, int powerColorTable){
 	if(m_powerOfColoTable != powerColorTable){
 		m_powerOfColoTable  = powerColorTable;
-		emit onNumberOfCutoutsChanged();
+		emit numberOfColorsChanged();
 	}
 
 	if(getWidth() != width || getHeight() != height){
@@ -1338,12 +1338,18 @@ PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int Col
 	unsigned int i = 0;
 	for(const unsigned char id: spriteIDs){
 		int colorIndex = ColortableID*16 + int(id);
-		if(colorIndex >= colortable.size()) colorIndex = colortable.size()-1;
-		const QColor& color = colortable[ colorIndex];
-		sprite[i].r = color.red();
-		sprite[i].g = color.green();
-		sprite[i].b = color.blue();
-		sprite[i].a = color.alpha();
+		if(colorIndex >= colortable.size()){
+			sprite[i].r = 255;
+			sprite[i].g = 0;
+			sprite[i].b = 255;
+			sprite[i].a = 255;
+		}else{
+			const QColor& color = colortable[ colorIndex];
+			sprite[i].r = color.red();
+			sprite[i].g = color.green();
+			sprite[i].b = color.blue();
+			sprite[i].a = color.alpha();
+		}
 		i ++;
 	}
 
@@ -1366,12 +1372,18 @@ QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, cons
 		unsigned int i = 0;
 		for(const unsigned char id: spriteIDs){
 			int colorIndex = ColortableID*16 + int(id);
-			if(colorIndex >= colortable.size()) colorIndex = colortable.size()-1;
-			const QColor& color = colortable[ colorIndex];
-			sprite.bits()[i] = color.red();
-			sprite.bits()[i+1] = color.green();
-			sprite.bits()[i+2] = color.blue();
-			sprite.bits()[i+3] = color.alpha();
+			if(colorIndex >= colortable.size()){
+				sprite.bits()[i] = 255;
+				sprite.bits()[i+1] = 0;
+				sprite.bits()[i+2] = 255;
+				sprite.bits()[i+3] = 255;
+			}else{
+				const QColor& color = colortable[ colorIndex];
+				sprite.bits()[i] = color.red();
+				sprite.bits()[i+1] = color.green();
+				sprite.bits()[i+2] = color.blue();
+				sprite.bits()[i+3] = color.alpha();
+			}
 			i += 4;
 		}
 
@@ -1383,13 +1395,15 @@ QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, cons
 #ifdef DEBUG
 	if(spriteIDs.getWidth() != cut->getWidth()) PG_INFO_STREAM("Original Width: "<<cut->getWidth()<<" new: "<<spriteIDs.getWidth());
 	if(spriteIDs.getHeight() != cut->getHeight()) PG_INFO_STREAM("Original Height: "<<cut->getHeight()<<" new: "<<spriteIDs.getHeight());
-
 #endif
 
 	//uchar * data = new uchar[cutout->getWidth()*cutout->getHeight()*3];
 	unsigned int i = 0;
 	for(const unsigned char id: spriteIDs){
-		const QColor& color = colortable[ ColortableID*16 + int(id)];
+		const unsigned int colorIndex = ColortableID*16 + int(id);
+		QColor color(255,0,255);
+		if(colorIndex < colortable.size())
+			color = colortable[ colorIndex];
 		const unsigned int y = (i/cut->getWidth());
 		sprite.setPixel( i - y*cut->getWidth(), y, qRgb(color.red(),color.green(), color.blue()) );
 		i ++;
@@ -2533,6 +2547,13 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, const QString& fileIn){
 					"Given color image uses a color that is not inside the color table! Should the colors be insert into the color table?",
 				 QMessageBox::Yes|QMessageBox::Cancel);
 		if(reply == QMessageBox::Yes){
+			//resize table
+			int targetSize = cut.getDefaultColorTable()*16 + newTable.size();
+			const int mod = targetSize%16;
+			if(mod) targetSize += 16 - mod;
+			targetSize -= getNumberOfColors();
+			if(targetSize > 0) addColors(cut.getDefaultColorTable()*16, targetSize);
+			//set table
 			for(unsigned int i = 0; i < newTable.size(); i++){
 				unsigned int offset = i+ cut.getDefaultColorTable()*16;
 				colortable[offset] = newTable[i];
@@ -3091,7 +3112,7 @@ QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) c
 	if(sheet->getSizeOfColorTable() < 0 || ColortableID*16+sheet->getSizeOfColorTable() > colortable.size())
 		ColortableID = 0;
 
-	assert_Test("Color table Index out of bound!", ColortableID*16+sheet->getSizeOfColorTable() > colortable.size());
+	//assert_Test("Color table Index out of bound!", ColortableID*16+sheet->getSizeOfColorTable() > colortable.size());
 
 	return sheet->getSprite(cutout,ColortableID, colortable);
 }
@@ -3275,6 +3296,10 @@ bool SpriteData::editSpriteSheet(unsigned int index){
 			return removeSpriteSheet(index);
 
 		}
+
+		//color table too small?
+		const int colorTableSetsToAdd = (pow(2, create.getColorTablePower())/16)  - getNumberOfColortableSets();
+		if(colorTableSetsToAdd > 0) addColors(-1, colorTableSetsToAdd*16);
 
 		editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower());
 		return true;

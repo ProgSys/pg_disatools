@@ -168,6 +168,22 @@ bool isTX2(PG::STREAM::InByteFile& reader){
 }
 
 
+bool isNISPACK(const PG::UTIL::File& file){
+	return openFile(file, isNISPACK);
+}
+bool isNISPACK(PG::STREAM::InByteFile& reader){
+	return reader.readString(7) == "NISPACK";
+}
+
+bool isDSARC_FL(const PG::UTIL::File& file){
+	return openFile(file, isDSARC_FL);
+}
+
+bool isDSARC_FL(PG::STREAM::InByteFile& reader){
+	return reader.readString(8) == "DSARC FL";
+}
+
+
 tx2Type getTX2CompressionType(PG::STREAM::InByteFile& reader){
 	reader.skip(4);
 	const unsigned short type = reader.readUnsignedShort();
