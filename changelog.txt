@@ -311,7 +311,7 @@
   * Sprite Sheet Editor v0.3.4 alpha:
 	- fixed crash on import color sheet and color table being too small
 	- out of bound color tables indexes are now displayed as pink
-	- updated performance for adding/removing color table sets
+	- improved performance for adding/removing color table sets
   * Data Editor v0.0.6 alpha:
 	- nothing
   * TX2 Editor v0.0.2 alpha:
