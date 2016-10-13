@@ -2911,7 +2911,6 @@ void SpriteData::setColor(int index,const QColor& color){
 }
 
 void SpriteData::addColors(int index, int number){
-	unsigned int i = 0;
 	for(QColorTable& colortable: m_colortables){
 		if(index < 0 || index >= colortable.size()){
 			for(unsigned int i = 0; i <number; i++)
@@ -2919,15 +2918,12 @@ void SpriteData::addColors(int index, int number){
 		}else
 			for(unsigned int i = 0; i <number; i++)
 				colortable.insert(index, QColor(0,0,0,255));
-		emit colorTableChanged(i);
-		i++;
 	}
 
-
+	emit colorTableChanged(-1);
 }
 
 void SpriteData::removeColors(int index, int number){
-	unsigned int i = 0;
 	for(QColorTable& colortable: m_colortables){
 		if(colortable.size() > 16){
 
@@ -2937,10 +2933,9 @@ void SpriteData::removeColors(int index, int number){
 			}else
 				for(unsigned int i = 0; i <number; i++)
 					colortable.removeAt(index);
-
-			emit colorTableChanged(i);
 		}
 	}
+	emit colorTableChanged(-1);
 }
 
 void SpriteData::close(){

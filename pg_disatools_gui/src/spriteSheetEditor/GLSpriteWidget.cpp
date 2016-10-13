@@ -222,10 +222,19 @@ void GLSpriteWidget::updateAllColortables(){
 }
 
 void GLSpriteWidget::updateColortable(int index){
-	if(!m_animationInfo.spriteData || index < 0 || index >= m_animationInfo.colorTables.size() || !m_animationInfo.colorTables[index]->isValid()) return;
-	makeCurrent();
-	m_animationInfo.colorTables[index]->update(m_animationInfo.spriteData->getColortableGL(index));
-	update();
+	if(index < 0){
+		makeCurrent();
+		index = 0;
+		for(PG::GL::Texture* t: m_animationInfo.colorTables){
+			if(t->isValid()) t->update(m_animationInfo.spriteData->getColortableGL(index));
+			index++;
+		}
+		update();
+	}else if(index < m_animationInfo.colorTables.size() && m_animationInfo.colorTables[index]->isValid()){
+		makeCurrent();
+		m_animationInfo.colorTables[index]->update(m_animationInfo.spriteData->getColortableGL(index));
+		update();
+	}
 }
 
 void GLSpriteWidget::addColortable(int index){
