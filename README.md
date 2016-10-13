@@ -7,31 +7,27 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 ###Newest version
-* **[Version v0.7.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.2%20alpha.zip)**
+* **[Version v0.7.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.3%20alpha.zip)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  7.10.2016 - v0.7.2 ===
-  * Sprite Sheet Editor v0.3.3 alpha:
-	- added basic click & drop support to move (top left corner) and resize (bottom right corner) a sprite in sprite sheet view
-	- a selected sprite now gets deselected when you click the background
-	- a keyframe gets a light blue background if it's sprite is selected in sprite sheet view
-	- the resize question options on sprite import changed to Yes and No instead of Yes and Cancel
+===  13.10.2016 - v0.7.3 ===
+  * Disa PC File Manager v0.5.3 alpha:
+	- added some very basic file support for Disgaea 2 files
+  * Sprite Sheet Editor v0.3.4 alpha:
+	- fixed crash on import color sheet and color table being too small
+	- out of bound color tables indexes are now displayed as pink
+	- updated performance for adding/removing color table sets
 ```
 
 ###Older versions:
-* [Version v0.3.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.1%20alpha.zip)
-* [Version v0.3.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3.8%20alpha.zip)
-* [Version v0.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
-* [Version v0.4.9 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4.9%20alpha.zip)
+* [Version v0.3.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3%20alpha.zip)
+* [Version v0.4.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
 * [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
-* [Version v0.5.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.2%20alpha.zip)
-* [Version v0.5.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.4%20alpha.zip)
 * [Version v0.6.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.1%20alpha.zip)
-* [Version v0.6.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.2%20alpha.zip)
-* [Version v0.6.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.4%20alpha.zip)
 * [Version v0.6.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.7%20alpha.zip)
 * [Version v0.6.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.8%20alpha.zip)
+* [Version v0.7.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.2%20alpha.zip)
 
 ---
 
