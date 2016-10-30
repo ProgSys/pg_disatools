@@ -202,7 +202,7 @@ void MainWindow::on_btnAbout_clicked()
 void MainWindow::on_btnOpen_clicked()
 {
     QFileDialog openDialog(this);
-    openDialog.setNameFilter(tr("ARCHIVE (*.dat *.mpp);;DATA (*.dat);;Map File (*.mpp)"));
+    openDialog.setNameFilter(tr("ARCHIVE (*.dat *.mpp *.pbd);;DATA (*.dat);;DSARC FL (*.pbd);;Map File (*.mpp)"));
 
     QStringList fileNames;
     if (openDialog.exec()){
@@ -753,6 +753,10 @@ void MainWindow::on_btnSaveAs_clicked()
 	    	fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
 	    										m_treeModel->getOpenedFileName(),
 	    	                                   tr("MPP (*.MPP)"));
+		}else if(m_treeModel->getOpenedType() == "PBD"){
+			fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+												m_treeModel->getOpenedFileName(),
+											   tr("DSARC FL (*.pbd)"));
 		}else{
 			return;
 		}

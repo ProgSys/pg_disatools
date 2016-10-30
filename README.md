@@ -7,17 +7,13 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 ###Newest version
-* **[Version v0.7.3 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.3%20alpha.zip)**
+* **[Version v0.7.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.4%20alpha.zip)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  13.10.2016 - v0.7.3 ===
-  * Disa PC File Manager v0.5.3 alpha:
-	- added some very basic file support for Disgaea 2 files
-  * Sprite Sheet Editor v0.3.4 alpha:
-	- fixed crash on import color sheet and color table being too small
-	- out of bound color tables indexes are now displayed as pink
-	- improved performance for adding/removing color table sets
+===  30.10.2016 - v0.7.4 ===
+  * Disa PC File Manager v0.5.4 alpha:
+	- added support for DSARC FL (*.pbb) fils
 ```
 
 ###Older versions:
