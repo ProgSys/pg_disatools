@@ -382,6 +382,7 @@ bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent){
 					c = nullptr;
 					next_file_offset += current_info.getSize();
 				}
+
 			}
 			file_infos.push_back(current_info);
 

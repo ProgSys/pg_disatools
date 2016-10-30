@@ -86,7 +86,9 @@ bool TreeModel::open(const QString &file){
 		}else{
 			m_fileExtractor = new PG::FILE::StartDAT();
 		}
-
+	}else if(ext == "PBD" && PG::FILE::isDSARC_FL(file.toStdString())){
+		m_openedFileType = "PBD";
+		m_fileExtractor = new PG::FILE::DSARC_FL();
 	}else if(ext == "MPP"){
 		m_openedFileType = "MPP";
 		m_fileExtractor = new PG::FILE::MPP();
