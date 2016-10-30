@@ -13,7 +13,7 @@ You can download the latest version of the tools here:
 ```
 ===  30.10.2016 - v0.7.4 ===
   * Disa PC File Manager v0.5.4 alpha:
-	- added support for DSARC FL (*.pbb) fils
+	- added support for DSARC FL (*.pbd) files
 ```
 
 ###Older versions:
