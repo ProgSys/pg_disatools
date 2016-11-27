@@ -73,6 +73,8 @@
     <addaction name="actionExport_sprites_as_PNG"/>
     <addaction name="actionExport_sprites_as_TGA"/>
     <addaction name="actionExport_sprites_IDs"/>
+    <addaction name="separator"/>
+    <addaction name="actionRename_animation"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -548,6 +550,14 @@
   <action name="actionReset_camera">
    <property name="text">
     <string>Reset camera</string>
+   </property>
+  </action>
+  <action name="actionRename_animation">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Rename animation</string>
    </property>
   </action>
  </widget>

@@ -27,6 +27,7 @@
 #include <QInputDialog>
 #include <spriteSheetEditor/CreateEmptySpriteSheet.h>
 #include <pg/util/PG_Exception.h>
+#include <QInputDialog>
 
 Cutout::Cutout(QObject *parent): QObject(parent){
 
@@ -3300,6 +3301,26 @@ bool SpriteData::editSpriteSheet(unsigned int index){
 		return true;
 	}
 	return false;
+}
+
+void SpriteData::renameCurrentAnimation(){
+	if(m_currentAnimation < 0) return;
+	bool ok = false;
+	QString name = QInputDialog::getText(nullptr, tr("New animation name"),
+										 tr("New name:"), QLineEdit::Normal,
+										 m_aniamtions[m_currentAnimation]->getName(),
+										 &ok);
+	if(ok && !name.isEmpty())
+		renameCurrentAnimation(name);
+}
+
+void SpriteData::renameCurrentAnimation(const QString& newName){
+	renameAnimation(newName, m_currentAnimation);
+}
+
+void SpriteData::renameAnimation(const QString& newName, unsigned int index){
+	if(index < 0 || index > m_aniamtions.size()) return;
+	m_aniamtions[m_currentAnimation]->setName(newName);
 }
 
 // QAbstractListModel

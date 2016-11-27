@@ -94,6 +94,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionExport_sprites_as_PNG, &QAction::triggered, this, [this]{exportSprites("PNG");} );
 	connect(ui->actionExport_sprites_as_TGA, &QAction::triggered, this, [this]{exportSprites("TGA");} );
 	connect(ui->actionExport_sprites_IDs, &QAction::triggered, this, [this]{exportSprites("TGA", true);} );
+	connect(ui->actionRename_animation, SIGNAL(triggered()), m_player->getSpriteData(), SLOT(renameCurrentAnimation()));
+
 
 	//View
 	connect(ui->action_Pick_color, SIGNAL(triggered()), this, SLOT(pickBackgroundColor()));
@@ -122,6 +124,10 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->btnPausePlay, SIGNAL(clicked()), this, SLOT(clickPlayPause()));
 	connect(ui->btnNext, SIGNAL(clicked()), m_player->getTimeline(), SLOT(nextKeyframe()));
 	connect(ui->comboBox, SIGNAL(currentIndexChanged( int )), m_player, SLOT(setAnimation( int )));
+	ui->comboBox->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(ui->comboBox, SIGNAL(customContextMenuRequested(const QPoint &)),
+	        this, SLOT(ShowComboBoxContextMenu(const QPoint &)));
+
 	connect(m_player->getTimeline(), SIGNAL(onPlay()), this, SLOT(setImagePause()));
 	connect(m_player->getTimeline(), SIGNAL(onPause()), this, SLOT(setImagePlay()));
 
@@ -205,6 +211,7 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_as_PNG->setEnabled(false);
 		ui->actionExport_sprites_as_TGA->setEnabled(false);
 		ui->actionExport_sprites_IDs->setEnabled(false);
+		ui->actionRename_animation->setEnabled(false);
 
 		ui->pushButton_newanimation->setEnabled(false);
 		m_lastOpendFile.clear();
@@ -219,6 +226,8 @@ void SpriteSheetEditor::open(const QString& file){
 		ui->actionExport_sprites_as_PNG->setEnabled(true);
 		ui->actionExport_sprites_as_TGA->setEnabled(true);
 		ui->actionExport_sprites_IDs->setEnabled(true);
+		ui->actionRename_animation->setEnabled(true);
+
 		ui->pushButton_newanimation->setEnabled(true);
 		ui->comboBox->setCurrentIndex(0);
 		m_lastOpendFile = file;
@@ -384,6 +393,17 @@ void SpriteSheetEditor::createNewAnimation(){
 	if(create.isAccepted()){
 		m_player->getSpriteData()->push_backAnimation(create.getName(), create.getID());
 	}
+}
+
+void SpriteSheetEditor::ShowComboBoxContextMenu(const QPoint &pos){
+	if(m_player->getSpriteData() && m_player->getSpriteData()->getCurrentAnimationIndex() < 0 ) return;
+	QMenu contextMenu(tr("ComboBox Context menu"), this);
+
+   QAction action1("Rename", this);
+   connect(&action1, SIGNAL(triggered()), m_player->getSpriteData(), SLOT(renameCurrentAnimation()));
+   contextMenu.addAction(&action1);
+
+   contextMenu.exec(ui->comboBox->mapToGlobal(pos));
 }
 
 

@@ -7,13 +7,13 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 ###Newest version
-* **[Version v0.7.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.4%20alpha.zip)**
+* **[Version v0.7.5 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.5%20alpha.zip)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  30.10.2016 - v0.7.4 ===
-  * Disa PC File Manager v0.5.4 alpha:
-	- added support for DSARC FL (*.pbd) files
+===  27.11.2016 - v0.7.5 ===
+	* Sprite Sheet Editor v0.3.5 alpha:
+		- You now can rename an animation (right click the combo box or "Tools > Rename animation")
 ```
 
 ###Older versions:
@@ -24,6 +24,7 @@ You can download the latest version of the tools here:
 * [Version v0.6.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.7%20alpha.zip)
 * [Version v0.6.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.8%20alpha.zip)
 * [Version v0.7.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.2%20alpha.zip)
+* [Version v0.7.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.4%20alpha.zip)
 
 ---
 
