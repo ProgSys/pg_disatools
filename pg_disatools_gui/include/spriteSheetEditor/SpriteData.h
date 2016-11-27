@@ -610,6 +610,10 @@ public slots:
 	Q_INVOKABLE void addColors(int index, int number = 16);
 	Q_INVOKABLE void removeColors(int index, int number = 16);
 
+	Q_INVOKABLE void renameCurrentAnimation();
+	Q_INVOKABLE void renameCurrentAnimation(const QString& newName);
+	Q_INVOKABLE void renameAnimation(const QString& newName, unsigned int index);
+
 signals:
 	void onNumberOfAnimationsChanged();
 	void onCurrentAnimationChanged();

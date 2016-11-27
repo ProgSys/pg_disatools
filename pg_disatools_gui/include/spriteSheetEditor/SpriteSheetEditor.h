@@ -56,6 +56,7 @@ public slots:
 	void setTotalFrames(int totalFrames);
 
 	void createNewAnimation();
+	void ShowComboBoxContextMenu(const QPoint &);
 
 signals:
 

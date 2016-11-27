@@ -326,3 +326,13 @@
 	- nothing
   * TX2 Editor v0.0.2 alpha:
 	- nothing
+
+===  27.11.2016 - v0.7.5 ===
+  * Disa PC File Manager v0.5.4 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.5 alpha:
+	- You now can rename an animation (right click the combo box or "Tools > Rename animation")
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- nothing
