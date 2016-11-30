@@ -26,6 +26,7 @@ public:
 	int getHeight() const;
 	int getColorTablePower() const;
 	int getColorTableSize() const;
+	bool getResizeSprites() const;
 
 	virtual ~CreateEmptySpriteSheet();
 public slots:
@@ -41,6 +42,7 @@ private:
 	 int m_width = 0;
 	 int m_height = 0;
 	 int m_colorTablePower = 0;
+	 bool m_resizeSprites = true;
 };
 
 #endif /* INCLUDE_SPRITESHEETEDITOR_CREATEEMPTYSPRITESHEET_H_ */

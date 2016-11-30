@@ -32,6 +32,7 @@ QDialog(parent)
 	comboBox_colors->addItem("256");
 
 	pushButton_delete->close();
+	checkBox_resizeSprites->close();
 
 	connect(buttonBox, SIGNAL(accepted()), this, SLOT(accepted()));
 	connect(buttonBox, SIGNAL(rejected()), this, SLOT(rejected()));
@@ -101,6 +102,10 @@ int CreateEmptySpriteSheet::getColorTableSize() const{
 	return 2^m_colorTablePower;
 }
 
+bool CreateEmptySpriteSheet::getResizeSprites() const{
+	return m_resizeSprites;
+}
+
 void CreateEmptySpriteSheet::accepted(){
 	m_width = comboBox_width->currentText().toInt();
 	m_height = comboBox_height->currentText().toInt();
@@ -119,7 +124,7 @@ void CreateEmptySpriteSheet::accepted(){
 		emit cancel();
 		close();
 	}
-
+	m_resizeSprites = checkBox_resizeSprites->isChecked();
 	m_accepted = 1;
 
 	emit ok(m_width, m_height);

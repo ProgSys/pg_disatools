@@ -7,13 +7,15 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 ###Newest version
-* **[Version v0.7.5 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.5%20alpha.zip)**
+* **[Version v0.7.6 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.6%20alpha.zip)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  27.11.2016 - v0.7.5 ===
-	* Sprite Sheet Editor v0.3.5 alpha:
-		- You now can rename an animation (right click the combo box or "Tools > Rename animation")
+===  30.11.2016 - v0.7.6 ===
+	  * Sprite Sheet Editor v0.3.6 alpha:
+		- Fixed sprite sheet resize displaying wrongly
+		- Added option to also resize all sprites on sprite sheet resize
+		- Fixed sprite sheet view spooky ghost selection
 ```
 
 ###Older versions:

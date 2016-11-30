@@ -471,7 +471,7 @@ public:
 
 	//setters
 	void push_backCutoutID(int id);
-	void set(int width, int height, int powerColorTable = 4);
+	void set(int width, int height, int powerColorTable = 4, bool resizeSprites = false);
 
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
 	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;

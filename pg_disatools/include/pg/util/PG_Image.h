@@ -178,10 +178,33 @@ public:
 		return m_pixels[index];
 	}
 
-	void resize(unsigned int width, unsigned int height){
+	enum ResizeType { None, KeepOld, NearestNeighbor };
+	void resize(unsigned int width, unsigned int height, ResizeType type = None){
+		if(type == KeepOld){
+			std::vector<T> newImage(width*height);
+			if(!m_pixels.empty())
+				for(unsigned int y = 0; y < height; y++)
+					for(unsigned int x = 0; x < width; x++){
+						if(y < m_height && x < m_width){
+							newImage[y*width+x] = m_pixels[y*m_width+x];
+						}else
+							newImage[y*width+x] = m_pixels[0];
+					}
+			m_pixels.swap(newImage);
+		}
+		else if(type == NearestNeighbor){
+			std::vector<T> newImage(width*height);
+			if(!m_pixels.empty())
+				for(unsigned int y = 0; y < height; y++)
+					for(unsigned int x = 0; x < width; x++)
+						newImage[y*width+x] = m_pixels[(unsigned int)((y/(float)height)*m_height)*m_height+(unsigned int)((x/(float)width)*m_width)];
+
+			m_pixels.swap(newImage);
+		}else
+			m_pixels.resize(width*height);
+
 		m_width = width;
 		m_height = height;
-		m_pixels.resize(m_width*m_height);
 	}
 
 	void resize(const uvec2& size){
