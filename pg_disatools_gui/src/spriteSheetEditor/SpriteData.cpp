@@ -141,6 +141,8 @@ void Cutout::setPosition(int x, int y){
 	if(m_position.x == x && m_position.y == y) return;
 	m_position.x = x;
 	m_position.y = y;
+	emit onXChanged();
+	emit onYChanged();
 	emit onPositionChanged();
 }
 
@@ -1247,16 +1249,17 @@ void SpriteSheet::push_backCutoutID(int id){
 
 }
 
-void SpriteSheet::set(int width, int height, int powerColorTable){
+void SpriteSheet::set(int width, int height, int powerColorTable, bool resizeSprites){
 	if(m_powerOfColoTable != powerColorTable){
 		m_powerOfColoTable  = powerColorTable;
 		emit numberOfColorsChanged();
 	}
 
 	if(getWidth() != width || getHeight() != height){
-		PG::UTIL::IDImage buffer(m_img);
-		m_img.resize(width,height);
-		buffer.getAnyWindow(PG::UTIL::ivec2(0,0), m_img);
+		if(resizeSprites)
+			m_img.resize(width,height,PG::UTIL::IDImage::NearestNeighbor);
+		else
+			m_img.resize(width,height,PG::UTIL::IDImage::KeepOld);
 		emit onHeightChanged();
 		emit onWidthChanged();
 	}
@@ -3297,7 +3300,35 @@ bool SpriteData::editSpriteSheet(unsigned int index){
 		const int colorTableSetsToAdd = (pow(2, create.getColorTablePower())/16)  - getNumberOfColortableSets();
 		if(colorTableSetsToAdd > 0) addColors(-1, colorTableSetsToAdd*16);
 
-		editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower());
+		if(create.getResizeSprites()){
+			const float xScale = create.getWidth()/(float) editTarget->getWidth();
+			const float yScale = create.getHeight()/(float)editTarget->getHeight();
+			editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower(),true);
+			//resize cutotus
+			for(int i: editTarget->getCutoutIDs()){
+				Cutout* c = m_cutouts[i];
+				c->setPosition(c->getX()*xScale, c->getY()*xScale);
+				c->setSize(c->getWidth()*xScale, c->getHeight()*xScale);
+			}
+			emit spriteSheetChanged(index);
+			//resize keyframes
+			for(SpriteAnimation* ani: m_aniamtions)
+				for(Layer* layer: ani->getLayers())
+					for(Keyframe* key: layer->getKeyframes())
+						for(int i: editTarget->getCutoutIDs()){
+							if(i == key->getCutoutID()){
+								key->setScaleX(key->getScaleX()/xScale);
+								key->setScaleY(key->getScaleY()/yScale);
+
+								key->setAnchorX(key->getAnchorX()*xScale);
+								key->setAnchorY(key->getAnchorY()*yScale);
+								break;
+							}
+						}
+		}else{
+			editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower());
+			emit spriteSheetChanged(index);
+		}
 		return true;
 	}
 	return false;

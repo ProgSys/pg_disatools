@@ -336,3 +336,15 @@
 	- nothing
   * TX2 Editor v0.0.2 alpha:
 	- nothing
+
+===  30.11.2016 - v0.7.6 ===
+  * Disa PC File Manager v0.5.4 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.6 alpha:
+	- Fixed sprite sheet resize displaying wrongly
+	- Added option to also resize all sprites on sprite sheet resize
+	- Fixed sprite sheet view spooky ghost selection
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- nothing
