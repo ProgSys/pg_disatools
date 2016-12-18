@@ -36,6 +36,7 @@
 #include <pg/files/PG_IMY.h>
 #include <pg/files/PG_NISPACK.h>
 #include <pg/files/PG_DSARCFL.h>
+#include <pg/files/PG_ANMD2.h>
 
 #include <fileMenager/EnterValue.h>
 
@@ -83,6 +84,8 @@ bool TreeModel::open(const QString &file){
 			m_fileExtractor = new PG::FILE::DSARC_FL();
 		}else if(PG::FILE::isSpriteSheetPackage(file.toStdString())){
 			m_fileExtractor = new PG::FILE::SOLA();
+		}else if(PG::FILE::isANMD2(file.toStdString())){
+			m_fileExtractor = new PG::FILE::ANMD2();
 		}else{
 			m_fileExtractor = new PG::FILE::StartDAT();
 		}

@@ -589,6 +589,9 @@ public slots:
 	Q_INVOKABLE void unhideAllCutouts();
 	Q_INVOKABLE void update();
 
+	//tools
+	Q_INVOKABLE void batchDoubleResize();
+
 	//color table
 	Q_INVOKABLE int getCurrentColorTable() const;
 	Q_INVOKABLE void setCurrentColorTable(int index = 0);

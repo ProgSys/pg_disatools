@@ -2695,6 +2695,53 @@ void SpriteData::update(){
 	emit refresh();
 }
 
+void SpriteData::batchDoubleResize(){
+	QStringList fileNames = QFileDialog::getOpenFileNames(nullptr,
+	    tr("Select Sprites to resize"), "", tr("Sprite (*.sh)"));
+
+	if(fileNames.empty()) return;
+
+	QString targetFolder = QFileDialog::getExistingDirectory(nullptr,
+		    tr("Select target output folder"), "");
+
+	if(targetFolder.isEmpty()) return;
+
+	for(const QString& file: fileNames){
+		if(!importSH(file)) continue;
+
+		for(SpriteSheet* editTarget: m_spriteSheets){
+
+			const float xScale = 2;
+			const float yScale = 2;
+			editTarget->set(editTarget->getWidth()*2, editTarget->getHeight()*2, editTarget->getPowerOfColorTable(),true);
+			//resize cutotus
+			for(int i: editTarget->getCutoutIDs()){
+				Cutout* c = m_cutouts[i];
+				c->setPosition(c->getX()*xScale, c->getY()*yScale);
+				c->setSize(c->getWidth()*xScale, c->getHeight()*yScale);
+			}
+			//resize keyframes
+			for(SpriteAnimation* ani: m_aniamtions)
+				for(Layer* layer: ani->getLayers())
+					for(Keyframe* key: layer->getKeyframes())
+						for(int i: editTarget->getCutoutIDs()){
+							if(i == key->getCutoutID()){
+								key->setScaleX(key->getScaleX()/xScale);
+								key->setScaleY(key->getScaleY()/yScale);
+
+								key->setAnchorX(key->getAnchorX()*xScale);
+								key->setAnchorY(key->getAnchorY()*yScale);
+								break;
+							}
+						}
+
+
+		}
+
+		exportSH(targetFolder+"/"+QFileInfo(file).fileName());
+	}
+}
+
 QList<QColorTable>& SpriteData::getColorTables(){
 	return m_colortables;
 }
@@ -3307,8 +3354,8 @@ bool SpriteData::editSpriteSheet(unsigned int index){
 			//resize cutotus
 			for(int i: editTarget->getCutoutIDs()){
 				Cutout* c = m_cutouts[i];
-				c->setPosition(c->getX()*xScale, c->getY()*xScale);
-				c->setSize(c->getWidth()*xScale, c->getHeight()*xScale);
+				c->setPosition(c->getX()*xScale, c->getY()*yScale);
+				c->setSize(c->getWidth()*xScale, c->getHeight()*yScale);
 			}
 			emit spriteSheetChanged(index);
 			//resize keyframes

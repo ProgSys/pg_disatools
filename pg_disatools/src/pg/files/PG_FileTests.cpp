@@ -309,6 +309,21 @@ bool isPSPFS(const PG::UTIL::File& file){
 	return openFile(file, isPSPFS);
 }
 
+EXPORT bool isANMD2(PG::STREAM::InByteFile& reader){
+	const unsigned int files = reader.readUnsignedInt();
+	if( files > 0 && files < 9000){
+		if(reader.readUnsignedInt() != 0) return false;
+		if(reader.readUnsignedInt() != 0) return false;
+		if(reader.readUnsignedInt() != 0) return false;
+		return true;
+	}
+	return false;
+}
+
+EXPORT bool isANMD2(const PG::UTIL::File& file){
+	return openFile(file, isANMD2);
+}
+
 
 } /* namespace FILE */
 } /* namespace PG */

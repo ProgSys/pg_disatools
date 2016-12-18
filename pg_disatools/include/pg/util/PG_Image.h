@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <cstring>
+#include <cmath>
 #include <pg/util/PG_Vector.h>
 #include <pg/util/PG_Exception.h>
 
@@ -194,10 +195,18 @@ public:
 		}
 		else if(type == NearestNeighbor){
 			std::vector<T> newImage(width*height);
-			if(!m_pixels.empty())
+			if(!m_pixels.empty()){
+				const double x_ratio = m_width / (double)width;
+				const double y_ratio = m_height / (double)height;
+				double px, py;
+
 				for(unsigned int y = 0; y < height; y++)
-					for(unsigned int x = 0; x < width; x++)
-						newImage[y*width+x] = m_pixels[(unsigned int)((y/(float)height)*m_height)*m_height+(unsigned int)((x/(float)width)*m_width)];
+					for(unsigned int x = 0; x < width; x++){
+						   px = std::floor(x*x_ratio);
+						   py = std::floor(y*y_ratio);
+						   newImage[y*width+x] = m_pixels[(unsigned int)((py*m_width) + px)];
+					   }
+				   }
 
 			m_pixels.swap(newImage);
 		}else

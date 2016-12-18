@@ -74,6 +74,8 @@
     <addaction name="actionExport_sprites_as_TGA"/>
     <addaction name="actionExport_sprites_IDs"/>
     <addaction name="separator"/>
+    <addaction name="actionBatch_scale_up"/>
+    <addaction name="separator"/>
     <addaction name="actionRename_animation"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
@@ -558,6 +560,11 @@
    </property>
    <property name="text">
     <string>Rename animation</string>
+   </property>
+  </action>
+  <action name="actionBatch_scale_up">
+   <property name="text">
+    <string>Batch scale up</string>
    </property>
   </action>
  </widget>

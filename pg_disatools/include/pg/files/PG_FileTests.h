@@ -60,6 +60,9 @@ EXPORT bool isSpriteSheet(PG::STREAM::InByteFile& reader);
 EXPORT bool isPSPFS(PG::STREAM::InByteFile& reader);
 EXPORT bool isPSPFS(const PG::UTIL::File& file);
 
+EXPORT bool isANMD2(PG::STREAM::InByteFile& reader);
+EXPORT bool isANMD2(const PG::UTIL::File& file);
+
 } /* namespace FILE */
 } /* namespace PG */
 

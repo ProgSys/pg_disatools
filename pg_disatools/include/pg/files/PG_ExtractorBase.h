@@ -60,7 +60,9 @@ struct fileInfo{
 		IMY,
 		MPP,
 		SH,   /// Sprite sheet
+		SH2,   /// Sprite sheet Disgaea 2
 		GEO,
+		LZS, /// LZS compressed file
 		UNKNOWN
 	} fileType = UNKNOWN;
 
