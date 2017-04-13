@@ -1,6 +1,6 @@
 # Unofficial tools for Disgaea PC
 
-## Builds
+##Builds
 
 Please make a backup of your files before using this tools!
 
@@ -34,7 +34,7 @@ You can download the latest version of the tools here:
 
 
 ##Content
-#### Disa PC File Manager
+####Disa PC File Manager
 
 This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.
 Note that the position of most files in .DAT are hardcoded, deleting files could break the file order and so the archive itself.
@@ -42,7 +42,7 @@ Note that the position of most files in .DAT are hardcoded, deleting files could
 
 ![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/java_gui_preview7.png)
 
-#### Sprite Sheet Editor
+####Sprite Sheet Editor
 
 This gui application allows you to view and perform some basic editing to Disgaea PC sprite sheets.
 You can export them back to the original game format to view them ingame, but this function is currently not fully tested, 
@@ -51,7 +51,7 @@ Also you can export the sprites as .png or .tga and import them back!
 
 ![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Sprite_Sheet_Editor_v0.2.8_preview.png)
 
-#### Data Editor
+####Data Editor
 
 This tool allows you to edit some .DAT files.
 The file formats are not hardcoded you can easily edit them or add new formats.
@@ -72,13 +72,13 @@ Base supported files:
 ![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Data%20Editor%20v0.0.5%20alpha_preview.png)
 
 
-#### TX2 Editor
+####TX2 Editor
 
 This tool allows you to open, view, convert and export TX2 images.
 
 ![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 
-#### TX2Converter.exe
+####TX2Converter.exe
 
 A command line tool which allows you to convert Disgaea PC *.TX2 textures into *.TGA (BGRA8888) or *.PNM (P3/P6 RBG888 No alpha) and back!
 Make a backup of your files before using this tool!!!
