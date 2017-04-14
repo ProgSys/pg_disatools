@@ -7,7 +7,7 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 ### Newest version
-* **[Version v0.7.6 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.6%20alpha.zip)**
+* **[Version v0.7.6 alpha](https://www.dropbox.com/s/tuvptiqb4w759sb/Disgaea%20Tools%20v0.7.6%20alpha.zip?dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
@@ -19,14 +19,14 @@ You can download the latest version of the tools here:
 ```
 
 ### Older versions:
-* [Version v0.3.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3%20alpha.zip)
-* [Version v0.4.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
-* [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
-* [Version v0.6.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.1%20alpha.zip)
-* [Version v0.6.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.7%20alpha.zip)
-* [Version v0.6.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.8%20alpha.zip)
-* [Version v0.7.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.2%20alpha.zip)
-* [Version v0.7.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.4%20alpha.zip)
+* [Version v0.3.0 alpha](https://www.dropbox.com/s/yraau190k8xia0i/Disgaea%20Tools%20v0.3%20alpha.zip?dl=0)
+* [Version v0.4.0 alpha](https://www.dropbox.com/s/8epdstlt7e2v0w1/Disgaea%20Tools%20v0.4%20alpha.zip?dl=0)
+* [Version v0.5.0 alpha](https://www.dropbox.com/s/6iuq1wh5x16jhpy/Disgaea%20Tools%20v0.5.0%20alpha.zip?dl=0)
+* [Version v0.6.1 alpha](https://www.dropbox.com/s/ujg62ajrh8l86ss/Disgaea%20Tools%20v0.6.1%20alpha.zip?dl=0p)
+* [Version v0.6.7 alpha](https://www.dropbox.com/s/2lgtov7n53ychaa/Disgaea%20Tools%20v0.6.7%20alpha.zip?dl=0)
+* [Version v0.6.8 alpha](https://www.dropbox.com/s/k7s9hjm6igsrq1r/Disgaea%20Tools%20v0.6.8%20alpha.zip?dl=0)
+* [Version v0.7.2 alpha](https://www.dropbox.com/s/hc8bp3sat5wo1iz/Disgaea%20Tools%20v0.7.2%20alpha.zip?dl=0)
+* [Version v0.7.4 alpha](https://www.dropbox.com/s/3c77gpv3sm066n7/Disgaea%20Tools%20v0.7.4%20alpha.zip?dl=0)
 
 ---
 
