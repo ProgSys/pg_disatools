@@ -348,3 +348,7 @@
 	- nothing
   * TX2 Editor v0.0.2 alpha:
 	- nothing
+	
+===  27.06.2017 - v0.7.7 ===
+  * Sprite Sheet Editor v0.3.7 alpha:
+  - a error massage is now displayed if a qml file failed to load or compile

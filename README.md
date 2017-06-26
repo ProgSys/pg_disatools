@@ -7,15 +7,13 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 ###Newest version
-* **[Version v0.7.6 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.6%20alpha.zip)**
+* **[Version v0.7.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.7%20alpha.zip)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  30.11.2016 - v0.7.6 ===
-	  * Sprite Sheet Editor v0.3.6 alpha:
-		- Fixed sprite sheet resize displaying wrongly
-		- Added option to also resize all sprites on sprite sheet resize
-		- Fixed sprite sheet view spooky ghost selection
+===  27.06.2017 - v0.7.7 ===
+  * Sprite Sheet Editor v0.3.7 alpha:
+	- a error massage is now displayed if a qml file failed to load or compile
 ```
 
 ###Older versions:
