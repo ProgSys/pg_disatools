@@ -25,6 +25,7 @@
 #include <spriteSheetEditor/Timeline.h>
 #include <spriteSheetEditor/SpriteData.h>
 #include <SpriteSheetEditor/CreateNewAnimation.h>
+#include <spriteSheetEditor/CompileErrorBox.h>
 //#include <QShortcut>
 
 inline void about(){
@@ -55,6 +56,18 @@ inline void about(){
                 );
 
     msgBox.exec();
+}
+
+inline void checkForQMLErros(QMainWindow* target, QQuickWidget* wid,const QString& title = "QML error!",const QString& text = "QML file failed to compile with the following message:" ){
+    const QList<QQmlError> errors = wid->errors();
+    if(!errors.isEmpty()){
+    	QString errorsTest;
+    	for(const QQmlError& er : errors)
+    		errorsTest += er.toString()+"\n";
+    	CompileErrorBox box(title, text+"\n"+errorsTest, target);
+    	box.exec();
+    	//QMessageBox::critical(target, title, text+"\n"+errorsTest, QMessageBox::Ok);
+    }
 }
 
 SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
@@ -165,6 +178,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
+    checkForQMLErros(this, ui->timelineQML, "QML Timeline compile error!", "'QML/Timeline.qml' failed to compile with the following message:");
     ui->dockWidgetColorTable->close();
 
 
@@ -173,9 +187,13 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 
     ui->quickSpriteView->engine()->addImageProvider(QLatin1String("imageprovider"), new SpriteViewImageProvider(m_player->getSpriteData()));
     ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
+    checkForQMLErros(this, ui->quickSpriteView, "QML SpriteView compile error!", "'QML/SpriteView.qml' failed to compile with the following message:");
+
+
     ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), new TimelinePreviewImageProvider(m_player->getSpriteData()));
     ui->quickColorTable->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->quickColorTable->setSource(QUrl::fromLocalFile("QML/ColorTableView.qml"));
+    checkForQMLErros(this, ui->timelineQML, "QML ColorTableView compile error!", "'QML/ColorTableView.qml' failed to compile with the following message:");
 
     //QML connect
 

@@ -15,7 +15,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set (CMAKE_PREFIX_PATH "D:/Qt/5.5/mingw492_32/lib/cmake") 
 
 set (FileManagerTITLE "Disa PC File Manager v0.5.5 alpha")
-set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.3.6 alpha")
+set (SpriteSheetEditorTITLE "Sprite Sheet Editor v0.3.7 alpha")
 set (DATAEditorTITLE "Data Editor v0.0.6 alpha")
 set (MapEditorTITLE "Map Viewer v0.0.1 development")
 set (TX2EditorTITLE "TX2 Editor v0.0.2 alpha")
@@ -54,6 +54,7 @@ find_package(GLEW REQUIRED)
 
 QT5_WRAP_UI(UIMainWindowSrcs ui/mainwindow.ui)
 QT5_WRAP_UI(UIFileInfoBoxSrcs ui/fileinfobox.ui)
+QT5_WRAP_UI(UICompileErrorBoxSrcs ui/compileErrorBox.ui)
 QT5_WRAP_UI(UISpriteSheetEditorSrcs ui/spritesheeteditor.ui)
 QT5_WRAP_UI(UIEnterValueSrcs ui/entervaluedialog.ui)
 QT5_WRAP_UI(UICreateNewSpriteSrcs ui/createNewSpriteSheet.ui)
@@ -214,7 +215,7 @@ add_executable(
 		"spriteEditor.cpp"
 		${PG_SPRITE_EDITOR_HEADERS}
 		${PG_SPRITE_EDITOR_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs}
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs} ${UICompileErrorBoxSrcs}
 		
 )
 else()
@@ -224,7 +225,7 @@ add_executable(
 		"spriteEditor.cpp"
 		${PG_SPRITE_EDITOR_HEADERS}
 		${PG_SPRITE_EDITOR_SRC}
-		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs} 
+		${MOCSrcs} ${UISpriteSheetEditorSrcs} ${UICreateNewSpriteSrcs} ${UISreateNewAnimationSrcs} ${UICompileErrorBoxSrcs}
 		
 )
 set_target_properties(pg_sprite_editor PROPERTIES OUTPUT_NAME ${SpriteSheetEditorTITLE})
