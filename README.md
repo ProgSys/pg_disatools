@@ -6,8 +6,10 @@ Please make a backup of your files before using this tools!
 
 You can download the latest version of the tools here:
 
+
 ###Newest version
 * **[Version v0.7.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.7%20alpha.zip)**
+
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
@@ -16,28 +18,30 @@ You can download the latest version of the tools here:
 	- a error massage is now displayed if a qml file failed to load or compile
 ```
 
-###Older versions:
-* [Version v0.3.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.3%20alpha.zip)
-* [Version v0.4.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.4%20alpha.zip)
-* [Version v0.5.0 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.5.0%20alpha.zip)
-* [Version v0.6.1 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.1%20alpha.zip)
-* [Version v0.6.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.7%20alpha.zip)
-* [Version v0.6.8 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.6.8%20alpha.zip)
-* [Version v0.7.2 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.2%20alpha.zip)
-* [Version v0.7.4 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.4%20alpha.zip)
+### Older versions:
+* [Version v0.3.0 alpha](https://www.dropbox.com/s/yraau190k8xia0i/Disgaea%20Tools%20v0.3%20alpha.zip?dl=0)
+* [Version v0.4.0 alpha](https://www.dropbox.com/s/8epdstlt7e2v0w1/Disgaea%20Tools%20v0.4%20alpha.zip?dl=0)
+* [Version v0.5.0 alpha](https://www.dropbox.com/s/6iuq1wh5x16jhpy/Disgaea%20Tools%20v0.5.0%20alpha.zip?dl=0)
+* [Version v0.6.1 alpha](https://www.dropbox.com/s/ujg62ajrh8l86ss/Disgaea%20Tools%20v0.6.1%20alpha.zip?dl=0p)
+* [Version v0.6.7 alpha](https://www.dropbox.com/s/2lgtov7n53ychaa/Disgaea%20Tools%20v0.6.7%20alpha.zip?dl=0)
+* [Version v0.6.8 alpha](https://www.dropbox.com/s/k7s9hjm6igsrq1r/Disgaea%20Tools%20v0.6.8%20alpha.zip?dl=0)
+* [Version v0.7.2 alpha](https://www.dropbox.com/s/hc8bp3sat5wo1iz/Disgaea%20Tools%20v0.7.2%20alpha.zip?dl=0)
+* [Version v0.7.4 alpha](https://www.dropbox.com/s/3c77gpv3sm066n7/Disgaea%20Tools%20v0.7.4%20alpha.zip?dl=0)
 
 ---
 
 [![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
 
 
-##Content
+## Content
+
 #### Disa PC File Manager
 
 This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.
 Note that the position of most files in .DAT are hardcoded, deleting files could break the file order and so the archive itself.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/java_gui_preview7.png)
+
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/java_gui_preview7.png)
 
 #### Sprite Sheet Editor
 
@@ -46,7 +50,7 @@ You can export them back to the original game format to view them ingame, but th
 so if there are any problems let me know.
 Also you can export the sprites as .png or .tga and import them back!
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Sprite_Sheet_Editor_v0.2.8_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Sprite_Sheet_Editor_v0.2.8_preview.png)
 
 #### Data Editor
 
@@ -66,16 +70,16 @@ Base supported files:
 * HABIT - Contains job titles and their attributes.
 * CHARHELP - Contains descriptions of all characters.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/Data%20Editor%20v0.0.5%20alpha_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Data%20Editor%20v0.0.5%20alpha_preview.png)
 
 
 #### TX2 Editor
 
 This tool allows you to open, view, convert and export TX2 images.
 
-![gui image](https://dl.dropboxusercontent.com/u/33065226/disgaea/TX2%20Editor%20v0.0.1%20alpha_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 
-#### TX2Converter.exe
+####TX2Converter.exe
 
 A command line tool which allows you to convert Disgaea PC *.TX2 textures into *.TGA (BGRA8888) or *.PNM (P3/P6 RBG888 No alpha) and back!
 Make a backup of your files before using this tool!!!
