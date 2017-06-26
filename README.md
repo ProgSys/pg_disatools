@@ -7,7 +7,7 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 
-###Newest version
+### Newest version
 * **[Version v0.7.7 alpha](https://www.dropbox.com/s/lwi2xj0c5h0ai3q/Disgaea%20Tools%20v0.7.7%20alpha.zip?dl=0)**
 
 
