@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 ###Newest version
-* **[Version v0.7.7 alpha](https://dl.dropboxusercontent.com/u/33065226/disgaea/Disgaea%20Tools%20v0.7.7%20alpha.zip)**
+* **[Version v0.7.7 alpha](https://www.dropbox.com/s/lwi2xj0c5h0ai3q/Disgaea%20Tools%20v0.7.7%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
