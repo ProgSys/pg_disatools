@@ -77,6 +77,8 @@
     <addaction name="actionBatch_scale_up"/>
     <addaction name="separator"/>
     <addaction name="actionRename_animation"/>
+    <addaction name="separator"/>
+    <addaction name="actionReload_QML"/>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
@@ -565,6 +567,11 @@
   <action name="actionBatch_scale_up">
    <property name="text">
     <string>Batch scale up</string>
+   </property>
+  </action>
+  <action name="actionReload_QML">
+   <property name="text">
+    <string>Reload QML</string>
    </property>
   </action>
  </widget>
