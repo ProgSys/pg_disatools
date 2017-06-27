@@ -193,14 +193,37 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     ui->timelineQML->engine()->addImageProvider(QLatin1String("previewprovider"), new TimelinePreviewImageProvider(m_player->getSpriteData()));
     ui->quickColorTable->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->quickColorTable->setSource(QUrl::fromLocalFile("QML/ColorTableView.qml"));
-    checkForQMLErros(this, ui->timelineQML, "QML ColorTableView compile error!", "'QML/ColorTableView.qml' failed to compile with the following message:");
+    checkForQMLErros(this, ui->quickColorTable, "QML ColorTableView compile error!", "'QML/ColorTableView.qml' failed to compile with the following message:");
 
     //QML connect
-
     QObject* spriteViewQML = (QObject*)(ui->quickSpriteView->rootObject());
     QObject* timelineQML = (QObject*)(ui->timelineQML->rootObject());
 
     connect( spriteViewQML, SIGNAL( cutoutSelected(  QVariant , QVariant )), timelineQML, SLOT( cutoutSelected( QVariant , QVariant  )));
+
+	connect(ui->actionReload_QML, &QAction::triggered, this, [this]{;
+		ui->timelineQML->setSource(QUrl());
+		ui->timelineQML->engine()->clearComponentCache();
+		ui->timelineQML->setSource(QUrl::fromLocalFile("QML/Timeline.qml"));
+		checkForQMLErros(this, ui->timelineQML, "QML Timeline compile error!", "'QML/Timeline.qml' failed to compile with the following message:");
+
+		ui->quickSpriteView->setSource(QUrl());
+		ui->quickSpriteView->engine()->clearComponentCache();
+	    ui->quickSpriteView->setSource(QUrl::fromLocalFile("QML/SpriteView.qml"));
+	    checkForQMLErros(this, ui->quickSpriteView, "QML SpriteView compile error!", "'QML/SpriteView.qml' failed to compile with the following message:");
+
+		ui->quickColorTable->setSource(QUrl());
+		ui->quickColorTable->engine()->clearComponentCache();
+	    ui->quickColorTable->setSource(QUrl::fromLocalFile("QML/ColorTableView.qml"));
+	    checkForQMLErros(this, ui->quickColorTable, "QML ColorTableView compile error!", "'QML/ColorTableView.qml' failed to compile with the following message:");
+
+	    //QML connect
+	    QObject* spriteViewQML = (QObject*)(ui->quickSpriteView->rootObject());
+	    QObject* timelineQML = (QObject*)(ui->timelineQML->rootObject());
+
+	    connect( spriteViewQML, SIGNAL( cutoutSelected(  QVariant , QVariant )), timelineQML, SLOT( cutoutSelected( QVariant , QVariant  )));
+	});
+
 
 }
 
