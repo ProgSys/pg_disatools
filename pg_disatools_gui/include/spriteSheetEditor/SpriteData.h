@@ -584,6 +584,7 @@ public slots:
 	bool removeCutout(Cutout* cut);
 	Q_INVOKABLE bool removeCutoutID(int id, bool warning = true);
 	Q_INVOKABLE void cropCutout(int cutoutIndex);
+	Q_INVOKABLE void autoFindCutouts(int sheetID);
 
 	Q_INVOKABLE bool addNewSpriteSheet();
 	Q_INVOKABLE bool addNewSpriteSheet(int width, int height, int powerOfColorTable = 4);

@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.7.8 alpha](https://www.dropbox.com/s/dvmjygh55tz0zr2/Disgaea%20Tools%20v0.7.8%20alpha.zip?dl=0)**
+* **[Version v0.7.9 alpha](https://www.dropbox.com/s/zxbocw141h5k4nx/Disgaea%20Tools%20v0.7.9%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -21,6 +21,12 @@ You can download the latest version of the tools here:
 		- if Alt is helt, then the anchor is moved relative to the position
 		- if Shift is helt, then you can rotate the keyframe with left and right
 	- You now can 'Crop' a cutout in it's context menu 
+	
+===  01.07.2017 - v0.7.9 ===
+  * Sprite Sheet Editor v0.3.9 alpha:
+	- Fixed several crashes regarding the 'Crop' function
+	- Added a function to auto find cutouts on a sprite sheet
+		- To use it, just right click on a empty space in a sprite sheet and then select 'Auto find cutouts'
 ```
 
 ### Older versions:
