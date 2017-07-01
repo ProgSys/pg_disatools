@@ -28,6 +28,9 @@
 #include <spriteSheetEditor/CreateEmptySpriteSheet.h>
 #include <pg/util/PG_Exception.h>
 #include <QInputDialog>
+#include <QQueue>
+#include <QVector>
+#include <QMutableListIterator>
 
 Cutout::Cutout(QObject *parent): QObject(parent){
 
@@ -3326,7 +3329,7 @@ void SpriteData::cropCutout(int cutoutIndex){
 
 	Cutout* cutout = m_cutouts[cutoutIndex];
 	if(cutout->isExternalSheet()) return;
-	QColorTable& colortable = m_colortables[cutout->getDefaultColorTable()];
+	//QColorTable& colortable = m_colortables[cutout->getDefaultColorTable()];
 	SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
 
 	//find start and endpoint
@@ -3347,11 +3350,13 @@ void SpriteData::cropCutout(int cutoutIndex){
 	for(int x = start.x; x < end.x;x++){
 		for(int y = start.y; y < end.y;y++){
 			unsigned char id = img.get(x,y);
+
 			unsigned int colorTableIndex = cutout->getDefaultColorTable()*16 + id;
 			if(colorTableIndex >= getColorTable().size())
 				colorTableIndex = id;
 
 			const QColor& color = getColorTable()[colorTableIndex];
+
 			//alpha test
 			if(color.alpha() != 0){
 				if(x < newStart.x) newStart.x = x;
@@ -3369,6 +3374,113 @@ void SpriteData::cropCutout(int cutoutIndex){
 		cutout->setSize(newEnd-newStart+PG::UTIL::ivec2(1,1));
 	}
 
+}
+
+void SpriteData::autoFindCutouts(int sheetID){
+	if(sheetID < 0 || sheetID >= m_spriteSheets.size()) return;
+
+
+	bool ok;
+	const int colorTableOffset = QInputDialog::getInt(0, tr("Enter color table offset"),
+			tr("Please select a color table offset:"), 0, 0, getNumberOfColors()/16, 1, &ok);
+	if(!ok) return;
+
+	QMessageBox::StandardButton btn = QMessageBox::question(nullptr,"Prevent overlap?", "Don't create a cutout at locations where a cutout is already defined?", QMessageBox::Yes| QMessageBox::No| QMessageBox::Cancel);
+	if(btn & QMessageBox::Cancel) return;
+
+	SpriteSheet* sheet = m_spriteSheets[sheetID];
+	const PG::UTIL::IDImage& img = sheet->getSpriteSheet();
+	PG::UTIL::IDImage visited(img.getWidth(), img.getHeight());
+	for(unsigned char& b: visited) b = 0;
+
+
+	struct aabb{
+		PG::UTIL::ivec2 start = PG::UTIL::ivec2(9999,9999);
+		PG::UTIL::ivec2 end = PG::UTIL::ivec2(-9999,-9999);
+
+		inline bool intersects(int x, int y, int width, int height){
+			return (abs(start.x - x) * 2 < (end.x-start.x + width)) &&
+			         (abs(start.y - y) * 2 < (end.y-start.y + height));
+		}
+
+		inline bool intersects(const Cutout* cut){
+			return intersects(cut->getX(), cut->getY(), cut->getWidth(), cut->getHeight());
+		}
+
+	};
+
+	QList<aabb> sprites;
+
+	for(int x = 0; x < img.getWidth();x++){
+		for(int y = 0; y < img.getHeight();y++){
+			unsigned char& v = visited.get(x,y);
+			if(v) continue;
+
+
+			unsigned char id = img.get(x,y);
+			unsigned int colorTableIndex = colorTableOffset*16 + id;
+			if(colorTableIndex >= getColorTable().size())
+				colorTableIndex = id;
+
+			//qDebug()<<"At ("<<x<<", "<<y<<"):"<<id<<table[id].alpha();
+			if(getColorTable()[colorTableIndex].alpha() != 0){
+
+				aabb sprite;
+				QQueue<PG::UTIL::ivec2> queue;
+				queue.push_back(PG::UTIL::ivec2(x,y));
+				while(!queue.isEmpty()){
+					//grow in all directions
+					PG::UTIL::ivec2 pos = queue.front();
+					queue.pop_front();
+					//qDebug()<<"LOOP At"<<pos<<queue.size();
+					if(pos.x < 0 || pos.y < 0 || pos.x >= img.getWidth() || pos.y >= img.getHeight()) continue;
+					unsigned char& visit = visited.get(pos.x, pos.y);
+					if(visit) continue;
+					visit = 1;
+					id = img.get(pos.x, pos.y);
+
+					colorTableIndex = colorTableOffset*16 + id;
+					if(colorTableIndex >= getColorTable().size())
+						colorTableIndex = id;
+					if(getColorTable()[colorTableIndex].alpha() == 0) continue;
+					//qDebug()<<"LOOP At"<<pos<<visit;
+
+					if(pos.x < sprite.start.x) sprite.start.x = pos.x;
+					if(pos.y < sprite.start.y) sprite.start.y = pos.y;
+					if(pos.x > sprite.end.x) sprite.end.x = pos.x;
+					if(pos.y > sprite.end.y) sprite.end.y = pos.y;
+
+
+					//add all directions
+					queue.push_back(pos + PG::UTIL::ivec2(1,0));
+					queue.push_back(pos + PG::UTIL::ivec2(0,1));
+					queue.push_back(pos + PG::UTIL::ivec2(-1,0));
+					queue.push_back(pos + PG::UTIL::ivec2(0,-1));
+					queue.push_back(pos + PG::UTIL::ivec2(1,1));
+					queue.push_back(pos + PG::UTIL::ivec2(1,-1));
+					queue.push_back(pos + PG::UTIL::ivec2(-1,1));
+					queue.push_back(pos + PG::UTIL::ivec2(-1,-1));
+				}
+				if(sprite.start.x < sprite.end.x && sprite.start.y < sprite.end.y)
+					sprites.push_back(sprite);
+
+			}
+
+			v = 1;
+		}
+	}
+
+	if(btn & QMessageBox::Yes){
+		for(const Cutout* cut: m_cutouts){
+			if(cut->getSheetID() != sheetID || cut->isExternalSheet()) continue;
+
+			QMutableListIterator<aabb> i(sprites);
+			while (i.hasNext()) if (i.next().intersects(cut)) i.remove();
+		}
+	}
+
+	for(const aabb& sprite: sprites)
+		addCutout(sheetID, sprite.start.x, sprite.start.y, sprite.end.x-sprite.start.x+1, sprite.end.y-sprite.start.y+1, colorTableOffset);
 }
 
 bool SpriteData::addNewSpriteSheet(){

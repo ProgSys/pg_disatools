@@ -314,7 +314,7 @@
         </size>
        </property>
        <property name="focusPolicy">
-        <enum>Qt::NoFocus</enum>
+        <enum>Qt::ClickFocus</enum>
        </property>
        <property name="resizeMode">
         <enum>QQuickWidget::SizeRootObjectToView</enum>
@@ -357,7 +357,7 @@
      <item row="0" column="0">
       <widget class="QQuickWidget" name="quickSpriteView">
        <property name="focusPolicy">
-        <enum>Qt::NoFocus</enum>
+        <enum>Qt::ClickFocus</enum>
        </property>
        <property name="resizeMode">
         <enum>QQuickWidget::SizeRootObjectToView</enum>
@@ -400,7 +400,7 @@
      <item row="0" column="0">
       <widget class="QQuickWidget" name="quickColorTable">
        <property name="focusPolicy">
-        <enum>Qt::NoFocus</enum>
+        <enum>Qt::ClickFocus</enum>
        </property>
        <property name="resizeMode">
         <enum>QQuickWidget::SizeRootObjectToView</enum>
