@@ -142,6 +142,7 @@ void GLSpriteWidget::displayShader::apply(const PG::UTIL::mat4& modelMatrix, con
 
 
 GLSpriteWidget::GLSpriteWidget(QWidget *parent): QOpenGLWidget(parent), m_clearcolor(5,79,121){
+	//setFocusPolicy(Qt::StrongFocus);
 }
 
 void GLSpriteWidget::setUpConnections(QWidget *parent){
@@ -151,7 +152,7 @@ void GLSpriteWidget::setUpConnections(QWidget *parent){
 	//connect(this, SIGNAL(currentFrame( unsigned int )), parent, SLOT(setCurrentFrame(  unsigned int )));
 }
 
-void GLSpriteWidget::setData(const SpriteData* spriteSheet){
+void GLSpriteWidget::setData(SpriteData* spriteSheet){
 	m_animationInfo.spriteData = spriteSheet;
 }
 
@@ -545,6 +546,11 @@ void GLSpriteWidget::wheelEvent ( QWheelEvent * event ){
 	const float wf = width()/m_scale;
 	const float hf = height()/m_scale;
 	perspectiveMatrix = PG::UTIL::orthogonal(-wf, wf, -hf+0.5f, hf+0.5f, -2.f, 10.0f);
+	update();
+}
+
+void GLSpriteWidget::keyPressEvent(QKeyEvent * event){
+	if(m_animationInfo.spriteData) m_animationInfo.spriteData->keyPressEvent(event);
 	update();
 }
 

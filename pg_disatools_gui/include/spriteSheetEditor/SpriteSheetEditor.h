@@ -58,6 +58,7 @@ public slots:
 	void createNewAnimation();
 	void ShowComboBoxContextMenu(const QPoint &);
 
+
 signals:
 
 	bool openSH( const QString& filepath );

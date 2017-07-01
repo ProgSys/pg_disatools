@@ -451,7 +451,6 @@ void SpriteSheetEditor::ShowComboBoxContextMenu(const QPoint &pos){
    contextMenu.exec(ui->comboBox->mapToGlobal(pos));
 }
 
-
 void SpriteSheetEditor::setCurrentFrame(int currFrame){
 	ui->labelCurentFrame->setText(QString::number(currFrame));
 }
