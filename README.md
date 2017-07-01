@@ -15,7 +15,7 @@ You can download the latest version of the tools here:
 ```
 ===  01.07.2017 - v0.7.8 ===
   * Sprite Sheet Editor v0.3.8 alpha:
-	- If the 3D view is focused, then you can now use the arror keys to move the offset of a selected keyframe
+	- If the 3D view is focused, then you can now use the arrow keys to move the offset of a selected keyframe
 	- Additionally you can use button modifiers:
 		- if Control is helt, then the anchor is moved
 		- if Alt is helt, then the anchor is moved relative to the position
