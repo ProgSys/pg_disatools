@@ -8,14 +8,19 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.7.7 alpha](https://www.dropbox.com/s/lwi2xj0c5h0ai3q/Disgaea%20Tools%20v0.7.7%20alpha.zip?dl=0)**
+* **[Version v0.7.8 alpha](https://www.dropbox.com/s/dvmjygh55tz0zr2/Disgaea%20Tools%20v0.7.8%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  27.06.2017 - v0.7.7 ===
-  * Sprite Sheet Editor v0.3.7 alpha:
-	- a error massage is now displayed if a qml file failed to load or compile
+===  01.07.2017 - v0.7.8 ===
+  * Sprite Sheet Editor v0.3.8 alpha:
+	- If the 3D view is focused, then you can now use the arror keys to move the offset of a selected keyframe
+	- Additionally you can use button modifiers:
+		- if Control is helt, then the anchor is moved
+		- if Alt is helt, then the anchor is moved relative to the position
+		- if Shift is helt, then you can rotate the keyframe with left and right
+	- You now can 'Crop' a cutout in it's context menu 
 ```
 
 ### Older versions:

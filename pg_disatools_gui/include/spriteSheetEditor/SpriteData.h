@@ -28,6 +28,7 @@
 #include <QColor>
 #include <pg/util/PG_Image.h>
 #include <vector>
+#include <QKeyEvent>
 
 typedef QList<QColor> QColorTable;
 
@@ -222,6 +223,7 @@ public:
 
     void setOffsetX(short offsetxIn);
     void setOffsetY(short offsetyIn);
+    void moveOffset(short offsetxIn, short offsetyIn);
 
     void setRotation(short rotationIn);
     void setTransparency(unsigned char transparencyIn);
@@ -539,6 +541,8 @@ public:
 	void setCurrentAnimationByIndex(int index);
 	void setSelectedKey(Keyframe* key);
 
+	void keyPressEvent(QKeyEvent * event);
+
 	// QAbstractListModel
 	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
 	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
@@ -579,6 +583,7 @@ public slots:
 	Q_INVOKABLE bool addCutout(int sheetID,unsigned int x,unsigned int y = 0,unsigned int width = 100,unsigned int height = 100,unsigned char colorID = 0);
 	bool removeCutout(Cutout* cut);
 	Q_INVOKABLE bool removeCutoutID(int id, bool warning = true);
+	Q_INVOKABLE void cropCutout(int cutoutIndex);
 
 	Q_INVOKABLE bool addNewSpriteSheet();
 	Q_INVOKABLE bool addNewSpriteSheet(int width, int height, int powerOfColorTable = 4);
@@ -658,5 +663,8 @@ private:
 
 	Keyframe* m_selectedKeyframe;
 };
+
+QDebug operator<< (QDebug d, const PG::UTIL::ivec2 &m);
+QDebug operator<< (QDebug d, const PG::UTIL::ivec3 &m);
 
 #endif /* INCLUDE_FILES_SPRITEDATA_H_ */

@@ -37,6 +37,9 @@
           <height>100</height>
          </size>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::StrongFocus</enum>
+        </property>
        </widget>
       </item>
      </layout>
@@ -160,12 +163,18 @@
            <height>23</height>
           </size>
          </property>
+         <property name="focusPolicy">
+          <enum>Qt::WheelFocus</enum>
+         </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="pushButton_newanimation">
          <property name="enabled">
           <bool>false</bool>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
          </property>
          <property name="text">
           <string>New animation</string>
@@ -180,6 +189,9 @@
            <height>23</height>
           </size>
          </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -192,6 +204,9 @@
            <width>23</width>
            <height>23</height>
           </size>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
          </property>
          <property name="text">
           <string/>
@@ -280,6 +295,9 @@
            <height>23</height>
           </size>
          </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -294,6 +312,9 @@
          <width>0</width>
          <height>40</height>
         </size>
+       </property>
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
        </property>
        <property name="resizeMode">
         <enum>QQuickWidget::SizeRootObjectToView</enum>
@@ -335,6 +356,9 @@
      </property>
      <item row="0" column="0">
       <widget class="QQuickWidget" name="quickSpriteView">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="resizeMode">
         <enum>QQuickWidget::SizeRootObjectToView</enum>
        </property>
@@ -375,6 +399,9 @@
      </property>
      <item row="0" column="0">
       <widget class="QQuickWidget" name="quickColorTable">
+       <property name="focusPolicy">
+        <enum>Qt::NoFocus</enum>
+       </property>
        <property name="resizeMode">
         <enum>QQuickWidget::SizeRootObjectToView</enum>
        </property>

@@ -504,6 +504,11 @@ void Keyframe::setOffsetY(short offsetyIn){
 	emit onOffsetYChanged();
 }
 
+void Keyframe::moveOffset(short offsetxIn, short offsetyIn){
+	setOffsetX(m_offsetx+offsetxIn);
+	setOffsetY(m_offsety+offsetyIn);
+}
+
 void Keyframe::setRotation(short rotationIn){
 	if(rotationIn == m_rotation) return;
 	m_rotation = rotationIn;
@@ -3191,6 +3196,44 @@ void SpriteData::setSelectedKey(Keyframe* key){
 		//PG_INFO_STREAM("key selected: "<<m_selectedKeyframe->getCutoutID());
 	emit selectedKeyChanged();
 }
+
+void SpriteData::keyPressEvent(QKeyEvent * event){
+	if(m_selectedKeyframe){
+		switch (event->modifiers()){
+			case Qt::ControlModifier:{
+				switch (event->key()) {
+					case Qt::Key_Up:{m_selectedKeyframe->setAnchorY(m_selectedKeyframe->getAnchorY()-1);}break;
+					case Qt::Key_Down:{m_selectedKeyframe->setAnchorY(m_selectedKeyframe->getAnchorY()+1);}break;
+					case Qt::Key_Right:{m_selectedKeyframe->setAnchorX(m_selectedKeyframe->getAnchorX()+1);}break;
+					case Qt::Key_Left:{m_selectedKeyframe->setAnchorX(m_selectedKeyframe->getAnchorX()-1);}break;
+				}
+			}break;
+			case Qt::AltModifier:{
+				switch (event->key()) {
+					case Qt::Key_Up:{m_selectedKeyframe->setAnchorY(m_selectedKeyframe->getAnchorY()+1);m_selectedKeyframe->setOffsetY(m_selectedKeyframe->getOffsetY()-1);}break;
+					case Qt::Key_Down:{m_selectedKeyframe->setAnchorY(m_selectedKeyframe->getAnchorY()-1);m_selectedKeyframe->setOffsetY(m_selectedKeyframe->getOffsetY()+1);}break;
+					case Qt::Key_Right:{m_selectedKeyframe->setAnchorX(m_selectedKeyframe->getAnchorX()-1);m_selectedKeyframe->setOffsetX(m_selectedKeyframe->getOffsetX()+1);}break;
+					case Qt::Key_Left:{m_selectedKeyframe->setAnchorX(m_selectedKeyframe->getAnchorX()+1);m_selectedKeyframe->setOffsetX(m_selectedKeyframe->getOffsetX()-1);}break;
+				}
+			}break;
+			case Qt::ShiftModifier:{
+				switch (event->key()) {
+					case Qt::Key_Right:{m_selectedKeyframe->setRotation(m_selectedKeyframe->getRotation()-1);}break;
+					case Qt::Key_Left:{m_selectedKeyframe->setRotation(m_selectedKeyframe->getRotation()+1);}break;
+				}
+			}break;
+			default:{
+				switch (event->key()) {
+					case Qt::Key_Up:{m_selectedKeyframe->setOffsetY(m_selectedKeyframe->getOffsetY()-1);}break;
+					case Qt::Key_Down:{m_selectedKeyframe->setOffsetY(m_selectedKeyframe->getOffsetY()+1);}break;
+					case Qt::Key_Right:{m_selectedKeyframe->setOffsetX(m_selectedKeyframe->getOffsetX()+1);}break;
+					case Qt::Key_Left:{m_selectedKeyframe->setOffsetX(m_selectedKeyframe->getOffsetX()-1);}break;
+				}
+			}break;
+		}
+	}
+}
+
 bool  SpriteData::addCutout(int sheetID){
 	if(sheetID < 0 || sheetID >= m_spriteSheets.size()) return false;
 
@@ -3275,6 +3318,57 @@ bool SpriteData::removeCutoutID(int id, bool warning){
 		emit onNumberOfCutoutsChanged();
 	}
 	return false;
+}
+
+void SpriteData::cropCutout(int cutoutIndex){
+	if(cutoutIndex < 0 || cutoutIndex  >= m_cutouts.size()) return;
+
+
+	Cutout* cutout = m_cutouts[cutoutIndex];
+	if(cutout->isExternalSheet()) return;
+	QColorTable& colortable = m_colortables[cutout->getDefaultColorTable()];
+	SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
+
+	//find start and endpoint
+	PG::UTIL::ivec2 start = cutout->getPosition();
+	PG::UTIL::ivec2 end = cutout->getPosition()+PG::UTIL::ivec2(cutout->getWidth(),cutout->getHeight());
+
+	if(start.x >= sheet->getWidth() || start.y >= sheet->getHeight()) return;
+
+	if(end.x >= sheet->getWidth()) end.x = sheet->getWidth()-1;
+	if(end.y >= sheet->getHeight()) end.y = sheet->getHeight()-1;
+
+	qDebug()<<"Crop"<<cutoutIndex<<start<<end;
+
+	const PG::UTIL::IDImage& img = sheet->getSpriteSheet();
+
+	PG::UTIL::ivec2 newStart=end;
+	PG::UTIL::ivec2 newEnd=start;
+	for(int x = start.x; x < end.x;x++){
+		for(int y = start.y; y < end.y;y++){
+			unsigned char id = img.get(x,y);
+			unsigned int colorTableIndex = cutout->getDefaultColorTable()*16 + id;
+			if(colorTableIndex >= getColorTable().size())
+				colorTableIndex = id;
+
+			const QColor& color = getColorTable()[colorTableIndex];
+			//alpha test
+			if(color.alpha() != 0){
+				if(x < newStart.x) newStart.x = x;
+				if(y < newStart.y) newStart.y = y;
+				if(x > newEnd.x) newEnd.x = x;
+				if(y > newEnd.y) newEnd.y = y;
+			}
+
+		}
+	}
+
+	qDebug()<<"Found"<<newStart<<newEnd;
+	if(newStart.x < newEnd.x && newStart.y < newEnd.y){
+		cutout->setPosition(newStart);
+		cutout->setSize(newEnd-newStart+PG::UTIL::ivec2(1,1));
+	}
+
 }
 
 bool SpriteData::addNewSpriteSheet(){
@@ -3419,5 +3513,15 @@ int SpriteData::rowCount(const QModelIndex & parent) const{
     if(parent.isValid())
         return 0;
 	return getNumberOfAnimations();
+}
+
+QDebug operator<< (QDebug d, const PG::UTIL::ivec2 &m){
+    d << "("<<m.x<<", "<<m.y<<")";
+    return d;
+}
+
+QDebug operator<< (QDebug d, const PG::UTIL::ivec3 &m){
+    d << "("<<m.x<<", "<<m.y<<", "<<m.z<<")";
+    return d;
 }
 

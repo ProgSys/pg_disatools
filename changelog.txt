@@ -351,4 +351,13 @@
 	
 ===  27.06.2017 - v0.7.7 ===
   * Sprite Sheet Editor v0.3.7 alpha:
-  - a error massage is now displayed if a qml file failed to load or compile
+	- a error massage is now displayed if a qml file failed to load or compile
+  
+===  01.07.2017 - v0.7.8 ===
+  * Sprite Sheet Editor v0.3.8 alpha:
+	- If the 3D view is focused, then you can now use the arror keys to move the offset of a selected keyframe
+	- Additionally you can use button modifiers:
+		- if Control is helt, then the anchor is moved
+		- if Alt is helt, then the anchor is moved relative to the position
+		- if Shift is helt, then you can rotate the keyframe with left and right
+	- You now can 'Crop' a cutout in it's context menu 

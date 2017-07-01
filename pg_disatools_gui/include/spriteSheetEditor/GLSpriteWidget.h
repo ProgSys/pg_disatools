@@ -83,14 +83,16 @@ public:
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int w, int h) Q_DECL_OVERRIDE;
 
-    void mousePressEvent(QMouseEvent * event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void wheelEvent ( QWheelEvent * event );
+    void mousePressEvent(QMouseEvent * event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void wheelEvent ( QWheelEvent * event ) Q_DECL_OVERRIDE;
+
+    void keyPressEvent(QKeyEvent * event) Q_DECL_OVERRIDE;
 
     virtual ~GLSpriteWidget();
 public slots:
 	///returns true on success
-	void setData(const SpriteData* spriteSheet);
+	void setData(SpriteData* spriteSheet);
 
 	void renderFrame(int frame);
 	void renderFrame();
@@ -255,7 +257,7 @@ private:
 
 	struct animationInfo{
         //data
-    	const SpriteData* spriteData = nullptr;
+    	SpriteData* spriteData = nullptr;
 
     	unsigned int frame = 0;
 
