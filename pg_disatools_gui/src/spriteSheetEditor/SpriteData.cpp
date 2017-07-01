@@ -3407,6 +3407,9 @@ void SpriteData::autoFindCutouts(int sheetID){
 			return intersects(cut->getX(), cut->getY(), cut->getWidth(), cut->getHeight());
 		}
 
+		inline bool intersects(const aabb& cut){
+			return intersects(cut.start.x, cut.start.y, cut.end.x-cut.start.x, cut.end.y-cut.start.y);
+		}
 	};
 
 	QList<aabb> sprites;
@@ -3479,7 +3482,29 @@ void SpriteData::autoFindCutouts(int sheetID){
 		}
 	}
 
-	for(const aabb& sprite: sprites)
+	//clean up overlapping sprites
+
+	QList<aabb> spritesClean;
+	for(unsigned int a = 0; a < sprites.size(); a++){
+		aabb& spriteA = sprites[a];
+		if(spriteA.start.x < 0) continue;
+		for(unsigned int b = a+1; b < sprites.size(); b++){
+			aabb& spriteB = sprites[b];
+			if(spriteB.start.x < 0) continue;
+
+			if(spriteA.intersects(spriteB)){
+				if(spriteB.start.x < spriteA.start.x) spriteA.start.x = spriteB.start.x;
+				if(spriteB.start.y < spriteA.start.y) spriteA.start.y = spriteB.start.y;
+				if(spriteB.end.x > spriteA.end.x) spriteA.end.x = spriteB.end.x;
+				if(spriteB.end.y > spriteA.end.y) spriteA.end.y = spriteB.end.y;
+				//remove B
+				spriteB.start.x = -100;
+			}
+		}
+		spritesClean.push_back(spriteA);
+	}
+
+	for(const aabb& sprite: spritesClean)
 		addCutout(sheetID, sprite.start.x, sprite.start.y, sprite.end.x-sprite.start.x+1, sprite.end.y-sprite.start.y+1, colorTableOffset);
 }
 
