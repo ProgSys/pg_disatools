@@ -367,3 +367,9 @@
 	- Fixed several crashes regarding the 'Crop' function
 	- Added a function to auto find cutouts on a sprite sheet
 		- To use it, just right click on a empty space in a sprite sheet and then select 'Auto find cutouts'
+
+===  24.12.2017 - v0.8.0 ===
+  * Sprite Sheet Editor v0.4.0 alpha:
+	- Import of color sprite sheets or cutouts has been imporved
+		- number of colors can now be automatically reduced
+		- the colors of the given image can now be automatically reassigned to the closest color in the color table

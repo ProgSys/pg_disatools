@@ -22,11 +22,13 @@
 #include <QMainWindow>
 #include <QGraphicsScene>
 #include <QItemSelection>
-
+#include <fileManagerD2/SceneModel.h>
 #include <ui_fileManagerD2.h>
 
 class FileManagerD2 : public QMainWindow, public Ui::FileManagerD2 {
     Q_OBJECT
+
+	SceneModel* mModel;
 public:
     explicit FileManagerD2(QWidget *parent = 0);
     ~FileManagerD2();

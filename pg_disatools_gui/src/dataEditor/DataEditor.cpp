@@ -28,6 +28,7 @@
 
 
 PreviewDAT::PreviewDAT(QObject *parent): DataFile(parent){
+
 	QList<QVariant> data;
 	data << "Definition file" << "Description" << "File starting name";
 	m_root = new TreeItem(data);
@@ -103,7 +104,22 @@ DataEditor::DataEditor(QWidget *parent):
 
 	setWindowIcon(QIcon(":/data_editor_icon.ico"));
 	setWindowTitle(DATAEditorTITLE);
+	qDebug()<<__LINE__<<"START!";
+	mSceneModel = new SceneModel(this);
+	qDebug()<<__LINE__<<"SET!";
+	treeView->setModel(mSceneModel);
 
+	spinBox_type->setMaximum(TYPE_MAX-1);
+
+	connect(pushButton_add, &QPushButton::clicked, this,  [this](){
+		mSceneModel->add(TreeTypes(spinBox_type->value()), lineEdit_add->text());
+		lineEdit_add->clear();
+	});
+
+	connect(pushButton_remove, &QPushButton::clicked, this,  [this](){
+		mSceneModel->remove(TreeTypes(spinBox_type->value()), lineEdit_add->text());
+		lineEdit_add->clear();
+	});
 
 	//About
 	connect(actionAbout, &QAction::triggered, this, [this]{
@@ -127,10 +143,12 @@ DataEditor::DataEditor(QWidget *parent):
     		this, SLOT(contextMenu(const QPoint &)));
 
     actionExport_as_csv->setEnabled(false);
+
+
 }
 
 DataEditor::~DataEditor() {
-	// TODO Auto-generated destructor stub
+	delete mSceneModel;
 }
 
 void DataEditor::setModel(DataFile* model){

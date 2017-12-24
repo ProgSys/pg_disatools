@@ -29,8 +29,9 @@
 #include <pg/util/PG_Image.h>
 #include <vector>
 #include <QKeyEvent>
+#include <QVector>
 
-typedef QList<QColor> QColorTable;
+typedef QVector<QColor> QColorTable;
 
 class Cutout: public QObject{
 	Q_OBJECT
@@ -459,8 +460,8 @@ public:
 	PG::UTIL::IDImage& getSpriteSheet();
 	const PG::UTIL::IDImage& getSpriteSheet() const;
 
-	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable) const;
-	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QList<QColor>& colortable, bool alpha = false) const;
+	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable) const;
+	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable, bool alpha = false) const;
 
 	PG::UTIL::IDImage getSpritePGIDs(const Cutout* cut) const;
 	QImage getSpriteIDs(const Cutout* cut) const;
@@ -572,8 +573,10 @@ public slots:
 	Q_INVOKABLE bool importSpriteAsIDs(Cutout& cut, const QString& file = "");
 
 	Q_INVOKABLE bool importSpriteAsColor(int cutoutID, const QString& file = "");
+	Q_INVOKABLE bool importSpriteAsColorForSheet(int sheetID, const QString& file = "");
+	Q_INVOKABLE bool importSpriteAsColor(int sheetID, int x, int y, int width, int height, int colorTableOffset, QImage& image);
 	Q_INVOKABLE bool importSpriteAsColor(int sheetID, int x, int y, int width, int height, int colorTableOffset = -1, const QString& file = "");
-	Q_INVOKABLE bool importSpriteAsColor(Cutout& cut, const QString& file = "");
+	Q_INVOKABLE bool importSpriteAsColor(Cutout& cut, QImage& image);
 
 	bool dump(const QString& filepath);
 
@@ -650,6 +653,7 @@ signals:
 private:
 	bool openPGSHv1(QDataStream& in);
 	bool openPGSHv2(QDataStream& in);
+	void resizeSpritesOnSheet(SpriteSheet* sheet, int oldWidth, int oldHeight, int targetWidth, int targetHeight);
 
 	QString m_lastFile;
 
