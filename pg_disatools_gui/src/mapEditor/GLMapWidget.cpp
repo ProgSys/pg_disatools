@@ -205,6 +205,7 @@ bool GLMapWidget::openMap( const QString& filepath ){
 	if(!openMPP(mppPath)) {
 		QMessageBox messageBox;
 		messageBox.warning(0,"*.MPP not found","The *.MPP file for map not found! Make sure it is in the same folder and has the same name!");
+		return false;
 	}
 	return true;
 }
@@ -235,8 +236,7 @@ bool GLMapWidget::openMPD( const QString& filepath ){
 	if(mpd.open(filepath.toStdString())) return false;
 	//glPushAttrib(GL_ALL_ATTRIB_BITS);
 	makeCurrent();
-	for(const mapTile* tile: m_mapTiles)
-		delete tile;
+	for(const mapTile* tile: m_mapTiles) delete tile;
 	m_mapTiles.clear();
 	for(const PG::FILE::mpdfileChunk& chunk: mpd.getChunks()){
 		  for(const PG::FILE::mpdfileTile& tile: chunk.tiles){

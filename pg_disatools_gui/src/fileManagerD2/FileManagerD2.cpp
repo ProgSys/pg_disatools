@@ -23,14 +23,18 @@
 #include <QMap>
 
 
+
+
 FileManagerD2::FileManagerD2(QWidget *parent):
 	QMainWindow(parent){
 	setupUi(this);
 
 	setWindowIcon(QIcon(":/disa_tools_icon.ico"));
 	setWindowTitle(FileManagerD2TITLE);
+
+	mModel = new  SceneModel(this);
 }
 
 FileManagerD2::~FileManagerD2() {
-	// TODO Auto-generated destructor stub
+	delete mModel;
 }

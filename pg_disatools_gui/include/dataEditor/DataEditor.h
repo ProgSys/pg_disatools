@@ -24,6 +24,7 @@
 #include <QMainWindow>
 #include <ui_dataEditor.h>
 #include <dataEditor/DataFile.h>
+#include <dataEditor/SceneModel.h>
 
 class PreviewDAT: public DataFile  {
 	Q_OBJECT
@@ -60,6 +61,7 @@ private:
 
 	DataFile* m_file = nullptr;
 	QString m_fileName;
+	SceneModel* mSceneModel;
 };
 
 #endif /* INCLUDE_DATAEDITOR_DATAEDITOR_H_ */
