@@ -1,0 +1,13 @@
+TABLE("Map name","Bonus rank","Map ID","Script ID"){
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	
+	rowFormat{
+		shiftJis(34);
+		zero(1);
+		uint(1);
+		uint(2);
+		uint(2);
+	}
+}

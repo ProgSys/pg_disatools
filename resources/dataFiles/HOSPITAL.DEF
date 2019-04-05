@@ -1,0 +1,16 @@
+TABLE("ID","Deceased","Item ID","HP", "SP"){
+	setColumnFlag("ID", NOEDIT);
+	setColumnType("ID", INDEX);
+	
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	
+	rowFormat{
+		uint(2);
+		uint(2);
+		uint(4);
+		uint(4);
+		uint(4);
+	}
+}

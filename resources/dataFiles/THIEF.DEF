@@ -1,0 +1,13 @@
+TABLE("Name","Type","?"){
+	
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	rowFormat{
+		shiftJis(28);
+		zero(1);
+		uint(2); 
+		zero(1);
+		uint(4); 
+	}
+}

@@ -1,68 +1,16 @@
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
-
-# Folder config file
-Desktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
-
-# =========================
-# Operating System Files
-# =========================
-
-# OSX
-# =========================
-
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Icon must end with two \r
-Icon
-
-
-# Thumbnails
-._*
-
-# Files that might appear on external disk
-.Spotlight-V100
-.Trashes
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-CMakeFiles/
-\.*
-cmake_install.cmake
-CMakeCache.txt
-Makefile
-install_manifest.txt
-*.dll
-*.exe
-*.dll.a
-*.zip
-*.rar
-*.user
-\resources
-\dependencies
-\documentation
-\build
-/*_build
-/pg_pspfsExtractor/bin
-/build-*
+/build*
 *~
-
-!.gitignore
-!.gitattributes
+*.user.*
+*.user
+*.obj
+*.autosave
+*.exe
+*CMakeCache.txt
+*CMakeLists.txt.user*
+*.orig
+src/CMakeFiles/
+build_src/
+build/
+resources_src/
+bin/
+src/externals/*

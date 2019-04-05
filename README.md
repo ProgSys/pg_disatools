@@ -8,20 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.0 alpha](https://www.dropbox.com/s/i4okfudihpn6x7c/Disgaea%20Tools%20v0.8.0%20alpha.zip?dl=0)**
+* **[Version v0.8.1 alpha](https://www.dropbox.com/s/0nwtwsl5uxnj4xa/Disgaea%20Tools%20v0.8.1%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  01.07.2017 - v0.7.8 ===
-  * Sprite Sheet Editor v0.3.8 alpha:
-	- If the 3D view is focused, then you can now use the arrow keys to move the offset of a selected keyframe
-	- Additionally you can use button modifiers:
-		- if Control is helt, then the anchor is moved
-		- if Alt is helt, then the anchor is moved relative to the position
-		- if Shift is helt, then you can rotate the keyframe with left and right
-	- You now can 'Crop' a cutout in it's context menu 
-	
 ===  01.07.2017 - v0.7.9 ===
   * Sprite Sheet Editor v0.3.9 alpha:
 	- Fixed several crashes regarding the 'Crop' function
@@ -33,6 +24,17 @@ You can download the latest version of the tools here:
 	- Import of color sprite sheets or cutouts has been imporved
 		- number of colors can now be automatically reduced
 		- the colors of the given image can now be automatically reassigned to the closest color in the color table
+		
+===  05.04.2019 - v0.8.1 ===
+  * General:
+	- All tools are now 64bit
+	- Updated Qt to 5.12.2
+  * Disa PC File Manager v0.5.6 alpha:
+	- Fixed bug in openning and saving DATA.DAT
+	- Fixed bug in decompressing IMY
+	- Added search field
+  * TX2 Editor v0.0.3 alpha:
+	- You now can convert to FONT (BGRA8888 16 Colors)
 ```
 
 ### Older versions:
@@ -96,17 +98,12 @@ This tool allows you to open, view, convert and export TX2 images.
 
 ![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 
-####TX2Converter.exe
-
-A command line tool which allows you to convert Disgaea PC *.TX2 textures into *.TGA (BGRA8888) or *.PNM (P3/P6 RBG888 No alpha) and back!
-Make a backup of your files before using this tool!!!
-
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
 
 ## QT projects
-All the QT projects (whith use the Qt Librarys), requires the GNU LESSER GENERAL PUBLIC LICENSE.
-The source code of these projects are located in the folder 'pg_disatools_gui'
+All the QT projects (whith use the Qt Librarys), require the GNU LESSER GENERAL PUBLIC LICENSE.
+The source code of these projects are located in the folder 'src'
 
 ### GNU Lesser General Public License (LGPL)
 
@@ -123,30 +120,3 @@ The source code of these projects are located in the folder 'pg_disatools_gui'
 	You should have received a copy of the GNU Lesser General Public License
 	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
 	or http://www.gnu.org/licenses/
-
- 
-## TX2Converter.exe && libpg_disatools.dll
-My libraries and command line tools use the MIT License.
-The source code is located in the folder 'pg_disatools'
-
-### The MIT License (MIT)
-
-	Copyright (c) 2016 ProgSys
-
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-
-	The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	SOFTWARE.

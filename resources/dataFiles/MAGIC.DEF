@@ -1,0 +1,28 @@
+TABLE("ID","Lvl","Pow","SP","Name","Description"
+	,"Effect param 1","Effect param 2","Effect param 3","Effect param 4","Effect param 5"
+	,"WT","E","ST","WT","Rg","Pat","Up","Dn"
+	,"Effect 1","Effect 2","Effect 3","Effect 4","Effect 5"
+){
+	setColumnColor("Lvl",255,255,255, 234,137,113, 1,20); #colums, minColor(r,g,b), maxColor(r,g,b), minValue, maxValue
+	setColumnColor("$2-3",255,255,255, 234,137,113, 5,150); #colums, minColor(r,g,b), maxColor(r,g,b), minValue, maxValue
+	
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	
+	rowFormat{
+		uint(2);
+		uint(2);
+		uint(2);
+		uint(2);
+		
+		shiftJis(32);
+		zero(1);
+		shiftJis(112);
+		zero(1);
+		
+		uint(1,5); #Effect params
+		uint(1,8); 
+		uint(1,5);
+	}
+}
