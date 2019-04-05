@@ -1,0 +1,57 @@
+struct header{
+	ushort table01, table02, table03;
+	ushort table04;
+}
+
+ushort table01Offsets[header.table01];
+ushort table02Offsets[header.table02];
+ushort table03Offsets[header.table03];
+ushort table04Offsets[header.table04];
+
+shiftJis names1[header.table01];
+shiftJis names2[header.table02];
+shiftJis names3[header.table03];
+shiftJis names4[header.table04];
+
+function FORMAT(){
+	
+	struct(header);
+
+	for(int i = 0; i < header.table01; i++){
+		table01Offsets[i] = uShort();
+	}
+	
+	for(int i = 0; i < header.table02; i++)
+		table02Offsets[i] = uShort();
+	
+	for(int i = 0; i < header.table03; i++){
+		table03Offsets[i] = uShort();
+	}
+	
+	for(int i = 0; i < header.table04; i++){
+		table04Offsets[i] = uShort();
+	}
+	
+	for(int i = 0; i < header.table01-1; i++){
+		names1[i] = shiftJis(table01Offsets[i+1]-table01Offsets[i]);
+	}
+	
+	for(int i = 0; i < header.table02-1; i++){
+		names2[i] = shiftJis(table01Offsets[i+1]-table01Offsets[i]);
+	}
+	
+	for(int i = 0; i < header.table03-1; i++){
+		names3[i] = shiftJis(table01Offsets[i+1]-table01Offsets[i]);
+	}
+	
+	for(int i = 0; i < header.table04-1; i++){
+		names4[i] = shiftJis(table01Offsets[i+1]-table01Offsets[i]);
+	}
+}
+
+
+
+DISPLAY_TABLE(["Names"], names1);
+DISPLAY_TABLE(["Names"], names2);
+DISPLAY_TABLE(["Names"], names3);
+DISPLAY_TABLE(["Names"], names4);

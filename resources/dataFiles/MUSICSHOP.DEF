@@ -1,0 +1,21 @@
+TABLE("Price","ID","Song ID?","Name","Title","Options"){
+	setColumnFlag("ID", NOEDIT);
+	setColumnType("ID", INDEX);
+	
+	headerFormat{
+		uint(4,1,ROW_SIZE);
+	}
+	rowFormat{
+		uint(8); #Price
+		uint(2); #ID
+		uint(2); #Song
+
+		shiftJis(20); #Name
+		zero(1); 
+
+		shiftJis(112); #Title
+		zero(1); 
+		
+		uint(2); #Options
+	}
+}

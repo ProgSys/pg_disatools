@@ -1,0 +1,9 @@
+DUNGEON:Contains all maps, that can appear in the menu of the teleport lady.
+HOSPITAL:Contains the conditions you need to achieve to get the rewards from the hospital.
+CHAR:Contains all the characters and their attributes.
+CHAR_C: Like CHAR just used unicode strings.
+CHAR_K: Like CHAR just used unicode strings.
+MUSICSHOP:Contains all the music you can buy.
+MAGIC:Contains all the spells and their attributes.
+HABIT:Contains job titles and their attributes.
+CHARHELP:Contains descriptions of all characters.

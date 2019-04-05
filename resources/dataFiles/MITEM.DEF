@@ -1,0 +1,16 @@
+TABLE("Name","Description","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?"){
+	
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	rowFormat{
+		shiftJis(32);
+		zero(1);
+		shiftJis(114); 
+		zero(2);
+		uint(1); 
+		uint(2,5); 
+		uint(4);
+		uint(2,10); 
+	}
+}

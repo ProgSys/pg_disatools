@@ -1,0 +1,20 @@
+TABLE("Name","ID",
+	"?","Fi","Sw","Sp","Bo","Gu","Ax","St","Mo","?","Ar","Be","Sh","Or","Gl","Mu","?","?","Ex","Sy",
+	"?","Type","Script ID?"
+){
+	setColumnColor("$2-22",255,255,255, 234,137,113, 0,20); #colums, minColor(r,g,b), maxColor(r,g,b), minValue, maxValue
+	
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	
+	rowFormat{
+		shiftJis(34);
+		uint(1,22);
+		
+		uint(2);
+		uint(2);
+		
+		uint(4);
+	}
+}

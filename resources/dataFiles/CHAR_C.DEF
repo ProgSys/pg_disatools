@@ -1,0 +1,35 @@
+TABLE("Name","Title","Type","Unknown","Unknown01","Gender","Unknown02","Palette index","Learn speed","Jump power"
+			,"Fi","Sw","Sp","Bo","Gu","Ax","St" ,"Unknown13"
+			,"HP","SP","Atk","Def","Int","Spd","Hit","Res"
+			,"Immunity","Script ID","Place","Unknown03","Unknown04","Throwing range","Help ID"
+			,"Base HP","Base SP","Base Atk","Base Def","Base Int","Base Spd","Base Hit","Base Res"
+			,"Unknown05","Movement","Movement Type","Unknown06","Unknown07","Unknown08","Unknown09","Unknown010","Unknown11","Unknown12","Counter"
+			,"Specials ID 1","Specials ID 2","Specials ID 3","Specials ID 4","Specials ID 5","Specials ID 6","Specials ID 7","Specials ID 8","Specials ID 9","Specials ID 10","Specials ID 11","Specials ID 12","Specials ID 13","Specials ID 14","Specials ID 15","Specials ID 16","Specials ID 17","Specials ID 18","Specials ID 19","Specials ID 20"
+			,"Specials level 1","Specials level 2","Specials level 3","Specials level 4","Specials level 5","Specials level 6","Specials level 7","Specials level 8","Specials level 9","Specials level 10","Specials level 11","Specials level 12","Specials level 13","Specials level 14","Specials level 15","Specials level 16","Specials level 17","Specials level 18","Specials level 19","Specials level 20"
+){
+
+	setColumnColor("$10-16",255,255,255, 234,137,113, 5,30); #colums, minColor(r,g,b), maxColor(r,g,b), minValue, maxValue
+	setColumnColor("$18-25",255,255,255, 234,137,113, 5,30); 
+	setColumnColor("$33-40",255,255,255, 234,137,113, 5,30); 
+	
+	headerFormat{
+		uint(4,2,ROW_SIZE); #the number of rows
+	}
+	
+	rowFormat{
+		#shiftJis(number of bytes) - shift-jis coded string with 16 chars
+		unicode(32);
+		#zero(number of bytes) - number of zero bytes, they are ignored for the table
+		zero(1);
+		unicode(26);
+		zero(1);
+		
+		#uint(number of bytes, number of them = 1) - a unsigned number (the number can't be negative)
+		#number of bytes: 1 = char8, 2 = short16, 4 = int32, 8 = longLong64
+		uint(1,24); 
+		uint(2,26); 
+		
+		uint(2,20); # Specials IDs
+		uint(2,20); # Specials levels
+	}
+}

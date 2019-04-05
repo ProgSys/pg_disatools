@@ -1,0 +1,9 @@
+TABLE("ID","Description"){
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	rowFormat{
+		uint(2); #ID
+		shiftJis(114); #Description
+	}
+}
