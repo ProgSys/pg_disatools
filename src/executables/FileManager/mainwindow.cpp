@@ -20,6 +20,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "fileinfobox.h"
+#include "increaseMemAlloc.h"
 
 #include <QMessageBox>
 #include <QFileDialog>
@@ -126,13 +127,15 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->checkBox_MPP, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("MPP", !checked); } );
     connect(ui->checkBox_GEO, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("GEO", !checked); } );
 
+
 	// search
 	connect(ui->lineEdit_search, &QLineEdit::textChanged, m_treeSort, &TreeSort::setSearchText);
 
-	
-
     //About
 	connect(ui->btnAboutQt, &QPushButton::clicked, this, [this]{ QMessageBox::aboutQt(this); } );
+
+	//Utils
+    connect(ui->btnIncMemSize, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("GEO", !checked); } );
 }
 
 MainWindow::~MainWindow()
@@ -845,9 +848,12 @@ void MainWindow::on_btnDelete_clicked()
 
 }
 
-void MainWindow::on_btnExtractImage_clicked()
-{
-	//saveSelectedImage();
+void MainWindow::on_btnIncMemSize_clicked() {
+	auto i = 43;
+
+	IncreaseMemAlloc increaseMemAlloc(this);
+
+	increaseMemAlloc.exec();
 }
 
 bool MainWindow::checkValid(){

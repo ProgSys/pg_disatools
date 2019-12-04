@@ -53,7 +53,7 @@ private slots:
     void on_btnAbout_clicked();
     void on_btnOpen_clicked();
 
-    void on_btnExtractImage_clicked();
+    void on_btnIncMemSize_clicked();
 
     void treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel);
     void treeContextMenu(const QPoint &pos);
