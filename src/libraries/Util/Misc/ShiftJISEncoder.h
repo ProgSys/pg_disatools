@@ -15,8 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_UTIL_SHIFTJISENCODER_H_
-#define INCLUDE_UTIL_SHIFTJISENCODER_H_
+#pragma once
 
 #include <QString>
 #include <QByteArray>
@@ -29,10 +28,10 @@ public:
 
 	virtual ~shiftJisToUnicodeST(){};
 
-	inline const QMap<short, short>& getMap() const{
+	inline const QMap<unsigned short, unsigned short>& getMap() const{
 		return map;
 	}
-	QMap<short, short> map;
+	QMap<unsigned short, unsigned short> map;
 };
 
 class shiftUnicodeToJisST{
@@ -41,10 +40,10 @@ public:
 
 	virtual ~shiftUnicodeToJisST(){};
 
-	inline const QMap<short, short>& getMap() const{
+	inline const QMap<unsigned short, unsigned short>& getMap() const{
 		return map;
 	}
-	QMap<short, short> map;
+	QMap<unsigned short, unsigned short> map;
 };
 
 
@@ -53,7 +52,7 @@ static shiftUnicodeToJisST shiftUnicodeToJis;
 
 
 
-inline short encodeToShiftJIS(const QChar& c){
+inline unsigned short encodeToShiftJIS(const QChar& c){
 	//http://unicode-table.com/de/#arabic-presentation-forms-b
 	//http://www.rtpro.yamaha.co.jp/RT/docs/misc/kanji-sjis.html
 	//http://seiai.ed.jp/sys/text/java/shiftjis_table.html
@@ -473,6 +472,3 @@ inline QString encodeShiftJisToUnicode(char* shift_JIS_String, int size){
 	return out;
 }
 
-
-
-#endif /* INCLUDE_UTIL_SHIFTJISENCODER_H_ */

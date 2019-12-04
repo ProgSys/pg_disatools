@@ -26,7 +26,6 @@
 
 #include <string>
 #include <iostream>
-
 /// Colors
 #define FONT_RESET "\033[0m"
 #define FONT_RED "\033[30m"
