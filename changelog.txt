@@ -384,3 +384,7 @@
 	- Added search field
   * TX2 Editor v0.0.3 alpha:
 	- You now can convert to FONT (BGRA8888 16 Colors)
+	
+===  04.12.2019 - v0.8.2 ===
+  * Disa PC File Manager v0.5.7 alpha:
+	- Added utility to modify memory allocation (Thx to Kelebek1) 

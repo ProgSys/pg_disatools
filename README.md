@@ -8,17 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.1 alpha](https://www.dropbox.com/s/0nwtwsl5uxnj4xa/Disgaea%20Tools%20v0.8.1%20alpha.zip?dl=0)**
+* **[Version v0.8.2 alpha](https://www.dropbox.com/s/d7987ihw8f9s327/Disgaea%20Tools%20v0.8.2%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  01.07.2017 - v0.7.9 ===
-  * Sprite Sheet Editor v0.3.9 alpha:
-	- Fixed several crashes regarding the 'Crop' function
-	- Added a function to auto find cutouts on a sprite sheet
-		- To use it, just right click on a empty space in a sprite sheet and then select 'Auto find cutouts'
-
 ===  24.12.2017 - v0.8.0 ===
   * Sprite Sheet Editor v0.4.0 alpha:
 	- Import of color sprite sheets or cutouts has been imporved
@@ -35,6 +29,9 @@ You can download the latest version of the tools here:
 	- Added search field
   * TX2 Editor v0.0.3 alpha:
 	- You now can convert to FONT (BGRA8888 16 Colors)
+===  04.12.2019 - v0.8.2 ===
+  * Disa PC File Manager v0.5.7 alpha:
+	- Added utility to modify memory allocation (Thx to Kelebek1) 
 ```
 
 ### Older versions:
@@ -45,8 +42,8 @@ You can download the latest version of the tools here:
 * [Version v0.6.7 alpha](https://www.dropbox.com/s/2lgtov7n53ychaa/Disgaea%20Tools%20v0.6.7%20alpha.zip?dl=0)
 * [Version v0.6.8 alpha](https://www.dropbox.com/s/k7s9hjm6igsrq1r/Disgaea%20Tools%20v0.6.8%20alpha.zip?dl=0)
 * [Version v0.7.2 alpha](https://www.dropbox.com/s/hc8bp3sat5wo1iz/Disgaea%20Tools%20v0.7.2%20alpha.zip?dl=0)
-* [Version v0.7.4 alpha](https://www.dropbox.com/s/3c77gpv3sm066n7/Disgaea%20Tools%20v0.7.4%20alpha.zip?dl=0)
 * [Version v0.7.9 alpha](https://www.dropbox.com/s/zxbocw141h5k4nx/Disgaea%20Tools%20v0.7.9%20alpha.zip?dl=0)
+* [Version v0.8.1 alpha](https://www.dropbox.com/s/0nwtwsl5uxnj4xa/Disgaea%20Tools%20v0.8.1%20alpha.zip?dl=0)
 ---
 
 [![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
