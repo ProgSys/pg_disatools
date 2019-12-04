@@ -133,9 +133,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //About
 	connect(ui->btnAboutQt, &QPushButton::clicked, this, [this]{ QMessageBox::aboutQt(this); } );
-
-	//Utils
-    connect(ui->btnIncMemSize, &QCheckBox::clicked, m_treeSort, [this](bool checked ){ m_treeSort->setFilterFileExtention("GEO", !checked); } );
 }
 
 MainWindow::~MainWindow()
@@ -849,11 +846,9 @@ void MainWindow::on_btnDelete_clicked()
 }
 
 void MainWindow::on_btnIncMemSize_clicked() {
-	auto i = 43;
-
 	IncreaseMemAlloc increaseMemAlloc(this);
-
-	increaseMemAlloc.exec();
+	if(increaseMemAlloc.hasSchema())
+		increaseMemAlloc.exec();
 }
 
 bool MainWindow::checkValid(){

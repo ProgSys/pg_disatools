@@ -29,6 +29,7 @@ class IncreaseMemAlloc : public QDialog
 
 public:
     explicit IncreaseMemAlloc(QWidget *parent = 0);
+	inline bool hasSchema() const { return !m_schema.empty(); }
 
     ~IncreaseMemAlloc();
 
@@ -37,6 +38,7 @@ private slots:
 	* @brief Is called when the user has selected an exe.
 	*/
 	void locate(const QString& path);
+
 private:
 	/*!
 	* @brief Will load 'allocMemSearch.txt' into memory.

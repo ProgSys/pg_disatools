@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>539</width>
-    <height>699</height>
+    <width>559</width>
+    <height>823</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -39,6 +39,9 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="rightMargin">
+        <number>1</number>
+       </property>
        <item>
         <widget class="QTreeView" name="treeView">
          <attribute name="headerDefaultSectionSize">
@@ -66,20 +69,233 @@
          <property name="frameShadow">
           <enum>QFrame::Raised</enum>
          </property>
-         <widget class="QPushButton" name="btnDelete">
-          <property name="enabled">
-           <bool>false</bool>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>2</number>
           </property>
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>360</y>
-            <width>181</width>
-            <height>23</height>
-           </rect>
+          <property name="leftMargin">
+           <number>1</number>
           </property>
-          <property name="styleSheet">
-           <string notr="true">QPushButton
+          <property name="topMargin">
+           <number>1</number>
+          </property>
+          <property name="rightMargin">
+           <number>1</number>
+          </property>
+          <property name="bottomMargin">
+           <number>1</number>
+          </property>
+          <item>
+           <widget class="QPushButton" name="btnOpen">
+            <property name="text">
+             <string>Open</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnSaveAs">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Save As</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnSave">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Save</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QGroupBox" name="groupBox">
+            <property name="title">
+             <string>Filters</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_2">
+             <item row="3" column="0">
+              <widget class="QCheckBox" name="checkBox_OGG">
+               <property name="text">
+                <string>*.OGG</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QCheckBox" name="checkBox_MPD">
+               <property name="text">
+                <string>*.MPD</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QCheckBox" name="checkBox_DAT">
+               <property name="text">
+                <string>*.DAT</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QCheckBox" name="checkBox_MPP">
+               <property name="text">
+                <string>*.MPP</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0">
+              <widget class="QCheckBox" name="checkBox_TX2">
+               <property name="text">
+                <string>*.TX2</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QCheckBox" name="checkBox_PBD">
+               <property name="text">
+                <string>*.PBD</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="1">
+              <widget class="QCheckBox" name="checkBox_GEO">
+               <property name="text">
+                <string>*.GEO</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QCheckBox" name="checkBox_PHD">
+               <property name="text">
+                <string>*.PHD</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QCheckBox" name="checkBox_FFM">
+               <property name="text">
+                <string>*.FFM</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QCheckBox" name="checkBox_ARC">
+               <property name="text">
+                <string>*.ARC</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QCheckBox" name="checkBox_PNG">
+               <property name="text">
+                <string>*.PNG</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QCheckBox" name="checkBox_FAD">
+               <property name="text">
+                <string>*.FAD</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_search">
+            <property name="placeholderText">
+             <string>Search</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="btnAbout">
+              <property name="text">
+               <string>About</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="btnAboutQt">
+              <property name="text">
+               <string>About Qt</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnExtract">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Extract selected</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnInsert">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Insert files</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnDelete">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton
 {
     background-color: #ff9c85;
 	border-style: solid;
@@ -94,300 +310,78 @@ QPushButton:!enabled
 {
      background-color: #f8cdc3;
 }</string>
-          </property>
-          <property name="text">
-           <string>Delete selected</string>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btnAbout">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>270</y>
-            <width>81</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>About</string>
-          </property>
-         </widget>
-         <widget class="QGroupBox" name="groupBox">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>60</y>
-            <width>181</width>
-            <height>171</height>
-           </rect>
-          </property>
-          <property name="title">
-           <string>Filters</string>
-          </property>
-          <layout class="QGridLayout" name="gridLayout_2">
-           <item row="3" column="0">
-            <widget class="QCheckBox" name="checkBox_OGG">
-             <property name="text">
-              <string>*.OGG</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="checkBox_MPD">
-             <property name="text">
-              <string>*.MPD</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="checkBox_DAT">
-             <property name="text">
-              <string>*.DAT</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="checkBox_MPP">
-             <property name="text">
-              <string>*.MPP</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QCheckBox" name="checkBox_TX2">
-             <property name="text">
-              <string>*.TX2</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QCheckBox" name="checkBox_PBD">
-             <property name="text">
-              <string>*.PBD</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QCheckBox" name="checkBox_GEO">
-             <property name="text">
-              <string>*.GEO</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QCheckBox" name="checkBox_PHD">
-             <property name="text">
-              <string>*.PHD</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="checkBox_FFM">
-             <property name="text">
-              <string>*.FFM</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QCheckBox" name="checkBox_ARC">
-             <property name="text">
-              <string>*.ARC</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QCheckBox" name="checkBox_PNG">
-             <property name="text">
-              <string>*.PNG</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="checkBox_FAD">
-             <property name="text">
-              <string>*.FAD</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-         <widget class="QPushButton" name="btnOpen">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>0</y>
-            <width>181</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Open</string>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btnExtract">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>300</y>
-            <width>181</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Extract selected</string>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btnInsert">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>330</y>
-            <width>181</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Insert files</string>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btnSave">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>30</y>
-            <width>81</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Save</string>
-          </property>
-         </widget>
-         <widget class="ItemPreview" name="imagePreview">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>390</y>
-            <width>181</width>
-            <height>181</height>
-           </rect>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background-color: gray;</string>
-          </property>
-          <property name="verticalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
-          </property>
-          <property name="horizontalScrollBarPolicy">
-           <enum>Qt::ScrollBarAlwaysOff</enum>
-          </property>
-          <property name="sizeAdjustPolicy">
-           <enum>QAbstractScrollArea::AdjustToContents</enum>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btnSaveAs">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="geometry">
-           <rect>
-            <x>100</x>
-            <y>30</y>
-            <width>81</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Save As</string>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btnAboutQt">
-          <property name="geometry">
-           <rect>
-            <x>100</x>
-            <y>270</y>
-            <width>81</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>About Qt</string>
-          </property>
-         </widget>
-         <widget class="QPushButton" name="btnExtractImage">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>580</y>
-            <width>181</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="text">
-           <string>Export image</string>
-          </property>
-         </widget>
-         <widget class="QLineEdit" name="lineEdit_search">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>240</y>
-            <width>181</width>
-            <height>20</height>
-           </rect>
-          </property>
-          <property name="placeholderText">
-           <string>Search</string>
-          </property>
-         </widget>
+            </property>
+            <property name="text">
+             <string>Delete selected</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="ItemPreview" name="imagePreview">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>177</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>177</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">background-color: gray;</string>
+            </property>
+            <property name="verticalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="horizontalScrollBarPolicy">
+             <enum>Qt::ScrollBarAlwaysOff</enum>
+            </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QAbstractScrollArea::AdjustToContents</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnExtractImage">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>Export image</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Tools:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btnIncMemSize">
+            <property name="text">
+             <string>Increase memory allocation</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
       </layout>
@@ -400,8 +394,8 @@ QPushButton:!enabled
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>539</width>
-     <height>21</height>
+     <width>559</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>
