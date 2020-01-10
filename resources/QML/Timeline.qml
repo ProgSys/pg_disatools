@@ -273,7 +273,6 @@ Rectangle {
 			//mirror
 			CheckBox {
 				text: qsTr("H")
-				//tooltip: "Mirror horizontally"
 				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.mirroredHorizontally: 0
 				onClicked:{ 
 					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.mirroredHorizontally = !selectedItem.keyframeModel.mirroredHorizontally ; timeline.updateTimeline();}
@@ -281,17 +280,23 @@ Rectangle {
 							return (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.mirroredHorizontally: 0;
 						});
 					}
+					
+				PGToolTip {
+					text: "Mirror horizontally"
+				}
 			}
 			
 			CheckBox {
 				text: qsTr("V")
-				//tooltip: "Mirror vertically"
 				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.mirroredVertically: 0
 				onClicked:{ 
 					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.mirroredVertically = !selectedItem.keyframeModel.mirroredVertically ; timeline.updateTimeline();}
 					checked = Qt.binding(function () { // restore the binding
 							return (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.mirroredVertically: 0;
 						});
+				}
+				PGToolTip {
+					text: "Mirror vertically"
 				}
 			}
 			
@@ -304,6 +309,9 @@ Rectangle {
 					checked = Qt.binding(function () { // restore the binding
 							return (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.adaptive: 0;
 						});
+				}
+				PGToolTip {
+					text: "Adaptive render mode"
 				}
 			}
 			
@@ -377,25 +385,40 @@ Rectangle {
 			height: 20
 			color: "gray"
 			Row{
-				Button {
-					height: 20
-					width: 20
-					text: "-"
-					onClicked: (timeline.steps <= 5)? timeline.steps = 5: timeline.steps -= 5 ;
-				}
-				
+			
 				Button {
 					height: 20
 					width: 20
 					text: "+"
 					onClicked: (timeline.steps >= 200)? timeline.steps = 200 : timeline.steps +=5;
+					
+					PGToolTip {
+						text: "Zoom in"
+					}
 				}
+				
+				Button {
+					height: 20
+					width: 20
+					text: "-"
+					onClicked: (timeline.steps <= 5)? timeline.steps = 5: timeline.steps -= 5 ;
+					
+					PGToolTip {
+						text: "Zoom out"
+					}
+				}
+				
+
 				
 				Button {
 					height: 20
 					width: 20
 					text: "R"
 					onClicked: timeline.steps = 10;
+					
+					PGToolTip {
+						text: "Reset zoom"
+					}
 				}
 				
 				
@@ -405,7 +428,10 @@ Rectangle {
 					text: ""
 					iconSource: "../materials/icons/newlayer_s.png"
 					onClicked: if(timeline.animation) timeline.animation.addLayer()
-					//TooltipArea {text: "Create new layer"}
+					
+					PGToolTip {
+						text: "Create new layer"
+					}
 				}
 				
 				Button {
@@ -414,7 +440,10 @@ Rectangle {
 					text: ""
 					iconSource: (snapMove)? "../materials/icons/snap_move_base_on.png": "../materials/icons/snap_move_base_off.png"
 					onClicked: snapMove = !snapMove
-					//TooltipArea {text: "Create new layer"}
+					
+					PGToolTip {
+						text: "Snap move" + (snapMove? " is on": " is off");
+					}
 				}
 			}
 		}

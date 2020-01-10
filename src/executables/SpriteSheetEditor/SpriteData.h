@@ -495,18 +495,49 @@ Q_DECLARE_METATYPE( SpriteSheet* );
 class SpriteData : public QAbstractListModel{
 	 Q_OBJECT
 	 Q_PROPERTY(int animationsSize READ getNumberOfAnimations NOTIFY onNumberOfAnimationsChanged)
-	 Q_PROPERTY(int currentAnimationIndex READ getCurrentAnimationIndex  WRITE setCurrentAnimationByIndex NOTIFY onCurrentAnimationChanged)
-	 Q_PROPERTY(int cutoutSize READ getNumberOfCutouts  NOTIFY onNumberOfCutoutsChanged)
-	 Q_PROPERTY(int colortableSize READ getNumberOfColortableSets  NOTIFY numberOfColorTablesChanged)
-	 Q_PROPERTY(int colorTablesNumber READ getNumberOfColortables  NOTIFY numberOfColorTablesChanged)
-	 Q_PROPERTY(int colorsSize READ getNumberOfColors  NOTIFY numberOfColorTablesChanged)
-	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets  NOTIFY numberOfSheetsChanged)
-	 Q_PROPERTY(int colorTable READ getCurrentColorTable WRITE setCurrentColorTable   NOTIFY currentColorTableChanged)
+	 Q_PROPERTY(int currentAnimationIndex READ getCurrentAnimationIndex WRITE setCurrentAnimationByIndex NOTIFY onCurrentAnimationChanged)
+	 Q_PROPERTY(int cutoutSize READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
+	 Q_PROPERTY(int colortableSize READ getNumberOfColortableSets NOTIFY numberOfColorTablesChanged)
+	 Q_PROPERTY(int colorTablesNumber READ getNumberOfColortables NOTIFY numberOfColorTablesChanged)
+	 Q_PROPERTY(int colorsSize READ getNumberOfColors NOTIFY numberOfColorTablesChanged)
+	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets NOTIFY numberOfSheetsChanged)
 
+	 Q_PROPERTY(int colorTable READ getCurrentColorTable WRITE setCurrentColorTable NOTIFY currentColorTableChanged)
+	 Q_PROPERTY(bool isolateSelection READ getIsolateSelection WRITE setIsolateSelection NOTIFY isolateSelectionChanged)
+
+	 Q_PROPERTY(Cutout* selected READ getSelected WRITE setSelected NOTIFY selectedChanged)
 	 Q_PROPERTY(QString fileName READ getLastFileName NOTIFY onLastFileNameChanged)
 	 Q_PROPERTY(SpriteAnimation* animation READ getCurrentAnimation NOTIFY onCurrentAnimationChanged)
 	 Q_PROPERTY(Keyframe* selectedKey READ getSelectedKey WRITE setSelectedKey NOTIFY selectedKeyChanged)
 	 Q_PROPERTY(QColorTable colortable READ getColorTable NOTIFY currentColorTableChanged)
+
+signals:
+	void onNumberOfAnimationsChanged();
+	void onCurrentAnimationChanged();
+	void onAnimationChanged(SpriteAnimation* ani);
+	void onLastFileNameChanged();
+	void onSelectionChanged();
+	void onNumberOfCutoutsChanged();
+
+	void selectedChanged();
+	void selectedKeyChanged();
+
+	void numberOfColorTablesChanged();
+	void currentColorTableChanged();
+	void isolateSelectionChanged();
+	void allColorTablesChanged();
+	void colorTableChanged(int colorTableIndex);
+	void colorTableAdded(int spritesheetID);
+	void colorTableRemoved(int colorTableIndex);
+
+	void numberOfSheetsChanged();
+	void allSpriteSheetsChanged();
+	void spriteSheetChanged(int spritesheetID);
+	void spriteSheetAdded();
+	void spriteSheetRemoved(int spritesheetID);
+
+	void refresh();
+
 public:
 	SpriteData(QObject *parent = 0);
 	virtual ~SpriteData();
@@ -523,6 +554,7 @@ public:
 	int getNumberOfSpriteSheets() const;
 	int getCurrentAnimationIndex() const;
 	QString getLastFileName() const;
+	bool getIsolateSelection() const { return m_isolateSelection; }
 
 	const QList<SpriteAnimation*>& getAnimations() const;
 	bool push_backAnimation(const QString& name, int ID);
@@ -535,11 +567,14 @@ public:
 	std::vector<PG::UTIL::rgba> getColortableGL(int index) const;
 	QImage getSprite(unsigned int CutoutID, unsigned int ColortableID) const;
 	const SpriteSheet* getSpriteSheet(unsigned int spriteID) const;
-	Keyframe* getSelectedKey();
+	inline Cutout* getSelected() const { return m_selected; }
+	inline Keyframe* getSelectedKey() const { return m_selectedKeyframe; };
 
 	//setters
 	void setCurrentAnimationByIndex(int index);
+	void setSelected(Cutout* cutout);
 	void setSelectedKey(Keyframe* key);
+	void setIsolateSelection(bool value);
 
 	void keyPressEvent(QKeyEvent * event);
 
@@ -625,30 +660,7 @@ public slots:
 	Q_INVOKABLE void renameCurrentAnimation(const QString& newName);
 	Q_INVOKABLE void renameAnimation(const QString& newName, unsigned int index);
 
-signals:
-	void onNumberOfAnimationsChanged();
-	void onCurrentAnimationChanged();
-	void onAnimationChanged(SpriteAnimation* ani);
-	void onLastFileNameChanged();
-	void onSelectionChanged();
-	void onNumberOfCutoutsChanged();
 
-	void selectedKeyChanged();
-
-	void numberOfColorTablesChanged();
-	void currentColorTableChanged();
-	void allColorTablesChanged();
-	void colorTableChanged(int colorTableIndex);
-	void colorTableAdded(int spritesheetID);
-	void colorTableRemoved(int colorTableIndex);
-
-	void numberOfSheetsChanged();
-	void allSpriteSheetsChanged();
-	void spriteSheetChanged(int spritesheetID);
-	void spriteSheetAdded();
-	void spriteSheetRemoved(int spritesheetID);
-
-	void refresh();
 private:
 	bool openPGSHv1(QDataStream& in);
 	bool openPGSHv2(QDataStream& in);
@@ -665,7 +677,10 @@ private:
 
 	QList<SpriteSheet*> m_spriteSheets;
 
-	Keyframe* m_selectedKeyframe;
+	Cutout* m_selected = nullptr;
+	Keyframe* m_selectedKeyframe = nullptr;
+
+	bool m_isolateSelection = false;
 };
 
 QDebug operator<< (QDebug d, const PG::UTIL::ivec2 &m);

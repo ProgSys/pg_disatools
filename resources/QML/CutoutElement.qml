@@ -29,7 +29,12 @@ Rectangle {
 			}
 		}
 		
-		visible: (cutout)? !cutout.hidden: false
+		visible: {
+			if(!cutout) return false;
+			if(spritedata.isolateSelection && selected)
+				return selected == cutout;
+			return !cutout.hidden;
+		}
 		x: cutout.x*zoom
 		y: cutout.y*zoom
 		

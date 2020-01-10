@@ -15,8 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef INCLUDE_SPRITESHEETEDITOR_SPRITEVIEWIMAGEPROVIDER_H_
-#define INCLUDE_SPRITESHEETEDITOR_SPRITEVIEWIMAGEPROVIDER_H_
+#pragma once
 
 #include <QImage>
 #include <QQuickImageProvider>
@@ -30,7 +29,5 @@ public:
 
 	virtual ~SpriteViewImageProvider();
 private:
-	SpriteData* m_data;
+	SpriteData* m_data = nullptr;
 };
-
-#endif /* INCLUDE_SPRITESHEETEDITOR_SPRITEVIEWIMAGEPROVIDER_H_ */
