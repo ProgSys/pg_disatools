@@ -1,4 +1,5 @@
 import QtQuick 2.4
+import QtQuick.Controls 2.0
 import MyTimeLine 0.1
 import MyKeyframe 0.1
 import MyCutout 0.1
@@ -14,6 +15,7 @@ Rectangle {
 	
 	property int activeSpriteSheet: 0
 	property var zoom: 2.0
+	//property alias selected: spritedata.selected
 	property var selected: 0
 
 	signal cutoutSelected(var id, var cutout)
@@ -35,7 +37,7 @@ Rectangle {
 	}
 	
 	Connections{
-		target:spritedata
+		target: spritedata
 		onCurrentColorTableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
 		onColorTableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
 		onAllColorTablesChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
@@ -148,10 +150,14 @@ Rectangle {
 				onClicked: {
 					if(spritedata.sheetsSize){
 						(activeSpriteSheet > 0)? activeSpriteSheet-- :  activeSpriteSheet = spritedata.sheetsSize-1 ;
-						selected = 0
+						selected = null
 						root.cutoutSelected(-1, selected);
 						spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 						}
+				}
+				
+				PGToolTip {
+					text: "Previous"
 				}
 			}
 			
@@ -167,10 +173,14 @@ Rectangle {
 				onClicked: {
 					if(spritedata.sheetsSize){
 							(activeSpriteSheet < spritedata.sheetsSize-1 )? activeSpriteSheet++ :  activeSpriteSheet = 0 ;
-							selected = 0
+							selected = null
 							root.cutoutSelected(-1, selected);
 							spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 						}
+				}
+				
+				PGToolTip {
+					text: "Next"
 				}
 			}
 			
@@ -181,6 +191,9 @@ Rectangle {
 				onClicked: {
 					(zoom >= 4)? zoom = 4 : zoom += 0.5
 				}
+				PGToolTip {
+					text: "Zoom in"
+				}
 			}
 			
 			Button {
@@ -189,6 +202,24 @@ Rectangle {
 				text: "-"
 				onClicked: {
 					(zoom <= 0.5)? zoom = 0.5 : zoom -= 0.5
+				}
+				PGToolTip {
+					text: "Zoom out"
+				}
+			}
+			Item{ width: 20; height: 1 }
+			
+			Button {
+				height: 24
+				width: 24
+				text: ""
+				iconSource: spritedata.isolateSelection? "../materials/icons/isolate_selection_on.png": "../materials/icons/isolate_selection_off.png"
+				onClicked: {
+					spritedata.isolateSelection = !spritedata.isolateSelection;
+				}
+				
+				PGToolTip {
+					text: "Isolate selection"
 				}
 			}
 			
@@ -202,6 +233,10 @@ Rectangle {
 				onClicked: {
 					spritedata.addCutout(activeSpriteSheet);
 				}
+				
+				PGToolTip {
+					text: "Add new sprite"
+				}
 			}
 			
 			Button {
@@ -212,6 +247,10 @@ Rectangle {
 				onClicked: {
 					spritedata.addNewSpriteSheet();
 				}
+				
+				PGToolTip {
+					text: "Add new sprite sheet"
+				}
 			}
 			
 			Button {
@@ -221,6 +260,10 @@ Rectangle {
 				iconSource: "../materials/icons/settings.png"
 				onClicked: {
 					spritedata.editSpriteSheet(activeSpriteSheet);
+				}
+				
+				PGToolTip {
+					text: "Sprite sheet settings"
 				}
 			}
 			
