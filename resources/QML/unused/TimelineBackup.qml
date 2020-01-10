@@ -92,7 +92,7 @@ Rectangle {
 			spacing: 3
 			visible: !selectedItem || (selectedItem && selectedItem.elementType == 0)
 			//start
-			Image{source: "../resources/materials/icons/start.png" 
+			Image{source: "../materials/icons/start.png" 
 				TooltipArea {text: "Keyframe starting frame"}
 			}
 			TextField {
@@ -110,7 +110,7 @@ Rectangle {
 					}
 			}
 			//diration
-			Image{source: "../resources/materials/icons/duration.png"
+			Image{source: "../materials/icons/duration.png"
 				TooltipArea {text: "Keyframe duration"}
 			}
 			TextField {
@@ -127,7 +127,7 @@ Rectangle {
 			}
 			
 			//end
-			Image{source: "../resources/materials/icons/end.png"
+			Image{source: "../materials/icons/end.png"
 				TooltipArea {text: "Keyframe end frame"}
 			}
 			TextField {
@@ -144,7 +144,7 @@ Rectangle {
 			}
 			
 			//spriteID
-			Image{source: "../resources/materials/icons/spriteid.png"
+			Image{source: "../materials/icons/spriteid.png"
 				TooltipArea {text: "Sprite ID"}
 			}
 			TextField {
@@ -161,7 +161,7 @@ Rectangle {
 			}
 			
 			//collortableID
-			Image{source: "../resources/materials/icons/colortable.png"
+			Image{source: "../materials/icons/colortable.png"
 				TooltipArea {text: "Colortable ID"}
 			}
 			TextField {
@@ -178,7 +178,7 @@ Rectangle {
 			}
 			
 			//anchor
-			Image{source: "../resources/materials/icons/anchor.png"
+			Image{source: "../materials/icons/anchor.png"
 				TooltipArea {text: "Anchor"}
 			}
 			TextField {
@@ -198,7 +198,7 @@ Rectangle {
 			
 			
 			//Offset
-			Image{source: "../resources/materials/icons/position.png"
+			Image{source: "../materials/icons/position.png"
 				TooltipArea {text: "Offset"}
 			}
 			TextField {
@@ -215,7 +215,7 @@ Rectangle {
 			}
 			
 			//Scale
-			Image{source: "../resources/materials/icons/scale.png"
+			Image{source: "../materials/icons/scale.png"
 				TooltipArea {text: "Scale"}
 			}
 			TextField {
@@ -232,7 +232,7 @@ Rectangle {
 			}
 			
 			//Rotation
-			Image{source: "../resources/materials/icons/rotation.png"
+			Image{source: "../materials/icons/rotation.png"
 				TooltipArea {text: "Rotation"}
 			}
 			TextField {
@@ -243,7 +243,7 @@ Rectangle {
 			}
 			
 			//Mirror
-			Image{source: "../resources/materials/icons/mirror.png"
+			Image{source: "../materials/icons/mirror.png"
 				TooltipArea {text: "Mirror"}
 			}
 			TextField {
@@ -273,7 +273,7 @@ Rectangle {
 			visible: selectedItem && selectedItem.elementType == 1
 			
 			//start
-			Image{source: "../resources/materials/icons/start.png" 
+			Image{source: "../materials/icons/start.png" 
 				TooltipArea {text: "Marker starting frame"}
 			}
 			TextField {
@@ -362,7 +362,7 @@ Rectangle {
 					height: 20
 					width: 20
 					text: ""
-					iconSource: "../resources/materials/icons/newlayer_s.png"
+					iconSource: "../materials/icons/newlayer_s.png"
 					onClicked: if(timeline.animation) timeline.animation.addLayer()
 					//TooltipArea {text: "Create new layer"}
 				}
@@ -448,7 +448,7 @@ Rectangle {
 									anchors.right: parent.right
 									anchors.rightMargin: 4
 									anchors.topMargin: 4
-									source: "../resources/materials/icons/openeye.png"
+									source: "../materials/icons/openeye.png"
 									
 									width: 19
 									height: 19
@@ -457,10 +457,10 @@ Rectangle {
 										anchors.fill: parent
 										onClicked: {
 											if(layerModel.hidden){
-												parent.source = "../resources/materials/icons/openeye.png"
+												parent.source = "../materials/icons/openeye.png"
 												layerModel.hidden = false
 											}else{
-												parent.source = "../resources/materials/icons/closedeye.png"
+												parent.source = "../materials/icons/closedeye.png"
 												layerModel.hidden = true
 											}
 											timeline.updateTimeline()
@@ -631,7 +631,7 @@ Rectangle {
 						Image {
 							anchors.fill: parent
 							fillMode: Image.Tile
-							source: "../resources/marker_bg_loop.png"
+							source: "../marker_bg_loop.png"
 							
 							Menu { 
 								id: markersMenu

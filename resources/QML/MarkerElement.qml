@@ -28,14 +28,14 @@ Rectangle {
 		if(mouseArea.containsMouse || isSelected)
 			return "white"
 		if(markerModel.type == 1){
-			return (markerModel.a || markerModel.b)? "lightgreen":"green"
+			return (markerModel.x || markerModel.y)? "lightgreen":"green"
 		}else if(markerModel.type == 2){
-			return (markerModel.a || markerModel.b)? "orange":"red"
+			return (markerModel.x || markerModel.y)? "orange":"red"
 		}else if(markerModel.type == 3){
-			return (markerModel.a || markerModel.b)? "lightblue":"blue"
+			return (markerModel.x || markerModel.y)? "lightblue":"blue"
 		}else if(markerModel.type == 15){
-			return (markerModel.a || markerModel.b)? "#f486db":"#ff00f0"
-		}else if(markerModel.a || markerModel.b){
+			return (markerModel.x || markerModel.y)? "#f486db":"#ff00f0"
+		}else if(markerModel.x || markerModel.y){
 			return "yellow"
 		}
 		return "gray"

@@ -19,7 +19,7 @@ if(MINGW)
 #if MSVC you must build glew-cmake
 find_library( EXTERNAL_GLEW_LIBRARIES_RELEASE
 		  NAMES libglew
-		  HINTS "${CMAKE_BINARY_DIR}" HINTS "${CMAKE_BINARY_DIR}/mingw" "${PROJECT_EXTERNALS_PATH}/glew-cmake" "${PROJECT_EXTERNALS_PATH}/glew"
+		  HINTS "${PROJECT_EXTERNALS_PATH}/glew-cmake" "${PROJECT_EXTERNALS_PATH}/glew"
 		  PATH_SUFFIXES "lib" "lib/Release" "lib/Debug/x64"
 		)
 		
@@ -31,14 +31,14 @@ find_library( EXTERNAL_GLEW_LIBRARIES_DEBUG
 elseif(MSVC)
 #if MSVC you must build glew-cmake
 find_library( EXTERNAL_GLEW_LIBRARIES_RELEASE
-		  NAMES glew
-		  HINTS "${CMAKE_BINARY_DIR}" HINTS "${CMAKE_BINARY_DIR}/mingw" "${PROJECT_EXTERNALS_PATH}/glew-cmake" "${PROJECT_EXTERNALS_PATH}/glew"
-		  PATH_SUFFIXES "lib" "lib/Release" "lib/Debug/x64"
+		  NAMES glew32
+		  HINTS "${PROJECT_EXTERNALS_PATH}/glew-cmake" "${PROJECT_EXTERNALS_PATH}/glew"
+		  PATH_SUFFIXES "lib" "lib/Release" "lib/Release/x64"
 		)
 		
 find_library( EXTERNAL_GLEW_LIBRARIES_DEBUG
-        NAMES glewd
-		HINTS "${CMAKE_BINARY_DIR}" "${PROJECT_EXTERNALS_PATH}/glew-cmake" "${PROJECT_EXTERNALS_PATH}/glew"
+        NAMES glew32d
+		HINTS "${PROJECT_EXTERNALS_PATH}/glew-cmake" "${PROJECT_EXTERNALS_PATH}/glew"
 		PATH_SUFFIXES "lib" "lib/Debug" "lib/Debug/x64"
 		)
 else()

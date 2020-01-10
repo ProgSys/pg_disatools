@@ -474,20 +474,20 @@ void GLSpriteWidget::paintGL(){
 		//shadow
 		if(m_displayShadow){
 			modelMatrix = PG::UTIL::mat4();
-			modelMatrix[0][0] = 0.5;
-			modelMatrix[1][1] = 0.5;
-			modelMatrix[2][2] = 0.5;
+			modelMatrix[0][0] = 0.5f;
+			modelMatrix[1][1] = 0.5f;
+			modelMatrix[2][2] = 0.5f;
 
-			modelMatrix[3][0] = -0.2;
-			modelMatrix[3][1] = 0.02;
-			modelMatrix[3][2] = -0.2;
-			modelMatrix[3][3] = 1;
+			modelMatrix[3][0] = -0.2f;
+			modelMatrix[3][1] = 0.02f;
+			modelMatrix[3][2] = -0.2f;
+			modelMatrix[3][3] = 1.0f;
 
 			PG::UTIL::mat4 rotMat(0);
-			rotMat[0][0] = 1;
-			rotMat[1][2] = -1;
-			rotMat[2][1] = 1;
-			rotMat[3][3] = 1;
+			rotMat[0][0] = 1.0f;
+			rotMat[1][2] = -1.0f;
+			rotMat[2][1] = 1.0f;
+			rotMat[3][3] = 1.0f;
 			modelMatrix = modelMatrix*rotMat;
 
 			m_objectShader.apply(modelMatrix, viewMatrix, perspectiveMatrix);
