@@ -30,7 +30,7 @@ Rectangle {
 	border.width: 1
 	
 	border.color:  isSelected? "red" : mouseArea.containsMouse ? "green": "black" 
-	color: isSelected? "#2897c5" : mouseArea.containsMouse ? "#a3d3ff": "white"
+	color: isSelected? "#2897c5" : mouseArea.containsMouse ? "#a3d3ff": (keyframeModel.cutoutID == selectedCutoutID)? "#d7ecff": "white"
 	
 	Image {
 		id: imagepreview
@@ -46,14 +46,17 @@ Rectangle {
 		fillMode: Image.PreserveAspectFit
 		cache: false
 		smooth: false
-		source: "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID//keyframeModel.image //"../resources/test.jpg"
+		source: "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID
 	}
-	/*
+	
 	Connections {
-		target: thePublisherObjectExposedFromC++
-		onNewImage: imagepreview.setImage(image)
+		target: spritedata
+		onColorTableChanged: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
+		onCurrentColorTableChanged: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
+		onRefresh: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
+		onAllColorTablesChanged: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
 	}
-	*/
+
 	
 	Rectangle {
 		
@@ -100,7 +103,157 @@ Rectangle {
 			}
 		}
 		MenuSeparator { }
+		
 		MenuItem {
+			text: qsTr('Center anchor')
+			onTriggered:{
+				if(keyframeModel) { 
+					keyframeModel.anchorx = -spritedata.getCutout(keyframeModel.cutoutID).width/2;
+					keyframeModel.anchory = -spritedata.getCutout(keyframeModel.cutoutID).height/2;
+				}
+			}
+		}
+		
+		MenuItem {
+			text: qsTr('Replace')
+			enabled: selectedCutoutID != -1
+			onTriggered:{
+				if(keyframeModel) { 
+					keyframeModel.cutoutID = selectedCutoutID ; keyframeModel.colortableID = selectedCutout.colortable  
+				}
+			}
+		}
+		
+		MenuItem {
+			text: qsTr('Replace fit')
+			enabled: selectedCutoutID != -1
+			onTriggered:{
+				if(keyframeModel) { 
+					var oldCutout = spritedata.getCutout(keyframeModel.cutoutID)
+					keyframeModel.scalex = 100* (((keyframeModel.scalex/100.0)*oldCutout.width)/selectedCutout.width)
+					keyframeModel.scaley = 100* (((keyframeModel.scaley/100.0)*oldCutout.height)/selectedCutout.height)
+					keyframeModel.anchorx = (keyframeModel.anchorx/oldCutout.width) * selectedCutout.width;
+					keyframeModel.anchory = (keyframeModel.anchory/oldCutout.height) * selectedCutout.height;
+					keyframeModel.cutoutID = selectedCutoutID ; keyframeModel.colortableID = selectedCutout.colortable  
+				}
+			}
+		}
+		
+		Menu {
+			title: qsTr('Copy from selected')
+			enabled: selectedItem && selectedItem.elementType == 0
+			MenuItem {
+				text: "All"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						keyframeModel.cutoutID = selectedItem.keyframeModel.cutoutID;
+						keyframeModel.colortableID = selectedItem.keyframeModel.colortable 
+						keyframeModel.scalex = selectedItem.keyframeModel.scalex;
+						keyframeModel.scaley = selectedItem.keyframeModel.scaley;
+						keyframeModel.offsetx = selectedItem.keyframeModel.offsetx;
+						keyframeModel.offsety = selectedItem.keyframeModel.offsety
+						keyframeModel.anchorx = selectedItem.keyframeModel.anchorx;
+						keyframeModel.anchory = selectedItem.keyframeModel.anchory;
+						keyframeModel.rotation = selectedItem.keyframeModel.rotation;
+						
+						keyframeModel.transparency = selectedItem.keyframeModel.transparency;
+						keyframeModel.mirroredHorizontally = selectedItem.keyframeModel.mirroredHorizontally;
+						keyframeModel.mirroredVertically = selectedItem.keyframeModel.mirroredVertically;
+						keyframeModel.adaptive = selectedItem.keyframeModel.adaptive;
+					}
+				}
+			}
+			MenuItem {
+				text: "All without ID"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						keyframeModel.scalex = selectedItem.keyframeModel.scalex;
+						keyframeModel.scaley = selectedItem.keyframeModel.scaley;
+						keyframeModel.offsetx = selectedItem.keyframeModel.offsetx;
+						keyframeModel.offsety = selectedItem.keyframeModel.offsety
+						keyframeModel.anchorx = selectedItem.keyframeModel.anchorx;
+						keyframeModel.anchory = selectedItem.keyframeModel.anchory;
+						keyframeModel.rotation = selectedItem.keyframeModel.rotation;
+						
+						keyframeModel.transparency = selectedItem.keyframeModel.transparency;
+						keyframeModel.mirroredHorizontally = selectedItem.keyframeModel.mirroredHorizontally;
+						keyframeModel.mirroredVertically = selectedItem.keyframeModel.mirroredVertically;
+						keyframeModel.adaptive = selectedItem.keyframeModel.adaptive;
+					}
+				}
+			}
+			MenuItem {
+				text: "Fit to selected"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						var selectedCutout = spritedata.getCutout(selectedItem.keyframeModel.cutoutID)
+						var currentCutout = spritedata.getCutout(keyframeModel.cutoutID)
+						keyframeModel.scalex = selectedItem.keyframeModel.scalex * (selectedCutout.width/currentCutout.width)
+						keyframeModel.scaley = selectedItem.keyframeModel.scaley * (selectedCutout.height/currentCutout.height)
+					    keyframeModel.anchorx = selectedItem.keyframeModel.anchorx * (currentCutout.width/selectedCutout.width)
+						keyframeModel.anchory = selectedItem.keyframeModel.anchory * (currentCutout.height/selectedCutout.height)
+
+						keyframeModel.offsetx = selectedItem.keyframeModel.offsetx;
+						keyframeModel.offsety = selectedItem.keyframeModel.offsety
+						keyframeModel.rotation = selectedItem.keyframeModel.rotation;
+						
+						keyframeModel.transparency = selectedItem.keyframeModel.transparency;
+						keyframeModel.mirroredHorizontally = selectedItem.keyframeModel.mirroredHorizontally;
+						keyframeModel.mirroredVertically = selectedItem.keyframeModel.mirroredVertically;
+						keyframeModel.adaptive = selectedItem.keyframeModel.adaptive;
+					}
+				}
+			}
+			MenuSeparator { }
+			MenuItem {
+				text: "Offset"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						keyframeModel.offsetx = selectedItem.keyframeModel.offsetx;
+						keyframeModel.offsety = selectedItem.keyframeModel.offsety
+					}
+				}
+			}
+            MenuItem {
+				text: "Scale"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						keyframeModel.scalex = selectedItem.keyframeModel.scalex;
+						keyframeModel.scaley = selectedItem.keyframeModel.scaley;
+					}
+				}
+			}
+			MenuItem {
+				text: "Anchor"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						keyframeModel.anchorx = selectedItem.keyframeModel.anchorx;
+						keyframeModel.anchory = selectedItem.keyframeModel.anchory;
+					}
+				}
+			}
+			MenuItem {
+				text: "Rotation"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						keyframeModel.rotation = selectedItem.keyframeModel.rotation;
+					}
+				}
+			}
+			MenuItem {
+				text: "Mirror"
+				onTriggered:{
+					if(selectedItem && selectedItem.elementType == 0) { 
+						keyframeModel.mirroredHorizontally = selectedItem.keyframeModel.mirroredHorizontally;
+						keyframeModel.mirroredVertically = selectedItem.keyframeModel.mirroredVertically;
+					}
+				}
+			}
+		}
+		
+		MenuSeparator { }
+		MenuItem {
+			iconSource:  "../materials/icons/delete.png"
 			text: qsTr('Delete')
 			onTriggered:{
 				if(layerModel) { layerModel.removeKeyframe(keyframeModel); timeline.updateTimeline(); }

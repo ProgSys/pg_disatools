@@ -91,14 +91,14 @@ bool SH::open(const PG::UTIL::File& file){
 		m_keyframesData.resize(m_header.number_of_keyframes);
 		m_cutouts.resize(m_header.number_of_cutouts);
 
-		reader.read((char*)&m_animations[0],m_animations.size()*sizeof(shfileAnimation) );
-		reader.read((char*)&m_layers[0],m_layers.size()*sizeof(shfileLayers) );
-		reader.read((char*)&m_numberOfColortables[0],m_numberOfColortables.size()*sizeof(unsigned int) );
-		reader.read((char*)&m_sheetsInfos[0],m_sheetsInfos.size()*sizeof(shfileSheetInfo) );
+		reader.read((char*)m_animations.data(), m_animations.size()*sizeof(shfileAnimation) );
+		reader.read((char*)m_layers.data(),m_layers.size()*sizeof(shfileLayers) );
+		reader.read((char*)m_numberOfColortables.data(),m_numberOfColortables.size()*sizeof(unsigned int) );
+		reader.read((char*)m_sheetsInfos.data(),m_sheetsInfos.size()*sizeof(shfileSheetInfo) );
 		reader.seek(m_addresses[0]);
-		reader.read((char*)&m_keyframesData[0],m_keyframesData.size()*sizeof(shfileKeyframe) );
+		reader.read((char*)m_keyframesData.data(),m_keyframesData.size()*sizeof(shfileKeyframe) );
 		reader.seek(m_addresses[1]);
-		reader.read((char*)&m_cutouts[0],m_cutouts.size()*sizeof(shfileCutout) );
+		reader.read((char*)m_cutouts.data(),m_cutouts.size()*sizeof(shfileCutout) );
 
 
 		//read colortables

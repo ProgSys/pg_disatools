@@ -8,7 +8,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.0
 
 Rectangle { 
-	
+	id: root
     SystemPalette { id: activePalette }
     color: activePalette.dark
 	
@@ -16,6 +16,8 @@ Rectangle {
 	property var zoom: 2.0
 	property var selected: 0
 
+	signal cutoutSelected(var id, var cutout)
+	
 	function getAbsolutePosition(node) {
       var returnPos = {};
       returnPos.x = 0;
@@ -28,14 +30,24 @@ Rectangle {
       return returnPos;
 	}
 	
+	function getPosX(mouse){
+		return Math.round((scroll.flickableItem.contentX +mouse.x)/zoom);
+	}
+	
 	Connections{
 		target:spritedata
-		onColortableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onCurrentColorTableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onColorTableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onAllColorTablesChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onSpriteSheetChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
 	}
 	
   	Connections{
 		target: spritedata.getSpriteSheet(activeSpriteSheet)
 		onOnNumberOfCutoutsChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onOnWidthChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onOnHeightChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onNumberOfColorsChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
 	}
 	
 	Menu { 
@@ -50,12 +62,40 @@ Rectangle {
 		}
 		
 		MenuItem {
-			text: qsTr('Add sprite')
+			text: qsTr('Add sprite at ('+contextMenu.posX+", "+contextMenu.posY+")")
 			onTriggered:{
-				spritedata.addCutout(activeSpriteSheet,parent.posX,parent.posY,20,20)
+				spritedata.addCutout(activeSpriteSheet,contextMenu.posX,contextMenu.posY,20,20)
 				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 			}
 		}
+		
+		MenuSeparator { }
+		
+		MenuItem {
+			text: qsTr('Import sheet as color')
+			onTriggered:{
+				spritedata.importSpriteAsColorForSheet(activeSpriteSheet)
+				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+			}
+		}
+		
+		MenuItem {
+			text: qsTr('Import sheet as IDs')
+			onTriggered:{
+				spritedata.importSpriteAsIDs(activeSpriteSheet, 0,0, spritedata.getSpriteSheet(activeSpriteSheet).width, spritedata.getSpriteSheet(activeSpriteSheet).height)
+				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+			}
+		}
+		
+		MenuSeparator { }
+		MenuItem {
+			text: qsTr('Auto find cutouts')
+			onTriggered:{
+				spritedata.autoFindCutouts(activeSpriteSheet)
+				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+			}
+		}
+		
 	}
 
 		
@@ -68,11 +108,15 @@ Rectangle {
 		MouseArea {
 			anchors.fill: parent
 			hoverEnabled: true
-			acceptedButtons: Qt.RightButton
+			acceptedButtons: Qt.LeftButton | Qt.RightButton
 			onClicked: { 
-					contextMenu.posX = mouse.x;
-					contextMenu.posY = mouse.y;
-					contextMenu.popup();
+					if(mouse.button & Qt.LeftButton){
+						if(selected) {selected = 0; root.cutoutSelected(-1, selected);} 
+					}else{
+						contextMenu.posX = Math.round((scroll.flickableItem.contentX +mouse.x)/zoom);
+						contextMenu.posY = Math.round((scroll.flickableItem.contentY +mouse.y-25)/zoom);
+						contextMenu.popup();
+					}
 				}
 				
 			onPositionChanged: {
@@ -100,11 +144,12 @@ Rectangle {
 			Button {
 				height: 24
 				width: 24
-				text: "<"
+				iconSource: "../materials/icons/item_previous.png"
 				onClicked: {
 					if(spritedata.sheetsSize){
 						(activeSpriteSheet > 0)? activeSpriteSheet-- :  activeSpriteSheet = spritedata.sheetsSize-1 ;
 						selected = 0
+						root.cutoutSelected(-1, selected);
 						spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 						}
 				}
@@ -112,17 +157,18 @@ Rectangle {
 			
 			Text{
 				font.pointSize: 12
-				text: activeSpriteSheet+"/"+spritedata.sheetsSize
+				text: (activeSpriteSheet+1)+"/"+spritedata.sheetsSize
 			}
 			
 			Button {
 				height: 24
 				width: 24
-				text: ">"
+				iconSource: "../materials/icons/item_next.png"
 				onClicked: {
 					if(spritedata.sheetsSize){
 							(activeSpriteSheet < spritedata.sheetsSize-1 )? activeSpriteSheet++ :  activeSpriteSheet = 0 ;
 							selected = 0
+							root.cutoutSelected(-1, selected);
 							spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 						}
 				}
@@ -219,149 +265,7 @@ Rectangle {
 						
 						Repeater {
 							model: spritedata.sheetsSize? spritedata.getSpriteSheet(activeSpriteSheet): 0
-							delegate: Rectangle {
-								property var cutout: spritedata.getCutout(model.display)
-								
-								function getItemColor(){
-									if( spritedata && spritedata.selectedKey && spritedata.selectedKey.cutoutID == model.display){
-										if(selected == cutout)
-											return "#30FFFFFF"
-										else
-											if(mouseArea.containsMouse)
-												return "#502897c5"
-											else
-												return "#302897c5"
-									}else{
-										if(selected == cutout)
-											return "#30FFFFFF"
-										else
-											if(mouseArea.containsMouse)
-												return "#50FFFFFF"
-											else
-												return "transparent"
-									}
-								}
-								
-								visible: (cutout)? !cutout.hidden: false
-								x: cutout.x*zoom
-								y: cutout.y*zoom
-								
-								width: cutout.width*zoom
-								height: cutout.height*zoom
-								
-								color: getItemColor() //selected == cutout)?  "#30FFFFFF" : ((mouseArea.containsMouse)? "#50FFFFFF" :"transparent")
-								border.width: 1
-								border.color: (selected == cutout)?"red":"green"
-								
-							
-
-								Menu { 
-									id: cutoutContextMenu
-									MenuItem {
-										text: qsTr('Hide')
-										onTriggered:{cutout.hidden = true; selected = 0
-											spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-										}
-									}
-									MenuItem {
-										text: qsTr('Unhide All')
-										onTriggered:{spritedata.unhideAllCutouts()
-											spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-										}
-									}
-									MenuSeparator { }
-									MenuItem {
-										text: qsTr('Export as color')
-										onTriggered:{
-											spritedata.exportSprite(model.display);
-										}
-									}
-									MenuItem {
-										text: qsTr('Export as IDs')
-										onTriggered:{
-											spritedata.exportSpriteIDs(model.display);
-										}
-									}
-									MenuSeparator { }
-									MenuItem {
-										text: qsTr('Import as color')
-										onTriggered:{
-											spritedata.importSpriteAsColor(model.display);
-											spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-										}
-									}
-									MenuItem {
-										text: qsTr('Import as IDs')
-										onTriggered:{
-											spritedata.importSpriteAsIDs(model.display);
-											spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-										}
-									}
-									MenuSeparator { }
-									MenuItem {
-										text: qsTr('Delete')
-										onTriggered:{
-											selected = 0
-											spritedata.removeCutoutID(model.display);
-											
-											//spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-										}
-									}
-								}
-								
-								Rectangle {
-									color: "#80FFFFFF"
-									
-									anchors.top: parent.top
-									anchors.left: parent.left
-									anchors.rightMargin: 1
-									anchors.topMargin: 1
-									
-									Text {
-										font.pointSize: 7.5
-										text: model.display
-										color: activePalette.text
-									}
-									width: childrenRect.width
-									height: childrenRect.height
-									visible: ((childrenRect.width > parent.width-5) ? false : true)
-								}
-								
-								MouseArea {
-									id: mouseArea
-									hoverEnabled: true 
-									anchors.fill: parent
-									acceptedButtons: Qt.LeftButton | Qt.RightButton
-									onClicked: { 
-											if (mouse.button == Qt.LeftButton){
-												(selected == cutout)? selected = 0: selected = cutout 
-											}else if (mouse.button == Qt.RightButton){
-												cutoutContextMenu.popup();
-											}
-									}
-									
-									onPositionChanged: {
-										mousePosIndicator.mouseX = parent.x + mouse.x -scroll.flickableItem.contentX
-										mousePosIndicator.mouseY = parent.y + mouse.y + 25 -scroll.flickableItem.contentY
-										mousePosIndicator.visible = true
-									}
-								}
-								
-								/*
-								Action {
-									id: hideAction
-									text: "Hide"
-									shortcut: "H"
-									onTriggered: { 
-										if(selected){
-											selected.hidden = true
-											spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-										}
-									}
-									tooltip: "Hide the cutout"
-								}
-								*/
-							}
+							delegate: CutoutElement{ cutout: spritedata.getCutout(model.display)}
 						}
 					}
 					width: (spritedata.sheetsSize > activeSpriteSheet)? spritedata.getSpriteSheet(activeSpriteSheet).width*zoom: 0
@@ -395,6 +299,7 @@ Rectangle {
 		
 		Row{
 			spacing: 2
+			
 			//collortableID
 			Image{source: "../materials/icons/colortable.png"
 				TooltipArea {text: "Colortable ID"}

@@ -11,9 +11,13 @@ Rectangle {
 
 	property var selectedItem: 0
 	property var snapMove: true
+	property var selectedCutoutID: -1
+	property var selectedCutout: 0
 	
 	SystemPalette { id: activePalette }
 	color: activePalette.dark
+	
+	function cutoutSelected(cutoutID, cutout){ selectedCutoutID = cutoutID; selectedCutout = cutout }
 
 
 	function select(item){
@@ -330,33 +334,30 @@ Rectangle {
 			}
 			
 			//type
-			Text{ text: "T:";font.pointSize: 12}
+			Text{ text: "Type:";font.pointSize: 12}
 			TextField {
 					width: 30;
 					validator: IntValidator {bottom: 0; top: 32;}
-					readOnly: true
 					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.type: ""
 					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.type = text;}}
 			}
 			
-			//A
-			Text{ text: "A:";font.pointSize: 12}
-			TextField {
-					width: 30;
-					validator: IntValidator {bottom: -99999; top: 99999;}
-					readOnly: true
-					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.a: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.a = text;}}
-			}
 			
-			//B
-			Text{ text: "B:";font.pointSize: 12}
+			//global offset
+			Image{source: "../materials/icons/position.png"
+				TooltipArea {text: "Global offset"}
+			}
 			TextField {
-					width: 30;
-					validator: IntValidator {bottom: -99999; top: 99999;}
-					readOnly: true
-					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.b: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.b = text;}}
+					width: 40; placeholderText: qsTr("x")
+					validator: IntValidator {bottom: -9999; top: 9999;}
+					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.x: ""
+					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.x = text;}}
+					}
+			TextField {
+					width: 40; placeholderText: qsTr("y")
+					validator: IntValidator {bottom: -9999; top: 9999;}
+					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.y: ""
+					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.y = text;}}
 			}
 		}
 		
@@ -549,7 +550,6 @@ Rectangle {
 											if(timeline.animation && layerModel) {  timeline.animation.remove(layerModel)}
 										}
 									}
-	
 								}
 	
 								MouseArea{
