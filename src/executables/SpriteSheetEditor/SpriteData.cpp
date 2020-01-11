@@ -3137,7 +3137,7 @@ void SpriteData::removeColors(int index, int number) {
 }
 
 void SpriteData::close() {
-	m_selected = nullptr;
+	setSelected(nullptr);
 	clearSelectedKey();
 	m_currentAnimation = -1;
 	m_currentColorTable = -1;
