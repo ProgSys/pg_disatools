@@ -15,8 +15,6 @@ Rectangle {
 	
 	property int activeSpriteSheet: 0
 	property var zoom: 2.0
-	//property alias selected: spritedata.selected
-	property var selected: 0
 
 	signal cutoutSelected(var id, var cutout)
 	
@@ -113,7 +111,7 @@ Rectangle {
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
 			onClicked: { 
 					if(mouse.button & Qt.LeftButton){
-						if(selected) {selected = 0; root.cutoutSelected(-1, selected);} 
+						if(spritedata.selected) {spritedata.selected = null; root.cutoutSelected(-1, spritedata.selected);} 
 					}else{
 						contextMenu.posX = Math.round((scroll.flickableItem.contentX +mouse.x)/zoom);
 						contextMenu.posY = Math.round((scroll.flickableItem.contentY +mouse.y-25)/zoom);
@@ -150,8 +148,8 @@ Rectangle {
 				onClicked: {
 					if(spritedata.sheetsSize){
 						(activeSpriteSheet > 0)? activeSpriteSheet-- :  activeSpriteSheet = spritedata.sheetsSize-1 ;
-						selected = null
-						root.cutoutSelected(-1, selected);
+						spritedata.selected = null
+						root.cutoutSelected(-1, spritedata.selected);
 						spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 						}
 				}
@@ -173,8 +171,8 @@ Rectangle {
 				onClicked: {
 					if(spritedata.sheetsSize){
 							(activeSpriteSheet < spritedata.sheetsSize-1 )? activeSpriteSheet++ :  activeSpriteSheet = 0 ;
-							selected = null
-							root.cutoutSelected(-1, selected);
+							spritedata.selected = null
+							root.cutoutSelected(-1, spritedata.selected);
 							spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 						}
 				}
@@ -299,10 +297,15 @@ Rectangle {
 						smooth: false
 						//source: "image://imageprovider/"+activeSpriteSheet+"?"+spritedata.sheetsSize
 						source: ""
-						
+						function refresh() {
+							spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+						}
+	
 						Connections {
 							target: spritedata
-							onOnNumberOfSheetsChanged: { spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+							onOnNumberOfSheetsChanged: spriteimage.refresh();
+							onIsolateSelectionChanged: spriteimage.refresh();
+							onSelectedChanged: if(spritedata.isolateSelection) spriteimage.refresh();
 						}
 							
 						
@@ -350,11 +353,11 @@ Rectangle {
 			TextField {
 					width: 30; placeholderText: qsTr("ID")
 					validator: IntValidator {bottom: 0; top: 9999;}
-					text: (selected)? selected.colortable: ""
+					text: (spritedata.selected)? spritedata.selected.colortable: ""
 					
 					onEditingFinished: {
-						if(selected && selected.colortable != text) {
-							selected.colortable = (text >= spritedata.colortableSize)? spritedata.colortableSize-1: text ; 
+						if(spritedata.selected && spritedata.selected.colortable != text) {
+							spritedata.selected.colortable = (text >= spritedata.colortableSize)? spritedata.colortableSize-1: text ; 
 							spriteimage.source = "";
 							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 							spritedata.refresh();
@@ -369,11 +372,11 @@ Rectangle {
 			TextField {
 					width: 40; placeholderText: qsTr("x")
 					validator: IntValidator {bottom: -9999; top: 9999;}
-					text: (selected)? selected.x: ""
+					text: (spritedata.selected)? spritedata.selected.x: ""
 					
 					onEditingFinished: { 
-						if(selected) {
-							selected.x = text ; spritedata.refresh();
+						if(spritedata.selected) {
+							spritedata.selected.x = text ; spritedata.refresh();
 							spriteimage.source = "";
 							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 						}
@@ -382,11 +385,11 @@ Rectangle {
 			TextField {
 					width: 40; placeholderText: qsTr("y")
 					validator: IntValidator {bottom: -9999; top: 9999;}
-					text: (selected)? selected.y: ""
+					text: (spritedata.selected)? spritedata.selected.y: ""
 					
 					onEditingFinished: {
-						if(selected) {
-							selected.y = text ; spritedata.refresh()
+						if(spritedata.selected) {
+							spritedata.selected.y = text ; spritedata.refresh()
 							spriteimage.source = "";
 							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 						}
@@ -401,10 +404,10 @@ Rectangle {
 			TextField {
 					width: 40; placeholderText: qsTr("Width")
 					validator: IntValidator {bottom: 0; top: 9999;}
-					text: (selected)? selected.width: ""
+					text: (spritedata.selected)? spritedata.selected.width: ""
 					onEditingFinished: { 
-						if(selected) {
-							selected.width = text ; spritedata.refresh()
+						if(spritedata.selected) {
+							spritedata.selected.width = text ; spritedata.refresh()
 							spriteimage.source = "";
 							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 						}
@@ -413,10 +416,10 @@ Rectangle {
 			TextField {
 					width: 40; placeholderText: qsTr("Height")
 					validator: IntValidator {bottom: 0; top: 9999;}
-					text: (selected)? selected.height: ""
+					text: (spritedata.selected)? spritedata.selected.height: ""
 					onEditingFinished: { 
-						if(selected) {
-							selected.height = text ; spritedata.refresh()
+						if(spritedata.selected) {
+							spritedata.selected.height = text ; spritedata.refresh()
 							spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 						}
 					}

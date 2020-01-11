@@ -11,7 +11,7 @@ Rectangle {
 		
 		function getItemColor(){
 			if( spritedata && spritedata.selectedKey && spritedata.selectedKey.cutoutID == model.display){
-				if(selected == cutout)
+				if(spritedata.selected == cutout)
 					return "#30FFFFFF"
 				else
 					if(mouseArea.containsMouse)
@@ -19,7 +19,7 @@ Rectangle {
 					else
 						return "#302897c5"
 			}else{
-				if(selected == cutout)
+				if(spritedata.selected == cutout)
 					return "#30FFFFFF"
 				else
 					if(mouseArea.containsMouse)
@@ -31,8 +31,8 @@ Rectangle {
 		
 		visible: {
 			if(!cutout) return false;
-			if(spritedata.isolateSelection && selected)
-				return selected == cutout;
+			if(spritedata.isolateSelection && spritedata.selected)
+				return spritedata.selected == cutout;
 			return !cutout.hidden;
 		}
 		x: cutout.x*zoom
@@ -41,9 +41,9 @@ Rectangle {
 		width: cutout.width*zoom
 		height: cutout.height*zoom
 		
-		color: getItemColor() //selected == cutout)?  "#30FFFFFF" : ((mouseArea.containsMouse)? "#50FFFFFF" :"transparent")
+		color: getItemColor() //spritedata.selected == cutout)?  "#30FFFFFF" : ((mouseArea.containsMouse)? "#50FFFFFF" :"transparent")
 		border.width: 1
-		border.color: (selected == cutout)?"red":"green"
+		border.color: (spritedata.selected == cutout)?"red":"green"
 		
 	
 
@@ -54,7 +54,7 @@ Rectangle {
 			property var cutout: 0;
 			MenuItem {
 				text: qsTr('Hide')
-				onTriggered:{cutout.hidden = true; selected = 0
+				onTriggered:{cutout.hidden = true; spritedata.selected = null
 					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 				}
 			}
@@ -144,7 +144,7 @@ Rectangle {
 				text: qsTr('Delete')
 				iconSource:  "../materials/icons/delete.png"
 				onTriggered:{
-					selected = 0
+					spritedata.selected = null
 					spritedata.removeCutoutID(model.display);
 					
 					//spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
@@ -177,7 +177,7 @@ Rectangle {
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
 			onClicked: { 
 					if (mouse.button == Qt.LeftButton){
-						if(selected == cutout) {selected = 0;root.cutoutSelected(-1, selected); } else {selected = cutout; root.cutoutSelected(model.display, selected);} 
+						if(spritedata.selected == cutout) {spritedata.selected = null;root.cutoutSelected(-1, spritedata.selected); } else {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
 						
 					}else if (mouse.button == Qt.RightButton){
 						cutoutContextMenu.posX = Math.round((parent.x + mouse.x )/zoom);
@@ -210,7 +210,7 @@ Rectangle {
 			drag.maximumY: 5000
 			
 			onPressed:{
-				if(selected != cutout) {selected = cutout; root.cutoutSelected(model.display, selected);} 
+				if(spritedata.selected != cutout) {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
 			}
 				
 			onReleased:{
@@ -249,7 +249,7 @@ Rectangle {
 				drag.maximumY: 5000
 				
 				onPressed:{
-				   if(selected != cutout) {selected = cutout; root.cutoutSelected(model.display, selected);} 
+				   if(spritedata.selected != cutout) {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
 				}
 				
 				onReleased:{
