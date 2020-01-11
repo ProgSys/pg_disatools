@@ -273,6 +273,13 @@ void Texture::bindPNM(const std::string& path, Texture::type texType){
 	}
 }
 
+void Texture::bindPNG(const std::string& path, Texture::type texType) {
+	PG::UTIL::RGBAImage img;
+	if (PG::FILE::loadQt(path, img)) {
+		bind(img, texType);
+	}
+}
+
 void Texture::update(const PG::UTIL::IDImage& img){
 	if (m_GLID != INVALID_OGL_VALUE){
 		glBindTexture( GL_TEXTURE_2D, m_GLID);

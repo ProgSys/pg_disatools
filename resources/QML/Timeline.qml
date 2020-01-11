@@ -302,7 +302,6 @@ Rectangle {
 			
 			CheckBox {
 				text: qsTr("A")
-				//tooltip: "Adaptive render mode"
 				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.adaptive: 0
 				onClicked:{ 
 					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.adaptive = !selectedItem.keyframeModel.adaptive ; timeline.updateTimeline();}
@@ -312,6 +311,20 @@ Rectangle {
 				}
 				PGToolTip {
 					text: "Adaptive render mode"
+				}
+			}
+			
+			CheckBox {
+				text: qsTr("E")
+				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.reference: 0
+				onClicked:{ 
+					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.reference = !selectedItem.keyframeModel.reference ; timeline.updateTimeline();}
+					checked = Qt.binding(function () { // restore the binding
+							return (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.reference: 0;
+						});
+				}
+				PGToolTip {
+					text: "Sprite sheet referance"
 				}
 			}
 			

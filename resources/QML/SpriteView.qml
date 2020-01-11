@@ -73,10 +73,29 @@ Rectangle {
 		MenuSeparator { }
 		
 		MenuItem {
+			//"Will export the sprite sheet using the colors from the selected sprite"
+			visible: spritedata.selected 
+			text: "Export as color"
+			onTriggered: spritedata.exportSpriteSheet( spritedata.selected );
+		} 
+		
+		MenuItem {
+			//"Will import a sprite sheet using the colors from the selected sprite"
+			visible: spritedata.selected 
+			text: "Import as color"
+			onTriggered:{
+				spritedata.importSpriteSheetAsColor(spritedata.selected)
+				spriteimage.refresh();
+			}
+		}
+		
+		MenuSeparator { visible: spritedata.selected }
+		
+		MenuItem {
 			text: qsTr('Import sheet as color')
 			onTriggered:{
 				spritedata.importSpriteAsColorForSheet(activeSpriteSheet)
-				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+				spriteimage.refresh();
 			}
 		}
 		
@@ -84,7 +103,7 @@ Rectangle {
 			text: qsTr('Import sheet as IDs')
 			onTriggered:{
 				spritedata.importSpriteAsIDs(activeSpriteSheet, 0,0, spritedata.getSpriteSheet(activeSpriteSheet).width, spritedata.getSpriteSheet(activeSpriteSheet).height)
-				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+				spriteimage.refresh();
 			}
 		}
 		
@@ -93,7 +112,7 @@ Rectangle {
 			text: qsTr('Auto find cutouts')
 			onTriggered:{
 				spritedata.autoFindCutouts(activeSpriteSheet)
-				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+				spriteimage.refresh();
 			}
 		}
 		

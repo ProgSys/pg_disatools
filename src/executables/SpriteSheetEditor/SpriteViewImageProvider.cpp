@@ -25,7 +25,7 @@ SpriteViewImageProvider::SpriteViewImageProvider(SpriteData* data) :
 {}
 
 void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, int spritesheetID, const PG::UTIL::IDImage& sheetID, bool doFill = false) {
-	if (cut->isExternalSheet() || cut->getSheetID() != spritesheetID || cut->isHidden()) return;
+	if (cut->getSheetID() != spritesheetID || cut->isHidden()) return;
 	int x, y, startX, startY, trueEndX, trueEndY;
 
 	if (doFill) {
@@ -89,9 +89,13 @@ QImage SpriteViewImageProvider::requestImage(const QString& id, QSize* size, con
 		assert_Test("Sprite sheet ID out of bound!", spritesheetID >= m_data->getNumberOfSpriteSheets());
 		const SpriteSheet* sheet = m_data->getSpriteSheet(spritesheetID);
 
+		const PG::UTIL::IDImage& sheetID = sheet->getSpriteSheet();
+		if (size)* size = QSize(sheetID.getWidth(), sheetID.getHeight());
+		if (sheetID.empty()) 
+			return QImage();
+
 		assert_Test("Colortable size is invalid!", sheet->getSizeOfColorTable() <= 0);
 
-		const PG::UTIL::IDImage& sheetID = sheet->getSpriteSheet();
 		QImage qimg(sheetID.getWidth(), sheetID.getHeight(), QImage::Format_RGBA8888);
 
 		unsigned int count = 0;

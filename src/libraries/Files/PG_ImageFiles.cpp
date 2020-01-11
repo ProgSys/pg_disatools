@@ -23,8 +23,10 @@
  */
 #include <Files/PG_ImageFiles.h>
 #include <sstream>
+#include <functional>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamOutByteFile.h>
+#include <QImage>
 
 namespace PG {
 namespace FILE {
@@ -113,22 +115,74 @@ bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 	const unsigned int width = reader.readUnsignedShort();
 	const unsigned int height = reader.readUnsignedShort();
 
-	if(reader.readUnsignedShort() != 2080){
+	std::function<unsigned int(unsigned int, unsigned int)> indexFunc;
+
+	unsigned short v = reader.readUnsignedShort();
+	if (v == 2080) {
+		indexFunc = [&width, &height](unsigned int x, unsigned int y) { return ((height - y - 1) * width + x); };//y-flip
+	}
+	else if (v == 9248) {
+		indexFunc = [&width](unsigned int x, unsigned int y) { return  y * width + x; };
+	}
+	else {
 		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
 		return false;
 	}
 
-	imageOut.resize(width, height);
 
+	imageOut.resize(width, height);
+	unsigned int index;
 	for(unsigned int y = 0; y < height; ++y ){
 		for(unsigned int x = 0; x < width; ++x ){
-			const unsigned int index = ((height-y-1)*width+x); //y-flip
+			index = indexFunc(x, y);
 			PG::UTIL::rgba& pix = imageOut[index];
 
 			pix.b = reader.readUnsignedChar();
 			pix.g = reader.readUnsignedChar();
 			pix.r = reader.readUnsignedChar();
 			pix.a = reader.readUnsignedChar();
+		}
+	}
+
+	return true;
+}
+
+bool loadTGA(const std::string& filepath, PG::UTIL::IDImage& imageOut) {
+	PG::STREAM::InByteFile reader(filepath);
+
+	if (reader.readUnsignedInt() != 131072) {
+		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
+		return false;
+	}
+	reader.readUnsignedInt();
+	reader.readUnsignedInt();
+	const unsigned int width = reader.readUnsignedShort();
+	const unsigned int height = reader.readUnsignedShort();
+
+
+	std::function<unsigned int(unsigned int, unsigned int)> indexFunc;
+	
+	unsigned short v = reader.readUnsignedShort();
+	if (v == 2080) {
+		indexFunc = [&width, &height](unsigned int x, unsigned int y) { return ((height - y - 1) * width + x); };//y-flip
+	}
+	else if (v == 9248) {
+		indexFunc = [&width](unsigned int x, unsigned int y) { return  y * width + x; };
+	}else{
+		PG_ERROR_STREAM("TGA has wrong format, needs to be BGRA8888 (32 bit).");
+		return false;
+	}
+
+	imageOut.resize(width, height);
+	unsigned int index;
+	for (unsigned int y = 0; y < height; ++y) {
+		for (unsigned int x = 0; x < width; ++x) {
+			index = indexFunc(x, y); 
+
+			reader.readUnsignedChar(); //r
+			reader.readUnsignedChar(); //g
+			imageOut[index] = reader.readUnsignedChar();
+			reader.readUnsignedChar(); //a
 		}
 	}
 
@@ -244,6 +298,16 @@ bool loadNetPNM(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 	}else
 		return false;
 
+	return true;
+}
+
+bool loadQt(const std::string& filepath, PG::UTIL::RGBAImage& imageOut) {
+	QImage img(QString::fromStdString(filepath));
+	if (img.isNull()) return false;
+	img.convertToFormat(QImage::Format_RGBA8888);
+
+	imageOut.resize(img.width(), img.height());
+	memcpy(imageOut.data(), img.bits(), img.width() * img.height() * 4);
 	return true;
 }
 

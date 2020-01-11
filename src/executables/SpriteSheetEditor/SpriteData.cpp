@@ -32,6 +32,9 @@
 #include <QVector>
 #include <QMutableListIterator>
 #include <ImageLib.h>
+#include <Util/Misc/ResourcePath.h>
+
+static PG::UTIL::IDImage g_externalSpriteSheet;
 
 Cutout::Cutout(QObject* parent) : QObject(parent) {
 
@@ -73,11 +76,6 @@ bool Cutout::isSame(int x, int y, int width, int height, int sheetID) const {
 
 //getters
 int Cutout::getSheetID() const {
-	if (isExternalSheet()) return m_externalSheetID;
-	return m_sheetID;
-}
-
-int Cutout::getSheetRealID() const {
 	return m_sheetID;
 }
 
@@ -376,11 +374,9 @@ bool Keyframe::hasPrevious() const {
 	return m_previous;
 }
 
-
 bool Keyframe::isSelected() const {
 	return m_selected;
 }
-
 
 //setters
 void Keyframe::setStart(int startIn, bool keepDocked) {
@@ -1208,7 +1204,9 @@ int SpriteAnimation::rowCount(const QModelIndex& parent) const {
 }
 
 ////// SpriteSheet //////
-SpriteSheet::SpriteSheet() {}
+SpriteSheet::SpriteSheet(QObject* parent): QAbstractListModel(parent) {}
+
+SpriteSheet::SpriteSheet(int referenceID, QObject* parent) : QAbstractListModel(parent), m_referenceID(referenceID) {}
 
 SpriteSheet::SpriteSheet(int width, int height, int powerColorTable, QObject* parent) :
 	QAbstractListModel(parent), m_img(width, height), m_powerOfColoTable(powerColorTable) {
@@ -1287,6 +1285,12 @@ void SpriteSheet::set(int width, int height, int powerColorTable, bool resizeSpr
 	}
 }
 
+void SpriteSheet::setReferenceID(int reference) {
+	if (m_referenceID == reference) return;
+	m_referenceID = reference;
+	emit referenceIDChanged();
+}
+
 QVariant SpriteSheet::data(const QModelIndex& index, int role) const {
 	if (!index.isValid())
 		return QVariant(QVariant::Invalid);
@@ -1308,10 +1312,10 @@ int SpriteSheet::rowCount(const QModelIndex& parent) const {
 
 //getters
 int SpriteSheet::getWidth() const {
-	return m_img.getWidth();
+	return getSpriteSheet().getWidth();
 }
 int SpriteSheet::getHeight() const {
-	return m_img.getHeight();
+	return getSpriteSheet().getHeight();
 }
 int SpriteSheet::getNumberOfCutouts() const {
 	return m_cutoutsIDs.size();
@@ -1326,10 +1330,10 @@ int SpriteSheet::getSizeOfColorTable() const {
 }
 
 PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() {
-	return m_img;
+	return isReference() ? g_externalSpriteSheet : m_img;
 }
 const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() const {
-	return m_img;
+	return isReference() ? g_externalSpriteSheet : m_img;
 }
 
 inline bool getCutoutImageHelper(PG::UTIL::IDImage& outCutoutImage, const PG::UTIL::IDImage& inIDImage, const Cutout* inCut) {
@@ -1352,19 +1356,13 @@ inline bool getCutoutImageHelper(PG::UTIL::IDImage& outCutoutImage, const PG::UT
 	return true;
 }
 
-PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable) const {
-	if (!cut) return PG::UTIL::RGBAImage();
-	assert_Test("Colortable size is invalid!", getSizeOfColorTable() <= 0);
-	assert_Test("Color table ID out of bound!", ColortableID * 16 + 16 > colortable.size());
+PG::UTIL::RGBAImage idImageToColorPG(const PG::UTIL::IDImage& idImage, unsigned int colortableID, const QVector<QColor>& colortable) {
+	assert_Test("Color table ID out of bound!", colortableID * 16 + 16 > colortable.size());
 
-	PG::UTIL::IDImage spriteIDs;
-	if (!getCutoutImageHelper(spriteIDs, m_img, cut))
-		return PG::UTIL::RGBAImage();
-
-	PG::UTIL::RGBAImage sprite(spriteIDs.getWidth(), spriteIDs.getHeight());
+	PG::UTIL::RGBAImage sprite(idImage.getWidth(), idImage.getHeight());
 	unsigned int i = 0;
-	for (const unsigned char id : spriteIDs) {
-		int colorIndex = ColortableID * 16 + int(id);
+	for (const unsigned char id : idImage) {
+		int colorIndex = colortableID * 16 + int(id);
 		if (colorIndex >= colortable.size()) {
 			sprite[i].r = 255;
 			sprite[i].g = 0;
@@ -1384,22 +1382,30 @@ PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int Col
 	return sprite;
 }
 
-QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable, bool alpha) const {
-	if (!cut) return QImage();
+PG::UTIL::RGBAImage SpriteSheet::getSpritePG(unsigned int colortableID, const QVector<QColor>& colortable) const {
+	return idImageToColorPG(getSpriteSheet(), colortableID, colortable);
+}
 
+PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int colortableID, const QVector<QColor>& colortable) const {
+	if (!cut) return PG::UTIL::RGBAImage();
 	assert_Test("Colortable size is invalid!", getSizeOfColorTable() <= 0);
-	assert_Test("Color table ID out of bound!", ColortableID * 16 + 16 > colortable.size());
+	
 
 	PG::UTIL::IDImage spriteIDs;
-	if (!getCutoutImageHelper(spriteIDs, m_img, cut))
-		return QImage();
+	if (!getCutoutImageHelper(spriteIDs, getSpriteSheet(), cut))
+		return PG::UTIL::RGBAImage();
 
+	return idImageToColorPG(spriteIDs, colortableID, colortable);
+}
+
+QImage idImageToColor(const PG::UTIL::IDImage& idImage, unsigned int colortableID, const QVector<QColor>& colortable, bool alpha = false) {
+	assert_Test("Color table ID out of bound!", ColortableID * 16 + 16 > colortable.size());
 
 	if (alpha) {
-		QImage sprite(spriteIDs.getWidth(), spriteIDs.getHeight(), QImage::Format_RGBA8888);
+		QImage sprite(idImage.getWidth(), idImage.getHeight(), QImage::Format_RGBA8888);
 		unsigned int i = 0;
-		for (const unsigned char id : spriteIDs) {
-			int colorIndex = ColortableID * 16 + int(id);
+		for (const unsigned char id : idImage) {
+			int colorIndex = colortableID * 16 + int(id);
 			if (colorIndex >= colortable.size()) {
 				sprite.bits()[i] = 255;
 				sprite.bits()[i + 1] = 0;
@@ -1420,7 +1426,7 @@ QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, cons
 
 	}
 
-	QImage sprite(spriteIDs.getWidth(), spriteIDs.getHeight(), QImage::Format_RGB888);
+	QImage sprite(idImage.getWidth(), idImage.getHeight(), QImage::Format_RGB888);
 #ifdef DEBUG
 	if (spriteIDs.getWidth() != cut->getWidth()) PG_INFO_STREAM("Original Width: " << cut->getWidth() << " new: " << spriteIDs.getWidth());
 	if (spriteIDs.getHeight() != cut->getHeight()) PG_INFO_STREAM("Original Height: " << cut->getHeight() << " new: " << spriteIDs.getHeight());
@@ -1428,23 +1434,42 @@ QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int ColortableID, cons
 
 	//uchar * data = new uchar[cutout->getWidth()*cutout->getHeight()*3];
 	unsigned int i = 0;
-	for (const unsigned char id : spriteIDs) {
-		const unsigned int colorIndex = ColortableID * 16 + int(id);
+	for (const unsigned char id : idImage) {
+		const unsigned int colorIndex = colortableID * 16 + int(id);
 		QColor color(255, 0, 255);
 		if (colorIndex < colortable.size())
 			color = colortable[colorIndex];
-		const unsigned int y = (i / cut->getWidth());
-		sprite.setPixel(i - y * cut->getWidth(), y, qRgb(color.red(), color.green(), color.blue()));
+		const unsigned int y = (i / idImage.getWidth());
+		sprite.setPixel(i - y * idImage.getWidth(), y, qRgb(color.red(), color.green(), color.blue()));
 		i++;
 	}
 
 	return sprite;
 }
 
+QImage SpriteSheet::getSprite(unsigned int colortableID, const QVector<QColor>& colortable, bool alpha) const {
+	assert_Test("Colortable size is invalid!", getSizeOfColorTable() <= 0);
+
+	return idImageToColor(getSpriteSheet(), colortableID, colortable, alpha);
+}
+
+QImage SpriteSheet::getSprite(const Cutout* cut, unsigned int colortableID, const QVector<QColor>& colortable, bool alpha) const {
+	if (!cut) return QImage();
+
+	assert_Test("Colortable size is invalid!", getSizeOfColorTable() <= 0);
+	
+
+	PG::UTIL::IDImage spriteIDs;
+	if (!getCutoutImageHelper(spriteIDs, getSpriteSheet(), cut))
+		return QImage();
+
+	return idImageToColor(spriteIDs, colortableID, colortable, alpha);
+}
+
 
 PG::UTIL::IDImage SpriteSheet::getSpritePGIDs(const Cutout* cut) const {
 	PG::UTIL::IDImage spriteIDs;
-	if (!getCutoutImageHelper(spriteIDs, m_img, cut))
+	if (!getCutoutImageHelper(spriteIDs, getSpriteSheet(), cut))
 		return PG::UTIL::IDImage();
 	return spriteIDs;
 }
@@ -1453,7 +1478,7 @@ QImage SpriteSheet::getSpriteIDs(const Cutout* cut) const {
 	if (!cut) return QImage();
 
 	PG::UTIL::IDImage spriteIDs;
-	if (!getCutoutImageHelper(spriteIDs, m_img, cut))
+	if (!getCutoutImageHelper(spriteIDs, getSpriteSheet(), cut))
 		return QImage();
 
 	QImage sprite(spriteIDs.getWidth(), spriteIDs.getHeight(), QImage::Format_RGB888);
@@ -1478,6 +1503,10 @@ const QList<int>& SpriteSheet::getCutoutIDs() const {
 ////// SPRITE DATA //////
 
 SpriteData::SpriteData(QObject* parent) : QAbstractListModel(parent), m_selectedKeyframe(nullptr) {
+	if (g_externalSpriteSheet.empty()) {
+		PG::FILE::loadTGA(getResourcePath().toStdString() + "/materials/external_sprite_sheet.tga", g_externalSpriteSheet);
+	}
+
 }
 
 SpriteData::~SpriteData() {
@@ -1896,7 +1925,7 @@ bool SpriteData::save(const QString& file) {
 	out << (quint32)m_cutouts.size();
 	for (const Cutout* cut : m_cutouts) {
 		out << (quint16)cut->getExternalSheetID();
-		out << (quint16)cut->getSheetRealID();
+		out << (quint16)cut->getSheetID();
 		out << (quint16)cut->getX();
 		out << (quint16)cut->getY();
 		out << (quint16)cut->getWidth();
@@ -2039,7 +2068,19 @@ bool SpriteData::importSH(const QString& file) {
 		if (cutoutID < 0) {
 			if (shCutout.external_sheet) {
 				cutoutID = m_cutouts.size();
-				m_cutouts.push_back(new Cutout(shCutout.sheet, shCutout.external_sheet, PG::UTIL::ivec2(shCutout.x, shCutout.y), PG::UTIL::ivec2(shCutout.width, shCutout.height), shCutout.colortable, this));
+				//find or create external sprite sheet
+				int spriteSheetIndex = findReferenceSpriteSheetIndex(shCutout.external_sheet);
+				SpriteSheet* spriteSheet;
+				if (spriteSheetIndex < 0) {
+					spriteSheet = new SpriteSheet(shCutout.external_sheet, this);
+					spriteSheetIndex = m_spriteSheets.size();
+					m_spriteSheets.push_back(spriteSheet);
+				}
+				else {
+					spriteSheet = m_spriteSheets[spriteSheetIndex];
+				}
+				m_cutouts.push_back(new Cutout(spriteSheetIndex, shCutout.external_sheet, PG::UTIL::ivec2(shCutout.x, shCutout.y), PG::UTIL::ivec2(shCutout.width, shCutout.height), shCutout.colortable, this));
+				spriteSheet->push_backCutoutID(m_cutouts.size()-1);
 			}
 			else {
 				assert_Test("Invalid sprite sheet ID!", currCutout.sheet >= m_spriteSheets.size() || currCutout.sheet < 0);
@@ -2139,8 +2180,6 @@ bool SpriteData::importSH(const QString& file) {
 
 	m_currentColorTable = 0;
 
-	PG_INFO_STREAM("HERE! LOAD DONE!");
-
 	if (m_aniamtions.empty()) {
 		m_currentAnimation = -1;
 		emit onNumberOfAnimationsChanged();
@@ -2175,6 +2214,7 @@ bool SpriteData::exportSH(const QString& file) {
 
 
 	for (const SpriteSheet* sheet : m_spriteSheets) {
+		if (sheet->isReference()) continue;
 		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
 		//TODO set the last values
 		const unsigned char p = sheet->getPowerOfColorTable();
@@ -2183,6 +2223,10 @@ bool SpriteData::exportSH(const QString& file) {
 
 	for (unsigned int i = 0; i < m_colortables.size(); i++)
 		sh.getColortables().push_back(getColortableGL(i));
+
+	//some cutouts may be unused by any animation
+	//but they shall also be saved
+	std::vector<bool> cutoutUseMap(m_cutouts.size(), false);
 
 	for (const SpriteAnimation* ani : m_aniamtions) {
 		assert_Test("Value is too big!", ani->getID() > 65534);
@@ -2259,11 +2303,12 @@ bool SpriteData::exportSH(const QString& file) {
 			//writeCutouts
 			for (const Keyframe* key : keys) {
 				const Cutout* cut = m_cutouts[key->getCutoutID()];
+				cutoutUseMap[key->getCutoutID()] = true;
 				assert_Test("Cutout is nullptr!", !cut);
 
 				PG::FILE::shfileCutout shCut;
 				shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
-				shCut.sheet = cut->getSheetRealID(); // there is not one big sprite sheet but multiple smaller one
+				shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
 				shCut.colortable = key->getColortableID(); // the 16 rgba colortable which the sheet should use
 				shCut.anchorx = key->getAnchorX();  // rotation and mirror point
 				shCut.anchory = key->getAnchorY(); // rotation and mirror point
@@ -2309,8 +2354,50 @@ bool SpriteData::exportSH(const QString& file) {
 
 	}
 
+	//save unused cutouts
+	for (auto it = cutoutUseMap.begin(); it != cutoutUseMap.end(); ++it) {
+		const Cutout* cut = m_cutouts[std::distance(cutoutUseMap.begin(), it)];
+		assert_Test("Cutout is nullptr!", !cut);
+
+		PG::FILE::shfileCutout shCut;
+		shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
+		shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
+		shCut.colortable = cut->getDefaultColorTable(); // the 16 rgba colortable which the sheet should use
+		shCut.anchorx = 0.0f;  // rotation and mirror point
+		shCut.anchory = 0.0f; // rotation and mirror point
+
+		//sprite info
+		shCut.x = cut->getX();
+		shCut.y = cut->getY();
+		shCut.width = cut->getWidth();
+		shCut.height = cut->getHeight();
+		shCut.scalex = 100.0f;
+		shCut.scaley = 100.0f;
+
+		shCut.offsetx = 0.0f;
+		shCut.offsety = 0.0f;
+		shCut.rotation = 0.0f;
+
+		shCut.transparency = 0;
+		shCut.mic = 0;
+
+		sh.getCutouts().push_back(shCut);
+
+		PG::FILE::shfileLayers layer;
+		layer.start_cutout = sh.getCutouts().size() - 1;
+		layer.number_of_cutouts = 1;
+		sh.getLayers().push_back(layer);
+	}
+
 	PG_INFO_STREAM("START SAVING!")
 		return !sh.save(file.toStdString());
+}
+
+int SpriteData::findReferenceSpriteSheetIndex(int referenceId) const {
+	auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [referenceId](SpriteSheet* s) {
+		return s->getReferenceID() == referenceId;
+		});
+	return findIt == m_spriteSheets.end() ? -1 : std::distance(m_spriteSheets.begin(), findIt);
 }
 
 ///if png is false then tga is used
@@ -2425,7 +2512,6 @@ bool SpriteData::exportSprite(int cutoutID, const QString& file) {
 	return false;
 }
 
-
 bool SpriteData::exportSpriteIDs(int cutoutID) {
 	QString fileName = QFileDialog::getSaveFileName(nullptr, tr("Export IDs sprite"),
 		QFileInfo(m_lastFile).baseName() + "_SpriteIds" + QString::number(cutoutID),
@@ -2453,6 +2539,32 @@ bool SpriteData::exportSpriteIDs(int cutoutID, const QString& file) {
 	return false;
 }
 
+bool SpriteData::exportSpriteSheet(Cutout* cut) {
+	if (!cut || cut->isExternalSheet())
+		return false;
+	QString fileName = QFileDialog::getSaveFileName(nullptr, tr("Export IDs sprite"),
+		QFileInfo(m_lastFile).baseName() + "_sheet"+ QString::number(cut->getSheetID()) +"_colortable" + QString::number(cut->getDefaultColorTable()),
+		tr("PNG (*.png);;TGA (*.tga)"));
+	return exportSpriteSheet(cut, fileName);
+}
+
+bool SpriteData::exportSpriteSheet(Cutout* cut, const QString& file) {
+	if (!cut || cut->isExternalSheet()  || file.isEmpty())
+		return false;
+
+	const SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
+	const QString ext = QFileInfo(file).completeSuffix();
+
+	if (ext == "tga") {
+		if (PG::FILE::saveTGA(file.toStdString(), sheet->getSpritePG(cut, cut->getDefaultColorTable(), getColorTable())))
+			return true;
+	}
+	else if (!ext.isEmpty()) {
+		if (sheet->getSprite(cut->getDefaultColorTable(), getColorTable(), true).save(file, 0, 100))
+			return true;
+	}
+	return false;
+}
 
 bool SpriteData::importSpriteAsIDs(int cutoutID, const QString& file) {
 	if (cutoutID < 0 || cutoutID >= m_cutouts.size()) return false;
@@ -2747,6 +2859,30 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, QImage& newColorCutout) {
 		}
 	emit spriteSheetChanged(cut.getSheetID());
 	return true;
+}
+
+bool SpriteData::importSpriteSheetAsColor(Cutout* cut) {
+	if (!cut || cut->isExternalSheet())
+		return false;
+	return SpriteData::importSpriteSheetAsColor(cut, openImage());
+}
+
+bool SpriteData::importSpriteSheetAsColor(Cutout* cut, const QString& fileIn) {
+	if (!cut || cut->isExternalSheet() || fileIn.isEmpty())
+		return false;
+
+	QString file = fileIn;
+	if (file.isEmpty()) {
+		file = openImage();
+		if (file.isEmpty()) return false;
+	}
+
+	//target image
+	QImage newColorCutout(file);
+	if (cut->getSheetID() < 0 || cut->getSheetID() >= m_spriteSheets.size())
+		return false;
+	SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
+	return importSpriteAsColor(cut->getSheetID(), 0, 0, sheet->getWidth(), sheet->getHeight(), cut->getDefaultColorTable(), newColorCutout);
 }
 
 bool SpriteData::dump(const QString& filepath) {
@@ -3303,9 +3439,7 @@ QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) c
 	}
 
 	Cutout* cutout = m_cutouts[CutoutID];
-	if (cutout->isExternalSheet())
-		return QImage("resources/external.png");
-
+	
 	const SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
 	if (sheet->getPowerOfColorTable() > 14) return QImage(); // cant be that big?
 
@@ -3314,8 +3448,6 @@ QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) c
 
 	if (sheet->getSizeOfColorTable() < 0 || ColortableID * 16 + sheet->getSizeOfColorTable() > colortable.size())
 		ColortableID = 0;
-
-	//assert_Test("Color table Index out of bound!", ColortableID*16+sheet->getSizeOfColorTable() > colortable.size());
 
 	return sheet->getSprite(cutout, ColortableID, colortable);
 }

@@ -55,6 +55,7 @@ public:
 	void bind(const std::vector<PG::UTIL::rgba>& img, Texture::type texType = NORMAL);
 	void bindTGA(const std::string& path, Texture::type texType = NORMAL);
 	void bindPNM(const std::string& path, Texture::type texType = NORMAL);
+	void bindPNG(const std::string& path, Texture::type texType = NORMAL);
 
 	void update(const PG::UTIL::IDImage& img);
 	void update(const std::vector<PG::UTIL::rgba>& img);

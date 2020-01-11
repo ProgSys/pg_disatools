@@ -44,6 +44,7 @@ EXPORT bool saveTGA(const std::string& filepath, const PG::UTIL::IDImage& image)
  * @return true, if image loaded
  */
 EXPORT bool loadTGA(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
+EXPORT bool loadTGA(const std::string& filepath, PG::UTIL::IDImage& imageOut);
 
 
 /*!
@@ -57,6 +58,12 @@ EXPORT bool saveNetPNM(const std::string& filepath, const PG::UTIL::RGBAImage& i
  * @return true, if image loaded
  */
 EXPORT bool loadNetPNM(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
+
+/*!
+ * @brief Will load a simple png image.
+ * @return true, if image loaded
+ */
+EXPORT bool loadQt(const std::string& filepath, PG::UTIL::RGBAImage& imageOut);
 
 } /* namespace FILE */
 } /* namespace PG */
