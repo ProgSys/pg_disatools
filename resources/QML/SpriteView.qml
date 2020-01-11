@@ -319,7 +319,7 @@ Rectangle {
 				}
 				//iconSource: "../materials/icons/settings.png"
 				onClicked: {
-					//spritedata.editSpriteSheet(activeSpriteSheet);
+					spritedata.openExternalSpriteSheet(activeSpriteSheet);
 				}
 				
 				PGToolTip {

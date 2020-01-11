@@ -314,20 +314,6 @@ Rectangle {
 				}
 			}
 			
-			CheckBox {
-				text: qsTr("E")
-				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.reference: 0
-				onClicked:{ 
-					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.reference = !selectedItem.keyframeModel.reference ; timeline.updateTimeline();}
-					checked = Qt.binding(function () { // restore the binding
-							return (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.reference: 0;
-						});
-				}
-				PGToolTip {
-					text: "Sprite sheet referance"
-				}
-			}
-			
 			Text{
 				text: (selectedItem && selectedItem.elementType == 0)? ((spritedata.getCutout(selectedItem.keyframeModel.cutoutID))?  ("width: "+spritedata.getCutout(selectedItem.keyframeModel.cutoutID).width+" height: "+ spritedata.getCutout(selectedItem.keyframeModel.cutoutID).height) : "") : "";
 			}

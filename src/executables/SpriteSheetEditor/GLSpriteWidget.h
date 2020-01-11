@@ -94,8 +94,8 @@ public slots:
 	///returns true on success
 	void setData(SpriteData* spriteSheet);
 
+	inline void updateFrame() { update(); }
 	void renderFrame(int frame);
-	void renderFrame();
 
 	void displayExternals(bool display);
 	void displayGround(bool display);
@@ -107,6 +107,7 @@ public slots:
 	void updateColortable(int index);
 	void addColortable(int index);
 	void removeColortable(int index);
+	void updateExternalColortable(const SpriteSheet* spriteSheet);
 
 	void updateAllSpriteSheets();
 	void updateSpriteSheet(int sheetID);
@@ -263,6 +264,7 @@ private:
 
 		std::vector<PG::GL::Texture* > spriteSheetIDTextures;
 		std::vector<PG::GL::Texture* > colorTables;
+		std::map<int, std::vector<PG::GL::Texture* >> externalColorTables; //externalId, 1Dtextures
 
 		const SpriteAnimation* getCurrentAnimation() const {
 			return spriteData->getCurrentAnimation();
@@ -354,7 +356,7 @@ private:
 			//modelmat = positionOffsetMat(key)*PG::UTIL::eulerYXZ(0.f, 0.f, angle)*scaleMat(spriteData, key)*anchorOffsetMat(key);
 
 			const float angle = toRad(-key->getRotation());
-			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
+			assert_Test("cutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
 
 			modelmat = PG::UTIL::translation(globalOffset.x / 50.0f, -globalOffset.y / 50.0f, 0.2f) * positionOffsetMat(key) * PG::UTIL::eulerYXZ(0.f, 0.f, angle) * scaleMat(cut, key) * anchorOffsetMat(cut, key);
@@ -363,7 +365,7 @@ private:
 
 		void setUniforms(GLSpriteWidget::spriteShader& shader, const Keyframe* key) {
 			assert_Test("Key is nullptr!", !key);
-			assert_Test("CutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
+			assert_Test("cutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
 			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
 
 
@@ -382,22 +384,14 @@ private:
 			shader.setUniform(shader.alphaMultLoc, key->getTransparency() / 128.0f);
 
 			//set colortable
-			if (cut->isExternalSheet()) {
+			const int numberOfColors = sheet->isExternal() && sheet->isExternalOpened() ? sheet->getExternalColortables().front().size() : spriteData->getNumberOfColors();
+			const int sizeOfColorTable = sheet->getSizeOfColorTable();
+			if (sizeOfColorTable <= 0 || key->getColortableID() >= numberOfColors / sizeOfColorTable)
 				shader.setUniform(shader.colorTableStartLoc, (int)0);
-			}
-			else {
-				const SpriteSheet* sheet = spriteData->getSpriteSheet(cut->getSheetID());
-				if (key->getColortableID() >= spriteData->getNumberOfColors() / sheet->getSizeOfColorTable()) {
-					shader.setUniform(shader.colorTableStartLoc, (int)0);
-				}
-				else {
-					shader.setUniform(shader.colorTableStartLoc, (int)key->getColortableID() * 16);
-				}
-			}
-
+			else 
+				shader.setUniform(shader.colorTableStartLoc, (int)key->getColortableID() * 16);
+			
 		}
-
-
 
 		PG::GL::Texture* getCurrentIDTexture(const Keyframe* key) const {
 			assert_Test("Key is nullptr!", !key);
@@ -406,7 +400,19 @@ private:
 			return spriteSheetIDTextures[cut->getSheetID()];
 		}
 
-		PG::GL::Texture* getCurrentColorTable() const {
+		PG::GL::Texture* getCurrentColorTable(const Keyframe* key) const {
+			assert_Test("Key is nullptr!", !key);
+			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
+			assert_Test("Texture index is out of bound!", cut->getSheetID() >= spriteSheetIDTextures.size());
+			auto sheet = spriteData->getSpriteSheet(cut->getSheetID());
+			assert_Test("Sprite sheet is nullptr!", sheet);
+			if (sheet->isExternal() && sheet->isExternalOpened()) {
+				auto findIt = externalColorTables.find(sheet->getExternalID());
+				if (findIt != externalColorTables.end())
+					return findIt->second.front();
+
+			}
+			//defualt case
 			return colorTables[spriteData->getCurrentColorTable()];
 		}
 
@@ -414,7 +420,7 @@ private:
 			glActiveTexture(GL_TEXTURE0);
 			getCurrentIDTexture(key)->apply();
 			glActiveTexture(GL_TEXTURE1);
-			getCurrentColorTable()->apply();
+			getCurrentColorTable(key)->apply();
 		}
 
 		operator bool() const {

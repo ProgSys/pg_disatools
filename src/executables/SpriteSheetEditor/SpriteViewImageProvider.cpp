@@ -24,7 +24,7 @@ SpriteViewImageProvider::SpriteViewImageProvider(SpriteData* data) :
 	m_data(data)
 {}
 
-void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, int spritesheetID, const PG::UTIL::IDImage& sheetID, bool doFill = false) {
+void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, int spritesheetID, const SpriteSheet* sheet, const PG::UTIL::IDImage& sheetID, bool doFill = false) {
 	if (cut->getSheetID() != spritesheetID || cut->isHidden()) return;
 	int x, y, startX, startY, trueEndX, trueEndY;
 
@@ -43,6 +43,13 @@ void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, 
 
 	if (startX < 0 || startY < 0 || trueEndY <= 0 || trueEndX <= 0)
 		return;
+	
+	const QColorTable& colortable = ( [sheet, sprite, cut]() -> const QColorTable &{
+			if (sheet->isExternal() && sheet->isExternalOpened()) 
+				return sheet->getExternalColortables().front();
+			else
+				return sprite->getColorTable(); 
+		})();
 
 	for (y = startY; y < trueEndY; ++y) {
 		for (x = startX; x < trueEndX; ++x) {
@@ -51,22 +58,21 @@ void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, 
 			const int id = sheetID.get(x, y);
 
 			//ID out of bound!
-			if (sprite->getColorTable().size() <= id) {
+			if (colortable.size() <= id) {
 				qimg.bits()[address] = 255;
 				qimg.bits()[address + 1] = 0;
 				qimg.bits()[address + 2] = 255;
 				qimg.bits()[address + 3] = 255;
 				continue;
 			}
-			//assert_Test("ID out of bound!", m_data->getColorTable().size() <= id);
 
 			unsigned int colorTableIndex = cut->getDefaultColorTable() * 16 + id;
-			if (colorTableIndex >= sprite->getColorTable().size())
+			if (colorTableIndex >= colortable.size())
 				colorTableIndex = id;
 
-			assert_Test("Color table Index out of bound!", colorTableIndex >= m_data->getColorTable().size());
+			assert_Test("Color table Index out of bound!", colorTableIndex >= colortable.size());
 
-			const QColor& color = sprite->getColorTable()[colorTableIndex];
+			const QColor& color = colortable[colorTableIndex];
 
 			qimg.bits()[address] = color.red();
 			qimg.bits()[address + 1] = color.green();
@@ -109,11 +115,11 @@ QImage SpriteViewImageProvider::requestImage(const QString& id, QSize* size, con
 
 		if (m_data->getNumberOfColortables() > 0) {
 			if (m_data->getIsolateSelection() && m_data->getSelected()) {
-				insertIntoImage(m_data, qimg, m_data->getSelected(), spritesheetID, sheetID, true);
+				insertIntoImage(m_data, qimg, m_data->getSelected(), spritesheetID, sheet, sheetID, true);
 			}
 			else {
 				for (const Cutout* cut : m_data->getCutouts())
-					insertIntoImage(m_data, qimg, cut, spritesheetID, sheetID);
+					insertIntoImage(m_data, qimg, cut, spritesheetID, sheet, sheetID);
 			}
 		}
 

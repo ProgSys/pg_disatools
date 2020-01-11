@@ -445,12 +445,10 @@ class SpriteSheet: public QAbstractListModel{
 public:
 	SpriteSheet(QObject* parent = nullptr);
 	SpriteSheet(int externalID, QObject* parent = nullptr);
-	SpriteSheet(int width, int height, int powerColorTable = 4, QObject *parent = nullptr);
+	SpriteSheet(int externalID, int width, int height, int powerColorTable = 4, QObject *parent = nullptr);
 	SpriteSheet(const PG::UTIL::IDImage& img, int powerColorTable = 4 , QObject *parent = nullptr);
 	SpriteSheet(const SpriteSheet& sheet);
 	virtual ~SpriteSheet();
-
-	void operator= (const SpriteSheet& sheet);
 
 	//getters
 	int getWidth() const;
@@ -458,16 +456,22 @@ public:
 	int getNumberOfCutouts() const;
 	int getPowerOfColorTable() const;
 	int getSizeOfColorTable() const;
-	inline bool isExternal() const { return m_externalID >= 0; }
-	inline int getExternalID() const { return m_externalID; }
 
+	inline bool isExternal() const { return m_externalID >= 0; }
+	inline bool isExternalOpened() const { return !m_externalColortables.empty(); }
+	inline int getExternalID() const { return m_externalID; }
+	inline const QList<QColorTable>& getExternalColortables() const { return m_externalColortables; }
+
+	inline bool isEmpty() const { return m_img.empty(); }
 	PG::UTIL::IDImage& getSpriteSheet();
 	const PG::UTIL::IDImage& getSpriteSheet() const;
 
-	PG::UTIL::RGBAImage getSpritePG(unsigned int ColortableID, const QVector<QColor>& colortable) const;
-	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable) const;
-	QImage getSprite(unsigned int ColortableID, const QVector<QColor>& colortable, bool alpha = false) const;
-	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable, bool alpha = false) const;
+	void openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QList<QColorTable>& colortables );
+
+	PG::UTIL::RGBAImage getSpritePG(unsigned int colortableID, const QVector<QColor>& colortable) const;
+	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int colortableID, const QVector<QColor>& colortable) const;
+	QImage getSprite(unsigned int colortableID, const QVector<QColor>& colortable, bool alpha = false) const;
+	QImage getSprite(const Cutout* cut, unsigned int colortableID, const QVector<QColor>& colortable, bool alpha = false) const;
 
 	PG::UTIL::IDImage getSpritePGIDs(const Cutout* cut) const;
 	QImage getSpriteIDs(const Cutout* cut) const;
@@ -494,8 +498,10 @@ signals:
 	void externalIDChanged();
 private:
 	PG::UTIL::IDImage m_img;
-	int m_powerOfColoTable = -1;
+	int m_powerOfColorTable = -1;
 	QList<int> m_cutoutsIDs;
+
+	QList<QColorTable> m_externalColortables;
 	int m_externalID = -1;
 };
 
@@ -539,6 +545,7 @@ signals:
 	void colorTableChanged(int colorTableIndex);
 	void colorTableAdded(int spritesheetID);
 	void colorTableRemoved(int colorTableIndex);
+	void externalSpriteSheetOpened(SpriteSheet* spriteSheet);
 
 	void numberOfSheetsChanged();
 	void allSpriteSheetsChanged();
@@ -575,7 +582,7 @@ public:
 	const QList<SpriteSheet*>& getSpriteSheets() const;
 
 	std::vector<PG::UTIL::rgba> getColortableGL(int index) const;
-	QImage getSprite(unsigned int CutoutID, unsigned int ColortableID) const;
+	QImage getSprite(unsigned int cutoutID, unsigned int colortableID) const;
 	const SpriteSheet* getSpriteSheet(unsigned int spriteID) const;
 	inline Cutout* getSelected() const { return m_selected; }
 	inline Keyframe* getSelectedKey() const { return m_selectedKeyframe; };
@@ -603,6 +610,7 @@ public slots:
 	void close();
 
 	Q_INVOKABLE int findExternalSpriteSheetIndex(int externalID) const;
+	Q_INVOKABLE bool openExternalSpriteSheet(int sheetID);
 
 	///if png is false then tga is used
 	Q_INVOKABLE int exportSprites(const QString& folder, const QString& type);
@@ -687,6 +695,7 @@ public slots:
 private:
 	bool openPGSHv1(QDataStream& in);
 	bool openPGSHv2(QDataStream& in);
+	bool openPGSHv3(QDataStream& in);
 	void resizeSpritesOnSheet(SpriteSheet* sheet, int oldWidth, int oldHeight, int targetWidth, int targetHeight);
 
 	QString m_lastFile;
