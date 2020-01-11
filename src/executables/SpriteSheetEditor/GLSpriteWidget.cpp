@@ -180,8 +180,8 @@ void GLSpriteWidget::renderFrame(int frame) {
 	m_animationInfo.setFrame(frame);
 }
 
-void GLSpriteWidget::displayExternalReferences(bool display) {
-	m_displayExternalReferences = display;
+void GLSpriteWidget::displayExternals(bool display) {
+	m_displayExternals = display;
 	update();
 }
 
@@ -421,7 +421,7 @@ void GLSpriteWidget::paintGL() {
 			if (lay->isHidden()) continue;
 			const Keyframe* keyframe = m_animationInfo.getCurrentKeyframe(lay);
 			if (keyframe) {
-				if (!m_displayExternalReferences && m_animationInfo.spriteData->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
+				if (!m_displayExternals && m_animationInfo.spriteData->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
 					continue;
 
 				if (keyframe->isAdaptive()) {

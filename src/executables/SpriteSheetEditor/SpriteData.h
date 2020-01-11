@@ -439,12 +439,12 @@ class SpriteSheet: public QAbstractListModel{
 	Q_PROPERTY(int height READ getHeight NOTIFY onHeightChanged)
 	Q_PROPERTY(int colors READ getSizeOfColorTable NOTIFY numberOfColorsChanged)
 	Q_PROPERTY(int size READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
-	Q_PROPERTY(bool isReference READ isReference NOTIFY referenceIDChanged)
-	Q_PROPERTY(int referenceId READ getReferenceID WRITE setReferenceID NOTIFY referenceIDChanged)
+	Q_PROPERTY(bool isExternal READ isExternal NOTIFY externalIDChanged)
+	Q_PROPERTY(int externalID READ getExternalID WRITE setExternalID NOTIFY externalIDChanged)
 
 public:
 	SpriteSheet(QObject* parent = nullptr);
-	SpriteSheet(int referenceID, QObject* parent = nullptr);
+	SpriteSheet(int externalID, QObject* parent = nullptr);
 	SpriteSheet(int width, int height, int powerColorTable = 4, QObject *parent = nullptr);
 	SpriteSheet(const PG::UTIL::IDImage& img, int powerColorTable = 4 , QObject *parent = nullptr);
 	SpriteSheet(const SpriteSheet& sheet);
@@ -458,8 +458,8 @@ public:
 	int getNumberOfCutouts() const;
 	int getPowerOfColorTable() const;
 	int getSizeOfColorTable() const;
-	inline bool isReference() const { return m_referenceID >= 0; }
-	inline int getReferenceID() const { return m_referenceID; }
+	inline bool isExternal() const { return m_externalID >= 0; }
+	inline int getExternalID() const { return m_externalID; }
 
 	PG::UTIL::IDImage& getSpriteSheet();
 	const PG::UTIL::IDImage& getSpriteSheet() const;
@@ -481,7 +481,7 @@ public:
 	//setters
 	void push_backCutoutID(int id);
 	void set(int width, int height, int powerColorTable = 4, bool resizeSprites = false);
-	void setReferenceID(int reference);
+	void setExternalID(int External);
 
 	QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final override;
 	int rowCount(const QModelIndex & parent = QModelIndex()) const final override;
@@ -491,12 +491,12 @@ signals:
 	void onHeightChanged();
 	void numberOfColorsChanged();
 	void onNumberOfCutoutsChanged();
-	void referenceIDChanged();
+	void externalIDChanged();
 private:
 	PG::UTIL::IDImage m_img;
 	int m_powerOfColoTable = -1;
 	QList<int> m_cutoutsIDs;
-	int m_referenceID = -1;
+	int m_externalID = -1;
 };
 
 Q_DECLARE_METATYPE( SpriteSheet );
@@ -602,7 +602,7 @@ public slots:
 
 	void close();
 
-	Q_INVOKABLE int findReferenceSpriteSheetIndex(int referenceId) const;
+	Q_INVOKABLE int findExternalSpriteSheetIndex(int externalID) const;
 
 	///if png is false then tga is used
 	Q_INVOKABLE int exportSprites(const QString& folder, const QString& type);
