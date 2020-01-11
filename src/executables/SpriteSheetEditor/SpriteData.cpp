@@ -1208,18 +1208,15 @@ SpriteSheet::SpriteSheet(QObject* parent): QAbstractListModel(parent) {}
 
 SpriteSheet::SpriteSheet(int externalID, QObject* parent) : QAbstractListModel(parent), m_externalID(externalID) {}
 
-SpriteSheet::SpriteSheet(int width, int height, int powerColorTable, QObject* parent) :
-	QAbstractListModel(parent), m_img(width, height), m_powerOfColoTable(powerColorTable) {
-	auto it = m_img.begin();
-	while (it != m_img.end()) {
-		(*it) = 0;
-		it++;
-	}
+SpriteSheet::SpriteSheet(int externalID, int width, int height, int powerColorTable, QObject* parent) :
+	QAbstractListModel(parent), m_img(width, height), m_powerOfColorTable(powerColorTable), m_externalID(externalID) {
+	if (!m_img.empty()) 
+		for (unsigned char& c : m_img) c = static_cast<unsigned char>(0);
 }
 
 
 SpriteSheet::SpriteSheet(const PG::UTIL::IDImage& img, int powerColorTable, QObject* parent) :
-	QAbstractListModel(parent), m_img(img), m_powerOfColoTable(powerColorTable) {}
+	QAbstractListModel(parent), m_img(img), m_powerOfColorTable(powerColorTable) {}
 
 SpriteSheet::SpriteSheet(const SpriteSheet& sheet) :
 	m_img(sheet.getSpriteSheet())
@@ -1227,9 +1224,6 @@ SpriteSheet::SpriteSheet(const SpriteSheet& sheet) :
 
 SpriteSheet::~SpriteSheet() {}
 
-void SpriteSheet::operator= (const SpriteSheet& sheet) {
-	m_img = sheet.getSpriteSheet();
-}
 
 bool SpriteSheet::removeCutoutID(int ID) {
 	if (ID <= 0) return false; // zero sheet cant be removed
@@ -1270,8 +1264,8 @@ void SpriteSheet::push_backCutoutID(int id) {
 }
 
 void SpriteSheet::set(int width, int height, int powerColorTable, bool resizeSprites) {
-	if (m_powerOfColoTable != powerColorTable) {
-		m_powerOfColoTable = powerColorTable;
+	if (m_powerOfColorTable != powerColorTable) {
+		m_powerOfColorTable = powerColorTable;
 		emit numberOfColorsChanged();
 	}
 
@@ -1322,18 +1316,29 @@ int SpriteSheet::getNumberOfCutouts() const {
 }
 
 int SpriteSheet::getPowerOfColorTable() const {
-	return m_powerOfColoTable;
+	return m_powerOfColorTable;
 }
 
 int SpriteSheet::getSizeOfColorTable() const {
-	return pow(2.0, m_powerOfColoTable);
+	return pow(2.0, m_powerOfColorTable);
 }
 
 PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() {
-	return isExternal() ? g_externalSpriteSheet : m_img;
+	return isExternal() && m_img.empty() ? g_externalSpriteSheet : m_img;
 }
 const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() const {
-	return isExternal() ? g_externalSpriteSheet : m_img;
+	return isExternal() && m_img.empty() ? g_externalSpriteSheet : m_img;
+}
+
+void SpriteSheet::openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QList<QColorTable>& colortables){
+	if (idImage.empty() || colortables.empty())
+		return;
+	m_img = idImage;
+	m_powerOfColorTable = powerOfColorTable;
+	m_externalColortables = colortables;
+	emit onWidthChanged();
+	emit onHeightChanged();
+	emit numberOfColorsChanged();
 }
 
 inline bool getCutoutImageHelper(PG::UTIL::IDImage& outCutoutImage, const PG::UTIL::IDImage& inIDImage, const Cutout* inCut) {
@@ -1399,7 +1404,7 @@ PG::UTIL::RGBAImage SpriteSheet::getSpritePG(const Cutout* cut, unsigned int col
 }
 
 QImage idImageToColor(const PG::UTIL::IDImage& idImage, unsigned int colortableID, const QVector<QColor>& colortable, bool alpha = false) {
-	assert_Test("Color table ID out of bound!", ColortableID * 16 + 16 > colortable.size());
+	assert_Test("Color table ID out of bound!", colortableID * 16 + 16 > colortable.size());
 
 	if (alpha) {
 		QImage sprite(idImage.getWidth(), idImage.getHeight(), QImage::Format_RGBA8888);
@@ -1513,363 +1518,6 @@ SpriteData::~SpriteData() {
 	close();
 }
 
-inline QString readQString(QDataStream& in) {
-	quint32 number_uint32;
-	in >> number_uint32;
-	QByteArray buffer(number_uint32, Qt::Uninitialized);
-	in.readRawData(buffer.data(), number_uint32);
-	return QString(buffer);
-}
-
-
-bool SpriteData::openPGSHv1(QDataStream& in) {
-	quint16 number_uint16;
-	quint32 number_uint32;
-
-	QString text;
-	text = readQString(in);//info text
-	qDebug() << __LINE__ << ": " << text;
-	if (text.isEmpty()) return false;
-	text = readQString(in);
-	if (text.isEmpty()) return false;
-
-	QColorTable colorTable;
-	in >> number_uint16;
-	for (unsigned int i = 0; i < number_uint16; i++) {
-		quint8 r, g, b, a;
-		in >> r >> g >> b >> a;
-		colorTable.push_back(QColor(r, g, b, a));
-	}
-	m_colortables.push_back(colorTable);
-
-	text = readQString(in);//SpriteSheets
-
-	in >> number_uint16;
-	for (unsigned int i = 0; i < number_uint16; i++) {
-		quint16 width, height, powerColorTable;
-		quint32 savedSize;
-		in >> width >> height >> powerColorTable >> savedSize;
-
-		if (width == 0 || height == 0 || height > 6000 || width > 6000) {
-			PG_INFO_STREAM("width: " << width << " height: " << height << " powerColorTable: " << powerColorTable)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Sprite sheet bits are wrong? (width or height invalid)", QMessageBox::Ok);
-			return false;
-		}
-		unsigned int size = width * height;
-		if (size != savedSize) {
-			PG_INFO_STREAM("size: " << size << " savedSize: " << savedSize)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Sprite sheet size is different than expected! (width*height != stored size)", QMessageBox::Ok);
-			return false;
-		}
-
-		m_spriteSheets.push_back(new SpriteSheet(width, height, powerColorTable, this));
-		if (size != 0) in.readRawData((char*)(m_spriteSheets.last()->getSpriteSheet().begin()), size);
-
-	}
-
-	text = readQString(in);//Cutouts
-	in >> number_uint32;
-	for (unsigned int i = 0; i < number_uint32; i++) {
-		quint16 externalSheetID, sheetRealID, x, y, w, h, dc;
-		in >> externalSheetID >> sheetRealID >> x >> y >> w >> h >> dc;
-		if (externalSheetID)
-			m_cutouts.push_back(new Cutout(sheetRealID, externalSheetID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-		else {
-			m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-			assert_Test("Sheet ID out of bound!", sheetRealID >= m_spriteSheets.size());
-			m_spriteSheets[sheetRealID]->push_backCutoutID(m_cutouts.size() - 1);
-		}
-	}
-
-	text = readQString(in);//Animations
-	in >> number_uint32;
-	qDebug() << __LINE__ << ": Ani Size: " << number_uint32;
-	beginInsertRows(QModelIndex(), 0, number_uint32);
-	for (unsigned int a = 0; a < number_uint32; a++) {
-		quint32 id, markers, layers;
-		QString name;
-		in >> id >> name >> markers;
-		if (markers > 1400) {
-			PG_INFO_STREAM("markers: " << markers)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Number of markers is too big! (size > 1400)", QMessageBox::Ok);
-			return false;
-		}
-
-
-		SpriteAnimation* ani = new SpriteAnimation(id, name);
-		m_aniamtions.push_back(ani);
-		for (unsigned int m = 0; m < markers; m++) {
-			quint32 start, duration, type;
-			qint16 a;
-			quint16 b;
-			in >> start >> duration >> type >> a >> b;
-			//qDebug()<<__LINE__<<"_Markers: start: "<<start<<" duration: "<<duration<<" type: "<<type<<" a: "<<a<<" b: "<<b;
-			assert_Test("Marker duration should be 1!", duration != 1);
-			ani->getMarkers()->push_back(new Marker(start, duration, type, a, b, ani));
-			//ani->addMarker(start,type,a,b);
-		}
-
-		in >> layers;
-		if (layers > 1400) {
-			PG_INFO_STREAM("layers: " << layers)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Number of layers is too big! (size > 1400)", QMessageBox::Ok);
-			return false;
-		}
-		//PG_INFO_STREAM("layers: "<<layers)
-		for (unsigned int l = 0; l < layers; l++) {
-			QString name;// = readQString(in);
-			quint8 isHidden;
-			in >> name >> isHidden;
-			Layer* lay = new Layer(name, isHidden, ani);
-			ani->getLayers().push_back(lay);
-			quint32 keyframes;
-			in >> keyframes;
-			//PG_INFO_STREAM("keyframes: "<<keyframes<<" name: "<<name.toStdString())
-
-			if (keyframes >= 3000) {
-				PG_INFO_STREAM("keyframes: " << keyframes << " name: " << name.toStdString())
-					QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Too many keyframes! (size > 3000)", QMessageBox::Ok);
-				return false;
-			}
-
-			for (unsigned int k = 0; k < keyframes; k++) {
-				quint16 cutoutID, colortableID;
-				qint32 start, durr;
-				qint16 anchorX, anchorY, offsetX, offsetY, scaleX, scaleY, roation, mirror, unknown;
-				in >> cutoutID >> colortableID >> start >> durr >> anchorX >> anchorY >> offsetX >> offsetY >> scaleX >> scaleY >> roation >> mirror >> unknown;
-				if (cutoutID >= m_cutouts.size()) {
-					PG_INFO_STREAM("cutoutID: " << cutoutID << " size: " << m_cutouts.size())
-						QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Keyframes cutoutID is bigger then the number of cutouts!", QMessageBox::Ok);
-					return false;
-				}
-				lay->push_backKeyframe(start, durr, cutoutID, colortableID, anchorX, anchorY, scaleX, scaleY, offsetX, offsetY, roation, mirror, unknown, false);
-			}
-
-		}
-
-
-
-	}
-	return true;
-}
-
-
-bool SpriteData::openPGSHv2(QDataStream& in) {
-	quint16 number_uint16;
-	quint32 number_uint32;
-
-	QString text;
-	text = readQString(in);//info text
-	qDebug() << __LINE__ << ": " << text;
-	if (text.isEmpty()) return false;
-	text = readQString(in);
-	if (text.isEmpty()) return false;
-
-	{
-		quint16 numberOfColorTables;
-		in >> numberOfColorTables;
-		for (unsigned int c = 0; c < numberOfColorTables; c++) {
-			QColorTable colorTable;
-			in >> number_uint16;
-			for (unsigned int i = 0; i < number_uint16; i++) {
-				quint8 r, g, b, a;
-				in >> r >> g >> b >> a;
-				colorTable.push_back(QColor(r, g, b, a));
-			}
-			m_colortables.push_back(colorTable);
-		}
-	}
-
-	text = readQString(in);//SpriteSheets
-
-	in >> number_uint16;
-	for (unsigned int i = 0; i < number_uint16; i++) {
-		quint16 width, height, powerColorTable;
-		quint32 savedSize;
-		in >> width >> height >> powerColorTable >> savedSize;
-
-		if (width == 0 || height == 0 || height > 6000 || width > 6000) {
-			PG_INFO_STREAM("width: " << width << " height: " << height << " powerColorTable: " << powerColorTable)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Sprite sheet bits are wrong? (width or height invalid)", QMessageBox::Ok);
-			return false;
-		}
-		unsigned int size = width * height;
-		if (size != savedSize) {
-			PG_INFO_STREAM("size: " << size << " savedSize: " << savedSize)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Sprite sheet size is different than expected! (width*height != stored size)", QMessageBox::Ok);
-			return false;
-		}
-
-		m_spriteSheets.push_back(new SpriteSheet(width, height, powerColorTable, this));
-		if (size != 0) in.readRawData((char*)(m_spriteSheets.last()->getSpriteSheet().begin()), size);
-
-	}
-
-	text = readQString(in);//Cutouts
-	in >> number_uint32;
-	for (unsigned int i = 0; i < number_uint32; i++) {
-		quint16 externalSheetID, sheetRealID, x, y, w, h, dc;
-		in >> externalSheetID >> sheetRealID >> x >> y >> w >> h >> dc;
-		if (externalSheetID)
-			m_cutouts.push_back(new Cutout(sheetRealID, externalSheetID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-		else {
-			m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-			assert_Test("Sheet ID out of bound!", sheetRealID >= m_spriteSheets.size());
-			m_spriteSheets[sheetRealID]->push_backCutoutID(m_cutouts.size() - 1);
-		}
-	}
-
-	text = readQString(in);//Animations
-	in >> number_uint32;
-	qDebug() << __LINE__ << ": Ani Size: " << number_uint32;
-	beginInsertRows(QModelIndex(), 0, number_uint32);
-	for (unsigned int a = 0; a < number_uint32; a++) {
-		quint32 id, markers, layers;
-		QString name;
-		in >> id >> name >> markers;
-		if (markers > 1400) {
-			PG_INFO_STREAM("markers: " << markers)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Number of markers is too big! (size > 1400)", QMessageBox::Ok);
-			return false;
-		}
-
-
-		SpriteAnimation* ani = new SpriteAnimation(id, name);
-		m_aniamtions.push_back(ani);
-		for (unsigned int m = 0; m < markers; m++) {
-			quint32 start, duration, type;
-			qint16 a;
-			quint16 b;
-			in >> start >> duration >> type >> a >> b;
-			//qDebug()<<__LINE__<<"_Markers: start: "<<start<<" duration: "<<duration<<" type: "<<type<<" a: "<<a<<" b: "<<b;
-			assert_Test("Marker duration should be 1!", duration != 1);
-			ani->getMarkers()->push_back(new Marker(start, duration, type, a, b, ani));
-			//ani->addMarker(start,type,a,b);
-		}
-
-		in >> layers;
-		if (layers > 1400) {
-			PG_INFO_STREAM("layers: " << layers)
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Number of layers is too big! (size > 1400)", QMessageBox::Ok);
-			return false;
-		}
-		//PG_INFO_STREAM("layers: "<<layers)
-		for (unsigned int l = 0; l < layers; l++) {
-			QString name;// = readQString(in);
-			quint8 isHidden;
-			in >> name >> isHidden;
-			Layer* lay = new Layer(name, isHidden, ani);
-			ani->getLayers().push_back(lay);
-			quint32 keyframes;
-			in >> keyframes;
-			//PG_INFO_STREAM("keyframes: "<<keyframes<<" name: "<<name.toStdString())
-
-			if (keyframes >= 3000) {
-				PG_INFO_STREAM("keyframes: " << keyframes << " name: " << name.toStdString())
-					QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Too many keyframes! (size > 3000)", QMessageBox::Ok);
-				return false;
-			}
-
-			for (unsigned int k = 0; k < keyframes; k++) {
-				quint16 cutoutID, colortableID;
-				qint32 start, durr;
-				qint16 anchorX, anchorY, offsetX, offsetY, scaleX, scaleY, roation, mirror, unknown;
-				in >> cutoutID >> colortableID >> start >> durr >> anchorX >> anchorY >> offsetX >> offsetY >> scaleX >> scaleY >> roation >> mirror >> unknown;
-				if (cutoutID >= m_cutouts.size()) {
-					PG_INFO_STREAM("cutoutID: " << cutoutID << " size: " << m_cutouts.size())
-						QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Keyframes cutoutID is bigger then the number of cutouts!", QMessageBox::Ok);
-					return false;
-				}
-				lay->push_backKeyframe(start, durr, cutoutID, colortableID, anchorX, anchorY, scaleX, scaleY, offsetX, offsetY, roation, mirror, unknown, false);
-			}
-
-		}
-
-
-
-	}
-	return true;
-}
-
-// functions
-bool SpriteData::open(const QString& file) {
-	if (file.size() == 0) return false;
-	close();
-
-	QFile qfile(file);
-	if (!qfile.open(QIODevice::ReadOnly)) return false;
-	QDataStream in(&qfile);
-
-	{
-
-		QByteArray buffer(4, Qt::Uninitialized);
-		in.readRawData(buffer.data(), 4);
-
-		QString magic(buffer);
-		if (magic != "PGSH") {
-			PG_INFO_STREAM("Magic number is wrong!");
-			QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
-				"Magic number is wrong! Should be 'PGSH'!",
-				QMessageBox::Ok);
-			qfile.close();
-			return false;
-		}
-
-		quint16 version;
-		in >> version;
-		if (version == 1) {
-			if (!openPGSHv1(in)) {
-				qfile.close();
-				close();
-				return false;
-			}
-
-		}
-		else if (version == 2) {
-			if (!openPGSHv2(in)) {
-				qfile.close();
-				close();
-				return false;
-			}
-		}
-		else {
-			PG_INFO_STREAM("Only version 1 or 2 are supported!");
-			QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error", "Only file format version 1 or 2 are supported!", QMessageBox::Ok);
-			qfile.close();
-			return false;
-		}
-	}
-
-	qfile.close();
-	m_lastFile = file;
-	m_currentColorTable = 0;
-	endInsertRows();
-
-	if (m_aniamtions.empty()) {
-		m_currentAnimation = -1;
-		emit onNumberOfAnimationsChanged();
-		emit onCurrentAnimationChanged();
-		emit onAnimationChanged(nullptr);
-	}
-	else {
-		m_currentAnimation = 0;
-		emit onNumberOfAnimationsChanged();
-		emit onCurrentAnimationChanged();
-		emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
-	}
-
-
-
-	emit onLastFileNameChanged();
-	emit numberOfColorTablesChanged();
-	emit onNumberOfCutoutsChanged();
-	emit numberOfSheetsChanged();
-	emit allSpriteSheetsChanged();
-	emit allColorTablesChanged();
-	emit currentColorTableChanged();
-
-	return true;
-}
 
 inline void writeText(QDataStream& out, const QString& text) {
 	out << (qint32)text.size();
@@ -1885,7 +1533,7 @@ bool SpriteData::save(const QString& file) {
 	if (!qfile.open(QIODevice::WriteOnly)) return false;
 	QDataStream out(&qfile);
 	out.writeRawData("PGSH", 4);
-	out << (quint16)2; //version
+	out << (quint16)3; //version
 
 	out << "More info at 'https://github.com/ProgSys/pg_disatools'";
 	//writeText(out, "More info at 'https://github.com/ProgSys/pg_disatools'");
@@ -1912,10 +1560,16 @@ bool SpriteData::save(const QString& file) {
 
 	out << (quint16)getNumberOfSpriteSheets();
 	for (const SpriteSheet* sheet : m_spriteSheets) {
-		out << (quint16)sheet->getWidth();
-		out << (quint16)sheet->getHeight();
-		out << (quint16)sheet->getPowerOfColorTable();
-		out.writeBytes((char*) & (sheet->getSpriteSheet()[0]), sheet->getSpriteSheet().size());
+		out << (qint16)sheet->getExternalID();
+		out << (qint16)sheet->getPowerOfColorTable();
+		if (sheet->isEmpty()) {
+			out << (quint16)0 << (quint16)0 << (quint32) 0;
+		}
+		else {
+			out << (quint16)sheet->getWidth();
+			out << (quint16)sheet->getHeight();
+			out.writeBytes((char*) sheet->getSpriteSheet().data(), sheet->getSpriteSheet().size());
+		}
 	}
 
 	//Cutouts
@@ -2009,7 +1663,7 @@ bool SpriteData::importSH(const QString& file) {
 		return false;
 	}
 
-	if (sh.getSprtieSheets().empty() || sh.getSheetsInfos().size() != sh.getSprtieSheets().size()) {
+	if (sh.getSpriteSheets().empty() || sh.getSheetsInfos().size() != sh.getSpriteSheets().size()) {
 		qInfo() << "There are no sprite sheets inside the SH file! File may be corrupt!";
 		return false;
 	}
@@ -2039,7 +1693,7 @@ bool SpriteData::importSH(const QString& file) {
 	//save sheets
 	for (unsigned int i = 0; i < sh.getSheetsInfos().size(); i++) {
 		const PG::FILE::shfileSheetInfo& info = sh.getSheetsInfos()[i];
-		const PG::UTIL::IDImage& sheet = sh.getSprtieSheets()[i];
+		const PG::UTIL::IDImage& sheet = sh.getSpriteSheets()[i];
 		m_spriteSheets.push_back(new SpriteSheet(sheet, info.power_colortablesize, this));
 	}
 
@@ -2207,6 +1861,7 @@ bool SpriteData::importSH(const QString& file) {
 
 	return true;
 }
+
 bool SpriteData::exportSH(const QString& file) {
 	if (file.size() == 0) return false;
 
@@ -2215,7 +1870,7 @@ bool SpriteData::exportSH(const QString& file) {
 
 	for (const SpriteSheet* sheet : m_spriteSheets) {
 		if (sheet->isExternal()) continue;
-		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
+		sh.getSpriteSheets().push_back(sheet->getSpriteSheet());
 		//TODO set the last values
 		const unsigned char p = sheet->getPowerOfColorTable();
 		sh.getSheetsInfos().push_back({ 0,unsigned short(sheet->getWidth()), unsigned short(sheet->getHeight()),p,0,0,0 });
@@ -2398,6 +2053,84 @@ int SpriteData::findExternalSpriteSheetIndex(int externalID) const {
 		return s->getExternalID() == externalID;
 		});
 	return findIt == m_spriteSheets.end() ? -1 : std::distance(m_spriteSheets.begin(), findIt);
+}
+
+bool SpriteData::openExternalSpriteSheet(int sheetID) {
+	if (sheetID < 0 || sheetID >= m_spriteSheets.size()) {
+		qInfo() << "sheetID out of bounds! ("<< sheetID<< ", "<< m_spriteSheets.size()<<")";
+		return false;
+	}
+	SpriteSheet* spriteSheet = m_spriteSheets[sheetID];
+	if (!spriteSheet || !spriteSheet->isExternal()) {
+		qInfo() << "Sprite sheets is not external!";
+		return false;
+	}
+
+	//select file
+	QFileDialog openDialog(nullptr);
+	openDialog.setNameFilter(tr("SH (*.sh);;SPG (*.spg)"));
+
+
+	QString file;
+	QStringList fileNames;
+	if (openDialog.exec()) {
+		fileNames = openDialog.selectedFiles();
+		if (fileNames.size() > 0) 
+			file = fileNames[0];
+		else
+			return false;
+	}
+	const QFileInfo info(file);
+	const QString suffix = info.completeSuffix().toLower();
+	//prosess file
+	if (suffix == "sh") {
+		PG::FILE::SH sh;
+
+		if (sh.open(file.toStdString())) {
+			qInfo() << "Couldn't read .sh file!";
+			return false;
+		}
+
+		if (sh.getSheetsInfos().empty() || sh.getSpriteSheets().empty() || sh.getColortables().empty()) {
+			qInfo() << "No sprite sheets or color tables!";
+			return false;
+		}
+
+		//load colortable
+		QList<QColorTable> colortables;
+		for (const PG::FILE::ColorTable& table : sh.getColortables()) {
+			QColorTable qTable;
+			for (const PG::UTIL::rgba& color : table)
+				qTable.push_back(QColor(color.r, color.g, color.b, color.a));
+			colortables.push_back(qTable);
+		}
+		
+		spriteSheet->openExternal(sh.getSpriteSheets().front(), sh.getSheetsInfos().front().power_colortablesize, colortables);
+	}
+	else if (suffix == "spg") {
+		SpriteData spg;
+		if (!spg.open(file)) {
+			qInfo() << "Couldn't read .spg file!";
+			return false;
+		}
+
+		if(spg.getSpriteSheets().empty() || spg.getColorTables().empty()) {
+			qInfo() << "No sprite sheets or color tables!";
+			return false;
+		}
+
+		const auto& sheet = spg.getSpriteSheets().front();
+		spriteSheet->openExternal(sheet->getSpriteSheet(), sheet->getPowerOfColorTable(), spg.getColorTables() );
+	}
+	else {
+		qInfo() << "Unknown file: "<< file <<" ("<< suffix <<")";
+		return false;
+	}
+	
+	emit externalSpriteSheetOpened(spriteSheet);
+	emit spriteSheetChanged(sheetID);
+
+	return true;
 }
 
 ///if png is false then tga is used
@@ -3432,24 +3165,28 @@ PG::FILE::ColorTable SpriteData::getColortableGL(int index) const {
 	return glColortable;
 }
 
-QImage SpriteData::getSprite(unsigned int CutoutID, unsigned int ColortableID) const {
-	if (CutoutID >= m_cutouts.size() || ColortableID >= getNumberOfColors() / 16) {
-		qInfo() << "Invalid CutoutID or ColortableID: " << CutoutID << ", " << ColortableID;
+QImage SpriteData::getSprite(unsigned int cutoutID, unsigned int colortableID) const {
+	if (cutoutID >= m_cutouts.size() || colortableID >= getNumberOfColors() / 16) {
+		qInfo() << "Invalid cutoutID or colortableID: " << cutoutID << ", " << colortableID;
 		return QImage();
 	}
 
-	Cutout* cutout = m_cutouts[CutoutID];
+	Cutout* cutout = m_cutouts[cutoutID];
 	
 	const SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
 	if (sheet->getPowerOfColorTable() > 14) return QImage(); // cant be that big?
 
-	assert_Test("Color table index out of bound!", m_currentColorTable < 0 || m_currentColorTable >= m_colortables.size());
-	const QColorTable& colortable = m_colortables[m_currentColorTable];
+	const QColorTable& colortable = ([this, sheet]() -> const QColorTable & {
+		if (sheet->isExternal() && sheet->isExternalOpened())
+			return sheet->getExternalColortables().front();
+		else
+			return getColorTable();
+		})();
 
-	if (sheet->getSizeOfColorTable() < 0 || ColortableID * 16 + sheet->getSizeOfColorTable() > colortable.size())
-		ColortableID = 0;
+	if (sheet->getSizeOfColorTable() < 0 || colortableID * 16 + sheet->getSizeOfColorTable() > colortable.size())
+		colortableID = 0;
 
-	return sheet->getSprite(cutout, ColortableID, colortable);
+	return sheet->getSprite(cutout, colortableID, colortable);
 }
 
 const SpriteSheet* SpriteData::getSpriteSheet(unsigned int spriteID) const {
@@ -3813,7 +3550,7 @@ bool SpriteData::addNewSpriteSheet() {
 bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable) {
 	if (width <= 0 || height <= 0 || powerOfColorTable <= 0) return false;
 
-	m_spriteSheets.push_back(new SpriteSheet(width, height, powerOfColorTable, this));
+	m_spriteSheets.push_back(new SpriteSheet(-1, width, height, powerOfColorTable, this));
 	PG_INFO_STREAM("Sprite sheet added!");
 	emit spriteSheetAdded();
 	emit numberOfSheetsChanged();

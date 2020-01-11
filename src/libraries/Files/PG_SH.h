@@ -147,8 +147,8 @@ namespace PG {
 			inline std::vector<ColorTable>& getColortables() { return m_colortables; };
 			inline const std::vector<ColorTable>& getColortables() const { return m_colortables; };
 
-			inline std::vector< PG::UTIL::IDImage >& getSprtieSheets() { return m_spriteSheets; };
-			inline const std::vector< PG::UTIL::IDImage >& getSprtieSheets() const { return m_spriteSheets; };
+			inline std::vector< PG::UTIL::IDImage >& getSpriteSheets() { return m_spriteSheets; };
+			inline const std::vector< PG::UTIL::IDImage >& getSpriteSheets() const { return m_spriteSheets; };
 
 		private:
 			PG::UTIL::File m_openedFile;

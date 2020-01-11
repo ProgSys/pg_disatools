@@ -157,11 +157,6 @@ void GLSpriteWidget::setData(SpriteData* spriteSheet) {
 	m_animationInfo.spriteData = spriteSheet;
 }
 
-
-void GLSpriteWidget::renderFrame() {
-	update();
-}
-
 void GLSpriteWidget::renderFrame(int frame) {
 	if (m_currentFrame == frame) return;
 
@@ -200,27 +195,74 @@ void GLSpriteWidget::setBackgroundColor(const QColor& color) {
 	update();
 }
 
+PG::FILE::ColorTable toColortableGL(const QColorTable& colortable) {
+	std::vector<PG::UTIL::rgba> glColortable(colortable.size());
+
+	auto it = glColortable.begin();
+	for (const QColor& color : colortable) {
+		(*it).r = color.red();
+		(*it).g = color.green();
+		(*it).b = color.blue();
+		(*it).a = color.alpha();
+		it++;
+	}
+	return glColortable;
+}
+
+void updateColorTables(const QList<QColorTable>& colorTables, std::vector<PG::GL::Texture* >& textures) {
+	if (textures.size() > colorTables.size()) {
+		auto begin = textures.begin() + colorTables.size();
+		std::for_each(begin, textures.end(), [](PG::GL::Texture* t) { delete t; });
+		textures.erase(begin, textures.end());
+	}
+
+	unsigned int i = 0;
+	for (const QColorTable& colorTable : colorTables) {
+		if (i >= textures.size()) {
+			PG::GL::Texture* colorTableGL = new PG::GL::Texture();
+			colorTableGL->bind(toColortableGL(colorTable), PG::GL::Texture::SPRITE);
+			textures.push_back(colorTableGL);
+		}
+		else {
+			textures[i]->update(toColortableGL(colorTable));
+		}
+		++i;
+	}
+};
+
 void GLSpriteWidget::updateAllColortables() {
 	assert_Test("Sprite data is nullptr!", !m_animationInfo.spriteData);
 	makeCurrent();
 
-	if (m_animationInfo.colorTables.size() > m_animationInfo.spriteData->getNumberOfColortables()) {
-		for (unsigned int i = m_animationInfo.spriteData->getNumberOfColortables(); i < m_animationInfo.colorTables.size(); i++) {
-			delete m_animationInfo.colorTables[i];
+	
+
+	//update base list
+	updateColorTables(m_animationInfo.spriteData->getColorTables(), m_animationInfo.colorTables);
+
+	//update rest
+	auto externalColorTables = std::move(m_animationInfo.externalColorTables);
+	for (const SpriteSheet* spriteSheet: m_animationInfo.spriteData->getSpriteSheets()) {
+		if (spriteSheet->isExternal() && spriteSheet->isExternalOpened()) {
+			auto findIt = externalColorTables.find(spriteSheet->getExternalID());
+			if (findIt == externalColorTables.end()) { // not found
+				std::vector<PG::GL::Texture* > newColorTableGL;
+				updateColorTables(spriteSheet->getExternalColortables(), newColorTableGL);
+				m_animationInfo.externalColorTables[spriteSheet->getExternalID()] = std::move(newColorTableGL);
+			}
+			else {
+				updateColorTables(m_animationInfo.spriteData->getColorTables(), findIt->second);
+				m_animationInfo.externalColorTables[spriteSheet->getExternalID()] = std::move(findIt->second);
+			}
 		}
-		m_animationInfo.colorTables.erase(m_animationInfo.colorTables.begin() + m_animationInfo.spriteData->getNumberOfColortables(), m_animationInfo.colorTables.end());
 	}
 
-	for (unsigned int i = 0; i < m_animationInfo.spriteData->getNumberOfColortables(); i++) {
-		if (i >= m_animationInfo.colorTables.size()) {
-			PG::GL::Texture* colorTable = new PG::GL::Texture();
-			colorTable->bind(m_animationInfo.spriteData->getColortableGL(i), PG::GL::Texture::SPRITE);
-			m_animationInfo.colorTables.push_back(colorTable);
-		}
-		else {
-			m_animationInfo.colorTables[i]->update(m_animationInfo.spriteData->getColortableGL(i));
-		}
+	//delete unused
+	for (const auto& pair : externalColorTables) {
+		for (PG::GL::Texture* t : pair.second)
+			delete t;
 	}
+
+	
 	update();
 }
 
@@ -229,14 +271,14 @@ void GLSpriteWidget::updateColortable(int index) {
 		makeCurrent();
 		index = 0;
 		for (PG::GL::Texture* t : m_animationInfo.colorTables) {
-			if (t->isValid()) t->update(m_animationInfo.spriteData->getColortableGL(index));
+			if (t->isValid()) t->update(toColortableGL(m_animationInfo.spriteData->getColorTables()[index]));
 			index++;
 		}
 		update();
 	}
 	else if (index < m_animationInfo.colorTables.size() && m_animationInfo.colorTables[index]->isValid()) {
 		makeCurrent();
-		m_animationInfo.colorTables[index]->update(m_animationInfo.spriteData->getColortableGL(index));
+		m_animationInfo.colorTables[index]->update(toColortableGL(m_animationInfo.spriteData->getColorTables()[index]));
 		update();
 	}
 }
@@ -245,7 +287,7 @@ void GLSpriteWidget::addColortable(int index) {
 	if (!m_animationInfo.spriteData || index < 0) return;
 	makeCurrent();
 	PG::GL::Texture* colorTable = new PG::GL::Texture();
-	colorTable->bind(m_animationInfo.spriteData->getColortableGL(index), PG::GL::Texture::SPRITE);
+	colorTable->bind(toColortableGL(m_animationInfo.spriteData->getColorTables()[index]), PG::GL::Texture::SPRITE);
 	m_animationInfo.colorTables.insert(m_animationInfo.colorTables.begin() + index, colorTable);
 	update();
 }
@@ -255,6 +297,23 @@ void GLSpriteWidget::removeColortable(int index) {
 	makeCurrent();
 	delete m_animationInfo.colorTables[index];
 	m_animationInfo.colorTables.erase(m_animationInfo.colorTables.begin() + index);
+	update();
+}
+
+void GLSpriteWidget::updateExternalColortable(const SpriteSheet* spriteSheet) {
+	if (!spriteSheet) return;
+	if (spriteSheet->isExternal() && spriteSheet->isExternalOpened()) {
+		auto findIt = m_animationInfo.externalColorTables.find(spriteSheet->getExternalID());
+		if (findIt == m_animationInfo.externalColorTables.end()) { // not found
+			std::vector<PG::GL::Texture* > newColorTableGL;
+			updateColorTables(spriteSheet->getExternalColortables(), newColorTableGL);
+			m_animationInfo.externalColorTables[spriteSheet->getExternalID()] = std::move(newColorTableGL);
+		}
+		else {
+			updateColorTables(m_animationInfo.spriteData->getColorTables(), findIt->second);
+			m_animationInfo.externalColorTables[spriteSheet->getExternalID()] = std::move(findIt->second);
+		}
+	}
 	update();
 }
 

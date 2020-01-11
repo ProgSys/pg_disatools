@@ -4,14 +4,14 @@ import MyKeyframe 0.1
 import MyCutout 0.1
 import MySpriteData 0.1
 import QtQuick.Controls 1.4
-import QtQuick.Dialogs 1.0
 
 Rectangle {
 		property var cutout: null; 
+		readonly property var isSelected: spritedata.selected == cutout; 
 		
 		function getItemColor(){
 			if( spritedata && spritedata.selectedKey && spritedata.selectedKey.cutoutID == model.display){
-				if(spritedata.selected == cutout)
+				if(isSelected)
 					return "#30FFFFFF"
 				else
 					if(mouseArea.containsMouse)
@@ -19,7 +19,7 @@ Rectangle {
 					else
 						return "#302897c5"
 			}else{
-				if(spritedata.selected == cutout)
+				if(isSelected)
 					return "#30FFFFFF"
 				else
 					if(mouseArea.containsMouse)
@@ -32,7 +32,7 @@ Rectangle {
 		visible: {
 			if(!cutout) return false;
 			if(spritedata.isolateSelection && spritedata.selected)
-				return spritedata.selected == cutout;
+				return isSelected;
 			return !cutout.hidden;
 		}
 		x: cutout.x*zoom
@@ -41,7 +41,7 @@ Rectangle {
 		width: cutout.width*zoom
 		height: cutout.height*zoom
 		
-		color: getItemColor() //spritedata.selected == cutout)?  "#30FFFFFF" : ((mouseArea.containsMouse)? "#50FFFFFF" :"transparent")
+		color: getItemColor() 
 		border.width: 1
 		border.color: (spritedata.selected == cutout)?"red":"green"
 		
@@ -55,13 +55,13 @@ Rectangle {
 			MenuItem {
 				text: qsTr('Hide')
 				onTriggered:{cutout.hidden = true; spritedata.selected = null
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			MenuItem {
 				text: qsTr('Unhide All')
 				onTriggered:{spritedata.unhideAllCutouts()
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			MenuSeparator { }
@@ -82,14 +82,14 @@ Rectangle {
 				text: qsTr('Import as color')
 				onTriggered:{
 					spritedata.importSpriteAsColor(model.display);
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			MenuItem {
 				text: qsTr('Import as IDs')
 				onTriggered:{
 					spritedata.importSpriteAsIDs(model.display);
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			MenuSeparator { }
@@ -97,7 +97,7 @@ Rectangle {
 				text: qsTr('Crop')
 				onTriggered:{
 					spritedata.cropCutout(model.display);
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}	
 			MenuSeparator { }
@@ -106,7 +106,7 @@ Rectangle {
 				text: qsTr('Add sprite at ('+cutoutContextMenu.posX+", "+cutoutContextMenu.posY+")")
 				onTriggered:{
 					spritedata.addCutout(activeSpriteSheet,cutoutContextMenu.posX,cutoutContextMenu.posY,cutout.width,cutout.height, cutout.colortable)
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			
@@ -114,14 +114,14 @@ Rectangle {
 				text: qsTr('Add sprite right')
 				onTriggered:{
 					spritedata.addCutout(activeSpriteSheet,cutout.x+cutout.width,cutout.y,cutout.width,cutout.height, cutout.colortable)
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			MenuItem {
 				text: qsTr('Add sprite left')
 				onTriggered:{
 					spritedata.addCutout(activeSpriteSheet,cutout.x-cutout.width,cutout.y,cutout.width,cutout.height, cutout.colortable)
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			
@@ -129,14 +129,14 @@ Rectangle {
 				text: qsTr('Add sprite above')
 				onTriggered:{
 					spritedata.addCutout(activeSpriteSheet,cutout.x,cutout.y-cutout.height,cutout.width,cutout.height, cutout.colortable)
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			MenuItem {
 				text: qsTr('Add sprite below')
 				onTriggered:{
 					spritedata.addCutout(activeSpriteSheet,cutout.x,cutout.y+cutout.height,cutout.width,cutout.height, cutout.colortable)
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 			}
 			
@@ -144,10 +144,10 @@ Rectangle {
 				text: qsTr('Delete')
 				iconSource:  "../materials/icons/delete.png"
 				onTriggered:{
+					var buffer = spriteimage
 					spritedata.selected = null
 					spritedata.removeCutoutID(model.display);
-					
-					//spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					buffer.refresh();
 				}
 			}
 		}
@@ -177,7 +177,7 @@ Rectangle {
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
 			onClicked: { 
 					if (mouse.button == Qt.LeftButton){
-						if(spritedata.selected == cutout) {spritedata.selected = null;root.cutoutSelected(-1, spritedata.selected); } else {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
+						if(isSelected) {spritedata.selected = null;root.cutoutSelected(-1, spritedata.selected); } else {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
 						
 					}else if (mouse.button == Qt.RightButton){
 						cutoutContextMenu.posX = Math.round((parent.x + mouse.x )/zoom);
@@ -198,8 +198,8 @@ Rectangle {
 		MouseArea {
 			anchors.top: parent.top
 			anchors.left: parent.left
-			width:2;
-			height:2;
+			width: isSelected? parent.width: 2;
+			height: isSelected? parent.height: 2;
 			hoverEnabled: true 
 			cursorShape:Qt.SizeAllCursor
 			drag.target: parent
@@ -220,12 +220,18 @@ Rectangle {
 				var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
 				if(cutout.x >= sheet.width) cutout.x = sheet.width-1;
 				if(cutout.y >= sheet.width) cutout.y = sheet.width-1;
-				spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+				spritedata.refresh();
+				spriteimage.refresh();
 			}
 			
 			onPositionChanged: {
-				mousePosIndicator.mouseX = parent.x -scroll.flickableItem.contentX
-				mousePosIndicator.mouseY = parent.y  + 25 -scroll.flickableItem.contentY
+				if(pressed){
+					mousePosIndicator.mouseX = parent.x - scroll.flickableItem.contentX
+					mousePosIndicator.mouseY = parent.y  + 25 -scroll.flickableItem.contentY
+				}else{
+					mousePosIndicator.mouseX = parent.x - scroll.flickableItem.contentX + mouse.x
+					mousePosIndicator.mouseY = parent.y + 25 -scroll.flickableItem.contentY + mouse.y
+				}
 				mousePosIndicator.visible = true
 			}
 		}
@@ -257,7 +263,7 @@ Rectangle {
 					cutout.height = ((parent.y+2)/zoom);
 					parent.x = parent.parent.width-2;
 					parent.y = parent.parent.height-2;
-					spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					spriteimage.refresh();
 				}
 				
 				onPositionChanged: {
@@ -269,4 +275,19 @@ Rectangle {
 				}
 			}
 		}
+	
+		function move( x,  y){
+				cutout.x = cutout.x + x;
+				cutout.y = cutout.y + y;
+				
+				var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
+				if(cutout.x >= sheet.width) cutout.x = sheet.width-1;
+				if(cutout.y >= sheet.width) cutout.y = sheet.width-1;
+				
+				spritedata.refresh();
+				spriteimage.refresh();
+			}
+	
+		CutoutShortcuts{ }
+		
 	}
