@@ -36,7 +36,7 @@ class Cutout: public QObject{
 	Q_OBJECT
     Q_PROPERTY(bool isExternalSheet 			READ isExternalSheet NOTIFY onExternalSheetIDChanged)
     Q_PROPERTY(unsigned char externalSheetID 	READ getExternalSheetID WRITE setExternalSheetID NOTIFY onExternalSheetIDChanged)
-	Q_PROPERTY(int id 	READ getSheetID  NOTIFY onSheetIDChanged)
+	Q_PROPERTY(int id READ getSheetID  NOTIFY onSheetIDChanged)
 
 	Q_PROPERTY(int x READ getX WRITE setX NOTIFY onXChanged)
 	Q_PROPERTY(int y READ getY WRITE setY NOTIFY onYChanged)
@@ -60,7 +60,6 @@ public:
 
 	//getters
 	int getSheetID() const;
-	int getSheetRealID() const;
 	bool isExternalSheet() const;
 	unsigned short getExternalSheetID() const;
 
@@ -440,10 +439,14 @@ class SpriteSheet: public QAbstractListModel{
 	Q_PROPERTY(int height READ getHeight NOTIFY onHeightChanged)
 	Q_PROPERTY(int colors READ getSizeOfColorTable NOTIFY numberOfColorsChanged)
 	Q_PROPERTY(int size READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
+	Q_PROPERTY(bool isReference READ isReference NOTIFY referenceIDChanged)
+	Q_PROPERTY(int referenceId READ getReferenceID WRITE setReferenceID NOTIFY referenceIDChanged)
+
 public:
-	SpriteSheet();
-	SpriteSheet(int width, int height, int powerColorTable = 4, QObject *parent = 0);
-	SpriteSheet(const PG::UTIL::IDImage& img, int powerColorTable = 4 , QObject *parent = 0);
+	SpriteSheet(QObject* parent = nullptr);
+	SpriteSheet(int referenceID, QObject* parent = nullptr);
+	SpriteSheet(int width, int height, int powerColorTable = 4, QObject *parent = nullptr);
+	SpriteSheet(const PG::UTIL::IDImage& img, int powerColorTable = 4 , QObject *parent = nullptr);
 	SpriteSheet(const SpriteSheet& sheet);
 	virtual ~SpriteSheet();
 
@@ -455,11 +458,15 @@ public:
 	int getNumberOfCutouts() const;
 	int getPowerOfColorTable() const;
 	int getSizeOfColorTable() const;
+	inline bool isReference() const { return m_referenceID >= 0; }
+	inline int getReferenceID() const { return m_referenceID; }
 
 	PG::UTIL::IDImage& getSpriteSheet();
 	const PG::UTIL::IDImage& getSpriteSheet() const;
 
+	PG::UTIL::RGBAImage getSpritePG(unsigned int ColortableID, const QVector<QColor>& colortable) const;
 	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable) const;
+	QImage getSprite(unsigned int ColortableID, const QVector<QColor>& colortable, bool alpha = false) const;
 	QImage getSprite(const Cutout* cut, unsigned int ColortableID, const QVector<QColor>& colortable, bool alpha = false) const;
 
 	PG::UTIL::IDImage getSpritePGIDs(const Cutout* cut) const;
@@ -474,19 +481,22 @@ public:
 	//setters
 	void push_backCutoutID(int id);
 	void set(int width, int height, int powerColorTable = 4, bool resizeSprites = false);
+	void setReferenceID(int reference);
 
-	virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final;
-	virtual int rowCount(const QModelIndex & parent = QModelIndex()) const final;
+	QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const final override;
+	int rowCount(const QModelIndex & parent = QModelIndex()) const final override;
 
 signals:
 	void onWidthChanged();
 	void onHeightChanged();
 	void numberOfColorsChanged();
 	void onNumberOfCutoutsChanged();
+	void referenceIDChanged();
 private:
 	PG::UTIL::IDImage m_img;
 	int m_powerOfColoTable = -1;
 	QList<int> m_cutoutsIDs;
+	int m_referenceID = -1;
 };
 
 Q_DECLARE_METATYPE( SpriteSheet );
@@ -592,6 +602,8 @@ public slots:
 
 	void close();
 
+	Q_INVOKABLE int findReferenceSpriteSheetIndex(int referenceId) const;
+
 	///if png is false then tga is used
 	Q_INVOKABLE int exportSprites(const QString& folder, const QString& type);
 	Q_INVOKABLE int exportSpritesIDs(const QString& folder, const QString& type);
@@ -602,6 +614,13 @@ public slots:
 	Q_INVOKABLE bool exportSpriteIDs(int cutoutID);
 	Q_INVOKABLE bool exportSpriteIDs(int cutoutID, const QString& file);
 
+	Q_INVOKABLE bool exportSpriteSheet(Cutout* cutout);
+	/**
+	* @brief Exports the entiere sprite sheet to a color image file
+	* @param cutout Used to determine the colortable
+	*/
+	Q_INVOKABLE bool exportSpriteSheet(Cutout* cutout, const QString& file);
+
 	Q_INVOKABLE bool importSpriteAsIDs(int cutoutID, const QString& file = "");
 	Q_INVOKABLE bool importSpriteAsIDs(int sheetID, int x, int y, int width, int height, const QString& file = "");
 	Q_INVOKABLE bool importSpriteAsIDs(Cutout& cut, const QString& file = "");
@@ -611,6 +630,9 @@ public slots:
 	Q_INVOKABLE bool importSpriteAsColor(int sheetID, int x, int y, int width, int height, int colorTableOffset, QImage& image);
 	Q_INVOKABLE bool importSpriteAsColor(int sheetID, int x, int y, int width, int height, int colorTableOffset = -1, const QString& file = "");
 	Q_INVOKABLE bool importSpriteAsColor(Cutout& cut, QImage& image);
+
+	Q_INVOKABLE bool importSpriteSheetAsColor(Cutout* cutout);
+	Q_INVOKABLE bool importSpriteSheetAsColor(Cutout* cutout, const QString& file);
 
 	bool dump(const QString& filepath);
 
@@ -680,6 +702,7 @@ private:
 
 	Cutout* m_selected = nullptr;
 	Keyframe* m_selectedKeyframe = nullptr;
+
 
 	bool m_isolateSelection = false;
 };

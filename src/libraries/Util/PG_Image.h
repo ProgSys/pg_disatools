@@ -69,14 +69,18 @@ public:
 		memcpy(&m_pixels[0], &image[0], image.size()*sizeof(T) );
 	}
 
-	unsigned int getWidth() const{
+	inline unsigned int getWidth() const{
 		return m_width;
 	}
-	unsigned int getHeight() const{
+	inline unsigned int getHeight() const{
 		return m_height;
 	}
 
-	unsigned int size() const{
+	inline bool empty() const {
+		return m_pixels.empty();
+	}
+
+	inline unsigned int size() const{
 		return m_pixels.size();
 	}
 

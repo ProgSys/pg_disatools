@@ -159,8 +159,10 @@ bool SH::open(const PG::UTIL::File& file) {
 		PG_INFO_STREAM(" * number_of_sheet_data: " << m_header.number_of_sheet_data)
 		PG_INFO_STREAM("m_animations: " << m_animations.size());
 	PG_INFO_STREAM("m_layers: " << m_layers.size());
-	PG_INFO_STREAM(" * start_cutout: " << m_layers[0].start_cutout)
-		PG_INFO_STREAM(" * number_of_cutouts: " << m_layers[0].number_of_cutouts)
+	if (!m_layers.empty()) {
+		PG_INFO_STREAM(" * start_cutout: " << m_layers[0].start_cutout)
+			PG_INFO_STREAM(" * number_of_cutouts: " << m_layers[0].number_of_cutouts)
+	}
 		PG_INFO_STREAM("m_numberOfColortables: " << m_numberOfColortables.size());
 	PG_INFO_STREAM(" * num: " << m_numberOfColortables[0]);
 		PG_INFO_STREAM("m_sheetsInfos: " << m_sheetsInfos.size());
@@ -281,7 +283,7 @@ bool SH::save(const std::string& file) {
 }
 
 bool SH::save(const PG::UTIL::File& file) {
-	if (m_animations.empty() || m_layers.empty() || m_cutouts.empty() || m_colortables.empty() || m_spriteSheets.empty()) {
+	if (m_cutouts.empty() || m_colortables.empty() || m_spriteSheets.empty()) {
 		PG_ERROR_STREAM("Not enough data for save operation!");
 		return FAILURE;
 	}
