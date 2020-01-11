@@ -149,6 +149,7 @@ void Cutout::setPosition(int x, int y) {
 }
 
 void Cutout::setX(int x) {
+	if (x < 0) x = 0;
 	if (m_position.x == x) return;
 	m_position.x = x;
 	emit onXChanged();
@@ -156,6 +157,7 @@ void Cutout::setX(int x) {
 }
 
 void Cutout::setY(int y) {
+	if (y < 0) y = 0;
 	if (m_position.y == y) return;
 	m_position.y = y;
 	emit onYChanged();
