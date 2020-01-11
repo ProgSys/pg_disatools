@@ -180,8 +180,30 @@ Rectangle {
 			}
 			
 			Text{
+				width: 60
 				font.pointSize: 12
-				text: (activeSpriteSheet+1)+"/"+spritedata.sheetsSize
+				verticalAlignment: Text.AlignVCenter
+				horizontalAlignment: Text.AlignHCenter
+		
+				text: {
+					if(spritedata.sheetsSize == 0) return "--";
+					var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
+					if(sheet && sheet.isExternal)
+						return (activeSpriteSheet+1)+"E/"+spritedata.sheetsSize;
+					else return (activeSpriteSheet+1)+"/"+spritedata.sheetsSize
+				}
+				
+				TooltipArea {
+				text: {
+					var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
+					if(sheet){
+						if(sheet.isExternal)
+							return "External sprite sheet Nr. "+(activeSpriteSheet+1)
+						else return "Sprite sheet Nr. "+(activeSpriteSheet+1)
+					}
+					return "Empty"
+					}
+				}
 			}
 			
 			Button {
@@ -284,6 +306,24 @@ Rectangle {
 				
 				PGToolTip {
 					text: "Sprite sheet settings"
+				}
+			}
+			
+			Button {
+				height: 24
+				width: 24
+				text: "O"
+				enabled: {
+					var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
+					sheet? sheet.isExternal: false
+				}
+				//iconSource: "../materials/icons/settings.png"
+				onClicked: {
+					//spritedata.editSpriteSheet(activeSpriteSheet);
+				}
+				
+				PGToolTip {
+					text: "Open external sprite sheet"
 				}
 			}
 			

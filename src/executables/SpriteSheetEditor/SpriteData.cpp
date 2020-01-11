@@ -1206,7 +1206,7 @@ int SpriteAnimation::rowCount(const QModelIndex& parent) const {
 ////// SpriteSheet //////
 SpriteSheet::SpriteSheet(QObject* parent): QAbstractListModel(parent) {}
 
-SpriteSheet::SpriteSheet(int referenceID, QObject* parent) : QAbstractListModel(parent), m_referenceID(referenceID) {}
+SpriteSheet::SpriteSheet(int externalID, QObject* parent) : QAbstractListModel(parent), m_externalID(externalID) {}
 
 SpriteSheet::SpriteSheet(int width, int height, int powerColorTable, QObject* parent) :
 	QAbstractListModel(parent), m_img(width, height), m_powerOfColoTable(powerColorTable) {
@@ -1285,10 +1285,10 @@ void SpriteSheet::set(int width, int height, int powerColorTable, bool resizeSpr
 	}
 }
 
-void SpriteSheet::setReferenceID(int reference) {
-	if (m_referenceID == reference) return;
-	m_referenceID = reference;
-	emit referenceIDChanged();
+void SpriteSheet::setExternalID(int External) {
+	if (m_externalID == External) return;
+	m_externalID = External;
+	emit externalIDChanged();
 }
 
 QVariant SpriteSheet::data(const QModelIndex& index, int role) const {
@@ -1330,10 +1330,10 @@ int SpriteSheet::getSizeOfColorTable() const {
 }
 
 PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() {
-	return isReference() ? g_externalSpriteSheet : m_img;
+	return isExternal() ? g_externalSpriteSheet : m_img;
 }
 const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() const {
-	return isReference() ? g_externalSpriteSheet : m_img;
+	return isExternal() ? g_externalSpriteSheet : m_img;
 }
 
 inline bool getCutoutImageHelper(PG::UTIL::IDImage& outCutoutImage, const PG::UTIL::IDImage& inIDImage, const Cutout* inCut) {
@@ -2069,7 +2069,7 @@ bool SpriteData::importSH(const QString& file) {
 			if (shCutout.external_sheet) {
 				cutoutID = m_cutouts.size();
 				//find or create external sprite sheet
-				int spriteSheetIndex = findReferenceSpriteSheetIndex(shCutout.external_sheet);
+				int spriteSheetIndex = findExternalSpriteSheetIndex(shCutout.external_sheet);
 				SpriteSheet* spriteSheet;
 				if (spriteSheetIndex < 0) {
 					spriteSheet = new SpriteSheet(shCutout.external_sheet, this);
@@ -2214,7 +2214,7 @@ bool SpriteData::exportSH(const QString& file) {
 
 
 	for (const SpriteSheet* sheet : m_spriteSheets) {
-		if (sheet->isReference()) continue;
+		if (sheet->isExternal()) continue;
 		sh.getSprtieSheets().push_back(sheet->getSpriteSheet());
 		//TODO set the last values
 		const unsigned char p = sheet->getPowerOfColorTable();
@@ -2393,9 +2393,9 @@ bool SpriteData::exportSH(const QString& file) {
 		return !sh.save(file.toStdString());
 }
 
-int SpriteData::findReferenceSpriteSheetIndex(int referenceId) const {
-	auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [referenceId](SpriteSheet* s) {
-		return s->getReferenceID() == referenceId;
+int SpriteData::findExternalSpriteSheetIndex(int externalID) const {
+	auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [externalID](SpriteSheet* s) {
+		return s->getExternalID() == externalID;
 		});
 	return findIt == m_spriteSheets.end() ? -1 : std::distance(m_spriteSheets.begin(), findIt);
 }

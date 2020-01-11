@@ -97,7 +97,7 @@ public slots:
 	void renderFrame(int frame);
 	void renderFrame();
 
-	void displayExternalReferences(bool display);
+	void displayExternals(bool display);
 	void displayGround(bool display);
 	void displayShadow(bool display);
 
@@ -136,7 +136,7 @@ private:
 	QColor m_clearcolor;
 
 	//settings
-	bool m_displayExternalReferences = true;
+	bool m_displayExternals = true;
 	bool m_displayGround = true;
 	bool m_displayShadow = true;
 
