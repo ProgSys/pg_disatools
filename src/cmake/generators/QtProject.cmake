@@ -99,13 +99,15 @@ if (WIN32)
 if(MINGW)
 find_path(QT_CMAKE_DIR Qt5/Qt5Config.cmake
   PATH_SUFFIXES cmake
-  PATHS "D:/Qt/5.12.2/mingw73_64/lib" "C:/Qt/5.12.2/mingw73_64/lib" "E:/Qt/5.12.2/mingw73_64/lib" 
+  PATHS "D:/Qt/5.12.6/mingw73_64/lib" "C:/Qt/5.12.6/mingw73_64/lib" "E:/Qt/5.12.6/mingw73_64/lib" 
+  "D:/Qt/5.16.2/mingw73_64/lib" "C:/Qt/5.12.2/mingw73_64/lib" "E:/Qt/5.12.2/mingw73_64/lib"
   DOC "The path to the QT cmake files."
 )
 elseif(MSVC)
 find_path(QT_CMAKE_DIR Qt5/Qt5Config.cmake
   PATH_SUFFIXES cmake
-  PATHS "D:/Qt/5.12.2/msvc2017_64/lib" "C:/Qt/5.12.2/msvc2017_64/lib" "E:/Qt/5.12.2/msvc2017_64/lib" 
+  PATHS "D:/Qt/5.12.6/msvc2017_64/lib" "C:/Qt/5.12.6/msvc2017_64/lib" "E:/Qt/5.12.6/msvc2017_64/lib" 
+  "D:/Qt/5.12.2/msvc2017_64/lib" "C:/Qt/5.12.2/msvc2017_64/lib" "E:/Qt/5.12.2/msvc2017_64/lib" 
   DOC "The path to the QT cmake files."
 )
 endif()

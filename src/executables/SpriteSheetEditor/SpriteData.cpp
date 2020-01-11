@@ -2818,6 +2818,14 @@ Cutout* SpriteData::getCutout(int cutoutIndex) const {
 	return m_cutouts[cutoutIndex];
 }
 
+int SpriteData::getCoutoutIndex(Cutout* cutout) const {
+	if (!cutout) return -1;
+	auto findIt = std::find(m_cutouts.begin(), m_cutouts.end(), cutout);
+	if (findIt != m_cutouts.end())
+		return std::distance(m_cutouts.begin(), findIt);
+	return -1;
+}
+
 SpriteSheet* SpriteData::getSpriteSheet(int spriteSheetIndex) const {
 	if (spriteSheetIndex < 0 || spriteSheetIndex >= m_spriteSheets.size()) return nullptr;
 	return m_spriteSheets[spriteSheetIndex];

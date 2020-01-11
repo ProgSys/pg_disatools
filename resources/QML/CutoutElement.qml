@@ -7,7 +7,7 @@ import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.0
 
 Rectangle {
-		property var cutout: 0; //spritedata.getCutout(model.display)
+		property var cutout: null; 
 		
 		function getItemColor(){
 			if( spritedata && spritedata.selectedKey && spritedata.selectedKey.cutoutID == model.display){

@@ -1,5 +1,5 @@
 import QtQuick 2.4
-import QtQuick.Controls 2.0
+import QtQuick.Controls 2.12
 import MyTimeLine 0.1
 import MyKeyframe 0.1
 import MyCutout 0.1
@@ -15,6 +15,7 @@ Rectangle {
 	
 	property int activeSpriteSheet: 0
 	property var zoom: 2.0
+	readonly property var cutoutModel: spritedata.sheetsSize? spritedata.getSpriteSheet(activeSpriteSheet): null
 
 	signal cutoutSelected(var id, var cutout)
 	
@@ -185,7 +186,8 @@ Rectangle {
 			Button {
 				height: 24
 				width: 24
-				text: "+"
+				text: ""
+				iconSource: "../materials/icons/zoom_in.png"
 				onClicked: {
 					(zoom >= 4)? zoom = 4 : zoom += 0.5
 				}
@@ -197,7 +199,8 @@ Rectangle {
 			Button {
 				height: 24
 				width: 24
-				text: "-"
+				text: ""
+				iconSource: "../materials/icons/zoom_out.png"
 				onClicked: {
 					(zoom <= 0.5)? zoom = 0.5 : zoom -= 0.5
 				}
@@ -310,7 +313,7 @@ Rectangle {
 							
 						
 						Repeater {
-							model: spritedata.sheetsSize? spritedata.getSpriteSheet(activeSpriteSheet): 0
+							model: cutoutModel
 							delegate: CutoutElement{ cutout: spritedata.getCutout(model.display)}
 						}
 					}
@@ -423,6 +426,22 @@ Rectangle {
 							spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 						}
 					}
+			}
+		}
+		
+		Row{
+			anchors.right: parent.right
+			anchors.top: parent.top
+			visible: bottommenu.width > 320
+			Text {
+					width: 40; 
+					text: (spritedata.selected)? spritedata.getCoutoutIndex(spritedata.selected): ""
+			}
+			
+			SelectionDorpDown{
+				model: cutoutModel
+				selectedId: (spritedata.selected)? spritedata.getCoutoutIndex(spritedata.selected): -1
+				onSelected: spritedata.selected = spritedata.getCutout(value)
 			}
 		}
 	}

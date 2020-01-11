@@ -439,7 +439,7 @@ class SpriteSheet: public QAbstractListModel{
 	Q_PROPERTY(int width READ getWidth NOTIFY onWidthChanged)
 	Q_PROPERTY(int height READ getHeight NOTIFY onHeightChanged)
 	Q_PROPERTY(int colors READ getSizeOfColorTable NOTIFY numberOfColorsChanged)
-	Q_PROPERTY(int cutoutSize READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
+	Q_PROPERTY(int size READ getNumberOfCutouts NOTIFY onNumberOfCutoutsChanged)
 public:
 	SpriteSheet();
 	SpriteSheet(int width, int height, int powerColorTable = 4, QObject *parent = 0);
@@ -615,6 +615,7 @@ public slots:
 	bool dump(const QString& filepath);
 
 	Q_INVOKABLE Cutout* getCutout(int cutoutIndex) const;
+	Q_INVOKABLE int getCoutoutIndex(Cutout* cutoutIndex) const;
 	Q_INVOKABLE SpriteSheet* getSpriteSheet(int spriteSheetIndex) const;
 	Q_INVOKABLE bool addCutout(int sheetID);
 	Q_INVOKABLE bool addCutout(int sheetID,unsigned int x,unsigned int y = 0,unsigned int width = 100,unsigned int height = 100,unsigned char colorID = 0);
