@@ -154,7 +154,7 @@ Rectangle {
 					
 					onEditingFinished: {
 						if(selectedItem && selectedItem.elementType == 0) {
-							selectedItem.keyframeModel.cutoutID = (text >= spritedata.cutoutSize)? spritedata.cutoutSize-1: text
+							selectedItem.keyframeModel.cutoutID = (text >= spritedata.size)? spritedata.size-1: text
 							timeline.updateTimeline();
 						}
 					}

@@ -159,7 +159,7 @@ Rectangle {
 					
 					onEditingFinished: {
 						if(selectedItem && selectedItem.elementType == 0) {
-							selectedItem.keyframeModel.cutoutID = (text >= spritedata.cutoutSize)? spritedata.cutoutSize-1: text
+							selectedItem.keyframeModel.cutoutID = (text >= spritedata.size)? spritedata.size-1: text
 							timeline.updateTimeline();
 						}
 					}
@@ -389,7 +389,8 @@ Rectangle {
 				Button {
 					height: 20
 					width: 20
-					text: "+"
+					text: ""
+					iconSource: "../materials/icons/zoom_in.png"
 					onClicked: (timeline.steps >= 200)? timeline.steps = 200 : timeline.steps +=5;
 					
 					PGToolTip {
@@ -400,7 +401,8 @@ Rectangle {
 				Button {
 					height: 20
 					width: 20
-					text: "-"
+					text: ""
+					iconSource: "../materials/icons/zoom_out.png"
 					onClicked: (timeline.steps <= 5)? timeline.steps = 5: timeline.steps -= 5 ;
 					
 					PGToolTip {
@@ -413,7 +415,8 @@ Rectangle {
 				Button {
 					height: 20
 					width: 20
-					text: "R"
+					text: ""
+					iconSource: "../materials/icons/zoom_reset.png"
 					onClicked: timeline.steps = 10;
 					
 					PGToolTip {
