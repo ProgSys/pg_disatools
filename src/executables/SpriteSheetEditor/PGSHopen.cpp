@@ -89,13 +89,10 @@ bool SpriteData::openPGSHv1(QDataStream& in) {
 	for (unsigned int i = 0; i < number_uint32; i++) {
 		quint16 externalSheetID, sheetRealID, x, y, w, h, dc;
 		in >> externalSheetID >> sheetRealID >> x >> y >> w >> h >> dc;
-		if (externalSheetID)
-			m_cutouts.push_back(new Cutout(sheetRealID, externalSheetID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-		else {
-			m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-			assert_Test("Sheet ID out of bound!", sheetRealID >= m_spriteSheets.size());
-			m_spriteSheets[sheetRealID]->push_backCutoutID(m_cutouts.size() - 1);
-		}
+
+		m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
+		assert_Test("Sheet ID out of bound!", sheetRealID >= m_spriteSheets.size());
+		m_spriteSheets[sheetRealID]->push_backCutoutID(m_cutouts.size() - 1);
 	}
 
 	text = readQString(in);//Animations
@@ -226,13 +223,10 @@ bool SpriteData::openPGSHv2(QDataStream& in) {
 	for (unsigned int i = 0; i < number_uint32; i++) {
 		quint16 externalSheetID, sheetRealID, x, y, w, h, dc;
 		in >> externalSheetID >> sheetRealID >> x >> y >> w >> h >> dc;
-		if (externalSheetID)
-			m_cutouts.push_back(new Cutout(sheetRealID, externalSheetID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-		else {
-			m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-			assert_Test("Sheet ID out of bound!", sheetRealID >= m_spriteSheets.size());
-			m_spriteSheets[sheetRealID]->push_backCutoutID(m_cutouts.size() - 1);
-		}
+
+		m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
+		assert_Test("Sheet ID out of bound!", sheetRealID >= m_spriteSheets.size());
+		m_spriteSheets[sheetRealID]->push_backCutoutID(m_cutouts.size() - 1);
 	}
 
 	//Animations
@@ -362,11 +356,8 @@ bool SpriteData::openPGSHv3(QDataStream& in) {
 	for (unsigned int i = 0; i < number_uint32; i++) {
 		quint16 externalSheetID, sheetRealID, x, y, w, h, dc;
 		in >> externalSheetID >> sheetRealID >> x >> y >> w >> h >> dc;
-		if (externalSheetID)
-			m_cutouts.push_back(new Cutout(sheetRealID, externalSheetID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-		else {
-			m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
-		}
+
+		m_cutouts.push_back(new Cutout(sheetRealID, PG::UTIL::ivec2(x, y), PG::UTIL::ivec2(w, h), dc, this));
 		assert_Test("Sheet ID out of bound!", sheetRealID >= m_spriteSheets.size());
 		m_spriteSheets[sheetRealID]->push_backCutoutID(m_cutouts.size() - 1);
 	}

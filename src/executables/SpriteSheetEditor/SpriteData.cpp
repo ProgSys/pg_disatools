@@ -47,17 +47,7 @@ Cutout::Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ive
 	QObject(parent), m_sheetID(sheetID), m_position(position), m_size(size), m_defaultColorTable(defaultColorTable)
 {}
 
-
-Cutout::Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, QObject* parent) :
-	QObject(parent), m_sheetID(sheetID), m_externalSheetID(externalSheetIDIn), m_position(position), m_size(size)
-{}
-
-Cutout::Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned int defaultColorTable, QObject* parent) :
-	QObject(parent), m_sheetID(sheetID), m_externalSheetID(externalSheetIDIn), m_position(position), m_size(size), m_defaultColorTable(defaultColorTable)
-{}
-
 Cutout::Cutout(const Cutout& cutout) : QObject(cutout.parent()),
-m_externalSheetID(cutout.getExternalSheetID()),
 m_sheetID(cutout.getSheetID()),
 m_position(cutout.getPosition()),
 m_size(cutout.getSize())
@@ -67,23 +57,13 @@ Cutout::~Cutout() {
 
 }
 
-bool Cutout::isSame(int x, int y, int width, int height, int sheetID) const {
-	if (isExternalSheet())
-		return m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height && m_externalSheetID == sheetID;
-	else
-		return m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height && m_sheetID == sheetID;
+bool Cutout::isSame(int x, int y, int width, int height) const {
+	return m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height;
 }
 
 //getters
 int Cutout::getSheetID() const {
 	return m_sheetID;
-}
-
-bool Cutout::isExternalSheet() const {
-	return m_externalSheetID;
-}
-unsigned short Cutout::getExternalSheetID() const {
-	return m_externalSheetID;
 }
 
 const PG::UTIL::ivec2& Cutout::getPosition() const {
@@ -123,12 +103,6 @@ void Cutout::setSheetID(int id) {
 	if (m_sheetID == id) return;
 	m_sheetID = id;
 	emit onSheetIDChanged();
-}
-
-void Cutout::setExternalSheetID(unsigned short externalSheetIDIn) {
-	if (m_externalSheetID == externalSheetIDIn) return;
-	m_externalSheetID = externalSheetIDIn;
-	emit onExternalSheetIDChanged();
 }
 
 void Cutout::setPosition(const PG::UTIL::ivec2& pos) {
@@ -1588,7 +1562,7 @@ bool SpriteData::save(const QString& file) {
 
 	out << (quint32)m_cutouts.size();
 	for (const Cutout* cut : m_cutouts) {
-		out << (quint16)cut->getExternalSheetID();
+		out << (quint16)m_spriteSheets[cut->getSheetID()]->getExternalID();
 		out << (quint16)cut->getSheetID();
 		out << (quint16)cut->getX();
 		out << (quint16)cut->getY();
@@ -1650,16 +1624,25 @@ bool SpriteData::save(const QString& file) {
 	return true;
 }
 
-inline int findCutout(const QVector<Cutout*> cutouts, const PG::FILE::shfileCutout& currCutout) {
-	int count = 0;
-	for (const Cutout* cut : cutouts) {
-		if (cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height, (currCutout.external_sheet) ? currCutout.external_sheet : currCutout.sheet)) {
-			return count;
-		}
-		count++;
+inline int findCutout(const QVector<SpriteSheet*>& spriteSheets, const QVector<Cutout*>& cutouts, const PG::FILE::shfileCutout& currCutout) {
+	auto findIt = cutouts.end();
+	if (currCutout.external_sheet) {
+		findIt = std::find_if(cutouts.begin(), cutouts.end(), [&spriteSheets, &currCutout](const Cutout* cut) {
+			SpriteSheet* sheet = spriteSheets[cut->getSheetID()];
+			if (!sheet->isExternal()) return false;
+			return sheet->getExternalID() == currCutout.external_sheet && cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height);
+		});
+	}
+	else {
+		findIt = std::find_if(cutouts.begin(), cutouts.end(), [&spriteSheets, &currCutout](const Cutout* cut) {
+			SpriteSheet* sheet = spriteSheets[cut->getSheetID()];
+			if (sheet->isExternal()) return false;
+			return cut->getSheetID() == currCutout.sheet && cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height);
+			});
 	}
 
-	return -1;
+	if (findIt == cutouts.end()) return -1;
+	else return std::distance(cutouts.begin(), findIt);
 }
 
 bool SpriteData::importSH(const QString& file) {
@@ -1724,10 +1707,8 @@ bool SpriteData::importSH(const QString& file) {
 	std::vector<bool> cutoutUseMap(sh.getCutouts().size(), false);
 
 	// lambda member function to add a cutout
-	auto addCoutout = [this](const PG::FILE::shfileCutout& shCutout, bool filterDuplicates = true) {
-		int cutoutID = -1;
-		if (filterDuplicates)
-			cutoutID = findCutout(m_cutouts, shCutout);
+	auto addCoutout = [this](const PG::FILE::shfileCutout& shCutout) {
+		int cutoutID = findCutout(m_spriteSheets, m_cutouts, shCutout);
 
 		if (cutoutID < 0) {
 			if (shCutout.external_sheet) {
@@ -1743,7 +1724,7 @@ bool SpriteData::importSH(const QString& file) {
 				else {
 					spriteSheet = m_spriteSheets[spriteSheetIndex];
 				}
-				m_cutouts.push_back(new Cutout(spriteSheetIndex, shCutout.external_sheet, PG::UTIL::ivec2(shCutout.x, shCutout.y), PG::UTIL::ivec2(shCutout.width, shCutout.height), shCutout.colortable, this));
+				m_cutouts.push_back(new Cutout(spriteSheetIndex, PG::UTIL::ivec2(shCutout.x, shCutout.y), PG::UTIL::ivec2(shCutout.width, shCutout.height), shCutout.colortable, this));
 				spriteSheet->push_backCutoutID(m_cutouts.size()-1);
 			}
 			else {
@@ -1838,7 +1819,7 @@ bool SpriteData::importSH(const QString& file) {
 
 	//add unused cutouts 
 	for (auto it = cutoutUseMap.begin(); it != cutoutUseMap.end(); ++it) {
-		if (!*it) addCoutout(sh.getCutouts()[std::distance(cutoutUseMap.begin(), it)], false);
+		if (!*it) addCoutout(sh.getCutouts()[std::distance(cutoutUseMap.begin(), it)]);
 	}
 
 
@@ -1970,12 +1951,14 @@ bool SpriteData::exportSH(const QString& file) {
 			//writeCutouts
 			for (const Keyframe* key : keys) {
 				const Cutout* cut = m_cutouts[key->getCutoutID()];
+				const SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
+
 				cutoutUseMap[key->getCutoutID()] = true;
 				assert_Test("Cutout is nullptr!", !cut);
 
 				PG::FILE::shfileCutout shCut;
-				if (cut->isExternalSheet()) {
-					shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
+				if (sheet->isExternal()) {
+					shCut.external_sheet = sheet->getExternalID(); // get a sheet from different file by it's ID
 					shCut.sheet = 0;
 					shCut.colortable = 0;
 				}
@@ -2032,11 +2015,12 @@ bool SpriteData::exportSH(const QString& file) {
 	for (auto it = cutoutUseMap.begin(); it != cutoutUseMap.end(); ++it) {
 		if (*it) continue;
 		const Cutout* cut = m_cutouts[std::distance(cutoutUseMap.begin(), it)];
+		const SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
 		assert_Test("Cutout is nullptr!", !cut);
 
 		PG::FILE::shfileCutout shCut;
-		if (cut->isExternalSheet()) {
-			shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
+		if (sheet->isExternal()) {
+			shCut.external_sheet = sheet->getExternalID(); // get a sheet from different file by it's ID
 			shCut.sheet = 0;
 			shCut.colortable = 0;
 		}
@@ -2179,7 +2163,7 @@ int SpriteData::exportSprites(const QString& folder, const QString& type) {
 		images.push_back(PG::UTIL::RGBAImage(sheet->getWidth(), sheet->getHeight()));
 
 	for (const Cutout* cut : m_cutouts) {
-		if (cut->isExternalSheet() || cut->getSheetID() < 0 || cut->getSheetID() >= m_spriteSheets.size()) continue;
+		if (cut->getSheetID() < 0 || cut->getSheetID() >= m_spriteSheets.size()) continue;
 		if (cut->getDefaultColorTable() >= getNumberOfColors() / 16) continue;
 
 
@@ -2257,7 +2241,7 @@ bool SpriteData::exportSprite(int cutoutID, const QString& file) {
 
 	const Cutout* cut = m_cutouts[cutoutID];
 	assert_Test("Cutout is nullptr", !cut);
-	if (cut->isExternalSheet()) return false;
+
 	const SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
 	const QString ext = QFileInfo(file).completeSuffix();
 
@@ -2284,7 +2268,7 @@ bool SpriteData::exportSpriteIDs(int cutoutID, const QString& file) {
 
 	const Cutout* cut = m_cutouts[cutoutID];
 	assert_Test("Cutout is nullptr", !cut);
-	if (cut->isExternalSheet()) return false;
+
 	const SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
 	const QString ext = QFileInfo(file).completeSuffix();
 
@@ -2300,7 +2284,7 @@ bool SpriteData::exportSpriteIDs(int cutoutID, const QString& file) {
 }
 
 bool SpriteData::exportSpriteSheet(Cutout* cut) {
-	if (!cut || cut->isExternalSheet())
+	if (!cut)
 		return false;
 	QString fileName = QFileDialog::getSaveFileName(nullptr, tr("Export IDs sprite"),
 		QFileInfo(m_lastFile).baseName() + "_sheet"+ QString::number(cut->getSheetID()) +"_colortable" + QString::number(cut->getDefaultColorTable()),
@@ -2309,7 +2293,7 @@ bool SpriteData::exportSpriteSheet(Cutout* cut) {
 }
 
 bool SpriteData::exportSpriteSheet(Cutout* cut, const QString& file) {
-	if (!cut || cut->isExternalSheet()  || file.isEmpty())
+	if (!cut  || file.isEmpty())
 		return false;
 
 	const SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
@@ -2622,13 +2606,13 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, QImage& newColorCutout) {
 }
 
 bool SpriteData::importSpriteSheetAsColor(Cutout* cut) {
-	if (!cut || cut->isExternalSheet())
+	if (!cut || isExternal(cut))
 		return false;
 	return SpriteData::importSpriteSheetAsColor(cut, openImage());
 }
 
 bool SpriteData::importSpriteSheetAsColor(Cutout* cut, const QString& fileIn) {
-	if (!cut || cut->isExternalSheet() || fileIn.isEmpty())
+	if (!cut || isExternal(cut) || fileIn.isEmpty())
 		return false;
 
 	QString file = fileIn;
@@ -3384,7 +3368,7 @@ void SpriteData::cropCutout(int cutoutIndex) {
 
 
 	Cutout* cutout = m_cutouts[cutoutIndex];
-	if (cutout->isExternalSheet()) return;
+	if (isExternal(cutout)) return;
 	//QColorTable& colortable = m_colortables[cutout->getDefaultColorTable()];
 	SpriteSheet* sheet = m_spriteSheets[cutout->getSheetID()];
 
@@ -3531,7 +3515,7 @@ void SpriteData::autoFindCutouts(int sheetID) {
 
 	if (btn & QMessageBox::Yes) {
 		for (const Cutout* cut : m_cutouts) {
-			if (cut->getSheetID() != sheetID || cut->isExternalSheet()) continue;
+			if (cut->getSheetID() != sheetID || isExternal(cut)) continue;
 
 			QMutableListIterator<aabb> i(sprites);
 			while (i.hasNext()) if (i.next().intersects(cut)) i.remove();
@@ -3614,7 +3598,7 @@ bool SpriteData::removeSpriteSheet(unsigned int index) {
 		removeCutoutID(id, false);
 
 	for (Cutout* cut : m_cutouts) {
-		if (!cut->isExternalSheet() && cut->getSheetID() >= index) {
+		if (cut->getSheetID() >= index) {
 			cut->setSheetID(cut->getSheetID() - 1);
 		}
 	}

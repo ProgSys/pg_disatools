@@ -92,6 +92,9 @@ Rectangle {
 					else
 						spritedata.colorTable--;
 				}
+				PGToolTip {
+					text: "Previous"
+				}
 			}
 			
 			Text{
@@ -109,6 +112,9 @@ Rectangle {
 					else
 						spritedata.colorTable++;
 				}
+				PGToolTip {
+					text: "Next"
+				}
 			}
 			
 			Button {
@@ -117,6 +123,9 @@ Rectangle {
 				iconSource: "../materials/icons/add.png"
 				onClicked: {
 					spritedata.insertColorTable(spritedata.colorTable);
+				}
+				PGToolTip {
+					text: "Add empty colortable"
 				}
 			}
 			
@@ -127,6 +136,9 @@ Rectangle {
 				onClicked: {
 					spritedata.insertColorTable(spritedata.colorTable, true);
 				}
+				PGToolTip {
+					text: "Duplicate color table"
+				}
 			}
 			
 			Button {
@@ -136,6 +148,9 @@ Rectangle {
 				visible: spritedata.colorTablesNumber > 1
 				onClicked: {
 					spritedata.removeColorTable(spritedata.colorTable);
+				}
+				PGToolTip {
+					text: "Delete color table"
 				}
 			}
 		}
@@ -204,6 +219,11 @@ Rectangle {
 									colorContextMenu.index = index;
 									colorContextMenu.popup();
 									}
+							}
+							
+							PGToolTip {
+								visible: mouseArea.containsMouse
+								text: mouseArea.parent.color
 							}
 						}
 						border.width: mouseArea.containsMouse? 2: 1

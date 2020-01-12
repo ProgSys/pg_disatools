@@ -480,7 +480,7 @@ void GLSpriteWidget::paintGL() {
 			if (lay->isHidden()) continue;
 			const Keyframe* keyframe = m_animationInfo.getCurrentKeyframe(lay);
 			if (keyframe) {
-				if (!m_displayExternals && m_animationInfo.spriteData->getCutouts()[keyframe->getCutoutID()]->isExternalSheet())
+				if (!m_displayExternals && m_animationInfo.spriteData->isExternal(m_animationInfo.spriteData->getCutouts()[keyframe->getCutoutID()]))
 					continue;
 
 				if (keyframe->isAdaptive()) {

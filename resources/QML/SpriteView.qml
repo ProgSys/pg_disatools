@@ -464,27 +464,27 @@ Rectangle {
 				TooltipArea {text: "Size"}
 			}
 			TextField {
-					width: 40; placeholderText: qsTr("Width")
-					validator: IntValidator {bottom: 0; top: 9999;}
-					text: (spritedata.selected)? spritedata.selected.width: ""
-					onEditingFinished: { 
-						if(spritedata.selected) {
-							spritedata.selected.width = text ; spritedata.refresh()
-							spriteimage.source = "";
-							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-						}
+				width: 40; placeholderText: qsTr("Width")
+				validator: IntValidator {bottom: 0; top: 9999;}
+				text: (spritedata.selected)? spritedata.selected.width: ""
+				onEditingFinished: { 
+					if(spritedata.selected) {
+						spritedata.selected.width = text ; spritedata.refresh()
+						spriteimage.source = "";
+						spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 					}
+				}
 			}
 			TextField {
-					width: 40; placeholderText: qsTr("Height")
-					validator: IntValidator {bottom: 0; top: 9999;}
-					text: (spritedata.selected)? spritedata.selected.height: ""
-					onEditingFinished: { 
-						if(spritedata.selected) {
-							spritedata.selected.height = text ; spritedata.refresh()
-							spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
-						}
+				width: 40; placeholderText: qsTr("Height")
+				validator: IntValidator {bottom: 0; top: 9999;}
+				text: (spritedata.selected)? spritedata.selected.height: ""
+				onEditingFinished: { 
+					if(spritedata.selected) {
+						spritedata.selected.height = text ; spritedata.refresh()
+						spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
 					}
+				}
 			}
 		}
 		
@@ -493,8 +493,8 @@ Rectangle {
 			anchors.top: parent.top
 			visible: bottommenu.width > 320
 			Text {
-					width: 40; 
-					text: (spritedata.selected)? spritedata.getCoutoutIndex(spritedata.selected): ""
+				width: 40; 
+				text: (spritedata.selected)? spritedata.getCoutoutIndex(spritedata.selected): ""
 			}
 			
 			SelectionDorpDown{

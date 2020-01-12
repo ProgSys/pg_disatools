@@ -34,8 +34,6 @@ typedef QVector<QColor> QColorTable;
 
 class Cutout: public QObject{
 	Q_OBJECT
-    Q_PROPERTY(bool isExternalSheet 			READ isExternalSheet NOTIFY onExternalSheetIDChanged)
-    Q_PROPERTY(unsigned char externalSheetID 	READ getExternalSheetID WRITE setExternalSheetID NOTIFY onExternalSheetIDChanged)
 	Q_PROPERTY(int id READ getSheetID  NOTIFY onSheetIDChanged)
 
 	Q_PROPERTY(int x READ getX WRITE setX NOTIFY onXChanged)
@@ -51,17 +49,13 @@ public:
 	explicit Cutout(QObject *parent = 0);
 	explicit Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, QObject *parent = 0);
 	explicit Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned int defaultColorTable, QObject *parent = 0);
-	explicit Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size,  QObject *parent = 0);
-	explicit Cutout(int sheetID, unsigned short externalSheetIDIn, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned int defaultColorTable, QObject *parent = 0);
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
 
-	bool isSame(int x,int y, int width, int height, int sheetID) const;
+	bool isSame(int x,int y, int width, int height) const;
 
 	//getters
 	int getSheetID() const;
-	bool isExternalSheet() const;
-	unsigned short getExternalSheetID() const;
 
 	const PG::UTIL::ivec2& getPosition() const;
 	int getX() const;
@@ -75,7 +69,6 @@ public:
 
 	//setters
 	void setSheetID(int id);
-	void setExternalSheetID(unsigned short externalSheetIDIn);
 
 	void setPosition(const PG::UTIL::ivec2& pos);
 	void setPosition(int x, int y);
@@ -92,7 +85,6 @@ public:
 	void setHidden(bool hide);
 
 signals:
-	void onExternalSheetIDChanged();
 	void onSheetIDChanged();
 
 	void onCutoutChanged();
@@ -107,7 +99,6 @@ signals:
 
 private:
 	int m_sheetID = -1;
-	unsigned short  m_externalSheetID = 0; // get a sheet from different file by it's ID
 	unsigned int m_defaultColorTable = 0;
 	PG::UTIL::ivec2 m_position = PG::UTIL::ivec2(0,0);
 	PG::UTIL::ivec2 m_size = PG::UTIL::ivec2(0,0);
@@ -701,7 +692,7 @@ public slots:
 	Q_INVOKABLE void renameCurrentAnimation();
 	Q_INVOKABLE void renameCurrentAnimation(const QString& newName);
 	Q_INVOKABLE void renameAnimation(const QString& newName, unsigned int index);
-
+	Q_INVOKABLE inline bool isExternal(const Cutout* cut) const { return m_spriteSheets[cut->getSheetID()]->isExternal(); }
 
 private:
 	bool openPGSHv1(QDataStream& in);
