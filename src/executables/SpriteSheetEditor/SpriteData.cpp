@@ -1940,6 +1940,7 @@ bool SpriteData::exportSH(const QString& file) {
 	//but they shall also be saved
 	std::vector<bool> cutoutUseMap(m_cutouts.size(), false);
 
+	const int keyframeSizeBefore = sh.getKeyframes().size();
 	for (const SpriteAnimation* ani : m_animations) {
 		assert_Test("Value is too big!", ani->getID() > 65534);
 		sh.getAnimations().push_back({ (unsigned short)sh.getKeyframes().size(), (unsigned short)ani->getID() });
@@ -2056,7 +2057,7 @@ bool SpriteData::exportSH(const QString& file) {
 
 			sh.getKeyframes().push_back(shKey);
 
-			if (shKey.type == 1)
+			if (shKey.type == 1) {
 				if (keyCount != 0 && nextFrame != totalTrackSize) {
 					PG::FILE::shfileKeyframe skKeyType3 = shKey;
 					skKeyType3.duration = 0;
@@ -2065,13 +2066,17 @@ bool SpriteData::exportSH(const QString& file) {
 					skKeyType3.global_y = shKey.global_y;
 					sh.getKeyframes().push_back(skKeyType3);
 				}
+			}
 			keyCount++;
 		}
 
-		PG::FILE::shfileKeyframe shKey = sh.getKeyframes().back();
-		shKey.duration = 0;
-		shKey.type = 2;
-		sh.getKeyframes().push_back(shKey);
+		//add end keyframe?
+		if (sh.getKeyframes().size() > keyframeSizeBefore) {
+			PG::FILE::shfileKeyframe shKey = sh.getKeyframes().back();
+			shKey.duration = 0;
+			shKey.type = 2;
+			sh.getKeyframes().push_back(shKey);
+		}
 
 	}
 
