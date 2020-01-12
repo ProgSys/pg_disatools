@@ -388,3 +388,17 @@
 ===  04.12.2019 - v0.8.2 ===
   * Disa PC File Manager v0.5.7 alpha:
 	- Added utility to modify memory allocation (Thx to Kelebek1) 
+	
+===  12.01.2020 - v0.8.3 ===
+  * General:
+	- Updated Qt to 5.12.6
+  * Sprite Sheet Editor v0.4.1 alpha:
+	- Weapons now can be properly edited
+		- External sprite sheets are now included in the sprite sheet list 
+		- External sprite sheets have a open button to open a sprite sheet as preview (.sh or .pgs)
+		- Additional external sprite sheets can be added, but only one for each external ID
+	- Added a toggle to isolate a selected sprite
+	- Added a dropdown for sprite selection
+	- Added new icons
+	- Added tooltips
+	
