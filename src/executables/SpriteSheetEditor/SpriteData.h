@@ -449,9 +449,9 @@ public:
 	int getSizeOfColorTable() const;
 
 	inline bool isExternal() const { return m_externalID >= 0; }
-	inline bool isExternalOpened() const { return !m_externalColortables.empty(); }
 	inline int getExternalID() const { return m_externalID; }
-	inline const QVector<QColorTable>& getExternalColortables() const { return m_externalColortables; }
+	bool isExternalOpened() const;
+	const QVector<QColorTable>& getExternalColortables() const;
 
 	inline bool isEmpty() const { return m_img.empty(); }
 	PG::UTIL::IDImage& getSpriteSheet();
