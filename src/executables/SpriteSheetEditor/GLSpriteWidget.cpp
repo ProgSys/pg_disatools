@@ -310,8 +310,7 @@ void GLSpriteWidget::updateExternalColortable(const SpriteSheet* spriteSheet) {
 			m_animationInfo.externalColorTables[spriteSheet->getExternalID()] = std::move(newColorTableGL);
 		}
 		else {
-			updateColorTables(m_animationInfo.spriteData->getColorTables(), findIt->second);
-			m_animationInfo.externalColorTables[spriteSheet->getExternalID()] = std::move(findIt->second);
+			updateColorTables(spriteSheet->getExternalColortables(), findIt->second);
 		}
 	}
 	update();

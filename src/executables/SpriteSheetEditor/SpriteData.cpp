@@ -34,7 +34,23 @@
 #include <ImageLib.h>
 #include <Util/Misc/ResourcePath.h>
 
-static PG::UTIL::IDImage g_externalSpriteSheet;
+static PG::UTIL::IDImage g_defaultExternalSpriteSheet;
+static std::map<int, PG::UTIL::IDImage> g_externalSpriteSheet;
+static std::map<int, QVector<QColorTable>> g_externalColorTable;
+
+PG::UTIL::IDImage& getPredifinedExternalSpriteSheet(int externalId) {
+	auto findIt = g_externalSpriteSheet.find(externalId);
+	if (findIt == g_externalSpriteSheet.end())
+		return g_defaultExternalSpriteSheet;
+	else return findIt->second;
+}
+
+const QVector<QColorTable>& getPredifinedExternalColorTable(int externalId, const QVector<QColorTable>& defaultTable) {
+	auto findIt = g_externalColorTable.find(externalId);
+	if (findIt == g_externalColorTable.end())
+		return defaultTable;
+	else return findIt->second;
+}
 
 Cutout::Cutout(QObject* parent) : QObject(parent) {
 
@@ -490,6 +506,8 @@ void Keyframe::moveOffset(short offsetxIn, short offsetyIn) {
 }
 
 void Keyframe::setRotation(short rotationIn) {
+	rotationIn = rotationIn % 360;
+	if (rotationIn < 0) rotationIn = 360 + rotationIn;
 	if (rotationIn == m_rotation) return;
 	m_rotation = rotationIn;
 	emit onRotationChanged();
@@ -1298,11 +1316,25 @@ int SpriteSheet::getSizeOfColorTable() const {
 	return pow(2.0, m_powerOfColorTable);
 }
 
+bool SpriteSheet::isExternalOpened() const {
+	if (!m_externalColortables.empty()) {
+		return true;
+	}
+	else {
+		return !getPredifinedExternalColorTable(m_externalID, m_externalColortables).empty();
+	}
+}
+const QVector<QColorTable>& SpriteSheet::getExternalColortables() const {
+	if (m_externalColortables.empty())
+		return getPredifinedExternalColorTable(m_externalID, m_externalColortables);
+	else return m_externalColortables;
+}
+
 PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() {
-	return isExternal() && m_img.empty() ? g_externalSpriteSheet : m_img;
+	return isExternal() && m_img.empty() ? getPredifinedExternalSpriteSheet(m_externalID) : m_img;
 }
 const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() const {
-	return isExternal() && m_img.empty() ? g_externalSpriteSheet : m_img;
+	return isExternal() && m_img.empty() ? getPredifinedExternalSpriteSheet(m_externalID) : m_img;
 }
 
 void SpriteSheet::openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QVector<QColorTable>& colortables){
@@ -1492,8 +1524,39 @@ QImage SpriteSheet::getSpriteIDs(const Cutout* cut) const {
 ////// SPRITE DATA //////
 
 SpriteData::SpriteData(QObject* parent) : QAbstractListModel(parent), m_selectedKeyframe(nullptr) {
-	if (g_externalSpriteSheet.empty()) {
-		PG::FILE::loadTGA(getResourcePath().toStdString() + "/materials/external_sprite_sheet.tga", g_externalSpriteSheet);
+	if (!parent) return;
+
+	if (g_defaultExternalSpriteSheet.empty()) {
+		PG::FILE::loadTGA(getResourcePath().toStdString() + "/materials/external_sprite_sheet.tga", g_defaultExternalSpriteSheet);
+	}
+
+	g_externalSpriteSheet.clear();
+	g_externalColorTable.clear();
+	QDir dir(getResourcePath() + "/materials/external");
+	if (dir.exists()) {
+		QStringList externals = dir.entryList(QStringList() << "external_*.tga");
+		if (externals.size() > 100) return;
+		const std::string dir = (getResourcePath() + "/materials/external/").toStdString();
+		for (const auto& external : externals) {
+			const QStringList split = QFileInfo(external).baseName().split('_');
+			if (split.size() != 2) continue;
+			const int id = split.last().toInt();
+			if (id <= 0 || id > 99) continue;
+			qInfo() <<"Opening default external sprite sheet: " << QFileInfo(external).baseName();
+			PG::UTIL::IDImage img;
+			if (PG::FILE::loadTGA(dir + external.toStdString(), img) && !img.empty() && img.getWidth() <= 1024 && img.getHeight() <= 1024) {
+				g_externalSpriteSheet[id] = std::move(img);
+			}
+
+			PG::UTIL::RGBAImage colortable;
+			if (PG::FILE::loadTGA(dir + "external_"+std::to_string(id)+"_colortable.tga", colortable) && !colortable.empty() && colortable.size() <= 96) {
+				QColorTable qTable;
+				qTable.reserve(colortable.size());
+				for (const PG::UTIL::rgba& color : colortable)
+					qTable.push_back(QColor(color.r, color.g, color.b, color.a));
+				g_externalColorTable[id].push_back(std::move(qTable));
+			}
+		}
 	}
 
 }
@@ -1693,9 +1756,10 @@ bool SpriteData::importSH(const QString& file) {
 	//load colortable
 	for (const PG::FILE::ColorTable& table : sh.getColortables()) {
 		QColorTable qTable;
+		qTable.reserve(table.size());
 		for (const PG::UTIL::rgba& color : table)
 			qTable.push_back(QColor(color.r, color.g, color.b, color.a));
-		m_colortables.push_back(qTable);
+		m_colortables.push_back(std::move(qTable));
 	}
 
 
@@ -2464,10 +2528,10 @@ bool SpriteData::importSpriteAsColorForSheet(int sheetID, const QString& fileIn)
 
 	//target image
 	QImage newColorCutout(file);
-	if (!(newColorCutout.width() == 64 ||  newColorCutout.width() == 128 || newColorCutout.width() == 256 || newColorCutout.width() == 512) ||
-		!(newColorCutout.height() == 64 ||  newColorCutout.height() == 128 || newColorCutout.height() == 256 || newColorCutout.height() == 512)) {
+	if (!(newColorCutout.width() == 32 || newColorCutout.width() == 64 ||  newColorCutout.width() == 128 || newColorCutout.width() == 256 || newColorCutout.width() == 512) ||
+		!(newColorCutout.height() == 32 || newColorCutout.height() == 64 ||  newColorCutout.height() == 128 || newColorCutout.height() == 256 || newColorCutout.height() == 512)) {
 		QMessageBox::critical(nullptr, "Error",
-			"Given image has invalid size, must be power of 2 and between 64 - 512!",
+			"Given image has invalid size, must be power of 2 and between 32 - 512!",
 			QMessageBox::Ok);
 		return false;
 	}

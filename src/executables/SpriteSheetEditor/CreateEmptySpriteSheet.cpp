@@ -30,22 +30,23 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 	setWindowTitle("Edit sprite sheet");
 
 	init();
-	// == width ==
+	auto getSizeIndex = [](int size) {
+		switch (size)
+		{
+		case 32: return 0;
+		case 64: return 1;
+		case 128: return 2;
+		case 256: return 3;
+		case 512: return 4;
+		}
+		return 3;
+	};
 
-	if (width == 64)
-		comboBox_width->setCurrentIndex(1);
-	if (width == 256)
-		comboBox_width->setCurrentIndex(2);
-	else if (width == 512)
-		comboBox_width->setCurrentIndex(3);
+	// == width ==
+	comboBox_width->setCurrentIndex(getSizeIndex(width));
 
 	// == height ==
-	if (height == 64)
-		comboBox_height->setCurrentIndex(1);
-	if (height == 256)
-		comboBox_height->setCurrentIndex(2);
-	else if (height == 512)
-		comboBox_height->setCurrentIndex(3);
+	comboBox_width->setCurrentIndex(getSizeIndex(height));
 
 	// == color ==
 	if (power == 32)
@@ -77,16 +78,20 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 
 void CreateEmptySpriteSheet::init() {
 	// == width ==
+	comboBox_width->addItem("32");
 	comboBox_width->addItem("64");
 	comboBox_width->addItem("128");
 	comboBox_width->addItem("256");
 	comboBox_width->addItem("512");
+	comboBox_width->setCurrentIndex(3);
 
 	// == height ==
+	comboBox_height->addItem("32");
 	comboBox_height->addItem("64");
 	comboBox_height->addItem("128");
 	comboBox_height->addItem("256");
 	comboBox_height->addItem("512");
+	comboBox_height->setCurrentIndex(3);
 
 	// == color ==
 	comboBox_colors->addItem("16");
