@@ -578,8 +578,8 @@ public:
 	bool removeAnimation(int index);
 	SpriteAnimation* getCurrentAnimation();
 	const SpriteAnimation* getCurrentAnimation() const;
-	const QList<Cutout*>& getCutouts() const;
-	const QList<SpriteSheet*>& getSpriteSheets() const;
+	inline const QList<Cutout*>& getCutouts() const { return m_cutouts;}
+	inline const QList<SpriteSheet*>& getSpriteSheets() const { return m_spriteSheets; }
 
 	std::vector<PG::UTIL::rgba> getColortableGL(int index) const;
 	QImage getSprite(unsigned int cutoutID, unsigned int colortableID) const;
@@ -607,6 +607,15 @@ public slots:
 	bool importSH(const QString& file);
 	bool exportSH(const QString& file);
 
+	/**
+	* @brief Makes sure that the data is stored in a valid form.
+	* @details For instance the external sprite sheets must be at the end of the list.
+	* @returns true if a discrepancy was found
+	*/
+	bool reorganizeData();
+	/**
+	* @brief Will release all data curretly holden by the SpriteData class.
+	*/
 	void close();
 
 	Q_INVOKABLE int findExternalSpriteSheetIndex(int externalID) const;

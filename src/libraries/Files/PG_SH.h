@@ -77,7 +77,7 @@ namespace PG {
 			unsigned short height;
 
 			unsigned char power_colortablesize;
-			unsigned char unknown;
+			unsigned char image_swizzled;
 			unsigned char power_width;
 			unsigned char power_height;
 
