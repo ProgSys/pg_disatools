@@ -1867,15 +1867,17 @@ bool SpriteData::importSH(const QString& file) {
 bool SpriteData::exportSH(const QString& file) {
 	if (file.size() == 0) return false;
 
-	PG::FILE::SH sh;
+	//make sure data is valid
+	reorganizeData();
 
+	PG::FILE::SH sh;
 
 	for (const SpriteSheet* sheet : m_spriteSheets) {
 		if (sheet->isExternal()) continue;
 		sh.getSpriteSheets().push_back(sheet->getSpriteSheet());
 		//TODO set the last values
 		const unsigned char p = sheet->getPowerOfColorTable();
-		sh.getSheetsInfos().push_back({ 0,unsigned short(sheet->getWidth()), unsigned short(sheet->getHeight()),p,0,0,0 });
+		sh.getSheetsInfos().push_back({ 0, unsigned short(sheet->getWidth()), unsigned short(sheet->getHeight()),p,0,0,0 });
 	}
 
 	for (unsigned int i = 0; i < m_colortables.size(); i++)
@@ -3015,6 +3017,30 @@ void SpriteData::removeColors(int index, int number) {
 	emit colorTableChanged(-1);
 }
 
+bool SpriteData::reorganizeData() {
+	//make sure the sprite sheets are sorted correctly
+	bool discrepancyFound = false;
+	auto splitIt = std::stable_partition(m_spriteSheets.begin(), m_spriteSheets.end(),
+		[](SpriteSheet* sheet) {
+			return sheet->isExternal();
+		});
+
+	for (auto it = m_spriteSheets.begin(); it != splitIt; ++it) {
+		SpriteSheet* sheet = *it;
+		assert(!sheet->isExternal());
+		int sheetIndex = std::distance(m_spriteSheets.begin(), it);
+		for (int i : sheet->getCutoutIDs()) {
+			Cutout* cut = getCutouts()[i];
+			if (cut->getSheetID() != sheetIndex) {
+				discrepancyFound = true;
+				cut->setSheetID(sheetIndex);
+			}
+		}
+	}
+
+	return discrepancyFound;
+}
+
 void SpriteData::close() {
 	setSelected(nullptr);
 	clearSelectedKey();
@@ -3135,19 +3161,9 @@ SpriteAnimation* SpriteData::getCurrentAnimation() {
 	return m_aniamtions[m_currentAnimation];
 }
 
-
-
 const SpriteAnimation* SpriteData::getCurrentAnimation() const {
 	if (m_currentAnimation < 0 || m_aniamtions.empty()) return nullptr;
 	return m_aniamtions[m_currentAnimation];
-}
-
-const QList<Cutout*>& SpriteData::getCutouts() const {
-	return m_cutouts;
-}
-
-const QList<SpriteSheet*>& SpriteData::getSpriteSheets() const {
-	return m_spriteSheets;
 }
 
 PG::FILE::ColorTable SpriteData::getColortableGL(int index) const {
@@ -3512,7 +3528,6 @@ void SpriteData::autoFindCutouts(int sheetID) {
 	}
 
 	//clean up overlapping sprites
-
 	QList<aabb> spritesClean;
 	for (unsigned int a = 0; a < sprites.size(); a++) {
 		aabb& spriteA = sprites[a];
