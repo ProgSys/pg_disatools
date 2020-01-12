@@ -566,7 +566,7 @@ public:
 	QString getLastFileName() const;
 	bool getIsolateSelection() const { return m_isolateSelection; }
 
-	inline const QVector<SpriteAnimation*>& getAnimations() const { return m_aniamtions; }
+	inline const QVector<SpriteAnimation*>& getAnimations() const { return m_animations; }
 	bool push_backAnimation(const QString& name, int ID);
 	bool removeAnimation(int index);
 	SpriteAnimation* getCurrentAnimation();
@@ -703,7 +703,7 @@ private:
 	QString m_lastFile;
 
 	int m_currentAnimation = -1;
-	QVector<SpriteAnimation*> m_aniamtions;
+	QVector<SpriteAnimation*> m_animations;
 	QVector<Cutout*> m_cutouts;
 
 	int m_currentColorTable = -1;

@@ -111,7 +111,7 @@ bool SpriteData::openPGSHv1(QDataStream& in) {
 
 
 		SpriteAnimation* ani = new SpriteAnimation(id, name);
-		m_aniamtions.push_back(ani);
+		m_animations.push_back(ani);
 		for (unsigned int m = 0; m < markers; m++) {
 			quint32 start, duration, type;
 			qint16 a;
@@ -246,7 +246,7 @@ bool SpriteData::openPGSHv2(QDataStream& in) {
 
 
 		SpriteAnimation* ani = new SpriteAnimation(id, name);
-		m_aniamtions.push_back(ani);
+		m_animations.push_back(ani);
 		for (unsigned int m = 0; m < markers; m++) {
 			quint32 start, duration, type;
 			qint16 a;
@@ -378,7 +378,7 @@ bool SpriteData::openPGSHv3(QDataStream& in) {
 
 
 		SpriteAnimation* ani = new SpriteAnimation(id, name);
-		m_aniamtions.push_back(ani);
+		m_animations.push_back(ani);
 		for (unsigned int m = 0; m < markers; m++) {
 			quint32 start, duration, type;
 			qint16 a;
@@ -479,7 +479,7 @@ bool SpriteData::open(const QString& file) {
 	m_currentColorTable = 0;
 	endInsertRows();
 
-	if (m_aniamtions.empty()) {
+	if (m_animations.empty()) {
 		m_currentAnimation = -1;
 		emit onNumberOfAnimationsChanged();
 		emit onCurrentAnimationChanged();
@@ -489,7 +489,7 @@ bool SpriteData::open(const QString& file) {
 		m_currentAnimation = 0;
 		emit onNumberOfAnimationsChanged();
 		emit onCurrentAnimationChanged();
-		emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
+		emit onAnimationChanged(m_animations[m_currentAnimation]);
 	}
 
 

@@ -2464,14 +2464,18 @@ bool SpriteData::importSpriteAsColorForSheet(int sheetID, const QString& fileIn)
 
 	//target image
 	QImage newColorCutout(file);
-	if (!(newColorCutout.width() == 128 || newColorCutout.width() == 256 || newColorCutout.width() == 512) ||
-		!(newColorCutout.height() == 128 || newColorCutout.height() == 256 || newColorCutout.height() == 512)) {
+	if (!(newColorCutout.width() == 64 ||  newColorCutout.width() == 128 || newColorCutout.width() == 256 || newColorCutout.width() == 512) ||
+		!(newColorCutout.height() == 64 ||  newColorCutout.height() == 128 || newColorCutout.height() == 256 || newColorCutout.height() == 512)) {
 		QMessageBox::critical(nullptr, "Error",
-			"Given image has a different size then the sprite! Should the sprite be resized?",
+			"Given image has invalid size, must be power of 2 and between 64 - 512!",
 			QMessageBox::Ok);
+		return false;
 	}
 
 	//get sheet
+	if (sheetID < 0 || sheetID >= m_spriteSheets.size()) 
+		return false;
+	
 	SpriteSheet* sheet = m_spriteSheets[sheetID];
 	if (sheet->getWidth() < newColorCutout.width() || sheet->getHeight() < newColorCutout.height()) {
 		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Resize?",
@@ -3548,7 +3552,7 @@ void SpriteData::autoFindCutouts(int sheetID) {
 }
 
 bool SpriteData::addNewSpriteSheet() {
-	if (m_animations.empty()) return false;
+	if (m_spriteSheets.empty()) return false;
 	CreateEmptySpriteSheet create;
 	create.exec();
 
