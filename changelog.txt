@@ -399,6 +399,7 @@
 		- Additional external sprite sheets can be added, but only one for each external ID
 	- Added a toggle to isolate a selected sprite
 	- Added a dropdown for sprite selection
+	- Fixed crash exporting 1001_FILE.SH
 	- Added new icons
 	- Added tooltips
 	
