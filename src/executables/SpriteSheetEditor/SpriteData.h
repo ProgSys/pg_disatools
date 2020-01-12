@@ -467,6 +467,8 @@ public:
 	const PG::UTIL::IDImage& getSpriteSheet() const;
 
 	void openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QVector<QColorTable>& colortables );
+	void makeNotExternal(int width, int height, int powerColorTable = 4);
+	void makeExternal(int externalID );
 
 	PG::UTIL::RGBAImage getSpritePG(unsigned int colortableID, const QVector<QColor>& colortable) const;
 	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int colortableID, const QVector<QColor>& colortable) const;
@@ -664,7 +666,7 @@ public slots:
 	Q_INVOKABLE void autoFindCutouts(int sheetID);
 
 	Q_INVOKABLE bool addNewSpriteSheet();
-	Q_INVOKABLE bool addNewSpriteSheet(int width, int height, int powerOfColorTable = 4);
+	Q_INVOKABLE bool addNewSpriteSheet(int width, int height, int powerOfColorTable = 4, int externalId = -1);
 	Q_INVOKABLE bool removeSpriteSheet(unsigned int index);
 	Q_INVOKABLE bool editSpriteSheet(unsigned int index);
 

@@ -1212,8 +1212,7 @@ SpriteSheet::SpriteSheet(int externalID, QObject* parent) : QAbstractListModel(p
 
 SpriteSheet::SpriteSheet(int externalID, int width, int height, int powerColorTable, QObject* parent) :
 	QAbstractListModel(parent), m_img(width, height), m_powerOfColorTable(powerColorTable), m_externalID(externalID) {
-	if (!m_img.empty()) 
-		for (unsigned char& c : m_img) c = static_cast<unsigned char>(0);
+	m_img.fill(0);
 }
 
 
@@ -1341,6 +1340,23 @@ void SpriteSheet::openExternal(const PG::UTIL::IDImage& idImage, int powerOfColo
 	emit onWidthChanged();
 	emit onHeightChanged();
 	emit numberOfColorsChanged();
+}
+
+void SpriteSheet::makeNotExternal(int width, int height, int powerColorTable) {
+	if (m_externalID < 0) return;
+	m_externalID = -1;
+	m_externalColortables.clear();
+	m_powerOfColorTable = powerColorTable;
+	m_img.resize(width, height);
+	m_img.fill(0);
+}
+
+void SpriteSheet::makeExternal(int externalID) {
+	if (externalID < 0 || m_externalID == externalID) return;
+	m_externalID = externalID;
+	m_img.clear();
+	m_externalColortables.clear();
+	m_powerOfColorTable = -1;
 }
 
 inline bool getCutoutImageHelper(PG::UTIL::IDImage& outCutoutImage, const PG::UTIL::IDImage& inIDImage, const Cutout* inCut) {
@@ -1958,9 +1974,16 @@ bool SpriteData::exportSH(const QString& file) {
 				assert_Test("Cutout is nullptr!", !cut);
 
 				PG::FILE::shfileCutout shCut;
-				shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
-				shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
-				shCut.colortable = key->getColortableID(); // the 16 rgba colortable which the sheet should use
+				if (cut->isExternalSheet()) {
+					shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
+					shCut.sheet = 0;
+					shCut.colortable = 0;
+				}
+				else {
+					shCut.external_sheet = 0;
+					shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
+					shCut.colortable = cut->getDefaultColorTable(); // the 16 rgba colortable which the sheet should use
+				}
 				shCut.anchorx = key->getAnchorX();  // rotation and mirror point
 				shCut.anchory = key->getAnchorY(); // rotation and mirror point
 
@@ -2007,13 +2030,21 @@ bool SpriteData::exportSH(const QString& file) {
 
 	//save unused cutouts
 	for (auto it = cutoutUseMap.begin(); it != cutoutUseMap.end(); ++it) {
+		if (*it) continue;
 		const Cutout* cut = m_cutouts[std::distance(cutoutUseMap.begin(), it)];
 		assert_Test("Cutout is nullptr!", !cut);
 
 		PG::FILE::shfileCutout shCut;
-		shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
-		shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
-		shCut.colortable = cut->getDefaultColorTable(); // the 16 rgba colortable which the sheet should use
+		if (cut->isExternalSheet()) {
+			shCut.external_sheet = cut->getExternalSheetID(); // get a sheet from different file by it's ID
+			shCut.sheet = 0;
+			shCut.colortable = 0;
+		}
+		else {
+			shCut.external_sheet = 0;
+			shCut.sheet = cut->getSheetID(); // there is not one big sprite sheet but multiple smaller one
+			shCut.colortable = cut->getDefaultColorTable(); // the 16 rgba colortable which the sheet should use
+		}
 		shCut.anchorx = 0.0f;  // rotation and mirror point
 		shCut.anchory = 0.0f; // rotation and mirror point
 
@@ -3006,7 +3037,7 @@ bool SpriteData::reorganizeData() {
 	bool discrepancyFound = false;
 	auto splitIt = std::stable_partition(m_spriteSheets.begin(), m_spriteSheets.end(),
 		[](SpriteSheet* sheet) {
-			return sheet->isExternal();
+			return !sheet->isExternal();
 		});
 
 	for (auto it = m_spriteSheets.begin(); it != splitIt; ++it) {
@@ -3537,18 +3568,40 @@ bool SpriteData::addNewSpriteSheet() {
 	CreateEmptySpriteSheet create;
 	create.exec();
 
-	if (create.isAccepted()) {
-		PG_INFO_STREAM("create: " << create.getWidth() << ", " << create.getHeight())
-			return addNewSpriteSheet(create.getWidth(), create.getHeight(), create.getColorTablePower());
-	}
+	if (create.isAccepted()) 
+		return addNewSpriteSheet(create.getWidth(), create.getHeight(), create.getColorTablePower(), create.getExternalID());
 	return false;
 }
 
-bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable) {
+bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable, int externalId) {
 	if (width <= 0 || height <= 0 || powerOfColorTable <= 0) return false;
 
-	m_spriteSheets.push_back(new SpriteSheet(-1, width, height, powerOfColorTable, this));
-	PG_INFO_STREAM("Sprite sheet added!");
+	if (externalId < 0) {
+		auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [](SpriteSheet* sheet) { return sheet->isExternal(); });
+		std::for_each(findIt, m_spriteSheets.end(), [this](SpriteSheet* sheet) {
+			for (int i : sheet->getCutoutIDs()) {
+				Cutout* cut = m_cutouts[i];
+				cut->setSheetID(cut->getSheetID() + 1);
+			}
+		});
+		m_spriteSheets.insert(findIt, new SpriteSheet(-1, width, height, powerOfColorTable, this));
+
+	}
+	else {
+		auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [externalId](SpriteSheet* sheet) { return sheet->getExternalID() == externalId; });
+		if (findIt == m_spriteSheets.end()) {
+			m_spriteSheets.push_back(new SpriteSheet(externalId, this));
+		}
+		else {
+			QMessageBox::warning(nullptr, "Duplicate sprite sheet",
+				"External sprite sheet with the id "+QString::number(externalId)+ " is already present!"
+				"\nIt is sprite sheet Nr. "+QString::number(std::distance(m_spriteSheets.begin(), findIt) + 1)+ ".",
+				QMessageBox::Ok);
+			return false;
+		}
+	}
+
+
 	emit spriteSheetAdded();
 	emit numberOfSheetsChanged();
 	return true;
@@ -3602,7 +3655,7 @@ bool SpriteData::editSpriteSheet(unsigned int index) {
 	if (index >= m_spriteSheets.size()) return false;
 	SpriteSheet* editTarget = m_spriteSheets[index];
 
-	CreateEmptySpriteSheet create(editTarget->getWidth(), editTarget->getHeight(), editTarget->getPowerOfColorTable());
+	CreateEmptySpriteSheet create(editTarget->getWidth(), editTarget->getHeight(), editTarget->getPowerOfColorTable(), editTarget->getExternalID());
 	create.exec();
 	if (create.isAccepted()) {
 		if (create.isDelete()) {
@@ -3622,6 +3675,25 @@ bool SpriteData::editSpriteSheet(unsigned int index) {
 
 			return removeSpriteSheet(index);
 
+		}
+
+		if (editTarget->isExternal() && create.getExternalID() < 0) { //make external to none external
+			editTarget->makeNotExternal(create.getWidth(), create.getHeight(), create.getColorTablePower());
+		}
+		else if (create.getExternalID() >= 0) { // make external
+			auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(),
+				[externalId = create.getExternalID()](SpriteSheet* sheet) { return sheet->getExternalID() == externalId; });
+			if (findIt == m_spriteSheets.end()) {
+				editTarget->makeExternal(create.getExternalID());
+			}
+			else {
+				QMessageBox::warning(nullptr, "Duplicate sprite sheet",
+					"External sprite sheet with the id " + QString::number(create.getExternalID()) + " is already present!"
+					"\nIt is sprite sheet Nr. " + QString::number(std::distance(m_spriteSheets.begin(), findIt) + 1) + ".",
+					QMessageBox::Ok);
+				return false;
+			}
+			return true;
 		}
 
 		//color table too small?

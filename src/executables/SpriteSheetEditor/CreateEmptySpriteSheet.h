@@ -14,11 +14,11 @@
 #include <QDialog>
 #include <QValidator>
 
-class CreateEmptySpriteSheet: public QDialog, public Ui::NewSpriteSheetDialog  {
-	 Q_OBJECT
+class CreateEmptySpriteSheet : public QDialog, public Ui::NewSpriteSheetDialog {
+	Q_OBJECT
 public:
-	CreateEmptySpriteSheet(QWidget *parent = 0);
-	CreateEmptySpriteSheet(int width, int height, int power, QWidget *parent = 0);
+	CreateEmptySpriteSheet(QWidget* parent = 0);
+	CreateEmptySpriteSheet(int width, int height, int power, int externalId, QWidget* parent = 0);
 
 	bool isAccepted() const;
 	bool isDelete() const;
@@ -27,6 +27,7 @@ public:
 	int getColorTablePower() const;
 	int getColorTableSize() const;
 	bool getResizeSprites() const;
+	int getExternalID() const;
 
 	virtual ~CreateEmptySpriteSheet();
 public slots:
@@ -38,11 +39,13 @@ signals:
 	void removed();
 	void cancel();
 private:
-	 unsigned char m_accepted = 0;
-	 int m_width = 0;
-	 int m_height = 0;
-	 int m_colorTablePower = 0;
-	 bool m_resizeSprites = true;
+	void init();
+
+	unsigned char m_accepted = 0;
+	int m_width = 0;
+	int m_height = 0;
+	int m_colorTablePower = 0;
+	bool m_resizeSprites = true;
 };
 
 #endif /* INCLUDE_SPRITESHEETEDITOR_CREATEEMPTYSPRITESHEET_H_ */

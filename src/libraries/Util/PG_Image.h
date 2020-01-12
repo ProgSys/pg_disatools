@@ -222,8 +222,19 @@ public:
 		m_height = height;
 	}
 
+	void fill(T value) {
+		std::fill(m_pixels.begin(), m_pixels.end(), value);
+	}
+
 	void resize(const uvec2& size){
 		resize(size.x,size.y);
+	}
+
+	void clear() {
+		m_width = 0;
+		m_height = 0;
+		m_pixels.clear();
+		m_pixels.shrink_to_fit();
 	}
 
 	// for iterators
