@@ -329,7 +329,18 @@ Rectangle {
 			
 			Item{ width: 20; height: 1 }
 			Text{
-				text: spritedata.sheetsSize? ("width: "+spritedata.getSpriteSheet(activeSpriteSheet).width+" height: "+spritedata.getSpriteSheet(activeSpriteSheet).height +" colors: "+spritedata.getSpriteSheet(activeSpriteSheet).colors ) : ""
+				text:  {
+					if(spritedata.sheetsSize){
+						var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
+						if(sheet.isExternal)
+							return "External ID: " + sheet.externalID;
+						else 
+							return "Width: "+sheet.width+" Height: "+sheet.height +" Colors: "+sheet.colors 
+							
+					}else {
+						return "";
+					}
+				}
 			}
 		}
 	}

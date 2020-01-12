@@ -182,7 +182,7 @@ bool SH::open(const PG::UTIL::File& file) {
 
 	PG_INFO_STREAM("=== OPEN INFO END ===")
 
-#if true
+#if DUMP_ON_OPEN
 	{
 		auto tiani = m_animations.begin();
 		ofstream keyframesfile;
