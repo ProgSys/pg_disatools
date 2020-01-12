@@ -1574,8 +1574,8 @@ bool SpriteData::save(const QString& file) {
 	//Cutouts
 	out << "Animations";
 	//writeText(out, "Animations");
-	out << (quint32)m_aniamtions.size();
-	for (const SpriteAnimation* ani : m_aniamtions) {
+	out << (quint32)m_animations.size();
+	for (const SpriteAnimation* ani : m_animations) {
 		out << (quint32)ani->getID();
 		out << ani->getName();
 		//writeText(out, ani->getName());
@@ -1701,7 +1701,7 @@ bool SpriteData::importSH(const QString& file) {
 
 	beginInsertRows(QModelIndex(), 0, sh.getAnimations().size());
 	unsigned int aniCount = 0;
-	m_aniamtions.reserve(sh.getAnimations().size());
+	m_animations.reserve(sh.getAnimations().size());
 
 	//some cutouts my not be used in any animation
 	std::vector<bool> cutoutUseMap(sh.getCutouts().size(), false);
@@ -1742,7 +1742,7 @@ bool SpriteData::importSH(const QString& file) {
 	auto currAni = sh.getAnimations().begin();
 	while (currAni != sh.getAnimations().end()) {
 
-		m_aniamtions.push_back(new SpriteAnimation(currAni->id, "unknown" + QString::number(aniCount), this));
+		m_animations.push_back(new SpriteAnimation(currAni->id, "unknown" + QString::number(aniCount), this));
 
 		auto currKey = sh.getKeyframes().begin() + currAni->start_keyframe;
 		assert(currKey != sh.getKeyframes().end());
@@ -1756,7 +1756,7 @@ bool SpriteData::importSH(const QString& file) {
 
 			//add marker
 			if (currKey->global_x || currKey->global_y || (currKey->type != 0 && currKey->type != 3 && currKey->type != 2))
-				m_aniamtions.back()->getMarkers()->push_back(new Marker(startOffset, 1, currKey->type, currKey->global_x, currKey->global_y));
+				m_animations.back()->getMarkers()->push_back(new Marker(startOffset, 1, currKey->type, currKey->global_x, currKey->global_y));
 
 			if (currKey->duration == 0 || currKey->type == 3 || currKey->type == 2) {
 				currKey++;
@@ -1774,12 +1774,12 @@ bool SpriteData::importSH(const QString& file) {
 				const int cutoutID = addCoutout(currCutout);
 
 				Layer* layer = nullptr;
-				if (layerCount < m_aniamtions.back()->getLayers().size()) {
-					layer = m_aniamtions.back()->getLayers()[layerCount];
+				if (layerCount < m_animations.back()->getLayers().size()) {
+					layer = m_animations.back()->getLayers()[layerCount];
 				}
 				else {
-					m_aniamtions.back()->push_backLayer("layer" + QString::number(layerCount));
-					layer = m_aniamtions.back()->getLayers().back();
+					m_animations.back()->push_backLayer("layer" + QString::number(layerCount));
+					layer = m_animations.back()->getLayers().back();
 				}
 
 				/*
@@ -1825,7 +1825,7 @@ bool SpriteData::importSH(const QString& file) {
 
 	m_currentColorTable = 0;
 
-	if (m_aniamtions.empty()) {
+	if (m_animations.empty()) {
 		m_currentAnimation = -1;
 		emit onNumberOfAnimationsChanged();
 		emit onCurrentAnimationChanged();
@@ -1835,7 +1835,7 @@ bool SpriteData::importSH(const QString& file) {
 		m_currentAnimation = 0;
 		emit onNumberOfAnimationsChanged();
 		emit onCurrentAnimationChanged();
-		emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
+		emit onAnimationChanged(m_animations[m_currentAnimation]);
 	}
 
 	m_lastFile = file;
@@ -1876,7 +1876,7 @@ bool SpriteData::exportSH(const QString& file) {
 	//but they shall also be saved
 	std::vector<bool> cutoutUseMap(m_cutouts.size(), false);
 
-	for (const SpriteAnimation* ani : m_aniamtions) {
+	for (const SpriteAnimation* ani : m_animations) {
 		assert_Test("Value is too big!", ani->getID() > 65534);
 		sh.getAnimations().push_back({ (unsigned short)sh.getKeyframes().size(), (unsigned short)ani->getID() });
 
@@ -2636,7 +2636,7 @@ bool SpriteData::dump(const QString& filepath) {
 	if (file.open(QIODevice::WriteOnly)) {
 		QTextStream out(&file);
 
-		for (const SpriteAnimation* ani : m_aniamtions) {
+		for (const SpriteAnimation* ani : m_animations) {
 			out << "Animation:\n\tid: " << ani->getID() << "\n\tname: " << ani->getName() << "\n\tnumber of layers: " << ani->getNumberOfLayers();
 
 			for (const Layer* lay : ani->getLayers()) {
@@ -2750,7 +2750,7 @@ void SpriteData::batchDoubleResize() {
 				c->setSize(c->getWidth() * xScale, c->getHeight() * yScale);
 			}
 			//resize keyframes
-			for (SpriteAnimation* ani : m_aniamtions)
+			for (SpriteAnimation* ani : m_animations)
 				for (Layer* layer : ani->getLayers())
 					for (Keyframe* key : layer->getKeyframes())
 						for (int i : editTarget->getCutoutIDs()) {
@@ -2919,7 +2919,7 @@ bool SpriteData::importColortable(const QString& file, int index) {
 		if (reply == QMessageBox::Cancel)
 			return false;
 
-		for (SpriteAnimation* ani : m_aniamtions) {
+		for (SpriteAnimation* ani : m_animations) {
 			for (Layer* lay : ani->getLayers())
 				for (Keyframe* key : lay->getKeyframes()) {
 					if (key->getColortableID() > newcolortableMinSize)
@@ -3057,11 +3057,11 @@ void SpriteData::close() {
 	for (SpriteSheet* sheet : m_spriteSheets)
 		delete sheet;
 	m_spriteSheets.clear();
-	if (!m_aniamtions.empty()) {
-		beginRemoveRows(QModelIndex(), 0, m_aniamtions.size() - 1);
-		for (SpriteAnimation* ani : m_aniamtions)
+	if (!m_animations.empty()) {
+		beginRemoveRows(QModelIndex(), 0, m_animations.size() - 1);
+		for (SpriteAnimation* ani : m_animations)
 			delete ani;
-		m_aniamtions.clear();
+		m_animations.clear();
 		endRemoveRows();
 	}
 
@@ -3081,7 +3081,7 @@ bool SpriteData::isOpen() const {
 }
 
 int SpriteData::getNumberOfAnimations() const {
-	return m_aniamtions.size();
+	return m_animations.size();
 }
 
 int SpriteData::getNumberOfCutouts() const {
@@ -3104,7 +3104,7 @@ int SpriteData::getNumberOfColors() const {
 
 int SpriteData::getMaxUsedColortable() const {
 	int maxColortable = 0;
-	for (const SpriteAnimation* ani : m_aniamtions) {
+	for (const SpriteAnimation* ani : m_animations) {
 		for (const Layer* lay : ani->getLayers())
 			for (const Keyframe* key : lay->getKeyframes()) {
 				if (maxColortable < key->getColortableID())
@@ -3129,10 +3129,10 @@ QString SpriteData::getLastFileName() const {
 bool SpriteData::push_backAnimation(const QString& name, int ID) {
 	if (name.isEmpty() || ID < 0) return false;
 
-	beginInsertRows(QModelIndex(), m_aniamtions.size(), m_aniamtions.size());
-	m_aniamtions.push_back(new SpriteAnimation(ID, name));
-	m_aniamtions.back()->push_backLayer(new Layer("layer0", m_aniamtions.back()));
-	m_aniamtions.back()->getLayers().back()->push_backKeyframe(10, 0, 0, 0, 0, 100, 100, 0, 0, 0, 0, 0);
+	beginInsertRows(QModelIndex(), m_animations.size(), m_animations.size());
+	m_animations.push_back(new SpriteAnimation(ID, name));
+	m_animations.back()->push_backLayer(new Layer("layer0", m_animations.back()));
+	m_animations.back()->getLayers().back()->push_backKeyframe(10, 0, 0, 0, 0, 100, 100, 0, 0, 0, 0, 0);
 	endInsertRows();
 
 	emit onNumberOfAnimationsChanged();
@@ -3140,11 +3140,11 @@ bool SpriteData::push_backAnimation(const QString& name, int ID) {
 }
 
 bool SpriteData::removeAnimation(int index) {
-	if (index < 0 || index >= m_aniamtions.size()) return false;
+	if (index < 0 || index >= m_animations.size()) return false;
 
 	beginRemoveRows(QModelIndex(), index, index);
-	delete m_aniamtions[index];
-	m_aniamtions.removeAt(index);
+	delete m_animations[index];
+	m_animations.removeAt(index);
 	endRemoveRows();
 
 	emit onNumberOfAnimationsChanged();
@@ -3152,13 +3152,13 @@ bool SpriteData::removeAnimation(int index) {
 }
 
 SpriteAnimation* SpriteData::getCurrentAnimation() {
-	if (m_currentAnimation < 0 || m_aniamtions.empty()) return nullptr;
-	return m_aniamtions[m_currentAnimation];
+	if (m_currentAnimation < 0 || m_animations.empty()) return nullptr;
+	return m_animations[m_currentAnimation];
 }
 
 const SpriteAnimation* SpriteData::getCurrentAnimation() const {
-	if (m_currentAnimation < 0 || m_aniamtions.empty()) return nullptr;
-	return m_aniamtions[m_currentAnimation];
+	if (m_currentAnimation < 0 || m_animations.empty()) return nullptr;
+	return m_animations[m_currentAnimation];
 }
 
 PG::FILE::ColorTable SpriteData::getColortableGL(int index) const {
@@ -3211,12 +3211,12 @@ const SpriteSheet* SpriteData::getSpriteSheet(unsigned int spriteID) const {
 //setters
 void SpriteData::setCurrentAnimationByIndex(int index) {
 	if (index < 0) index = 0;
-	else if (index >= m_aniamtions.size()) index = m_aniamtions.size() - 1;
+	else if (index >= m_animations.size()) index = m_animations.size() - 1;
 	if (m_currentAnimation == index) return;
 
 	m_currentAnimation = index;
 	emit onCurrentAnimationChanged();
-	emit onAnimationChanged(m_aniamtions[m_currentAnimation]);
+	emit onAnimationChanged(m_animations[m_currentAnimation]);
 }
 
 void SpriteData::setSelected(Cutout* cutout) {
@@ -3334,7 +3334,7 @@ bool SpriteData::removeCutoutID(int id, bool warning) {
 		m_cutouts.removeAt(id);
 
 		//fix the keyframes
-		for (SpriteAnimation* ani : m_aniamtions) {
+		for (SpriteAnimation* ani : m_animations) {
 			for (Layer* lay : ani->getLayers()) {
 				for (Keyframe* key : lay->getKeyframes()) {
 					if (key->getCutoutID() == id) {
@@ -3548,7 +3548,7 @@ void SpriteData::autoFindCutouts(int sheetID) {
 }
 
 bool SpriteData::addNewSpriteSheet() {
-	if (m_aniamtions.empty()) return false;
+	if (m_animations.empty()) return false;
 	CreateEmptySpriteSheet create;
 	create.exec();
 
@@ -3620,7 +3620,7 @@ void SpriteData::resizeSpritesOnSheet(SpriteSheet* sheet, int oldWidth, int oldH
 	}
 
 	//resize keyframes
-	for (SpriteAnimation* ani : m_aniamtions)
+	for (SpriteAnimation* ani : m_animations)
 		for (Layer* layer : ani->getLayers())
 			for (Keyframe* key : layer->getKeyframes())
 				for (int i : sheet->getCutoutIDs()) {
@@ -3702,7 +3702,7 @@ void SpriteData::renameCurrentAnimation() {
 	bool ok = false;
 	QString name = QInputDialog::getText(nullptr, tr("New animation name"),
 		tr("New name:"), QLineEdit::Normal,
-		m_aniamtions[m_currentAnimation]->getName(),
+		m_animations[m_currentAnimation]->getName(),
 		&ok);
 	if (ok && !name.isEmpty())
 		renameCurrentAnimation(name);
@@ -3713,8 +3713,8 @@ void SpriteData::renameCurrentAnimation(const QString& newName) {
 }
 
 void SpriteData::renameAnimation(const QString& newName, unsigned int index) {
-	if (index < 0 || index > m_aniamtions.size()) return;
-	m_aniamtions[m_currentAnimation]->setName(newName);
+	if (index < 0 || index > m_animations.size()) return;
+	m_animations[m_currentAnimation]->setName(newName);
 }
 
 // QAbstractListModel
@@ -3726,7 +3726,7 @@ QVariant SpriteData::data(const QModelIndex& index, int role) const {
 		return QVariant();
 
 	if (role == Qt::DisplayRole) {
-		const SpriteAnimation* ani = m_aniamtions.at(index.row());
+		const SpriteAnimation* ani = m_animations.at(index.row());
 		return QString::number(index.row()) + ": ID: " + QString::number(ani->getID()) + " Name: " + ani->getName() + " Duration: " + QString::number(ani->getTotalFrames());
 	}
 	else
