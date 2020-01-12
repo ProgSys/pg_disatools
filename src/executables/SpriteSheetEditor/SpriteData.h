@@ -460,13 +460,13 @@ public:
 	inline bool isExternal() const { return m_externalID >= 0; }
 	inline bool isExternalOpened() const { return !m_externalColortables.empty(); }
 	inline int getExternalID() const { return m_externalID; }
-	inline const QList<QColorTable>& getExternalColortables() const { return m_externalColortables; }
+	inline const QVector<QColorTable>& getExternalColortables() const { return m_externalColortables; }
 
 	inline bool isEmpty() const { return m_img.empty(); }
 	PG::UTIL::IDImage& getSpriteSheet();
 	const PG::UTIL::IDImage& getSpriteSheet() const;
 
-	void openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QList<QColorTable>& colortables );
+	void openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QVector<QColorTable>& colortables );
 
 	PG::UTIL::RGBAImage getSpritePG(unsigned int colortableID, const QVector<QColor>& colortable) const;
 	PG::UTIL::RGBAImage getSpritePG(const Cutout* cut, unsigned int colortableID, const QVector<QColor>& colortable) const;
@@ -477,8 +477,8 @@ public:
 	QImage getSpriteIDs(const Cutout* cut) const;
 
 
-	QList<int>& getCutoutIDs();
-	const QList<int>& getCutoutIDs() const;
+	inline QVector<int>& getCutoutIDs() { return m_cutoutsIDs;  }
+	inline const QVector<int>& getCutoutIDs() const { return m_cutoutsIDs; }
 	bool removeCutoutID(int ID);
 	void refresh();
 
@@ -499,9 +499,9 @@ signals:
 private:
 	PG::UTIL::IDImage m_img;
 	int m_powerOfColorTable = -1;
-	QList<int> m_cutoutsIDs;
+	QVector<int> m_cutoutsIDs;
 
-	QList<QColorTable> m_externalColortables;
+	QVector<QColorTable> m_externalColortables;
 	int m_externalID = -1;
 };
 
@@ -573,13 +573,13 @@ public:
 	QString getLastFileName() const;
 	bool getIsolateSelection() const { return m_isolateSelection; }
 
-	const QList<SpriteAnimation*>& getAnimations() const;
+	inline const QVector<SpriteAnimation*>& getAnimations() const { return m_aniamtions; }
 	bool push_backAnimation(const QString& name, int ID);
 	bool removeAnimation(int index);
 	SpriteAnimation* getCurrentAnimation();
 	const SpriteAnimation* getCurrentAnimation() const;
-	inline const QList<Cutout*>& getCutouts() const { return m_cutouts;}
-	inline const QList<SpriteSheet*>& getSpriteSheets() const { return m_spriteSheets; }
+	inline const QVector<Cutout*>& getCutouts() const { return m_cutouts;}
+	inline const QVector<SpriteSheet*>& getSpriteSheets() const { return m_spriteSheets; }
 
 	std::vector<PG::UTIL::rgba> getColortableGL(int index) const;
 	QImage getSprite(unsigned int cutoutID, unsigned int colortableID) const;
@@ -678,8 +678,8 @@ public slots:
 	//color table
 	Q_INVOKABLE int getCurrentColorTable() const;
 	Q_INVOKABLE void setCurrentColorTable(int index = 0);
-	Q_INVOKABLE QList<QColorTable>& getColorTables();
-	Q_INVOKABLE const QList<QColorTable>& getColorTables() const;
+	Q_INVOKABLE inline QVector<QColorTable>& getColorTables() { return m_colortables; }
+	Q_INVOKABLE inline const QVector<QColorTable>& getColorTables() const { return m_colortables; }
 	Q_INVOKABLE QColorTable& getColorTable();
 	Q_INVOKABLE const QColorTable& getColorTable() const;
 
@@ -710,13 +710,13 @@ private:
 	QString m_lastFile;
 
 	int m_currentAnimation = -1;
-	QList<SpriteAnimation*> m_aniamtions;
-	QList<Cutout*> m_cutouts;
+	QVector<SpriteAnimation*> m_aniamtions;
+	QVector<Cutout*> m_cutouts;
 
 	int m_currentColorTable = -1;
-	QList<QColorTable> m_colortables;
+	QVector<QColorTable> m_colortables;
 
-	QList<SpriteSheet*> m_spriteSheets;
+	QVector<SpriteSheet*> m_spriteSheets;
 
 	Cutout* m_selected = nullptr;
 	Keyframe* m_selectedKeyframe = nullptr;

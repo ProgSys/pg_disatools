@@ -1332,7 +1332,7 @@ const PG::UTIL::IDImage& SpriteSheet::getSpriteSheet() const {
 	return isExternal() && m_img.empty() ? g_externalSpriteSheet : m_img;
 }
 
-void SpriteSheet::openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QList<QColorTable>& colortables){
+void SpriteSheet::openExternal(const PG::UTIL::IDImage& idImage, int powerOfColorTable, const QVector<QColorTable>& colortables){
 	if (idImage.empty() || colortables.empty())
 		return;
 	m_img = idImage;
@@ -1499,14 +1499,6 @@ QImage SpriteSheet::getSpriteIDs(const Cutout* cut) const {
 	return sprite;
 }
 
-QList<int>& SpriteSheet::getCutoutIDs() {
-	return m_cutoutsIDs;
-}
-
-const QList<int>& SpriteSheet::getCutoutIDs() const {
-	return m_cutoutsIDs;
-}
-
 ////// SPRITE DATA //////
 
 SpriteData::SpriteData(QObject* parent) : QAbstractListModel(parent), m_selectedKeyframe(nullptr) {
@@ -1642,7 +1634,7 @@ bool SpriteData::save(const QString& file) {
 	return true;
 }
 
-inline int findCutout(const QList<Cutout*> cutouts, const PG::FILE::shfileCutout& currCutout) {
+inline int findCutout(const QVector<Cutout*> cutouts, const PG::FILE::shfileCutout& currCutout) {
 	int count = 0;
 	for (const Cutout* cut : cutouts) {
 		if (cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height, (currCutout.external_sheet) ? currCutout.external_sheet : currCutout.sheet)) {
@@ -2101,7 +2093,7 @@ bool SpriteData::openExternalSpriteSheet(int sheetID) {
 		}
 
 		//load colortable
-		QList<QColorTable> colortables;
+		QVector<QColorTable> colortables;
 		for (const PG::FILE::ColorTable& table : sh.getColortables()) {
 			QColorTable qTable;
 			for (const PG::UTIL::rgba& color : table)
@@ -2764,14 +2756,6 @@ void SpriteData::batchDoubleResize() {
 	}
 }
 
-QList<QColorTable>& SpriteData::getColorTables() {
-	return m_colortables;
-}
-
-const QList<QColorTable>& SpriteData::getColorTables() const {
-	return m_colortables;
-}
-
 QColorTable& SpriteData::getColorTable() {
 	assert_Test("Color table index out of bound!", m_currentColorTable < 0 || m_currentColorTable >= m_colortables.size());
 	return m_colortables[m_currentColorTable];
@@ -3125,10 +3109,6 @@ int SpriteData::getCurrentAnimationIndex() const {
 
 QString SpriteData::getLastFileName() const {
 	return m_lastFile;
-}
-
-const QList<SpriteAnimation*>& SpriteData::getAnimations() const {
-	return m_aniamtions;
 }
 
 bool SpriteData::push_backAnimation(const QString& name, int ID) {
