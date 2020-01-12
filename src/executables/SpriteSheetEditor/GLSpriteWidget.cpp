@@ -209,7 +209,7 @@ PG::FILE::ColorTable toColortableGL(const QColorTable& colortable) {
 	return glColortable;
 }
 
-void updateColorTables(const QList<QColorTable>& colorTables, std::vector<PG::GL::Texture* >& textures) {
+void updateColorTables(const QVector<QColorTable>& colorTables, std::vector<PG::GL::Texture* >& textures) {
 	if (textures.size() > colorTables.size()) {
 		auto begin = textures.begin() + colorTables.size();
 		std::for_each(begin, textures.end(), [](PG::GL::Texture* t) { delete t; });
@@ -391,7 +391,7 @@ void GLSpriteWidget::initializeGL() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	glClearColor(0.196, 0.38, 0.6588, 1);
+	glClearColor(0.196f, 0.38f, 0.6588f, 1.f);
 
 	//load shader
 	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + "/shaders/sprite.vert").toStdString());
