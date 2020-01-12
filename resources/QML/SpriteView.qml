@@ -312,12 +312,12 @@ Rectangle {
 			Button {
 				height: 24
 				width: 24
-				text: "O"
+				text: ""
 				enabled: {
 					var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
 					sheet? sheet.isExternal: false
 				}
-				//iconSource: "../materials/icons/settings.png"
+				iconSource: "../materials/icons/open_external.png"
 				onClicked: {
 					spritedata.openExternalSpriteSheet(activeSpriteSheet);
 				}
