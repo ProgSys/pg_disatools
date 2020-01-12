@@ -182,7 +182,7 @@ bool SH::open(const PG::UTIL::File& file) {
 
 	PG_INFO_STREAM("=== OPEN INFO END ===")
 
-#if DUMP_ON_OPEN
+#if true
 	{
 		auto tiani = m_animations.begin();
 		ofstream keyframesfile;
@@ -201,8 +201,8 @@ bool SH::open(const PG::UTIL::File& file) {
 			keyframesfile << " * duration: " << (int)m_keyframesData[i].duration << "\n";
 			keyframesfile << " * type: " << (int)m_keyframesData[i].type << "\n";
 
-			keyframesfile << " * unknown2: " << m_keyframesData[i].unknown2 << "\n";
-			keyframesfile << " * unknown3: " << m_keyframesData[i].unknown3 << "\n";
+			keyframesfile << " * global_x: " << m_keyframesData[i].global_x << "\n";
+			keyframesfile << " * global_y: " << m_keyframesData[i].global_y << "\n";
 			keyframesfile << " ===============================\n";
 		}
 

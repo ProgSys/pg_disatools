@@ -52,7 +52,7 @@
      <x>0</x>
      <y>0</y>
      <width>1131</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -120,7 +120,7 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>296</width>
+     <width>1072</width>
      <height>150</height>
     </size>
    </property>
@@ -228,9 +228,15 @@
            </property>
            <item>
             <widget class="QLabel" name="labelCurentFrame">
+             <property name="minimumSize">
+              <size>
+               <width>70</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="maximumSize">
               <size>
-               <width>25</width>
+               <width>90</width>
                <height>23</height>
               </size>
              </property>
@@ -267,9 +273,15 @@
            </item>
            <item>
             <widget class="QLabel" name="labelTotalFrames">
+             <property name="minimumSize">
+              <size>
+               <width>70</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="maximumSize">
               <size>
-               <width>25</width>
+               <width>90</width>
                <height>23</height>
               </size>
              </property>
@@ -370,7 +382,7 @@
   <widget class="QDockWidget" name="dockWidgetColorTable">
    <property name="minimumSize">
     <size>
-     <width>80</width>
+     <width>95</width>
      <height>80</height>
     </size>
    </property>
@@ -606,7 +618,7 @@
   <customwidget>
    <class>QQuickWidget</class>
    <extends>QWidget</extends>
-   <header>QtQuickWidgets/QQuickWidget</header>
+   <header location="global">QtQuickWidgets/QQuickWidget</header>
   </customwidget>
   <customwidget>
    <class>GLSpriteWidget</class>
