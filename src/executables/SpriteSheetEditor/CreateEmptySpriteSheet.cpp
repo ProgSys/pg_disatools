@@ -32,16 +32,20 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 	init();
 	// == width ==
 
-	if (width == 256)
+	if (width == 64)
 		comboBox_width->setCurrentIndex(1);
-	else if (width == 512)
+	if (width == 256)
 		comboBox_width->setCurrentIndex(2);
+	else if (width == 512)
+		comboBox_width->setCurrentIndex(3);
 
 	// == height ==
-	if (height == 256)
+	if (height == 64)
 		comboBox_height->setCurrentIndex(1);
-	else if (height == 512)
+	if (height == 256)
 		comboBox_height->setCurrentIndex(2);
+	else if (height == 512)
+		comboBox_height->setCurrentIndex(3);
 
 	// == color ==
 	if (power == 32)
@@ -73,11 +77,13 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 
 void CreateEmptySpriteSheet::init() {
 	// == width ==
+	comboBox_width->addItem("64");
 	comboBox_width->addItem("128");
 	comboBox_width->addItem("256");
 	comboBox_width->addItem("512");
 
 	// == height ==
+	comboBox_height->addItem("64");
 	comboBox_height->addItem("128");
 	comboBox_height->addItem("256");
 	comboBox_height->addItem("512");
