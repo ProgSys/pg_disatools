@@ -8,17 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.2 alpha](https://www.dropbox.com/s/d7987ihw8f9s327/Disgaea%20Tools%20v0.8.2%20alpha.zip?dl=0)**
+* **[Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  24.12.2017 - v0.8.0 ===
-  * Sprite Sheet Editor v0.4.0 alpha:
-	- Import of color sprite sheets or cutouts has been imporved
-		- number of colors can now be automatically reduced
-		- the colors of the given image can now be automatically reassigned to the closest color in the color table
-		
 ===  05.04.2019 - v0.8.1 ===
   * General:
 	- All tools are now 64bit
@@ -32,6 +26,18 @@ You can download the latest version of the tools here:
 ===  04.12.2019 - v0.8.2 ===
   * Disa PC File Manager v0.5.7 alpha:
 	- Added utility to modify memory allocation (Thx to Kelebek1) 
+===  12.01.2020 - v0.8.3 ===
+  * General:
+	- Updated Qt to 5.12.6
+  * Sprite Sheet Editor v0.4.1 alpha:
+	- Weapons now can be properly edited
+		- External sprite sheets are now included in the sprite sheet list 
+		- External sprite sheets have a open button to open a sprite sheet as preview (.sh or .pgs)
+		- Additional external sprite sheets can be added, but only one for each external ID
+	- Added a toggle to isolate a selected sprite
+	- Added a dropdown for sprite selection
+	- Added new icons
+	- Added tooltips
 ```
 
 ### Older versions:
@@ -66,7 +72,7 @@ You can export them back to the original game format to view them ingame, but th
 so if there are any problems let me know.
 Also you can export the sprites as .png or .tga and import them back!
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Sprite_Sheet_Editor_v0.2.8_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Sprite_Sheet_Editor_v0.4.1_preview.png)
 
 #### Data Editor
 
