@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3%20alpha.zip?dl=0)**
+* **[Version v0.8.4 alpha](https://www.dropbox.com/s/6502gpkox1rddz5/Disgaea%20Tools%20v0.8.4%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -39,6 +39,11 @@ You can download the latest version of the tools here:
 	- Fixed crash exporting 1001_FILE.SH
 	- Added new icons
 	- Added tooltips
+===  13.01.2020 - v0.8.4 ===
+  * Sprite Sheet Editor v0.4.2 alpha:
+	- Added ability to copy and paste color sets in color table view to clipboard
+  * Disa PC File Manager v0.5.8 alpha:
+	- Sprite sheets now have a image preview
 ```
 
 ### Older versions:
@@ -51,6 +56,7 @@ You can download the latest version of the tools here:
 * [Version v0.7.2 alpha](https://www.dropbox.com/s/hc8bp3sat5wo1iz/Disgaea%20Tools%20v0.7.2%20alpha.zip?dl=0)
 * [Version v0.7.9 alpha](https://www.dropbox.com/s/zxbocw141h5k4nx/Disgaea%20Tools%20v0.7.9%20alpha.zip?dl=0)
 * [Version v0.8.1 alpha](https://www.dropbox.com/s/0nwtwsl5uxnj4xa/Disgaea%20Tools%20v0.8.1%20alpha.zip?dl=0)
+* [Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3%20alpha.zip?dl=0)
 ---
 
 [![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
@@ -64,7 +70,7 @@ This gui application allows you to extract and insert files into Disgaea PC .DAT
 Note that the position of most files in .DAT are hardcoded, deleting files could break the file order and so the archive itself.
 
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/java_gui_preview7.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/File_Manager_v0.5.8.png)
 
 #### Sprite Sheet Editor
 
