@@ -28,6 +28,7 @@
 #include <Stream/PG_StreamOutByteFile.h>
 #include <Util/PG_StringUtil.h>
 #include <Util/PG_Exception.h>
+#include <Util/Misc/ResourcePath.h>
 #include <Files/PG_FileTests.h>
 
 namespace PG {
@@ -69,7 +70,7 @@ void StartDAT::readFileNames(){
 	std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper );
 	//if(filename != "START") return;
 
-	PG::STREAM::InByteFile reader("resources/"+filename+".csv");
+	PG::STREAM::InByteFile reader(getResourcePath().toStdString()+ "/"+filename+".csv");
 	if(reader.isopen()){
 		skipSCVLine(reader);
 

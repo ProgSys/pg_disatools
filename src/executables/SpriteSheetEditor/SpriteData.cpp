@@ -33,6 +33,7 @@
 #include <QMutableListIterator>
 #include <ImageLib.h>
 #include <Util/Misc/ResourcePath.h>
+#include <QClipboard>
 
 static PG::UTIL::IDImage g_defaultExternalSpriteSheet;
 static std::map<int, PG::UTIL::IDImage> g_externalSpriteSheet;
@@ -73,8 +74,8 @@ Cutout::~Cutout() {
 
 }
 
-bool Cutout::isSame(int x, int y, int width, int height) const {
-	return m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height;
+bool Cutout::isSame(int x, int y, int width, int height, unsigned int colortable) const {
+	return m_position.x == x && m_position.y == y && m_size.x == width && m_size.y == height && m_defaultColorTable == colortable;
 }
 
 //getters
@@ -1693,14 +1694,14 @@ inline int findCutout(const QVector<SpriteSheet*>& spriteSheets, const QVector<C
 		findIt = std::find_if(cutouts.begin(), cutouts.end(), [&spriteSheets, &currCutout](const Cutout* cut) {
 			SpriteSheet* sheet = spriteSheets[cut->getSheetID()];
 			if (!sheet->isExternal()) return false;
-			return sheet->getExternalID() == currCutout.external_sheet && cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height);
+			return sheet->getExternalID() == currCutout.external_sheet && cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height, currCutout.colortable);
 		});
 	}
 	else {
 		findIt = std::find_if(cutouts.begin(), cutouts.end(), [&spriteSheets, &currCutout](const Cutout* cut) {
 			SpriteSheet* sheet = spriteSheets[cut->getSheetID()];
 			if (sheet->isExternal()) return false;
-			return cut->getSheetID() == currCutout.sheet && cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height);
+			return cut->getSheetID() == currCutout.sheet && cut->isSame(currCutout.x, currCutout.y, currCutout.width, currCutout.height, currCutout.colortable);
 			});
 	}
 
@@ -3039,6 +3040,61 @@ bool SpriteData::importColortable(const QString& file, int index) {
 
 	emit allColorTablesChanged();
 	return true;
+}
+
+
+
+void SpriteData::exportColorsToClipboard(int start, int size, int index) {
+	if (size < 0 || m_colortables.empty())
+		return;
+	assert_Test("Color table index out of bound!", index < 0 || index >= m_colortables.size());
+	if (index < 0 || index >= m_colortables.size()) index = 0;
+	QColorTable& colortable = m_colortables[index];
+
+	if (start >= colortable.size())
+		return;
+	if ((start + size) >= colortable.size())
+		size = colortable.size() - start;
+
+	QString out;
+	auto begin = colortable.begin() + start;
+	out += begin->name(QColor::HexArgb);
+	++begin;
+	auto end = begin + size;
+	std::for_each(begin, end, [&out](const QColor& c) { out += "," + c.name(QColor::HexArgb); });
+
+	QApplication::clipboard()->setText(out);
+}
+
+void SpriteData::importColorsFromClipboard(int at, int index) {
+	if (at < 0 || m_colortables.empty())
+		return;
+	assert_Test("Color table index out of bound!", index < 0 || index >= m_colortables.size());
+	if (index < 0 || index >= m_colortables.size()) index = 0;
+	QColorTable& colortable = m_colortables[index];
+
+	if (at >= colortable.size())
+		return;
+
+	QString in = QApplication::clipboard()->text();
+	if (in.size() > 2000)
+		return;
+	QStringList colorNames = in.split(",", QString::SkipEmptyParts);
+	if (colorNames.size() > 512)
+		return;
+
+	auto begin = colortable.begin() + at;
+	auto end = ((at + colorNames.size()) >= colortable.size()) ? colortable.end() : begin + colorNames.size();
+	auto itName = colorNames.begin();
+
+	std::for_each(begin, end, [&itName](QColor& c) {
+		c.setNamedColor(itName->trimmed());
+		++itName;
+		if (!c.isValid()) c.setRgb(255, 0, 0);
+	});
+
+
+	emit colorTableChanged(index);
 }
 
 
