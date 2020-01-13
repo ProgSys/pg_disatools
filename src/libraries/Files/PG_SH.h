@@ -116,6 +116,7 @@ namespace PG {
 			// functions
 			bool open(const std::string& file);
 			bool open(const PG::UTIL::File& file);
+			bool open(PG::STREAM::In* stream);
 			bool save(const std::string& file);
 			bool save(const PG::UTIL::File& file);
 			void clear();
@@ -123,7 +124,6 @@ namespace PG {
 			// getters
 			bool isOpen() const;
 
-			inline const PG::UTIL::File& getOpenedFile() const { return m_openedFile; };
 			inline const shfileHeader& getHeader() const { return m_header; };
 			inline const std::vector<unsigned int>& getAdresses() const { return m_addresses; };
 
@@ -151,8 +151,6 @@ namespace PG {
 			inline const std::vector< PG::UTIL::IDImage >& getSpriteSheets() const { return m_spriteSheets; };
 
 		private:
-			PG::UTIL::File m_openedFile;
-
 			//data
 			shfileHeader m_header;
 			std::vector<unsigned int> m_addresses;

@@ -23,11 +23,11 @@
  ]]
 
 cmake_minimum_required(VERSION 3.14.0)
-set(PROJECT_GLOBAL_NUMBER 0.1.7 CACHE PATH "Project version number.")
+set(PROJECT_GLOBAL_NUMBER 0.8.4 CACHE PATH "Project version number.")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake CACHE PATH "Project specific path. Set manually if it was not found.")
 
-set (TITLE_FileManager "Disa PC File Manager v0.5.7 alpha" CACHE PATH "Tilte")
-set (TITLE_SpriteSheetEditor "Sprite Sheet Editor v0.4.1 alpha" CACHE PATH "Tilte")
+set (TITLE_FileManager "Disa PC File Manager v0.5.8 alpha" CACHE PATH "Tilte")
+set (TITLE_SpriteSheetEditor "Sprite Sheet Editor v0.4.2 alpha" CACHE PATH "Tilte")
 set (TITLE_DATAEditor "Data Editor v0.0.6 alpha" CACHE PATH "Tilte")
 set (TITLE_MapEditor "Map Viewer v0.0.1 development" CACHE PATH "Tilte")
 set (TITLE_TX2Editor "TX2 Editor v0.0.3 alpha" CACHE PATH "Tilte")

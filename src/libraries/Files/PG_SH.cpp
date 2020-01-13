@@ -34,7 +34,7 @@
 using namespace PG::FILE;
 
 bool SH::isOpen() const {
-	return !m_openedFile.isEmpty();
+	return !m_addresses.empty();
 }
 
 bool SH::open(const std::string& file) {
@@ -53,31 +53,37 @@ bool SH::open(const PG::UTIL::File& file) {
 		return FAILURE;
 	}
 
-	try {
-		PG::STREAM::InByteFile reader(file);
-		if (!reader.isopen()) {
-			PG_ERROR_STREAM("Coudn't open file!");
-			return FAILURE;
-		}
 
-		const unsigned int file_size = reader.size();
+	PG::STREAM::InByteFile reader(file);
+	if (!reader.isopen()) {
+		PG_ERROR_STREAM("Coudn't open file!");
+		return FAILURE;
+	}
+
+	return open(&reader);
+}
+
+bool SH::open(PG::STREAM::In* reader) {
+	clear();
+	if(!reader || reader->eof()) return FAILURE;
+
+	try {
+		const unsigned int file_size = reader->size();
 		if (file_size < 32) {
 			clear();
 			PG_ERROR_STREAM("Given file is too small!");
 			return FAILURE;
 		}
 
-		reader.read((char*)& m_header, sizeof(shfileHeader));
+		reader->read((char*)& m_header, sizeof(shfileHeader));
 
 		m_addresses.resize(4);
-		reader.read((char*)m_addresses.data(), m_addresses.size() * sizeof(int));
+		reader->read((char*)m_addresses.data(), m_addresses.size() * sizeof(int));
 
 		if (file_size < m_addresses[3]) {
 			PG_ERROR_STREAM("Given file is too small!");
 			return FAILURE;
 		}
-
-		m_openedFile = file;
 
 		m_animations.resize(m_header.number_of_animations);
 		m_layers.resize(m_header.number_of_bundels);
@@ -87,23 +93,23 @@ bool SH::open(const PG::UTIL::File& file) {
 		m_keyframesData.resize(m_header.number_of_keyframes);
 		m_cutouts.resize(m_header.number_of_cutouts);
 
-		reader.read((char*)m_animations.data(), m_animations.size() * sizeof(shfileAnimation));
-		reader.read((char*)m_layers.data(), m_layers.size() * sizeof(shfileLayers));
-		reader.read((char*)m_numberOfColortables.data(), m_numberOfColortables.size() * sizeof(unsigned int));
-		reader.read((char*)m_sheetsInfos.data(), m_sheetsInfos.size() * sizeof(shfileSheetInfo));
-		reader.seek(m_addresses[0]);
-		reader.read((char*)m_keyframesData.data(), m_keyframesData.size() * sizeof(shfileKeyframe));
-		reader.seek(m_addresses[1]);
-		reader.read((char*)m_cutouts.data(), m_cutouts.size() * sizeof(shfileCutout));
+		reader->read((char*)m_animations.data(), m_animations.size() * sizeof(shfileAnimation));
+		reader->read((char*)m_layers.data(), m_layers.size() * sizeof(shfileLayers));
+		reader->read((char*)m_numberOfColortables.data(), m_numberOfColortables.size() * sizeof(unsigned int));
+		reader->read((char*)m_sheetsInfos.data(), m_sheetsInfos.size() * sizeof(shfileSheetInfo));
+		reader->seek(m_addresses[0]);
+		reader->read((char*)m_keyframesData.data(), m_keyframesData.size() * sizeof(shfileKeyframe));
+		reader->seek(m_addresses[1]);
+		reader->read((char*)m_cutouts.data(), m_cutouts.size() * sizeof(shfileCutout));
 
 
 		//read colortables
-		reader.seek(m_addresses[2]);
+		reader->seek(m_addresses[2]);
 		m_colortables.resize(m_header.number_of_colortables);
 
 		for (ColorTable& colortable : m_colortables) {
 			colortable.resize(16 * m_numberOfColortables[0]);
-			reader.read((char*)colortable.data(), colortable.size() * sizeof(PG::UTIL::rgba));
+			reader->read((char*)colortable.data(), colortable.size() * sizeof(PG::UTIL::rgba));
 			//flip Red and Blue
 			for (PG::UTIL::rgba& color : colortable) {
 				const char r = color.r;
@@ -116,23 +122,23 @@ bool SH::open(const PG::UTIL::File& file) {
 		//read sheet color IDs
 		for (const shfileSheetInfo& sheet : m_sheetsInfos) {
 			PG::UTIL::IDImage sheetIDs(sheet.width, sheet.height);
-			reader.seek(sheet.offset);
+			reader->seek(sheet.offset);
 			if (sheet.power_colortablesize == 4) { // 2^sheet.power_colortablesize
 				//color table 16
 				for (unsigned int i = 0; i < sheetIDs.size(); i += 2) {
-					const char c = reader.readChar();
+					const char c = reader->readChar();
 					sheetIDs[i] = c & 0x0F;
 					sheetIDs[i + 1] = (c >> 4) & 0x0F;
 				}
 			}
 			else {
 				//color table 256
-				reader.read((char*)sheetIDs.data(), sheetIDs.size());
+				reader->read((char*)sheetIDs.data(), sheetIDs.size());
 			}
 
 			m_spriteSheets.push_back(sheetIDs);
 		}
-		reader.close();
+		reader->close();
 
 	}
 	catch (PG::UTIL::Exception& e) {
@@ -163,21 +169,21 @@ bool SH::open(const PG::UTIL::File& file) {
 		PG_INFO_STREAM(" * start_cutout: " << m_layers[0].start_cutout)
 			PG_INFO_STREAM(" * number_of_cutouts: " << m_layers[0].number_of_cutouts)
 	}
-		PG_INFO_STREAM("m_numberOfColortables: " << m_numberOfColortables.size());
+	PG_INFO_STREAM("m_numberOfColortables: " << m_numberOfColortables.size());
 	PG_INFO_STREAM(" * num: " << m_numberOfColortables[0]);
-		PG_INFO_STREAM("m_sheetsInfos: " << m_sheetsInfos.size());
+	PG_INFO_STREAM("m_sheetsInfos: " << m_sheetsInfos.size());
 	PG_INFO_STREAM(" * offset: " << m_sheetsInfos[0].offset);
-		PG_INFO_STREAM(" * height: " << m_sheetsInfos[0].height);
-		//PG_INFO_STREAM(" * width: " << m_sheektsInfos[0].width);
-		PG_INFO_STREAM(" * power_colortablesize: " << m_sheetsInfos[0].power_colortablesize);
-		PG_INFO_STREAM(" * power_width: " << int(m_sheetsInfos[0].power_width));
-		PG_INFO_STREAM(" * power_height: " << int(m_sheetsInfos[0].power_height));
-		PG_INFO_STREAM("m_keyframesData: " << m_keyframesData.size());
+	PG_INFO_STREAM(" * height: " << m_sheetsInfos[0].height);
+	//PG_INFO_STREAM(" * width: " << m_sheektsInfos[0].width);
+	PG_INFO_STREAM(" * power_colortablesize: " << m_sheetsInfos[0].power_colortablesize);
+	PG_INFO_STREAM(" * power_width: " << int(m_sheetsInfos[0].power_width));
+	PG_INFO_STREAM(" * power_height: " << int(m_sheetsInfos[0].power_height));
+	PG_INFO_STREAM("m_keyframesData: " << m_keyframesData.size());
 	PG_INFO_STREAM("m_cutouts: " << m_cutouts.size());
 	PG_INFO_STREAM(" * sheet: " << (int)m_cutouts[0].sheet);
-		PG_INFO_STREAM(" * external_sheet: " << (int)m_cutouts[0].external_sheet);
-		PG_INFO_STREAM(" * colortable: " << (int)m_cutouts[0].colortable);
-		PG_INFO_STREAM("m_colortables: " << m_colortables.size());
+	PG_INFO_STREAM(" * external_sheet: " << (int)m_cutouts[0].external_sheet);
+	PG_INFO_STREAM(" * colortable: " << (int)m_cutouts[0].colortable);
+	PG_INFO_STREAM("m_colortables: " << m_colortables.size());
 	PG_INFO_STREAM("m_spriteSheets: " << m_spriteSheets.size());
 
 	PG_INFO_STREAM("=== OPEN INFO END ===")
@@ -272,6 +278,7 @@ bool SH::open(const PG::UTIL::File& file) {
 #endif
 	return SUCCESS;
 }
+
 
 bool SH::save(const std::string& file) {
 	if (file.empty()) {
@@ -437,7 +444,6 @@ bool SH::save(const PG::UTIL::File& file) {
 }
 
 void SH::clear() {
-	m_openedFile.clear();
 	m_addresses.clear();
 	m_animations.clear();
 	m_layers.clear();

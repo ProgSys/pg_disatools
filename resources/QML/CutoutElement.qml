@@ -35,8 +35,8 @@ Rectangle {
 				return isSelected;
 			return !cutout.hidden;
 		}
-		x: cutout.x*zoom
-		y: cutout.y*zoom
+		x: Math.round(cutout.x*zoom)
+		y: Math.round(cutout.y*zoom)
 		
 		width: cutout.width*zoom
 		height: cutout.height*zoom

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>559</width>
-    <height>823</height>
+    <width>573</width>
+    <height>841</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -53,13 +53,13 @@
         <widget class="QFrame" name="frame_2">
          <property name="minimumSize">
           <size>
-           <width>181</width>
+           <width>200</width>
            <height>521</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>181</width>
+           <width>200</width>
            <height>16777215</height>
           </size>
          </property>
@@ -321,13 +321,13 @@ QPushButton:!enabled
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>177</height>
+              <height>200</height>
              </size>
             </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>177</height>
+              <height>200</height>
              </size>
             </property>
             <property name="styleSheet">
@@ -394,7 +394,7 @@ QPushButton:!enabled
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>559</width>
+     <width>573</width>
      <height>26</height>
     </rect>
    </property>

@@ -24,7 +24,7 @@
 #include <QTimer>
 #include <SpriteData.h>
 
-#define ONEFRAME_ANIMATION_SPEED 3
+#define ONEFRAME_ANIMATION_SPEED 10
 
 
 class Timeline : public QObject
