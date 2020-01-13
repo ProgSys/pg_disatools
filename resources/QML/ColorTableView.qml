@@ -6,6 +6,9 @@ import QtQuick.Dialogs 1.2
 
 Rectangle { 
 	id:root
+	
+	property var hoverIndex: -1
+	
     SystemPalette { id: activePalette }
     color: activePalette.dark
 	
@@ -68,6 +71,21 @@ Rectangle {
 			text: qsTr('Import color table')
 			onTriggered:{
 				spritedata.importColortable(spritedata.colorTable);
+			}
+		}
+		
+		MenuSeparator { }
+		MenuItem {
+			text: qsTr('Copy set')
+			onTriggered:{
+				spritedata.exportColorsToClipboard(colorContextMenu.index-colorContextMenu.index%16, 16, spritedata.colorTable);
+			}
+		}
+		
+		MenuItem {
+			text: qsTr('Paste set')
+			onTriggered:{
+				spritedata.importColorsFromClipboard(colorContextMenu.index-colorContextMenu.index%16, spritedata.colorTable);
 			}
 		}
 	}
@@ -182,10 +200,13 @@ Rectangle {
 							anchors.top: parent.top
 							anchors.left: parent.left
 							x:-1;
-							width: 2;
+							width: 5;
 							height: 30;
-							color: "blue"
+							color: Math.floor(hoverIndex/16) * 16 == index? "red": "white"
+							border.width: 1
+							border.color: "black"
 							visible: (index % 16) == 0
+							
 						}
 						
 						Rectangle {
@@ -221,13 +242,21 @@ Rectangle {
 									}
 							}
 							
+							onContainsMouseChanged:{
+								hoverIndex = containsMouse? index : -1
+							}
+							
 							PGToolTip {
 								visible: mouseArea.containsMouse
 								text: mouseArea.parent.color
 							}
 						}
 						border.width: mouseArea.containsMouse? 2: 1
-						border.color: mouseArea.containsMouse? "red": "black"
+						border.color: {
+							if( mouseArea.containsMouse) return "red";
+							if( Math.floor(hoverIndex/16)  == Math.floor(index/16)) return "#FAFAFA"
+							return "black";
+						}
 					}
 				}//reapeater end
 			}

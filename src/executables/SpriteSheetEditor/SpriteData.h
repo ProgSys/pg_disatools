@@ -52,7 +52,7 @@ public:
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
 
-	bool isSame(int x,int y, int width, int height) const;
+	bool isSame(int x,int y, int width, int height, unsigned int colortable) const;
 
 	//getters
 	int getSheetID() const;
@@ -683,6 +683,9 @@ public slots:
 	Q_INVOKABLE bool exportColortable(const QString& file, int index = 0);
 	Q_INVOKABLE bool importColortable(int index = 0);
 	Q_INVOKABLE bool importColortable(const QString& file, int index = 0);
+
+	Q_INVOKABLE void exportColorsToClipboard(int start, int size, int index = 0);
+	Q_INVOKABLE void importColorsFromClipboard(int at, int index = 0);
 
 	Q_INVOKABLE QColor getColor(int index) const;
 	Q_INVOKABLE void setColor(int index,const QColor& color);
