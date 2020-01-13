@@ -37,9 +37,11 @@
 #include <Files/PG_NISPACK.h>
 #include <Files/PG_DSARCFL.h>
 #include <Files/PG_ANMD2.h>
+#include <Files/PG_SH.h>
 
 #include <EnterValue.h>
 #include <Util/Misc/ResourcePath.h>
+#include <Stream/PG_StreamInByteArray.h>
 
 inline void openProgress(QProgressDialog& progress, const QString& title = "In progress"){
 	progress.setWindowFlags(Qt::Window | Qt::WindowTitleHint | Qt::CustomizeWindowHint ); // | Qt::WindowStaysOnTopHint
@@ -370,37 +372,79 @@ bool TreeModel::getImage(const QModelIndex& index, PG::UTIL::RGBAImage& imageOut
 	const PG::FILE::fileInfo *item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
 	std::string fileExt = item->name.getFileExtension();
 	std::transform(fileExt.begin(), fileExt.end(), fileExt.begin(), ::tolower);
-	if(fileExt != "tx2" && fileExt != "txp"){
-		qInfo() << "File is not a TX: '"<<QString::fromStdString(item->name.getPath())<<"'";
+
+	if(fileExt != "tx2" && fileExt != "txp" && fileExt != "sh"){
+		qInfo() << "File preview not supported for:'"<<QString::fromStdString(item->name.getPath())<<"'";
 		return true;
 	}
 
 	char * c = nullptr;
 	unsigned int sile_size = 0;
 	if( (sile_size = m_fileExtractor->extract(*item, c)) == 0){
-		if(c) delete c;
+		if(c) delete[] c;
 		qInfo() << "Couldn't extract image file: '"<<QString::fromStdString(item->name.getPath())<<"'";
 		return true;
 	}
 
-	if(PG::FILE::decompressTX2(c, sile_size, imageOut)){
-		qInfo() << "Couldn't decompress TX2 image file: '"<<QString::fromStdString(item->name.getPath())<<"'";
+	if (fileExt == "tx2" || fileExt == "txp") {
+		if(PG::FILE::decompressTX2(c, sile_size, imageOut)){
+			qInfo() << "Couldn't decompress TX2 image file: '"<<QString::fromStdString(item->name.getPath())<<"'";
+			if(c) delete[] c;
+			return true;
+		}
 		if(c) delete[] c;
+		c = nullptr;
+
+		if(imageOut.getWidth() == 0 || imageOut.getHeight() == 0){
+			qInfo() << "Image has width or height is zero!";
+			return true;
+		}
+
+	}
+	else if (fileExt == "sh") {
+		PG::FILE::SH sh;
+		PG::STREAM::InByteArray reader(c, sile_size);
+		sh.open(&reader);
+
+		if (c) delete[] c;
+		c = nullptr;
+
+		if (sh.getSpriteSheets().empty() || sh.getSheetsInfos().empty() || sh.getColortables().empty()) {
+			qInfo() << "SH file has no sprite sheets: '" << QString::fromStdString(item->name.getPath()) << "'";
+			return true;
+		}
+
+		const PG::UTIL::IDImage& idImage = sh.getSpriteSheets().front();
+
+		if (idImage.getWidth() <= 0 || idImage.getHeight() <= 0 || idImage.empty()) {
+			qInfo() << "Image has width or height is zero!";
+			return true;
+		}
+
+		imageOut.resize(idImage.getWidth(), idImage.getHeight());
+		auto itID = idImage.begin();
+		auto itColor = imageOut.begin();
+		assert(idImage.size() == imageOut.size());
+		for (; itID != idImage.end(); ++itID, ++itColor) {
+			if(*itID < sh.getColortables().front().size())
+				*itColor = sh.getColortables().front()[*itID];
+			else 
+				*itColor = sh.getColortables().front().front();
+		}
+	}
+	else {
+		qInfo() << "File preview not supported for: '" << QString::fromStdString(item->name.getPath()) << "'";
+		if (c) delete[] c;
 		return true;
 	}
-	if(c) delete[] c;
 
-	if(imageOut.getWidth() == 0 || imageOut.getHeight() == 0){
-		qInfo() << "Image has width or height is zero!";
-		return true;
-	}
-
-	if(!alpha){
-		for(PG::UTIL::rgba& rgba: imageOut){
+	if (!alpha) {
+		for (PG::UTIL::rgba& rgba : imageOut) {
 			rgba.a = 255;
 		}
 	}
 
+	if (c) delete[] c;
 	return false;
 }
 
@@ -408,12 +452,12 @@ bool TreeModel::setGraphicsScene(const QModelIndex& index, QGraphicsScene* scene
 	if(!m_fileExtractor) return false;
 
 	PG::UTIL::RGBAImage img;
-	if(getImage(index, img, false)){
+	if(getImage(index, img, false) || img.empty()){
 		qInfo() << "Couldn't open image file!";
 		return true;
 	}
 
-	QImage qimg( &(img[0].r), img.getWidth() , img.getHeight(), QImage::Format_RGBA8888 );
+	QImage qimg((unsigned char*)img.data(), img.getWidth() , img.getHeight(), QImage::Format_RGBA8888 );
 
 	QGraphicsPixmapItem* item = new QGraphicsPixmapItem(QPixmap::fromImage(qimg));
 	scene->clear();
@@ -543,9 +587,7 @@ bool TreeModel::saveImage(const QModelIndex& index, const QString& targetfile){
 	if(!m_fileExtractor) return false;
 	PG::UTIL::RGBAImage img;
 
-
-
-	if(getImage(index, img, true)){
+	if(getImage(index, img, true) || img.empty()){
 		qInfo() << "Couldn't extract image file.";
 		return false;
 	}
@@ -559,7 +601,7 @@ bool TreeModel::saveImage(const QModelIndex& index, const QString& targetfile){
 	}else if(ext == "pgm" || ext == "pnm"){
 		return PG::FILE::saveNetPNM(targetfile.toStdString(), img);
 	}else{
-		QImage qimg( &(img[0].r), img.getWidth() , img.getHeight(), QImage::Format_RGBA8888 );
+		QImage qimg((unsigned char*)img.data(), img.getWidth() , img.getHeight(), QImage::Format_RGBA8888 );
 		return qimg.save(targetfile, 0, 100);
 	}
 
