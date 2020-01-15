@@ -70,7 +70,7 @@ This gui application allows you to extract and insert files into Disgaea PC .DAT
 Note that the position of most files in .DAT are hardcoded, deleting files could break the file order and so the archive itself.
 
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/File_Manager_v0.5.8.png)
+![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/File_Manager_v0.5.8.png)
 
 #### Sprite Sheet Editor
 
@@ -79,7 +79,7 @@ You can export them back to the original game format to view them ingame, but th
 so if there are any problems let me know.
 Also you can export the sprites as .png or .tga and import them back!
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Sprite_Sheet_Editor_v0.4.1_preview.png)
+![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/Sprite_Sheet_Editor_v0.4.1_preview.png)
 
 #### Data Editor
 
@@ -99,14 +99,14 @@ Base supported files:
 * HABIT - Contains job titles and their attributes.
 * CHARHELP - Contains descriptions of all characters.
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/Data%20Editor%20v0.0.5%20alpha_preview.png)
+![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/Data%20Editor%20v0.0.5%20alpha_preview.png)
 
 
 #### TX2 Editor
 
 This tool allows you to open, view, convert and export TX2 images.
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/previews/TX2%20Editor%20v0.0.1%20alpha_preview.png)
+![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
