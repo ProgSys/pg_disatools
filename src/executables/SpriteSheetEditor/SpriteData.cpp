@@ -17,23 +17,34 @@
  */
 #include <SpriteData.h>
 #include <QException>
-#include <Files/PG_SH.h>
-#include <Files/PG_ImageFiles.h>
 #include <QDebug>
 #include <QFileInfo>
-#include <Util/PG_VectorUtil.h>
+#include <QClipboard>
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
-#include <CreateEmptySpriteSheet.h>
-#include <Util/PG_Exception.h>
-#include <QInputDialog>
 #include <QQueue>
+#include <QInputDialog>
 #include <QVector>
+#include <QKeyEvent>
+
+#include <Files/PG_SH.h>
+#include <Files/PG_ImageFiles.h>
+
+#include <Util/PG_VectorUtil.h>
+#include <Util/PG_Exception.h>
+#include <Util/Misc/ResourcePath.h>
+
+#include <CreateEmptySpriteSheet.h>
 #include <QMutableListIterator>
 #include <ImageLib.h>
-#include <Util/Misc/ResourcePath.h>
-#include <QClipboard>
+
+#include <UndoCommands/GenericUndo.h>
+#include <UndoCommands/UndoColortableColorSet.h>
+#include <UndoCommands/UndoCutoutPosition.h>
+#include <UndoCommands/UndoLayerChanges.h>
+
+
 
 static PG::UTIL::IDImage g_defaultExternalSpriteSheet;
 static std::map<int, PG::UTIL::IDImage> g_externalSpriteSheet;
@@ -325,6 +336,10 @@ short Keyframe::getRotation() const {
 }
 unsigned char Keyframe::getTransparency() const {
 	return m_transparency;
+}
+
+Layer* Keyframe::getLayer() const {
+	return dynamic_cast<Layer*>(parent());
 }
 
 unsigned char Keyframe::getMic() const {
@@ -1527,6 +1542,8 @@ QImage SpriteSheet::getSpriteIDs(const Cutout* cut) const {
 SpriteData::SpriteData(QObject* parent) : QAbstractListModel(parent), m_selectedKeyframe(nullptr) {
 	if (!parent) return;
 
+	m_undoStack = new QUndoStack(this);
+
 	if (g_defaultExternalSpriteSheet.empty()) {
 		PG::FILE::loadTGA(getResourcePath().toStdString() + "/materials/external_sprite_sheet.tga", g_defaultExternalSpriteSheet);
 	}
@@ -2129,6 +2146,14 @@ bool SpriteData::exportSH(const QString& file) {
 		return !sh.save(file.toStdString());
 }
 
+void SpriteData::pushUndoPosition(Cutout* cutout) {
+	if (cutout) m_undoStack->push(new UndoCutoutPosition(this, cutout));
+}
+
+void SpriteData::pushUndoLayer(Layer* layer) {
+	if (layer) m_undoStack->push(new UndoLayerChanges(this, layer));
+}
+
 int SpriteData::findExternalSpriteSheetIndex(int externalID) const {
 	auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [externalID](SpriteSheet* s) {
 		return s->getExternalID() == externalID;
@@ -2703,6 +2728,8 @@ bool SpriteData::importSpriteSheetAsColor(Cutout* cut, const QString& fileIn) {
 	return importSpriteAsColor(cut->getSheetID(), 0, 0, sheet->getWidth(), sheet->getHeight(), cut->getDefaultColorTable(), newColorCutout);
 }
 
+
+
 bool SpriteData::dump(const QString& filepath) {
 	if (filepath.isEmpty() || m_cutouts.empty()) return 0;
 
@@ -3087,12 +3114,23 @@ void SpriteData::importColorsFromClipboard(int at, int index) {
 	auto end = ((at + colorNames.size()) >= colortable.size()) ? colortable.end() : begin + colorNames.size();
 	auto itName = colorNames.begin();
 
-	std::for_each(begin, end, [&itName](QColor& c) {
+	QVector<QColor> oldColors;
+	std::for_each(begin, end, [&itName, &oldColors](QColor& c) {
+		oldColors.push_back(c);
 		c.setNamedColor(itName->trimmed());
 		++itName;
 		if (!c.isValid()) c.setRgb(255, 0, 0);
 	});
 
+	//undo
+	m_undoStack->push(new GenericUndo("Undo clipboard", this,
+		[index, at, oldColors](SpriteData* data) {
+			if (at < 0 || index < 0 || index >= data->getColorTables().size()) return;
+			QColorTable& colortable = data->getColorTables()[index];
+			if (at + oldColors.size() >= colortable.size()) return;
+			std::copy(oldColors.begin(), oldColors.end(), std::next(colortable.begin(), at));
+			emit data->colorTableChanged(index);
+		}));
 
 	emit colorTableChanged(index);
 }
@@ -3110,6 +3148,7 @@ void SpriteData::setColor(int index, const QColor& color) {
 	assert_Test("Color table index out of bound!", m_currentColorTable < 0 || m_currentColorTable >= m_colortables.size());
 	QColorTable& colortable = m_colortables[m_currentColorTable];
 	if (index < colortable.size() && colortable[index] != color) {
+		m_undoStack->push(new UndoColortableColorSet(this, m_currentColorTable, index, colortable[index]));
 		colortable[index] = color;
 		emit colorTableChanged(m_currentColorTable);
 	}
@@ -3180,7 +3219,7 @@ void SpriteData::close() {
 	for (Cutout* cut : m_cutouts)
 		delete cut;
 	m_cutouts.clear();
-
+	m_undoStack->clear();
 	m_colortables.clear();
 
 	for (SpriteSheet* sheet : m_spriteSheets)
@@ -3362,6 +3401,12 @@ void SpriteData::setSelectedKey(Keyframe* key) {
 	emit selectedKeyChanged();
 }
 
+void SpriteData::setSelectedColorId(int id) {
+	if (m_selectedColorId == id) return;
+	m_selectedColorId = id;
+	emit selectedColorIdChanged();
+}
+
 void SpriteData::setIsolateSelection(bool value) {
 	if (m_isolateSelection == value) return;
 	m_isolateSelection = value;
@@ -3459,6 +3504,7 @@ bool SpriteData::removeCutoutID(int id, bool warning) {
 	}
 
 	if (id > 0) {
+		m_undoStack->clear();
 		delete m_cutouts[id];
 		m_cutouts.removeAt(id);
 
@@ -3722,6 +3768,7 @@ bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable,
 
 bool SpriteData::removeSpriteSheet(unsigned int index) {
 	if (index >= m_spriteSheets.size()) return false;
+	m_undoStack->clear();
 	SpriteSheet* editTarget = m_spriteSheets[index];
 	for (int id : editTarget->getCutoutIDs())
 		removeCutoutID(id, false);

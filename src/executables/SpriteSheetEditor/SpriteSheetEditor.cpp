@@ -22,11 +22,13 @@
 #include <QMessageBox>
 #include <QColorDialog>
 #include <QtQml>
+#include <QShortcut>
 #include <Timeline.h>
 #include <SpriteData.h>
 #include <CreateNewAnimation.h>
 #include <CompileErrorBox.h>
 #include <Util/Misc/ResourcePath.h>
+#include <PGIntFieldLisener.h>
 
 inline void about(){
     QMessageBox msgBox;
@@ -175,6 +177,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
     qmlRegisterType<SpriteSheet>("MySpriteSheet",0,1, "SpriteSheet");
     qmlRegisterType<Marker>("MyMarker",0,1, "Marker");
     qmlRegisterType<MarkersList>("MyMarkersList",0,1, "MarkersList");
+	qmlRegisterType<PGIntFieldLisener>("SpriteSheetEditor", 0, 1, "PGIntFieldLisener");
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile(getResourcePath() +"/QML/Timeline.qml"));
@@ -224,7 +227,9 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	    connect( spriteViewQML, SIGNAL( cutoutSelected(  QVariant , QVariant )), timelineQML, SLOT( cutoutSelected( QVariant , QVariant  )));
 	});
 
-
+	//short cuts
+	QShortcut * shortcut = new QShortcut(QKeySequence(tr("Ctrl+Z", "Undo")), this);
+	connect(shortcut, &QShortcut::activated, m_player->getSpriteData(), &SpriteData::undo);
 }
 
 void SpriteSheetEditor::open(){

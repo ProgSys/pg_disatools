@@ -15,8 +15,7 @@
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef SPRITEPLAYER_H_
-#define SPRITEPLAYER_H_
+#pragma once
 
 #include <QObject>
 #include <Timeline.h>
@@ -30,7 +29,9 @@ public:
 	SpritePlayer(QWidget *parent = 0);
 	void connectGLWidget(GLSpriteWidget *gl);
 
-	Timeline* getTimeline() const;
+	inline Timeline* getTimeline() const { return m_timeline; }
+	inline SpriteData* getSpriteData() const { return m_aniData; }
+	inline GLSpriteWidget* getGlView() const { return m_glView; }
 
 	virtual ~SpritePlayer();
 public slots:
@@ -42,7 +43,6 @@ public slots:
 	void close();
 	bool isOpen() const;
 	void setAnimation(int index);
-	SpriteData* getSpriteData() const;
 
 signals:
 	void onCurrentAnimationChanged(int setAnimation);
@@ -54,4 +54,3 @@ private:
 	int m_currentAnimation = 0;
 };
 
-#endif /* SPRITEPLAYER_H_ */

@@ -100,16 +100,14 @@ Rectangle {
 			Image{source: "../materials/icons/start.png" 
 				TooltipArea {text: "Keyframe starting frame"}
 			}
-			TextField {
+			PGIntField {
 					id: fieldstart
-					//readOnly: true
-					width: 40; 
-					validator: IntValidator {bottom: 0; top: 9999;}
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.start: ""
-					
-					onEditingFinished: {
-						if(selectedItem && selectedItem.elementType == 0) {
-							selectedItem.keyframeModel.start = text;
+					onEdited: {
+						if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.start != value) {
+							spritedata.pushUndoLayer(selectedItem.layerModel);
+							selectedItem.keyframeModel.start = value;
 							timeline.updateTimeline();
 						}
 					}
@@ -118,14 +116,14 @@ Rectangle {
 			Image{source: "../materials/icons/duration.png"
 				TooltipArea {text: "Keyframe duration"}
 			}
-			TextField {
-					width: 40; 
-					validator: IntValidator {bottom: 0; top: 9999;}
+			PGIntField {
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.duration: ""
 					
-					onEditingFinished: {
-						if(selectedItem && selectedItem.elementType == 0) {
-							selectedItem.keyframeModel.duration = text
+					onEdited: {
+						if(selectedItem && selectedItem.elementType == 0 && electedItem.keyframeModel.duration != value) {
+							spritedata.pushUndoLayer(selectedItem.layerModel);
+							selectedItem.keyframeModel.duration = value
 							timeline.updateTimeline();
 						}
 					}
@@ -135,14 +133,15 @@ Rectangle {
 			Image{source: "../materials/icons/end.png"
 				TooltipArea {text: "Keyframe end frame"}
 			}
-			TextField {
-					width: 40;
-					validator: IntValidator {bottom: 0; top: 9999;}
+			PGIntField {
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.start+selectedItem.keyframeModel.duration: ""
 					
-					onEditingFinished: {
-						if(selectedItem && selectedItem.elementType == 0) {
-							selectedItem.keyframeModel.duration = text-selectedItem.keyframeModel.start
+					onEdited: {
+						var diff = value-selectedItem.keyframeModel.start;
+						if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.duration != diff) {
+							spritedata.pushUndoLayer(selectedItem.layerModel);
+							selectedItem.keyframeModel.duration = diff
 							timeline.updateTimeline();
 						}
 					}
@@ -152,14 +151,15 @@ Rectangle {
 			Image{source: "../materials/icons/spriteid.png"
 				TooltipArea {text: "Sprite ID"}
 			}
-			TextField {
+			PGIntField {
 					width: 30; placeholderText: qsTr("ID")
-					validator: IntValidator {bottom: 0; top: 99999;}
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.cutoutID: ""
 					
-					onEditingFinished: {
-						if(selectedItem && selectedItem.elementType == 0) {
-							selectedItem.keyframeModel.cutoutID = (text >= spritedata.size)? spritedata.size-1: text
+					onEdited: {
+						if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.cutoutID != value) {
+							spritedata.pushUndoLayer(selectedItem.layerModel);
+							selectedItem.keyframeModel.cutoutID = (value >= spritedata.size)? spritedata.size-1: value
 							timeline.updateTimeline();
 						}
 					}
@@ -169,14 +169,15 @@ Rectangle {
 			Image{source: "../materials/icons/colortable.png"
 				TooltipArea {text: "Colortable ID"}
 			}
-			TextField {
+			PGIntField {
 					width: 30; placeholderText: qsTr("ID")
-					validator: IntValidator {bottom: 0; top: 9999;}
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.colortableID: ""
 					
-					onEditingFinished: {
-						if(selectedItem && selectedItem.elementType == 0) {
-							selectedItem.keyframeModel.colortableID = (text >= spritedata.colortableSize)? spritedata.colortableSize-1: text
+					onEdited: {
+						if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.colortableID != value) {
+							spritedata.pushUndoLayer(selectedItem.layerModel);
+							selectedItem.keyframeModel.colortableID = (value >= spritedata.colortableSize)? spritedata.colortableSize-1: value
 							timeline.updateTimeline();
 							}
 					}
@@ -186,19 +187,31 @@ Rectangle {
 			Image{source: "../materials/icons/anchor.png"
 				TooltipArea {text: "Anchor"}
 			}
-			TextField {
-					width: 40; placeholderText: qsTr("x")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+			PGIntField {
+					placeholderText: qsTr("x")
+					enabled: selectedItem
+					min: -9999
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.anchorx: ""
 					
-					onEditingFinished: { selectedItem.keyframeModel.anchorx = text; timeline.updateTimeline();}
+					onEdited: { 
+							if(selectedItem.keyframeModel.anchorx != value){
+								spritedata.pushUndoLayer(selectedItem.layerModel);
+								selectedItem.keyframeModel.anchorx = value; timeline.updateTimeline();
+							}
+						}
 			}
-			TextField {
-					width: 40; placeholderText: qsTr("y")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+			PGIntField {
+					placeholderText: qsTr("y")
+					enabled: selectedItem
+					min: -9999
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.anchory: ""
 					
-					onEditingFinished: { selectedItem.keyframeModel.anchory = text; timeline.updateTimeline();}
+					onEdited: { 
+							if(selectedItem.keyframeModel.anchory != value){
+								spritedata.pushUndoLayer(selectedItem.layerModel);
+								selectedItem.keyframeModel.anchory = value; timeline.updateTimeline();
+								}
+						}
 			}
 			
 			
@@ -206,57 +219,76 @@ Rectangle {
 			Image{source: "../materials/icons/position.png"
 				TooltipArea {text: "Offset"}
 			}
-			TextField {
-					width: 40; placeholderText: qsTr("x")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+			PGIntField {
+					placeholderText: qsTr("x")
+					enabled: selectedItem
+					min: -9999
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.offsetx: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.offsetx = text; timeline.updateTimeline();}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.offsetx != value) {
+						spritedata.pushUndoLayer(selectedItem.layerModel);
+						selectedItem.keyframeModel.offsetx = value; timeline.updateTimeline();
+						}}
 					}
-			TextField {
-					width: 40; placeholderText: qsTr("y")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+			PGIntField {
+				 placeholderText: qsTr("y")
+					enabled: selectedItem
+					min: -9999
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.offsety: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.offsety = text; timeline.updateTimeline();}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.offsety != value) {
+						spritedata.pushUndoLayer(selectedItem.layerModel);
+						selectedItem.keyframeModel.offsety = value; timeline.updateTimeline();
+						}}
 			}
 			
 			//Scale
 			Image{source: "../materials/icons/scale.png"
 				TooltipArea {text: "Scale"}
 			}
-			TextField {
-					width: 40; placeholderText: qsTr("x")
-					validator: IntValidator {bottom: 0; top: 9999;}
+			PGIntField {
+					placeholderText: qsTr("x")
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.scalex: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.scalex = text; timeline.updateTimeline();}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.scalex != value) {
+					spritedata.pushUndoLayer(selectedItem.layerModel);
+					selectedItem.keyframeModel.scalex = value; timeline.updateTimeline();
+					}}
 			}
-			TextField {
-					width: 40; placeholderText: qsTr("y")
-					validator: IntValidator {bottom: 0; top: 9999;}
+			PGIntField {
+					placeholderText: qsTr("y")
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.scaley: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.scaley = text; timeline.updateTimeline();}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 0 && electedItem.keyframeModel.scaley != value) {
+					spritedata.pushUndoLayer(selectedItem.layerModel);
+					selectedItem.keyframeModel.scaley = value; timeline.updateTimeline();
+					}}
 			}
 			
 			//Rotation
 			Image{source: "../materials/icons/rotation.png"
 				TooltipArea {text: "Rotation"}
 			}
-			TextField {
+			PGIntField {
 					width: 30; 
-					validator: IntValidator {bottom: 0; top: 9999;}
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.rotation: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.rotation = text; timeline.updateTimeline();}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.rotation != value) {
+						spritedata.pushUndoLayer(selectedItem.layerModel);
+						selectedItem.keyframeModel.rotation = value; timeline.updateTimeline();
+					}}
 			}
 			
 			//Transparency
 			Image{source: "../materials/icons/transparency.png"
 				TooltipArea {text: "Transparency"}
 			}
-			TextField {
+			PGIntField {
 					width: 30; 
-					//validator: IntValidator {bottom: 0; top: 99999;}
-					//readOnly: true
+					max: 255
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.transparency: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.transparency = (text > 128)? 128: text ; timeline.updateTimeline();}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.transparency != value) {
+						selectedItem.keyframeModel.transparency = (value > 128)? 128: value ; timeline.updateTimeline();
+					}}
 			}
 
 			/*
@@ -273,6 +305,7 @@ Rectangle {
 			//mirror
 			CheckBox {
 				text: qsTr("H")
+				enabled: selectedItem
 				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.mirroredHorizontally: 0
 				onClicked:{ 
 					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.mirroredHorizontally = !selectedItem.keyframeModel.mirroredHorizontally ; timeline.updateTimeline();}
@@ -288,6 +321,7 @@ Rectangle {
 			
 			CheckBox {
 				text: qsTr("V")
+				enabled: selectedItem
 				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.mirroredVertically: 0
 				onClicked:{ 
 					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.mirroredVertically = !selectedItem.keyframeModel.mirroredVertically ; timeline.updateTimeline();}
@@ -302,6 +336,7 @@ Rectangle {
 			
 			CheckBox {
 				text: qsTr("A")
+				enabled: selectedItem
 				checked: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.adaptive: 0
 				onClicked:{ 
 					if(selectedItem && selectedItem.elementType == 0) {selectedItem.keyframeModel.adaptive = !selectedItem.keyframeModel.adaptive ; timeline.updateTimeline();}
@@ -327,26 +362,24 @@ Rectangle {
 			Image{source: "../materials/icons/start.png" 
 				TooltipArea {text: "Marker starting frame"}
 			}
-			TextField {
-					//readOnly: true
-					width: 40; 
-					validator: IntValidator {bottom: 0; top: 9999;}
+			PGIntField {
+					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.start: ""
 					
-					onEditingFinished: {
-						if(selectedItem && selectedItem.elementType == 1 && selectedItem.currentAnimation.moveMarker(selectedItem.markerModel, text)){
-								selectedItem.markerModel.start = text
+					onEdited: {
+						if(selectedItem && selectedItem.elementType == 1 && selectedItem.currentAnimation.moveMarker(selectedItem.markerModel, value)){
+								selectedItem.markerModel.start = value
 							}
 					}
 			}
 			
 			//type
 			Text{ text: "Type:";font.pointSize: 12}
-			TextField {
+			PGIntField {
 					width: 30;
-					validator: IntValidator {bottom: 0; top: 32;}
+					max: 32
 					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.type: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.type = text;}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.type = value;}}
 			}
 			
 			
@@ -354,17 +387,19 @@ Rectangle {
 			Image{source: "../materials/icons/position.png"
 				TooltipArea {text: "Global offset"}
 			}
-			TextField {
+			PGIntField {
 					width: 40; placeholderText: qsTr("x")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+					enabled: selectedItem
+					min: -9999
 					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.x: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.x = text;}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.x = value;}}
 					}
-			TextField {
+			PGIntField {
 					width: 40; placeholderText: qsTr("y")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+					enabled: selectedItem
+					min: -9999
 					text: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.y: ""
-					onEditingFinished: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.y = text;}}
+					onEdited: { if(selectedItem && selectedItem.elementType == 1) {selectedItem.markerModel.y = value;}}
 			}
 		}
 		
@@ -549,7 +584,7 @@ Rectangle {
 										text: qsTr('Move up')
 										enabled: index != 0
 										onTriggered:{
-											if(timeline.animation && layerModel) { timeline.animation.moveUp(layerModel) }
+											if(timeline.animation && layerModel) { spritedata.clearUndo(); timeline.animation.moveUp(layerModel) }
 										}
 									}
 									
@@ -557,28 +592,28 @@ Rectangle {
 										text: qsTr('Move down')
 										enabled: index < timeline.animation.layerSize-1
 										onTriggered:{
-											if(timeline.animation && layerModel) { timeline.animation.moveDown(layerModel) }
+											if(timeline.animation && layerModel) { spritedata.clearUndo(); timeline.animation.moveDown(layerModel) }
 										}
 									}
 									MenuSeparator { }
 									MenuItem {
 										text: qsTr('Add keyframe')
 										onTriggered:{
-											if(timeline.animation && layerModel) { layerModel.insertKeyframe(-1); timeline.updateTimeline(); }
+											if(timeline.animation && layerModel) { spritedata.clearUndo(); layerModel.insertKeyframe(-1); timeline.updateTimeline(); }
 										}
 									}
 									MenuSeparator { }
 									MenuItem {
 										text: qsTr('Add Layer')
 										onTriggered:{
-											if(timeline.animation &&layerModel) { timeline.animation.addLayer(layerModel) }
+											if(timeline.animation &&layerModel) { spritedata.clearUndo(); timeline.animation.addLayer(layerModel) }
 										}
 									}
 									
 									MenuItem {
 										text: qsTr('Delete')
 										onTriggered:{
-											if(timeline.animation && layerModel) {  timeline.animation.remove(layerModel)}
+											if(timeline.animation && layerModel) { spritedata.clearUndo(); timeline.animation.remove(layerModel)}
 										}
 									}
 								}
@@ -774,7 +809,10 @@ Rectangle {
 								MenuItem {
 									text: qsTr('Add keyframe')
 									onTriggered:{
-										if(layerMod) { layerMod.insertKeyframe(addKeyframeMenu.frame); timeline.updateTimeline(); }
+										if(layerMod) { 
+											spritedata.pushUndoLayer(layerMod);
+											layerMod.insertKeyframe(addKeyframeMenu.frame); timeline.updateTimeline();
+										}
 									}
 								}
 							}

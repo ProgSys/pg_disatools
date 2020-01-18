@@ -49,15 +49,12 @@ void SpritePlayer::connectGLWidget(GLSpriteWidget* gl) {
 	connect(m_aniData, SIGNAL(colorTableAdded(int)), gl, SLOT(addColortable(int)));
 	connect(m_aniData, SIGNAL(colorTableRemoved(int)), gl, SLOT(removeColortable(int)));
 	connect(m_aniData, &SpriteData::externalSpriteSheetOpened, gl, &GLSpriteWidget::updateExternalColortable);
+	connect(m_aniData, &SpriteData::selectedColorIdChanged, gl, &GLSpriteWidget::updateFrame);
 
 	//connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
 	//connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
 	//connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
 	//connect(this, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
-}
-
-Timeline* SpritePlayer::getTimeline() const {
-	return m_timeline;
 }
 
 bool SpritePlayer::open(const QString& file) {
@@ -103,10 +100,6 @@ void SpritePlayer::close() {
 
 bool SpritePlayer::isOpen() const {
 	return m_aniData->isOpen();
-}
-
-SpriteData* SpritePlayer::getSpriteData() const {
-	return m_aniData;
 }
 
 void SpritePlayer::setAnimation(int index) {

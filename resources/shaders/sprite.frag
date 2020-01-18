@@ -7,12 +7,17 @@ uniform sampler2D colorTable;
 
 uniform int colortableStart;
 uniform float alphaMult;
+uniform int selectedID;
 
 out vec4 fragmentColor;
 void main() {
 	float spriteID = texture(idtexture, passTcoord).r;
-	
-	fragmentColor = texelFetch(colorTable,ivec2(colortableStart + spriteID*255, 0 ),0);
-	fragmentColor.a *= alphaMult;
-	if(fragmentColor.a == 0) discard;
+	int id = int(spriteID*255);
+	if(selectedID == id){
+		fragmentColor = vec4(1,0,0,1);
+	}else{
+		fragmentColor = texelFetch(colorTable,ivec2(colortableStart + id, 0 ),0);
+		fragmentColor.a *= alphaMult;
+		if(fragmentColor.a == 0) discard;
+	}
 }

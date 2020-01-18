@@ -376,8 +376,11 @@ Rectangle {
 	
 						Connections {
 							target: spritedata
+							onRefresh: spriteimage.refresh();
 							onOnNumberOfSheetsChanged: spriteimage.refresh();
+							onSelectedColorIdChanged: spriteimage.refresh();
 							onIsolateSelectionChanged: spriteimage.refresh();
+							onUpdateSpriteSheetImage: spriteimage.refresh();
 							onSelectedChanged: if(spritedata.isolateSelection) spriteimage.refresh();
 						}
 							
@@ -423,16 +426,14 @@ Rectangle {
 			Image{source: "../materials/icons/colortable.png"
 				TooltipArea {text: "Colortable ID"}
 			}
-			TextField {
+			PGIntField {
 					width: 30; placeholderText: qsTr("ID")
-					validator: IntValidator {bottom: 0; top: 9999;}
+					enabled: spritedata.selected
 					text: (spritedata.selected)? spritedata.selected.colortable: ""
 					
-					onEditingFinished: {
-						if(spritedata.selected && spritedata.selected.colortable != text) {
-							spritedata.selected.colortable = (text >= spritedata.colortableSize)? spritedata.colortableSize-1: text ; 
-							spriteimage.source = "";
-							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					onEdited: {
+						if(spritedata.selected && spritedata.selected.colortable != value) {
+							spritedata.selected.colortable = (value >= spritedata.colortableSize)? spritedata.colortableSize-1: value ; 
 							spritedata.refresh();
 						}
 					}
@@ -442,29 +443,27 @@ Rectangle {
 			Image{source: "../materials/icons/position.png"
 				TooltipArea {text: "Position"}
 			}
-			TextField {
-					width: 40; placeholderText: qsTr("x")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+			PGIntField {
+					placeholderText: qsTr("x")
+					enabled: spritedata.selected
 					text: (spritedata.selected)? spritedata.selected.x: ""
 					
-					onEditingFinished: { 
-						if(spritedata.selected) {
-							spritedata.selected.x = text ; spritedata.refresh();
-							spriteimage.source = "";
-							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					onEdited: { 
+						if(spritedata.selected && spritedata.selected.x != value) {
+							spritedata.pushUndoPosition(spritedata.selected);
+							spritedata.selected.x = value ; spritedata.refresh();
 						}
 					}
 			}
-			TextField {
-					width: 40; placeholderText: qsTr("y")
-					validator: IntValidator {bottom: -9999; top: 9999;}
+			PGIntField {
+					placeholderText: qsTr("y")
+					enabled: spritedata.selected
 					text: (spritedata.selected)? spritedata.selected.y: ""
 					
-					onEditingFinished: {
-						if(spritedata.selected) {
-							spritedata.selected.y = text ; spritedata.refresh()
-							spriteimage.source = "";
-							spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+					onEdited: {
+						if(spritedata.selected && spritedata.selected.y != value) {
+							spritedata.pushUndoPosition(spritedata.selected);
+							spritedata.selected.y = value ; spritedata.refresh();
 						}
 					}
 			}
@@ -474,26 +473,26 @@ Rectangle {
 			Image{source: "../materials/icons/size.png"
 				TooltipArea {text: "Size"}
 			}
-			TextField {
-				width: 40; placeholderText: qsTr("Width")
-				validator: IntValidator {bottom: 0; top: 9999;}
+			PGIntField {
+				placeholderText: qsTr("Width")
+				enabled: spritedata.selected
 				text: (spritedata.selected)? spritedata.selected.width: ""
-				onEditingFinished: { 
-					if(spritedata.selected) {
-						spritedata.selected.width = text ; spritedata.refresh()
-						spriteimage.source = "";
-						spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+				onEdited: { 
+					if(spritedata.selected && spritedata.selected.width != value) {
+						spritedata.pushUndoPosition(spritedata.selected);
+						spritedata.selected.width = value ; spritedata.refresh();
 					}
 				}
 			}
-			TextField {
-				width: 40; placeholderText: qsTr("Height")
-				validator: IntValidator {bottom: 0; top: 9999;}
+			PGIntField {
+				placeholderText: qsTr("Height")
+				enabled: spritedata.selected
 				text: (spritedata.selected)? spritedata.selected.height: ""
-				onEditingFinished: { 
-					if(spritedata.selected) {
-						spritedata.selected.height = text ; spritedata.refresh()
-						spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;
+				onEdited: { 
+					if(spritedata.selected && spritedata.selected.height != value) {
+						spritedata.pushUndoPosition(spritedata.selected);
+						spritedata.selected.height = value ;
+						spritedata.refresh();
 					}
 				}
 			}
