@@ -121,7 +121,7 @@ Rectangle {
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.duration: ""
 					
 					onEdited: {
-						if(selectedItem && selectedItem.elementType == 0 && electedItem.keyframeModel.duration != value) {
+						if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.duration != value) {
 							spritedata.pushUndoLayer(selectedItem.layerModel);
 							selectedItem.keyframeModel.duration = value
 							timeline.updateTimeline();
@@ -183,38 +183,6 @@ Rectangle {
 					}
 			}
 			
-			//anchor
-			Image{source: "../materials/icons/anchor.png"
-				TooltipArea {text: "Anchor"}
-			}
-			PGIntField {
-					placeholderText: qsTr("x")
-					enabled: selectedItem
-					min: -9999
-					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.anchorx: ""
-					
-					onEdited: { 
-							if(selectedItem.keyframeModel.anchorx != value){
-								spritedata.pushUndoLayer(selectedItem.layerModel);
-								selectedItem.keyframeModel.anchorx = value; timeline.updateTimeline();
-							}
-						}
-			}
-			PGIntField {
-					placeholderText: qsTr("y")
-					enabled: selectedItem
-					min: -9999
-					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.anchory: ""
-					
-					onEdited: { 
-							if(selectedItem.keyframeModel.anchory != value){
-								spritedata.pushUndoLayer(selectedItem.layerModel);
-								selectedItem.keyframeModel.anchory = value; timeline.updateTimeline();
-								}
-						}
-			}
-			
-			
 			//Offset
 			Image{source: "../materials/icons/position.png"
 				TooltipArea {text: "Offset"}
@@ -257,10 +225,41 @@ Rectangle {
 					placeholderText: qsTr("y")
 					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.scaley: ""
-					onEdited: { if(selectedItem && selectedItem.elementType == 0 && electedItem.keyframeModel.scaley != value) {
+					onEdited: { if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.scaley != value) {
 					spritedata.pushUndoLayer(selectedItem.layerModel);
 					selectedItem.keyframeModel.scaley = value; timeline.updateTimeline();
 					}}
+			}
+			
+			//anchor
+			Image{source: "../materials/icons/anchor.png"
+				TooltipArea {text: "Anchor"}
+			}
+			PGIntField {
+					placeholderText: qsTr("x")
+					enabled: selectedItem
+					min: -9999
+					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.anchorx: ""
+					
+					onEdited: { 
+							if(selectedItem.keyframeModel.anchorx != value){
+								spritedata.pushUndoLayer(selectedItem.layerModel);
+								selectedItem.keyframeModel.anchorx = value; timeline.updateTimeline();
+							}
+						}
+			}
+			PGIntField {
+					placeholderText: qsTr("y")
+					enabled: selectedItem
+					min: -9999
+					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.anchory: ""
+					
+					onEdited: { 
+							if(selectedItem.keyframeModel.anchory != value){
+								spritedata.pushUndoLayer(selectedItem.layerModel);
+								selectedItem.keyframeModel.anchory = value; timeline.updateTimeline();
+								}
+						}
 			}
 			
 			//Rotation
@@ -269,6 +268,7 @@ Rectangle {
 			}
 			PGIntField {
 					width: 30; 
+					min: -255
 					enabled: selectedItem
 					text: (selectedItem && selectedItem.elementType == 0)? selectedItem.keyframeModel.rotation: ""
 					onEdited: { if(selectedItem && selectedItem.elementType == 0 && selectedItem.keyframeModel.rotation != value) {
