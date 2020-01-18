@@ -143,6 +143,7 @@ class Keyframe: public QObject
 	Q_PROPERTY(Layer* layer READ getLayer CONSTANT)
 
 	friend class Layer;
+	friend class UndoLayerChanges;
 public:
     explicit Keyframe(QObject *parent = 0);
     explicit Keyframe(Keyframe* previousIn, int startIn, int durationIn, unsigned int cutoutIDIn, unsigned char colortableIDIn,
