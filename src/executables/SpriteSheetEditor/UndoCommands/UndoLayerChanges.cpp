@@ -87,10 +87,8 @@ void UndoLayerChanges::undo() {
 	auto bakedKeyIt = m_keyframes.begin();
 
 	for (Keyframe* key : m_layer->getKeyframes()) {
-		key->setStart(bakedKeyIt->start);
-
-		key->setStart(bakedKeyIt->start);
-		key->setDuration(bakedKeyIt->duration);
+		key->setStartDirrect(bakedKeyIt->start);
+		key->setDurationDirrect(bakedKeyIt->duration);
 		key->setCutoutID(bakedKeyIt->cutoutID);
 		key->setColortableID(bakedKeyIt->colortableID);
 		key->setAnchorX(bakedKeyIt->anchorx);
