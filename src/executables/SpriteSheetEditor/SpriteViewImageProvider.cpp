@@ -24,7 +24,7 @@ SpriteViewImageProvider::SpriteViewImageProvider(SpriteData* data) :
 	m_data(data)
 {}
 
-void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, int spritesheetID, const SpriteSheet* sheet, const PG::UTIL::IDImage& sheetID, bool doFill = false) {
+void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, int spritesheetID, const SpriteSheet* sheet, const PG::UTIL::IDImage& sheetID, int selectedId, bool doFill = false) {
 	if (cut->getSheetID() != spritesheetID || cut->isHidden()) return;
 	int x, y, startX, startY, trueEndX, trueEndY;
 
@@ -62,6 +62,13 @@ void insertIntoImage(const SpriteData* sprite, QImage& qimg, const Cutout* cut, 
 				qimg.bits()[address] = 255;
 				qimg.bits()[address + 1] = 0;
 				qimg.bits()[address + 2] = 255;
+				qimg.bits()[address + 3] = 255;
+				continue;
+			}
+			else if (id == selectedId) {
+				qimg.bits()[address] = 255;
+				qimg.bits()[address + 1] = 0;
+				qimg.bits()[address + 2] = 0;
 				qimg.bits()[address + 3] = 255;
 				continue;
 			}
@@ -115,11 +122,11 @@ QImage SpriteViewImageProvider::requestImage(const QString& id, QSize* size, con
 
 		if (m_data->getNumberOfColortables() > 0) {
 			if (m_data->getIsolateSelection() && m_data->getSelected()) {
-				insertIntoImage(m_data, qimg, m_data->getSelected(), spritesheetID, sheet, sheetID, true);
+				insertIntoImage(m_data, qimg, m_data->getSelected(), spritesheetID, sheet, sheetID, m_data->getSelectedColorId(), true);
 			}
 			else {
 				for (const Cutout* cut : m_data->getCutouts())
-					insertIntoImage(m_data, qimg, cut, spritesheetID, sheet, sheetID);
+					insertIntoImage(m_data, qimg, cut, spritesheetID, sheet, sheetID, m_data->getSelectedColorId());
 			}
 		}
 

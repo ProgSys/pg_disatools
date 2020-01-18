@@ -83,7 +83,10 @@ Rectangle {
 		MenuItem {
 			text: qsTr('Split at '+contextMenu.frame)
 			onTriggered:{
-				if(layerModel) { layerModel.splitKeyframe(contextMenu.frame);timeline.updateTimeline(); }
+				if(layerModel) { 
+					spritedata.pushUndoLayer(layerModel);
+					layerModel.splitKeyframe(contextMenu.frame);timeline.updateTimeline();
+				}
 			}
 		}
 		
@@ -129,6 +132,7 @@ Rectangle {
 			enabled: selectedCutoutID != -1
 			onTriggered:{
 				if(keyframeModel) { 
+					spritedata.pushUndoLayer(layerModel);
 					var oldCutout = spritedata.getCutout(keyframeModel.cutoutID)
 					keyframeModel.scalex = 100* (((keyframeModel.scalex/100.0)*oldCutout.width)/selectedCutout.width)
 					keyframeModel.scaley = 100* (((keyframeModel.scaley/100.0)*oldCutout.height)/selectedCutout.height)
@@ -146,6 +150,7 @@ Rectangle {
 				text: "All"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						keyframeModel.cutoutID = selectedItem.keyframeModel.cutoutID;
 						keyframeModel.colortableID = selectedItem.keyframeModel.colortable 
 						keyframeModel.scalex = selectedItem.keyframeModel.scalex;
@@ -167,6 +172,7 @@ Rectangle {
 				text: "All without ID"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						keyframeModel.scalex = selectedItem.keyframeModel.scalex;
 						keyframeModel.scaley = selectedItem.keyframeModel.scaley;
 						keyframeModel.offsetx = selectedItem.keyframeModel.offsetx;
@@ -186,6 +192,7 @@ Rectangle {
 				text: "Fit to selected"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						var selectedCutout = spritedata.getCutout(selectedItem.keyframeModel.cutoutID)
 						var currentCutout = spritedata.getCutout(keyframeModel.cutoutID)
 						keyframeModel.scalex = selectedItem.keyframeModel.scalex * (selectedCutout.width/currentCutout.width)
@@ -209,6 +216,7 @@ Rectangle {
 				text: "Offset"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						keyframeModel.offsetx = selectedItem.keyframeModel.offsetx;
 						keyframeModel.offsety = selectedItem.keyframeModel.offsety
 					}
@@ -218,6 +226,7 @@ Rectangle {
 				text: "Scale"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						keyframeModel.scalex = selectedItem.keyframeModel.scalex;
 						keyframeModel.scaley = selectedItem.keyframeModel.scaley;
 					}
@@ -227,6 +236,7 @@ Rectangle {
 				text: "Anchor"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						keyframeModel.anchorx = selectedItem.keyframeModel.anchorx;
 						keyframeModel.anchory = selectedItem.keyframeModel.anchory;
 					}
@@ -236,6 +246,7 @@ Rectangle {
 				text: "Rotation"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						keyframeModel.rotation = selectedItem.keyframeModel.rotation;
 					}
 				}
@@ -244,6 +255,7 @@ Rectangle {
 				text: "Mirror"
 				onTriggered:{
 					if(selectedItem && selectedItem.elementType == 0) { 
+						spritedata.pushUndoLayer(layerModel);
 						keyframeModel.mirroredHorizontally = selectedItem.keyframeModel.mirroredHorizontally;
 						keyframeModel.mirroredVertically = selectedItem.keyframeModel.mirroredVertically;
 					}
@@ -256,7 +268,10 @@ Rectangle {
 			iconSource:  "../materials/icons/delete.png"
 			text: qsTr('Delete')
 			onTriggered:{
-				if(layerModel) { layerModel.removeKeyframe(keyframeModel); timeline.updateTimeline(); }
+				if(layerModel) { 
+					spritedata.pushUndoLayer(layerModel);
+					layerModel.removeKeyframe(keyframeModel); timeline.updateTimeline();
+					}
 			}
 		}
 	}
@@ -278,8 +293,7 @@ Rectangle {
 				contextMenu.frame =  keyframeModel.start + (mouse.x)/getTrackScale()
 				contextMenu.popup();
 			}
-				//spritedata.selectToggle(keyframeModel, true);
-				//timeline.updateTimeline();
+			forceActiveFocus();
 		}
 	}
 	
@@ -307,11 +321,12 @@ Rectangle {
 			drag.maximumX: 5000
 			
 			onReleased:{
-				//keyframeModel.start += parent.x/((timeline.steps*4)/10)
+				spritedata.pushUndoLayer(layerModel);
 				keyframeModel.setStart( keyframeModel.start+(parent.x/((timeline.steps*4)/10) ), snapMove)
 				parent.x = 0
 				rightTracker.x = parent.parent.width - rightTracker.width
 				timeline.updateTimeline();
+				forceActiveFocus();
 			}
 		}
 		
@@ -355,10 +370,9 @@ Rectangle {
 			drag.maximumX: 5000
 			
 			onReleased:{
-				//keyframeModel.duration = (parent.x+parent.width)/((timeline.steps*4)/10)
+				spritedata.pushUndoLayer(layerModel);
 				keyframeModel.setDuration((parent.x+parent.width)/((timeline.steps*4)/10), snapMove)
 				timeline.updateTimeline();
-				//parent.x = parent.parent.width - parent.width
 			}
 		}
 		

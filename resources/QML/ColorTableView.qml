@@ -243,7 +243,13 @@ Rectangle {
 							}
 							
 							onContainsMouseChanged:{
-								hoverIndex = containsMouse? index : -1
+								if(containsMouse){
+									spritedata.selectedColorId = index % 16
+									hoverIndex = index
+								}else{
+									spritedata.selectedColorId = -1
+									hoverIndex = -1
+								}
 							}
 							
 							PGToolTip {

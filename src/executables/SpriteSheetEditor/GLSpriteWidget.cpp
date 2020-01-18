@@ -50,6 +50,7 @@ bool GLSpriteWidget::spriteShader::bind() {
 	mirrorLoc = getUniformLocation("mirror");
 	colorTableStartLoc = getUniformLocation("colortableStart");
 	alphaMultLoc = getUniformLocation("alphaMult");
+	selectedIdLoc = getUniformLocation("selectedID");
 
 	PG::GL::Shader::release();
 	return true;
@@ -234,14 +235,14 @@ void GLSpriteWidget::updateAllColortables() {
 	assert_Test("Sprite data is nullptr!", !m_animationInfo.spriteData);
 	makeCurrent();
 
-	
+
 
 	//update base list
 	updateColorTables(m_animationInfo.spriteData->getColorTables(), m_animationInfo.colorTables);
 
 	//update rest
 	auto externalColorTables = std::move(m_animationInfo.externalColorTables);
-	for (const SpriteSheet* spriteSheet: m_animationInfo.spriteData->getSpriteSheets()) {
+	for (const SpriteSheet* spriteSheet : m_animationInfo.spriteData->getSpriteSheets()) {
 		if (spriteSheet->isExternal() && spriteSheet->isExternalOpened()) {
 			auto findIt = externalColorTables.find(spriteSheet->getExternalID());
 			if (findIt == externalColorTables.end()) { // not found
@@ -262,7 +263,7 @@ void GLSpriteWidget::updateAllColortables() {
 			delete t;
 	}
 
-	
+
 	update();
 }
 

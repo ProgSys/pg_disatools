@@ -17,7 +17,6 @@
  */
 #pragma once
 
-#include <Marker.h>
 #include <QList>
 #include <QObject>
 #include <QImage>
@@ -25,10 +24,13 @@
 #include <qvector2d.h>
 #include <QAbstractListModel>
 #include <QColor>
-#include <Util/PG_Image.h>
 #include <vector>
 #include <QKeyEvent>
 #include <QVector>
+#include <QUndoStack>
+
+#include <Marker.h>
+#include <Util/PG_Image.h>
 
 typedef QVector<QColor> QColorTable;
 
@@ -51,7 +53,7 @@ public:
 	explicit Cutout(int sheetID, const PG::UTIL::ivec2& position, const PG::UTIL::ivec2& size, unsigned int defaultColorTable, QObject *parent = 0);
 	Cutout(const Cutout& cutout);
 	virtual ~Cutout();
-
+	
 	bool isSame(int x,int y, int width, int height, unsigned int colortable) const;
 
 	//getters
@@ -138,6 +140,8 @@ class Keyframe: public QObject
 	Q_PROPERTY(bool hasNext READ hasNext NOTIFY onStartChanged)
 	Q_PROPERTY(bool hasPrevious READ hasPrevious NOTIFY onStartChanged)
 
+	Q_PROPERTY(Layer* layer READ getLayer CONSTANT)
+
 	friend class Layer;
 public:
     explicit Keyframe(QObject *parent = 0);
@@ -180,6 +184,7 @@ public:
 
     short getRotation() const;
     unsigned char getTransparency() const;
+	Layer* getLayer() const;
 
     //mirror and render mods
     unsigned char getMic() const;
@@ -512,6 +517,7 @@ class SpriteData : public QAbstractListModel{
 	 Q_PROPERTY(int sheetsSize READ getNumberOfSpriteSheets NOTIFY numberOfSheetsChanged)
 
 	 Q_PROPERTY(int colorTable READ getCurrentColorTable WRITE setCurrentColorTable NOTIFY currentColorTableChanged)
+	 Q_PROPERTY(int selectedColorId READ getSelectedColorId WRITE setSelectedColorId NOTIFY selectedColorIdChanged)
 	 Q_PROPERTY(bool isolateSelection READ getIsolateSelection WRITE setIsolateSelection NOTIFY isolateSelectionChanged)
 
 	 Q_PROPERTY(Cutout* selected READ getSelected WRITE setSelected NOTIFY selectedChanged)
@@ -533,6 +539,7 @@ signals:
 
 	void numberOfColorTablesChanged();
 	void currentColorTableChanged();
+	void selectedColorIdChanged();
 	void isolateSelectionChanged();
 	void allColorTablesChanged();
 	void colorTableChanged(int colorTableIndex);
@@ -547,6 +554,7 @@ signals:
 	void spriteSheetRemoved(int spritesheetID);
 
 	void refresh();
+	void updateSpriteSheetImage();
 
 public:
 	SpriteData(QObject *parent = 0);
@@ -564,7 +572,8 @@ public:
 	int getNumberOfSpriteSheets() const;
 	int getCurrentAnimationIndex() const;
 	QString getLastFileName() const;
-	bool getIsolateSelection() const { return m_isolateSelection; }
+	inline int getSelectedColorId() const { return m_selectedColorId; }
+	inline bool getIsolateSelection() const { return m_isolateSelection; }
 
 	inline const QVector<SpriteAnimation*>& getAnimations() const { return m_animations; }
 	bool push_backAnimation(const QString& name, int ID);
@@ -584,6 +593,7 @@ public:
 	void setCurrentAnimationByIndex(int index);
 	void setSelected(Cutout* cutout);
 	void setSelectedKey(Keyframe* key);
+	void setSelectedColorId(int id);
 	void setIsolateSelection(bool value);
 
 	void keyPressEvent(QKeyEvent * event);
@@ -610,6 +620,11 @@ public slots:
 	* @brief Will release all data curretly holden by the SpriteData class.
 	*/
 	void close();
+
+	Q_INVOKABLE inline void undo() { m_undoStack->undo(); }
+	Q_INVOKABLE inline void clearUndo() { m_undoStack->clear(); }
+	Q_INVOKABLE void pushUndoPosition(Cutout* cutout);
+	Q_INVOKABLE void pushUndoLayer(Layer* layer);
 
 	Q_INVOKABLE int findExternalSpriteSheetIndex(int externalID) const;
 	Q_INVOKABLE bool openExternalSpriteSheet(int sheetID);
@@ -643,6 +658,7 @@ public slots:
 
 	Q_INVOKABLE bool importSpriteSheetAsColor(Cutout* cutout);
 	Q_INVOKABLE bool importSpriteSheetAsColor(Cutout* cutout, const QString& file);
+
 
 	bool dump(const QString& filepath);
 
@@ -703,6 +719,8 @@ private:
 	bool openPGSHv3(QDataStream& in);
 	void resizeSpritesOnSheet(SpriteSheet* sheet, int oldWidth, int oldHeight, int targetWidth, int targetHeight);
 
+	QUndoStack* m_undoStack = nullptr;
+
 	QString m_lastFile;
 
 	int m_currentAnimation = -1;
@@ -717,7 +735,7 @@ private:
 	Cutout* m_selected = nullptr;
 	Keyframe* m_selectedKeyframe = nullptr;
 
-
+	int m_selectedColorId = -1;
 	bool m_isolateSelection = false;
 };
 

@@ -185,6 +185,7 @@ Rectangle {
 						cutoutContextMenu.cutout = cutout;
 						cutoutContextMenu.popup();
 					}
+					forceActiveFocus();
 			}
 			
 			onPositionChanged: {
@@ -211,9 +212,11 @@ Rectangle {
 			
 			onPressed:{
 				if(spritedata.selected != cutout) {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
+				forceActiveFocus();
 			}
 				
 			onReleased:{
+				spritedata.pushUndoPosition(cutout);
 				cutout.x = Math.round(parent.x/zoom);
 				cutout.y = Math.round(parent.y/zoom);
 				
@@ -221,7 +224,6 @@ Rectangle {
 				if(cutout.x >= sheet.width) cutout.x = sheet.width-1;
 				if(cutout.y >= sheet.width) cutout.y = sheet.width-1;
 				spritedata.refresh();
-				spriteimage.refresh();
 			}
 			
 			onPositionChanged: {
@@ -256,6 +258,7 @@ Rectangle {
 				
 				onPressed:{
 				   if(spritedata.selected != cutout) {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
+				   forceActiveFocus();
 				}
 				
 				onReleased:{
@@ -263,7 +266,7 @@ Rectangle {
 					cutout.height = ((parent.y+2)/zoom);
 					parent.x = parent.parent.width-2;
 					parent.y = parent.parent.height-2;
-					spriteimage.refresh();
+					spritedata.refresh();
 				}
 				
 				onPositionChanged: {
@@ -277,6 +280,7 @@ Rectangle {
 		}
 	
 		function move( x,  y){
+				spritedata.pushUndoPosition(cutout);
 				cutout.x = cutout.x + x;
 				cutout.y = cutout.y + y;
 				
@@ -285,7 +289,6 @@ Rectangle {
 				if(cutout.y >= sheet.width) cutout.y = sheet.width-1;
 				
 				spritedata.refresh();
-				spriteimage.refresh();
 			}
 	
 		CutoutShortcuts{ }

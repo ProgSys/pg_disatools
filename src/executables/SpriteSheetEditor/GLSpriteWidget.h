@@ -163,6 +163,7 @@ private:
 		int alphaMultLoc = -1;
 
 		int idtextureLoc = -1;
+		int selectedIdLoc = -1;
 		int colorTableLoc = -1;
 
 
@@ -378,7 +379,6 @@ private:
 			shader.setUniform(shader.sizeLoc, PG::UTIL::vec2(sheet->getWidth(), sheet->getHeight()));
 
 			//mirror
-		   // qDebug()<< "Mirror: "<<key->isMirroredVertically()<<", "<<key->isMirroredHorizontally();
 			shader.setUniform(shader.mirrorLoc, PG::UTIL::vec2(key->isMirroredVertically(), key->isMirroredHorizontally()));
 			//transparency
 			shader.setUniform(shader.alphaMultLoc, key->getTransparency() / 128.0f);
@@ -390,7 +390,9 @@ private:
 				shader.setUniform(shader.colorTableStartLoc, (int)0);
 			else 
 				shader.setUniform(shader.colorTableStartLoc, (int)key->getColortableID() * 16);
-			
+
+			//selected id
+			shader.setUniform(shader.selectedIdLoc, spriteData->getSelectedColorId());
 		}
 
 		PG::GL::Texture* getCurrentIDTexture(const Keyframe* key) const {
