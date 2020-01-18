@@ -109,7 +109,7 @@ void GLMapWidget::initializeGL(){
 		PG::UTIL::RGBAImage img;
 		PG::FILE::loadTGA(getResourcePath().toStdString() + "/materials/ground.tga", img);
 		m_groundTex.bind(img);
-		PG::FILE::loadTGA(getResourcePath().toStdString() + "/materials/test_texture.tga", img);
+		PG::FILE::loadTGA(getResourcePath().toStdString() + "/materials/test.tga", img);
 		m_tileTex.bind(img);
     }
     //load geometry

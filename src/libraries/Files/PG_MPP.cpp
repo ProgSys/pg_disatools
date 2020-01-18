@@ -30,6 +30,7 @@
 #include <Util/PG_StringUtil.h>
 #include <Util/PG_Exception.h>
 #include <Stream/PG_StreamInByteArray.h>
+#include <cassert>
 
 namespace PG {
 namespace FILE {
@@ -87,6 +88,8 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 total_file_number = number_of_offsets_set1+number_of_offsets_set2;
 		 m_fileInfos.reserve(total_file_number);
 
+		 std::size_t texturesEnd, normalsEnd;
+
 		 for(unsigned int i = 0; i < number_of_offsets_set1; i++){
 			 const unsigned file_start_offset = file_offsets[i];
 			 const unsigned file_end_offset = (i+1 >= file_offsets.size())? file_size : file_offsets[i+1];
@@ -108,7 +111,7 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 m_fileInfos.push_back(info);
 			 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 		 }
-		 m_texturesEnd = m_fileInfos.end();
+		 texturesEnd = m_fileInfos.size();
 
 		 if(m_hasNormals){
 			 for(unsigned int i = 0; i < number_of_offsets_set1; i++){
@@ -134,8 +137,8 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 }
 
 		 }
-		 m_normalsEnd = m_fileInfos.end();
-
+		 normalsEnd = m_fileInfos.size();
+		 
 		 const unsigned int texturesSize = m_fileInfos.size();
 		 for(unsigned int i = 0; i < number_of_offsets_set2; i++){
 
@@ -160,6 +163,13 @@ bool MPP::open(const PG::UTIL::File& file, PercentIndicator* percent){
 			 m_fileInfos.push_back(info);
 			 if(percent) percent->percent = m_fileInfos.size()/float(total_file_number)*100;
 		 }
+
+		 m_normalsEnd = std::next(m_fileInfos.begin(), normalsEnd);
+		 m_texturesEnd = std::next(m_fileInfos.begin(), texturesEnd);
+
+		 assert(m_fileInfos.size() == total_file_number);
+		 assert(std::distance(m_fileInfos.begin(), m_normalsEnd) > 0);
+		 assert(std::distance(m_fileInfos.begin(), m_texturesEnd) > 0);
 
 		 if(m_fileInfos.empty()){
 			 PG_ERROR_STREAM("No files found inside!");

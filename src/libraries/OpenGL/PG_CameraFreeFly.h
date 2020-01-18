@@ -43,8 +43,8 @@ private:
     PG::UTIL::mat4 m_viewMat;
     PG::UTIL::ivec2 m_mouseLast;
     float m_cameraSpeed = 0.3f;
-    float m_yaw;
-    float m_pitch;
+    float m_yaw = 0.0f;
+    float m_pitch = 0.0f;
 
     PG::UTIL::vec3 m_cameraPos;
     PG::UTIL::vec3 m_cameraLookVec;
