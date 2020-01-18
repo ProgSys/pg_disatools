@@ -27,6 +27,7 @@ UndoLayerChanges::UndoLayerChanges(SpriteData* spriteData, Layer* layer, QUndoCo
 	m_created = std::chrono::system_clock::now();
 	QObject::connect(layer, &QObject::destroyed, &m_binder, [this]() { m_layer = nullptr; });
 
+	int a = layer->getKeyframes().size();
 	for (const Keyframe* key : layer->getKeyframes()) {
 		m_keyframes.push_back({
 			key->getStart(),
@@ -72,16 +73,18 @@ void UndoLayerChanges::undo() {
 	if (!m_layer) return;
 
 	//make sure numbers are the same
-	m_layer->blockSignals(true);
 	if (m_layer->getKeyframes().size() < m_keyframes.size()) {
-		for(int i = m_keyframes.size() - m_layer->getKeyframes().size(); i >= 0; --i)
+		for(int i = m_keyframes.size() - m_layer->getKeyframes().size(); i > 0; --i)
 			m_layer->push_backKeyframe(new Keyframe(m_layer));
 
 	}
 	else if (m_layer->getKeyframes().size() > m_keyframes.size()) {
-		for (int i = m_layer->getKeyframes().size() - m_keyframes.size() ; i >= 0; --i)
+		for (int i = m_layer->getKeyframes().size() - m_keyframes.size() ; i > 0; --i)
 			m_layer->removeKeyframe(m_layer->getKeyframes().front());
 	}
+	int a = m_layer->getKeyframes().size();
+	int b = m_keyframes.size();
+	assert(m_layer->getKeyframes().size() == m_keyframes.size());
 
 	//copy data
 	auto bakedKeyIt = m_keyframes.begin();
@@ -103,8 +106,8 @@ void UndoLayerChanges::undo() {
 
 		++bakedKeyIt;
 	}
-	m_layer->blockSignals(false);
-	emit m_layer->onDurationChanged();
+
 	emit m_layer->onNumberOfKeyframesChanged();
+	emit m_layer->onDurationChanged();
 	emit m_spriteData->refresh();
 };

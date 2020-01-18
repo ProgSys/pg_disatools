@@ -738,7 +738,9 @@ void Layer::push_backKeyframe(Keyframe* keyframe) {
 		m_keyframes.last()->setNext(keyframe);
 		keyframe->setPrevious(m_keyframes.last());
 	}
+	beginInsertRows(QModelIndex(), m_keyframes.size(), m_keyframes.size());
 	m_keyframes.push_back(keyframe);
+	endInsertRows();
 	emit onNumberOfKeyframesChanged();
 }
 

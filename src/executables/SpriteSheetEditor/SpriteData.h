@@ -323,7 +323,6 @@ public:
 			short offsetxIn, short offsetyIn, short rotationIn, unsigned char mirrorIn, unsigned char unknown, bool seperate = false);
 
     Q_INVOKABLE bool insertKeyframe(int frame);
-    //Q_INVOKABLE bool pushBackKeyframe();
     Q_INVOKABLE bool splitKeyframe(int frame);
     Q_INVOKABLE bool removeKeyframe(Keyframe* keyframe);
 
