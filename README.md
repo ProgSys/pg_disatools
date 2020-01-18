@@ -44,6 +44,11 @@ You can download the latest version of the tools here:
 	- Added ability to copy and paste color sets in color table view to clipboard
   * Disa PC File Manager v0.5.8 alpha:
 	- Sprite sheets now have a image preview
+===  13.01.2020 - v0.8.5 ===
+  * Sprite Sheet Editor v0.4.3 alpha:
+	- A hovered color in color table view will now also highlight that color in sprite view
+	- You can now use your mouse wheel to modify the values inside text fields
+	- Added basic undo (CTRL-Z). Note: it is basic.
 ```
 
 ### Older versions:
