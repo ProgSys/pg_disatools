@@ -270,7 +270,8 @@ Rectangle {
 			onTriggered:{
 				if(layerModel) { 
 					spritedata.pushUndoLayer(layerModel);
-					layerModel.removeKeyframe(keyframeModel); timeline.updateTimeline();
+					var buffer = timeline;
+					layerModel.removeKeyframe(keyframeModel); buffer.updateTimeline();
 					}
 			}
 		}
