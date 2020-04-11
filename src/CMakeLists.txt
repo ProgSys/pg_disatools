@@ -21,8 +21,10 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  ]]
-
+ 
 cmake_minimum_required(VERSION 3.14.0)
+project(DisaTools VERSION 0.8.3 LANGUAGES CXX HOMEPAGE_URL "https://github.com/ProgSys/pg_disatools" DESCRIPTION "Modding tools for Disgaea PC")
+
 set(PROJECT_GLOBAL_NUMBER 0.8.5 CACHE PATH "Project version number.")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake CACHE PATH "Project specific path. Set manually if it was not found.")
 
