@@ -104,7 +104,7 @@ find_path(QT_CMAKE_DIR Qt5/Qt5Config.cmake
   DOC "The path to the QT cmake files."
 )
 elseif(MSVC)
-find_path(QT_CMAKE_DIR Qt5/Qt5Config.cmake
+find_path(QT_CMAKE_DIR cmake/Qt5/Qt5Config.cmake
   PATH_SUFFIXES cmake
   PATHS "D:/Qt/5.12.6/msvc2017_64/lib" "C:/Qt/5.12.6/msvc2017_64/lib" "E:/Qt/5.12.6/msvc2017_64/lib" 
   "D:/Qt/5.12.2/msvc2017_64/lib" "C:/Qt/5.12.2/msvc2017_64/lib" "E:/Qt/5.12.2/msvc2017_64/lib" 
