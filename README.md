@@ -102,7 +102,7 @@ Base supported files:
 * HABIT - Contains job titles and their attributes.
 * CHARHELP - Contains descriptions of all characters.
 
-![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/Data%20Editor%20v0.0.5%20alpha_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Data_Editor_v0.0.6_alpha_preview.png)
 
 
 #### TX2 Editor
