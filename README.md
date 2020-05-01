@@ -8,21 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.5%20alpha.zip?dl=0)**
+* **[Version v0.8.6 alpha](https://www.dropbox.com/s/glvo17ttcdu2imf/Disgaea%20Tools%20v0.8.6%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  05.04.2019 - v0.8.1 ===
-  * General:
-	- All tools are now 64bit
-	- Updated Qt to 5.12.2
-  * Disa PC File Manager v0.5.6 alpha:
-	- Fixed bug in openning and saving DATA.DAT
-	- Fixed bug in decompressing IMY
-	- Added search field
-  * TX2 Editor v0.0.3 alpha:
-	- You now can convert to FONT (BGRA8888 16 Colors)
 ===  04.12.2019 - v0.8.2 ===
   * Disa PC File Manager v0.5.7 alpha:
 	- Added utility to modify memory allocation (Thx to Kelebek1) 
@@ -49,6 +39,13 @@ You can download the latest version of the tools here:
 	- A hovered color in color table view will now also highlight that color in sprite view
 	- You can now use your mouse wheel to modify the values inside text fields
 	- Added basic undo (CTRL-Z). Note: it is basic.
+===  1.05.2020 - v0.8.6 ===
+  * Disa Map Viewer v0.0.2 alpha:
+	- The maps and are now displayed semi correct
+	- To open a map you need to extract .MPD and the corresponding .MPP
+	- You can open .GEO files
+	- You can export a map as GLTF (you then import it in Blender)
+		- Map textures are not exported correctly as they use multiple overlapping channels
 ```
 
 ### Older versions:
@@ -62,6 +59,7 @@ You can download the latest version of the tools here:
 * [Version v0.7.9 alpha](https://www.dropbox.com/s/zxbocw141h5k4nx/Disgaea%20Tools%20v0.7.9%20alpha.zip?dl=0)
 * [Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3%20alpha.zip?dl=0)
 * [Version v0.8.4 alpha](https://www.dropbox.com/s/6502gpkox1rddz5/Disgaea%20Tools%20v0.8.4%20alpha.zip?dl=0)
+* [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.5%20alpha.zip?dl=0)
 ---
 
 [![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
@@ -112,6 +110,12 @@ Base supported files:
 This tool allows you to open, view, convert and export TX2 images.
 
 ![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/TX2%20Editor%20v0.0.1%20alpha_preview.png)
+
+#### Map Viewer
+
+Allows you to view maps and export them as GTLF.
+
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Map_Editor_v0.0.2_preview.png)
 
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 

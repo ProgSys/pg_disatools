@@ -286,7 +286,8 @@ bool GLMapWidget::openMPD( const QString& filepath ){
 					  //PG::UTIL::vec2(tile.textures[4].u,tile.textures[4].v),  PG::UTIL::vec2(tile.textures[5].u,tile.textures[5].v),  PG::UTIL::vec2(tile.textures[6].u,tile.textures[6].v),  PG::UTIL::vec2(tile.textures[7].u,tile.textures[7].v),
 					  //PG::UTIL::vec2(tile.textures[8].u,tile.textures[8].v),  PG::UTIL::vec2(tile.textures[9].u,tile.textures[9].v),  PG::UTIL::vec2(tile.textures[10].u,tile.textures[10].v),  PG::UTIL::vec2(tile.textures[11].u,tile.textures[11].v)
 					  );
-					  */
+			  */
+					  
 			  t->topPlane.bind(PG::UTIL::vec3(0,-tile.corners[2]/10.f,0), PG::UTIL::vec3(0,-tile.corners[0]/10.f,1), PG::UTIL::vec3(1,-tile.corners[3]/10.f,0), PG::UTIL::vec3(1,-tile.corners[1]/10.f,1),
 					  uvStartLayer0,  PG::UTIL::vec2(uvStartLayer0.x,uvEndLayer0.y),  PG::UTIL::vec2(uvEndLayer0.x,uvStartLayer0.y),  uvEndLayer0, tile.textures[4].mirror & 0x03,
 					  uvStartLayer1,  PG::UTIL::vec2(uvStartLayer1.x,uvEndLayer1.y),  PG::UTIL::vec2(uvEndLayer1.x,uvStartLayer1.y),  uvEndLayer1, tile.textures[9].mirror & 0x03

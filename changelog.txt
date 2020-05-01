@@ -415,3 +415,10 @@
 	- You can now use your mouse wheel to modify the values inside text fields
 	- Added basic undo (CTRL-Z). Note: it is basic.
 	
+===  1.05.2020 - v0.8.6 ===
+  * Disa Map Viewer v0.0.2 alpha:
+	- The maps and are now displayed semi correct
+	- To open a map you need to extract .MPD and the corresponding .MPP
+	- You can open .GEO files
+	- You can export a map as GLTF (you then import it in Blender)
+		- Map textures are not exported correctly as they use multiple overlapping channels
