@@ -46,7 +46,7 @@ You can download the latest version of the tools here:
 	- You can open .GEO files
 	- You can export a map as GLTF (you then import it in Blender)
 		- Map textures are not exported correctly as they use multiple overlapping channels
-===  1.05.2020 - v0.8.7 ===
+===  2.05.2020 - v0.8.7 ===
   * Sprite Sheet Editor v0.4.4 alpha:
 	- You now can scale external sprite sheets
 		- You need to define the original sprite size as it is not stored 
