@@ -8,6 +8,8 @@ import QtQuick.Controls 1.4
 Rectangle {
 		property var cutout: null; 
 		readonly property var isSelected: spritedata.selected == cutout; 
+		property double originalWidth: 0
+		property double originalHeight: 0
 		
 		function getItemColor(){
 			if( spritedata && spritedata.selectedKey && spritedata.selectedKey.cutoutID == model.display){
@@ -222,7 +224,7 @@ Rectangle {
 				
 				var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
 				if(cutout.x >= sheet.width) cutout.x = sheet.width-1;
-				if(cutout.y >= sheet.width) cutout.y = sheet.width-1;
+				if(cutout.y >= sheet.height) cutout.y = sheet.height-1;
 				spritedata.refresh();
 			}
 			
@@ -240,6 +242,7 @@ Rectangle {
 		
 		//resize drag
 		Rectangle{
+			
 			x: parent.width-2;
 			y: parent.height-2;
 			width:2;
@@ -258,6 +261,8 @@ Rectangle {
 				
 				onPressed:{
 				   if(spritedata.selected != cutout) {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
+				   originalWidth = cutout.width;
+				   originalHeight = cutout.height;
 				   forceActiveFocus();
 				}
 				
@@ -270,8 +275,14 @@ Rectangle {
 				}
 				
 				onPositionChanged: {
-					cutout.width = ((parent.x+2)/zoom);
-					cutout.height = ((parent.y+2)/zoom);
+					if(mouse.modifiers & Qt.ShiftModifier){
+						cutout.width = ((parent.x+2)/zoom);
+						cutout.height = originalHeight * (cutout.width/originalWidth);
+						parent.y = (cutout.height * zoom) - 2;
+					}else{
+						cutout.width = ((parent.x+2)/zoom);
+						cutout.height = ((parent.y+2)/zoom);
+					}
 					mousePosIndicator.mouseX = parent.parent.x + parent.x + 2 -scroll.flickableItem.contentX
 					mousePosIndicator.mouseY = parent.parent.y + parent.y + 2 + 25 -scroll.flickableItem.contentY
 					mousePosIndicator.visible = true
@@ -286,7 +297,7 @@ Rectangle {
 				
 				var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
 				if(cutout.x >= sheet.width) cutout.x = sheet.width-1;
-				if(cutout.y >= sheet.width) cutout.y = sheet.width-1;
+				if(cutout.y >= sheet.height) cutout.y = sheet.height-1;
 				
 				spritedata.refresh();
 			}

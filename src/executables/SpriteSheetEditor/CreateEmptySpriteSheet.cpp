@@ -46,15 +46,17 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 	comboBox_width->setCurrentIndex(getSizeIndex(width));
 
 	// == height ==
-	comboBox_width->setCurrentIndex(getSizeIndex(height));
+	comboBox_height->setCurrentIndex(getSizeIndex(height));
 
 	// == color ==
-	if (power == 32)
-		comboBox_colors->setCurrentIndex(1);
-	else if (power == 64)
-		comboBox_colors->setCurrentIndex(2);
-	else if (power == 256)
-		comboBox_colors->setCurrentIndex(3);
+	if (power == 5)
+		comboBox_colors->setCurrentIndex(1); //32
+	else if (power == 6)
+		comboBox_colors->setCurrentIndex(2); //64
+	else if (power == 8)
+		comboBox_colors->setCurrentIndex(3); //256
+	else
+		comboBox_colors->setCurrentIndex(0); //16
 
 	// == external ==
 	if (externalId >= 0) {
