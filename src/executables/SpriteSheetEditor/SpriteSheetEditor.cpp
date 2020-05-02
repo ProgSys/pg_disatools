@@ -110,7 +110,8 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	connect(ui->actionExport_sprites_as_TGA, &QAction::triggered, this, [this]{exportSprites("TGA");} );
 	connect(ui->actionExport_sprites_IDs, &QAction::triggered, this, [this]{exportSprites("TGA", true);} );
 
-	connect(ui->actionBatch_scale_up, SIGNAL(triggered()), m_player->getSpriteData(), SLOT(batchDoubleResize()));
+	connect(ui->action_resize, &QAction::triggered, m_player->getSpriteData(), &SpriteData::spriteSheetResize);
+	connect(ui->actionBatch_resize, &QAction::triggered, m_player->getSpriteData(), &SpriteData::batchDoubleResize);
 
 
 	connect(ui->actionRename_animation, SIGNAL(triggered()), m_player->getSpriteData(), SLOT(renameCurrentAnimation()));

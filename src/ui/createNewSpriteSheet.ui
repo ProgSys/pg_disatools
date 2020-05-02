@@ -46,9 +46,9 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0">
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label_width">
        <property name="minimumSize">
         <size>
          <width>55</width>
@@ -66,12 +66,41 @@
      <item>
       <widget class="QComboBox" name="comboBox_width"/>
      </item>
+     <item>
+      <widget class="QLabel" name="label_OriginalWidth">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>80</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>External sprite sheets size is unknown, so you need to define it for resize.</string>
+       </property>
+       <property name="text">
+        <string>Original width:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBox_OriginalWidth">
+       <property name="toolTip">
+        <string>External sprite sheets size is unknown, so you need to define it for resize.</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1,0,0">
      <item>
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="label_height">
        <property name="minimumSize">
         <size>
          <width>55</width>
@@ -88,6 +117,35 @@
      </item>
      <item>
       <widget class="QComboBox" name="comboBox_height"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_OriginalHeight">
+       <property name="minimumSize">
+        <size>
+         <width>80</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>80</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>External sprite sheets size is unknown, so you need to define it for resize.</string>
+       </property>
+       <property name="text">
+        <string>Original height:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBox_OriginalHeight">
+       <property name="toolTip">
+        <string>External sprite sheets size is unknown, so you need to define it for resize.</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

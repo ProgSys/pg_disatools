@@ -1975,7 +1975,6 @@ bool SpriteData::exportSH(const QString& file) {
 
 			//find the end of the next frame
 			for (const Layer* lay : ani->getLayers()) {
-				if (lay->isHidden()) continue;
 				for (const Keyframe* key : lay->getKeyframes()) {
 					if (startFrame >= key->getStart() && startFrame < key->getEnd() && nextFrame > key->getEnd()) {
 						nextFrame = key->getEnd();
@@ -2825,6 +2824,10 @@ void SpriteData::unhideAllCutouts() {
 
 void SpriteData::update() {
 	emit refresh();
+}
+
+void SpriteData::spriteSheetResize() {
+
 }
 
 void SpriteData::batchDoubleResize() {
@@ -3848,27 +3851,26 @@ bool SpriteData::editSpriteSheet(unsigned int index) {
 			if (findIt == m_spriteSheets.end()) {
 				editTarget->makeExternal(create.getExternalID());
 			}
-			else {
+			else if(editTarget->getExternalID() != create.getExternalID()){
 				QMessageBox::warning(nullptr, "Duplicate sprite sheet",
 					"External sprite sheet with the id " + QString::number(create.getExternalID()) + " is already present!"
 					"\nIt is sprite sheet Nr. " + QString::number(std::distance(m_spriteSheets.begin(), findIt) + 1) + ".",
 					QMessageBox::Ok);
 				return false;
 			}
-			return true;
 		}
 
 		//color table too small?
-		const int colorTableSetsToAdd = (pow(2, create.getColorTablePower()) / 16) - getNumberOfColortableSets();
-		if (colorTableSetsToAdd > 0) addColors(-1, colorTableSetsToAdd * 16);
+		if (!editTarget->isExternal()) {
+			const int colorTableSetsToAdd = (pow(2, create.getColorTablePower()) / 16) - getNumberOfColortableSets();
+			if (colorTableSetsToAdd > 0) addColors(-1, colorTableSetsToAdd * 16);
 
-		const int oldWidth = editTarget->getWidth();
-		const int oldHeight = editTarget->getHeight();
-		editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower(), true);
-		emit spriteSheetChanged(index);
+			editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower(), true);
+			emit spriteSheetChanged(index);
+		}
 
-		if (create.getResizeSprites())
-			resizeSpritesOnSheet(editTarget, oldWidth, oldHeight, create.getWidth(), create.getHeight());
+		if (create.isResizeSprites() && create.isResized())
+			resizeSpritesOnSheet(editTarget, create.getOriginalWidth(), create.getOriginalHeight(), create.getWidth(), create.getHeight());
 
 		return true;
 	}

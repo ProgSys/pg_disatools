@@ -159,7 +159,7 @@ void GLSpriteWidget::setData(SpriteData* spriteSheet) {
 }
 
 void GLSpriteWidget::renderFrame(int frame) {
-	if (m_currentFrame == frame) return;
+	if (m_currentFrame == frame || !m_animationInfo.getCurrentAnimation()) return;
 
 	//is there a visual difference?
 	for (const Layer* lay : m_animationInfo.getCurrentAnimation()->getLayers()) {

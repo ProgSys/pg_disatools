@@ -14,18 +14,20 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(QWidget* parent) :
 {
 	setupUi(this);
 	setWindowTitle("Create empty sprite sheet");
+	m_isNew = true;
 
 	init();
 
 	pushButton_delete->close();
 	checkBox_resizeSprites->close();
+	externalIndexChanged(0);
 
 	connect(buttonBox, SIGNAL(accepted()), this, SLOT(accepted()));
 	connect(buttonBox, SIGNAL(rejected()), this, SLOT(rejected()));
 }
 
 CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power, int externalId, QWidget* parent) :
-	QDialog(parent), m_width(width), m_height(height), m_colorTablePower(power) {
+	QDialog(parent), m_width(width), m_height(height), m_originalWidth(width), m_originalHeight(height), m_colorTablePower(power) {
 	setupUi(this);
 	setWindowTitle("Edit sprite sheet");
 
@@ -44,9 +46,11 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 
 	// == width ==
 	comboBox_width->setCurrentIndex(getSizeIndex(width));
+	comboBox_OriginalWidth->setCurrentIndex(comboBox_width->currentIndex());
 
 	// == height ==
 	comboBox_height->setCurrentIndex(getSizeIndex(height));
+	comboBox_OriginalHeight->setCurrentIndex(comboBox_height->currentIndex());
 
 	// == color ==
 	if (power == 5)
@@ -72,6 +76,7 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 		}
 		spinBox_external->setValue(externalId);
 	}
+	externalIndexChanged(externalId);
 
 	connect(buttonBox, SIGNAL(accepted()), this, SLOT(accepted()));
 	connect(buttonBox, SIGNAL(rejected()), this, SLOT(rejected()));
@@ -79,21 +84,22 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 }
 
 void CreateEmptySpriteSheet::init() {
+	auto addSizeOptions = [](QComboBox* box) {
+		box->addItem("32");
+		box->addItem("64");
+		box->addItem("128");
+		box->addItem("256");
+		box->addItem("512");
+		box->setCurrentIndex(3);
+	};
+
 	// == width ==
-	comboBox_width->addItem("32");
-	comboBox_width->addItem("64");
-	comboBox_width->addItem("128");
-	comboBox_width->addItem("256");
-	comboBox_width->addItem("512");
-	comboBox_width->setCurrentIndex(3);
+	addSizeOptions(comboBox_width);
+	addSizeOptions(comboBox_OriginalWidth);
 
 	// == height ==
-	comboBox_height->addItem("32");
-	comboBox_height->addItem("64");
-	comboBox_height->addItem("128");
-	comboBox_height->addItem("256");
-	comboBox_height->addItem("512");
-	comboBox_height->setCurrentIndex(3);
+	addSizeOptions(comboBox_height);
+	addSizeOptions(comboBox_OriginalHeight);
 
 	// == color ==
 	comboBox_colors->addItem("16");
@@ -112,13 +118,9 @@ void CreateEmptySpriteSheet::init() {
 	comboBox_external->addItem("Custom ID");
 	spinBox_external->setValue(-1);
 
+	connect(spinBox_external, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged), this, &CreateEmptySpriteSheet::externalIndexChanged);
+
 	connect(comboBox_external, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this, [this](int i) {
-		const bool settingsEnabled = (i == 0);
-		comboBox_width->setEnabled(settingsEnabled);
-		comboBox_height->setEnabled(settingsEnabled);
-		comboBox_colors->setEnabled(settingsEnabled);
-		
-		spinBox_external->setEnabled(i == 7);
 		switch (i)
 		{
 		case 1: spinBox_external->setValue(2); break;
@@ -127,10 +129,28 @@ void CreateEmptySpriteSheet::init() {
 		case 4: spinBox_external->setValue(5); break;
 		case 5: spinBox_external->setValue(6); break;
 		case 6: spinBox_external->setValue(7); break;
-		case 7: spinBox_external->setValue(0); break;
+		case 7: spinBox_external->setValue(1); break;
 		default: spinBox_external->setValue(-1); break;
 		}
+		spinBox_external->setEnabled(i == 7);
 	});
+}
+
+void CreateEmptySpriteSheet::externalIndexChanged(int i) {
+	const bool isExternal = (i > 0);
+	comboBox_colors->setEnabled(!isExternal);
+
+	const bool showOriginalSize = !m_isNew && isExternal;
+	comboBox_OriginalWidth->setEnabled(showOriginalSize);
+	comboBox_OriginalWidth->setVisible(showOriginalSize);
+	label_OriginalWidth->setVisible(showOriginalSize);
+
+	comboBox_OriginalHeight->setEnabled(showOriginalSize);
+	comboBox_OriginalHeight->setVisible(showOriginalSize);
+	label_OriginalHeight->setVisible(showOriginalSize);
+
+	
+
 }
 
 bool CreateEmptySpriteSheet::isAccepted() const {
@@ -141,26 +161,6 @@ bool  CreateEmptySpriteSheet::isDelete() const {
 	return m_accepted == 2;
 }
 
-int CreateEmptySpriteSheet::getWidth() const {
-	return m_width;
-}
-
-int CreateEmptySpriteSheet::getHeight() const {
-	return m_height;
-}
-
-int CreateEmptySpriteSheet::getColorTablePower() const {
-	return m_colorTablePower;
-}
-
-int CreateEmptySpriteSheet::getColorTableSize() const {
-	return 2 ^ m_colorTablePower;
-}
-
-bool CreateEmptySpriteSheet::getResizeSprites() const {
-	return m_resizeSprites;
-}
-
 int CreateEmptySpriteSheet::getExternalID() const {
 	return spinBox_external->value();
 }
@@ -168,6 +168,9 @@ int CreateEmptySpriteSheet::getExternalID() const {
 void CreateEmptySpriteSheet::accepted() {
 	m_width = comboBox_width->currentText().toInt();
 	m_height = comboBox_height->currentText().toInt();
+
+	m_originalWidth = comboBox_OriginalWidth->currentText().toInt();
+	m_originalHeight = comboBox_OriginalHeight->currentText().toInt();
 
 	int colors = comboBox_colors->currentText().toInt();
 	if (colors == 16) m_colorTablePower = 4;

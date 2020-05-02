@@ -682,6 +682,7 @@ public slots:
 	Q_INVOKABLE void update();
 
 	//tools
+	Q_INVOKABLE void spriteSheetResize();
 	Q_INVOKABLE void batchDoubleResize();
 
 	//color table

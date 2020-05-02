@@ -5,8 +5,7 @@
  *      Author: ProgSys
  */
 
-#ifndef INCLUDE_SPRITESHEETEDITOR_CREATEEMPTYSPRITESHEET_H_
-#define INCLUDE_SPRITESHEETEDITOR_CREATEEMPTYSPRITESHEET_H_
+#pragma once
 
 #include "ui_createNewSpriteSheet.h"
 
@@ -22,11 +21,16 @@ public:
 
 	bool isAccepted() const;
 	bool isDelete() const;
-	int getWidth() const;
-	int getHeight() const;
-	int getColorTablePower() const;
-	int getColorTableSize() const;
-	bool getResizeSprites() const;
+	inline int getWidth() const { return m_width; }
+	inline int getHeight() const { return m_height; }
+
+	inline int getOriginalWidth() const { return m_originalWidth; }
+	inline int getOriginalHeight() const { return m_originalHeight; }
+	inline bool isResized() const { return m_width != m_originalWidth || m_height != m_originalHeight; }
+
+	inline int getColorTablePower() const { return m_colorTablePower; }
+	inline int getColorTableSize() const { return std::pow(2, m_colorTablePower); }
+	inline bool isResizeSprites() const { return m_resizeSprites;}
 	int getExternalID() const;
 
 	virtual ~CreateEmptySpriteSheet();
@@ -38,14 +42,19 @@ signals:
 	void ok(int width, int height);
 	void removed();
 	void cancel();
+private slots:
+	void externalIndexChanged(int i);
 private:
 	void init();
 
+	bool m_isNew = false;
 	unsigned char m_accepted = 0;
 	int m_width = 0;
-	int m_height = 0;
+	int m_height = 0;	
+	
+	int m_originalWidth = 0;
+	int m_originalHeight = 0;
 	int m_colorTablePower = 0;
 	bool m_resizeSprites = true;
 };
 
-#endif /* INCLUDE_SPRITESHEETEDITOR_CREATEEMPTYSPRITESHEET_H_ */
