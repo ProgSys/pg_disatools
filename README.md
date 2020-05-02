@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.6 alpha](https://www.dropbox.com/s/glvo17ttcdu2imf/Disgaea%20Tools%20v0.8.6%20alpha.zip?dl=0)**
+* **[Version v0.8.7 alpha](https://www.dropbox.com/s/sphb6h9x52or11b/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -46,6 +46,13 @@ You can download the latest version of the tools here:
 	- You can open .GEO files
 	- You can export a map as GLTF (you then import it in Blender)
 		- Map textures are not exported correctly as they use multiple overlapping channels
+===  1.05.2020 - v0.8.7 ===
+  * Sprite Sheet Editor v0.4.4 alpha:
+	- You now can scale external sprite sheets
+		- You need to define the original sprite size as it is not stored 
+		- If "Resize Sprites" is checked then all sprites will also be scaled including animations
+	- Fixed some initializing bugs with "Sprite sheet settings" dialog
+	- New feature: If you scale via Drag and Drop, you can now hold Shift to scale proportionally
 ```
 
 ### Older versions:
