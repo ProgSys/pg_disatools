@@ -52,7 +52,7 @@
      <x>0</x>
      <y>0</y>
      <width>1131</width>
-     <height>26</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -77,7 +77,7 @@
     <addaction name="actionExport_sprites_as_TGA"/>
     <addaction name="actionExport_sprites_IDs"/>
     <addaction name="separator"/>
-    <addaction name="actionBatch_scale_up"/>
+    <addaction name="actionBatch_resize"/>
     <addaction name="separator"/>
     <addaction name="actionRename_animation"/>
     <addaction name="separator"/>
@@ -603,14 +603,22 @@
     <string>Rename animation</string>
    </property>
   </action>
-  <action name="actionBatch_scale_up">
+  <action name="actionBatch_resize">
    <property name="text">
-    <string>Batch scale up</string>
+    <string>Batch resize</string>
    </property>
   </action>
   <action name="actionReload_QML">
    <property name="text">
     <string>Reload QML</string>
+   </property>
+  </action>
+  <action name="action_resize">
+   <property name="text">
+    <string>Resize</string>
+   </property>
+   <property name="toolTip">
+    <string notr="true">Scale up current sprite sheet</string>
    </property>
   </action>
  </widget>

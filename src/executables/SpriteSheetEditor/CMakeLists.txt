@@ -22,7 +22,7 @@
  *	SOFTWARE.
  ]]
 cmake_minimum_required(VERSION 3.14.0)
-set(UI_FILES spritesheeteditor.ui compileErrorBox.ui createNewAnimation.ui createNewSpriteSheet.ui)
+set(UI_FILES spritesheeteditor.ui compileErrorBox.ui createNewAnimation.ui createNewSpriteSheet.ui resizeDialog.ui)
 set(RESOURCE_FILES "${PROJECT_ICONS_PATH}/sprite_sheet_editor_icon.res") #windres aminoVisIcon.rc -O coff -o aminoVisIcon.res
 set(VERSION_NUMBER 0.1.7)
 set(EXECUTABLE_TITLE ${TITLE_SpriteSheetEditor})
