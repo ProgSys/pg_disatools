@@ -137,10 +137,7 @@ void CreateEmptySpriteSheet::init() {
 }
 
 void CreateEmptySpriteSheet::externalIndexChanged(int i) {
-	const bool isExternal = (i > 0);
-	comboBox_colors->setEnabled(!isExternal);
-
-	const bool showOriginalSize = !m_isNew && isExternal;
+	const bool showOriginalSize = !m_isNew && (i > 0);
 	comboBox_OriginalWidth->setEnabled(showOriginalSize);
 	comboBox_OriginalWidth->setVisible(showOriginalSize);
 	label_OriginalWidth->setVisible(showOriginalSize);
@@ -148,9 +145,6 @@ void CreateEmptySpriteSheet::externalIndexChanged(int i) {
 	comboBox_OriginalHeight->setEnabled(showOriginalSize);
 	comboBox_OriginalHeight->setVisible(showOriginalSize);
 	label_OriginalHeight->setVisible(showOriginalSize);
-
-	
-
 }
 
 bool CreateEmptySpriteSheet::isAccepted() const {
