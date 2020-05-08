@@ -36,10 +36,10 @@ void SpritePlayer::connectGLWidget(GLSpriteWidget* gl) {
 	connect(this, &SpritePlayer::render, gl, &GLSpriteWidget::updateFrame);
 
 
-	connect(m_aniData, SIGNAL(allSpriteSheetsChanged()), gl, SLOT(updateAllSpriteSheets()));
-	connect(m_aniData, SIGNAL(spriteSheetChanged(int)), gl, SLOT(updateSpriteSheet(int)));
-	connect(m_aniData, SIGNAL(spriteSheetAdded()), gl, SLOT(updateSpriteSheetAdded()));
-	connect(m_aniData, SIGNAL(spriteSheetRemoved(int)), gl, SLOT(updateSpriteSheetRemove(int)));
+	connect(m_aniData, &SpriteData::allSpriteSheetsChanged, gl, &GLSpriteWidget::updateAllSpriteSheets);
+	connect(m_aniData, &SpriteData::spriteSheetChanged, gl, &GLSpriteWidget::updateSpriteSheet);
+	connect(m_aniData, &SpriteData::spriteSheetAdded, gl, &GLSpriteWidget::updateSpriteSheetAdded);
+	connect(m_aniData, &SpriteData::spriteSheetRemoved, gl, &GLSpriteWidget::updateSpriteSheetRemove);
 
 	connect(m_aniData, &SpriteData::refresh, gl, &GLSpriteWidget::updateFrame);
 

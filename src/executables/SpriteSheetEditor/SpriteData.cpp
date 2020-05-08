@@ -3739,7 +3739,7 @@ bool SpriteData::addNewSpriteSheet() {
 
 bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable, int externalId) {
 	if (width <= 0 || height <= 0 || powerOfColorTable <= 0) return false;
-
+	int insertIndex = 0;
 	if (externalId < 0) {
 		auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [](SpriteSheet* sheet) { return sheet->isExternal(); });
 		std::for_each(findIt, m_spriteSheets.end(), [this](SpriteSheet* sheet) {
@@ -3748,12 +3748,14 @@ bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable,
 				cut->setSheetID(cut->getSheetID() + 1);
 			}
 		});
+		insertIndex = std::distance(m_spriteSheets.begin(), findIt);
 		m_spriteSheets.insert(findIt, new SpriteSheet(-1, width, height, powerOfColorTable, this));
 
 	}
 	else {
 		auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [externalId](SpriteSheet* sheet) { return sheet->getExternalID() == externalId; });
 		if (findIt == m_spriteSheets.end()) {
+			insertIndex = m_spriteSheets.size();
 			m_spriteSheets.push_back(new SpriteSheet(externalId, this));
 		}
 		else {
@@ -3765,9 +3767,9 @@ bool SpriteData::addNewSpriteSheet(int width, int height, int powerOfColorTable,
 		}
 	}
 
-
-	emit spriteSheetAdded();
 	emit numberOfSheetsChanged();
+	emit spriteSheetAdded(insertIndex);
+
 	return true;
 }
 

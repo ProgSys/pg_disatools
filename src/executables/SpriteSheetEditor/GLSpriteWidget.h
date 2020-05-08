@@ -111,7 +111,7 @@ public slots:
 
 	void updateAllSpriteSheets();
 	void updateSpriteSheet(int sheetID);
-	void updateSpriteSheetAdded();
+	void updateSpriteSheetAdded(int sheetID);
 	void updateSpriteSheetRemove(int sheetID);
 
 	void resetCamera();

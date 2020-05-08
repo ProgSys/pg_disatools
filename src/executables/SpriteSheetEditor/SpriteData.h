@@ -550,7 +550,7 @@ signals:
 	void numberOfSheetsChanged();
 	void allSpriteSheetsChanged();
 	void spriteSheetChanged(int spritesheetID);
-	void spriteSheetAdded();
+	void spriteSheetAdded(int spritesheetID);
 	void spriteSheetRemoved(int spritesheetID);
 
 	void refresh();

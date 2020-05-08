@@ -191,8 +191,8 @@ Rectangle {
 			}
 			
 			onPositionChanged: {
-				mousePosIndicator.mouseX = parent.x + mouse.x -scroll.flickableItem.contentX
-				mousePosIndicator.mouseY = parent.y + mouse.y + 25 -scroll.flickableItem.contentY
+				mousePosIndicator.mouseX = parent.x + mouse.x -scroll.contentX
+				mousePosIndicator.mouseY = parent.y + mouse.y + 25 -scroll.contentY
 				mousePosIndicator.visible = true
 			}
 		}
@@ -230,11 +230,11 @@ Rectangle {
 			
 			onPositionChanged: {
 				if(pressed){
-					mousePosIndicator.mouseX = parent.x - scroll.flickableItem.contentX
-					mousePosIndicator.mouseY = parent.y  + 25 -scroll.flickableItem.contentY
+					mousePosIndicator.mouseX = parent.x - scroll.contentX
+					mousePosIndicator.mouseY = parent.y  + 25 -scroll.contentY
 				}else{
-					mousePosIndicator.mouseX = parent.x - scroll.flickableItem.contentX + mouse.x
-					mousePosIndicator.mouseY = parent.y + 25 -scroll.flickableItem.contentY + mouse.y
+					mousePosIndicator.mouseX = parent.x - scroll.contentX + mouse.x
+					mousePosIndicator.mouseY = parent.y + 25 -scroll.contentY + mouse.y
 				}
 				mousePosIndicator.visible = true
 			}
@@ -283,8 +283,8 @@ Rectangle {
 						cutout.width = ((parent.x+2)/zoom);
 						cutout.height = ((parent.y+2)/zoom);
 					}
-					mousePosIndicator.mouseX = parent.parent.x + parent.x + 2 -scroll.flickableItem.contentX
-					mousePosIndicator.mouseY = parent.parent.y + parent.y + 2 + 25 -scroll.flickableItem.contentY
+					mousePosIndicator.mouseX = parent.parent.x + parent.x + 2 -scroll.contentX
+					mousePosIndicator.mouseY = parent.parent.y + parent.y + 2 + 25 -scroll.contentY
 					mousePosIndicator.visible = true
 				}
 			}
