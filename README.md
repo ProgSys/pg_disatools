@@ -89,7 +89,7 @@ You can export them back to the original game format to view them ingame, but th
 so if there are any problems let me know.
 Also you can export the sprites as .png or .tga and import them back!
 
-![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/Sprite_Sheet_Editor_v0.4.1_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Sprite_Sheet_Editor_v0.4.4_preview.png)
 
 #### Data Editor
 
