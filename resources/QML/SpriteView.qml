@@ -1,12 +1,12 @@
-import QtQuick 2.4
-import QtQuick.Controls 2.12
+import QtQuick 2.9
+import QtQuick.Controls 2.12 as Con2
 import MyTimeLine 0.1
 import MyKeyframe 0.1
 import MyCutout 0.1
 import MySpriteData 0.1
 import QtGraphicalEffects 1.0
-import QtQuick.Controls 1.4
 import QtQuick.Dialogs 1.0
+import QtQuick.Controls 1.4
 
 Rectangle { 
 	id: root
@@ -32,7 +32,13 @@ Rectangle {
 	}
 	
 	function getPosX(mouse){
-		return Math.round((scroll.flickableItem.contentX +mouse.x)/zoom);
+		return Math.round((scroll.contentX +mouse.x)/zoom);
+	}
+	
+	onActiveSpriteSheetChanged: {
+		spritedata.selected = null
+		root.cutoutSelected(-1, spritedata.selected);
+		spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 	}
 	
 	Connections{
@@ -41,6 +47,7 @@ Rectangle {
 		onColorTableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
 		onAllColorTablesChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
 		onSpriteSheetChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		onSpriteSheetAdded: { activeSpriteSheet = spritesheetID}
 	}
 	
   	Connections{
@@ -133,8 +140,8 @@ Rectangle {
 					if(mouse.button & Qt.LeftButton){
 						if(spritedata.selected) {spritedata.selected = null; root.cutoutSelected(-1, spritedata.selected);} 
 					}else{
-						contextMenu.posX = Math.round((scroll.flickableItem.contentX +mouse.x)/zoom);
-						contextMenu.posY = Math.round((scroll.flickableItem.contentY +mouse.y-25)/zoom);
+						contextMenu.posX = Math.round((scroll.contentX +mouse.x)/zoom);
+						contextMenu.posY = Math.round((scroll.contentY +mouse.y-25)/zoom);
 						contextMenu.popup();
 					}
 				}
@@ -161,16 +168,11 @@ Rectangle {
 		
 		Row{
 			spacing: 2
-			Button {
-				height: 24
-				width: 24
-				iconSource: "../materials/icons/item_previous.png"
+			IconToolButton {
+				image: "../materials/icons/item_previous.png"
 				onClicked: {
 					if(spritedata.sheetsSize){
 						(activeSpriteSheet > 0)? activeSpriteSheet-- :  activeSpriteSheet = spritedata.sheetsSize-1 ;
-						spritedata.selected = null
-						root.cutoutSelected(-1, spritedata.selected);
-						spriteimage.source = "image://imageprovider/"+activeSpriteSheet
 						}
 				}
 				
@@ -206,17 +208,12 @@ Rectangle {
 				}
 			}
 			
-			Button {
-				height: 24
-				width: 24
-				iconSource: "../materials/icons/item_next.png"
+			IconToolButton {
+				image:"../materials/icons/item_next.png"
 				onClicked: {
 					if(spritedata.sheetsSize){
 							(activeSpriteSheet < spritedata.sheetsSize-1 )? activeSpriteSheet++ :  activeSpriteSheet = 0 ;
-							spritedata.selected = null
-							root.cutoutSelected(-1, spritedata.selected);
-							spriteimage.source = "image://imageprovider/"+activeSpriteSheet
-						}
+					}
 				}
 				
 				PGToolTip {
@@ -224,38 +221,40 @@ Rectangle {
 				}
 			}
 			
-			Button {
-				height: 24
-				width: 24
-				text: ""
-				iconSource: "../materials/icons/zoom_in.png"
+			IconToolButton {
+				image: "../materials/icons/zoom_in.png"
 				onClicked: {
-					(zoom >= 4)? zoom = 4 : zoom += 0.5
+					zoom = Math.min(10.0, zoom + zoom * 0.2)
 				}
 				PGToolTip {
 					text: "Zoom in"
 				}
 			}
 			
-			Button {
-				height: 24
-				width: 24
-				text: ""
-				iconSource: "../materials/icons/zoom_out.png"
+			IconToolButton {
+				image: "../materials/icons/zoom_out.png"
 				onClicked: {
-					(zoom <= 0.5)? zoom = 0.5 : zoom -= 0.5
+					zoom = Math.max(0.1, zoom - zoom * 0.2)
 				}
 				PGToolTip {
 					text: "Zoom out"
 				}
 			}
+			IconToolButton {
+				image: "../materials/icons/zoom_reset.png"
+				onClicked: {
+					zoom = 2.0
+					scroll.contentX = 0;
+					scroll.contentY = 0;
+				}
+				PGToolTip {
+					text: "Reset zoom"
+				}
+			}
 			Item{ width: 20; height: 1 }
 			
-			Button {
-				height: 24
-				width: 24
-				text: ""
-				iconSource: spritedata.isolateSelection? "../materials/icons/isolate_selection_on.png": "../materials/icons/isolate_selection_off.png"
+			IconToolButton {
+				image: spritedata.isolateSelection? "../materials/icons/isolate_selection_on.png": "../materials/icons/isolate_selection_off.png"
 				onClicked: {
 					spritedata.isolateSelection = !spritedata.isolateSelection;
 				}
@@ -267,11 +266,9 @@ Rectangle {
 			
 			Item{ width: 20; height: 1 }
 			
-			Button {
-				height: 24
-				width: 24
-				text: ""
-				iconSource: "../materials/icons/newcutout.png"
+			IconToolButton {
+				image: "../materials/icons/newcutout.png"
+				
 				onClicked: {
 					spritedata.addCutout(activeSpriteSheet);
 				}
@@ -281,11 +278,8 @@ Rectangle {
 				}
 			}
 			
-			Button {
-				height: 24
-				width: 24
-				text: ""
-				iconSource: "../materials/icons/newspritesheet.png"
+			IconToolButton {
+				image: "../materials/icons/newspritesheet.png"
 				onClicked: {
 					spritedata.addNewSpriteSheet();
 				}
@@ -295,11 +289,9 @@ Rectangle {
 				}
 			}
 			
-			Button {
-				height: 24
-				width: 24
-				text: ""
-				iconSource: "../materials/icons/settings.png"
+			IconToolButton {
+				image: "../materials/icons/settings.png"
+				
 				onClicked: {
 					spritedata.editSpriteSheet(activeSpriteSheet);
 				}
@@ -309,15 +301,13 @@ Rectangle {
 				}
 			}
 			
-			Button {
-				height: 24
-				width: 24
-				text: ""
+			IconToolButton {
 				enabled: {
 					var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
 					sheet? sheet.isExternal: false
 				}
-				iconSource: "../materials/icons/open_external.png"
+				image: "../materials/icons/open_external.png"
+				
 				onClicked: {
 					spritedata.openExternalSpriteSheet(activeSpriteSheet);
 				}
@@ -355,13 +345,27 @@ Rectangle {
 		anchors.bottomMargin: 25
 		
 		visible: spritedata.sheetsSize != 0 && activeSpriteSheet < spritedata.sheetsSize 
-		
-		ScrollView {
+
+		Flickable  {
 			id: scroll
 			anchors.fill: parent
 			clip:false
+			topMargin: 1000
+			leftMargin: 1000
+			rightMargin: 1000
+			bottomMargin: 1000
+			contentX:0
+			contentY:0;
+					
+			contentWidth : spriteimageContainer.width 
+			contentHeight: spriteimageContainer.height 
+			//wheelEnabled : false
+			Con2.ScrollBar.vertical: Con2.ScrollBar { }
+			Con2.ScrollBar.horizontal: Con2.ScrollBar { }
+			pixelAligned: true
 			Item {
 				Item {
+					id: spriteimageContainer
 					Image {
 						id: spriteimage
 						anchors.fill: parent
@@ -398,6 +402,21 @@ Rectangle {
 				width: childrenRect.width+100
 				height: childrenRect.height+100
 			}	
+		}
+		
+		MouseArea{
+			anchors.fill: parent
+			acceptedButtons: Qt.MiddleButton
+			onWheel:{
+				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 4 , 10.0), 0.1);
+				var diff = zoom/newZoom;
+				var x = scroll.contentX +wheel.x
+				var y = scroll.contentY + wheel.y
+				scroll.contentX += x - x * diff;
+				scroll.contentY += y - y * diff;
+				zoom = newZoom;
+				wheel.accepted = true;
+			}
 		}
 	}
 	
@@ -523,7 +542,7 @@ Rectangle {
 			x: mouseX+15
 			y: mouseY+15
 			Text {
-				text: Math.round((scroll.flickableItem.contentX +parent.mouseX)/zoom) +":"+ Math.round((scroll.flickableItem.contentY +parent.mouseY-25)/zoom)
+				text: Math.round((scroll.contentX +parent.mouseX)/zoom) +":"+ Math.round((scroll.contentY +parent.mouseY-25)/zoom)
 			}
 			width: childrenRect.width
 			height: childrenRect.height

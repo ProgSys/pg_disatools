@@ -350,19 +350,20 @@ void GLSpriteWidget::updateSpriteSheet(int sheetID) {
 	update();
 }
 
-void GLSpriteWidget::updateSpriteSheetAdded() {
+void GLSpriteWidget::updateSpriteSheetAdded(int sheetID) {
+	if (sheetID >= m_animationInfo.spriteData->getSpriteSheets().size()) return;
 	if (m_animationInfo.spriteSheetIDTextures.size() == m_animationInfo.spriteData->getSpriteSheets().size()) return;
 	makeCurrent();
 	PG::GL::Texture* t = new PG::GL::Texture();
-	t->bind(m_animationInfo.spriteData->getSpriteSheets().last()->getSpriteSheet(), PG::GL::Texture::SPRITE);
-	m_animationInfo.spriteSheetIDTextures.push_back(t);
+	t->bind(m_animationInfo.spriteData->getSpriteSheets()[sheetID]->getSpriteSheet(), PG::GL::Texture::SPRITE);
+	m_animationInfo.spriteSheetIDTextures.insert(std::next(m_animationInfo.spriteSheetIDTextures.begin(), sheetID), t);
 }
 
 void GLSpriteWidget::updateSpriteSheetRemove(int sheetID) {
 	if (sheetID >= m_animationInfo.spriteData->getSpriteSheets().size()) return;
 	makeCurrent();
 	PG::GL::Texture* t = m_animationInfo.spriteSheetIDTextures[sheetID];
-	m_animationInfo.spriteSheetIDTextures.erase(m_animationInfo.spriteSheetIDTextures.begin() + sheetID);
+	m_animationInfo.spriteSheetIDTextures.erase(std::next(m_animationInfo.spriteSheetIDTextures.begin(), sheetID));
 	delete t;
 }
 
@@ -574,14 +575,14 @@ void GLSpriteWidget::resizeGL(int w, int h) {
 
 void GLSpriteWidget::mousePressEvent(QMouseEvent* event) {
 	qDebug() << "Mouse pressed: " << event->x() << ", " << event->y();
-	if (event->buttons() & Qt::LeftButton) {
+	if (event->buttons() & (Qt::LeftButton | Qt::MiddleButton)) {
 		m_mouse.x = event->x();
 		m_mouse.y = event->y();
 	}
 }
 
 void GLSpriteWidget::mouseMoveEvent(QMouseEvent* event) {
-	if (event->buttons() & Qt::LeftButton) {
+	if (event->buttons() & (Qt::LeftButton | Qt::MiddleButton)) {
 		//qDebug()<< "Mouse move: "<<event->x()<<", "<<event->y()<<" but: "<<event->buttons();
 
 		PG::UTIL::ivec2 mouseDelta = m_mouse - PG::UTIL::ivec2(event->x(), event->y());
