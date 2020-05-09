@@ -376,7 +376,18 @@ Rectangle {
 						if(spritedata.selected) {spritedata.selected = null; root.cutoutSelected(-1, spritedata.selected);} 
 					}
 				}
-						
+				Rectangle{
+					x: -10000
+					width:20000
+					height: 1
+					color: "#B25F5F"
+				}
+				Rectangle{
+					y: -10000
+					width: 1
+					height: 20000
+					color: "#625FB2"
+				}
 				Item {
 					id: spriteimageContainer
 					Image {
