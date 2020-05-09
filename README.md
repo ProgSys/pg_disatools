@@ -8,14 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.7 alpha](https://www.dropbox.com/s/sphb6h9x52or11b/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)**
+* **[Version v0.8.7 alpha](https://www.dropbox.com/s/i1jmw0lex8ty1z6/Disgaea%20Tools%20v0.8.8%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  04.12.2019 - v0.8.2 ===
-  * Disa PC File Manager v0.5.7 alpha:
-	- Added utility to modify memory allocation (Thx to Kelebek1) 
 ===  12.01.2020 - v0.8.3 ===
   * General:
 	- Updated Qt to 5.12.6
@@ -53,6 +50,18 @@ You can download the latest version of the tools here:
 		- If "Resize Sprites" is checked then all sprites will also be scaled including animations
 	- Fixed some initializing bugs with "Sprite sheet settings" dialog
 	- New feature: If you scale via Drag and Drop, you can now hold Shift to scale proportionally
+===  9.05.2020 - v0.8.8 ===
+  * Sprite Sheet Editor v0.4.5 alpha:
+	- Reworked "sprite sheet view" navigation
+		- It now uses a Flickable instead of an ScrollArea
+		- You can move the view via holding right mouse button, like in 3D view
+		- You can zoom via mouse wheel, like in 3D view. Also zoom has far bigger range
+		- Made resize handle easier to select (it will also become bigger on zoom in)
+		- Selected cutouts now have interaction priority 
+		- Improved undo on resize
+	- Fixed rendering bug when adding or removing sprite sheets
+  * Disa Map Viewer v0.0.3 alpha:
+	- Improved model interpretation
 ```
 
 ### Older versions:
@@ -67,9 +76,8 @@ You can download the latest version of the tools here:
 * [Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3%20alpha.zip?dl=0)
 * [Version v0.8.4 alpha](https://www.dropbox.com/s/6502gpkox1rddz5/Disgaea%20Tools%20v0.8.4%20alpha.zip?dl=0)
 * [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.5%20alpha.zip?dl=0)
+* [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)
 ---
-
-[![paypal](https://www.paypalobjects.com/de_DE/DE/i/btn/btn_donate_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=CD32DJ9YJKCUQ)
 
 
 ## Content
@@ -89,7 +97,7 @@ You can export them back to the original game format to view them ingame, but th
 so if there are any problems let me know.
 Also you can export the sprites as .png or .tga and import them back!
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Sprite_Sheet_Editor_v0.4.4_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Sprite_Sheet_Editor.png)
 
 #### Data Editor
 

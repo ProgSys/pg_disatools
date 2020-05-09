@@ -430,3 +430,16 @@
 		- If "Resize Sprites" is checked then all sprites will also be scaled including animations
 	- Fixed some initializing bugs with "Sprite sheet settings" dialog
 	- New feature: If you scale via Drag and Drop, you can now hold Shift to scale proportionally
+
+===  9.05.2020 - v0.8.8 ===
+  * Sprite Sheet Editor v0.4.5 alpha:
+	- Reworked "sprite sheet view" navigation
+		- It now uses a Flickable instead of an ScrollArea
+		- You can move the view via holding right mouse button, like in 3D view
+		- You can zoom via mouse wheel, like in 3D view. Also zoom has far bigger range
+		- Made resize handle easier to select (it will also become bigger on zoom in)
+		- Selected cutouts now have interaction priority 
+		- Improved undo on resize
+	- Fixed rendering bug when adding or removing sprite sheets
+  * Disa Map Viewer v0.0.3 alpha:
+	- Improved model interpretation
