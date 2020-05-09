@@ -1,7 +1,7 @@
 /*
  *  GNU Lesser General Public License (LGPL):
  *
- *	Copyright (C) 2016  ProgSys
+ *	Copyright (C) 2020  ProgSys
  *
  *	This program is free software: you can redistribute it and/or modify
  *	it under the terms of the GNU Lesser General Public License as published by
@@ -83,7 +83,7 @@ private:
 
 	void setTitel();
 	void setTitel(const QString& filename);
-
+	void qmlRegister();
 
 private slots:
 	void clickPlayPause();

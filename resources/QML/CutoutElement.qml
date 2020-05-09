@@ -3,6 +3,7 @@ import MyTimeLine 0.1
 import MyKeyframe 0.1
 import MyCutout 0.1
 import MySpriteData 0.1
+import SpriteSheetEditor 0.1
 import QtQuick.Controls 1.4
 
 Rectangle {
@@ -201,14 +202,15 @@ Rectangle {
 			}
 		}
 		
-		//move drag
+		//dragMoveArea
 		MouseArea {
+			id: dragMoveArea
 			anchors.top: parent.top
 			anchors.left: parent.left
 			width: isSelected? parent.width: 2;
 			height: isSelected? parent.height: 2;
 			hoverEnabled: true 
-			//cursorShape:Qt.SizeAllCursor
+			cursorShape:Qt.SizeAllCursor
 			drag.target: parent
 			drag.axis: Drag.XAndYAxis
 			drag.minimumX: 0
@@ -253,14 +255,11 @@ Rectangle {
 			height: Math.min( 15, Math.max(3, 5 * zoom/2.0));
 			x: parent.width-width;
 			y: parent.height-height;
-			//border.color: "lightgreen"
 			
 			function resetPos(){
 				widthChanged(); // will trigger x binding
 				heightChanged(); // will trigger y binding
 			}
-			
-			
 			
 			onPaint: {
 				var ctx = getContext("2d");
@@ -272,11 +271,12 @@ Rectangle {
 				ctx.closePath()
 				ctx.fill();
 			}
-	
+			//resize drag
 			MouseArea {
+				
 				anchors.fill: parent
 				hoverEnabled: true 
-				//cursorShape:Qt.SizeFDiagCursor
+				cursorShape:Qt.SizeFDiagCursor
 				drag.target: parent
 				drag.axis: Drag.XAndYAxis
 				drag.minimumX: 1
@@ -285,13 +285,16 @@ Rectangle {
 				drag.maximumY: 5000
 				
 				onPressed:{
-				   if(spritedata.selected != cutout) {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
-				   originalWidth = cutout.width;
-				   originalHeight = cutout.height;
-				   forceActiveFocus();
+					spritedata.pushUndoPosition(cutout);
+					dragMoveArea.cursorShape = undefined
+					if(spritedata.selected != cutout) {spritedata.selected = cutout; root.cutoutSelected(model.display, spritedata.selected);} 
+					originalWidth = cutout.width;
+					originalHeight = cutout.height;
+					forceActiveFocus();
 				}
 				
 				onReleased:{
+					dragMoveArea.cursorShape = Qt.SizeAllCursor
 					cutout.width = Math.round((parent.x+resize.width)/zoom);
 					cutout.height = Math.round((parent.y+resize.height)/zoom);
 					resize.resetPos()
@@ -309,6 +312,7 @@ Rectangle {
 					mousePosIndicator.mouseX = parent.parent.x + parent.x + resize.width -scroll.contentX
 					mousePosIndicator.mouseY = parent.parent.y + parent.y + resize.height + 25 -scroll.contentY
 					mousePosIndicator.visible = true
+					resize.resetPos()
 				}
 			}
 		}
