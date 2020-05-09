@@ -22,7 +22,7 @@ Rectangle {
 						return "#302897c5"
 			}else{
 				if(isSelected)
-					return "#30FFFFFF"
+					return "#00FFFFFF"
 				else
 					if(mouseArea.containsMouse)
 						return "#50FFFFFF"
@@ -37,8 +37,8 @@ Rectangle {
 				return isSelected;
 			return !cutout.hidden;
 		}
-		x: Math.round(cutout.x*zoom)
-		y: Math.round(cutout.y*zoom)
+		x: cutout.x*zoom
+		y: cutout.y*zoom
 		
 		width: cutout.width*zoom
 		height: cutout.height*zoom
@@ -155,7 +155,7 @@ Rectangle {
 		}
 		
 		Rectangle {
-			color: "#80FFFFFF"
+			color: isSelected? "#80FF8080": "#80FFFFFF"
 			
 			anchors.top: parent.top
 			anchors.left: parent.left
@@ -242,12 +242,19 @@ Rectangle {
 		
 		//resize drag
 		Rectangle{
-			
-			x: parent.width-2;
-			y: parent.height-2;
-			width:2;
-			height:2;
+			id: resize
+
+	
+			width:  Math.min( 10, Math.max(3, 5 * zoom/2.0));
+			height: Math.min( 10, Math.max(3, 5 * zoom/2.0));
+			x: parent.width-width;
+			y: parent.height-height;
 			border.color: "lightgreen"
+			
+			function resetPos(){
+				widthChanged(); // will trigger x binding
+				heightChanged(); // will trigger y binding
+			}
 			MouseArea {
 				anchors.fill: parent
 				hoverEnabled: true 
@@ -267,24 +274,22 @@ Rectangle {
 				}
 				
 				onReleased:{
-					cutout.width = ((parent.x+2)/zoom);
-					cutout.height = ((parent.y+2)/zoom);
-					parent.x = parent.parent.width-2;
-					parent.y = parent.parent.height-2;
+					cutout.width = Math.round((parent.x+resize.width)/zoom);
+					cutout.height = Math.round((parent.y+resize.height)/zoom);
+					resize.resetPos()
 					spritedata.refresh();
 				}
 				
 				onPositionChanged: {
 					if(mouse.modifiers & Qt.ShiftModifier){
-						cutout.width = ((parent.x+2)/zoom);
+						cutout.width = Math.round((parent.x+resize.width)/zoom);
 						cutout.height = originalHeight * (cutout.width/originalWidth);
-						parent.y = (cutout.height * zoom) - 2;
 					}else{
-						cutout.width = ((parent.x+2)/zoom);
-						cutout.height = ((parent.y+2)/zoom);
+						cutout.width = Math.round((parent.x+resize.width)/zoom);
+						cutout.height = Math.round((parent.y+resize.height)/zoom);
 					}
-					mousePosIndicator.mouseX = parent.parent.x + parent.x + 2 -scroll.contentX
-					mousePosIndicator.mouseY = parent.parent.y + parent.y + 2 + 25 -scroll.contentY
+					mousePosIndicator.mouseX = parent.parent.x + parent.x + resize.width -scroll.contentX
+					mousePosIndicator.mouseY = parent.parent.y + parent.y + resize.height + 25 -scroll.contentY
 					mousePosIndicator.visible = true
 				}
 			}

@@ -15,6 +15,8 @@ Rectangle {
 	
 	property int activeSpriteSheet: 0
 	property var zoom: 2.0
+	readonly property var zoomMin: 0.1 //out
+	readonly property var zoomMax: 55.0 //in
 	readonly property var cutoutModel: spritedata.sheetsSize? spritedata.getSpriteSheet(activeSpriteSheet): null
 
 	signal cutoutSelected(var id, var cutout)
@@ -137,9 +139,7 @@ Rectangle {
 			hoverEnabled: true
 			acceptedButtons: Qt.LeftButton | Qt.RightButton
 			onClicked: { 
-					if(mouse.button & Qt.LeftButton){
-						if(spritedata.selected) {spritedata.selected = null; root.cutoutSelected(-1, spritedata.selected);} 
-					}else{
+					if(mouse.button & Qt.RightButton){
 						contextMenu.posX = Math.round((scroll.contentX +mouse.x)/zoom);
 						contextMenu.posY = Math.round((scroll.contentY +mouse.y-25)/zoom);
 						contextMenu.popup();
@@ -224,7 +224,7 @@ Rectangle {
 			IconToolButton {
 				image: "../materials/icons/zoom_in.png"
 				onClicked: {
-					zoom = Math.min(10.0, zoom + zoom * 0.2)
+					zoom = Math.min(zoomMax, zoom + zoom * 0.2)
 				}
 				PGToolTip {
 					text: "Zoom in"
@@ -234,7 +234,7 @@ Rectangle {
 			IconToolButton {
 				image: "../materials/icons/zoom_out.png"
 				onClicked: {
-					zoom = Math.max(0.1, zoom - zoom * 0.2)
+					zoom = Math.max(zoomMin, zoom - zoom * 0.2)
 				}
 				PGToolTip {
 					text: "Zoom out"
@@ -364,11 +364,23 @@ Rectangle {
 			Con2.ScrollBar.horizontal: Con2.ScrollBar { }
 			pixelAligned: true
 			Item {
+				MouseArea {
+					x: -1000
+					y: -1000
+					width:3000
+					height:3000
+					acceptedButtons: Qt.LeftButton 
+					onClicked: { 
+						if(spritedata.selected) {spritedata.selected = null; root.cutoutSelected(-1, spritedata.selected);} 
+					}
+				}
+						
 				Item {
 					id: spriteimageContainer
 					Image {
 						id: spriteimage
 						anchors.fill: parent
+
 						fillMode: Image.PreserveAspectFit
 						cache: false
 						smooth: false
@@ -408,7 +420,7 @@ Rectangle {
 			anchors.fill: parent
 			acceptedButtons: Qt.MiddleButton
 			onWheel:{
-				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 4 , 10.0), 0.1);
+				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 4 , zoomMax), zoomMin);
 				var diff = zoom/newZoom;
 				var x = scroll.contentX +wheel.x
 				var y = scroll.contentY + wheel.y
