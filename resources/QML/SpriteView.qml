@@ -11,6 +11,8 @@ import QtQuick.Controls 1.4
 Rectangle { 
 	id: root
     SystemPalette { id: activePalette }
+
+			
     color: activePalette.dark
 	
 	property int activeSpriteSheet: 0
@@ -360,8 +362,8 @@ Rectangle {
 			contentWidth : spriteimageContainer.width 
 			contentHeight: spriteimageContainer.height 
 			//wheelEnabled : false
-			Con2.ScrollBar.vertical: Con2.ScrollBar { }
-			Con2.ScrollBar.horizontal: Con2.ScrollBar { }
+			Con2.ScrollBar.vertical: Con2.ScrollBar { width:15 }
+			Con2.ScrollBar.horizontal: Con2.ScrollBar { height:15 }
 			pixelAligned: true
 			Item {
 				MouseArea {
@@ -419,7 +421,7 @@ Rectangle {
 		MouseArea{
 			anchors.fill: parent
 			acceptedButtons: Qt.MiddleButton
-
+			cursorShape: undefined
 			onWheel:{
 				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 7 , zoomMax), zoomMin);
 				var diff = zoom/newZoom;

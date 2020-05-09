@@ -72,11 +72,24 @@ inline void checkForQMLErros(QMainWindow* target, QQuickWidget* wid,const QStrin
     }
 }
 
+void SpriteSheetEditor::qmlRegister() {
+	qmlRegisterType<Timeline>("MyTimeLine", 0, 1, "Timeline");
+	qmlRegisterType<Keyframe>("MyKeyframe", 0, 1, "Keyframe");
+	qmlRegisterType<Cutout>("MyCutout", 0, 1, "Cutout");
+	qmlRegisterType<SpriteData>("MySpriteData", 0, 1, "SpriteData");
+	qmlRegisterType<SpriteSheet>("MySpriteSheet", 0, 1, "SpriteSheet");
+	qmlRegisterType<Marker>("MyMarker", 0, 1, "Marker");
+	qmlRegisterType<MarkersList>("MyMarkersList", 0, 1, "MarkersList");
+	qmlRegisterType<PGIntFieldLisener>("SpriteSheetEditor", 0, 1, "PGIntFieldLisener");
+}
+
 SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	QMainWindow(parent),
 	ui(new Ui::SpriteSheetEditorWindow)
 {
 	ui->setupUi(this);
+
+	qmlRegister();
 
 	m_player = new SpritePlayer(this);
 	m_player->connectGLWidget(ui->openGLWidget);
@@ -171,14 +184,7 @@ SpriteSheetEditor::SpriteSheetEditor(QWidget *parent):
 	ui->openGLWidget->setUpConnections(this);
 
 	//timeline
-    qmlRegisterType<Timeline>("MyTimeLine",0,1, "Timeline");
-    qmlRegisterType<Keyframe>("MyKeyframe",0,1, "Keyframe");
-    qmlRegisterType<Cutout>("MyCutout",0,1, "Cutout");
-    qmlRegisterType<SpriteData>("MySpriteData",0,1, "SpriteData");
-    qmlRegisterType<SpriteSheet>("MySpriteSheet",0,1, "SpriteSheet");
-    qmlRegisterType<Marker>("MyMarker",0,1, "Marker");
-    qmlRegisterType<MarkersList>("MyMarkersList",0,1, "MarkersList");
-	qmlRegisterType<PGIntFieldLisener>("SpriteSheetEditor", 0, 1, "PGIntFieldLisener");
+
     ui->timelineQML->rootContext()->setContextProperty("timeline", m_player->getTimeline());
     ui->timelineQML->rootContext()->setContextProperty("spritedata", m_player->getSpriteData());
     ui->timelineQML->setSource(QUrl::fromLocalFile(getResourcePath() +"/QML/Timeline.qml"));

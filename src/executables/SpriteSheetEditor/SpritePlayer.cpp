@@ -111,21 +111,6 @@ void SpritePlayer::setAnimation(int index) {
 		m_timeline->play();
 	else
 		m_timeline->pause();
-
-	/*
-	if(index)
-	m_aniData->setCurrentAnimationByIndex(index);
-
-	m_timeline->clear();
-
-	emit onCurrentAnimationChanged(m_currentAnimation);
-	emit render();
-	m_timeline->setTracker(0);
-	if(m_timeline->isPlaying())
-		m_timeline->play();
-	else
-		m_timeline->pause();
-		*/
 }
 
 SpritePlayer::~SpritePlayer() {
