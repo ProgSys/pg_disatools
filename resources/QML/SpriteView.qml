@@ -356,7 +356,7 @@ Rectangle {
 			bottomMargin: 1000
 			contentX:0
 			contentY:0;
-					
+			
 			contentWidth : spriteimageContainer.width 
 			contentHeight: spriteimageContainer.height 
 			//wheelEnabled : false
@@ -419,8 +419,9 @@ Rectangle {
 		MouseArea{
 			anchors.fill: parent
 			acceptedButtons: Qt.MiddleButton
+
 			onWheel:{
-				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 4 , zoomMax), zoomMin);
+				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 7 , zoomMax), zoomMin);
 				var diff = zoom/newZoom;
 				var x = scroll.contentX +wheel.x
 				var y = scroll.contentY + wheel.y

@@ -11,6 +11,10 @@ Rectangle {
 		property double originalWidth: 0
 		property double originalHeight: 0
 		
+		onIsSelectedChanged: resize.requestPaint()
+		
+		z: isSelected? 100: 0
+		
 		function getItemColor(){
 			if( spritedata && spritedata.selectedKey && spritedata.selectedKey.cutoutID == model.display){
 				if(isSelected)
@@ -204,7 +208,7 @@ Rectangle {
 			width: isSelected? parent.width: 2;
 			height: isSelected? parent.height: 2;
 			hoverEnabled: true 
-			cursorShape:Qt.SizeAllCursor
+			//cursorShape:Qt.SizeAllCursor
 			drag.target: parent
 			drag.axis: Drag.XAndYAxis
 			drag.minimumX: 0
@@ -241,24 +245,38 @@ Rectangle {
 		}
 		
 		//resize drag
-		Rectangle{
+		Canvas{
 			id: resize
 
 	
-			width:  Math.min( 10, Math.max(3, 5 * zoom/2.0));
-			height: Math.min( 10, Math.max(3, 5 * zoom/2.0));
+			width:  Math.min( 15, Math.max(3, 5 * zoom/2.0));
+			height: Math.min( 15, Math.max(3, 5 * zoom/2.0));
 			x: parent.width-width;
 			y: parent.height-height;
-			border.color: "lightgreen"
+			//border.color: "lightgreen"
 			
 			function resetPos(){
 				widthChanged(); // will trigger x binding
 				heightChanged(); // will trigger y binding
 			}
+			
+			
+			
+			onPaint: {
+				var ctx = getContext("2d");
+				ctx.fillStyle = isSelected? Qt.rgba(1, 0.8, 0.8, 1): Qt.rgba(0.8, 1, 0.8, 1);
+				ctx.beginPath()
+				ctx.moveTo(width, 0);//start point
+				ctx.lineTo(0, height);
+				ctx.lineTo(width, height);
+				ctx.closePath()
+				ctx.fill();
+			}
+	
 			MouseArea {
 				anchors.fill: parent
 				hoverEnabled: true 
-				cursorShape:Qt.SizeFDiagCursor
+				//cursorShape:Qt.SizeFDiagCursor
 				drag.target: parent
 				drag.axis: Drag.XAndYAxis
 				drag.minimumX: 1
