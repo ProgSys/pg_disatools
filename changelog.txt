@@ -443,3 +443,9 @@
 	- Fixed rendering bug when adding or removing sprite sheets
   * Disa Map Viewer v0.0.3 alpha:
 	- Improved model interpretation
+
+===  10.05.2020 - v0.8.9 ===
+  * Disa Map Viewer v0.0.4 alpha:
+	- Added basic animation support
+	- Added billboard support
+        - Background is now dark

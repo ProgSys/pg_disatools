@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.8 alpha](https://www.dropbox.com/s/i1jmw0lex8ty1z6/Disgaea%20Tools%20v0.8.8%20alpha.zip?dl=0)**
+* **[Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -62,6 +62,11 @@ You can download the latest version of the tools here:
 	- Fixed rendering bug when adding or removing sprite sheets
   * Disa Map Viewer v0.0.3 alpha:
 	- Improved model interpretation
+===  10.05.2020 - v0.8.9 ===
+  * Disa Map Viewer v0.0.4 alpha:
+	- Added basic animation support
+	- Added billboard support
+        - Background is now dark
 ```
 
 ### Older versions:
