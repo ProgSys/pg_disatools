@@ -449,3 +449,12 @@
 	- Added basic animation support
 	- Added billboard support
         - Background is now dark
+		
+===  28.05.2020 - v0.9.0 ===
+  * Disa Map Viewer v0.0.6 alpha:
+	- Animations are now almost the same as in game
+	- Added animated texture support
+		- Note: Texture scroll speed and direction is defined inside map files, so if you just open a model the animation will be wrong
+	- You can now open DATA.DAT to view all maps inside
+	- Added interpretation for models that are marked hidden
+		- You can display hidden models via a toggle button

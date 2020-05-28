@@ -74,8 +74,8 @@ struct fileInfo{
 	PG::UTIL::File externalFile;
 
 	EXPORT fileInfo();
-	EXPORT fileInfo(const std::string& name,unsigned int size,unsigned int offset);
-	EXPORT fileInfo(const PG::UTIL::File& name,unsigned int size,unsigned int offset);
+	EXPORT fileInfo(const std::string& name, unsigned int size, unsigned int offset);
+	EXPORT fileInfo(const PG::UTIL::File& name,unsigned int size, unsigned int offset);
 	EXPORT fileInfo(const fileInfo& info);
 
 	EXPORT void operator=(const fileInfo& info);
