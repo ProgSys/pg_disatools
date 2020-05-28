@@ -8,24 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)**
+* **[Version v0.9.0 alpha](https://www.dropbox.com/s/ufcerz9cm2lcqi7/Disgaea%20Tools%20v0.9.0%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  12.01.2020 - v0.8.3 ===
-  * General:
-	- Updated Qt to 5.12.6
-  * Sprite Sheet Editor v0.4.1 alpha:
-	- Weapons now can be properly edited
-		- External sprite sheets are now included in the sprite sheet list 
-		- External sprite sheets have a open button to open a sprite sheet as preview (.sh or .pgs)
-		- Additional external sprite sheets can be added, but only one for each external ID
-	- Added a toggle to isolate a selected sprite
-	- Added a dropdown for sprite selection
-	- Fixed crash exporting 1001_FILE.SH
-	- Added new icons
-	- Added tooltips
 ===  13.01.2020 - v0.8.4 ===
   * Sprite Sheet Editor v0.4.2 alpha:
 	- Added ability to copy and paste color sets in color table view to clipboard
@@ -67,6 +54,14 @@ You can download the latest version of the tools here:
 	- Added basic animation support
 	- Added billboard support
         - Background is now dark
+===  28.05.2020 - v0.9.0 ===
+  * Disa Map Viewer v0.0.6 alpha:
+	- Animations are now almost the same as in game
+	- Added animated texture support
+		- Note: Texture scroll speed and direction is defined inside map files, so if you just open a model the animation will be wrong
+	- You can now open DATA.DAT to view all maps inside
+	- Added interpretation for models that are marked hidden
+		- You can display hidden models via a toggle button
 ```
 
 ### Older versions:
@@ -81,7 +76,8 @@ You can download the latest version of the tools here:
 * [Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3%20alpha.zip?dl=0)
 * [Version v0.8.4 alpha](https://www.dropbox.com/s/6502gpkox1rddz5/Disgaea%20Tools%20v0.8.4%20alpha.zip?dl=0)
 * [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.5%20alpha.zip?dl=0)
-* [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)
+* [Version v0.8.7 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)
+* [Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)
 ---
 
 
