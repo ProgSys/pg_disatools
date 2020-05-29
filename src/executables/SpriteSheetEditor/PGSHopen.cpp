@@ -110,7 +110,7 @@ bool SpriteData::openPGSHv1(QDataStream& in) {
 		}
 
 
-		SpriteAnimation* ani = new SpriteAnimation(id, name);
+		SpriteAnimation* ani = new SpriteAnimation(id, name, this);
 		m_animations.push_back(ani);
 		for (unsigned int m = 0; m < markers; m++) {
 			quint32 start, duration, type;
@@ -245,7 +245,7 @@ bool SpriteData::openPGSHv2(QDataStream& in) {
 		}
 
 
-		SpriteAnimation* ani = new SpriteAnimation(id, name);
+		SpriteAnimation* ani = new SpriteAnimation(id, name, this);
 		m_animations.push_back(ani);
 		for (unsigned int m = 0; m < markers; m++) {
 			quint32 start, duration, type;
@@ -377,7 +377,7 @@ bool SpriteData::openPGSHv3(QDataStream& in) {
 		}
 
 
-		SpriteAnimation* ani = new SpriteAnimation(id, name);
+		SpriteAnimation* ani = new SpriteAnimation(id, name, this);
 		m_animations.push_back(ani);
 		for (unsigned int m = 0; m < markers; m++) {
 			quint32 start, duration, type;

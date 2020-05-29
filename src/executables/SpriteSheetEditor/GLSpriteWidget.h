@@ -358,7 +358,7 @@ private:
 
 			const float angle = toRad(-key->getRotation());
 			assert_Test("cutoutID out of bound!", key->getCutoutID() > spriteData->getCutouts().size());
-			const Cutout* cut = spriteData->getCutouts()[key->getCutoutID()];
+			const Cutout* cut = spriteData->getCutouts()[std::min(key->getCutoutID(), (unsigned int)spriteData->getCutouts().size()-1u)];
 
 			modelmat = PG::UTIL::translation(globalOffset.x / 50.0f, -globalOffset.y / 50.0f, 0.2f) * positionOffsetMat(key) * PG::UTIL::eulerYXZ(0.f, 0.f, angle) * scaleMat(cut, key) * anchorOffsetMat(cut, key);
 			//PG_INFO_STREAM("x: "<<lay->getOffsetX()<< " y: "<<lay->getOffsetY()<<" = ("<<modelmat[3][0]<<", "<<modelmat[3][1]<<", "<<modelmat[3][2]<<")");
