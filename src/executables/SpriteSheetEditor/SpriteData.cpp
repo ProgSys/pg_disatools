@@ -64,6 +64,19 @@ const QVector<QColorTable>& getPredifinedExternalColorTable(int externalId, cons
 	else return findIt->second;
 }
 
+inline SpriteData* findSpriteData(QObject* start) {
+	auto current = start;
+	int i = 10;
+	while (current && i > 0) {
+		if (SpriteData* data = dynamic_cast<SpriteData*>(current))
+			return data;
+		current = current->parent();
+		--i;
+	}
+	return nullptr;
+}
+
+
 Cutout::Cutout(QObject* parent) : QObject(parent) {
 
 }
@@ -471,16 +484,21 @@ void Keyframe::moveTo(int frame) {
 	emit onStartChanged();
 }
 
-
 void Keyframe::setCutoutID(unsigned int cutoutIDIn) {
-	if (cutoutIDIn == m_cutoutID) return;
-	m_cutoutID = cutoutIDIn;
-	emit onCutoutIDChanged();
+	if (auto data = findSpriteData(this)){
+		cutoutIDIn = std::min((unsigned int)data->getCutouts().size(), cutoutIDIn);
+		if (cutoutIDIn == m_cutoutID) return;
+		m_cutoutID = cutoutIDIn;
+		emit onCutoutIDChanged();
+	}
 }
 void Keyframe::setColortableID(unsigned char colortableIDIn) {
-	if (colortableIDIn == m_colortableID) return;
-	m_colortableID = colortableIDIn;
-	emit onColortableIDChanged();
+	if (auto data = findSpriteData(this)) {
+		colortableIDIn = std::min((unsigned char)(data->getColorTable().size()/16), colortableIDIn);
+		if (colortableIDIn == m_colortableID) return;
+		m_colortableID = colortableIDIn;
+		emit onColortableIDChanged();
+	}
 }
 
 void Keyframe::setAnchorX(short anchorxIn) {
@@ -992,12 +1010,14 @@ Layer::~Layer()
 ////// SPRITEANIMATION //////
 
 SpriteAnimation::SpriteAnimation(QObject* parent) : QAbstractListModel(parent), m_Markers(new MarkersList(this)) {
-
+	assert(parent);
 }
 
 SpriteAnimation::SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject* parent) : QAbstractListModel(parent),
 m_ID(IDin), m_name(nameIn), m_Markers(new MarkersList(this))
-{}
+{
+	assert(parent);
+}
 
 SpriteAnimation::SpriteAnimation(const SpriteAnimation& ani) : QAbstractListModel(ani.parent()),
 m_ID(ani.getID()), m_name(ani.getName()), m_Layers(ani.m_Layers), m_Markers(new MarkersList(this)) {}
@@ -2034,10 +2054,11 @@ bool SpriteData::exportSH(const QString& file) {
 
 			//writeCutouts
 			for (const Keyframe* key : keys) {
-				const Cutout* cut = m_cutouts[key->getCutoutID()];
+				const unsigned cutoutIndex = std::min(key->getCutoutID(), m_cutouts.size() - 1u);
+				const Cutout* cut = m_cutouts[cutoutIndex];
 				const SpriteSheet* sheet = m_spriteSheets[cut->getSheetID()];
 
-				cutoutUseMap[key->getCutoutID()] = true;
+				cutoutUseMap[cutoutIndex] = true;
 				assert_Test("Cutout is nullptr!", !cut);
 
 				PG::FILE::shfileCutout shCut;
@@ -2768,7 +2789,7 @@ bool SpriteData::dump(const QString& filepath) {
 					out << "\n\t\t\t\tMic: " << (int)key->getMic();
 
 					out << "\n\t\t\t\tCutout:";
-					const Cutout* cut = m_cutouts[key->getCutoutID()];
+					const Cutout* cut = m_cutouts[std::min(key->getCutoutID(), m_cutouts.size()-1u)];
 					out << "\n\t\t\t\t\tIndex: " << cut->getSheetID();
 					out << "\n\t\t\t\t\tWidth: " << cut->getWidth();
 					out << "\n\t\t\t\t\tHeight: " << cut->getHeight();
@@ -3303,8 +3324,8 @@ bool SpriteData::push_backAnimation(const QString& name, int ID) {
 	if (name.isEmpty() || ID < 0) return false;
 
 	beginInsertRows(QModelIndex(), m_animations.size(), m_animations.size());
-	m_animations.push_back(new SpriteAnimation(ID, name));
-	m_animations.back()->push_backLayer(new Layer("layer0", m_animations.back()));
+	m_animations.push_back(new SpriteAnimation(ID, name, this));
+	m_animations.back()->push_backLayer(new Layer("layer0", m_animations.back(), this));
 	m_animations.back()->getLayers().back()->push_backKeyframe(10, 0, 0, 0, 0, 100, 100, 0, 0, 0, 0, 0);
 	endInsertRows();
 
@@ -3521,7 +3542,7 @@ bool SpriteData::removeCutoutID(int id, bool warning) {
 						key->setCutoutID(0);
 					}
 					else if (key->getCutoutID() > id) {
-						key->setCutoutID(key->getCutoutID() - 1);
+						key->setCutoutID(key->getCutoutID() - 1u);
 					}
 				}
 			}

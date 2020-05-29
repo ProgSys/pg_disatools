@@ -367,8 +367,8 @@ class SpriteAnimation: public QAbstractListModel
 	Q_PROPERTY(int length READ getTotalFrames NOTIFY onLengthChanged)
 	Q_PROPERTY(int workspacelength READ getTotalWorkspace NOTIFY onLengthChanged)
 public:
-	explicit SpriteAnimation(QObject *parent = 0);
-	explicit SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent = 0);
+	explicit SpriteAnimation(QObject *parent = nullptr);
+	explicit SpriteAnimation(unsigned int IDin, const QString& nameIn, QObject *parent = nullptr);
 	SpriteAnimation(const SpriteAnimation& ani);
 	virtual ~SpriteAnimation();
 

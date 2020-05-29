@@ -62,6 +62,8 @@ You can download the latest version of the tools here:
 	- You can now open DATA.DAT to view all maps inside
 	- Added interpretation for models that are marked hidden
 		- You can display hidden models via a toggle button
+  * Sprite Sheet Editor v0.4.6 alpha
+	- Fixed crash when sprite id is set too high
 ```
 
 ### Older versions:
