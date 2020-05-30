@@ -496,7 +496,7 @@ signals:
 	void externalIDChanged();
 private:
 	PG::UTIL::IDImage m_img;
-	int m_powerOfColorTable = -1;
+	int m_powerOfColorTable = 0;
 	QVector<int> m_cutoutsIDs;
 
 	QVector<QColorTable> m_externalColortables;

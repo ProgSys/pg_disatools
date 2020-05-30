@@ -1836,6 +1836,9 @@ bool SpriteData::importSH(const QString& file) {
 				assert_Test("Invalid color table ID!", currCutout.colortable * 16 + 16 > getNumberOfColors());
 				Cutout* cutout = new Cutout(shCutout.sheet, PG::UTIL::ivec2(shCutout.x, shCutout.y), PG::UTIL::ivec2(shCutout.width, shCutout.height), shCutout.colortable, this);
 				cutoutID = m_cutouts.size();
+				while(shCutout.sheet >= m_spriteSheets.size()){
+					m_spriteSheets.push_back(new SpriteSheet(this));
+				}
 				m_spriteSheets[shCutout.sheet]->push_backCutoutID(cutoutID);
 				m_cutouts.push_back(cutout);
 			}

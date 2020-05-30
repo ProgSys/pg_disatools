@@ -460,3 +460,4 @@
 		- You can display hidden models via a toggle button
   * Sprite Sheet Editor v0.4.6 alpha
 	- Fixed crash when sprite id is set too high
+	- Fixed crash when opening an .SH where a cutout has an invalid sheet index

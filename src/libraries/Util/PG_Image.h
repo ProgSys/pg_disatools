@@ -60,13 +60,13 @@ public:
 		m_height = image.getHeight();
 
 		m_pixels.resize(m_width*m_height);
-		memcpy(&m_pixels[0], &image[0], m_pixels.size()*sizeof(T) );
+		memcpy(m_pixels.data(), image.data(), m_pixels.size()*sizeof(T) );
 	}
 
 	Image(const std::vector<T>& image, unsigned int width, unsigned int height){
 		resize(width, height);
 
-		memcpy(&m_pixels[0], &image[0], image.size()*sizeof(T) );
+		memcpy(m_pixels.data(), image.data(), image.size()*sizeof(T) );
 	}
 
 	inline unsigned int getWidth() const{
