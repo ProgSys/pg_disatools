@@ -1811,7 +1811,7 @@ bool SpriteData::importSH(const QString& file) {
 	std::vector<bool> cutoutUseMap(sh.getCutouts().size(), false);
 
 	// lambda member function to add a cutout
-	auto addCoutout = [this](const PG::FILE::shfileCutout& shCutout) {
+	auto addCoutout = [this](const PG::FILE::shfileCutout& shCutout)->int {
 		int cutoutID = findCutout(m_spriteSheets, m_cutouts, shCutout);
 
 		if (cutoutID < 0) {
@@ -1831,7 +1831,7 @@ bool SpriteData::importSH(const QString& file) {
 				m_cutouts.push_back(new Cutout(spriteSheetIndex, PG::UTIL::ivec2(shCutout.x, shCutout.y), PG::UTIL::ivec2(shCutout.width, shCutout.height), shCutout.colortable, this));
 				spriteSheet->push_backCutoutID(m_cutouts.size()-1);
 			}
-			else {
+			else if(shCutout.sheet < m_spriteSheets.size()){
 				assert_Test("Invalid sprite sheet ID!", currCutout.sheet >= m_spriteSheets.size() || currCutout.sheet < 0);
 				assert_Test("Invalid color table ID!", currCutout.colortable * 16 + 16 > getNumberOfColors());
 				Cutout* cutout = new Cutout(shCutout.sheet, PG::UTIL::ivec2(shCutout.x, shCutout.y), PG::UTIL::ivec2(shCutout.width, shCutout.height), shCutout.colortable, this);
@@ -1841,6 +1841,9 @@ bool SpriteData::importSH(const QString& file) {
 				}
 				m_spriteSheets[shCutout.sheet]->push_backCutoutID(cutoutID);
 				m_cutouts.push_back(cutout);
+			}
+			else {
+				cutoutID = -1;
 			}
 		}
 		return cutoutID;
@@ -1879,7 +1882,7 @@ bool SpriteData::importSH(const QString& file) {
 				const PG::FILE::shfileCutout& currCutout = sh.getCutouts()[i];
 				cutoutUseMap[i] = true; //mark cutout as used
 				const int cutoutID = addCoutout(currCutout);
-
+				if (cutoutID < 0) continue;
 				Layer* layer = nullptr;
 				if (layerCount < m_animations.back()->getLayers().size()) {
 					layer = m_animations.back()->getLayers()[layerCount];

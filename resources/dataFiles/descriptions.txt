@@ -7,3 +7,5 @@ MUSICSHOP:Contains all the music you can buy.
 MAGIC:Contains all the spells and their attributes.
 HABIT:Contains job titles and their attributes.
 CHARHELP:Contains descriptions of all characters.
+GE: Geo Panel descriptions
+ZUKAN: Character descriptions
