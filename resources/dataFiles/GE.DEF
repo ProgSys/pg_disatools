@@ -1,0 +1,15 @@
+TABLE("Title","Description","ID"){
+	setColumnType("ID", INDEX);
+	
+	headerFormat{
+		uint(4,2,ROW_SIZE);
+	}
+	
+	rowFormat{
+		shiftJis(32);
+		zero(1);
+		shiftJis(112);
+		zero(1);
+		uint(2);
+	}
+}
