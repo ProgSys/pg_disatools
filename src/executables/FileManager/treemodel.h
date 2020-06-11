@@ -83,10 +83,13 @@ public slots:
 
     bool checkIsValid(QString& outMessage) const;
 
+    bool isOpen() const;
     QString getOpenedFileName() const;
     const QString& getOpenedType() const;
 
     QString getType() const;
+
+    bool writeManifest(const QString& file);
 private:
 
     PG::FILE::ExtractorBase* m_fileExtractor;

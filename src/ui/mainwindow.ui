@@ -381,6 +381,13 @@ QPushButton:!enabled
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="btnIncManifest">
+            <property name="text">
+             <string>Create Manifest</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

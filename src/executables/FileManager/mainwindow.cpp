@@ -558,28 +558,12 @@ void MainWindow::treeContextMenu(const QPoint& pos) {
 						ui->statusBar->showMessage(QString("%1 of %2 have been decompressed").arg(count).arg(selectedSource.size()));
 				}
 			}
-			/*
-		   setEnabled(false);
-		   QProgressDialog progress;
-		   openProgress(progress);
 
-		   QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::decompresIMYPack,pointedItem );
-		   while(f1.isRunning()){
-			   progress.setValue(m_treeModel->getProgress());
-			   QApplication::processEvents();
-		   }
-		   if(f1.result()){
-			   ui->statusBar->showMessage(QString("Decompresed IMY pack %1").arg(QString::fromStdString(item->name.getPath())));
-		   }else{
-			   ui->statusBar->showMessage(QString("Failed to decompres pack IMY!"));
-		   }
-
-		   if(m_treeModel->hasDataChanged()){
-			   ui->btnSave->setEnabled(true);
-			   ui->btnSaveAs->setEnabled(true);
-		   }
-		   */
 			setEnabled(true);
+			if (m_treeModel->hasDataChanged()) {
+				ui->btnSave->setEnabled(true);
+				ui->btnSaveAs->setEnabled(true);
+			}
 		}
 
 	}
@@ -883,6 +867,28 @@ void MainWindow::on_btnIncMemSize_clicked() {
 	IncreaseMemAlloc increaseMemAlloc(this);
 	if (increaseMemAlloc.hasSchema())
 		increaseMemAlloc.exec();
+}
+
+void MainWindow::on_btnIncManifest_clicked() {
+	if (m_treeModel->isOpen()) {
+		setEnabled(false);
+		QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+			m_treeModel->getOpenedFileName()+".txt", tr("TXT (*.txt)"));
+		if (!fileName.isEmpty()) {
+			QProgressDialog progress;
+			openProgress(progress);
+
+			QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::writeManifest, fileName);
+			while (f1.isRunning()) {
+				progress.setValue(m_treeModel->getProgress() * 100);
+				QApplication::processEvents();
+			}
+
+			if (f1.result())
+				ui->statusBar->showMessage(QString("Manifest written to: " + fileName));
+		}
+		setEnabled(true);
+	}
 }
 
 bool MainWindow::checkValid() {
