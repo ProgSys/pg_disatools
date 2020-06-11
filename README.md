@@ -8,16 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.9.0 alpha](https://www.dropbox.com/s/ufcerz9cm2lcqi7/Disgaea%20Tools%20v0.9.0%20alpha.zip?dl=0)**
+* **[Version v0.9.1 alpha](https://www.dropbox.com/s/73g4v12ex3zdgj1/Disgaea%20Tools%20v0.9.1%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  13.01.2020 - v0.8.4 ===
-  * Sprite Sheet Editor v0.4.2 alpha:
-	- Added ability to copy and paste color sets in color table view to clipboard
-  * Disa PC File Manager v0.5.8 alpha:
-	- Sprite sheets now have a image preview
 ===  18.01.2020 - v0.8.5 ===
   * Sprite Sheet Editor v0.4.3 alpha:
 	- A hovered color in color table view will now also highlight that color in sprite view
@@ -65,6 +60,15 @@ You can download the latest version of the tools here:
   * Sprite Sheet Editor v0.4.6 alpha
 	- Fixed crash when sprite id is set too high
 	- Fixed crash when opening an .SH where a cutout has an invalid sheet index
+===  11.06.2020 - v0.9.1 ===
+  * Disa PC File Manager v0.5.9 alpha:
+	- Fixed a case where the save button would not enable
+	- Added the ability to export a metafest file
+		- It contains meta information of each file like file size and md5 checksum 
+  * Disa Map Viewer v0.0.7 alpha:
+	- Improved performance
+	- Scrollbar stays active when mouse is moved outside window
+
 ```
 
 ### Older versions:
@@ -81,6 +85,7 @@ You can download the latest version of the tools here:
 * [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.5%20alpha.zip?dl=0)
 * [Version v0.8.7 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)
 * [Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)
+* [Version v0.9.0 alpha](https://www.dropbox.com/s/ufcerz9cm2lcqi7/Disgaea%20Tools%20v0.9.0%20alpha.zip?dl=0)
 ---
 
 

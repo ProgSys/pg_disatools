@@ -461,3 +461,12 @@
   * Sprite Sheet Editor v0.4.6 alpha
 	- Fixed crash when sprite id is set too high
 	- Fixed crash when opening an .SH where a cutout has an invalid sheet index
+
+===  11.06.2020 - v0.9.1 ===
+  * Disa PC File Manager v0.5.9 alpha:
+	- Fixed a case where the save button would not enable
+	- Added the ability to export a metafest file
+		- It contains meta information of each file like file size and md5 checksum 
+  * Disa Map Viewer v0.0.7 alpha:
+	- Improved performance
+	- Scrollbar stays active when mouse is moved outside window
