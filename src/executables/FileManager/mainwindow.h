@@ -16,8 +16,7 @@
  *	or http://www.gnu.org/licenses/
  */
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 #include <QGraphicsScene>
@@ -29,8 +28,6 @@
 namespace Ui {
 class MainWindow;
 }
-
-
 
 class MainWindow : public QMainWindow
 {
@@ -54,6 +51,7 @@ private slots:
     void on_btnOpen_clicked();
 
     void on_btnIncMemSize_clicked();
+    void on_btnIncManifest_clicked();
 
     void treeSelectionChanged (const QItemSelection & sel,const  QItemSelection & desel);
     void treeContextMenu(const QPoint &pos);
@@ -76,5 +74,3 @@ private:
 
     bool checkValid();
 };
-
-#endif // MAINWINDOW_H

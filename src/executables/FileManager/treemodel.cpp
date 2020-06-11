@@ -38,6 +38,7 @@
 #include <Files/PG_DSARCFL.h>
 #include <Files/PG_ANMD2.h>
 #include <Files/PG_SH.h>
+#include <QCryptographicHash>
 
 #include <EnterValue.h>
 #include <Util/Misc/ResourcePath.h>
@@ -619,6 +620,10 @@ bool TreeModel::checkIsValid(QString& outMessage) const{
 	}
 }
 
+bool TreeModel::isOpen() const {
+	return m_fileExtractor && !m_fileExtractor->isEmpty();
+}
+
 QString TreeModel::getOpenedFileName() const{
 	if(m_fileExtractor){
 		return QString::fromStdString(m_fileExtractor->getOpendFile().getName());
@@ -636,6 +641,44 @@ QString TreeModel::getType() const{
 		return m_fileExtractor->getType();
 	}else
 		return "";
+}
+
+
+bool TreeModel::writeManifest(const QString& file) {
+	if (!m_fileExtractor || file.isEmpty()) return false;
+	QFile out(file);
+	m_percentIndicator.percent = 0.0f;
+
+	if (out.open(QIODevice::WriteOnly | QIODevice::Text)) {
+		QTextStream stream(&out);
+		stream << left << qSetFieldWidth(6) << "Index" << qSetFieldWidth(0) << ";" << qSetFieldWidth(16) << "Offset" << qSetFieldWidth(0) << ";";
+		stream << qSetFieldWidth(16) << "Size" << qSetFieldWidth(0) << ";" << qSetFieldWidth(32) << "Md5" << qSetFieldWidth(0) << ";" << "Name" << "\n";
+		
+		for (int i = 0; i < m_fileExtractor->size(); ++i) {
+			m_percentIndicator.percent = i / (float)m_fileExtractor->size();
+			const  PG::FILE::fileInfo& info = m_fileExtractor->get(i);
+			stream << qSetFieldWidth(6) << QString::number(i) << qSetFieldWidth(0) << ";" << qSetFieldWidth(16) << info.getOffset() << qSetFieldWidth(0) << ";";
+			stream << qSetFieldWidth(16) << info.getSize() << qSetFieldWidth(0) << ";";
+			char* data = nullptr;
+			m_fileExtractor->extract(info, data);
+			if (data) {
+				QCryptographicHash hasher(QCryptographicHash::Md5);
+				hasher.addData(data, info.getSize());
+				delete[] data;
+				stream << qSetFieldWidth(32) << hasher.result().toHex(0);
+			}
+			else {
+				stream << qSetFieldWidth(32) << 0;
+			}
+			stream <<qSetFieldWidth(0) << ";" << QString::fromStdString(info.getName().getPath());
+			if(info.isExternalFile())
+				stream << "*";
+			stream << "\n";
+		}
+	}
+	out.close();
+
+	return true;
 }
 
 int TreeModel::columnCount(const QModelIndex &parent) const{
