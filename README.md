@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.9.1 alpha](https://www.dropbox.com/s/73g4v12ex3zdgj1/Disgaea%20Tools%20v0.9.1%20alpha.zip?dl=0)**
+* **[Version v0.9.2 alpha](https://www.dropbox.com/s/l4fsbvxp3vry0ei/Disgaea%20Tools%20v0.9.2%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -68,7 +68,10 @@ You can download the latest version of the tools here:
   * Disa Map Viewer v0.0.7 alpha:
 	- Improved performance
 	- Scrollbar stays active when mouse is moved outside window
-
+===  11.07.2020 - v0.9.3 ===
+  * Disa PC File Manager v0.6.0 alpha:
+	- Fixed .OGG play option not displaying in context menu
+	- Fixed file name display in file info box
 ```
 
 ### Older versions:

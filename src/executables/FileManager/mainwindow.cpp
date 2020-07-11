@@ -316,7 +316,7 @@ void MainWindow::treeContextMenu(const QPoint& pos) {
 		action_replaceKeep->setToolTip("Replace the selected file but keep the original name.");
 		menu.addSeparator();
 		QAction* action_open = nullptr;
-		const QString ext = item->getFileExtensionConst();
+		const QString ext = QString::fromStdString(item->getFileExtension());
 		if (ext == "OGG") {
 			action_open = menu.addAction("Play");
 			action_open->setToolTip("Play the OGG in your default app.");

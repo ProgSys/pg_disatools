@@ -31,7 +31,7 @@ FileInfoBox::~FileInfoBox()
 }
 
 void FileInfoBox::setModel(const PG::FILE::fileProperties& info){
-	ui->label_Name->setText(info.name);
+	ui->label_Name->setText(QString::fromStdString(info.name));
 	ui->label_Size->setText(QString::number(info.size));
 	ui->label_offset->setText(QString::number(info.offset));
 
