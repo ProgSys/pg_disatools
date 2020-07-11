@@ -68,7 +68,7 @@ You can download the latest version of the tools here:
   * Disa Map Viewer v0.0.7 alpha:
 	- Improved performance
 	- Scrollbar stays active when mouse is moved outside window
-===  11.07.2020 - v0.9.3 ===
+===  11.07.2020 - v0.9.2 ===
   * Disa PC File Manager v0.6.0 alpha:
 	- Fixed .OGG play option not displaying in context menu
 	- Fixed file name display in file info box
