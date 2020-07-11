@@ -75,10 +75,6 @@ std::string fileInfo::getFileExtension() const{
 	return name.getFileExtension();
 }
 
-char const* fileInfo::getFileExtensionConst() const{
-	return name.getFileExtension().c_str();
-}
-
 void fileInfo::setName(const PG::UTIL::File& _name){
 	name = _name;
 }

@@ -86,7 +86,6 @@ struct fileInfo{
 	EXPORT unsigned int getOffset() const;
 	EXPORT const PG::UTIL::File& getExternalName() const;
 	EXPORT std::string getFileExtension() const;
-	EXPORT char const* getFileExtensionConst() const;
 
 	EXPORT void setName(const PG::UTIL::File& name);
 	EXPORT void setSize(unsigned int size);
@@ -105,9 +104,9 @@ struct fileInfo{
 };
 
 struct fileProperties{
-	fileProperties(char const* nameIn): name(nameIn) {}
+	fileProperties(const std::string& nameIn): name(nameIn) {}
 
-	char const* name;
+	std::string name;
 	unsigned int size = 0;
 	unsigned int offset = 0;
 
