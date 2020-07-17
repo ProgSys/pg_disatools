@@ -60,6 +60,7 @@ void reduceColors(Image<T>& imageIn, unsigned int targetColors){
 }
 
 RGBAImage dumpToImage(const std::vector<char>& dump, int width, int max_height = 9000, int offset = 0);
+RGBAImage dumpToImageRGBA(const std::vector<char>& dump, int width, int max_height = 9000, int offset = 0);
 
 } /* namespace UTIL */
 } /* namespace PG */
