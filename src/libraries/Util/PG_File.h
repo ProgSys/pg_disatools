@@ -66,6 +66,8 @@ public:
 	EXPORT bool operator==(const File& file) const;
 
 	EXPORT bool operator<(const File& file) const;
+	EXPORT File& operator+=(const File& file);
+	EXPORT File& operator+=(const std::string& str);
 
 	EXPORT void clear();
 	EXPORT bool isEmpty() const;

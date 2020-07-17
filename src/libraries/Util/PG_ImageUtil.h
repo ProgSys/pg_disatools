@@ -2,6 +2,8 @@
 #define INCLUDE_PG_UTIL_PG_IMAGE_UTIL_H_
 
 #include <Util/PG_VectorUtil.h>
+#include <Util/PG_Image.h>
+
 namespace PG {
 namespace UTIL {
 
@@ -56,6 +58,8 @@ void reduceColors(Image<T>& imageIn, unsigned int targetColors){
 	if(hist.size() <= targetColors) return;
 
 }
+
+RGBAImage dumpToImage(const std::vector<char>& dump, int width, int max_height = 9000, int offset = 0);
 
 } /* namespace UTIL */
 } /* namespace PG */

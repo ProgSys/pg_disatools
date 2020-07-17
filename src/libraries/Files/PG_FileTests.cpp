@@ -89,6 +89,8 @@ bool isSpriteSheetPackage(PG::STREAM::InByteFile& reader){
 	if(number_of_files > 9000) return false;
 
 	const unsigned int firstFileOffset = reader.readUnsignedInt();
+	const unsigned int secondFileOffset = reader.readUnsignedInt();
+	if (firstFileOffset >= secondFileOffset) return false;
 
 	const unsigned int chracterIdsOffset = number_of_files*4+4;
 	if(firstFileOffset < chracterIdsOffset+number_of_files*2) return false;
