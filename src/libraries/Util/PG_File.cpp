@@ -93,6 +93,16 @@ bool File::operator<(const File& file) const{
 	return m_path < file.getPath();
 }
 
+File& File::operator+=(const File& file) {
+	m_path += file.getPath();
+	return *this;
+}
+
+File& File::operator+=(const std::string& str) {
+	m_path += str;
+	return *this;
+}
+
 void File::clear(){
 	m_path = "";
 }
