@@ -475,3 +475,10 @@
   * Disa PC File Manager v0.6.0 alpha:
 	- Fixed .OGG play option not displaying in context menu
 	- Fixed file name display in file info box
+
+===  01.08.2020 - v0.9.3 ===
+  * Disa Map Viewer v0.0.8 alpha:
+	- Fixed map chunk parsing. No tiles should be missing.
+	- Added Geo Panels interpretation
+		- You can enable Geo Panels with a toggle button
+        - Improved performance
