@@ -144,7 +144,7 @@ This tool allows you to open, view, convert and export TX2 images.
 
 Allows you to view maps and export them as GTLF.
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Map_Editor_v0.0.2_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Map_Editor_v0.0.8_preview.png)
 
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
