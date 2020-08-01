@@ -8,16 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.9.2 alpha](https://www.dropbox.com/s/l4fsbvxp3vry0ei/Disgaea%20Tools%20v0.9.2%20alpha.zip?dl=0)**
+* **[Version v0.9.3 alpha](https://www.dropbox.com/s/evyqq97jer9zbwl/Disgaea%20Tools%20v0.9.3%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  18.01.2020 - v0.8.5 ===
-  * Sprite Sheet Editor v0.4.3 alpha:
-	- A hovered color in color table view will now also highlight that color in sprite view
-	- You can now use your mouse wheel to modify the values inside text fields
-	- Added basic undo (CTRL-Z). Note: it is basic.
 ===  1.05.2020 - v0.8.6 ===
   * Disa Map Viewer v0.0.2 alpha:
 	- The maps and are now displayed semi correct
@@ -72,6 +67,12 @@ You can download the latest version of the tools here:
   * Disa PC File Manager v0.6.0 alpha:
 	- Fixed .OGG play option not displaying in context menu
 	- Fixed file name display in file info box
+===  01.08.2020 - v0.9.3 ===
+  * Disa Map Viewer v0.0.8 alpha:
+	- Fixed map chunk parsing. No tiles should be missing.
+	- Added Geo Panels interpretation
+		- You can enable Geo Panels with a toggle button
+        - Improved performance
 ```
 
 ### Older versions:
@@ -89,6 +90,7 @@ You can download the latest version of the tools here:
 * [Version v0.8.7 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)
 * [Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)
 * [Version v0.9.0 alpha](https://www.dropbox.com/s/ufcerz9cm2lcqi7/Disgaea%20Tools%20v0.9.0%20alpha.zip?dl=0)
+* [Version v0.9.2 alpha](https://www.dropbox.com/s/l4fsbvxp3vry0ei/Disgaea%20Tools%20v0.9.2%20alpha.zip?dl=0)
 ---
 
 
