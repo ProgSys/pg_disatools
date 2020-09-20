@@ -1,4 +1,4 @@
-import QtQuick 2.4
+import QtQuick 2.15
 import MyTimeLine 0.1
 import MyKeyframe 0.1
 import MyCutout 0.1
@@ -52,9 +52,7 @@ Rectangle {
 	
 	Connections{
 		target: timeline
-		onOnAnimationChanged:{
-			deselect(selectedItem)
-		}
+		function onOnAnimationChanged(){ deselect(selectedItem); }
 	}
 	
 	function getTrackScale(){
@@ -733,8 +731,6 @@ Rectangle {
 				width: (timeline.animation)? timeline.animation.workspacelength*getTrackScale()+200  : 200
 				height: (timeline.animation)? timeline.animation.layerSize* 45: 0
 				Item {
-					anchors.top: rightPart.top
-					anchors.left: rightPart.left
 					width: parent.width-200
 					
 					

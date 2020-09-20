@@ -25,7 +25,7 @@ Rectangle {
 
 	Connections{
 		target:tx2editor
-		onImageChanged: {tx2image.source = ""; tx2image.source = "image://tx2imageprovider/img"}
+		function onImageChanged() {tx2image.source = ""; tx2image.source = "image://tx2imageprovider/img"}
 	}
 	
 	Menu { 

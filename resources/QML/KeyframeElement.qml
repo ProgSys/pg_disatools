@@ -1,4 +1,4 @@
-import QtQuick 2.4
+import QtQuick 2.15
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
 import MySpriteData 0.1
@@ -51,10 +51,10 @@ Rectangle {
 	
 	Connections {
 		target: spritedata
-		onColorTableChanged: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
-		onCurrentColorTableChanged: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
-		onRefresh: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
-		onAllColorTablesChanged: {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
+		function onColorTableChanged() {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
+		function onCurrentColorTableChanged(){ imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
+		function onRefresh(){imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
+		function onAllColorTablesChanged() {imagepreview.source = ""; imagepreview.source = "image://previewprovider/"+keyframeModel.cutoutID+"_"+keyframeModel.colortableID; }
 	}
 
 	
@@ -392,9 +392,7 @@ Rectangle {
 	
 	Connections{
 		target: keyframeModel
-		onOnDurationChanged:{
-			rightTracker.x = width - rightTracker.width
-		}
+		function onOnDurationChanged(){ rightTracker.x = width - rightTracker.width; }
 	}
 
 }

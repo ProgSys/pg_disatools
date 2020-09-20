@@ -47,19 +47,19 @@ Rectangle {
 	
 	Connections{
 		target: spritedata
-		onCurrentColorTableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
-		onColorTableChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
-		onAllColorTablesChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
-		onSpriteSheetChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
-		onSpriteSheetAdded: { activeSpriteSheet = spritesheetID}
+		function onCurrentColorTableChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onColorTableChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onAllColorTablesChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onSpriteSheetChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onSpriteSheetAdded() { activeSpriteSheet = spritesheetID}
 	}
 	
   	Connections{
 		target: spritedata.getSpriteSheet(activeSpriteSheet)
-		onOnNumberOfCutoutsChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
-		onOnWidthChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
-		onOnHeightChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
-		onNumberOfColorsChanged: {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onOnNumberOfCutoutsChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onOnWidthChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onOnHeightChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
+		function onNumberOfColorsChanged() {spriteimage.source = ""; spriteimage.source = "image://imageprovider/"+activeSpriteSheet;}
 	}
 	
 	Menu { 
@@ -405,12 +405,12 @@ Rectangle {
 	
 						Connections {
 							target: spritedata
-							onRefresh: spriteimage.refresh();
-							onOnNumberOfSheetsChanged: spriteimage.refresh();
-							onSelectedColorIdChanged: spriteimage.refresh();
-							onIsolateSelectionChanged: spriteimage.refresh();
-							onUpdateSpriteSheetImage: spriteimage.refresh();
-							onSelectedChanged: if(spritedata.isolateSelection) spriteimage.refresh();
+							function onRefresh(){ spriteimage.refresh();}
+							function onOnNumberOfSheetsChanged(){ spriteimage.refresh();}
+							function onSelectedColorIdChanged(){ spriteimage.refresh();}
+							function onIsolateSelectionChanged(){ spriteimage.refresh();}
+							function onUpdateSpriteSheetImage(){ spriteimage.refresh();}
+							function onSelectedChanged(){ if(spritedata.isolateSelection) spriteimage.refresh();}
 						}
 							
 						

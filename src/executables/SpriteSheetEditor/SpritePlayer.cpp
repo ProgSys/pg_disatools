@@ -43,18 +43,14 @@ void SpritePlayer::connectGLWidget(GLSpriteWidget* gl) {
 
 	connect(m_aniData, &SpriteData::refresh, gl, &GLSpriteWidget::updateFrame);
 
-	connect(m_aniData, SIGNAL(currentColorTableChanged()), gl, SLOT(renderFrame()));
-	connect(m_aniData, SIGNAL(allColorTablesChanged()), gl, SLOT(updateAllColortables()));
-	connect(m_aniData, SIGNAL(colorTableChanged(int)), gl, SLOT(updateColortable(int)));
-	connect(m_aniData, SIGNAL(colorTableAdded(int)), gl, SLOT(addColortable(int)));
-	connect(m_aniData, SIGNAL(colorTableRemoved(int)), gl, SLOT(removeColortable(int)));
+	connect(m_aniData, &SpriteData::currentColorTableChanged, gl, &GLSpriteWidget::updateFrame);
+	connect(m_aniData, &SpriteData::allColorTablesChanged, gl, &GLSpriteWidget::updateAllColortables);
+	connect(m_aniData, &SpriteData::colorTableChanged, gl, &GLSpriteWidget::updateColortable);
+	connect(m_aniData, &SpriteData::colorTableAdded, gl, &GLSpriteWidget::addColortable);
+	connect(m_aniData, &SpriteData::colorTableRemoved, gl, &GLSpriteWidget::removeColortable);
 	connect(m_aniData, &SpriteData::externalSpriteSheetOpened, gl, &GLSpriteWidget::updateExternalColortable);
 	connect(m_aniData, &SpriteData::selectedColorIdChanged, gl, &GLSpriteWidget::updateFrame);
 
-	//connect(this, SIGNAL( onCurrentAnimationChanged(int) ),gl, SLOT( setAnimation(int) ));
-	//connect(m_timeline, SIGNAL( currentKeyframe(int) ),gl, SLOT( renderKeyframe(int) ));
-	//connect(m_timeline, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
-	//connect(this, SIGNAL( render() ),gl, SLOT( renderKeyframe() ));
 }
 
 bool SpritePlayer::open(const QString& file) {

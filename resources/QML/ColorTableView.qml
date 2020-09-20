@@ -14,10 +14,10 @@ Rectangle {
 	
 	Connections{
 		target:spritedata
-		onColorTableChanged: {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
-		onCurrentColorTableChanged: {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
-		onRefresh: {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
-		onAllColorTablesChanged: {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
+		function onColorTableChanged() {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
+		function onCurrentColorTableChanged() {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
+		function onRefresh() {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
+		function onAllColorTablesChanged() {colorRepeater.model = 0; colorRepeater.model = spritedata.colorsSize; }
 	}
 	
 	
