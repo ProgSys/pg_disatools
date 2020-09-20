@@ -23,6 +23,7 @@
 #include <QWidget>
 #include <QDialog>
 #include <QValidator>
+#include <cmath>
 
 class CreateEmptySpriteSheet : public QDialog, public Ui::NewSpriteSheetDialog {
 	Q_OBJECT

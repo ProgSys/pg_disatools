@@ -11,7 +11,7 @@ Rectangle {
 	
 	Connections{
 		target:tx2editor
-		onImageChanged: {colorRepeater.model = 0; colorRepeater.model = tx2editor.numberOfColors; }
+		function onImageChanged() {colorRepeater.model = 0; colorRepeater.model = tx2editor.numberOfColors; }
 	}
 	
 	Image {

@@ -25,7 +25,7 @@ class SpriteData;
 /// Adds an undo event filter to given object. Used to override default behavior in qml TextFields.
 class PGIntFieldLisener : public QObject, public QQmlParserStatus {
 	Q_OBJECT
-
+	Q_INTERFACES(QQmlParserStatus);
 	Q_PROPERTY(SpriteData* spriteData WRITE setSpriteData);
 signals:
 	void mouseWheel(int delta);
