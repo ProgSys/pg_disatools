@@ -30,6 +30,7 @@
 
 #include <Files/PG_MPP.h>
 #include <Files/PG_PSPFS.h>
+#include <Files/PG_PSFS.h>
 #include <Files/PG_StartDAT.h>
 #include <Files/PG_SOLA.h>
 #include <Files/PG_FileTests.h>
@@ -82,6 +83,8 @@ bool TreeModel::open(const QString& file) {
 		m_openedFileType = "DAT";
 		if (PG::FILE::isPSPFS(file.toStdString())) {
 			m_fileExtractor = new PG::FILE::PSPFS();
+		}else if (PG::FILE::isPSFS(file.toStdString())) {
+			m_fileExtractor = new PG::FILE::PSFS();
 		}
 		else if (PG::FILE::isNISPACK(file.toStdString())) {
 			m_fileExtractor = new PG::FILE::NISPACK();

@@ -22,7 +22,7 @@
  *	SOFTWARE.
  */
 
-#include <Files/PG_PSPFS.h>
+#include <Files/PG_PSFS.h>
 #include <Util/PG_Base.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamOutByteFile.h>
@@ -38,19 +38,19 @@ namespace PG {
 	namespace FILE {
 
 
-		PSPFS::PSPFS() {
+		PSFS::PSFS() {
 
 		}
 
-		PSPFS::PSPFS(const PG::UTIL::File& file) {
+		PSFS::PSFS(const PG::UTIL::File& file) {
 			open(file);
 		}
 
-		PSPFS::PSPFS(const std::string& file) :
-			PSPFS(PG::UTIL::File(file)) {}
+		PSFS::PSFS(const std::string& file) :
+			PSFS(PG::UTIL::File(file)) {}
 
 
-		bool PSPFS::open(const PG::UTIL::File& file, PercentIndicator* percent) {
+		bool PSFS::open(const PG::UTIL::File& file, PercentIndicator* percent) {
 			clear();
 
 			m_file = file;
@@ -69,34 +69,32 @@ namespace PG {
 				//Check magic number
 				{
 					const std::string magic_number = reader.readString(8);
-					if (magic_number != "PSPFS_V1") {
-						PG_ERROR_STREAM("Wrong magic number, it should be 'PSPFS_V1' but it was '" << magic_number << "'!");
+					if (magic_number != "PS_FS_V1") {
+						PG_ERROR_STREAM("Wrong magic number, it should be 'PS_FS_V1' but it was '" << magic_number << "'!");
 						m_file.clear();
 						return true;
 					}
 				}
 
 				//Get the number of files
-				const unsigned int number_of_files = reader.readUnsignedInt();
+				const unsigned long long number_of_files = reader.readUnsignedLongLong();
 				if (number_of_files > 50000) {
 					PG_ERROR_STREAM("Number_of_files (" << number_of_files << ") is too big! ");
 					return true;
 				}
-
-				reader.readUnsignedInt(); //Unknown
 
 				m_fileInfos.reserve(number_of_files);
 				//read the file infos
 				for (unsigned int i = 0; i < number_of_files; ++i) {
 					if (percent) percent->percent = (i / float(number_of_files)) * 100.0;
 					fileInfo info;
-					std::string filename = reader.readString(40);
+					std::string filename = reader.readString(48);
 					filename = filename.substr(0, filename.find_first_of(char(0x00)));
-					std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
+					//std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
 					info.name = filename;
-					info.decompressedFileSize = reader.readUnsignedInt();
-					info.setSize(reader.readUnsignedInt());
-					info.setOffset(reader.readUnsignedInt());
+
+					info.setSize(reader.readUnsignedLongLong());
+					info.setOffset(reader.readUnsignedLongLong());
 
 					//tests
 					const unsigned int current_pos = reader.pos();
@@ -122,12 +120,12 @@ namespace PG {
 
 			}
 			catch (PG::UTIL::Exception& e) {
-				PG_ERROR_STREAM("Couldn't read given PSPFS_V1 file '" << file << "': " << e.what());
+				PG_ERROR_STREAM("Couldn't read given PSFS file '" << file << "': " << e.what());
 				m_file.clear();
 				return true;
 			}
 			catch (...) {
-				PG_ERROR_STREAM("Couldn't read given PSPFS_V1 file '" << file << "'!");
+				PG_ERROR_STREAM("Couldn't read given PSFS file '" << file << "'!");
 				m_file.clear();
 				return true;
 			}
@@ -137,9 +135,9 @@ namespace PG {
 		}
 
 
-		bool PSPFS::insert(const PG::UTIL::File& file) {
+		bool PSFS::insert(const PG::UTIL::File& file) {
 			if (m_file.isEmpty()) {
-				PG_ERROR_STREAM("No PSPFS_V1 file opened.");
+				PG_ERROR_STREAM("No PSFS file opened.");
 				return true;
 			}
 
@@ -154,7 +152,7 @@ namespace PG {
 				PG_ERROR_STREAM("File name is too big, max 28 chars!");
 				return true;
 			}
-			std::transform(name.begin(), name.end(), name.begin(), ::toupper);
+			//std::transform(name.begin(), name.end(), name.begin(), ::toupper);
 			addFile.setName(name);
 
 			if (name == "DUMMY.DAT") {
@@ -197,7 +195,7 @@ namespace PG {
 
 		}
 
-		bool PSPFS::remove(fileInfo_iterator it) {
+		bool PSFS::remove(fileInfo_iterator it) {
 			if (it == m_fileInfos.end()) return false;
 			const unsigned int index = std::distance(m_fileInfos.begin(), it);
 			if (it < m_fileInfos.end()) {
@@ -228,11 +226,16 @@ namespace PG {
 			file_infos[index2] = swap;
 		}
 
-		inline void writeDUMMY(PG::STREAM::OutByteFile& writer, unsigned int& next_header_offset, unsigned int& next_file_offset, unsigned int& dummy_traget_offset) {
-			if (dummy_traget_offset == 0) {
-				dummy_traget_offset = next_file_offset;
+		inline void writeDUMMYPSFS(PG::STREAM::OutByteFile& writer, PSFS::FileTableEntry& entry, unsigned int& next_file_offset) {
 
-				writer.setPosition(dummy_traget_offset);
+			//set header data
+			memcpy(entry.name, "DUMMY.DAT", 9);
+			entry.fileSize = 512;
+			entry.offset = next_file_offset;
+
+			//write dummy data
+			if (next_file_offset != 0) {
+				writer.setPosition(next_file_offset);
 				char* d = new char[512]();
 				d[0] = 'D';
 				d[1] = 'U';
@@ -244,22 +247,12 @@ namespace PG {
 				next_file_offset += 512;
 			}
 
-			writer.setPosition(next_header_offset);
-			writer.writeString("DUMMY.DAT");
-			for (unsigned short i = 9; i < 40; ++i) //fill rest with 0
-				writer.writeChar(0);
-
-			writer.writeInt(0);
-			writer.writeInt(5);
-			writer.writeInt(dummy_traget_offset);
-			next_header_offset += 52;
-
 		}
 
-		bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent) {
+		bool PSFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent) {
 			// do we even have a DAT file open
 			if (m_file.isEmpty()) {
-				PG_ERROR_STREAM("No PSPFS file opened.");
+				PG_ERROR_STREAM("No PSFS file opened.");
 				return FAILURE;
 			}
 
@@ -277,7 +270,7 @@ namespace PG {
 			//create a butter for file infos
 			std::vector<fileInfo> file_infos;
 			file_infos.resize(m_fileInfos.size());
-			char* c = nullptr;
+
 			try {
 				PG::STREAM::OutByteFile writer(target);
 				if (!writer.isOpen()) {
@@ -285,151 +278,139 @@ namespace PG {
 					return FAILURE;
 				}
 				//setup header
-				writer.writeString("PSPFS_V1"); //write magic number
+				writer.writeString("PS_FS_V1"); //write magic number
 
-				writer.writeInt(m_fileInfos.size()); //number of files
-				writer.writeInt(0); // mystery int
+				writer.writeLongLong(m_fileInfos.size()); //number of files
 
-				unsigned int next_header_offset = writer.getPosition(); //get the first header position
+				const unsigned int start_header_offset = writer.getPosition(); //get the first header position
 
-				c = new char[52](); // each header is exactly 52 byte long
-				//allocate header space
-				for (unsigned int i = 0; i < m_fileInfos.size() + 10; ++i) { //also add a small empty buffer
-					writer.write(c, 52);
+
+				std::sort(m_fileInfos.begin(), m_fileInfos.end(), [](const fileInfo& a, const fileInfo& b) {
+					return a.getOffset() < b.getOffset();
+					});
+
+				//fill header
+				{
+					FileTableEntry emptyHeader;
+					//allocate header space
+					for (unsigned int i = 0; i < m_fileInfos.size() + 10; ++i) { //also add a small empty buffer
+						writer.write((char*)&emptyHeader, 52);
+					}
 				}
-				delete[] c;
-				c = nullptr;
 
-				unsigned int next_file_offset = writer.getPosition(); // the position where we start to write the data of the files
-				unsigned int dummy_traget_offset = 0;
+
+				const unsigned int start_file_offset = writer.getPosition(); // the position where we start to write the data of the files
+
 				PG::STREAM::InByteFile reader_dat(m_file);
 				if (!reader_dat.isopen()) return FAILURE;
 
-				struct fileInfoHeader
-				{
-					int index;
-					unsigned int headerPos;
-					fileInfo info;
-				};
-				std::vector<fileInfoHeader> sortedInfos;
-				sortedInfos.reserve(m_fileInfos.size());
-				int index = 0;
-				std::transform(m_fileInfos.begin(), m_fileInfos.end(), std::back_inserter(sortedInfos), [&index, &next_header_offset](const fileInfo& info) {
-					fileInfoHeader item = { index, next_header_offset , info };
-					next_header_offset += 52;
-					index++;
-					return item;
-					});
-				std::sort(sortedInfos.begin(), sortedInfos.end(), [](const fileInfoHeader& a, const fileInfoHeader& b) {
-					return a.info.offset < b.info.offset;
-					});
+				std::vector<FileTableEntry> fileTable(file_infos.size());
 
 				unsigned int i = 0;
-				for (fileInfoHeader& it : sortedInfos) {
+				auto itTable = fileTable.begin();
+				auto itInfo = file_infos.begin();
+				unsigned int current_file_offset = start_file_offset;
+				for (const fileInfo& oldInfo : m_fileInfos) {
+					*itInfo = oldInfo; //copy
 					if (percent) {
-						percent->percent = (i / float(sortedInfos.size())) * 100.0;
+						percent->percent = (i / float(fileTable.size())) * 100.0;
 						i++;
 					}
 
-					if (it.info.isExternalFile()) {
-						if (it.info.getSize() == 0 || it.info.getName().isEmpty() || !it.info.externalFile.exists()) {
-							PG_WARN_STREAM("External file '" << it.info.externalFile << "' doesn't exist! Writing empty dummy file instead!");
-							it.info.setAsDummy(next_file_offset);
-							writeDUMMY(writer, it.headerPos, next_file_offset, dummy_traget_offset);
+					if (itInfo->isExternalFile()) {
+
+						if (itInfo->getSize() == 0 || itInfo->getName().isEmpty() || !itInfo->externalFile.exists()) {
+							PG_WARN_STREAM("External file '" << itInfo->externalFile << "' doesn't exist! Writing empty dummy file instead!");
+							itInfo->setAsDummy(current_file_offset);
+							writeDUMMYPSFS(writer, *itTable, current_file_offset);
 						}
 						else {
-							PG_INFO_STREAM("Adding external file '" << it.info.externalFile << "'.");
+							PG_INFO_STREAM("Adding external file '" << itInfo->externalFile << "'.");
 
 
-							PG::STREAM::InByteFile reader_file(it.info.externalFile);
-							it.info.decompressedFileSize = isIMYPackage(reader_file);
+							PG::STREAM::InByteFile reader_file(itInfo->externalFile);
+							itInfo->decompressedFileSize = isIMYPackage(reader_file);
 							reader_file.seek(0);
 							const unsigned int file_size = reader_file.size();
 
 
 							// check if valid
 							if (file_size == 0)
-								PG_WARN_STREAM("File '" << it.info.externalFile << "' has a size of zero!");
+								PG_WARN_STREAM("File '" << itInfo->externalFile << "' has a size of zero!");
 
-							if (it.info.getSize() != file_size) {
-								PG_WARN_STREAM("File '" << it.info.externalFile << "' size is different than expected! (" << it.info.getSize() << " != " << file_size << ")");
-								it.info.setSize(file_size);
+							if (itInfo->getSize() != file_size) {
+								PG_WARN_STREAM("File '" << itInfo->externalFile << "' size is different than expected! (" << itInfo->getSize() << " != " << file_size << ")");
+								itInfo->setSize(file_size);
 							}
 
-							//write header
-							writer.setPosition(it.headerPos);
-							writer.writeString(it.info.getName().getPath());
-							for (unsigned short i = (unsigned short)it.info.getName().getPath().size(); i < 40; ++i) //fill rest with 0
-								writer.writeChar(0);
-
-							writer.writeInt(it.info.decompressedFileSize);
-							writer.writeInt(it.info.getSize());
-							writer.writeInt(next_file_offset);
-							it.info.setOffset(next_file_offset);
+							//set header
+							const std::string fileName = itInfo->name.getName();
+							memcpy(itTable->name, fileName.c_str(), std::min(fileName.size(), (std::size_t)48));
+							itTable->fileSize = file_size;
+							itTable->offset = current_file_offset;
 
 							//write file
-							writer.setPosition(next_file_offset);
-							c = new char[it.info.getSize()];
-							reader_file.read(c, it.info.getSize());
+							writer.setPosition(current_file_offset);
+							char* c = new char[itInfo->getSize()];
+							reader_file.read(c, itInfo->getSize());
 							reader_file.close();
-							writer.write(c, it.info.getSize());
+							writer.write(c, itInfo->getSize());
 							delete[] c;
 							c = nullptr;
-							next_file_offset += it.info.getSize();
-							it.info.clearExternalFile();
+							current_file_offset += itInfo->getSize();
+							itInfo->clearExternalFile();
 						}
 
 					}
 					else {
 						//PG_INFO_STREAM(current_info.getName()<<" o: "<<current_info.getOffset()<<" s: "<<current_info.getSize());
-						if (it.info.getSize() == 0 || it.info.getName().isEmpty() || it.info.getName() == "DUMMY.DAT") {
-							it.info.setAsDummy(next_file_offset);
-							writeDUMMY(writer, it.headerPos, next_file_offset, dummy_traget_offset);
+						if (itInfo->getSize() == 0 || itInfo->getName().isEmpty() || itInfo->getName() == "DUMMY.DAT") {
+							itInfo->setAsDummy(current_file_offset);
+							writeDUMMYPSFS(writer, *itTable, current_file_offset);
 						}
 						else {
 
-							//write header
-							writer.setPosition(it.headerPos);
-							writer.writeString(it.info.getName().getFile());
-							for (unsigned short i = (unsigned short)it.info.getName().getPath().size(); i < 40; ++i) //fill rest with 0
-								writer.writeChar(0);
-
-							writer.writeInt(it.info.decompressedFileSize);
-							writer.writeInt(it.info.getSize());
-							writer.writeInt(next_file_offset);
+							//set header
+							const std::string fileName = itInfo->name.getName();
+							memcpy(itTable->name, fileName.c_str(), std::min(fileName.size(), (std::size_t)48));
+							itTable->fileSize = itInfo->getSize();
+							itTable->offset = current_file_offset;
 
 							//write file
-							writer.setPosition(next_file_offset);
-							reader_dat.seek(it.info.getOffset());
-							it.info.setOffset(next_file_offset);
-							c = new char[it.info.getSize()];
-							reader_dat.read(c, it.info.getSize());
-							writer.write(c, it.info.getSize());
+							writer.setPosition(current_file_offset);
+							reader_dat.seek(itInfo->getOffset());
+							itInfo->setOffset(current_file_offset);
+							char* c = new char[itInfo->getSize()];
+							reader_dat.read(c, itInfo->getSize());
+							writer.write(c, itInfo->getSize());
 							delete[] c;
 							c = nullptr;
-							next_file_offset += it.info.getSize();
+							current_file_offset += itInfo->getSize();
 						}
 
 					}
-					file_infos[it.index] = it.info;
-				}// for loop end
 
-				file_infos.erase(
-					std::remove_if(file_infos.begin(), file_infos.end(), [](const fileInfo& info) { return info.size == 0; }),
-					file_infos.end()
-				);
+
+					++itTable;
+					++itInfo;
+				}
+
+				//write header
+				writer.seek(start_header_offset);
+				writer.write((char*)fileTable.data(), fileTable.size() * sizeof(FileTableEntry));
+
 
 				reader_dat.close();
 				writer.close();
 
 			}
 			catch (PG::UTIL::Exception& e) {
-				PG_ERROR_STREAM("Couldn't save PSPFS archive! : " << e.what());
+				PG_ERROR_STREAM("Couldn't save PSFS archive! : " << e.what());
 				target.remove();
 				return FAILURE;
 			}
 			catch (...) {
-				PG_ERROR_STREAM("Couldn't save PSPFS archive!");
+				PG_ERROR_STREAM("Couldn't save PSFS archive!");
 				target.remove();
 				return FAILURE;
 			}
@@ -445,18 +426,18 @@ namespace PG {
 
 		}
 
-		void PSPFS::clear() {
+		void PSFS::clear() {
 			if (m_file_buffer.exists())
 				m_file_buffer.remove();
 			ExtractorBase::clear();
 		}
 
-		char const* PSPFS::getType() const {
-			return "PSPFS_V1";
+		char const* PSFS::getType() const {
+			return "PSFS_V1";
 		}
 
 
-		PSPFS::~PSPFS() {
+		PSFS::~PSFS() {
 			if (m_file_buffer.exists())
 				m_file_buffer.remove();
 		}

@@ -53,6 +53,7 @@ public:
 struct fileInfo{
 	enum type{
 		PSPFS_V1,
+		PS_FS_V1,
 		OLA,  /// Offset list archive
 		COLA, /// Compressed offset list archive
 		SOLA, /// Sprite sheets offset list archive (it also has a list of IDs)

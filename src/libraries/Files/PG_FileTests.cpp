@@ -311,6 +311,18 @@ bool isPSPFS(const PG::UTIL::File& file){
 	return openFile(file, isPSPFS);
 }
 
+
+bool isPSFS(PG::STREAM::InByteFile& reader) {
+	if (reader.readString(8) == "PS_FS_V1") {
+		return true;
+	}
+	return false;
+}
+
+bool isPSFS(const PG::UTIL::File& file) {
+	return openFile(file, isPSFS);
+}
+
 EXPORT bool isANMD2(PG::STREAM::InByteFile& reader){
 	const unsigned int files = reader.readUnsignedInt();
 	if( files > 0 && files < 9000){
