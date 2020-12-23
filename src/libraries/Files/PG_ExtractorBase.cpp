@@ -104,7 +104,7 @@ bool fileInfo::isCompressed() const{
 	return fileType == IMY || fileType == COLA;
 }
 bool fileInfo::isPackage() const{
-	return fileType == OLA || fileType == PSPFS_V1|| fileType == COLA || fileType == SOLA;
+	return fileType == OLA || fileType == PSPFS_V1 || fileType == PS_FS_V1 || fileType == COLA || fileType == SOLA;
 }
 
 bool fileInfo::isTexture() const{
@@ -443,14 +443,23 @@ fileProperties ExtractorBase::getFileProperties(fileInfo& info) const{
 		}
 
 		reader.seek(resetPos);
-		if( isPSPFS(reader)){
+		if(isPSPFS(reader)){
 			reader.close();
 			properties.type = fileInfo::PSPFS_V1;
 			info.fileType = fileInfo::PSPFS_V1;
 			return properties;
-		}else{
-			properties.type =  fileInfo::UNKNOWN;
 		}
+			
+
+		reader.seek(resetPos);
+		if (isPSFS(reader)) {
+			reader.close();
+			properties.type = fileInfo::PS_FS_V1;
+			info.fileType = fileInfo::PS_FS_V1;
+			return properties;
+		}
+
+		properties.type =  fileInfo::UNKNOWN;
 		reader.close();
 
 
