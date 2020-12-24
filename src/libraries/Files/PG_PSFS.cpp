@@ -284,16 +284,11 @@ namespace PG {
 
 				const unsigned int start_header_offset = writer.getPosition(); //get the first header position
 
-
-				std::sort(m_fileInfos.begin(), m_fileInfos.end(), [](const fileInfo& a, const fileInfo& b) {
-					return a.getOffset() < b.getOffset();
-					});
-
 				//fill header
 				{
 					FileTableEntry emptyHeader;
 					//allocate header space
-					for (unsigned int i = 0; i < m_fileInfos.size() + 10; ++i) { //also add a small empty buffer
+					for (unsigned int i = 0; i < m_fileInfos.size(); ++i) { 
 						writer.write((char*)&emptyHeader, 52);
 					}
 				}
@@ -344,7 +339,7 @@ namespace PG {
 							}
 
 							//set header
-							const std::string fileName = itInfo->name.getName();
+							const std::string fileName = itInfo->getName().getFile();
 							memcpy(itTable->name, fileName.c_str(), std::min(fileName.size(), (std::size_t)48));
 							itTable->fileSize = file_size;
 							itTable->offset = current_file_offset;
@@ -371,7 +366,7 @@ namespace PG {
 						else {
 
 							//set header
-							const std::string fileName = itInfo->name.getName();
+							const std::string fileName = itInfo->getName().getFile();
 							memcpy(itTable->name, fileName.c_str(), std::min(fileName.size(), (std::size_t)48));
 							itTable->fileSize = itInfo->getSize();
 							itTable->offset = current_file_offset;

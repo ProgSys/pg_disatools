@@ -722,7 +722,7 @@ void MainWindow::on_btnSave_clicked()
 			"Do you want to save the file?",
 			QMessageBox::Yes | QMessageBox::Cancel);
 
-		if (reply == QMessageBox::No)
+		if (reply == QMessageBox::No || reply == QMessageBox::Cancel)
 			return;
 
 		setEnabled(false);
