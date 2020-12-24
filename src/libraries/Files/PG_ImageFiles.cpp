@@ -304,7 +304,7 @@ bool loadNetPNM(const std::string& filepath, PG::UTIL::RGBAImage& imageOut){
 bool loadQt(const std::string& filepath, PG::UTIL::RGBAImage& imageOut) {
 	QImage img(QString::fromStdString(filepath));
 	if (img.isNull()) return false;
-	img.convertToFormat(QImage::Format_RGBA8888);
+	img.convertTo(QImage::Format_RGBA8888);
 
 	imageOut.resize(img.width(), img.height());
 	memcpy(imageOut.data(), img.bits(), img.width() * img.height() * 4);

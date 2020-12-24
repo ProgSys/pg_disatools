@@ -15,8 +15,7 @@ mapEditor *  GNU Lesser General Public License (LGPL):
  *	along with this program.  If not, see http://doc.qt.io/qt-5/lgpl.html
  *	or http://www.gnu.org/licenses/
  */
-#ifndef SPRITEEDITOR_CPP_
-#define SPRITEEDITOR_CPP_
+#pragma once
 
 
 #include <SpriteSheetEditor.h>
@@ -34,6 +33,3 @@ int main(int argc, char *argv[])
     return a.exec();
 }
 
-
-
-#endif /* SPRITEEDITOR_CPP_ */

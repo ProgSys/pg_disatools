@@ -228,11 +228,17 @@ namespace PG {
 			file_infos[index2] = swap;
 		}
 
-		inline void writeDUMMY(PG::STREAM::OutByteFile& writer, unsigned int& next_header_offset, unsigned int& next_file_offset, unsigned int& dummy_traget_offset) {
-			if (dummy_traget_offset == 0) {
-				dummy_traget_offset = next_file_offset;
+		inline void writeDUMMYPSPFS(PG::STREAM::OutByteFile& writer, PSPFS::FileTableEntry& entry, unsigned int& next_file_offset, unsigned int& start_dummy_offset) {
 
-				writer.setPosition(dummy_traget_offset);
+			//set header data
+			memcpy(entry.name, "DUMMY.DAT", 9);
+			entry.decompressedFileSize = 0;
+			entry.fileSize = 5; //the file is small, the buffer is big
+
+			//write dummy data
+			if (start_dummy_offset == 0) {
+				writer.setPosition(next_file_offset);
+				start_dummy_offset = next_file_offset;
 				char* d = new char[512]();
 				d[0] = 'D';
 				d[1] = 'U';
@@ -244,16 +250,7 @@ namespace PG {
 				next_file_offset += 512;
 			}
 
-			writer.setPosition(next_header_offset);
-			writer.writeString("DUMMY.DAT");
-			for (unsigned short i = 9; i < 40; ++i) //fill rest with 0
-				writer.writeChar(0);
-
-			writer.writeInt(0);
-			writer.writeInt(5);
-			writer.writeInt(dummy_traget_offset);
-			next_header_offset += 52;
-
+			entry.offset = start_dummy_offset;
 		}
 
 		bool PSPFS::save(const PG::UTIL::File& targetfile, PercentIndicator* percent) {
@@ -290,134 +287,134 @@ namespace PG {
 				writer.writeInt(m_fileInfos.size()); //number of files
 				writer.writeInt(0); // mystery int
 
-				unsigned int next_header_offset = writer.getPosition(); //get the first header position
+				const unsigned int start_header_offset = writer.getPosition(); //get the first header position
 
-				c = new char[52](); // each header is exactly 52 byte long
-				//allocate header space
-				for (unsigned int i = 0; i < m_fileInfos.size() + 10; ++i) { //also add a small empty buffer
-					writer.write(c, 52);
-				}
-				delete[] c;
-				c = nullptr;
+				std::vector<FileTableEntry> fileTable(file_infos.size());
+				//fill empty header (will be overwritten later)
+				writer.write((char*)fileTable.data(), fileTable.size() * sizeof(FileTableEntry));
 
-				unsigned int next_file_offset = writer.getPosition(); // the position where we start to write the data of the files
-				unsigned int dummy_traget_offset = 0;
+				const unsigned int start_file_offset = writer.getPosition(); // the position where we start to write the data of the files
+				unsigned int start_dummy_offset = 0; // dummy file is only stored once
+
 				PG::STREAM::InByteFile reader_dat(m_file);
 				if (!reader_dat.isopen()) return FAILURE;
 
-				struct fileInfoHeader
-				{
-					int index;
-					unsigned int headerPos;
-					fileInfo info;
+				//we keep the memory order (indeces must stay the same)
+				struct OffsetOrderInfo {
+					std::vector<FileTableEntry>::iterator itTable;
+					std::vector<fileInfo>::iterator itInfo;
+					fileInfo oldInfo;
 				};
-				std::vector<fileInfoHeader> sortedInfos;
-				sortedInfos.reserve(m_fileInfos.size());
-				int index = 0;
-				std::transform(m_fileInfos.begin(), m_fileInfos.end(), std::back_inserter(sortedInfos), [&index, &next_header_offset](const fileInfo& info) {
-					fileInfoHeader item = { index, next_header_offset , info };
-					next_header_offset += 52;
-					index++;
-					return item;
-					});
-				std::sort(sortedInfos.begin(), sortedInfos.end(), [](const fileInfoHeader& a, const fileInfoHeader& b) {
-					return a.info.offset < b.info.offset;
-					});
+				std::vector<OffsetOrderInfo> sortedInfos;
+				{
+					sortedInfos.reserve(m_fileInfos.size());
+					auto itTable = fileTable.begin();
+					auto itInfo = file_infos.begin();
+					for (const fileInfo& oldInfo : m_fileInfos) {
+						*itInfo = oldInfo; //copy
+						sortedInfos.emplace_back(OffsetOrderInfo{ itTable, itInfo, oldInfo });
+						++itTable;
+						++itInfo;
+					}
+					std::sort(sortedInfos.begin(), sortedInfos.end(), [](const OffsetOrderInfo& a, const OffsetOrderInfo& b) {
+						return a.oldInfo.offset < b.oldInfo.offset;
+						});
+				}
 
+				auto setHeader = [](std::vector<FileTableEntry>::iterator itTable, fileInfo& info, int file_offset) {
+					const std::string fileName = info.getName().getFile();
+					memcpy(itTable->name, fileName.c_str(), std::min(fileName.size(), (std::size_t)40));
+					itTable->fileSize = info.getSize();
+					itTable->decompressedFileSize = info.decompressedFileSize;
+					itTable->offset = file_offset;
+					info.setOffset(file_offset);
+				};
+
+				//write to file
 				unsigned int i = 0;
-				for (fileInfoHeader& it : sortedInfos) {
+				unsigned int current_file_offset = start_file_offset;
+				for (auto& [itTable, itInfo, oldInfo] : sortedInfos) {
 					if (percent) {
 						percent->percent = (i / float(sortedInfos.size())) * 100.0;
 						i++;
 					}
 
-					if (it.info.isExternalFile()) {
-						if (it.info.getSize() == 0 || it.info.getName().isEmpty() || !it.info.externalFile.exists()) {
-							PG_WARN_STREAM("External file '" << it.info.externalFile << "' doesn't exist! Writing empty dummy file instead!");
-							it.info.setAsDummy(next_file_offset);
-							writeDUMMY(writer, it.headerPos, next_file_offset, dummy_traget_offset);
+					if (itInfo->isExternalFile()) {
+						if (itInfo->getSize() == 0 || itInfo->getName().isEmpty() || !itInfo->externalFile.exists()) {
+							PG_WARN_STREAM("External file '" << itInfo->externalFile << "' doesn't exist! Writing empty dummy file instead!");
+							writeDUMMYPSPFS(writer, *itTable, current_file_offset, start_dummy_offset);
+							itInfo->setAsDummy(start_dummy_offset);
 						}
 						else {
-							PG_INFO_STREAM("Adding external file '" << it.info.externalFile << "'.");
+							PG_INFO_STREAM("Adding external file '" << itInfo->externalFile << "'.");
 
 
-							PG::STREAM::InByteFile reader_file(it.info.externalFile);
-							it.info.decompressedFileSize = isIMYPackage(reader_file);
+							PG::STREAM::InByteFile reader_file(itInfo->externalFile);
+							itInfo->decompressedFileSize = isIMYPackage(reader_file);
 							reader_file.seek(0);
 							const unsigned int file_size = reader_file.size();
 
 
 							// check if valid
 							if (file_size == 0)
-								PG_WARN_STREAM("File '" << it.info.externalFile << "' has a size of zero!");
+								PG_WARN_STREAM("File '" << itInfo->externalFile << "' has a size of zero!");
 
-							if (it.info.getSize() != file_size) {
-								PG_WARN_STREAM("File '" << it.info.externalFile << "' size is different than expected! (" << it.info.getSize() << " != " << file_size << ")");
-								it.info.setSize(file_size);
+							if (itInfo->getSize() != file_size) {
+								PG_WARN_STREAM("File '" << itInfo->externalFile << "' size is different than expected! (" << itInfo->getSize() << " != " << file_size << ")");
+								itInfo->setSize(file_size);
 							}
 
-							//write header
-							writer.setPosition(it.headerPos);
-							writer.writeString(it.info.getName().getPath());
-							for (unsigned short i = (unsigned short)it.info.getName().getPath().size(); i < 40; ++i) //fill rest with 0
-								writer.writeChar(0);
-
-							writer.writeInt(it.info.decompressedFileSize);
-							writer.writeInt(it.info.getSize());
-							writer.writeInt(next_file_offset);
-							it.info.setOffset(next_file_offset);
+							//set header
+							setHeader(itTable, *itInfo, current_file_offset);
 
 							//write file
-							writer.setPosition(next_file_offset);
-							c = new char[it.info.getSize()];
-							reader_file.read(c, it.info.getSize());
+							writer.setPosition(current_file_offset);
+							c = new char[itInfo->getSize()];
+							reader_file.read(c, itInfo->getSize());
 							reader_file.close();
-							writer.write(c, it.info.getSize());
+							writer.write(c, itInfo->getSize());
 							delete[] c;
 							c = nullptr;
-							next_file_offset += it.info.getSize();
-							it.info.clearExternalFile();
+							current_file_offset += itInfo->getSize();
+							itInfo->clearExternalFile();
 						}
 
 					}
 					else {
 						//PG_INFO_STREAM(current_info.getName()<<" o: "<<current_info.getOffset()<<" s: "<<current_info.getSize());
-						if (it.info.getSize() == 0 || it.info.getName().isEmpty() || it.info.getName() == "DUMMY.DAT") {
-							it.info.setAsDummy(next_file_offset);
-							writeDUMMY(writer, it.headerPos, next_file_offset, dummy_traget_offset);
+						if (itInfo->getSize() == 0 || itInfo->getName().isEmpty() || itInfo->getName() == "DUMMY.DAT") {
+							writeDUMMYPSPFS(writer, *itTable, current_file_offset, start_dummy_offset);
+							itInfo->setAsDummy(start_dummy_offset);
 						}
 						else {
 
-							//write header
-							writer.setPosition(it.headerPos);
-							writer.writeString(it.info.getName().getFile());
-							for (unsigned short i = (unsigned short)it.info.getName().getPath().size(); i < 40; ++i) //fill rest with 0
-								writer.writeChar(0);
-
-							writer.writeInt(it.info.decompressedFileSize);
-							writer.writeInt(it.info.getSize());
-							writer.writeInt(next_file_offset);
+							//set header
+							const int oldOffset = itInfo->getOffset();
+							setHeader(itTable, *itInfo, current_file_offset);
 
 							//write file
-							writer.setPosition(next_file_offset);
-							reader_dat.seek(it.info.getOffset());
-							it.info.setOffset(next_file_offset);
-							c = new char[it.info.getSize()];
-							reader_dat.read(c, it.info.getSize());
-							writer.write(c, it.info.getSize());
+							writer.setPosition(current_file_offset);
+							reader_dat.seek(oldOffset);
+							c = new char[itInfo->getSize()];
+							reader_dat.read(c, itInfo->getSize());
+							writer.write(c, itInfo->getSize());
 							delete[] c;
 							c = nullptr;
-							next_file_offset += it.info.getSize();
+							current_file_offset += itInfo->getSize();
 						}
 
 					}
-					file_infos[it.index] = it.info;
+				
 				}// for loop end
 
 				file_infos.erase(
 					std::remove_if(file_infos.begin(), file_infos.end(), [](const fileInfo& info) { return info.size == 0; }),
 					file_infos.end()
 				);
+
+				//write header
+				writer.seek(start_header_offset);
+				writer.write((char*)fileTable.data(), fileTable.size() * sizeof(FileTableEntry));
 
 				reader_dat.close();
 				writer.close();

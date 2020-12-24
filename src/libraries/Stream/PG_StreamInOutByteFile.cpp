@@ -59,15 +59,15 @@ unsigned int InOutByteFile::pos(){
 }
 
 void InOutByteFile::seek(unsigned int position){
-	m_file.seekp(position,ios_base::beg);
+	m_file.seekp(position,std::ios_base::beg);
 }
 
 void InOutByteFile::rewind(){
-	m_file.seekp(0,ios_base::beg);
+	m_file.seekp(0, std::ios_base::beg);
 }
 
 void InOutByteFile::goEnd(){
-	m_file.seekp(0,ios_base::end);
+	m_file.seekp(0, std::ios_base::end);
 }
 
 

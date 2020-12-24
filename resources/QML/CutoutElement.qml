@@ -196,8 +196,8 @@ Rectangle {
 			}
 			
 			onPositionChanged: {
-				mousePosIndicator.mouseX = parent.x + mouse.x -scroll.contentX
-				mousePosIndicator.mouseY = parent.y + mouse.y + 25 -scroll.contentY
+				mousePosIndicator.mouseX = parent.x + mouse.x - scroll.contentX
+				mousePosIndicator.mouseY = parent.y + mouse.y + 25 - scroll.contentY
 				mousePosIndicator.visible = true
 			}
 		}

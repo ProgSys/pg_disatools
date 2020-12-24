@@ -39,7 +39,7 @@ OutByteFile::OutByteFile(const std::string& path, bool append) {
 	}
 
 	if(append)
-		m_outFile.open(path.c_str(),std::ios::binary | ios::app);
+		m_outFile.open(path.c_str(),std::ios::binary | std::ios::app);
 	else
 		m_outFile.open(path.c_str(),std::ios::binary);
 
@@ -56,11 +56,11 @@ long OutByteFile::getPosition(){
 }
 
 void OutByteFile::setPosition(long position){
-	m_outFile.seekp(position,ios_base::beg);
+	m_outFile.seekp(position, std::ios_base::beg);
 }
 
 void OutByteFile::goEnd(int i){
-	m_outFile.seekp(i,ios_base::end);
+	m_outFile.seekp(i, std::ios_base::end);
 }
 
 void OutByteFile::writeChar(char c){
@@ -122,7 +122,7 @@ void OutByteFile::skip(unsigned int skip){
 }
 ///Go to the given position
 void OutByteFile::seek(unsigned int position){
-	m_outFile.seekp(position,ios_base::beg);
+	m_outFile.seekp(position, std::ios_base::beg);
 }
 ///Get the current position
 unsigned int OutByteFile::pos(){
