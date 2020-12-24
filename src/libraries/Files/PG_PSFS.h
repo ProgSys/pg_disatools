@@ -35,12 +35,12 @@ namespace FILE {
 
 class PSFS : public ExtractorBase {
 public:
-	struct FileTableEntry
+	PACK(struct FileTableEntry //total of 64 bytes
 	{
 		char name[48] = { " " };
 		unsigned long long fileSize = 0ll;
 		unsigned long long offset = 0ll;
-	};
+	});
 
 	EXPORT PSFS();
 	EXPORT PSFS(const PG::UTIL::File& file);

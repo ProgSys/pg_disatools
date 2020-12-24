@@ -35,6 +35,14 @@ namespace FILE {
 
 class PSPFS: public ExtractorBase {
 public:
+	PACK(struct FileTableEntry //total of 64 bytes
+	{
+		char name[40] = { " " };
+		unsigned int decompressedFileSize = 0;
+		unsigned int fileSize = 0;
+		unsigned int offset = 0ll;
+	});
+
 	EXPORT PSPFS();
 	EXPORT PSPFS(const PG::UTIL::File& file);
 	EXPORT PSPFS(const std::string& file);

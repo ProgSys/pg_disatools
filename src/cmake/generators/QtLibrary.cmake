@@ -38,6 +38,7 @@ include_directories(
 file(GLOB_RECURSE SRC *.cpp *.h)
 
 add_library(${ProjectId} ${SRC} ${LODEPNG} ${EXTERNAL_CODE}) 
+target_compile_features(${ProjectId} PUBLIC cxx_std_17)
 set(ALL_LIBRARIES_CLEAN ${ALL_LIBRARIES} ${QT_LIBRARIES})
 list(REMOVE_ITEM ALL_LIBRARIES_CLEAN ${ProjectId})
 target_link_libraries(

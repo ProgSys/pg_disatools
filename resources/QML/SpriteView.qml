@@ -433,10 +433,11 @@ Rectangle {
 			anchors.fill: parent
 			acceptedButtons: Qt.MiddleButton
 			cursorShape: undefined
+			
 			onWheel:{
 				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 7 , zoomMax), zoomMin);
 				var diff = zoom/newZoom;
-				var x = scroll.contentX +wheel.x
+				var x = scroll.contentX + wheel.x
 				var y = scroll.contentY + wheel.y
 				scroll.contentX += x - x * diff;
 				scroll.contentY += y - y * diff;

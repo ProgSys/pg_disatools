@@ -22,8 +22,7 @@
  *	SOFTWARE.
  */
 
-#ifndef INCLUDE_PG_ENGINE_UTIL_PG_EXCEPTION_H_
-#define INCLUDE_PG_ENGINE_UTIL_PG_EXCEPTION_H_
+#pragma once
 
 #include <iostream>
 #include <exception>
@@ -31,17 +30,15 @@
 #include <Util/PG_Base.h>
 
 
-using namespace std;
-
 namespace PG {
 namespace UTIL {
-class Exception: public exception {
+class Exception: public std::exception {
 public:
-	Exception(const string& msg):m_msg(msg){
+	Exception(const std::string& msg):m_msg(msg){
 
 	}
 
-	Exception(const string& msg, const char *file, int line){
+	Exception(const std::string& msg, const char *file, int line){
 		 std::stringstream o;
 		 o<< "["<< file << ":" << line<<"][EXCEPTION]: " << msg;
 		 m_msg = o.str();
@@ -51,20 +48,20 @@ public:
 	    return m_msg.c_str();
 	}
 private:
-	string m_msg;
+	std::string m_msg;
 };
 
 class AssertException: public Exception{
 public:
-	AssertException(const string& msg):Exception(msg){}
+	AssertException(const std::string& msg):Exception(msg){}
 
-	AssertException(const string& msg, const char *file, int line):
+	AssertException(const std::string& msg, const char *file, int line):
 		Exception(msg,file,line){}
 };
 
 #define throw_Exception(arg) throw PG::UTIL::Exception(arg, FUNCTION_NAME, __LINE__)
 
-inline void assertTest(std::string text, bool condition,const char *file, int line){
+inline void assertTest(const std::string& text, bool condition,const char *file, int line){
 	if (condition) {
 		std::cerr << "["<<file <<":"<<line<<"][FAIL]: "<<text<<std::endl;
 		throw PG::UTIL::AssertException(text, file, line);
@@ -79,5 +76,3 @@ inline void assertTest(std::string text, bool condition,const char *file, int li
 
 } /* namespace UTIL */
 } /* namespace PG */
-
-#endif /* INCLUDE_PG_ENGINE_UTIL_PG_EXCEPTION_H_ */

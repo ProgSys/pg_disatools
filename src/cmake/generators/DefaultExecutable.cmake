@@ -40,7 +40,7 @@ include_directories(
 file(GLOB_RECURSE SRC *.cpp *.h)
 
 add_executable(${ProjectId} ${SRC} ${EXTERNAL_CODE}) 
-
+target_compile_features(${ProjectId} PUBLIC cxx_std_17)
 project_source_group(SRC)
 #target_link_libraries(${ProjectId} SDL2)
 

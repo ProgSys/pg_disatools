@@ -48,7 +48,7 @@ using namespace UTIL;
  */
 void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL::rgba& c1){
 	//found my math and try and error
-	int cy = std::floor((3*int(target.r))/16.0) * 8;
+	int cy = std::floor((3*int(target.r))/16.0f) * 8;
 	if(cy > 248) cy = 248;
 	int cx = 0;
 	int cxpart;
@@ -58,8 +58,8 @@ void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL:
 	}
 	if(cx > 248) cx = 248;
 
-	c0.r = min(cx,255);
-	c1.r = min(cy,255);
+	c0.r = std::min(cx,255);
+	c1.r = std::min(cy,255);
 
 
 	cy = std::floor((3*int(target.g))/8.0) * 4;
@@ -72,8 +72,8 @@ void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL:
 	}
 	if(cx > 252) cx = 252;
 
-	c0.g = min(cx,255);
-	c1.g = min(cy,255);
+	c0.g = std::min(cx,255);
+	c1.g = std::min(cy,255);
 
 
 	cy = std::floor((3*int(target.b))/16.0) * 8;
@@ -85,8 +85,8 @@ void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL:
 	}
 	if(cx > 248) cx = 248;
 
-	c0.b = min(cx,255);
-	c1.b = min(cy,255);
+	c0.b = std::min(cx,255);
+	c1.b = std::min(cy,255);
 }
 
 unsigned int getShort(const PG::UTIL::rgba& color888){

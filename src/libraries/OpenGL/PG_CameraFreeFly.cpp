@@ -63,7 +63,7 @@ void CameraFreeFly::mouseMoveEvent(QMouseEvent *event, float deltaTime){
     m_mouseLast.x = event->x() ;
     m_mouseLast.y = event->y() ;
 
-    float sensitivity = 0.45;
+    constexpr float sensitivity = 0.45f;
     xoffset *= sensitivity;
     yoffset *= sensitivity;
 
