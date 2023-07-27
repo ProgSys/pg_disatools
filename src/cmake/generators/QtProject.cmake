@@ -98,16 +98,14 @@ if (WIN32)
 
 if(MINGW)
 find_path(QT_CMAKE_DIR Qt5/Qt5Config.cmake
-  PATH_SUFFIXES cmake
   PATHS "F:/Qt" "D:/Qt" "C:/Qt" "E:/Qt" 
-  PATH_SUFFIXES "5.15.1/mingw73_64/lib/cmake" "5.15.1/mingw73_64/lib"
+  PATH_SUFFIXES "5.15.1/mingw73_64/lib/cmake" 
   DOC "The path to the QT cmake files."
 )
 elseif(MSVC)
-find_path(QT_CMAKE_DIR cmake/Qt5/Qt5Config.cmake
-  PATH_SUFFIXES cmake
+find_path(QT_CMAKE_DIR Qt5/Qt5Config.cmake
   PATHS "F:/Qt" "D:/Qt" "C:/Qt" "E:/Qt" 
-  PATH_SUFFIXES "5.15.1/msvc2019_64/lib/cmake" "5.15.1/msvc2019_64/lib"
+  PATH_SUFFIXES "5.15.1/msvc2019_64/lib/cmake" 
   DOC "The path to the QT cmake files."
 )
 endif()
