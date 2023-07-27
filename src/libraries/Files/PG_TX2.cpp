@@ -55,7 +55,8 @@ namespace PG
 			header.colortableSize = instream->readUnsignedShort();
 			const unsigned short numberOfColortables = instream->readUnsignedShort();
 
-			header.colortables.resize((numberOfColortables) ? numberOfColortables : (header.type == tx2Type::BGRA || header.type == tx2Type::DXT1 || header.type == tx2Type::DXT5 || header.type == tx2Type::TX2ERROR) ? 0 : 1);
+			header.colortables.resize((numberOfColortables) ? numberOfColortables :
+				(header.type == tx2Type::BGRA || header.type == tx2Type::DXT1 || header.type == tx2Type::DXT4 || header.type == tx2Type::DXT5 || header.type == tx2Type::TX2ERROR) ? 0 : 1);
 
 			instream->skip(4);
 
@@ -101,7 +102,7 @@ namespace PG
 				PG::FILE::decompressS3(img.width, img.height, blocks, imageOut);
 
 			}
-			else if (img.type == tx2Type::DXT5) {
+			else if (img.type == tx2Type::DXT4 || img.type == tx2Type::DXT5) {
 				//DXT5
 				instream->skip(img.colortableSize * 4);
 
@@ -593,6 +594,7 @@ namespace PG
 					data.resize(number_of_blocks_4x4 * sizeof(PG::FILE::DXT1block));
 				}
 				break;
+				case tx2Type::DXT4:
 				case tx2Type::DXT5:
 				{
 					const unsigned int number_of_blocks_width = (header.width / 4);
