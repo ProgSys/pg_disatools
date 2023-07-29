@@ -331,9 +331,9 @@ TX2Editor::TX2Editor(QWidget *parent):
 	Ui::TX2EditorUI::quickWidget_2->rootContext()->setContextProperty("tx2editor", m_model);
 
 	quickWidget->engine()->addImageProvider(QLatin1String("tx2imageprovider"), new TX2ImageProvider(m_model));
-	quickWidget->setSource(getResourcePath() + "/QML/Tx2View.qml");
+	quickWidget->setSource(QUrl::fromLocalFile(getResourcePath() + "/QML/Tx2View.qml"));
 
-	quickWidget_2->setSource(getResourcePath() + "/QML/Tx2ColorTableView.qml");
+	quickWidget_2->setSource(QUrl::fromLocalFile(getResourcePath() + "/QML/Tx2ColorTableView.qml"));
 
 	ColorTableView->close();
 }
@@ -548,6 +548,9 @@ void TX2Editor::updateInfo(){
 	switch (m_model->image->header.type) {
 		case PG::FILE::tx2Type::DXT1:
 				value_type->setText("DXT1");
+			break;
+		case PG::FILE::tx2Type::DXT4:
+			value_type->setText("DXT4");
 			break;
 		case PG::FILE::tx2Type::DXT5:
 				value_type->setText("DXT5");

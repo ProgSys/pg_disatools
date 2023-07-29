@@ -286,7 +286,7 @@ namespace PG
 				}
 				memcpy(&bytesOut[16], &blocks[0], number_of_blocks_4x4 * 8);
 			}
-			else if (compressionTypeIn == DXT5) {
+			else if (compressionTypeIn == DXT4 || compressionTypeIn == DXT5) {
 				const unsigned short width = imageIn.getWidth();
 				const unsigned short height = imageIn.getHeight();
 				const unsigned int number_of_blocks_width = (width / 4);
@@ -668,6 +668,7 @@ namespace PG
 				PG::FILE::decompressS3<PG::FILE::DXT1block>(header.width, header.height, data, rgbaOut);
 			}
 			break;
+			case tx2Type::DXT4:
 			case tx2Type::DXT5:
 			{
 
