@@ -29,6 +29,7 @@
 #include <QCoreApplication>
 #include <Util/Misc/ResourcePath.h>
 
+#define SHADER_FOLDER "/shaders/DisaSpriteSheetEditor/"
 
 bool GLSpriteWidget::spriteShader::bind() {
 	const bool b = PG::GL::Shader::bind();
@@ -394,9 +395,10 @@ void GLSpriteWidget::initializeGL() {
 
 	glClearColor(0.196f, 0.38f, 0.6588f, 1.f);
 
+	
 	//load shader
-	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + "/shaders/sprite.vert").toStdString());
-	m_spriteShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + "/shaders/sprite.frag").toStdString());
+	m_spriteShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + SHADER_FOLDER "sprite.vert").toStdString());
+	m_spriteShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + SHADER_FOLDER "sprite.frag").toStdString());
 
 	if (!m_spriteShader.bind()) {
 		QMessageBox messageBox;
@@ -404,8 +406,8 @@ void GLSpriteWidget::initializeGL() {
 		exit(EXIT_FAILURE);
 	}
 
-	m_objectShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + "/shaders/simple.vert").toStdString());
-	m_objectShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + "/shaders/simple.frag").toStdString());
+	m_objectShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + SHADER_FOLDER "simple.vert").toStdString());
+	m_objectShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + SHADER_FOLDER "simple.frag").toStdString());
 
 	if (!m_objectShader.bind()) {
 		QMessageBox messageBox;
@@ -413,8 +415,8 @@ void GLSpriteWidget::initializeGL() {
 		exit(EXIT_FAILURE);
 	}
 
-	m_lineShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + "/shaders/line.vert").toStdString());
-	m_lineShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + "/shaders/line.frag").toStdString());
+	m_lineShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + SHADER_FOLDER "line.vert").toStdString());
+	m_lineShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + SHADER_FOLDER "line.frag").toStdString());
 
 	if (!m_lineShader.bind()) {
 		QMessageBox messageBox;
@@ -422,8 +424,8 @@ void GLSpriteWidget::initializeGL() {
 		exit(EXIT_FAILURE);
 	}
 
-	m_displayShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + "/shaders/display.vert").toStdString());
-	m_displayShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + "/shaders/display.frag").toStdString());
+	m_displayShader.addShaderFile(PG::GL::Shader::VERTEX, (getResourcePath() + SHADER_FOLDER "display.vert").toStdString());
+	m_displayShader.addShaderFile(PG::GL::Shader::FRAGMENT, (getResourcePath() + SHADER_FOLDER "display.frag").toStdString());
 
 	if (!m_displayShader.bind()) {
 		QMessageBox messageBox;
