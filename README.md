@@ -109,10 +109,11 @@ Note that the position of most files in .DAT are hardcoded, deleting files could
 
 #### Sprite Sheet Editor
 
-This gui application allows you to view and perform some basic editing to Disgaea PC sprite sheets.
-You can export them back to the original game format to view them ingame, but this function is currently not fully tested, 
-so if there are any problems let me know.
-Also you can export the sprites as .png or .tga and import them back!
+With this tool you can view and edit Disgaea PC sprite sheets. 
+And of curse export them back to the original game format.
+Note, if your data becomes too big then the game will no load anymore, 
+however you can expand the allocated space via the File Manager App. 
+As always the App is not perfect, so if you encounter any issues, I would greatly appreciate your feedback.
 
 ![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Sprite_Sheet_Editor.png)
 
