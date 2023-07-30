@@ -482,3 +482,21 @@
 	- Added Geo Panels interpretation
 		- You can enable Geo Panels with a toggle button
         - Improved performance
+		
+===  27.12.2020 - v0.9.4 ===
+  * General:
+	- Updated Qt to 5.15.1
+  * Disa PC File Manager v0.6.1 alpha:
+	- Added file support for PS_FS_V1
+  * Disa Map Viewer v0.0.9 alpha:
+	- You can now display actor positions (like enemies)
+	
+===  30.07.2023 - v0.9.5 ===
+  * Disa PC File Manager v0.6.2 alpha:
+	- Better support for NEW .MPP files
+  * TX2 Editor v0.0.4 alpha:
+	- Added basic support for DXT4 textures
+  * Disa Map Viewer v0.1.0 alpha
+	- Added a toggle button to switch to the HD version of a map when a DATA.DAT file is open
+	- Added a search field 
+	- Several improvements to the .gltf exporter
