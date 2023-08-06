@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.9.5 alpha](https://www.dropbox.com/s/57iz7xgkrnrm5oz/Disgaea%20Tools%20v0.9.5%20alpha.zip?dl=0)**
+* **[Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -75,6 +75,11 @@ You can download the latest version of the tools here:
 	- Added a toggle button to switch to the HD version of a map when a DATA.DAT file is open
 	- Added a search field 
 	- Several improvements to the .gltf exporter
+===  06.08.2023 - v0.9.6 ===
+  * Disa Map Viewer v0.1.1 alpha
+	- Fixed loading of some tiles
+		- Noticeable in Laharls castle
+	- Fixed loading of some models that had too many nodes
 ```
 
 ### Older versions:

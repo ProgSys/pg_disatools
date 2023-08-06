@@ -500,3 +500,9 @@
 	- Added a toggle button to switch to the HD version of a map when a DATA.DAT file is open
 	- Added a search field 
 	- Several improvements to the .gltf exporter
+	
+===  06.08.2023 - v0.9.6 ===
+  * Disa Map Viewer v0.1.1 alpha
+	- Fixed loading of some tiles
+		- Noticeable in Laharls castle
+	- Fixed loading of some models that had too many nodes
