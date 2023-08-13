@@ -506,3 +506,10 @@
 	- Fixed loading of some tiles
 		- Noticeable in Laharls castle
 	- Fixed loading of some models that had too many nodes
+	
+===  13.08.2023 - v0.9.7 ===
+  * Disa Map Viewer v0.1.2 alpha
+	- You now can export/import a Json file of a map when DATA.DAT is opened
+		- You can modify the human readable Json and import it back
+		- You can directly save the modifications (dont forget to make a backup!)
+	- Fixed interpretation of tile UV values. It now should look the same as in game.
