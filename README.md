@@ -8,23 +8,11 @@ You can download the latest version of the tools here:
 
 
 ### Newest version
-* **[Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)**
+* **[Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  9.05.2020 - v0.8.8 ===
-  * Sprite Sheet Editor v0.4.5 alpha:
-	- Reworked "sprite sheet view" navigation
-		- It now uses a Flickable instead of an ScrollArea
-		- You can move the view via holding right mouse button, like in 3D view
-		- You can zoom via mouse wheel, like in 3D view. Also zoom has far bigger range
-		- Made resize handle easier to select (it will also become bigger on zoom in)
-		- Selected cutouts now have interaction priority 
-		- Improved undo on resize
-	- Fixed rendering bug when adding or removing sprite sheets
-  * Disa Map Viewer v0.0.3 alpha:
-	- Improved model interpretation
 ===  10.05.2020 - v0.8.9 ===
   * Disa Map Viewer v0.0.4 alpha:
 	- Added basic animation support
@@ -80,6 +68,12 @@ You can download the latest version of the tools here:
 	- Fixed loading of some tiles
 		- Noticeable in Laharls castle
 	- Fixed loading of some models that had too many nodes
+===  13.08.2023 - v0.9.7 ===
+  * Disa Map Viewer v0.1.2 alpha
+	- You now can export/import a Json file of a map when DATA.DAT is opened
+		- You can modify the human readable Json and import it back
+		- You can directly save the modifications (dont forget to make a backup!)
+	- Fixed interpretation of tile UV values. It now should look the same as in game.
 ```
 
 ### Older versions:
@@ -99,6 +93,7 @@ You can download the latest version of the tools here:
 * [Version v0.9.2 alpha](https://www.dropbox.com/s/l4fsbvxp3vry0ei/Disgaea%20Tools%20v0.9.2%20alpha.zip?dl=0)
 * [Version v0.9.3 alpha](https://www.dropbox.com/s/px3jhlqee9bhcqj/Disgaea%20Tools%20v0.9.3%20alpha.zip?dl=0)
 * [Version v0.9.4 alpha](https://www.dropbox.com/s/9gz829c4eh2yf23/Disgaea%20Tools%20v0.9.4%20alpha.zip?dl=0)
+* [Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)
 ---
 
 
