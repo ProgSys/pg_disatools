@@ -7,17 +7,12 @@ Please make a backup of your files before using this tools!
 You can download the latest version of the tools here:
 
 
-### Newest version
-* **[Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)**
+# Newest version
+* **[Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  10.05.2020 - v0.8.9 ===
-  * Disa Map Viewer v0.0.4 alpha:
-	- Added basic animation support
-	- Added billboard support
-        - Background is now dark
 ===  28.05.2020 - v0.9.0 ===
   * Disa Map Viewer v0.0.6 alpha:
 	- Animations are now almost the same as in game
@@ -74,6 +69,10 @@ You can download the latest version of the tools here:
 		- You can modify the human readable Json and import it back
 		- You can directly save the modifications (dont forget to make a backup!)
 	- Fixed interpretation of tile UV values. It now should look the same as in game.
+===  03.11.2023 - v0.9.8 ===
+  * Sprite Sheet Editor v0.4.7 alpha
+	- When adding a color set the other sets are moved to the right and the cutout color offset ID is incremented as needed.
+		- Added a plus btn to simply add a color set to the end
 ```
 
 ### Older versions:
@@ -94,6 +93,7 @@ You can download the latest version of the tools here:
 * [Version v0.9.3 alpha](https://www.dropbox.com/s/px3jhlqee9bhcqj/Disgaea%20Tools%20v0.9.3%20alpha.zip?dl=0)
 * [Version v0.9.4 alpha](https://www.dropbox.com/s/9gz829c4eh2yf23/Disgaea%20Tools%20v0.9.4%20alpha.zip?dl=0)
 * [Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)
+* [Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)
 ---
 
 

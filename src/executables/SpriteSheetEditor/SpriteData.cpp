@@ -3186,7 +3186,7 @@ void SpriteData::setColor(int index, const QColor& color) {
 	}
 }
 
-void SpriteData::addColors(int index, int number) {
+void SpriteData::addColors(int index, int number, bool shiftIds) {
 	for (QColorTable& colortable : m_colortables) {
 		if (index < 0 || index >= colortable.size()) {
 			for (unsigned int i = 0; i < number; i++)
@@ -3195,6 +3195,19 @@ void SpriteData::addColors(int index, int number) {
 		else
 			for (unsigned int i = 0; i < number; i++)
 				colortable.insert(index, QColor(0, 0, 0, 255));
+	}
+
+	if (shiftIds) {
+		unsigned int shiftFrom = index/16; //the color table id
+		unsigned int shiftBy = number/16;
+		if (shiftBy != 0) {
+			for (auto* cutout : m_cutouts) {
+				if (cutout->getDefaultColorTable() >= shiftFrom) {
+					cutout->setDefaultColorTable(cutout->getDefaultColorTable() + shiftBy);
+				}
+			}
+
+		}
 	}
 
 	emit colorTableChanged(-1);

@@ -44,14 +44,14 @@ Rectangle {
 		id: colorContextMenu
 		property int index: -1;
 		MenuItem {
-			text: qsTr('Add color table set')
+			text: qsTr('Add set')
 			onTriggered:{
-				spritedata.addColors(-1,16);
+				spritedata.addColors(colorContextMenu.index-colorContextMenu.index%16,16, true);
 			}
 		}
 		
 		MenuItem {
-			text: qsTr('Remove color table set')
+			text: qsTr('Remove set')
 			visible: spritedata.colorsSize > 16
 			onTriggered:{
 				spritedata.removeColors(colorContextMenu.index-colorContextMenu.index%16,16);
@@ -169,6 +169,18 @@ Rectangle {
 				}
 				PGToolTip {
 					text: "Delete color table"
+				}
+			}
+			
+			Button {
+				height: 24
+				width: 24
+				iconSource: "../materials/icons/add.png"
+				onClicked: {
+					spritedata.addColors(-1,16, false);
+				}
+				PGToolTip {
+					text: "Add set"
 				}
 			}
 		}
