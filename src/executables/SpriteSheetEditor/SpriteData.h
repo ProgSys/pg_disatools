@@ -706,7 +706,7 @@ public slots:
 
 	Q_INVOKABLE QColor getColor(int index) const;
 	Q_INVOKABLE void setColor(int index,const QColor& color);
-	Q_INVOKABLE void addColors(int index, int number = 16);
+	Q_INVOKABLE void addColors(int index, int number = 16, bool shiftIds = false);
 	Q_INVOKABLE void removeColors(int index, int number = 16);
 
 	Q_INVOKABLE void renameCurrentAnimation();

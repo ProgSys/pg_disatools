@@ -513,3 +513,8 @@
 		- You can modify the human readable Json and import it back
 		- You can directly save the modifications (dont forget to make a backup!)
 	- Fixed interpretation of tile UV values. It now should look the same as in game.
+	
+===  03.11.2023 - v0.9.8 ===
+  * Sprite Sheet Editor v0.4.7 alpha
+	- When adding a color set the other sets are moved to the right and the cutout color offset ID is incremented as needed.
+		- Added a plus btn to simply add a color set to the end
