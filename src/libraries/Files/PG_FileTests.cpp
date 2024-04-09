@@ -113,7 +113,7 @@ bool isTX2(PG::STREAM::InByteFile& reader){
 	const unsigned short colorTableSize = reader.readUnsignedShort();
 	reader.skip(2);
 
-	if(width == 0 || height == 0)
+	if(width == 0 || height == 0 || width > 18000 || height > 18000)
 		return false;
 	//if(reader.readUnsignedInt() != 65536) //width*height)
 		//return false;

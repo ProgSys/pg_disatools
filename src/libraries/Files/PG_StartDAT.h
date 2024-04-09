@@ -33,7 +33,9 @@
 namespace PG {
 namespace FILE {
 
-
+/**
+* @brief Opens Offset list archives
+*/
 class StartDAT: public ExtractorBase {
 public:
 	EXPORT StartDAT();
@@ -55,6 +57,7 @@ private:
 	//contains the table of known files
 	std::vector<std::string> m_namesTable;
 	bool m_isCompressed = false;
+	bool m_isHeaderSizeIncluded = false; //a typical Nis exception, files like SCRIPT.DAT don't include the file table size in file pointers
 	void readFileNames();
 };
 

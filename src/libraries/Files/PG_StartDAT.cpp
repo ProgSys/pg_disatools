@@ -107,6 +107,10 @@ bool StartDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* percent)
 	std::vector<fileInfo> fileInfos;
 	fileInfos.reserve(m_fileInfos.size());
 	char* c = nullptr;
+	
+	unsigned int headerOffset = sizeof(int);
+	//subtract file table size if needed
+	const unsigned int fileTableOffset = m_isHeaderSizeIncluded ? 0 : m_fileInfos.size() * sizeof(int) + headerOffset; 
 
 	try{
 		PG::STREAM::OutByteFile writer(target);
@@ -125,8 +129,6 @@ bool StartDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* percent)
 			for(unsigned int i = 0; i < 4 - (1+m_fileInfos.size())%4; ++i)
 				writer.writeInt(0);
 
-
-		unsigned int header_offset = sizeof(int);
 
 		PG::STREAM::InByteFile reader_dat(m_file);
 		auto it = m_fileInfos.begin();
@@ -180,10 +182,10 @@ bool StartDAT::save(const PG::UTIL::File& targetfile, PercentIndicator* percent)
 			fileInfos.push_back(info_new);
 
 			//write header
-			writer.setPosition(header_offset);
-			writer.writeInt(info_new.offset);
+			writer.setPosition(headerOffset);
+			writer.writeInt(info_new.offset - fileTableOffset);
 			writer.setPosition(info_new.offset+info_new.size);
-			header_offset += sizeof(int);
+			headerOffset += sizeof(int);
 
 
 			it++;
@@ -251,34 +253,45 @@ bool StartDAT::open(const PG::UTIL::File& file, PercentIndicator* percent){
 		if(m_isCompressed) reader.skip(4);
 
 		if(number_of_files > 9000){
-			PG_ERROR_STREAM("START.DAT is too big!");
+			PG_ERROR_STREAM("*.DAT is too big!");
 			return true;
 		}
 		//reader.skip(sizeof(int));
 
 		unsigned int lastOffset = reader.readUnsignedInt();
+		m_isHeaderSizeIncluded = lastOffset != 0;
+		if (!m_isHeaderSizeIncluded) {
+			lastOffset += header_size;
+		}
+
 		for(unsigned int i = 0; i < number_of_files; ++i){
 			fileInfo info;
+
 			info.offset = lastOffset;
-			if(i != number_of_files-1)
+
+			if (i != number_of_files - 1) {
 				lastOffset = reader.readUnsignedInt();
+				if (!m_isHeaderSizeIncluded) {
+					lastOffset += header_size;
+				}
+			}
 			else
 				lastOffset = file_size;
 
 			if(lastOffset < info.offset){
-				PG_ERROR_STREAM("File offset order is wrong! ("<<lastOffset <<" < "<<info.offset<<") at: "<<reader.pos());
+				PG_ERROR_STREAM("File " << i << "/" << number_of_files << " offset order is wrong! ("<<lastOffset <<" < "<<info.offset<<") at: "<<reader.pos());
 				return true;
 			}
 
 			info.size = lastOffset-info.offset;
 
 			if(info.offset < header_size){
-				PG_ERROR_STREAM("File offset is smaller then the header! ("<<info.offset <<" < "<<header_size<<")");
+				PG_ERROR_STREAM("File " << i << "/" << number_of_files << " offset is smaller then the header! ("<<info.offset <<" < "<<header_size<<")");
 				return true;
 			}
 
 			if((info.offset+info.size) > file_size){
-				PG_ERROR_STREAM("File is outside the range ("<< (info.offset+info.size) << " > " << file_size <<")!");
+				PG_ERROR_STREAM("File " << i <<"/" << number_of_files << " is outside the range (" << (info.offset + info.size) << " > " << file_size << ")!");
 				return true;
 			}
 
