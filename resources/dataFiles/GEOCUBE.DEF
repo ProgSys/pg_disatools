@@ -1,7 +1,7 @@
 TABLE("?","?","?","Title","Description"){
 	
 	headerFormat{
-		uint(4,1,ROW_SIZE);
+		uint(4,ROW_SIZE);
 	}
 	
 	rowFormat{

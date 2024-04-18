@@ -13,7 +13,7 @@ TABLE("Name","Title","Type","Unknown","Unknown01","Gender","Unknown02","Palette 
 	setColumnColor("$33-40",255,255,255, 234,137,113, 5,30); 
 	
 	headerFormat{
-		uint(4,2,ROW_SIZE); #the number of rows
+		uint(4,ROW_SIZE):2; #the number of rows
 	}
 	
 	rowFormat{
@@ -26,10 +26,10 @@ TABLE("Name","Title","Type","Unknown","Unknown01","Gender","Unknown02","Palette 
 		
 		#uint(number of bytes, number of them = 1) - a unsigned number (the number can't be negative)
 		#number of bytes: 1 = char8, 2 = short16, 4 = int32, 8 = longLong64
-		uint(1,24); 
-		uint(2,26); 
+		uint(1):24; 
+		uint(2):26; 
 		
-		uint(2,20); # Specials IDs
-		uint(2,20); # Specials levels
+		uint(2):20; # Specials IDs
+		uint(2):20; # Specials levels
 	}
 }
