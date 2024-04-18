@@ -1,6 +1,6 @@
 TABLE("Map name","Bonus rank","Map ID","Script ID"){
 	headerFormat{
-		uint(4,2,ROW_SIZE);
+		uint(4,ROW_SIZE):2;
 	}
 	
 	rowFormat{

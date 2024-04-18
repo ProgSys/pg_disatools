@@ -1,7 +1,7 @@
 TABLE("Name","Description","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?","?"){
 	
 	headerFormat{
-		uint(4,2,ROW_SIZE);
+		uint(4,ROW_SIZE):2;
 	}
 	rowFormat{
 		shiftJis(32);
@@ -9,8 +9,8 @@ TABLE("Name","Description","?","?","?","?","?","?","?","?","?","?","?","?","?","
 		shiftJis(114); 
 		zero(2);
 		uint(1); 
-		uint(2,5); 
+		uint(2):5; 
 		uint(4);
-		uint(2,10); 
+		uint(2):10; 
 	}
 }

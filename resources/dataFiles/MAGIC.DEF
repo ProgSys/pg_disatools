@@ -7,7 +7,7 @@ TABLE("ID","Lvl","Pow","SP","Name","Description"
 	setColumnColor("$2-3",255,255,255, 234,137,113, 5,150); #colums, minColor(r,g,b), maxColor(r,g,b), minValue, maxValue
 	
 	headerFormat{
-		uint(4,2,ROW_SIZE);
+		uint(4,ROW_SIZE):2;
 	}
 	
 	rowFormat{
@@ -21,8 +21,8 @@ TABLE("ID","Lvl","Pow","SP","Name","Description"
 		shiftJis(112);
 		zero(1);
 		
-		uint(1,5); #Effect params
-		uint(1,8); 
-		uint(1,5);
+		uint(1):5; #Effect params
+		uint(1):8; 
+		uint(1):5;
 	}
 }

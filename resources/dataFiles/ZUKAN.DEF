@@ -2,7 +2,7 @@ TABLE("ID","Description 1","Description 2","Description 3","Description 4","Desc
 	setColumnType("ID", INDEX);
 	
 	headerFormat{
-		uint(4,1,ROW_SIZE);
+		uint(4,ROW_SIZE);
 	}
 	
 	rowFormat{

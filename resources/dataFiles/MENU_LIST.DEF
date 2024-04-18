@@ -1,0 +1,10 @@
+TABLE("Name"){
+
+	headerFormat{
+		uint(2,ROW_SIZE);
+	}
+	rowFormat{
+		hex(dynamic, 2); #string
+		zero(4); #padding
+	}
+}

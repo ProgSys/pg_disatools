@@ -29,12 +29,91 @@
 #include <Util/Misc/ResourcePath.h>
 #include <Util/PG_Exception.h>
 #include <QBrush>
+#include <QException>
+
+class DefParseException : public QException
+{
+public:
+	DefParseException(const QString& _msg) : msg(_msg){}
+	DefParseException(QString&& _msg) : msg(std::move(_msg)){}
+	void raise() const override { throw *this; }
+	DefParseException* clone() const override { return new DefParseException(msg); }
+
+	QString msg;
+};
 
 inline bool errorAt(const QString& info = ""){
-	QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
-					"Parsing error of definition file! \n" +info,
-				 QMessageBox::Ok);
+	throw DefParseException(info);
 	return false;
+}
+
+
+rowFormat rowFormat::create(const QString& name, const QStringList& args) {
+	assert(!name.isEmpty());
+
+	auto format = rowFormat{ rowFormat::INVALID }; 
+	if (name.compare("uint", Qt::CaseInsensitive) == 0) {
+		format.type = rowFormat::UINT;
+	}
+	else if (name.compare("int", Qt::CaseInsensitive) == 0) {
+		format.type = rowFormat::INT;
+	}
+	else if (name.compare("shiftjis", Qt::CaseInsensitive) == 0) {
+		format.type = rowFormat::SHIFT_JIS;
+	}
+	else if (name.compare("unicode", Qt::CaseInsensitive) == 0) {
+		format.type = rowFormat::UNICODE;
+	}
+	else if (name.compare("zero", Qt::CaseInsensitive) == 0) {
+		format.type = rowFormat::ZERO;
+	}
+	else if (name.compare("hex", Qt::CaseInsensitive) == 0) {
+		format.type = rowFormat::HEX;
+	}
+	else {
+		qDebug() << "Unknown row format " << name;
+		throw DefParseException("Unknown row format " + name + "!");
+	}
+
+	const auto paseInt = [&](int index, unsigned short& target) {
+		if (args.size() > index) {
+			bool ok;
+			int bytes = args[index].toInt(&ok);
+			if (!ok) throw DefParseException("Argument "+ QString::number(index+1) + " in " + name + " is not a number!");
+			target = bytes;
+		}
+	};
+
+	switch (format.type)
+	{
+	case rowFormat::ZERO:
+	case rowFormat::UINT: 
+	case rowFormat::INT: {
+		paseInt(0, format.byteSize);
+	}break;
+
+	case rowFormat::SHIFT_JIS: 
+	case rowFormat::UNICODE: 
+	case rowFormat::HEX: {
+		if (args.size() > 0 && args[0].compare("dynamic", Qt::CaseInsensitive) == 0) {
+			if (args.size() < 1) {
+				throw DefParseException("The byte size for the lenght of a dynamic "+ name + " must be provided!");
+			}
+			paseInt(1, format.dynamicLength);
+		}
+		else {
+			paseInt(0, format.byteSize);
+		}
+	}break;
+	default: break;
+	}
+
+	if (format.type == rowFormat::INVALID) {
+		throw DefParseException("Failed to parse rowFormat " + name + "!");
+	}
+
+	qDebug() << " Command: " << name <<"("<< args.join(", ") << ");";
+	return format;
 }
 
 struct defParser{
@@ -244,6 +323,27 @@ struct defParser{
 		return true;
 	}
 
+	template<typename T>
+	void repeatLastComamnd(QList<T>& from) {
+		skip();
+		auto c = currentChar.toLatin1();
+		if (currentChar == ':') {
+			getNextChar();
+			skip();
+			QString str;
+			read(str);
+
+			bool ok;
+			int count = str.toInt(&ok);
+			if (!ok || count <= 1) throw DefParseException("Repeat command extension is invalid! Must be a number and bigger then 1!");
+			const auto lastFormat = from.back();
+			--count;
+			for (int i = 0; i < count; ++i) {
+				from.push_back(lastFormat);
+			}
+		}
+	}
+
 	bool readRowFormat(parse& data){
 		skip();
 		if( currentChar != '{') return errorAt("A RowFormat black need to start with '{'!");
@@ -257,46 +357,22 @@ struct defParser{
 				getNextChar();
 				return true;
 			}
+			else if (currentChar == ')' || currentChar == ',' || currentChar == '"') {
+				return errorAt(QString("Unexpected char '") + currentChar + "'!");
+			}
 
 			QString command;
 			if(!read(command)) return false;
-			if(command.isEmpty()) return errorAt("Given command is empty!");
+			if(command.isEmpty()) return errorAt("Failed to parse command!");
 
-			QStringList paras;
-			if(!readParamters(paras)) return false;
-			if(paras.empty()) return errorAt("RowFormat has zero parameters!");
+			QStringList commandArgs;
+			if(!readParamters(commandArgs)) return false;
+			if(commandArgs.empty()) return errorAt("RowFormat has zero parameters!");
 
-			bool ok;
-			int bytes = paras[0].toInt(&ok);
-			if(!ok) return errorAt("Given parameter for a row format is not a number!");
-
-			int numberOf = 1;
-			if(paras.size() > 1){
-				numberOf = paras[1].toInt(&ok);
-				if(!ok || numberOf < 1) return errorAt("RowFormat 'number of' is invalid!");
-			}
-
-			qDebug()<<" Command: "<<command<<" number of "<<numberOf;
-			command = command.toLower();
-			if(command == "uint"){
-				for(int i = 0; i < numberOf; i++)
-					data.formats.push_back(rowFormat(rowFormat::UINT, bytes));
-			}else if(command == "int"){
-				for(int i = 0; i < numberOf; i++)
-					data.formats.push_back(rowFormat(rowFormat::INT, bytes));
-			}else if(command == "shiftjis"){
-				for(int i = 0; i < numberOf; i++)
-					data.formats.push_back(rowFormat(rowFormat::SHIFT_JIS, bytes));
-			}else if(command == "unicode"){
-				for(int i = 0; i < numberOf; i++)
-					data.formats.push_back(rowFormat(rowFormat::UNICODE, bytes));
-			}else if(command == "zero"){
-				for(int i = 0; i < numberOf; i++)
-					data.formats.push_back(rowFormat(rowFormat::ZERO, bytes));
-			}else{
-				return errorAt("Row format '"+command +"' is unknown!");
-			}
-
+			data.formats.push_back(rowFormat::create(command, commandArgs));
+			
+			//do we repeat the command?
+			repeatLastComamnd(data.formats);
 
 		}
 		return errorAt("A RowFormat block need to end with '}'!");
@@ -320,44 +396,21 @@ struct defParser{
 			if(!read(command)) return false;
 			if(command.isEmpty()) return errorAt("Given command is empty!");
 
-			QStringList paras;
-			if(!readParamters(paras)) return false;
-			if(paras.empty()) return errorAt("HeaderFormat has zero parameters!");
+			QStringList commandArgs;
+			if(!readParamters(commandArgs)) return false;
+			if(commandArgs.empty()) return errorAt("HeaderFormat has zero parameters!");
 
-			bool ok;
-			int bytes = paras[0].toInt(&ok);
-			if(!ok) return errorAt("Given parameter for a row format is not a number!");
+			auto fromat = rowFormat::create(command, commandArgs);
 
-			int numberOf = 1;
-			if(paras.size() > 1){
-				numberOf = paras[1].toInt(&ok);
-				if(!ok || numberOf < 1) return errorAt("HeaderFormat 'number of' is invalid!");
-			}
-
-			headerFormat::type headerType = headerFormat::KEEP;
-			if(paras.size() > 2 && paras[2].toLower() == "row_size"){
+			headerFormat::Type headerType = headerFormat::KEEP;
+			if(commandArgs.size() > 1 && commandArgs.back().toLower() == "row_size") {
 				headerType = headerFormat::ROW_SIZE;
 			}
 
-			qDebug()<<" Command: "<<command<<" number of "<<numberOf;
-			command = command.toLower();
-			if(command == "uint"){
-				for(int i = 0; i < numberOf; i++)
-					data.headerFormats.push_back(headerFormat(rowFormat::UINT, bytes,headerType));
-			}else if(command == "int"){
-				for(int i = 0; i < numberOf; i++)
-					data.headerFormats.push_back(headerFormat(rowFormat::INT, bytes,headerType));
-			}else if(command == "shiftjis"){
-				for(int i = 0; i < numberOf; i++)
-					data.headerFormats.push_back(headerFormat(rowFormat::SHIFT_JIS, bytes,headerType));
-			}else if(command == "zero"){
-				for(int i = 0; i < numberOf; i++)
-					data.headerFormats.push_back(headerFormat(rowFormat::ZERO, bytes,headerType));
-			}else{
-				return errorAt("HeaderFormat '"+command +"' is unknown!");
-			}
+			data.headerFormats.push_back(headerFormat{ std::move(fromat), headerType });
 
-
+			//do we repeat the command?
+			repeatLastComamnd(data.headerFormats);
 		}
 		return errorAt("A HeaderFormat block need to end with '}'!");
 	}
@@ -530,33 +583,38 @@ ParserDAT::ParserDAT(const QString& defFile, QObject *parent): DataFile(parent) 
 	if(!qfile.open(QIODevice::ReadOnly)) return;
 
 	defParser p(qfile);
-	if(p.parseDef(m_dataStructure)){
-		qDebug() <<"Parsing SUCCESSFUL!";
-		//set column format index
-		int a = 0;
-		for(unsigned int i = 0; i < m_dataStructure.formats.size() && a < m_dataStructure.header.size(); i++){
-			const rowFormat& format = m_dataStructure.formats[i];
-			if(format.rowType == rowFormat::ZERO)
-				continue;
-			m_dataStructure.header[a].formatIndex = i;
-			a ++;
-		}
-
-
-		QList<QVariant> rootData;
-		for(const column& col: m_dataStructure.header){
-			rootData << col.name;
-		}
-		m_root = new TreeItem(rootData);
-
-
-	}else{
-		qDebug() <<"Parsing FAILED!";
+	try
+	{
+		p.parseDef(m_dataStructure);
+		qDebug() << "Parsing SUCCESSFUL!";
+	}
+	catch (const DefParseException& ex) {
+		m_dataStructure.clear();
+		qDebug() << "Parsing FAILED!";
+		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
+			"Parsing error in definition file "+ QFileInfo(defFile).fileName() + " at char number " + QString::number(p.in.pos()) + "! \n" + ex.msg,
+			QMessageBox::Ok);
 	}
 
+	//set column format index
+	for (unsigned int i = 0, a = 0; i < m_dataStructure.formats.size() && a < m_dataStructure.header.size(); ++i) {
+		const rowFormat& format = m_dataStructure.formats[i];
+		if (format.type == rowFormat::ZERO)
+			continue;
+		m_dataStructure.header[a].formatIndex = i;
+		++a;
+	}
+
+
+	QList<QVariant> rootData;
+	for (const column& col : m_dataStructure.header) {
+		rootData << col.name;
+	}
+	if (m_root) delete m_root;
+	m_root = new TreeItem(rootData);
+
+
 	qfile.close();
-
-
 
 }
 
@@ -573,7 +631,7 @@ int ParserDAT::getColumnWidth(int index) const{
 
 	const rowFormat& format = m_dataStructure.formats[col.formatIndex];
 
-	if(format.rowType == rowFormat::SHIFT_JIS){
+	if(format.type == rowFormat::SHIFT_JIS){
 		return format.byteSize*4;
 	}else{
 		if(format.byteSize >= 4) return 100;
@@ -584,125 +642,167 @@ int ParserDAT::getColumnWidth(int index) const{
 }
 
 inline bool readFormat(const rowFormat& format, QDataStream& in, QList<QVariant>& dataOut){
-	if(format.rowType == rowFormat::INT){
+	switch (format.type)
+	{
+
+	case rowFormat::INT: {
 		switch (format.byteSize) {
-			case 0:
-			case 1:
-			{
-				qint8 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			case 2:
-			case 16:
-			{
-				qint16 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			case 4:
-			case 32:
-			{
-				qint32 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			case 8:
-			case 64:
-			{
-				qint64 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			default:
-			{
-				qDebug() <<"(Int) Invalid byteSize: "<<format.byteSize;
-				qint8 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
+		case 0:
+		case 1:
+		{
+			qint8 v;
+			in >> v;
+			dataOut << v;
 		}
-	}else if(format.rowType == rowFormat::UINT){
+		break;
+		case 2:
+		case 16:
+		{
+			qint16 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		case 4:
+		case 32:
+		{
+			qint32 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		case 8:
+		case 64:
+		{
+			qint64 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		default:
+		{
+			qDebug() << "(Int) Invalid byteSize: " << format.byteSize;
+			qint8 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		}
+	}break;
+	case rowFormat::UINT: {
 		switch (format.byteSize) {
-			case 0:
-			case 1:
-			{
-				quint8 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			case 2:
-			case 16:
-			{
-				quint16 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			case 4:
-			case 32:
-			{
-				quint32 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			case 8:
-			case 64:
-			{
-				quint64 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
-			default:
-			{
-				qDebug() <<"(UInt) Invalid byteSize: "<<format.byteSize;
-				quint8 v;
-				in >> v;
-				dataOut<< v;
-			}
-				break;
+		case 0:
+		case 1:
+		{
+			quint8 v;
+			in >> v;
+			dataOut << v;
 		}
-	}else if(format.rowType == rowFormat::ZERO){
-		if(format.byteSize > 0)
+		break;
+		case 2:
+		case 16:
+		{
+			quint16 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		case 4:
+		case 32:
+		{
+			quint32 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		case 8:
+		case 64:
+		{
+			quint64 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		default:
+		{
+			qDebug() << "(UInt) Invalid byteSize: " << format.byteSize;
+			quint8 v;
+			in >> v;
+			dataOut << v;
+		}
+		break;
+		}
+	}break;
+	case rowFormat::ZERO: {
+		if (format.byteSize > 0)
 			in.skipRawData(format.byteSize);
 		//dataOut<< 0;
 		return false;
-	}else if(format.rowType == rowFormat::SHIFT_JIS){
+	}break;
+	case rowFormat::SHIFT_JIS: {
+		int size = 0;
+		if (format.dynamicLength > 0) {
+			char* c = (char*)&size;
+			in.readRawData(c, format.dynamicLength);
+		}
+		else {
+			size = format.byteSize;
+		}
 
-		char* shift_JIS_String = new char[format.byteSize];
-		in.readRawData(shift_JIS_String, format.byteSize);
-		int find_zero = 0;
-		for(; find_zero < format.byteSize; find_zero++)
-			if(shift_JIS_String[find_zero] == 0) break;
-		if(find_zero > format.byteSize) find_zero = format.byteSize;
-		QString str = encodeShiftJisToUnicode(shift_JIS_String, find_zero); //decoder->toUnicode(shift_JIS_String, find_zero);
-		delete shift_JIS_String;
-		dataOut<< str;
-	}else if(format.rowType == rowFormat::UNICODE){
-		char* string = new char[format.byteSize];
-		in.readRawData(string, format.byteSize);
+		char* shift_JIS_String = new char[size];
+		in.readRawData(shift_JIS_String, size);
 
-		int find_zero = 0;
-		for(; find_zero+1 < format.byteSize ; find_zero+=2)
-			if(string[find_zero] == 0 && string[find_zero+1] == 0) break;
+		//crop string if not dynamic
+		if (format.dynamicLength <= 0) {
+			int find_zero = 0;
+			for (; find_zero < size; find_zero++)
+				if (shift_JIS_String[find_zero] == 0) break;
+			size = std::min(size, find_zero);
+		}
 
-		if(find_zero > format.byteSize) find_zero = format.byteSize;
+		QString str = encodeShiftJisToUnicode(shift_JIS_String, size); //decoder->toUnicode(shift_JIS_String, find_zero);
+		delete[] shift_JIS_String;
+		dataOut << str;
+	} break;
+	case rowFormat::HEX:
+	case rowFormat::UNICODE: {
+		int size = 0;
+		if (format.dynamicLength > 0) {
+			char* c = (char*)&size;
+			in.readRawData(c, format.dynamicLength);
+		}
+		else {
+			size = format.byteSize;
+		}
+
+		char* string = new char[size];
+		in.readRawData(string, size);
+
+		//crop string if not dynamic
+		if (format.dynamicLength <= 0) {
+			int find_zero = 0;
+			for (; find_zero + 1 < format.byteSize; find_zero += 2)
+				if (string[find_zero] == 0 && string[find_zero + 1] == 0) break;
+			size = std::min(size, find_zero);
+		}
+
 		QString str;
-		for(unsigned int i = 0; i < find_zero; i+=2)
-			str.push_back(QChar(string[i],string[i+1]));
+		if (format.type == rowFormat::HEX) {
+			QByteArray data(string, size);
+			str = data.toHex();
+		}
+		else {
+			for (unsigned int i = 0; i < size; i += 2)
+				str.push_back(QChar(string[i], string[i + 1]));
+		}
 
-		delete string;
-		dataOut<< str;
+
+		delete[] string;
+		dataOut << str;
+	} break;
+
+	default: assert(false); break;
 	}
-
 	return true;
 }
 
@@ -729,7 +829,7 @@ bool ParserDAT::open(const QString& filepath){
 
 	for(const headerFormat& format: m_dataStructure.headerFormats){
 		readFormat(format.format, in, m_headerData);
-		if(format.headerType == headerFormat::ROW_SIZE && format.format.rowType != rowFormat::ZERO){
+		if(format.headerType == headerFormat::ROW_SIZE && format.format.type != rowFormat::ZERO){
 			quint32 testSize = m_headerData.last().toUInt();
 			if(size == 0) {
 				size = testSize;
@@ -764,98 +864,120 @@ bool ParserDAT::open(const QString& filepath){
 }
 
 inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVariant& dataOut){
-	if(format.rowType == rowFormat::INT){
-		switch (format.byteSize) {
-			case 0:
-			case 1:
-			{
-				out <<(qint8) dataOut.toInt();
-			}
-				break;
-			case 2:
-			case 16:
-			{
-				out <<(qint16) dataOut.toInt();
-			}
-				break;
-			case 4:
-			case 32:
-			{
-				out <<(qint32) dataOut.toInt();
-			}
-				break;
-			case 8:
-			case 64:
-			{
-				out <<(qint64) dataOut.toLongLong();
-			}
-				break;
-			default:
-			{
-				qDebug() <<"(Int w) Invalid byteSize: "<<format.byteSize;
-				out <<(qint8) dataOut.toInt();
-			}
-				break;
-		}
-	}else if(format.rowType == rowFormat::UINT){
-		switch (format.byteSize) {
-			case 0:
-			case 1:
-			{
-				out <<(quint8) dataOut.toUInt();
-			}
-				break;
-			case 2:
-			case 16:
-			{
-				out <<(quint16) dataOut.toUInt();
-			}
-				break;
-			case 4:
-			case 32:
-			{
-				out <<(quint32) dataOut.toUInt();
-			}
-				break;
-			case 8:
-			case 64:
-			{
-				out <<(quint64) dataOut.toULongLong();
-			}
-				break;
-			default:
-			{
-				qDebug() <<"(UInt w) Invalid byteSize: "<<format.byteSize;
-				out <<(quint8) dataOut.toUInt();
-			}
-				break;
-		}
-	}else if(format.rowType == rowFormat::ZERO){
-		for(unsigned int i = 0; i < format.byteSize; i++)
-			out <<(quint8) 0;
-		return false;
-	}else if(format.rowType == rowFormat::SHIFT_JIS){
-		QString str = dataOut.toString();
-		if(str.size() > format.byteSize/2) str = str.left( format.byteSize/2);
 
-		QByteArray bytes = encodeUnicodeToShiftJis(str);// encoder->fromUnicode(mapName);
-		out.writeRawData(bytes.constData(), bytes.size());
-		for(unsigned int i = bytes.size(); i < format.byteSize; i++)
-			out<<(quint8) 0;
-		bytes.clear();
-	}else if(format.rowType == rowFormat::UNICODE){
+	switch (format.type) {
+	case rowFormat::INT: {
+		switch (format.byteSize) {
+		case 0:
+		case 1:
+		{
+			out << (qint8)dataOut.toInt();
+		}
+		break;
+		case 2:
+		case 16:
+		{
+			out << (qint16)dataOut.toInt();
+		}
+		break;
+		case 4:
+		case 32:
+		{
+			out << (qint32)dataOut.toInt();
+		}
+		break;
+		case 8:
+		case 64:
+		{
+			out << (qint64)dataOut.toLongLong();
+		}
+		break;
+		default:
+		{
+			qDebug() << "(Int w) Invalid byteSize: " << format.byteSize;
+			out << (qint8)dataOut.toInt();
+		}
+		break;
+		}
+	}break;
+	case rowFormat::UINT: {
+		switch (format.byteSize) {
+		case 0:
+		case 1:
+		{
+			out << (quint8)dataOut.toUInt();
+		}
+		break;
+		case 2:
+		case 16:
+		{
+			out << (quint16)dataOut.toUInt();
+		}
+		break;
+		case 4:
+		case 32:
+		{
+			out << (quint32)dataOut.toUInt();
+		}
+		break;
+		case 8:
+		case 64:
+		{
+			out << (quint64)dataOut.toULongLong();
+		}
+		break;
+		default:
+		{
+			qDebug() << "(UInt w) Invalid byteSize: " << format.byteSize;
+			out << (quint8)dataOut.toUInt();
+		}
+		break;
+		}
+	}break;
+	case rowFormat::ZERO: {
+		for (unsigned int i = 0; i < format.byteSize; i++)
+			out << (quint8)0;
+		return false;
+	}break;
+	case rowFormat::SHIFT_JIS:
+	case rowFormat::UNICODE: {
 		QString str = dataOut.toString();
-		if(str.size() > format.byteSize/2) str = str.left( format.byteSize/2);
+
+		if (format.dynamicLength > 0) {
+			int size = str.size();
+			out.writeRawData((char*)&size, format.dynamicLength);
+		}
+		else if (str.size() > format.byteSize / 2) {
+			str = str.left(format.byteSize / 2);
+		}
 
 		QByteArray bytes;
-		for(const QChar& c: str){
-			bytes.append(c.cell());
-			bytes.append(c.row());
+		switch (format.type)
+		{
+		case rowFormat::SHIFT_JIS:
+			bytes = encodeUnicodeToShiftJis(str);// encoder->fromUnicode(mapName);
+			break;
+		case rowFormat::UNICODE:
+			for (const QChar& c : str) {
+				bytes.append(c.cell());
+				bytes.append(c.row());
+			}
+			break;
+		case rowFormat::HEX:
+			bytes = QByteArray::fromHex(str.toUtf8());
+			break;
+		default: assert(false); break;
 		}
+
 		out.writeRawData(bytes.constData(), bytes.size());
-		for(unsigned int i = bytes.size(); i < format.byteSize; i++)
-			out<<(quint8) 0;
-		bytes.clear();
+
+		//fill rest with zero
+		if (format.byteSize > 0) {
+			for (unsigned int i = bytes.size(); i < format.byteSize; i++)
+				out << (quint8)0;
+		}
+
+	} break;
 	}
 	return true;
 }
@@ -913,7 +1035,7 @@ QVariant ParserDAT::data(const QModelIndex &index, int role) const{
     	 if(!c.hasColor || c.formatIndex < 0 ) return QVariant();
     	 const rowFormat& f = m_dataStructure.formats[c.formatIndex];
 
-    	 if(f.rowType == rowFormat::INT || f.rowType == rowFormat::UINT){
+    	 if(f.type == rowFormat::INT || f.type == rowFormat::UINT){
     		 if(c.colorMinBackground == c.colorMaxBackground)
     			 return QBrush( c.colorMinBackground);
     		 else{
@@ -961,7 +1083,7 @@ bool ParserDAT::setData(const QModelIndex &index, const QVariant &value, int rol
 	const rowFormat& format = m_dataStructure.formats[a];
 
 	qDebug()<<"Set Data: "<<value<<" role: "<<role << " byte size: "<<QString::number(format.byteSize) << " at column: "<<QString::number(index.column());
-	if(format.rowType == rowFormat::INT){
+	if(format.type == rowFormat::INT){
 		QIntValidator validator(0, 0);
 		switch (format.byteSize) {
 			case 0:
@@ -994,7 +1116,7 @@ bool ParserDAT::setData(const QModelIndex &index, const QVariant &value, int rol
 		int pos = 0;
 		if( validator.validate(val,pos) != QValidator::Acceptable)
 			return false;
-	}else if(format.rowType == rowFormat::UINT){
+	}else if(format.type == rowFormat::UINT){
 		QIntValidator validator(0, 0);
 		switch (format.byteSize) {
 			case 0:
@@ -1027,7 +1149,7 @@ bool ParserDAT::setData(const QModelIndex &index, const QVariant &value, int rol
 		int pos = 0;
 		if( validator.validate(val,pos) != QValidator::Acceptable)
 			return false;
-	}else if(format.rowType == rowFormat::SHIFT_JIS){
+	}else if(format.type == rowFormat::SHIFT_JIS){
 		if(value.type() != QVariant::String) return false;
 		QString str = value.toString();
 		if(str.size() > format.byteSize/2){

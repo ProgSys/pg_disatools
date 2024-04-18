@@ -5,12 +5,12 @@ TABLE("Name","ID",
 	setColumnColor("$2-22",255,255,255, 234,137,113, 0,20); #colums, minColor(r,g,b), maxColor(r,g,b), minValue, maxValue
 	
 	headerFormat{
-		uint(4,2,ROW_SIZE);
+		uint(4,ROW_SIZE):2;
 	}
 	
 	rowFormat{
 		shiftJis(34);
-		uint(1,22);
+		uint(1):22;
 		
 		uint(2);
 		uint(2);

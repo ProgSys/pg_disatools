@@ -25,21 +25,28 @@
 #include <QColor>
 
 struct rowFormat{
-	enum type{ ZERO, INT,UINT, SHIFT_JIS, UNICODE };
-	rowFormat(){}
-	rowFormat(type rowTypeIn, int byteSizeIn):rowType(rowTypeIn), byteSize(byteSizeIn){}
+	enum Type{ 
+		INVALID, /// Error in parsing
+		ZERO, /// data that is allways zero, used for passing
+		INT, /// int data
+		UINT, /// unsigned int data
+		SHIFT_JIS, /// A shift jis string, can be fixed or dynamic size
+		UNICODE, /// A unicode string, can be fixed or dynamic size
+		HEX /// A plain hex string, can be fixed or dynamic size
+	};
 
-	type rowType = UINT;
-	int byteSize = -1;
+	Type type = INVALID;
+	unsigned short byteSize = 0;
+	unsigned short dynamicLength = 0; //defines the byte size of the counter for strings. If zero then the string is fixed.
+
+	static rowFormat create(const QString& name, const QStringList& args);
 };
 
 struct headerFormat{
-	enum type{ KEEP, ROW_SIZE };
-	headerFormat(){}
-	headerFormat(rowFormat::type rowTypeIn, int byteSizeIn, type headerTypeIn): format(rowTypeIn,byteSizeIn),headerType(headerTypeIn) {}
+	enum Type { KEEP, ROW_SIZE };
 
 	rowFormat format;
-	type headerType = KEEP;
+	Type headerType = KEEP;
 };
 
 struct column{
@@ -72,6 +79,7 @@ struct parse{
 
 	void clear(){
 		header.clear();
+		headerFormats.clear();
 		formats.clear();
 	}
 };

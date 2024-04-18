@@ -3,7 +3,7 @@ TABLE("ID","Deceased","Item ID","HP", "SP"){
 	setColumnType("ID", INDEX);
 	
 	headerFormat{
-		uint(4,2,ROW_SIZE);
+		uint(4,ROW_SIZE):2;
 	}
 	
 	rowFormat{
