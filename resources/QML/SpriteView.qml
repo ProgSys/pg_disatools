@@ -20,6 +20,11 @@ Rectangle {
 	readonly property var zoomMin: 0.1 //out
 	readonly property var zoomMax: 55.0 //in
 	readonly property var cutoutModel: spritedata.sheetsSize? spritedata.getSpriteSheet(activeSpriteSheet): null
+	property bool pixelBrushActive: false 
+	
+	onPixelBrushActiveChanged:{
+		spritedata.selected = null
+	}
 
 	signal cutoutSelected(var id, var cutout)
 	
@@ -158,6 +163,7 @@ Rectangle {
 				mousePosIndicator.visible = false
 			}
 		}
+		
 	}
 
 	Item{
@@ -263,6 +269,17 @@ Rectangle {
 				
 				PGToolTip {
 					text: "Isolate selection"
+				}
+			}
+			
+			IconToolButton {
+				image: root.pixelBrushActive? "../materials/icons/pixel_on.png": "../materials/icons/pixel_off.png"
+				onClicked: {
+					root.pixelBrushActive = !root.pixelBrushActive;
+				}
+				
+				PGToolTip {
+					text: "Pixel brush (Control: Erase (second color) Alt: Pic color)"
 				}
 			}
 			
@@ -468,6 +485,86 @@ Rectangle {
 				mouse.accepted = false;
 			}
 		}
+		
+		MouseArea{
+			anchors.fill: parent
+			acceptedButtons: Qt.LeftButton | Qt.RightButton
+			propagateComposedEvents: false
+			preventStealing: true
+			hoverEnabled: root.pixelBrushActive
+			enabled: root.pixelBrushActive
+			property var xImage: 0
+			property var yImage: 0
+			property var color: 0
+			property var clearColor: 0
+			
+			onPressed: {
+				if(mouse.buttons & Qt.RightButton) {
+					root.pixelBrushActive = false;
+					return;
+				}
+				
+				var sheet = spritedata.getSpriteSheet(activeSpriteSheet);
+	
+				if(mouse.modifiers & Qt.AltModifier) {
+					if(mouse.modifiers & Qt.ControlModifier){
+						clearColor = spritedata.getColorIndex(activeSpriteSheet, xImage, yImage);
+					}else{
+						color = spritedata.getColorIndex(activeSpriteSheet, xImage, yImage);
+					}
+					return;
+				}
+				
+				var targetColor = mouse.modifiers & Qt.ControlModifier? clearColor: color;
+				
+				spritedata.addUndoSpriteSheetPixel(activeSpriteSheet, xImage, yImage, targetColor);
+				spritedata.setColorIndex(activeSpriteSheet, xImage, yImage, targetColor);
+				
+			}
+			
+			onReleased: {
+				spritedata.pushUndoSpriteSheetPixels();
+			}
+			
+			onPositionChanged:{
+				
+				xImage = Math.floor((scroll.contentX + mouse.x)/zoom);
+				yImage = Math.floor((scroll.contentY + mouse.y)/zoom);
+				
+				mousePosIndicator.mouseX = mouse.x;
+				mousePosIndicator.mouseY = mouse.y;
+				
+				if(mouse.buttons & Qt.LeftButton && (mouse.modifiers & Qt.AltModifier) == 0) {
+					var targetColor = mouse.modifiers & Qt.ControlModifier? clearColor: color;
+					spritedata.addUndoSpriteSheetPixel(activeSpriteSheet, xImage, yImage, targetColor);
+					spritedata.setColorIndex(activeSpriteSheet, xImage, yImage, targetColor)
+				}
+			}
+			
+			Rectangle{
+				id: brush
+				visible: root.pixelBrushActive && parent.containsMouse 
+				width: zoom
+				height: zoom
+				x: parent.xImage * zoom - scroll.contentX;
+				y: parent.yImage * zoom - scroll.contentY;
+				color: "transparent"
+				border.color: activePalette.light
+				border.width: 1
+				
+				Rectangle{
+					anchors.rightMargin : 1
+					anchors.leftMargin : 1
+					anchors.topMargin : 1
+					anchors.bottomMargin : 1
+					anchors.fill: parent
+					color: "transparent"
+					border.color: activePalette.dark
+					border.width: 1
+				}
+			}
+		}
+		
 	}
 	
 	Rectangle{
@@ -592,7 +689,7 @@ Rectangle {
 			x: mouseX+15
 			y: mouseY+15
 			Text {
-				text: Math.round((scroll.contentX +parent.mouseX)/zoom) +":"+ Math.round((scroll.contentY +parent.mouseY-25)/zoom)
+				text: Math.floor((scroll.contentX + parent.mouseX)/zoom) +":"+ Math.floor((scroll.contentY +parent.mouseY-25)/zoom)
 			}
 			width: childrenRect.width
 			height: childrenRect.height

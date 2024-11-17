@@ -43,6 +43,7 @@
 #include <UndoCommands/UndoColortableColorSet.h>
 #include <UndoCommands/UndoCutoutPosition.h>
 #include <UndoCommands/UndoLayerChanges.h>
+#include <UndoCommands/UndoSheetPixelChanges.h>
 
 
 
@@ -1563,6 +1564,19 @@ QImage SpriteSheet::getSpriteIDs(const Cutout* cut) const {
 	return sprite;
 }
 
+unsigned char SpriteSheet::getColorIndex(int x, int y) {
+	if (x < 0 || x >= m_img.getWidth() || y < 0 || y >= m_img.getHeight()) return 0;
+	return m_img.get(PG::UTIL::uvec2(x, y));
+}
+
+bool SpriteSheet::setColorIndex(int x, int y, unsigned char v) {
+	if (x < 0 || x >= m_img.getWidth() || y < 0 || y >= m_img.getHeight()) return false;
+	auto at = PG::UTIL::uvec2(x, y);
+	if (m_img.get(at) == v) return false;
+	m_img.set(at, v);
+	return true;
+}
+
 ////// SPRITE DATA //////
 
 SpriteData::SpriteData(QObject* parent) : QAbstractListModel(parent), m_selectedKeyframe(nullptr) {
@@ -1616,6 +1630,9 @@ inline void writeText(QDataStream& out, const QString& text) {
 }
 
 bool SpriteData::save(const QString& file) {
+	if (m_pixelChangesBuffer) {
+		delete m_pixelChangesBuffer;
+	}
 	if (file.size() == 0) return false;
 
 	if (m_spriteSheets.empty() || m_colortables.empty()) return false;
@@ -2186,6 +2203,20 @@ void SpriteData::pushUndoLayer(Layer* layer) {
 	if (layer) m_undoStack->push(new UndoLayerChanges(this, layer));
 }
 
+void SpriteData::addUndoSpriteSheetPixel(int spriteSheetIndex, int x, int y, unsigned int color) {
+	if (!m_pixelChangesBuffer) {
+		m_pixelChangesBuffer = new UndoSheetPixelChanges(this, spriteSheetIndex);
+	}
+	m_pixelChangesBuffer->addColor(x, y, color);
+}
+
+void SpriteData::pushUndoSpriteSheetPixels() {
+	if (m_pixelChangesBuffer) {
+		m_undoStack->push(m_pixelChangesBuffer);
+		m_pixelChangesBuffer = nullptr;
+	}
+}
+
 int SpriteData::findExternalSpriteSheetIndex(int externalID) const {
 	auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(), [externalID](SpriteSheet* s) {
 		return s->getExternalID() == externalID;
@@ -2633,6 +2664,7 @@ bool SpriteData::importSpriteAsColor(int sheetID, int x, int y, int width, int h
 
 bool SpriteData::importSpriteAsColor(Cutout& cut, QImage& newColorCutout) {
 	if (newColorCutout.isNull()) return false;
+	m_undoStack->clear();
 
 	//target image
 	const int imageSize = (newColorCutout.width() * newColorCutout.height());
@@ -2656,7 +2688,7 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, QImage& newColorCutout) {
 	//image colortables
 	QColorTable imageTable = buildColorTable(newColorCutout);
 	QColorTable currentTable = extractColorTable(cut.getDefaultColorTable(), colortableSize, getColorTable());
-	PG_INFO_STREAM("HERE!");
+
 	if (imageTable.size() > currentTable.size()) {
 		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
 			"Your image has " + QString::number(imageTable.size()) + " colors, but the sprite sheet supports max " + QString::number(currentTable.size()) + " colors!\n"
@@ -2670,7 +2702,6 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, QImage& newColorCutout) {
 		imageTable = buildColorTable(newColorCutout);
 	}
 
-	PG_INFO_STREAM("HERE!");
 	QColorTable& colortable = getColorTable();
 	if (!compareColorTables(cut.getDefaultColorTable(), 16, imageTable, colortable)) {
 		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Continue?",
@@ -2702,7 +2733,6 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, QImage& newColorCutout) {
 	}
 
 
-	PG_INFO_STREAM("HERE!");
 	PG::UTIL::IDImage idImage(newColorCutout.width(), newColorCutout.height());
 	for (int y = 0; y < newColorCutout.height(); y++)
 		for (int x = 0; x < newColorCutout.width(); x++) {
@@ -3258,6 +3288,9 @@ bool SpriteData::reorganizeData() {
 }
 
 void SpriteData::close() {
+	if (m_pixelChangesBuffer) {
+		delete m_pixelChangesBuffer;
+	}
 	setSelected(nullptr);
 	clearSelectedKey();
 	m_currentAnimation = -1;
@@ -3921,6 +3954,32 @@ bool SpriteData::editSpriteSheet(unsigned int index) {
 		return true;
 	}
 	return false;
+}
+
+unsigned char SpriteData::getColorIndex(int spriteSheetIndex, int x, int y) {
+	if (auto sheet = getSpriteSheet(spriteSheetIndex)) return sheet->getColorIndex(x, y);
+	return 0;
+}
+
+bool SpriteData::setColorIndex(int spriteSheetIndex, int x, int y, unsigned char v) {
+	if (auto sheet = getSpriteSheet(spriteSheetIndex); sheet && sheet->setColorIndex(x, y, v)) {
+		emit spriteSheetChanged(spriteSheetIndex);
+	}
+	return false;
+}
+
+bool SpriteData::setColorIndex(int spriteSheetIndex, const std::unordered_map<glm::ivec2, unsigned char, IVec2Hash>& map) {
+	auto sheet = getSpriteSheet(spriteSheetIndex);
+	if (!sheet) return false;
+	bool change = false;
+	for (auto& [at, value] : map) {
+		change |= sheet->setColorIndex(at.x, at.y, value);
+	}
+
+	if (change) {
+		emit spriteSheetChanged(spriteSheetIndex);
+	}
+	return change;
 }
 
 void SpriteData::renameCurrentAnimation() {

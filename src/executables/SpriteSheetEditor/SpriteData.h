@@ -28,11 +28,15 @@
 #include <QKeyEvent>
 #include <QVector>
 #include <QUndoStack>
+#include <unordered_map>
 
 #include <Marker.h>
 #include <Util/PG_Image.h>
+#include <glm/glm.hpp>
+#include <IVec2Hash.h>
 
 typedef QVector<QColor> QColorTable;
+class UndoSheetPixelChanges;
 
 class Cutout: public QObject{
 	Q_OBJECT
@@ -474,6 +478,15 @@ public:
 	PG::UTIL::IDImage getSpritePGIDs(const Cutout* cut) const;
 	QImage getSpriteIDs(const Cutout* cut) const;
 
+	/**
+	* @brief Will pick the color index at given coredinate.
+	*/
+	Q_INVOKABLE unsigned char getColorIndex(int x, int y);
+	/**
+	* @brief Set color index at given index
+	*/
+	Q_INVOKABLE bool setColorIndex(int x, int y, unsigned char v);
+
 
 	inline QVector<int>& getCutoutIDs() { return m_cutoutsIDs;  }
 	inline const QVector<int>& getCutoutIDs() const { return m_cutoutsIDs; }
@@ -625,6 +638,8 @@ public slots:
 	Q_INVOKABLE inline void clearUndo() { m_undoStack->clear(); }
 	Q_INVOKABLE void pushUndoPosition(Cutout* cutout);
 	Q_INVOKABLE void pushUndoLayer(Layer* layer);
+	Q_INVOKABLE void addUndoSpriteSheetPixel(int spriteSheetIndex, int x, int y, unsigned int color);
+	Q_INVOKABLE void pushUndoSpriteSheetPixels();
 
 	Q_INVOKABLE int findExternalSpriteSheetIndex(int externalID) const;
 	Q_INVOKABLE bool openExternalSpriteSheet(int sheetID);
@@ -676,6 +691,10 @@ public slots:
 	Q_INVOKABLE bool addNewSpriteSheet(int width, int height, int powerOfColorTable = 4, int externalId = -1);
 	Q_INVOKABLE bool removeSpriteSheet(unsigned int index);
 	Q_INVOKABLE bool editSpriteSheet(unsigned int index);
+
+	Q_INVOKABLE unsigned char getColorIndex(int spriteSheetIndex, int x, int y);
+	Q_INVOKABLE bool setColorIndex(int spriteSheetIndex, int x, int y, unsigned char v);
+	Q_INVOKABLE bool setColorIndex(int spriteSheetIndex, const std::unordered_map<glm::ivec2, unsigned char, IVec2Hash>& map);
 
 	Q_INVOKABLE void clearSelectedKey();
 	Q_INVOKABLE void unhideAllCutouts();
@@ -738,6 +757,7 @@ private:
 
 	int m_selectedColorId = -1;
 	bool m_isolateSelection = false;
+	UndoSheetPixelChanges* m_pixelChangesBuffer = nullptr;
 };
 
 QDebug operator<< (QDebug d, const PG::UTIL::ivec2 &m);

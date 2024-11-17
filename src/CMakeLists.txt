@@ -23,15 +23,15 @@
  ]]
  
 cmake_minimum_required(VERSION 3.14.0)
-project(DisaTools VERSION 0.8.3 LANGUAGES CXX HOMEPAGE_URL "https://github.com/ProgSys/pg_disatools" DESCRIPTION "Modding tools for Disgaea PC")
+project(DisaTools VERSION 1.0.0 LANGUAGES CXX HOMEPAGE_URL "https://github.com/ProgSys/pg_disatools" DESCRIPTION "Modding tools for Disgaea PC")
 
-set(PROJECT_GLOBAL_NUMBER 0.8.5 CACHE PATH "Project version number.")
+set(PROJECT_GLOBAL_NUMBER 1.0.0 CACHE PATH "Project version number.")
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake CACHE PATH "Project specific path. Set manually if it was not found.")
 
-set (TITLE_FileManager "Disa PC File Manager v0.5.8 alpha" CACHE PATH "Tilte")
-set (TITLE_SpriteSheetEditor "Sprite Sheet Editor v0.4.3 alpha" CACHE PATH "Tilte")
-set (TITLE_DATAEditor "Data Editor v0.0.6 alpha" CACHE PATH "Tilte")
-set (TITLE_MapEditor "Map Viewer v0.0.1 development" CACHE PATH "Tilte")
+set (TITLE_FileManager "Disa PC File Manager v0.6.2 alpha" CACHE PATH "Tilte")
+set (TITLE_SpriteSheetEditor "Sprite Sheet Editor v0.4.8 alpha" CACHE PATH "Tilte")
+set (TITLE_DATAEditor "Data Editor v0.0.8 alpha" CACHE PATH "Tilte")
+set (TITLE_MapEditor "Map Editor v0.2.9 alpha" CACHE PATH "Tilte")
 set (TITLE_TX2Editor "TX2 Editor v0.0.3 alpha" CACHE PATH "Tilte")
 
 include(${CMAKE_MODULE_PATH}/generators/QtProject.cmake)
