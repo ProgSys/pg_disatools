@@ -33,8 +33,8 @@ PreviewDAT::PreviewDAT(QObject *parent): DataFile(parent){
 	data << "Definition file" << "Description" << "File starting name";
 	m_root = new TreeItem(data);
 	QMap<QString,QString> descriptions;
-	qDebug() << "Trying to open:" << getResourcePath() + "/dataFiles/descriptions.txt";
-	QFile qfile(getResourcePath()+"/dataFiles/descriptions.txt");
+	qDebug() << "Trying to open:" << getResourcePath() + "/script/disa/defFiles/descriptions.txt";
+	QFile qfile(getResourcePath()+"/script/disa/defFiles/descriptions.txt");
 	if(qfile.open(QIODevice::ReadOnly)){
 		QTextStream in(&qfile);
 
@@ -51,7 +51,7 @@ PreviewDAT::PreviewDAT(QObject *parent): DataFile(parent){
 
 
 
-	QDir myDir(getResourcePath()+"/dataFiles/");
+	QDir myDir(getResourcePath()+"/script/disa/defFiles/");
 	QStringList filters;
 	filters.push_back("*.DEF");
 	QFileInfoList filesList = myDir.entryInfoList(filters );
@@ -175,7 +175,7 @@ void DataEditor::open(const QString& file){
 	QString filename = QFileInfo(file).baseName();
 
 
-	QDir myDir(getResourcePath() + "/dataFiles/");
+	QDir myDir(getResourcePath() + "/script/disa/defFiles");
 	QStringList filters;
 	filters.push_back("*.DEF");
 	QFileInfoList filesList = myDir.entryInfoList(filters );

@@ -8,47 +8,11 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)**
+* **[Version v1.0.0 alpha](https://www.dropbox.com/scl/fi/ndlkk49s16b2mb2vjbw2g/Disgaea-Tools-v1.0.0-alpha.zip?rlkey=fqpdx69tru4v9dvmvcnmppnf0&dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  28.05.2020 - v0.9.0 ===
-  * Disa Map Viewer v0.0.6 alpha:
-	- Animations are now almost the same as in game
-	- Added animated texture support
-		- Note: Texture scroll speed and direction is defined inside map files, so if you just open a model the animation will be wrong
-	- You can now open DATA.DAT to view all maps inside
-	- Added interpretation for models that are marked hidden
-		- You can display hidden models via a toggle button
-  * Sprite Sheet Editor v0.4.6 alpha
-	- Fixed crash when sprite id is set too high
-	- Fixed crash when opening an .SH where a cutout has an invalid sheet index
-===  11.06.2020 - v0.9.1 ===
-  * Disa PC File Manager v0.5.9 alpha:
-	- Fixed a case where the save button would not enable
-	- Added the ability to export a metafest file
-		- It contains meta information of each file like file size and md5 checksum 
-  * Disa Map Viewer v0.0.7 alpha:
-	- Improved performance
-	- Scrollbar stays active when mouse is moved outside window
-===  11.07.2020 - v0.9.2 ===
-  * Disa PC File Manager v0.6.0 alpha:
-	- Fixed .OGG play option not displaying in context menu
-	- Fixed file name display in file info box
-===  01.08.2020 - v0.9.3 ===
-  * Disa Map Viewer v0.0.8 alpha:
-	- Fixed map chunk parsing. No tiles should be missing.
-	- Added Geo Panels interpretation
-		- You can enable Geo Panels with a toggle button
-        - Improved performance
-===  27.12.2020 - v0.9.4 ===
-  * General:
-	- Updated Qt to 5.15.1
-  * Disa PC File Manager v0.6.1 alpha:
-	- Added file support for PS_FS_V1
-  * Disa Map Viewer v0.0.9 alpha:
-	- You can now display actor positions (like enemies)
 ===  30.07.2023 - v0.9.5 ===
   * Disa PC File Manager v0.6.2 alpha:
 	- Better support for NEW .MPP files
@@ -73,6 +37,21 @@ You can download the latest version of the tools here:
   * Sprite Sheet Editor v0.4.7 alpha
 	- When adding a color set the other sets are moved to the right and the cutout color offset ID is incremented as needed.
 		- Added a plus btn to simply add a color set to the end
+===  17.11.2024 - v1.0.0 ===
+  * (NEW) Data Map Editor v0.2.9 alpha
+	- Allows you not to just edit maps but also create completely new maps and shareable campaigns!
+	- It is possible to create custom intro and exit dialog/scripts 
+  * Sprite Sheet Editor v0.4.9 alpha
+	- Added simple pixel brush tool 
+		- Left click to paint color
+		- Control-Left click to paint with second color
+		- Alt-Left click to pick color form canvas
+		- Alt-Control-Left click to pick second color form canvas
+		- Control-Z Undo
+	- Improved sheet navigation, middle mouse btn can now be used for panning
+	- Improved timeline timer to be consistent. Its speed no longer depens on the fps.
+  * Data Editor v0.0.8 alpha:
+    - Fields now can be split into a sub range of bits. (final size must always be divisible by 8) Example: "uint(3b); uint(13b);", short split into two numbers
 ```
 
 ### Older versions:
@@ -94,6 +73,7 @@ You can download the latest version of the tools here:
 * [Version v0.9.4 alpha](https://www.dropbox.com/s/9gz829c4eh2yf23/Disgaea%20Tools%20v0.9.4%20alpha.zip?dl=0)
 * [Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)
 * [Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)
+* [Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)
 ---
 
 
@@ -104,16 +84,22 @@ You can download the latest version of the tools here:
 This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.
 Note that the position of most files in .DAT are hardcoded, deleting files could break the file order and so the archive itself.
 
-
 ![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/File_Manager_v0.5.8.png)
+
+#### Disa Map Editor
+
+The map editor allows you to not only modify existing maps but also create brand-new ones to share with others. 
+To achieve this, a custom "Campaigns" menu has been seamlessly added to the game through partial reverse engineering.
+
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Map_Editor_v0.2.9_preview.png)
 
 #### Sprite Sheet Editor
 
-With this tool you can view and edit Disgaea PC sprite sheets. 
-And of curse export them back to the original game format.
-Note, if your data becomes too big then the game will no load anymore, 
-however you can expand the allocated space via the File Manager App. 
-As always the App is not perfect, so if you encounter any issues, I would greatly appreciate your feedback.
+This tool lets you view and edit sprite sheets, and you can easily export them back to the original game format.
+
+Keep in mind that if your edited data becomes too large, the game might not load correctly. However, you **can expand** the allocated space using the File Manager.
+
+As always, the App isn't perfect, so if you encounter any issues, I would greatly appreciate your feedback!
 
 ![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Sprite_Sheet_Editor.png)
 
@@ -144,11 +130,6 @@ This tool allows you to open, view, convert and export TX2 images.
 
 ![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 
-#### Map Viewer
-
-Allows you to view maps and export them as GTLF.
-
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Map_Editor_v0.0.8_preview.png)
 
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
@@ -159,7 +140,7 @@ The source code of these projects are located in the folder 'src'
 
 ### GNU Lesser General Public License (LGPL)
 
-	Copyright (C) 2016  ProgSys
+	Copyright (C) 2024  ProgSys
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU Lesser General Public License as published by

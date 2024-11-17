@@ -31,7 +31,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake CACHE PATH "Project specific pat
 set (TITLE_FileManager "Disa PC File Manager v0.6.2 alpha" CACHE PATH "Tilte")
 set (TITLE_SpriteSheetEditor "Sprite Sheet Editor v0.4.8 alpha" CACHE PATH "Tilte")
 set (TITLE_DATAEditor "Data Editor v0.0.8 alpha" CACHE PATH "Tilte")
-set (TITLE_MapEditor "Map Editor v0.2.9 alpha" CACHE PATH "Tilte")
+set (TITLE_MapEditor "Data Map Editor v0.2.9 alpha" CACHE PATH "Tilte")
 set (TITLE_TX2Editor "TX2 Editor v0.0.3 alpha" CACHE PATH "Tilte")
 
 include(${CMAKE_MODULE_PATH}/generators/QtProject.cmake)

@@ -518,3 +518,20 @@
   * Sprite Sheet Editor v0.4.7 alpha
 	- When adding a color set the other sets are moved to the right and the cutout color offset ID is incremented as needed.
 		- Added a plus btn to simply add a color set to the end
+		
+===  17.11.2024 - v1.0.0 ===
+  * (NEW) Data Map Editor v0.2.9 alpha
+	- Allows you not to just edit maps but also create completely new maps and shareable campaigns!
+	- It is possible to create custom intro and exit dialog/scripts 
+  * Sprite Sheet Editor v0.4.9 alpha
+	- Added simple pixel brush tool 
+		- Left click to paint color
+		- Control-Left click to paint with second color
+		- Alt-Left click to pick color form canvas
+		- Alt-Control-Left click to pick second color form canvas
+		- Control-Z Undo
+	- Improved sheet navigation, middle mouse btn can now be used for panning
+	- Improved timeline timer to be consistent. Its speed no longer depens on the fps.
+  * Data Editor v0.0.8 alpha:
+    - Fields now can be split into a sub range of bits. (final size must always be divisible by 8) Example: "uint(3b); uint(13b);", short split into two numbers
+	

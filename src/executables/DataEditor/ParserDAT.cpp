@@ -585,7 +585,7 @@ struct unicodeParser{
 
 ParserDAT::ParserDAT(const QString& defFile, QObject *parent): DataFile(parent) {
 #if UNICODESCRIPT
-	QFile unicodes(getResourcePath() + "/dataFiles/shiftJisAsUnicode.txt");
+	QFile unicodes(getResourcePath() + "/script/disa/defFiles/shiftJisAsUnicode.txt");
 	if(!unicodes.open(QIODevice::ReadOnly)) return;
 	unicodeParser par(unicodes);
 	par.parse();
