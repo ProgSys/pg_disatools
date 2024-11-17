@@ -38,6 +38,7 @@ struct rowFormat{
 	Type type = INVALID;
 	unsigned short byteSize = 0;
 	unsigned short dynamicLength = 0; //defines the byte size of the counter for strings. If zero then the string is fixed.
+	unsigned short bitSize = 0; //if set then size of data is smaller then a byte
 
 	static rowFormat create(const QString& name, const QStringList& args);
 };

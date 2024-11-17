@@ -23,8 +23,9 @@
 #include <QObject>
 #include <QTimer>
 #include <SpriteData.h>
+#include <chrono>
 
-#define ONEFRAME_ANIMATION_SPEED 10
+#define ONEFRAME_ANIMATION_SPEED 60
 
 
 class Timeline : public QObject
@@ -93,6 +94,7 @@ signals:
 private:
     //time
 	QTimer m_time;
+    std::chrono::high_resolution_clock::time_point m_startTime = std::chrono::high_resolution_clock::now();
 	bool m_playing = true;
 
 	//scale
@@ -101,6 +103,7 @@ private:
 
     //tracker
     int m_tracker = 0;
+    double m_trackerOverTime = 0.0;
     int m_totalTrackSize = 0;
 
     SpriteAnimation* m_currAnimation = nullptr;

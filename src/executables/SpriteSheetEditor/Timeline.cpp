@@ -26,12 +26,14 @@
 Timeline::Timeline(SpriteData* aniData, QObject *parent)
     : QObject(parent)
 {
-	connect(&m_time, SIGNAL(timeout()), this, SLOT(loop()));
+	connect(&m_time, &QTimer::timeout, this, &Timeline::loop);
 	if(aniData){
 		connect(aniData, SIGNAL(onAnimationChanged(SpriteAnimation* )), this, SLOT(setAnimation(SpriteAnimation*)));
 		connect(aniData, SIGNAL(refresh()), this, SLOT(updateTimeline()));
 		connect(aniData, SIGNAL( currentColorTableChanged() ), this, SLOT( updateTimeline() ) );
 	}
+	m_time.setSingleShot(false);
+	m_time.setTimerType(Qt::PreciseTimer);
     //m_keyframes.push_back(new Keyframe(10, this));
     //m_keyframes.push_back(new Keyframe(410, this));
     //m_keyframes.push_back(new Keyframe(15, this));
@@ -75,6 +77,7 @@ void Timeline::setTracker(int tracker)
     //qDebug()<<"tracker: "<<QString::number(tracker);
     if(m_tracker != tracker){
         m_tracker = tracker;
+		m_trackerOverTime = m_tracker;
         emit currentFrame(m_tracker);
         emit trackerChanged();
         pause();
@@ -95,6 +98,7 @@ void Timeline::setSteps(int steps){
 
 void Timeline::clear(){
 	m_tracker = 0;
+	m_trackerOverTime = 0.0;
 	m_totalTrackSize = 0;
 	m_time.stop();
 
@@ -115,6 +119,7 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 
 	if(m_currAnimation == ani){
 		m_tracker = 0;
+		m_trackerOverTime = 0.0;
 		emit currentFrame(0);
 		emit trackerChanged();
 		return;
@@ -123,6 +128,7 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 	m_currAnimation = ani;
 	qDebug()<<" [Timeline:"<<__LINE__<<"]: "<<"Animation set to: "<<m_currAnimation->getName() <<" with "<<ani->getNumberOfLayers()<<" layers and "<<ani->getNumberOfMarkers()<<" marks." ;
 	m_tracker = 0;
+	m_trackerOverTime = 0.0;
 	m_totalTrackSize = m_currAnimation->getTotalFrames();
 
 	emit totalFrames(m_totalTrackSize);
@@ -131,8 +137,10 @@ void Timeline::setAnimation(SpriteAnimation* ani){
 	emit onAnimationChanged();
 	emit widthChanged();
 
-	if(isPlaying())
-		m_time.start(ONEFRAME_ANIMATION_SPEED);
+	if (isPlaying()) {
+		m_startTime = std::chrono::high_resolution_clock::now();
+		m_time.start(0);
+	}
 }
 
 void Timeline::updateTimeline(){
@@ -146,8 +154,21 @@ void Timeline::updateTimeline(){
 }
 
 void Timeline::loop(){
-	nextFrame();
-	m_time.start(ONEFRAME_ANIMATION_SPEED);
+	auto endTime = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double> deltaTime =  endTime - m_startTime;
+	m_startTime = endTime;
+
+	m_trackerOverTime += double(deltaTime.count()) * double(ONEFRAME_ANIMATION_SPEED);
+	std::cout << m_trackerOverTime << std::endl;
+	if (m_trackerOverTime > m_totalTrackSize) m_trackerOverTime -= m_totalTrackSize;
+
+	int tracker = std::round(m_trackerOverTime);
+	if (m_tracker == tracker)  return;
+
+	m_tracker = tracker;
+	emit currentFrame(m_tracker);
+	emit trackerChanged();
+
 }
 
 
@@ -157,6 +178,7 @@ void Timeline::nextFrame(){
 	if(m_tracker > m_totalTrackSize)
 		m_tracker = 0;
 
+	m_trackerOverTime = m_tracker;
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
 	//emit render();
@@ -168,7 +190,7 @@ void Timeline::previousFrame(){
 	if(m_tracker < 0)
 		m_tracker = m_totalTrackSize;
 
-
+	m_trackerOverTime = m_tracker;
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
 	//emit render();
@@ -188,6 +210,7 @@ void Timeline::nextKeyframe(){
 	else
 		m_tracker = lastFrame;
 
+	m_trackerOverTime = m_tracker;
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
 	//emit render();
@@ -207,6 +230,7 @@ void Timeline::previousKeyframe(){
 	else
 		m_tracker = lastFrame;
 
+	m_trackerOverTime = m_tracker;
 	emit currentFrame(m_tracker);
 	emit trackerChanged();
 	//emit render();
@@ -219,8 +243,9 @@ void Timeline::pause(){
 }
 void Timeline::play(){
 	m_playing = true;
+	m_startTime = std::chrono::high_resolution_clock::now();
 	if(m_totalTrackSize <= 0) return;
-	m_time.start(ONEFRAME_ANIMATION_SPEED);
+	m_time.start(0);
 	emit onPlay();
 }
 

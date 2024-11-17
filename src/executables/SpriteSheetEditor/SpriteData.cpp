@@ -438,9 +438,19 @@ void Keyframe::setStart(int startIn, bool keepDocked) {
 
 }
 
-void Keyframe::setDuration(int durationIn, bool keepDocked) {
+void Keyframe::setDuration(int durationIn, bool shift) {
 	if (durationIn <= 0 || durationIn == m_duration) return;
 
+
+	if (shift && m_next && (getStart() + durationIn > m_next->getStart() || getEnd() == m_next->getStart())) {
+		const int diff = getStart() + durationIn - m_next->getStart();
+		Keyframe* key = m_next;
+		while (key) {
+			key->setStartDirrect(key->getStart() + diff);
+			key = key->getNext();
+		}
+	}
+	/*
 	if (keepDocked && m_next && (getStart() + durationIn > m_next->getStart() || getEnd() == m_next->getStart())) {
 		const int diff = getStart() + durationIn - m_next->getStart();
 		if ((m_next->getEnd() - m_next->getStart() - diff) > 1) {
@@ -451,15 +461,9 @@ void Keyframe::setDuration(int durationIn, bool keepDocked) {
 			m_next->setStartDirrect(m_next->getEnd() - 1);
 			m_next->setDuration(1);
 			durationIn = m_next->getEnd() - getStart();
-			/*
-			Keyframe* key = m_next;
-			while(key){
-				key->setStartDirrect(key->getStart()+diff);
-				key = key->getNext();
-			}
-			*/
 		}
 	}
+	*/
 
 	if (m_next && (m_start + durationIn) >= m_next->getStart()) {
 		m_duration = m_next->getStart() - m_start;
@@ -898,7 +902,7 @@ bool Layer::splitKeyframe(int frame) {
 				key->getScaleX(), key->getScaleY(),
 				key->getOffsetX(), key->getOffsetY(),
 				key->getRotation(), key->getTransparency(), key->getMic());
-
+			newKey->setParent(key->parent());
 
 			Keyframe* after = key->getNext();
 

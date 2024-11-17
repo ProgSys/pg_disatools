@@ -30,6 +30,7 @@
 #include <Util/PG_Exception.h>
 #include <QBrush>
 #include <QException>
+#include <bitset>
 
 class DefParseException : public QException
 {
@@ -75,9 +76,20 @@ rowFormat rowFormat::create(const QString& name, const QStringList& args) {
 		throw DefParseException("Unknown row format " + name + "!");
 	}
 
-	const auto paseInt = [&](int index, unsigned short& target) {
-		if (args.size() > index) {
-			bool ok;
+	const auto paseInt = [&](int index, unsigned short& target, unsigned short& bitSize) {
+		if (args.size() <= index) return;
+		bool ok;
+		QString sizeStr = args[index];
+		if (sizeStr.endsWith('b')) {
+			//bitMode
+			sizeStr.chop(1);
+			int bits = sizeStr.toInt(&ok);
+			if (!ok) throw DefParseException("Argument " + QString::number(index + 1) + " in " + name + " is not a number!");
+			target = static_cast<unsigned short>(std::ceil((float)bits/8));
+			bitSize = bits;
+		}
+		else {
+
 			int bytes = args[index].toInt(&ok);
 			if (!ok) throw DefParseException("Argument "+ QString::number(index+1) + " in " + name + " is not a number!");
 			target = bytes;
@@ -89,7 +101,7 @@ rowFormat rowFormat::create(const QString& name, const QStringList& args) {
 	case rowFormat::ZERO:
 	case rowFormat::UINT: 
 	case rowFormat::INT: {
-		paseInt(0, format.byteSize);
+		paseInt(0, format.byteSize, format.bitSize);
 	}break;
 
 	case rowFormat::SHIFT_JIS: 
@@ -99,11 +111,12 @@ rowFormat rowFormat::create(const QString& name, const QStringList& args) {
 			if (args.size() < 1) {
 				throw DefParseException("The byte size for the lenght of a dynamic "+ name + " must be provided!");
 			}
-			paseInt(1, format.dynamicLength);
+			paseInt(1, format.dynamicLength, format.bitSize);
 		}
 		else {
-			paseInt(0, format.byteSize);
+			paseInt(0, format.byteSize, format.bitSize);
 		}
+		format.bitSize = 0;
 	}break;
 	default: break;
 	}
@@ -641,42 +654,85 @@ int ParserDAT::getColumnWidth(int index) const{
 	return 30;
 }
 
+struct OverflowData {
+	std::bitset<128> overflowData = 0;
+	unsigned int overflowDataSize = 0;
+};
+OverflowData gOverflowData;
+
+template<typename T>
+inline T createMask(unsigned int numberOfBits) {
+	// Ensure numberOfBits doesn't exceed the number of bits in the type T
+	if (numberOfBits >= std::numeric_limits<T>::digits) {
+		return std::numeric_limits<T>::max();
+	}
+	return (static_cast<T>(1) << numberOfBits) - 1;
+}
+
+
+template<typename T>
+inline T readData(const rowFormat& format, QDataStream& in) {
+	T v;
+	if (format.bitSize != 0) {
+		if (gOverflowData.overflowDataSize == 0) {
+			in >> v;
+			gOverflowData.overflowData = static_cast<unsigned long long>(v);
+			gOverflowData.overflowDataSize = sizeof(T) * 8;
+		}
+		else if (gOverflowData.overflowDataSize >= format.bitSize) {
+			v = static_cast<T>(gOverflowData.overflowData.to_ulong());
+		}
+		else {
+			while (gOverflowData.overflowDataSize < format.bitSize){
+				qint8 c;
+				in >> c;
+				std::bitset<128> mergeSet = static_cast<unsigned long long>(c);
+				mergeSet <<= gOverflowData.overflowDataSize;
+				gOverflowData.overflowData |= mergeSet;
+				gOverflowData.overflowDataSize += sizeof(qint8) * 8;
+			}
+			v = static_cast<T>(gOverflowData.overflowData.to_ulong());
+		}
+		gOverflowData.overflowData >>= format.bitSize;
+		gOverflowData.overflowDataSize -= format.bitSize;
+
+		return (v & createMask<T>(format.bitSize));
+	}
+	else {
+		gOverflowData.overflowDataSize = 0;
+		in >> v;
+		return v;
+	}
+}
+
 inline bool readFormat(const rowFormat& format, QDataStream& in, QList<QVariant>& dataOut){
+
 	switch (format.type)
 	{
-
 	case rowFormat::INT: {
 		switch (format.byteSize) {
 		case 0:
 		case 1:
 		{
-			qint8 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<qint8>(format, in);
 		}
 		break;
 		case 2:
 		case 16:
 		{
-			qint16 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<qint16>(format, in);
 		}
 		break;
 		case 4:
 		case 32:
 		{
-			qint32 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<qint32>(format, in);
 		}
 		break;
 		case 8:
 		case 64:
 		{
-			qint64 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<qint64>(format, in);
 		}
 		break;
 		default:
@@ -694,33 +750,25 @@ inline bool readFormat(const rowFormat& format, QDataStream& in, QList<QVariant>
 		case 0:
 		case 1:
 		{
-			quint8 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<quint8>(format, in);
 		}
 		break;
 		case 2:
 		case 16:
 		{
-			quint16 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<quint16>(format, in);
 		}
 		break;
 		case 4:
 		case 32:
 		{
-			quint32 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<quint32>(format, in);
 		}
 		break;
 		case 8:
 		case 64:
 		{
-			quint64 v;
-			in >> v;
-			dataOut << v;
+			dataOut << readData<quint64>(format, in);
 		}
 		break;
 		default:
@@ -863,7 +911,46 @@ bool ParserDAT::open(const QString& filepath){
 	return true;
 }
 
-inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVariant& dataOut){
+template<typename T>
+inline void writeData(const rowFormat& format, QDataStream& out, const QVariant& dataIn) {
+	
+	if (format.bitSize != 0) {
+		T v;
+		if constexpr (sizeof(T) > 4) {
+			v = static_cast<T>(dataIn.toLongLong());
+		}
+		else {
+			v = static_cast<T>(dataIn.toInt());
+		}
+
+		if (gOverflowData.overflowDataSize == 0) {
+			gOverflowData.overflowData = static_cast<unsigned long long>(v);
+			gOverflowData.overflowDataSize = format.bitSize;
+		}
+		else {
+			std::bitset<128> mergeSet = static_cast<unsigned long long>(v);
+			mergeSet <<= gOverflowData.overflowDataSize;
+			gOverflowData.overflowData |= mergeSet;
+			gOverflowData.overflowDataSize += format.bitSize;
+		}
+
+		while (gOverflowData.overflowDataSize >= 8) {
+			unsigned char c = gOverflowData.overflowData.to_ulong() & 0xFF;
+			out << c;
+			gOverflowData.overflowData >>= 8;
+			gOverflowData.overflowDataSize -= 8;
+		}
+	}
+	else {
+		if constexpr (sizeof(T) > 4) {
+			out << static_cast<T>(dataIn.toLongLong());
+		} else {
+			out << static_cast<T>(dataIn.toInt());
+		}
+	}
+}
+
+inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVariant& dataIn){
 
 	switch (format.type) {
 	case rowFormat::INT: {
@@ -871,31 +958,31 @@ inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVarian
 		case 0:
 		case 1:
 		{
-			out << (qint8)dataOut.toInt();
+			writeData<qint8>(format, out, dataIn);
 		}
 		break;
 		case 2:
 		case 16:
 		{
-			out << (qint16)dataOut.toInt();
+			writeData<qint16>(format, out, dataIn);
 		}
 		break;
 		case 4:
 		case 32:
 		{
-			out << (qint32)dataOut.toInt();
+			writeData<qint32>(format, out, dataIn);
 		}
 		break;
 		case 8:
 		case 64:
 		{
-			out << (qint64)dataOut.toLongLong();
+			writeData<qint64>(format, out, dataIn);
 		}
 		break;
 		default:
 		{
 			qDebug() << "(Int w) Invalid byteSize: " << format.byteSize;
-			out << (qint8)dataOut.toInt();
+			out << (qint8)dataIn.toInt();
 		}
 		break;
 		}
@@ -905,31 +992,31 @@ inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVarian
 		case 0:
 		case 1:
 		{
-			out << (quint8)dataOut.toUInt();
+			writeData<quint8>(format, out, dataIn);
 		}
 		break;
 		case 2:
 		case 16:
 		{
-			out << (quint16)dataOut.toUInt();
+			writeData<quint16>(format, out, dataIn);
 		}
 		break;
 		case 4:
 		case 32:
 		{
-			out << (quint32)dataOut.toUInt();
+			writeData<quint32>(format, out, dataIn);
 		}
 		break;
 		case 8:
 		case 64:
 		{
-			out << (quint64)dataOut.toULongLong();
+			writeData<quint64>(format, out, dataIn);
 		}
 		break;
 		default:
 		{
 			qDebug() << "(UInt w) Invalid byteSize: " << format.byteSize;
-			out << (quint8)dataOut.toUInt();
+			out << (quint8)dataIn.toUInt();
 		}
 		break;
 		}
@@ -941,7 +1028,7 @@ inline bool writeFormat(const rowFormat& format, QDataStream& out, const QVarian
 	}break;
 	case rowFormat::SHIFT_JIS:
 	case rowFormat::UNICODE: {
-		QString str = dataOut.toString();
+		QString str = dataIn.toString();
 
 		if (format.dynamicLength > 0) {
 			int size = str.size();

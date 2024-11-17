@@ -304,12 +304,18 @@ Rectangle {
 		
 		anchors.topMargin: 5;
 		anchors.bottomMargin: 5;
+		readonly property var widthDynamic: (parent.width > 6)? 3 : 2
 		
 		height: 30
-		width: (parent.width > 6)? 3 : 2
-		//x: parent.width - width
+		width: widthDynamic
 		color: (mouseAreaLeft.containsMouse || mouseAreaLeft.drag.active )? "lightgreen": "transparent"
-		
+
+/*
+		onXChanged: {
+			var step = (timeline.steps*4)/10;
+			x = Math.round(x/step) * step;
+		}
+		*/
 		MouseArea {
 			id:mouseAreaLeft
 			hoverEnabled: true 
@@ -329,6 +335,8 @@ Rectangle {
 				timeline.updateTimeline();
 				forceActiveFocus();
 			}
+			
+
 		}
 		
 		Rectangle {
@@ -352,14 +360,22 @@ Rectangle {
 		
 		anchors.topMargin: 5;
 		anchors.bottomMargin: 5;
-		
+		readonly property var widthDynamic: (parent.width > 6)? 3 : 2
 		
 		height: 30
-		width: (parent.width > 6)? 3 : 2
+		width: widthDynamic
 		x: parent.width - width
 		color: (mouseAreaRight.containsMouse || mouseAreaRight.drag.active )? "red": "transparent"
 		
+		/*
+		onXChanged: {
+			var step = (timeline.steps*4)/10;
+			x = (Math.round(x/step) * step) - 3;
+		}
+		*/
+		
 		MouseArea {
+			property var zParent: 0
 			id:mouseAreaRight
 			hoverEnabled: true 
 			anchors.fill: parent
@@ -369,12 +385,20 @@ Rectangle {
 			drag.axis: Drag.XAxis
 			drag.minimumX: 1
 			drag.maximumX: 5000
-			
+		
+			onPressed:{
+				zParent = parent.parent.z
+				parent.parent.z = 1000
+			}
+		
 			onReleased:{
+				parent.parent.z = zParent
 				spritedata.pushUndoLayer(layerModel);
 				keyframeModel.setDuration((parent.x+parent.width)/((timeline.steps*4)/10), snapMove)
 				timeline.updateTimeline();
 			}
+			
+			
 		}
 		
 		Rectangle {

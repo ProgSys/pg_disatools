@@ -433,16 +433,39 @@ Rectangle {
 			anchors.fill: parent
 			acceptedButtons: Qt.MiddleButton
 			cursorShape: undefined
+			propagateComposedEvents: true
+			preventStealing: true
+			
+			property int startStartDragX: 0
+			property int startStartDragY: 0
 			
 			onWheel:{
 				var newZoom = Math.max( Math.min(zoom + (zoom/wheel.angleDelta.y) * 7 , zoomMax), zoomMin);
 				var diff = zoom/newZoom;
+				
 				var x = scroll.contentX + wheel.x
-				var y = scroll.contentY + wheel.y
+				var y = scroll.contentY + wheel.y 
 				scroll.contentX += x - x * diff;
 				scroll.contentY += y - y * diff;
 				zoom = newZoom;
 				wheel.accepted = true;
+			}
+			
+			onPressed: {
+				startStartDragX = mouse.x;
+				startStartDragY = mouse.y;
+			}
+			
+			onPositionChanged:{
+				if(!(mouse.buttons & Qt.MiddleButton)) return;
+				
+				scroll.contentX += startStartDragX - mouse.x;
+				scroll.contentY += startStartDragY - mouse.y;
+				startStartDragX = mouse.x;
+				startStartDragY = mouse.y;
+				mousePosIndicator.mouseX = mouse.x
+				mousePosIndicator.mouseY = mouse.y + 25
+				mouse.accepted = false;
 			}
 		}
 	}

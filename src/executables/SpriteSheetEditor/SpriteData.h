@@ -205,7 +205,7 @@ public:
 
     //setters
     Q_INVOKABLE void setStart(int startIn, bool keepDocked = false);
-    Q_INVOKABLE void setDuration(int durationIn, bool keepDocked = false);
+    Q_INVOKABLE void setDuration(int durationIn, bool shift = false);
     Q_INVOKABLE void moveTo(int frame);
 
     void setCutoutID(unsigned int cutoutIDIn);
