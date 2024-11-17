@@ -86,7 +86,7 @@ Note that the position of most files in .DAT are hardcoded, deleting files could
 
 ![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/File_Manager_v0.5.8.png)
 
-#### Disa Map Editor
+#### * [Map-Editor](Disa Map Editor) 
 
 The map editor allows you to not only modify existing maps but also create brand-new ones to share with others. 
 To achieve this, a custom "Campaigns" menu has been seamlessly added to the game through partial reverse engineering.
