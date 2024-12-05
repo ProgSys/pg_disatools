@@ -54,29 +54,6 @@ You can download the latest version of the tools here:
     - Fields now can be split into a sub range of bits. (final size must always be divisible by 8) Example: "uint(3b); uint(13b);", short split into two numbers
 ```
 
-### Older versions:
-* [Version v0.3.0 alpha](https://www.dropbox.com/s/yraau190k8xia0i/Disgaea%20Tools%20v0.3%20alpha.zip?dl=0)
-* [Version v0.4.0 alpha](https://www.dropbox.com/s/8epdstlt7e2v0w1/Disgaea%20Tools%20v0.4%20alpha.zip?dl=0)
-* [Version v0.5.0 alpha](https://www.dropbox.com/s/6iuq1wh5x16jhpy/Disgaea%20Tools%20v0.5.0%20alpha.zip?dl=0)
-* [Version v0.6.1 alpha](https://www.dropbox.com/s/ujg62ajrh8l86ss/Disgaea%20Tools%20v0.6.1%20alpha.zip?dl=0)
-* [Version v0.6.7 alpha](https://www.dropbox.com/s/2lgtov7n53ychaa/Disgaea%20Tools%20v0.6.7%20alpha.zip?dl=0)
-* [Version v0.6.8 alpha](https://www.dropbox.com/s/k7s9hjm6igsrq1r/Disgaea%20Tools%20v0.6.8%20alpha.zip?dl=0)
-* [Version v0.7.2 alpha](https://www.dropbox.com/s/hc8bp3sat5wo1iz/Disgaea%20Tools%20v0.7.2%20alpha.zip?dl=0)
-* [Version v0.7.9 alpha](https://www.dropbox.com/s/zxbocw141h5k4nx/Disgaea%20Tools%20v0.7.9%20alpha.zip?dl=0)
-* [Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3%20alpha.zip?dl=0)
-* [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.5%20alpha.zip?dl=0)
-* [Version v0.8.7 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)
-* [Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)
-* [Version v0.9.0 alpha](https://www.dropbox.com/s/ufcerz9cm2lcqi7/Disgaea%20Tools%20v0.9.0%20alpha.zip?dl=0)
-* [Version v0.9.2 alpha](https://www.dropbox.com/s/l4fsbvxp3vry0ei/Disgaea%20Tools%20v0.9.2%20alpha.zip?dl=0)
-* [Version v0.9.3 alpha](https://www.dropbox.com/s/px3jhlqee9bhcqj/Disgaea%20Tools%20v0.9.3%20alpha.zip?dl=0)
-* [Version v0.9.4 alpha](https://www.dropbox.com/s/9gz829c4eh2yf23/Disgaea%20Tools%20v0.9.4%20alpha.zip?dl=0)
-* [Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)
-* [Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)
-* [Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)
----
-
-
 ## Content
 
 #### Disa PC File Manager
@@ -130,6 +107,27 @@ This tool allows you to open, view, convert and export TX2 images.
 
 ![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 
+### Older versions:
+* [Version v0.3.0 alpha](https://www.dropbox.com/s/yraau190k8xia0i/Disgaea%20Tools%20v0.3%20alpha.zip?dl=0)
+* [Version v0.4.0 alpha](https://www.dropbox.com/s/8epdstlt7e2v0w1/Disgaea%20Tools%20v0.4%20alpha.zip?dl=0)
+* [Version v0.5.0 alpha](https://www.dropbox.com/s/6iuq1wh5x16jhpy/Disgaea%20Tools%20v0.5.0%20alpha.zip?dl=0)
+* [Version v0.6.1 alpha](https://www.dropbox.com/s/ujg62ajrh8l86ss/Disgaea%20Tools%20v0.6.1%20alpha.zip?dl=0)
+* [Version v0.6.7 alpha](https://www.dropbox.com/s/2lgtov7n53ychaa/Disgaea%20Tools%20v0.6.7%20alpha.zip?dl=0)
+* [Version v0.6.8 alpha](https://www.dropbox.com/s/k7s9hjm6igsrq1r/Disgaea%20Tools%20v0.6.8%20alpha.zip?dl=0)
+* [Version v0.7.2 alpha](https://www.dropbox.com/s/hc8bp3sat5wo1iz/Disgaea%20Tools%20v0.7.2%20alpha.zip?dl=0)
+* [Version v0.7.9 alpha](https://www.dropbox.com/s/zxbocw141h5k4nx/Disgaea%20Tools%20v0.7.9%20alpha.zip?dl=0)
+* [Version v0.8.3 alpha](https://www.dropbox.com/s/8jzpcqloz04n7h3/Disgaea%20Tools%20v0.8.3%20alpha.zip?dl=0)
+* [Version v0.8.5 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.5%20alpha.zip?dl=0)
+* [Version v0.8.7 alpha](https://www.dropbox.com/s/l1tfcnrbqire384/Disgaea%20Tools%20v0.8.7%20alpha.zip?dl=0)
+* [Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)
+* [Version v0.9.0 alpha](https://www.dropbox.com/s/ufcerz9cm2lcqi7/Disgaea%20Tools%20v0.9.0%20alpha.zip?dl=0)
+* [Version v0.9.2 alpha](https://www.dropbox.com/s/l4fsbvxp3vry0ei/Disgaea%20Tools%20v0.9.2%20alpha.zip?dl=0)
+* [Version v0.9.3 alpha](https://www.dropbox.com/s/px3jhlqee9bhcqj/Disgaea%20Tools%20v0.9.3%20alpha.zip?dl=0)
+* [Version v0.9.4 alpha](https://www.dropbox.com/s/9gz829c4eh2yf23/Disgaea%20Tools%20v0.9.4%20alpha.zip?dl=0)
+* [Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)
+* [Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)
+* [Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)
+---
 
 # Disclaimer && License
 This tools are unofficial and they are not perfect and may have errors. I do not work for Nippon Ichi Software, Inc. or NIS America, Inc. . 
