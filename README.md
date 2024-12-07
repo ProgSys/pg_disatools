@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.0.0 alpha](https://www.dropbox.com/scl/fi/ndlkk49s16b2mb2vjbw2g/Disgaea-Tools-v1.0.0-alpha.zip?rlkey=fqpdx69tru4v9dvmvcnmppnf0&dl=0)**
+* **[Version v1.0.1 alpha](https://www.dropbox.com/scl/fi/1j0ndx9r5myiksbdxygpd/Disgaea-Tools-v1.0.1-alpha.zip?rlkey=5qgksppysog8owe7y6r6u5893&dl=0)**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -52,6 +52,11 @@ You can download the latest version of the tools here:
 	- Improved timeline timer to be consistent. Its speed no longer depens on the fps.
   * Data Editor v0.0.8 alpha:
     - Fields now can be split into a sub range of bits. (final size must always be divisible by 8) Example: "uint(3b); uint(13b);", short split into two numbers
+===  07.12.2024 - v1.0.1 ===
+ * Data Map Editor v0.3.0 alpha
+	- When a geo symbol is set, alliance is automatically set to "Enemy, third party"
+ 	- (DisaReverseEngineering) The entire function stack now should be used
+	- (DisaReverseEngineering) When an invalid function is detected the game will crash, but before that a message box will be displayed
 ```
 
 ## Content
@@ -127,6 +132,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)
 * [Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)
 * [Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)
+* [Version v1.0.0 alpha](https://www.dropbox.com/scl/fi/ndlkk49s16b2mb2vjbw2g/Disgaea-Tools-v1.0.0-alpha.zip?rlkey=fqpdx69tru4v9dvmvcnmppnf0&dl=0)
 ---
 
 # Disclaimer && License
