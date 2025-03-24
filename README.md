@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.0.1 alpha](https://www.dropbox.com/scl/fi/1j0ndx9r5myiksbdxygpd/Disgaea-Tools-v1.0.1-alpha.zip?rlkey=5qgksppysog8owe7y6r6u5893&dl=0)**
+* **[Version v1.0.2 alpha](https://www.dropbox.com/scl/fi/l0h4fjgcx4qp2kdnf0rog/Disgaea-Tools-v1.0.2-alpha.zip?rlkey=rj66s7ehzcprqnxsj1lkn7bsd&dl=0**
 
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
@@ -57,6 +57,9 @@ You can download the latest version of the tools here:
 	- When a geo symbol is set, alliance is automatically set to "Enemy, third party"
  	- (DisaReverseEngineering) The entire function stack now should be used
 	- (DisaReverseEngineering) When an invalid function is detected the game will crash, but before that a message box will be displayed
+===  24.03.2025 - v1.0.2 ===
+ * Data Map Editor v0.3.1 alpha
+	- Improved error handling when creating a new campaign (issues/30)
 ```
 
 ## Content

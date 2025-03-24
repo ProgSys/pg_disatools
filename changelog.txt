@@ -534,4 +534,14 @@
 	- Improved timeline timer to be consistent. Its speed no longer depens on the fps.
   * Data Editor v0.0.8 alpha:
     - Fields now can be split into a sub range of bits. (final size must always be divisible by 8) Example: "uint(3b); uint(13b);", short split into two numbers
+
+===  07.12.2024 - v1.0.1 ===
+ * Data Map Editor v0.3.0 alpha
+	- When a geo symbol is set, alliance is automatically set to "Enemy, third party"
+ 	- (DisaReverseEngineering) The entire function stack now should be used
+	- (DisaReverseEngineering) When an invalid function is detected the game will crash, but before that a message box will be displayed
+	
+===  24.03.2025 - v1.0.2 ===
+ * Data Map Editor v0.3.1 alpha
+	- Improved error handling when creating a new campaign (issues/30)
 	
