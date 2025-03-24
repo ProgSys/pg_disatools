@@ -136,7 +136,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)
 * [Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)
 * [Version v1.0.0 alpha](https://www.dropbox.com/scl/fi/ndlkk49s16b2mb2vjbw2g/Disgaea-Tools-v1.0.0-alpha.zip?rlkey=fqpdx69tru4v9dvmvcnmppnf0&dl=0)
-* [Version v1.0.2 alpha](https://www.dropbox.com/scl/fi/l0h4fjgcx4qp2kdnf0rog/Disgaea-Tools-v1.0.2-alpha.zip?rlkey=rj66s7ehzcprqnxsj1lkn7bsd&dl=0)
+* [Version v1.0.1 alpha](https://www.dropbox.com/scl/fi/1j0ndx9r5myiksbdxygpd/Disgaea-Tools-v1.0.1-alpha.zip?rlkey=5qgksppysog8owe7y6r6u5893&dl=0)
 ---
 
 # Disclaimer && License
