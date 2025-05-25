@@ -1,0 +1,1530 @@
+#include "Inspector.h"
+
+#include <Views/PG_DisaMapSceneView.h>
+#include <Controllers/PG_DisaEditorModule.h>
+#include <Scene/Editor/PG_EditorModule.h>
+#include <Scene/Gui/PG_GuiRectangle.h>
+#include <Scene/Gui/PG_GuiColumn.h>
+#include <Scene/Gui/PG_GuiDropDown.h>
+#include <Scene/Gui/PG_GuiCreateSelectionElement.h>
+#include <Scene/Gui/PG_GuiMouseArea.h>
+#include <Scene/Gui/PG_GuiSpinBox.h>
+#include <Scene/Gui/PG_GuiToggleButton.h>
+#include <Scene/Gui/PG_GuiText.h>
+#include <Scene/Gui/PG_GuiTextEdit.h>
+#include <Scene/Gui/PG_GuiImage.h>
+#include <Scene/Gui/PG_GuiScrollBar.h>
+#include <Scene/Gui/PG_GuiListView.h>
+#include <Scene/Gui/PG_GuiGridView.h>
+#include <Scene/Model/PG_ListModel.h>
+#include <Scene/Model/PG_ListModelFilter.h>
+#include <Util/Color/ColorConverters.h>
+#include <Util/PG_RangesTransform.h>
+#include <Util/PG_StringUtil.h>
+#include <PG_DisaMainModel.h>
+
+#include <Disa/map/PG_DisaIntersection.h>
+#include <Disa/map/PG_DisaTileViewNode.h>
+#include <Disa/map/PG_DisaEventTileModel.h>
+#include <Disa/PG_DisaMapViewNode.h>
+#include <Disa/PG_DisaMapModel.h>
+#include <Disa/PG_DisaCharactersModel.h>
+#include <Disa/PG_DisaItemModel.h>
+#include <Disa/PG_DisaGeoEffectsModel.h>
+
+#include <Drag/DisaNewCharacterDrag.h>
+
+#include <CustomGui/PG_DisaCharacterPortraitGridTile.h>
+#include <CustomGui/PG_DisaSearchField.h>
+#include <CustomGui/PG_DisaEventTileListItem.h>
+#include <CustomGui/PG_DisaItemDropDown.h>
+#include <CustomGui/PG_DisaUVItem.h>
+#include <Util/Color/ColorDefined.h>
+#include <Util/PG_Math.h>
+
+constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
+constexpr float inspectorWidth = 310.f;
+
+/******* Models ********/
+
+/**
+* @brief Filter for characters
+*/
+class FilterUniqueModel : public PG_ListModelFilter {
+	std::string m_searchText;
+	static inline bool m_showAll = false;
+public:
+	using PG_ListModelFilter::PG_ListModelFilter;
+	void setSearchText(const std::string& str) {
+		if (m_searchText == str) return;
+		m_searchText = str;
+		invalidate();
+	}
+	bool isShowAll() const { return m_showAll; }
+	void setShowAll(bool showAll) {
+		if (showAll == m_showAll) return;
+		m_showAll = showAll;
+		invalidate();
+	}
+
+	bool filter(const PG_Variety& v) const final {
+		assert(v.is<PG_DisaCharacterModel>());
+		unsigned short id = v.get<PG_DisaCharacterModel>().id;
+		if (!m_showAll) {
+			if (id > 10000) return false;
+			if (id > 1000 && (id % 10) != 0) {
+				return true;
+			}
+		}
+
+		if (!m_searchText.empty()) {
+			const auto& name = v.get<PG_DisaCharacterModel>().nameNormelized;
+			return !(PG_StringUtil::contains(name, m_searchText, false) || PG_StringUtil::contains(std::to_string(id), m_searchText, false));
+		}
+
+		return false;
+	}
+};
+
+/**
+* @brief Only displayes tiles for a given postion
+*/
+class EventTilePositionFilter : public PG_ListModelFilter {
+	glm::ivec2 m_tilePosition;
+public:
+	using PG_ListModelFilter::PG_ListModelFilter;
+
+	void setTilePosition(glm::ivec2 pos) {
+		if (pos == m_tilePosition) return;
+		m_tilePosition = pos;
+		invalidate();
+	}
+
+	bool filter(const PG_Variety& v) const final {
+		//assert(v.is<PG_DisaEventTileModel>());
+		return v.get<PG_DisaEventTileModel*>()->getTilePosition() != m_tilePosition;
+	}
+
+	void addEvent() {
+		if (auto model = dynamic_cast<PG_DisaEventTileListModel*>(getModel())) {
+			model->addEvent(m_tilePosition);
+		}
+	}
+};
+
+/**************/
+
+
+PG_GuiRow* createRow(PG_GuiItem* parent, const std::string& textStr, float textWidth = 240.f) {
+	PG_GuiRow* row = PG_new<PG_GuiRow>("Row", glm::vec2(0.f), glm::vec2(40.f, 32.f), parent);
+	PG_GuiItem::anchor(row, PG_Anchor::Right, parent, PG_Anchor::Right);
+	PG_GuiItem::anchor(row, PG_Anchor::Left, parent, PG_Anchor::Left);
+	row->setSpacing(0.f);
+
+	auto text = PG_new<PG_GuiText>("Text", glm::vec2(0.f), glm::vec2(textWidth, 32.f), row);
+	text->setColor(PG_Color::hentaiBlueFrgb);
+	text->setFontSize(21.f);
+	text->setWrapMode(PG_GuiText::None);
+	text->setVerticalAlignment(PG_GuiText::ETextAlignment::VerticalCenter);
+	text->setText(textStr);
+	return row;
+	};
+
+void Inspector::setup(PG_DisaMapSceneView* scene, PG_GuiItem* root) {
+	auto mod = scene->getModule<PG_DisaEditorModule>();
+	assert(mod);
+	auto* inspector = PG_new<Inspector>(root);
+	inspector->mod = mod;
+	inspector->root = root;
+
+	PG_Object::connect(mod, &PG_DisaEditorModule::modeChanged, inspector, &Inspector::createFunctionBar);
+	PG_Object::connect(mod, &PG_DisaEditorModule::modeChanged, inspector, &Inspector::createInspector);
+	PG_Object::connect(mod, &PG_EditorModule::selectionChanged, inspector, &Inspector::createInspector);
+	PG_Object::connect(mod, &PG_DisaEditorModule::materialInspectorModeChanged, inspector, &Inspector::createInspector);
+}
+
+static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
+	column->clearGuiChildren();
+
+	wrapper->registerProperty("mobility", PG_Any::from<int>(0));
+	wrapper->registerProperty("geoColor", PG_Any::from<int>(0));
+	wrapper->registerProperty("isStartingPoint", PG_Any::from<bool>(false), &PG_SelectionWrapper::getValueDefault, 
+		[](const std::vector<PG_Object*>& selection, const std::vector<PG_Property>&properties, const PG_Any & value) {
+			PG_Gui::overrideWithModel(selection.back())->setPropertyValue(properties.back(), value);
+	});
+
+	wrapper->registerProperty("topA", PG_Any::from<char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+	wrapper->registerProperty("topB", PG_Any::from<char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+	wrapper->registerProperty("topC", PG_Any::from<char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+	wrapper->registerProperty("topD", PG_Any::from<char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+
+	constexpr float textWidth = 140.f;
+	{
+		PG_GuiRow* row = createRow(column, "Mobility:", textWidth);
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "mobilityDropDown", "mobility", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				auto model = PG_new<PG_ListModel<std::string>>(dropDown);
+
+				model->set({
+						{ "Unlimited"},
+						{ "Fly only"},
+						{ "Impassable"},
+					});
+				dropDown->setModel(model);
+
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	}
+
+	{
+		PG_GuiRow* row = createRow(column, "Geo Color:", textWidth);
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "geoColorDropDown", "geoColor", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				auto model = PG_new<PG_ListModel<std::string>>(dropDown);
+
+				model->set({
+					{ "None"},
+					{ "Red"},
+					{ "Green"},
+					{ "Blue"},
+					{ "Yellow"},
+					{ "Magenta"},
+					{ "Cyan"},
+					{ "White"}
+					});
+				dropDown->setModel(model);
+
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	}
+
+
+	{
+		PG_GuiRow* row = createRow(column, "Corners:", 90.f);
+
+		constexpr float spinTexWidth = 50.0f;
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topASpinBox", "topA");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topBSpinBox", "topB");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topCSpinBox", "topC");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topDSpinBox", "topD");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+
+	auto* guiToggleButton = PG_Gui::createGuiElementV2<PG_GuiToggleButton>(column, wrapper, "isStartingPointCheckbox", "isStartingPoint", "toggled",
+		[](const std::string& name, PG_GuiItem* root) {
+			auto toggleButton = PG_new<PG_GuiToggleButton>(name, glm::vec2(5.f, 0.f), glm::vec2(40.f, 32.f), root);
+			toggleButton->setTooltipText("Starting point of the map");
+			toggleButton->setIcon("gui/disa/icon_teleporter.png");
+			toggleButton->setText("Set teleporter");
+			toggleButton->setBackground("M_GuiRoundedRectangleAll5");
+			return toggleButton;
+		});
+	PG_GuiItem::anchor(guiToggleButton, PG_Anchor::Right, column, PG_Anchor::Right);
+	PG_GuiItem::anchor(guiToggleButton, PG_Anchor::Left, column, PG_Anchor::Left);
+}
+
+static inline PG_Any getValueSumUvOutline(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& defaultValue) {
+
+	auto selcIt = selection.begin();
+	auto propIt = properties.begin();
+
+	std::vector<std::array<glm::vec2, 4>> outlines;
+	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
+		auto any = (*selcIt)->getPropertyValue(*propIt);
+		outlines.push_back(any.get<std::array<glm::vec2, 4>>());
+	}
+	return PG_Any::from(outlines);
+}
+
+static inline void setValueSumUvOutline(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& value) {
+	return;
+	//TODO notused
+	auto selcIt = selection.begin();
+	auto propIt = properties.begin();
+
+	const std::vector<std::array<glm::vec2, 4>>& outlines = value.get<std::vector<std::array<glm::vec2, 4>>>();
+	auto outlineIt = outlines.begin();
+	for (; selcIt != selection.end(); ++selcIt, ++propIt, ++outlineIt) {
+		//*selcIt->setPropertyValue(*propIt, PG_Any::from(*outlineIt));
+	}
+}
+
+static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
+	column->clearGuiChildren();
+
+	PG_GuiRow* materialModeRow = PG_new<PG_GuiRow>("materialModeRow", column);
+	{
+		materialModeRow->setWidth(100.f);
+		materialModeRow->setHeight(30.f);
+		materialModeRow->setSpacing(3.f);
+		PG_GuiItem::anchor(materialModeRow, PG_Anchor::Left, column, PG_Anchor::Left);
+		PG_GuiItem::anchor(materialModeRow, PG_Anchor::Right, column, PG_Anchor::Right);
+
+		const float width = inspectorWidth /3.f - 10.f;
+		auto* btn = PG_new<PG_GuiToggleButton>("base", materialModeRow);
+		btn->setSize(glm::vec2(width, 30.f));
+		btn->setText("Base");
+		btn->setAutoToggle(false);
+		btn->setBackground("M_GuiRoundedRectangleLeft5");
+		btn->getText()->setPropertyValue("horizontalAlignment", PG_Any::from(PG_GuiText::HorizontalCenter));
+		btn->setLayoutProperty(PG_GuiToggleButton::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+		btn->setToggled(self->getMaterialInspectorMode() == PG_DisaEditorModule::MaterialInspectorMode_Base);
+
+		PG_Object::connect(self->mod, &PG_DisaEditorModule::materialInspectorModeChanged, btn, [btn](PG_DisaEditorModule::EMaterialInspectorMode mode) {
+			btn->setToggled(mode == PG_DisaEditorModule::MaterialInspectorMode_Base);
+			});
+		PG_Object::connect(btn, &PG_GuiToggleButton::clicked, self, [self] {
+			self->setMaterialInspectorMode(PG_DisaEditorModule::MaterialInspectorMode_Base);
+		});
+
+		btn = PG_new<PG_GuiToggleButton>("decal", materialModeRow);
+		btn->setSize(glm::vec2(width, 30.f));
+		btn->setText("Decal");
+		btn->setAutoToggle(false);
+		btn->getText()->setPropertyValue("horizontalAlignment", PG_Any::from(PG_GuiText::HorizontalCenter));
+		btn->setLayoutProperty(PG_GuiToggleButton::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+		btn->setToggled(self->getMaterialInspectorMode() == PG_DisaEditorModule::MaterialInspectorMode_Decal);
+
+		PG_Object::connect(self->mod, &PG_DisaEditorModule::materialInspectorModeChanged, btn, [btn](PG_DisaEditorModule::EMaterialInspectorMode mode) {
+			btn->setToggled(mode == PG_DisaEditorModule::MaterialInspectorMode_Decal);
+			});
+		PG_Object::connect(btn, &PG_GuiToggleButton::clicked, self, [self] {
+			self->setMaterialInspectorMode(PG_DisaEditorModule::MaterialInspectorMode_Decal);
+			});
+
+		btn = PG_new<PG_GuiToggleButton>("shadow", materialModeRow);
+		btn->setSize(glm::vec2(width, 30.f));
+		btn->setText("Shadow");
+		btn->setAutoToggle(false);
+		btn->setBackground("M_GuiRoundedRectangleRight5");
+		btn->getText()->setPropertyValue("horizontalAlignment", PG_Any::from(PG_GuiText::HorizontalCenter));
+		btn->setLayoutProperty(PG_GuiToggleButton::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+		btn->setToggled(self->getMaterialInspectorMode() == PG_DisaEditorModule::MaterialInspectorMode_Shadow);
+
+		PG_Object::connect(self->mod, &PG_DisaEditorModule::materialInspectorModeChanged, btn, [btn](PG_DisaEditorModule::EMaterialInspectorMode mode) {
+			btn->setToggled(mode == PG_DisaEditorModule::MaterialInspectorMode_Shadow);
+			});
+		PG_Object::connect(btn, &PG_GuiToggleButton::clicked, self, [self] {
+			self->setMaterialInspectorMode(PG_DisaEditorModule::MaterialInspectorMode_Shadow);
+		});
+	}
+
+
+	wrapper->registerProperty("isDecalSupported", "index", PG_Any::from<bool>(0), 
+		[](const std::vector<PG_Object*>& selection, const std::vector<PG_Property>&, const PG_Any& defaultValue) ->PG_Any {
+			bool isDecalSupported = std::ranges::all_of(selection, [](const PG_Object* obj) -> bool {
+				auto m = dynamic_cast<const PG_DisaMapTileMaterialModel*>(obj);
+				return m && (m->getIndex() == 4 || m->getIndex() == 9 || m->getIndex() == 10);
+				});
+			return isDecalSupported;
+		},
+		&PG_SelectionWrapper::setValueNone);
+	wrapper->registerProperty("texU", PG_Any::from<unsigned char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+	wrapper->registerProperty("texV", PG_Any::from<unsigned char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+	wrapper->registerProperty("texVRight", PG_Any::from<unsigned char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+
+	wrapper->registerProperty("texWidth", PG_Any::from<unsigned char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+	wrapper->registerProperty("texHeight", PG_Any::from<unsigned char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+	wrapper->registerProperty("texHeightRight", PG_Any::from<unsigned char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
+
+	wrapper->registerProperty("texture", PG_Any::from<PG_Texture>(PG_Texture()));
+	wrapper->registerProperty("texUvOutlines", "texUvOutline", PG_Any::from<std::vector<std::array<glm::vec2, 4>>>({}), &getValueSumUvOutline, &setValueSumUvOutline);
+	
+	wrapper->registerProperty("texRotation", PG_Any::from<int>(-1));
+	wrapper->registerProperty("texMirrorVertical", PG_Any::from<bool>(false), &PG_SelectionWrapper::getValueFirst);
+	wrapper->registerProperty("texMirrorHorizontal", PG_Any::from<bool>(false), &PG_SelectionWrapper::getValueFirst);
+	wrapper->registerProperty("texIsShadow", PG_Any::from<bool>(false), &PG_SelectionWrapper::getValueFirst);
+	
+	PG_Gui::connectChanged(materialModeRow->findFirstChild<PG_GuiToggleButton>("decal"),
+		wrapper, "isDecalSupported", [self](PG_GuiToggleButton* btn, const PG_Any& value) {
+			const bool bValue = value.get<bool>();
+			if (!bValue && self->getMaterialInspectorMode() == PG_DisaEditorModule::MaterialInspectorMode_Decal) {
+				self->setMaterialInspectorMode(PG_DisaEditorModule::MaterialInspectorMode_Base);
+			}
+			else {
+				btn->setEnabled(bValue);
+			}
+		});
+	
+		constexpr float spinTexWidth = 50.f;
+	{
+
+		auto row = createRow(column, "UV:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texUSpinBox", "texU");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texVSpinBox", "texV");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texVRightSpinBox", "texVRight");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		auto row = createRow(column, "Size:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+		auto spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texWidthSpinBox", "texWidth");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texHeightSpinBox", "texHeight");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texHeightRightSpinBox", "texHeightRight");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		auto row = createRow(column, "Rotation:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "rotationDropDown", "texRotation", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(100.f, 32.f), root);
+				auto model = PG_new<PG_ListModel<std::string>>(dropDown);
+
+				model->set({
+					{ "North"},
+					{ "East"},
+					{ "South"},
+					{ "West"},
+					});
+				dropDown->setModel(model);
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		auto row = createRow(column, "Mirror:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+
+		auto btn = PG_new<PG_GuiToggleButton>("toggleBtn", row);
+		btn->setSize(glm::vec2(50.f, 32.f));
+		btn->setIcon("gui/icon_mirror_vertical.png");
+		btn->setBackground("M_GuiRoundedRectangleLeft5");
+		btn->setTooltipText("Mirror Vertical");
+		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+		PG_Gui::connectGuiElementV2(wrapper, "texMirrorVertical", btn, "toggled");
+
+		btn = PG_new<PG_GuiToggleButton>("toggleBtn", row);
+		btn->setSize(glm::vec2(50.f, 32.f));
+		btn->setIcon("gui/icon_mirror_horizontal.png");
+		btn->setBackground("M_GuiRoundedRectangleRight5");
+		btn->setTooltipText("Mirror Horizontal");
+		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+		PG_Gui::connectGuiElementV2(wrapper, "texMirrorHorizontal", btn, "toggled");
+	}
+
+	{
+		auto row = createRow(column, "Flags:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+
+		auto btn = PG_new<PG_GuiToggleButton>("toggleBtn", row);
+		btn->setSize(glm::vec2(50.f, 32.f));
+		btn->setIcon("gui/disa/icon_shadow.png");
+		btn->setBackground("M_GuiRoundedRectangleAll5");
+		btn->setTooltipText("Is shadow");
+		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+		PG_Gui::connectGuiElementV2(wrapper, "texIsShadow", btn, "toggled");
+	}
+
+	auto uvItem = PG_new<PG_DisaUVItem>("uvItem", glm::vec2(0.f, 0.f), glm::vec2(inspectorWidth - 10), column);
+	PG_Gui::connectGuiElementV2(wrapper, "texture", uvItem, "image");
+	PG_Gui::connectGuiElementV2(wrapper, "texUvOutlines", uvItem, "outlines");
+
+
+	{
+		static unsigned char texGridU = 32;
+		static unsigned char texGridV = 32;
+		static bool texIsGridEnabled = true;
+		constexpr auto texGridUPropName = "texGridU";
+		constexpr auto texGridVPropName = "texGridV";
+		constexpr auto texIsGridEnabledPropName = "texIsGridEnabled";
+		wrapper->registerProperty(texGridUPropName, PG_Any::from<unsigned char>(texGridU), true);
+		wrapper->registerProperty(texGridVPropName, PG_Any::from<unsigned char>(texGridV), true);
+		wrapper->registerProperty(texIsGridEnabledPropName, PG_Any::from<bool>(texIsGridEnabled), true);
+
+		PG_Object::connect(wrapper, wrapper->getProperty(texGridUPropName), wrapper, [wrapper]() {
+			texGridU = wrapper->getPropertyValue(wrapper->getProperty(texGridUPropName)).get<unsigned char>();
+			});
+		PG_Object::connect(wrapper, wrapper->getProperty(texGridVPropName), wrapper, [wrapper]() {
+			texGridV = wrapper->getPropertyValue(wrapper->getProperty(texGridVPropName)).get<unsigned char>();
+			});
+		PG_Object::connect(wrapper, wrapper->getProperty(texIsGridEnabledPropName), wrapper, [wrapper]() {
+			texIsGridEnabled = wrapper->getPropertyValue(wrapper->getProperty(texIsGridEnabledPropName)).get<bool>();
+			});
+
+		auto roundValue = [wrapper](glm::ivec2 value) -> glm::ivec2 {
+			if (wrapper->getPropertyValue(wrapper->getProperty(texIsGridEnabledPropName)).toBool()){
+				glm::ivec2 rounder = {
+					wrapper->getPropertyValue(wrapper->getProperty(texGridUPropName)).get<unsigned char>(),
+					wrapper->getPropertyValue(wrapper->getProperty(texGridVPropName)).get<unsigned char>()
+				};
+				return { PG_Math::roundTo(value.x, rounder.x), PG_Math::roundTo(value.y, rounder.y) };
+			}
+
+			return value;
+		};
+
+		PG_GuiRow* row = PG_new<PG_GuiRow>("Row", glm::vec2(0.f), glm::vec2(40.f, 32.f), column);
+		PG_GuiItem::anchor(row, PG_Anchor::Right, uvItem, PG_Anchor::Right);
+		PG_GuiItem::anchor(row, PG_Anchor::Left, uvItem, PG_Anchor::Left);
+
+		row->setSpacing(0.f);
+		auto text = PG_new<PG_GuiText>("UVAtText", glm::vec2(0.f), glm::vec2(100.f, 32.f), row);
+		text->setColor(PG_Color::hentaiBlueFrgb);
+		text->setFontSize(14.f);
+		text->setWrapMode(PG_GuiText::None);
+		text->setVerticalAlignment(PG_GuiText::ETextAlignment::Top);
+		PG_Object::connect(uvItem, &PG_DisaUVItem::hoverAt, text, [text, roundValue](glm::ivec2 value) {
+			if (value.x < 0 || value.y < 0) {
+				text->setVisible(false);
+				return;
+			}
+			value = roundValue(value);
+
+			text->setText(std::to_string(value.x) + " " + std::to_string(value.y));
+			text->setVisible(true);
+		});
+
+		PG_Object::connect(uvItem, &PG_DisaUVItem::clickedAt, wrapper, [wrapper, roundValue](glm::ivec2 value) {
+			value = roundValue(value);
+			wrapper->setPropertyValue(wrapper->getProperty("texU"), static_cast<unsigned char>(value.x % 255));
+			wrapper->setPropertyValue(wrapper->getProperty("texV"), static_cast<unsigned char>(value.y % 255));
+			});
+
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texGridUSpinBox", "texGridU");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "texGridVSpinBox", "texGridV");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		auto btn = PG_new<PG_GuiToggleButton>("toggleGridBtn", row);
+		btn->setSize(glm::vec2(50.f, 32.f));
+		btn->setIcon("gui/icon_grid.png");
+		btn->setBackground("M_GuiRoundedRectangleRight5");
+		btn->setTooltipText("Grid");
+		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+		PG_Gui::connectGuiElementV2(wrapper, "texIsGridEnabled", btn, "toggled");
+	}
+
+
+}
+
+static inline void createForEventEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
+	column->clearGuiChildren();
+
+	auto selectionChangedProp = wrapper->registerSelectionChanged();
+
+	auto addButton = PG_new<PG_GuiButton>("AddButton", glm::vec2(0.f), glm::vec2(100.f, 30.f), column);
+	addButton->setIcon("gui/icon_add.png");
+	addButton->setText("Add event");
+	addButton->setBackground("M_GuiRoundedRectangleAll5");
+	PG_GuiItem::anchor(addButton, PG_Anchor::Left, column, PG_Anchor::Left);
+	PG_GuiItem::anchor(addButton, PG_Anchor::Right, column, PG_Anchor::Right);
+
+	auto* listWrapper = PG_new<PG_GuiItem>("ListWrapper", column);
+	listWrapper->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	PG_GuiItem::anchor(listWrapper, PG_Anchor::Left, column, PG_Anchor::Left);
+	PG_GuiItem::anchor(listWrapper, PG_Anchor::Right, column, PG_Anchor::Right);
+
+	auto listView = PG_new<PG_GuiListView>("PG_GuiListView", listWrapper);
+	listView->fill(listWrapper);
+	listView->setClip(true);
+	listView->setItem(PG_GuiGridView::getDefaultCreateFunc<PG_DisaEventTileListItem>());
+	listView->setItemUpdate(PG_GuiGridView::getDefaultUpdateFunc<PG_DisaEventTileListItem>());
+	listView->setCellSize(35);
+
+	auto infoText = PG_new<PG_GuiText>("PG_GuiText", listWrapper);
+	infoText->setFontSize(21.f);
+	infoText->setColor(PG_Color::hentaiBlueFrgb);
+	infoText->setHorizontalAlignment(PG_Anchor::HorizontalCenter);
+	infoText->setText("Multi selection is not supported");
+	PG_GuiItem::anchor(infoText, PG_Anchor::Top, listWrapper, PG_Anchor::Top);
+	PG_GuiItem::anchor(infoText, PG_Anchor::Left, listWrapper, PG_Anchor::Left);
+	PG_GuiItem::anchor(infoText, PG_Anchor::Right, listWrapper, PG_Anchor::Right);
+
+
+	PG_Object::connect(addButton, &PG_GuiButton::clicked, wrapper, [wrapper] {
+		auto* item = dynamic_cast<EventTilePositionFilter*>(wrapper->getSelectionItems().front());
+		item->addEvent();
+	});
+
+	auto setEventModel = [wrapper, listView, infoText, addButton] {
+		if (wrapper->getSelectionItems().size() != 1) {
+			listView->setModel(nullptr);
+			addButton->setEnabled(false);
+			infoText->setVisible(true);
+
+		}
+		else {
+			listView->setModel(dynamic_cast<EventTilePositionFilter*>(wrapper->getSelectionItems().front()));
+			addButton->setEnabled(true);
+			infoText->setVisible(false);
+		}
+		};
+
+	PG_Object::connect(wrapper, selectionChangedProp, listView, setEventModel);
+	setEventModel();
+
+
+}
+
+constexpr float spinTexWidth = 50.f;
+
+template<int glm::ivec3::* Member>
+static PG_Any getIVec3Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& defaultValue) {
+	auto selcIt = selection.begin();
+	auto propIt = properties.begin();
+
+	auto any = PG_SelectionWrapper::overrideWithModel(*selcIt)->getPropertyValue(*propIt);
+
+	int out = any.get<glm::ivec3>().*Member;
+	++selcIt, ++propIt;
+
+	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
+		auto any2 = PG_SelectionWrapper::overrideWithModel(*selcIt)->getPropertyValue(*propIt);
+
+		if (out != any2.get<glm::ivec3>().*Member) return defaultValue;
+	}
+
+	return PG_Any::from<int>(out);
+	
+}
+
+template<int glm::ivec3::* Member>
+static void setIVec3Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& value) {
+
+	auto selcIt = selection.begin();
+	auto propIt = properties.begin();
+	int intValue = value.get<int>();
+	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
+		auto model = PG_SelectionWrapper::overrideWithModel(*selcIt);
+		auto any = model->getPropertyValue(*propIt);
+		glm::ivec3 v = any.get<glm::ivec3>();
+		(v.*Member) = intValue;
+		model->setPropertyValue(*propIt, PG_Any::from(v));
+	}
+}
+
+static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
+	column->clearGuiChildren();
+
+	wrapper->registerProperty("posX", "objectDisaTranslation" ,PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::x>, &setIVec3Value<&glm::ivec3::x>);
+	wrapper->registerProperty("posY", "objectDisaTranslation" ,PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::y>, &setIVec3Value<&glm::ivec3::y>);
+	wrapper->registerProperty("posZ", "objectDisaTranslation" ,PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::z>, &setIVec3Value<&glm::ivec3::z>);
+
+	wrapper->registerProperty("rotationX", "objectDisaRotation", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::x>, &setIVec3Value<&glm::ivec3::x>);
+	wrapper->registerProperty("rotationY", "objectDisaRotation", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::y>, &setIVec3Value<&glm::ivec3::y>);
+	wrapper->registerProperty("rotationZ", "objectDisaRotation", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::z>, &setIVec3Value<&glm::ivec3::z>);
+
+	wrapper->registerProperty("scaleX", "objectDisaScale", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::x>, &setIVec3Value<&glm::ivec3::x>);
+	wrapper->registerProperty("scaleY", "objectDisaScale", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::y>, &setIVec3Value<&glm::ivec3::y>);
+	wrapper->registerProperty("scaleZ", "objectDisaScale", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::z>, &setIVec3Value<&glm::ivec3::z>);
+
+	{
+		auto row = createRow(column, "Translation:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "xSpinBox", "posX");
+		PG_GuiSpinBox::setupInt(spinBox, -999999, 999999);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "ySpinBox", "posY");
+		PG_GuiSpinBox::setupInt(spinBox, -999999, 999999);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "zRightSpinBox", "posZ");
+		PG_GuiSpinBox::setupInt(spinBox, -999999, 999999);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		auto row = createRow(column, "Rotation:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "xSpinBox", "rotationX");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 360);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "ySpinBox", "rotationY");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 360);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "zRightSpinBox", "rotationZ");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 360);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		auto row = createRow(column, "Scale:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "xSpinBox", "scaleX");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 99999);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "ySpinBox", "scaleY");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 99999);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRectangle");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "zRightSpinBox", "scaleZ");
+		PG_GuiSpinBox::setupInt(spinBox, 1, 99999);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+}
+
+constexpr glm::vec3 g_disaTextColor = PG_Color::rgbToF(glm::rgb(70, 52, 48));
+
+inline void setLableText(PG_GuiText* text) {
+	text->setWrapMode(PG_GuiText::EWrapMode::None);
+	text->setWidth(200.f);
+	text->setVerticalAlignment(PG_GuiText::ETextAlignment::VerticalCenter);
+	text->setColor(glm::rgb(255, 190, 80));
+	text->setBorderColor(glm::vec3(0.f));
+	text->setMaterial(PG_Material("M_GuiTextBorderSDF"));
+	text->setFontSize(32.f);
+	text->setFont("BalooThambi/BalooThambi-Regular.ttf");
+}
+
+inline void setText(PG_GuiText* text) {
+	text->setWrapMode(PG_GuiText::EWrapMode::Elide);
+	text->setVerticalAlignment(PG_GuiText::ETextAlignment::VerticalCenter);
+	text->setFontSize(47.f);
+	text->setColor(g_disaTextColor);
+}
+
+static inline void createForActorNoneSelectEdit(PG_GuiColumn* column) {
+	column->clearGuiChildren();
+
+	auto filterModel = PG_new<FilterUniqueModel>("FilterUniqueModel", column);
+	filterModel->setModel(PG_DisaCharactersModel::get());
+
+
+	{
+		PG_GuiItem* searchArea = PG_new<PG_GuiItem>("AearchArea", column);
+		PG_GuiItem::anchor(searchArea, PG_Anchor::Left, column, PG_Anchor::Left);
+		PG_GuiItem::anchor(searchArea, PG_Anchor::Right, column, PG_Anchor::Right);
+		searchArea->setHeight(30.f);
+
+		auto filterBtn = PG_new<PG_GuiToggleButton>("filterBtn", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), searchArea);
+		filterBtn->setIcon("gui/icon_eye.png");
+		filterBtn->setBackground("M_GuiToolButtonEnd");
+		filterBtn->setTooltipText("Show All");
+		filterBtn->setToggled(filterModel->isShowAll());
+		PG_GuiItem::anchor(filterBtn, PG_Anchor::Top, searchArea, PG_Anchor::Top);
+		PG_GuiItem::anchor(filterBtn, PG_Anchor::Right, searchArea, PG_Anchor::Right);
+		PG_GuiItem::connect(filterBtn, &PG_GuiToggleButton::toggleChanged, filterModel, [filterModel, s = filterBtn] { filterModel->setShowAll(s->isToggled()); });
+
+		PG_DisaSearchField* searchField = PG_new<PG_DisaSearchField>("searchField", glm::vec2(0.f), glm::vec2(300.f, 30.f), searchArea);
+		PG_GuiItem::anchor(searchField, PG_Anchor::Top, searchArea, PG_Anchor::Top);
+		PG_GuiItem::anchor(searchField, PG_Anchor::Right, filterBtn, PG_Anchor::Left);
+		PG_GuiItem::anchor(searchField, PG_Anchor::Left, searchArea, PG_Anchor::Left);
+		searchField->setBackground("M_GuiRoundedRectangleLeft5");
+		PG_GuiItem::connect(searchField, &PG_GuiTextField::textChanged, filterModel, [filterModel, s = searchField] { filterModel->setSearchText(s->getText()); });
+	}
+	
+
+	auto* gridWrapper = PG_new<PG_GuiItem>("grid", column);
+	gridWrapper->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	PG_GuiItem::anchor(gridWrapper, PG_Anchor::Left, column, PG_Anchor::Left);
+	PG_GuiItem::anchor(gridWrapper, PG_Anchor::Right, column, PG_Anchor::Right);
+
+	auto gridView = PG_new<PG_GuiGridView>("grid", gridWrapper);
+	gridView->fill(gridWrapper);
+	gridView->setClip(true);
+	gridView->setItem(PG_GuiGridView::getDefaultCreateFunc<PG_DisaCharacterPortraitGridTile>());
+	gridView->setItemUpdate(PG_GuiGridView::getDefaultUpdateFunc<PG_DisaCharacterPortraitGridTile>());
+	gridView->setCellSize(glm::ivec2((inspectorWidth - 20)/3));
+	gridView->setModel(filterModel);
+	PG_new<DisaNewCharacterDrag>("DisaNewCharacterDrag", gridView);
+
+	PG_GuiScrollBar* scroll = PG_new<PG_GuiScrollBar>("ScrollBar", gridWrapper);
+	PG_GuiItem::anchor(scroll, PG_Anchor::Top, gridView, PG_Anchor::Top);
+	PG_GuiItem::anchor(scroll, PG_Anchor::Bottom, gridView, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(scroll, PG_Anchor::Right, gridView, PG_Anchor::Right);
+
+	constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
+	scroll->setSize(glm::vec2(10.0f, 0.0f));
+	scroll->setScrollBarColors(PG_Gui::ColorSet{ blueColor, blueColor * 1.1f , blueColor * 1.1f });
+	if (auto rec = dynamic_cast<PG_GuiRectangle*>(scroll->getHandle())) {
+		rec->setMaterial("M_GuiRoundedRectangleAll5");
+	}
+	gridView->setupVerticalScrollBar(scroll);
+}
+
+static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
+	struct RotationToIndex {
+		PG_Any operator()(const PG_Any& v) const {
+			return int(v.get<char>() + 1);
+		}
+	};
+
+	struct IndexToRotation {
+		PG_Any operator()(const PG_Any& v) const {
+			return char(glm::clamp(v.get<int>() - 1, -1, 3));
+		}
+	};
+
+	struct WeaponIdToIndex {
+		PG_Any operator()(const PG_Any& v) const {
+			auto weaponId = v.get<unsigned short>();
+			auto findIt = std::ranges::find(*PG_DisaItemsModel::get(), weaponId, &PG_DisaItemModel::id);
+			if (findIt == PG_DisaItemsModel::get()->end()) return (int)-1;
+			return (int)std::distance(PG_DisaItemsModel::get()->begin(), findIt);
+		}
+	};
+
+	struct IndexToWeaponId {
+		PG_Any operator()(const PG_Any& v) const {
+			int index = v.get<int>();
+			if (index < 0) return (unsigned short)0;
+			const PG_DisaItemsModel* itemsModel = PG_DisaItemsModel::get();
+			return itemsModel->PG_ListModel<PG_DisaItemModel>::get(index).id;
+		}
+	};
+
+	struct GeoEffectIdToIndex {
+		PG_Any operator()(const PG_Any& v) const {
+			auto weaponId = v.get<unsigned short>();
+			auto findIt = std::ranges::find(*PG_DisaGeoEffectsModel::get(), weaponId, &PG_DisaGeoEffectModel::id);
+			if (findIt == PG_DisaGeoEffectsModel::get()->end()) return (int)-1;
+			return (int)std::distance(PG_DisaGeoEffectsModel::get()->begin(), findIt);
+		}
+	};
+
+	struct IndexToGeoEffectId {
+		PG_Any operator()(const PG_Any& v) const {
+			int index = v.get<int>();
+			if (index < 0) return (unsigned short)0;
+			const PG_DisaGeoEffectsModel* itemsModel = PG_DisaGeoEffectsModel::get();
+			return itemsModel->PG_ListModel<PG_DisaGeoEffectModel>::get(index).id;
+		}
+	};
+
+	column->clearGuiChildren();
+
+	wrapper->registerProperty("characterId", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterName", PG_Any::from<std::string>("Multi Selection"));
+	wrapper->registerProperty("characterTitle", PG_Any::from<std::string>("Multi Selection"));
+	wrapper->registerProperty("characterPortrait", PG_Any::from<PG_Texture>(PG_Texture("gui/disa/disaMissingno.png")));
+	wrapper->registerProperty("characterLevel", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterRotation", PG_Any::from<char>(1), &PG_PropertyDynamicWrapper::getValueRemap<RotationToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToRotation>);
+	wrapper->registerProperty("characterAlliance", PG_Any::from<unsigned char>(0), &PG_PropertyDynamicWrapper::getValueConvert<unsigned char, int>, &PG_PropertyDynamicWrapper::setValueConvert<int, unsigned char>);
+	wrapper->registerProperty("characterAi", PG_Any::from<unsigned char>(0), &PG_PropertyDynamicWrapper::getValueConvert<unsigned char, int>, &PG_PropertyDynamicWrapper::setValueConvert<int, unsigned char>);
+	wrapper->registerProperty("characterWeapon", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterWeaponIndex", "characterWeapon", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<WeaponIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToWeaponId>);
+
+	wrapper->registerProperty("characterItemSlot0", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterItemSlot0Index", "characterItemSlot0", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<WeaponIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToWeaponId>);
+	wrapper->registerProperty("characterItemSlot1", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterItemSlot1Index", "characterItemSlot1", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<WeaponIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToWeaponId>);
+	wrapper->registerProperty("characterItemSlot2", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterItemSlot2Index", "characterItemSlot2", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<WeaponIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToWeaponId>);
+
+	wrapper->registerProperty("characterGeoColor", PG_Any::from<unsigned int>(0));
+	wrapper->registerProperty("characterGeoEffect", PG_Any::from<unsigned short>(0));
+	wrapper->registerProperty("characterGeoEffectIndex","characterGeoEffect", PG_Any::from<unsigned short>(0), &PG_PropertyDynamicWrapper::getValueRemap<GeoEffectIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToGeoEffectId>);
+
+	PG_GuiImage* frame = PG_new<PG_GuiImage>("NameFrame", column);
+	frame->setMaterial(PG_Material("M_DisaGuiImageFrameB"));
+	frame->setHeight(80.f);
+	PG_GuiItem::anchor(frame, PG_Anchor::Right, column, PG_Anchor::Right);
+	PG_GuiItem::anchor(frame, PG_Anchor::Left, column, PG_Anchor::Left);
+
+	{
+
+		auto spinBoxCharacterId = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(frame, wrapper, "characterIdSpinBox", "characterId");
+		spinBoxCharacterId->setWidth(120.f);
+		spinBoxCharacterId->getBackground()->setClip(false);
+		spinBoxCharacterId->getBackground()->setAlpha(0.f);
+		spinBoxCharacterId->getText()->setColor(g_disaTextColor);
+		spinBoxCharacterId->getText()->setMargin(PG_Anchor::Left, 0.f);
+		spinBoxCharacterId->getText()->setFontSize(35.f);
+		spinBoxCharacterId->getText()->setWrapMode(PG_GuiText::EWrapMode::None);
+		spinBoxCharacterId->getText()->setHorizontalAlignment(PG_GuiText::ETextAlignment::Left);
+		PG_GuiSpinBox::setupInt(spinBoxCharacterId, 0, 65530);
+
+		PG_GuiItem::anchor(spinBoxCharacterId, PG_Anchor::Right, frame, PG_Anchor::Right);
+		PG_GuiItem::anchor(spinBoxCharacterId, PG_Anchor::Top, frame, PG_Anchor::Top);
+		PG_GuiItem::anchor(spinBoxCharacterId, PG_Anchor::Bottom, frame, PG_Anchor::Bottom);
+
+
+		PG_GuiText* text = PG_new<PG_GuiText>("Name", frame);
+		PG_GuiItem::anchor(text, PG_Anchor::Right, spinBoxCharacterId, PG_Anchor::Left);
+		PG_GuiItem::anchor(text, PG_Anchor::Left, frame, PG_Anchor::Left);
+		PG_GuiItem::anchor(text, PG_Anchor::Top, frame, PG_Anchor::Top);
+		PG_GuiItem::anchor(text, PG_Anchor::Bottom, frame, PG_Anchor::Bottom);
+		setText(text);
+		text->setMargin(PG_Anchor::Left, 25.f);
+
+		PG_Gui::connectChanged(text,
+			wrapper, "characterName", [](PG_GuiText* item, const PG_Any& value) {
+				item->setText(value.get<std::string>());
+			});
+
+		//lables
+		PG_GuiText* label = PG_new<PG_GuiText>("NameLabel", frame);
+		PG_GuiItem::anchor(label, PG_Anchor::Bottom, frame, PG_Anchor::Top);
+		PG_GuiItem::anchor(label, PG_Anchor::Left, text, PG_Anchor::Left);
+		setLableText(label);
+		label->setPosition(glm::vec2(0.f, 5.f));
+		label->setText("NAME");
+
+		label = PG_new<PG_GuiText>("IDLabel", frame);
+		PG_GuiItem::anchor(label, PG_Anchor::Bottom, frame, PG_Anchor::Top);
+		PG_GuiItem::anchor(label, PG_Anchor::Left, spinBoxCharacterId, PG_Anchor::Left);
+		setLableText(label);
+		label->setPosition(glm::vec2(0.f, 5.f));
+		label->setText("ID");
+	}
+
+	frame = PG_new<PG_GuiImage>("BaseStatsFrame", column);
+	frame->setMaterial(PG_Material("M_DisaGuiImageFrameA"));
+	frame->setHeight(190.f);
+	PG_GuiItem::anchor(frame, PG_Anchor::Right, column, PG_Anchor::Right);
+	PG_GuiItem::anchor(frame, PG_Anchor::Left, column, PG_Anchor::Left);
+
+	{
+		PG_GuiImageCropped* img = PG_new<PG_GuiImageCropped>("face", frame);
+		img->setCropSize(glm::vec2(160.f));
+		PG_GuiItem::anchor(img, PG_Anchor::Top, frame, PG_Anchor::Top);
+		PG_GuiItem::anchor(img, PG_Anchor::Left, frame, PG_Anchor::Left);
+		img->setPosition(glm::vec2(15.f));
+		img->setSize(glm::vec2(160.f));
+
+		PG_Gui::connectChanged(img,
+			wrapper, "characterPortrait", [](PG_GuiImageCropped* item, const PG_Any& value) {
+				item->setImage(value.get<PG_Texture>());
+			});
+			
+		PG_GuiText* label = PG_new<PG_GuiText>("ClassLabel", frame);
+		PG_GuiItem::anchor(label, PG_Anchor::Top, img, PG_Anchor::Top);
+		PG_GuiItem::anchor(label, PG_Anchor::Left, img, PG_Anchor::Right);
+		setLableText(label);
+		label->setHeight(34.f);
+		label->setWidth(80.f);
+		label->setPosition(glm::vec2(15.f, 0.f));
+		label->setText("CLASS");
+
+		PG_GuiText* text = PG_new<PG_GuiText>("ClassText", frame);
+		PG_GuiItem::anchor(text, PG_Anchor::Top, label, PG_Anchor::Top);
+		PG_GuiItem::anchor(text, PG_Anchor::Left, label, PG_Anchor::Right);
+		PG_GuiItem::anchor(text, PG_Anchor::Right, frame, PG_Anchor::Right);
+		setText(text);
+		text->setFontSize(32.f);
+		text->setHeight(34.f);
+		text->setMargin(PG_Anchor::Left, 15.f);
+
+		PG_Gui::connectChanged(text,
+			wrapper, "characterTitle", [](PG_GuiText* item, const PG_Any& value) {
+				item->setText(value.get<std::string>());
+			});
+
+		PG_GuiText* label2 = PG_new<PG_GuiText>("LevelLabel", frame);
+		PG_GuiItem::anchor(label2, PG_Anchor::Top, label, PG_Anchor::Bottom);
+		PG_GuiItem::anchor(label2, PG_Anchor::Left, img, PG_Anchor::Right);
+		setLableText(label2);
+		label2->setHeight(34.f);
+		label2->setWidth(80.f);
+		label2->setPosition(glm::vec2(15.f, 5.f));
+		label2->setText("LV");
+
+		auto lvSpinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(frame, wrapper, "LevelText", "characterLevel");
+		PG_GuiSpinBox::setupInt(lvSpinBox, 1, std::numeric_limits<unsigned short>::max());
+		PG_GuiItem::anchor(lvSpinBox, PG_Anchor::Top, label2, PG_Anchor::Top);
+		PG_GuiItem::anchor(lvSpinBox, PG_Anchor::Left, text, PG_Anchor::Left);
+		PG_GuiItem::anchor(lvSpinBox, PG_Anchor::Right, frame, PG_Anchor::Right);
+		setText(lvSpinBox->getText());
+		lvSpinBox->getText()->setFontSize(35.f);
+		lvSpinBox->getText()->setHorizontalAlignment(PG_Anchor::Left);
+		lvSpinBox->getText()->setMargin(PG_Anchor::Left, 0.f);
+		lvSpinBox->getBackground()->setClip(false);
+		lvSpinBox->getBackground()->setAlpha(0.f);
+		lvSpinBox->setHeight(34.f);
+	}
+
+	{
+
+		PG_GuiRow* row = createRow(column, "Rotation:");
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "mobilityDropDown", "characterRotation", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				auto model = PG_new<PG_ListModel<std::string>>(dropDown);
+
+				model->set({
+					{ "North"},
+					{ "East"},
+					{ "South"},
+					{ "West"},
+					});
+				dropDown->setModel(model);
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	}
+
+	{
+		PG_GuiRow* row = createRow(column, "Alliance:");
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "mobilityDropDown", "characterAlliance", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				auto model = PG_new<PG_ListModel<std::string>>(dropDown);
+
+				model->set({
+					{ "User controlled"},
+					{ "Enemy"},
+					{ "Enemy, third party"},
+					{ "Passive"},
+					{ "Neutral"},
+					});
+				dropDown->setModel(model);
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	}
+
+	{
+		PG_GuiRow* row = createRow(column, "Ai:");
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "aiDropDown", "characterAi", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				auto model = PG_new<PG_ListModel<std::string>>(dropDown);
+
+				model->set({
+					{ "Disabled"},
+					{ "Guard Mode"},
+					{ "Advance"},
+					});
+				dropDown->setModel(model);
+				PG_GuiDropDown::connect(dropDown, &PG_GuiDropDown::indexChanged, dropDown, [dropDown](int index) {
+					switch (index)
+					{
+					case 0: dropDown->setTooltipText("Does nothing"); break;
+					case 1: dropDown->setTooltipText("Attack when in range"); break;
+					case 2: dropDown->setTooltipText("Attack and move forward"); break;
+					default:
+						break;
+					}
+				});
+				
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	}
+
+	const auto addItemSelection = [&](const char* title, const char* slot, const char* slotIndex) {
+		PG_GuiRow* row = createRow(column, title);
+
+		auto spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(row, wrapper, "itemID", slot);
+		spinBox->setWidth(80.f);
+		spinBox->setHeight(32.f);
+		PG_GuiSpinBox::setupInt(spinBox, 0, std::numeric_limits<unsigned short>::max());
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+
+		auto dropDown = PG_Gui::createGuiElementV2<PG_DisaItemDropDown>(row, wrapper, "itemDropDown", slotIndex, "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_DisaItemDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				dropDown->setModel(PG_DisaItemsModel::get());
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+		dropDown->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		};
+
+	addItemSelection("Weapon ID:", "characterWeapon", "characterWeaponIndex");
+	addItemSelection("Item 1 ID:", "characterItemSlot0", "characterItemSlot0Index");
+	addItemSelection("Item 2 ID:", "characterItemSlot1", "characterItemSlot1Index");
+	addItemSelection("Item 3 ID:", "characterItemSlot2", "characterItemSlot2Index");
+
+	{
+		auto text = PG_new<PG_GuiText>("Text", glm::vec2(0.f), glm::vec2(300, 32.f), column);
+		text->setColor(PG_Color::hentaiBlueFrgb);
+		text->setFontSize(21.f);
+		text->setWrapMode(PG_GuiText::None);
+		text->setVerticalAlignment(PG_GuiText::ETextAlignment::VerticalCenter);
+		text->setText("Only applies to geo symbols:"); //2800
+
+	}
+	{
+		PG_GuiRow* row = createRow(column, "Geo color:");
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "geoColorDropDown", "characterGeoColor", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				auto model = PG_new<PG_ListModel<std::string>>(dropDown);
+
+				model->set({
+					{ "None"},
+					{ "Red"},
+					{ "Green"},
+					{ "Blue"},
+					{ "Yellow"},
+					{ "Magenta"},
+					{ "Cyan"},
+					{ "White"}
+					});
+				dropDown->setModel(model);
+
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	}
+
+	{
+		PG_GuiRow* row = createRow(column, "Geo effect ID:");
+
+		auto spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(row, wrapper, "effectID", "characterGeoEffect");
+		spinBox->setWidth(80.f);
+		spinBox->setHeight(32.f);
+		PG_GuiSpinBox::setupInt(spinBox, 0, std::numeric_limits<unsigned short>::max());
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "itemDropDown", "characterGeoEffectIndex", "index",
+			[](const std::string& name, PG_GuiItem* root) {
+				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+				dropDown->setModel(PG_DisaGeoEffectsModel::get());
+
+				PG_GuiDropDown::connect(dropDown, &PG_GuiDropDown::indexChanged, dropDown, [dropDown](int index) {
+					if (index < 0 || index >= PG_DisaGeoEffectsModel::get()->size()) {
+						dropDown->setTooltipText({});
+						return;
+					}
+					dropDown->setTooltipText((PG_DisaGeoEffectsModel::get()->begin() + index)->getTooltip());
+					});
+
+				return dropDown;
+			});
+		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+		dropDown->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+
+	}
+}
+
+void Inspector::createFunctionBar() {
+	auto toolbar = root->findFirstChild<PG_GuiColumn>("Tools");
+
+	if (mod->getMode() == PG_DisaEditorModule::Mode_View) {
+		if (toolbar) delete toolbar;
+		if (auto editModeColumn = root->findFirstChild<PG_GuiColumn>("EditMode"))
+			delete editModeColumn;
+		return;
+	}
+
+	if (toolbar) return;
+
+	toolbar = PG_new<PG_GuiColumn>("Tools", root);
+	toolbar->setWidth(42.f);
+	toolbar->setPosition(glm::vec2(10.f));
+	toolbar->setSpacing(3.f);
+	PG_GuiItem::anchor(toolbar, PG_Anchor::Top, root, PG_Anchor::Top);
+	PG_GuiItem::anchor(toolbar, PG_Anchor::Bottom, root, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(toolbar, PG_Anchor::Left, root, PG_Anchor::Left);
+
+	auto btn = PG_new<PG_GuiToggleButton>("TerrainEdit", toolbar);
+	btn->setSize(glm::vec2(42));
+	btn->setIcon("gui/icon_smallTiles.png");
+	btn->setTooltipText("Terrain edit");
+	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setBackground("M_GuiRoundedRectangleTop5");
+	btn->setAutoToggle(false);
+	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Terrain);
+
+	connect(mod, &PG_DisaEditorModule::modeChanged, btn, [btn](PG_DisaEditorModule::EMode mode) {
+		btn->setToggled(mode == PG_DisaEditorModule::Mode_Terrain);
+		});
+	connect(btn, &PG_GuiToggleButton::clicked, this, [this] {
+		mod->setMode(PG_DisaEditorModule::Mode_Terrain);
+		});
+
+	btn = PG_new<PG_GuiToggleButton>("MaterialEdit", toolbar);
+	btn->setSize(glm::vec2(42));
+	btn->setIcon("gui/icon_texture.png");
+	btn->setTooltipText("Material edit");
+	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setAutoToggle(false);
+	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Material);
+
+	connect(mod, &PG_DisaEditorModule::modeChanged, btn, [btn](PG_DisaEditorModule::EMode mode) {
+		btn->setToggled(mode == PG_DisaEditorModule::Mode_Material);
+		});
+	connect(btn, &PG_GuiToggleButton::clicked, this, [this] {
+		mod->setMode(PG_DisaEditorModule::Mode_Material);
+		});
+
+	btn = PG_new<PG_GuiToggleButton>("ObjectEdit", toolbar);
+	btn->setSize(glm::vec2(42));
+	btn->setIcon("gui/icon_model.png");
+	btn->setTooltipText("Object edit");
+	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setAutoToggle(false);
+	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Object);
+
+	connect(mod, &PG_DisaEditorModule::modeChanged, btn, [btn](PG_DisaEditorModule::EMode mode) {
+		btn->setToggled(mode == PG_DisaEditorModule::Mode_Object);
+		});
+	connect(btn, &PG_GuiToggleButton::clicked, this, [this] {
+		mod->setMode(PG_DisaEditorModule::Mode_Object);
+		});
+
+	btn = PG_new<PG_GuiToggleButton>("EventEdit", toolbar);
+	btn->setSize(glm::vec2(42));
+	btn->setIcon("gui/disa/icon_eventTile.png");
+	btn->setTooltipText("Event edit");
+	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setAutoToggle(false);
+	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_EventTile);
+
+	connect(mod, &PG_DisaEditorModule::modeChanged, btn, [btn](PG_DisaEditorModule::EMode mode) {
+		btn->setToggled(mode == PG_DisaEditorModule::Mode_EventTile);
+		});
+	connect(btn, &PG_GuiToggleButton::clicked, this, [this] {
+		mod->setMode(PG_DisaEditorModule::Mode_EventTile);
+		});
+
+	btn = PG_new<PG_GuiToggleButton>("ActorEdit", toolbar);
+	btn->setSize(glm::vec2(42));
+	btn->setIcon("gui/icon_actor.png");
+	btn->setTooltipText("Actor edit");
+	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setBackground("M_GuiRoundedRectangleBottom5");
+	btn->setAutoToggle(false);
+	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Actor);
+
+	connect(mod, &PG_DisaEditorModule::modeChanged, btn, [btn](PG_DisaEditorModule::EMode mode) {
+		btn->setToggled(mode == PG_DisaEditorModule::Mode_Actor);
+		});
+	connect(btn, &PG_GuiToggleButton::clicked, this, [this] {
+		mod->setMode(PG_DisaEditorModule::Mode_Actor);
+		});
+
+	{ //side
+		auto editModeColumn = PG_new<PG_GuiColumn>("EditMode", root);
+		editModeColumn->setWidth(32.f);
+		editModeColumn->setHeight(32.f * 4.f + 3.f * 3.f);
+		editModeColumn->setPosition(glm::vec2(10.f, 0.f));
+		editModeColumn->setSpacing(3.f);
+		editModeColumn->setVisible(false);
+		PG_GuiItem::anchor(editModeColumn, PG_Anchor::Left, btn, PG_Anchor::Right);
+		PG_GuiItem::anchor(editModeColumn, PG_Anchor::VerticalCenter, btn, PG_Anchor::VerticalCenter);
+		connect(mod, &PG_DisaEditorModule::modeChanged, editModeColumn, [editModeColumn](PG_DisaEditorModule::EMode mode) {
+			editModeColumn->setVisible(mode == PG_DisaEditorModule::Mode_Object);
+			});
+
+		auto modeBtn = PG_new<PG_GuiToggleButton>("SelectMode", editModeColumn);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setSize(glm::vec2(32.f));
+		modeBtn->setIcon("gui/icon_cursor.png");
+		modeBtn->setTooltipText("Select mode");
+		modeBtn->setBackground("M_GuiRoundedRectangleTop5");
+		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Select);
+
+		connect(mod, &PG_DisaEditorModule::editModeChanged, modeBtn, [modeBtn](PG_DisaEditorModule::EEditMode mode) {
+			modeBtn->setToggled(mode == PG_DisaEditorModule::EEditMode::Select);
+			});
+		connect(modeBtn, &PG_GuiToggleButton::clicked, this, [this] {
+			mod->setEditMode(PG_DisaEditorModule::EEditMode::Select);
+			});
+
+		modeBtn = PG_new<PG_GuiToggleButton>("TranslateMode", editModeColumn);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setSize(glm::vec2(32.f));
+		modeBtn->setIcon("gui/icon_axis.png");
+		modeBtn->setTooltipText("Translate mode");
+		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Translate);
+
+		connect(mod, &PG_DisaEditorModule::editModeChanged, modeBtn, [modeBtn](PG_DisaEditorModule::EEditMode mode) {
+			modeBtn->setToggled(mode == PG_DisaEditorModule::EEditMode::Translate);
+			});
+		connect(modeBtn, &PG_GuiToggleButton::clicked, this, [this] {
+			mod->setEditMode(PG_DisaEditorModule::EEditMode::Translate);
+			});
+
+		modeBtn = PG_new<PG_GuiToggleButton>("RotateMode", editModeColumn);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setSize(glm::vec2(32.f));
+		modeBtn->setIcon("gui/icon_rotate.png");
+		modeBtn->setTooltipText("Rotate mode");
+		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Rotate);
+
+		connect(mod, &PG_DisaEditorModule::editModeChanged, modeBtn, [modeBtn](PG_DisaEditorModule::EEditMode mode) {
+			modeBtn->setToggled(mode == PG_DisaEditorModule::EEditMode::Rotate);
+			});
+		connect(modeBtn, &PG_GuiToggleButton::clicked, this, [this] {
+			mod->setEditMode(PG_DisaEditorModule::EEditMode::Rotate);
+			});
+
+		modeBtn = PG_new<PG_GuiToggleButton>("ScaleMode", editModeColumn);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setSize(glm::vec2(32.f));
+		modeBtn->setIcon("gui/icon_scale.png");
+		modeBtn->setTooltipText("Scale mode");
+		modeBtn->setBackground("M_GuiRoundedRectangleBottom5");
+		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Scale);
+
+		connect(mod, &PG_DisaEditorModule::editModeChanged, modeBtn, [modeBtn](PG_DisaEditorModule::EEditMode mode) {
+			modeBtn->setToggled(mode == PG_DisaEditorModule::EEditMode::Scale);
+			});
+		connect(modeBtn, &PG_GuiToggleButton::clicked, this, [this] {
+			mod->setEditMode(PG_DisaEditorModule::EEditMode::Scale);
+			});
+	}
+}
+
+void Inspector::createInspector() {
+	auto inspector = root->findFirstChild<PG_GuiRectangle>("Inspector");
+	if (mod->getMode() == PG_DisaEditorModule::Mode_View) {
+		if (inspector) delete inspector;
+		return;
+	}
+
+	//find items
+	std::vector<PG_Object*> items;
+	auto* wrapper = inspector? inspector->findFirstChild<PG_SelectionWrapper>("SelectionWrapper"): nullptr;
+	bool isNew = false;
+	if(!mod->getSelection().empty()){
+		if (m_lastMode != mod->getMode()) {
+			if (wrapper) delete wrapper;
+			wrapper = nullptr;
+			m_lastMode = mod->getMode();
+			isNew = true;
+		}
+
+		if (!wrapper) {
+			wrapper = PG_new<PG_SelectionWrapper>("SelectionWrapper");
+			isNew = true;
+		}
+
+		//create elements
+		switch (mod->getMode()) {
+		case PG_DisaEditorModule::Mode_View: return;
+		case PG_DisaEditorModule::Mode_Object:
+		case PG_DisaEditorModule::Mode_Terrain:
+		case PG_DisaEditorModule::Mode_Actor:
+			std::ranges::transform(mod->getSelection(), std::back_inserter(items), [](const PG_EditorActorInfo& info) -> PG_Object* { return info.actor.get(); });
+			break;
+		case PG_DisaEditorModule::Mode_Material:
+			for (auto* item : wrapper->getSelectionItems() | PG_CastTo<PG_DisaMapTileMaterialModel*>) {
+				item->deleteLater();
+			}
+
+			std::ranges::transform(mod->getSelection(), std::back_inserter(items), [this, wrapper](const PG_EditorActorInfo& info) -> PG_Object* {
+				if (info.additionalData.is<PG_DisaFaceHit>()) {
+					auto hit = info.additionalData.get<PG_DisaFaceHit>();
+					auto model = dynamic_cast<PG_DisaMapTileModel*>(dynamic_cast<PG_DisaTileViewNode*>(info.actor.get())->getTileModel());
+
+					auto* materialModel = PG_new<PG_DisaMapTileMaterialModel>("PG_DisaMapTileMaterialModel", wrapper);
+					materialModel->setSortIndex(info.index);
+					connect(PG_DisaMainModel::get(), &PG_DisaMainModel::paintSurfacesPressed, materialModel, [materialModel](unsigned int index) {
+						materialModel->setTextureIndex(index + 1);
+						});
+					materialModel->setTileModel(model);
+					auto mode = getMaterialInspectorMode();
+					switch (hit.face) {
+					case PG_DisaFaceHit::Face_Top: {
+						switch (mode)
+						{
+						default:
+						case PG_DisaEditorModule::MaterialInspectorMode_Base: materialModel->setIndex(4); break;
+						case PG_DisaEditorModule::MaterialInspectorMode_Decal: materialModel->setIndex(9); break;
+						case PG_DisaEditorModule::MaterialInspectorMode_Shadow: materialModel->setIndex(10); break;
+						}
+					} break;
+					case PG_DisaFaceHit::Face_West: materialModel->setIndex(mode == PG_DisaEditorModule::MaterialInspectorMode_Base ? 3 : 8); break;
+					case PG_DisaFaceHit::Face_East: materialModel->setIndex(mode == PG_DisaEditorModule::MaterialInspectorMode_Base ? 1 : 6); break;
+					case PG_DisaFaceHit::Face_South: materialModel->setIndex(mode == PG_DisaEditorModule::MaterialInspectorMode_Base ? 2 : 7); break;
+					case PG_DisaFaceHit::Face_North: materialModel->setIndex(mode == PG_DisaEditorModule::MaterialInspectorMode_Base ? 0 : 5); break;
+					default: break;
+					}
+					return materialModel;
+				}
+				return info.actor.get();
+				});
+
+			std::ranges::sort(items, {}, [](PG_Object* m) -> unsigned int {
+				if (auto tm = dynamic_cast<PG_DisaMapTileMaterialModel*>(m)) {
+					return tm->getSortIndex();
+				}
+				return 0;
+				});
+			break;
+			case PG_DisaEditorModule::Mode_EventTile: {
+					std::ranges::transform(mod->getSelection(), std::back_inserter(items), [this, wrapper](const PG_EditorActorInfo& info) -> PG_Object* {
+						glm::ivec2 pos(0);
+						PG_DisaEventTileListModel* eventTileModel = nullptr;
+						if (info.additionalData.is<PG_DisaFaceHit>()) {
+							auto hit = info.additionalData.get<PG_DisaFaceHit>();
+							auto model = dynamic_cast<PG_DisaMapTileModel*>(dynamic_cast<PG_DisaTileViewNode*>(info.actor.get())->getTileModel());
+							pos = model->getTilePosition();
+							eventTileModel = model->findParent<PG_DisaMapModel>(3)->getEvents();
+						}
+						else if (info.additionalData.is<PG_DisaEmptyTileHit>()) {
+							auto hit = info.additionalData.get<PG_DisaEmptyTileHit>();
+							pos = hit.tilePos;
+							eventTileModel = dynamic_cast<PG_DisaMapViewNode*>(info.actor.get())->getMapModel()->getEvents();
+						}
+						assert(eventTileModel);
+						if (!eventTileModel) return nullptr;
+						auto* selectionModel = PG_new<EventTilePositionFilter>("EventTilePositionFilter", wrapper);
+						selectionModel->setTilePosition(pos);
+						selectionModel->setModel(eventTileModel);
+						return selectionModel;
+					});
+					std::erase_if(items, [](PG_Object* obj) { return !static_cast<bool>(obj); });
+			}break;
+		}
+	}
+
+	if (items.empty()) {
+		if (wrapper) {
+			isNew = true;
+			delete wrapper;
+			wrapper = nullptr;
+		}
+		if (mod->getMode() != PG_DisaEditorModule::Mode_Actor) {
+			if (inspector) delete inspector;
+			return;
+		}
+	}
+
+	PG_GuiColumn* column;
+	if (inspector) {
+		column = inspector->findFirstChild<PG_GuiColumn>("Column");
+	}else{
+		isNew = true;
+		inspector = PG_new<PG_GuiRectangle>("Inspector", root);
+		inspector->setMaterial("M_GuiRoundedRectangleAll5");
+		inspector->setColor(backgroundColor);
+		inspector->setAlpha(0.7f);
+
+		PG_GuiItem::anchor(inspector, PG_Anchor::Top, root, PG_Anchor::Top);
+		PG_GuiItem::anchor(inspector, PG_Anchor::Right, root, PG_Anchor::Right);
+		PG_GuiItem::anchor(inspector, PG_Anchor::Bottom, root, PG_Anchor::Bottom);
+		inspector->setMargin(10.f);
+		inspector->setClip(true);
+		inspector->moveFront();
+
+		auto area = PG_new<PG_GuiMouseArea>("MouseAreaBlocker", inspector);
+		area->setHoverEnabled(true);
+		area->fill(inspector);
+
+		column = PG_new<PG_GuiColumn>("Column", inspector);
+		PG_GuiItem::anchor(column, PG_Anchor::Left, inspector, PG_Anchor::Left);
+		PG_GuiItem::anchor(column, PG_Anchor::Right, inspector, PG_Anchor::Right);
+		PG_GuiItem::anchor(column, PG_Anchor::Top, inspector, PG_Anchor::Top);
+		PG_GuiItem::anchor(column, PG_Anchor::Bottom, inspector, PG_Anchor::Bottom);
+		column->setMargin(4.f);
+		column->setHeight(100.f);
+	}
+
+	if (!wrapper) {
+		if (isNew) {
+			switch (mod->getMode()) {
+			case PG_DisaEditorModule::Mode_Actor:
+				inspector->setWidth(inspectorWidth);
+				createForActorNoneSelectEdit(column);
+				break;
+			}
+		}
+	}else{
+		wrapper->setParent(inspector);
+		wrapper->setSelectionItems(items);
+
+		//create elements
+		if(isNew){
+			switch (mod->getMode()) {
+			case PG_DisaEditorModule::Mode_View: 	column->clearGuiChildren();  return;
+			case PG_DisaEditorModule::Mode_Terrain:
+				inspector->setWidth(inspectorWidth);
+				createForTerrainEdit(column, wrapper);
+				break;
+			case PG_DisaEditorModule::Mode_Material:
+				inspector->setWidth(inspectorWidth);
+				createForMaterialEdit(this, column, wrapper);
+				break;
+			case PG_DisaEditorModule::Mode_Object:
+				inspector->setWidth(inspectorWidth);
+				createForObjectEdit(column, wrapper);
+				break;
+			case PG_DisaEditorModule::Mode_EventTile:
+				inspector->setWidth(inspectorWidth);
+				createForEventEdit(column, wrapper);
+				break;
+			case PG_DisaEditorModule::Mode_Actor:
+				inspector->setWidth(540.f);
+				createForActorEdit(column, wrapper);
+				break;
+			}
+		}
+	}
+}
