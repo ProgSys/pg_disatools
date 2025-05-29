@@ -2,8 +2,6 @@
 #include <Scene/PG_ModelNode.h>
 #include <Disa/PG_DisaTransformation.h>
 
-
-
 class PG_DisaActorNode : public PG_ActorNode {
 	PG_OBJECT(PG_DisaActorNode);
 	PG_PARENT(PG_ActorNode);

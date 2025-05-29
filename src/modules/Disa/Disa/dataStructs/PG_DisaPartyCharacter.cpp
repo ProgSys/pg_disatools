@@ -87,9 +87,9 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
      j["name"] = getName();
      j["title"] = getTitle();
 
-    unsigned int baseOffset = (unsigned int)this;
+     std::size_t baseOffset = (std::size_t)this;
     for (auto& v : unknownData1) {
-        j[std::string("unknownValue") + std::to_string((unsigned int)&v - baseOffset)] = v;
+        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset)] = v;
     }
 
     j["resPoison"] = resPoison;
@@ -103,7 +103,7 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
     j["resIce"] = resIce;
 
     for (auto& v : unknownData2) {
-        j[std::string("unknownValue") + std::to_string((unsigned int)&v - baseOffset) ]= v;
+        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset) ]= v;
     }
 
     j["skillEXP"] = skillEXP;
@@ -120,14 +120,14 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
     j["mana"] = mana;
 
     for (auto& v : unknownData3) {
-        j[std::string("unknownValue") + std::to_string((unsigned int)&v - baseOffset)] = v;
+        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset)] = v;
     }
 
     j["weaponMasteryLevels"] = weaponMasteryLevels;
     j["weaponMasteryBaseStats"] = weaponMasteryBaseStats;
 
     for (auto& v : unknownData4) {
-        j[std::string("unknownValue") + std::to_string((unsigned int)&v - baseOffset)] = v;
+        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset)] = v;
     }
 
     j["level"] = level;
@@ -135,7 +135,7 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
     j["characterId"] = characterId;
 
     for (auto& v : unknownData5) {
-        j[std::string("unknownValue") + std::to_string((unsigned int)&v - baseOffset)] = v;
+        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset)] = v;
     }
 
     j["unknownStat1"] = unknownStat1;
@@ -156,7 +156,7 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
     j["learnSpeed"] = learnSpeed;
 
     for (auto& v : unknownData6) {
-        j[std::string("unknownValue") + std::to_string((unsigned int)&v - baseOffset)] = v;
+        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset)] = v;
     }
     j["field_0x68b"] = field_0x68b;
     j["portraitImageId"] = portraitImageId;
@@ -174,7 +174,7 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
     j["field_0x6a0"] = field_0x6a0;
 
     for (auto& v : field_0x6a4) {
-        j[std::string("unknownValue") + std::to_string((unsigned int)&v - baseOffset)] = v;
+        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset)] = v;
     }
 
     j["field_0x6ac"] = field_0x6ac;

@@ -3,7 +3,7 @@
 #include <Base/PG_Object.h>
 #include <Util/PG_File.h>
 #include <Util/PG_Dir.h>
-#include <Script/PG_ConfigFile.h>
+#include <Disa/utils/PG_DisaConfig.h>
 #include <Models/PG_UiStateBaseModel.h>
 
 class PG_DisaMapListModel;
@@ -39,11 +39,10 @@ public:
 	PG_ListModelBase* getGridModel() const { return m_gridModel; }
 
 	//Config
-	PG_ConfigFile& getConfig() { return m_config; }
-	const PG_ConfigFile& getConfig() const { return m_config; }
+	PG_DisaConfig& getConfig() { return m_config; }
+	const PG_DisaConfig& getConfig() const { return m_config; }
 
 	PG_File getExePath() const;
-	void setExePath(const PG_File& path);
 
 	PG_Dir getModDir() const;
 	PG_Dir getCustomCampaignsDir() const;
@@ -69,7 +68,7 @@ private:
 	PG_DisaGeoEffectsModel* m_geoEffectsModel = nullptr;
 	PG_DisaMainModelResources* m_disaMainModelResources = nullptr;
 
-	PG_ConfigFile m_config;
+	PG_DisaConfig m_config;
 	PG_ListModelBase* m_gridModel = nullptr; //buffer pointer set by pushStateStack
 	std::vector<std::shared_ptr<PG_UiStateBaseModel>> m_modelStack;
 };

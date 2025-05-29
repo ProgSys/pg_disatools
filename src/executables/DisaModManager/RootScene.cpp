@@ -1,0 +1,164 @@
+/*
+ * GNU Lesser General Public License (LGPL-3.0)
+ *
+ * Copyright (c) 2025 ProgSys
+ *
+ * This code is part of a free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ * This code is distributed in the hope that it will be useful,
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/
+ * or https://www.gnu.org/licenses/lgpl-3.0.md
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "RootScene.h"
+
+#include <Base/PG_Application.h>
+#include <Base/Events/PG_KeyEvent.h>
+#include <Resources/PG_Shader.h>
+
+#include <Scene/Gui/PG_GuiMain.h>
+#include <Scene/Gui/PG_GuiRectangle.h>
+#include <Scene/Gui/PG_GuiRow.h>
+#include <Scene/Gui/PG_GuiTooltip.h>
+#include <Scene/Gui/PG_GuiButton.h>
+#include <Scene/Gui/PG_GuiToggleButton.h>
+#include <Scene/Gui/PG_GuiListView.h>
+
+
+#include <Disa/utils/PG_DisaInstaller.h>
+
+constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
+constexpr glm::vec3 backgroundDecoColor = glm::vec3(45.f / 255.f);
+constexpr glm::vec3 backgroundDeco2Color = glm::vec3(30.f / 255.f);
+constexpr glm::vec3 backgroundDarkColor = glm::vec3(20.f / 255.f);
+constexpr glm::vec3 offWeightColor = glm::vec3(200.f / 255.f);
+constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
+constexpr glm::vec3 bobbleTextColor = glm::vec3(76.f, 111.f, 199.f) / 255.f;
+
+void RootScene::init() {
+	PG_Scene::init();
+
+	auto guiMain = PG_new<PG_GuiMain>("guiMain", getRoot());
+	rootItem = PG_new<PG_GuiItem>("rootItem", glm::vec2(0.f), glm::vec2(300.f, 400.f), guiMain);
+
+	{//map editor toolbar
+
+		toolbar = PG_new<PG_GuiRectangle>("toolbar", glm::vec2(0.f), glm::vec2(10.f, 50.f), rootItem);
+		toolbar->setColor(backgroundColor);
+		toolbar->getAnchor(PG_Anchor::Top)->setAnchor(rootItem->getAnchor(PG_Anchor::Top));
+		toolbar->getAnchor(PG_Anchor::Left)->setAnchor(rootItem->getAnchor(PG_Anchor::Left));
+		toolbar->getAnchor(PG_Anchor::Right)->setAnchor(rootItem->getAnchor(PG_Anchor::Right));
+
+		toolbarRow = PG_new<PG_GuiRow>("ToolbarRow", glm::vec2(0.f, 10.f), glm::vec2(39.f, 30.f), toolbar);
+		toolbarRow->setSpacing(3.f);
+		toolbarRow->setMargin(PG_Anchor::Left, 10.f);
+		toolbarRow->setMargin(PG_Anchor::Right, 10.f);
+		toolbarRow->fill(toolbar);
+	}
+
+	{ //default center
+		PG_GuiItem* defaultWrapper = PG_new<PG_GuiItem>("defaultWrapper", rootItem);
+		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Top, toolbar, PG_Anchor::Bottom);
+		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Left, rootItem, PG_Anchor::Left);
+		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Right, rootItem, PG_Anchor::Right);
+		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Bottom, rootItem, PG_Anchor::Bottom);
+
+		m_center = defaultWrapper;
+	}
+
+	{ //tooltip
+		guiMain->setTooltipItem(PG_new<PG_GuiTooltip>("Tooltip", rootItem));
+	}
+
+	setupToolbar();
+	setupCenter();
+
+	//read config
+	m_config.open();
+
+	postCallEvent(&RootScene::openInit, m_config.getDisaExeVersion(), PG_File(m_config.getDisaExePath()));
+}
+
+void RootScene::setupToolbar() {
+	toolbarRow->clearGuiChildren();
+
+	auto importButton = PG_new<PG_GuiButton>("importButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
+	importButton->setIcon("gui/icon_export.png");
+	importButton->setBackground("M_GuiRoundedRectangleAll5");
+	importButton->setTooltipText("Import zip");
+	importButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+
+	//TODO add connect
+
+	auto actorButton = PG_new<PG_GuiToggleButton>("ActorModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
+	actorButton->setToggled(false);
+	actorButton->setIcon("gui/icon_actor.png");
+	actorButton->setBackground("M_GuiToolButtonStart");
+	actorButton->setTooltipText("Character Mods");
+	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+
+
+	auto mapsButton = PG_new<PG_GuiToggleButton>("MapModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
+	mapsButton->setToggled(false);
+	mapsButton->setIcon("gui/icon_model.png");
+	mapsButton->setBackground("M_GuiToolButtonEnd");
+	mapsButton->setTooltipText("Map Mods");
+	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+}
+
+void RootScene::setupCenter() {
+
+}
+
+bool RootScene::event(PG_Event* e) {
+	switch (e->getType())
+	{
+		case Event_Key: {
+			auto key = static_cast<PG_KeyEvent*>(e);
+			if (key->getKey() == PG_F5 && !key->isRepeat() && key->isUp()) {
+				PG_Shader::reloadAll();
+				key->accept();
+				return true;
+			}
+		}break;
+	}
+
+	return PG_Scene::event(e);
+}
+
+
+void RootScene::importZip(const PG_File& file) {
+
+}
+
+void RootScene::openInit(std::string version, PG_File exePath) {
+	PG_DisaInstaller* install = PG_new<PG_DisaInstaller>(rootItem);
+	connect(install, &PG_DisaInstaller::done, this, [this](std::string newVersion, const PG_File& newExeFile) {
+		m_config.setExePath(newVersion, newExeFile);
+		openExe(newExeFile);
+	});
+
+	install->runInstall(version, exePath);
+}
+
+void RootScene::openExe(PG_File exePath) {
+
+}

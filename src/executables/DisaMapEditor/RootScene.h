@@ -69,7 +69,6 @@ public:
 private:
     void reset();
     void openInit(std::string version, PG_File exePath);
-    static std::string runInstall(PG_File exePath, bool doUnzip);
 
     void openClicked();
     void open(const PG_File& file);

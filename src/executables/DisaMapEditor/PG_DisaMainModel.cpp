@@ -33,15 +33,7 @@ struct PG_DisaMainModelResources: public PG_Object {
 };
 
 void PG_DisaMainModel::init() {
-	try {
-		m_config.open("config.ini");
-	}
-	catch (const PG_Exception& ext) {
-		OUT_ERROR(ext.what());
-	}
-	catch (...) {
-		OUT_ERROR("Failed to read or find \"config.ini\"!");
-	}
+	m_config.open();
 	g_mainModel = this;
 }
 
@@ -50,11 +42,7 @@ PG_DisaMainModel* PG_DisaMainModel::get() {
 }
 
 PG_File PG_DisaMainModel::getExePath() const {
-	return m_config.getValue<std::string>("disaExe", "");
-}
-void PG_DisaMainModel::setExePath(const PG_File& path) {
-	m_config.setValue<std::string>("disaExeVersion", APP_VERSION);
-	m_config.setValue<std::string>("disaExe", path);
+	return m_config.getDisaExePath();
 }
 
 PG_Dir PG_DisaMainModel::getModDir() const {
