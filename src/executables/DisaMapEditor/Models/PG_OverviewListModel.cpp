@@ -3,7 +3,7 @@
 #include <Util/PG_Dir.h>
 #include <PG_DisaMapListModel.h>
 #include <Disa/fileformats/PG_TX2.h>
-#include <Models/PG_CustomCampaignsModel.h>
+#include <Disa/models/PG_CustomCampaignsModel.h>
 #include <Models/PG_DisaDataDatModel.h>
 
 PG_OverviewListModel::~PG_OverviewListModel() {

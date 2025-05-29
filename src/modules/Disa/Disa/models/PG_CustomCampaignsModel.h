@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Disa/fileformats/PG_ZIP.h>
-#include <Models/PG_UiStateBaseModel.h>
 #include <Resources/PG_Texture.h>
 #include <Util/PG_ValueSetter.h>
 #include <Scene/Model/PG_ListModel.h>
