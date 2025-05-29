@@ -25,7 +25,7 @@ void PG_OverviewListModel::reload() {
 	auto path = mainModel->getExePath();
 	if (path.isEmpty()) return;
 
-	std::vector<PG_OverviewListModelListModelItem> items;
+	std::vector<PG_OverviewListModelItem> items;
 	addDisa(items, path);
 	addCustomCampaigns(items, path);
 	set(std::move(items));
@@ -36,7 +36,7 @@ static inline void customDelete(PG_ListModelBase* ptr) {
 	else ptr->deleteLater();
 }
 
-void PG_OverviewListModel::addDisa(std::vector<PG_OverviewListModelListModelItem>& items, PG_File origin) {
+void PG_OverviewListModel::addDisa(std::vector<PG_OverviewListModelItem>& items, PG_File origin) {
 	origin.replaceFileNameAndExtension("DATA.DAT");
 
 	if (!origin.exists()) return;
@@ -64,7 +64,7 @@ void PG_OverviewListModel::addDisa(std::vector<PG_OverviewListModelListModelItem
 		}
 	}
 
-	PG_OverviewListModelListModelItem item{
+	PG_OverviewListModelItem item{
 			[]()->std::string { return "Disa"; },
 			[]()->std::string { return "Game files"; } ,
 			[p = std::move(preview)]()->PG_Texture { return p; },
@@ -74,7 +74,7 @@ void PG_OverviewListModel::addDisa(std::vector<PG_OverviewListModelListModelItem
 	items.push_back(item);
 }
 
-void PG_OverviewListModel::addCustomCampaigns(std::vector<PG_OverviewListModelListModelItem>& items, PG_File origin) {
+void PG_OverviewListModel::addCustomCampaigns(std::vector<PG_OverviewListModelItem>& items, PG_File origin) {
 	PG_Dir dir(origin.getDir());
 	dir += "/mod/CustomCampaigns";
 
@@ -95,7 +95,7 @@ void PG_OverviewListModel::addCustomCampaigns(std::vector<PG_OverviewListModelLi
 			sPtr.reset();
 			continue;
 		}
-		PG_OverviewListModelListModelItem item{
+		PG_OverviewListModelItem item{
 			[customCampaignsModel]()->std::string { return customCampaignsModel->getCampaignJsonContainer()->getName(); },
 			[customCampaignsModel]()->std::string { return customCampaignsModel->getCampaignJsonContainer()->getDescription(); } ,
 			[customCampaignsModel]()->PG_Texture { return customCampaignsModel->getPreviewImg(); },
@@ -112,7 +112,7 @@ PG_Variety PG_OverviewListModel::getData(PG_Index index, Identity identity) cons
 	case Identity_Description: return m_items[index].description();
 	case Identity_OpenModel: return std::dynamic_pointer_cast<PG_UiStateBaseModel>(m_items[index].model);
 	}
-	return PG_ListModel<PG_OverviewListModelListModelItem>::getData(index, identity);
+	return PG_ListModel<PG_OverviewListModelItem>::getData(index, identity);
 }
 
 void PG_OverviewListModel::tileClicked(PG_ListModelLocation location) {
@@ -139,7 +139,7 @@ void PG_OverviewListModel::addNewCampaign(const std::string& campainName, bool* 
 	}
 
 	if (successFlag) *successFlag = true;
-	PG_OverviewListModelListModelItem item{
+	PG_OverviewListModelItem item{
 	[customCampaignsModel]()->std::string { return customCampaignsModel->getCampaignJsonContainer() ? customCampaignsModel->getCampaignJsonContainer()->getName(): "ERROR"; },
 	[customCampaignsModel]()->std::string { return customCampaignsModel->getCampaignJsonContainer() ? customCampaignsModel->getCampaignJsonContainer()->getDescription() : "ERROR"; } ,
 	[customCampaignsModel]()->PG_Texture { return customCampaignsModel->getPreviewImg(); },
