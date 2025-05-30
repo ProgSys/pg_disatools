@@ -33,7 +33,7 @@
 #include <Scene/Model/PG_ListModelLocation.h>
 #include <Disa/utils/PG_DisaConfig.h>
 
-class PG_DisaMainModel;
+class PG_DisaModManagerMainModel;
 
 class PG_GuiItem;
 class PG_GuiRectangle;
@@ -48,6 +48,7 @@ struct RootGui {
     PG_GuiButton* openButton = nullptr;
 
     PG_GuiText* fpsItem = nullptr;
+    PG_GuiItem* center = nullptr;
 };
 
 class RootScene : public PG_Scene, public RootGui
@@ -71,6 +72,6 @@ private:
     void openInit(std::string version, PG_File exePath);
     void openExe(PG_File exePath);
 
-    PG_GuiItem* m_center = nullptr;
-    PG_DisaMainModel* m_mainModel = nullptr;
+
+    PG_DisaModManagerMainModel* m_mainModel = nullptr;
 };

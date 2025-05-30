@@ -42,7 +42,8 @@
 
 
 #include <Disa/utils/PG_DisaInstaller.h>
-#include <Disa/models/PG_DisaMainModel.h>
+#include <Models/PG_DisaModManagerMainModel.h>
+#include <CustomGui/PG_DisaModListItem.h>
 
 constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
 constexpr glm::vec3 backgroundDecoColor = glm::vec3(45.f / 255.f);
@@ -55,7 +56,7 @@ constexpr glm::vec3 bobbleTextColor = glm::vec3(76.f, 111.f, 199.f) / 255.f;
 void RootScene::init() {
 	PG_Scene::init();
 
-	m_mainModel = PG_new<PG_DisaMainModel>("PG_DisaMainModel", this);
+	m_mainModel = PG_new<PG_DisaModManagerMainModel>("PG_DisaModManagerMainModel", this);
 
 	auto guiMain = PG_new<PG_GuiMain>("guiMain", getRoot());
 	rootItem = PG_new<PG_GuiItem>("rootItem", glm::vec2(0.f), glm::vec2(300.f, 400.f), guiMain);
@@ -81,8 +82,9 @@ void RootScene::init() {
 		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Left, rootItem, PG_Anchor::Left);
 		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Right, rootItem, PG_Anchor::Right);
 		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Bottom, rootItem, PG_Anchor::Bottom);
+		defaultWrapper->setClip(true);
 
-		m_center = defaultWrapper;
+		center = defaultWrapper;
 	}
 
 	{ //tooltip
@@ -114,6 +116,12 @@ void RootScene::setupToolbar() {
 	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
 	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
 
+	connect(actorButton, &PG_GuiButton::clicked, m_mainModel, [m = m_mainModel]() {
+		m->setUiState(PG_DisaModManagerMainModel::CustomCharacters);
+		});
+	connect(m_mainModel, &PG_DisaModManagerMainModel::uiStateChanged, actorButton, [a = actorButton](PG_DisaModManagerMainModel::EUiState state) {
+		a->setToggled(state == PG_DisaModManagerMainModel::CustomCharacters);
+		});
 
 	auto mapsButton = PG_new<PG_GuiToggleButton>("MapModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	mapsButton->setToggled(false);
@@ -122,10 +130,27 @@ void RootScene::setupToolbar() {
 	mapsButton->setTooltipText("Map Mods");
 	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
 	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+
+	connect(mapsButton, &PG_GuiButton::clicked, m_mainModel, [m = m_mainModel]() {
+		m->setUiState(PG_DisaModManagerMainModel::CustomCampaigns);
+		});
+	connect(m_mainModel, &PG_DisaModManagerMainModel::uiStateChanged, mapsButton, [a = mapsButton](PG_DisaModManagerMainModel::EUiState state) {
+		a->setToggled(state == PG_DisaModManagerMainModel::CustomCampaigns);
+		});
 }
 
 void RootScene::setupCenter() {
+	auto listView = PG_new<PG_GuiListView>("PG_GuiListView", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), center);
+	listView->fill(center);
 
+	listView->setItem(PG_GuiListView::getDefaultCreateFunc<PG_DisaModListItem>());
+	listView->setItemUpdate(PG_GuiListView::getDefaultUpdateFunc<PG_DisaModListItem>());
+	listView->setCellSize(150.f);
+	listView->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	listView->setSpacing(5.f);
+
+	connect(m_mainModel, &PG_DisaModManagerMainModel::centerModelChanged, listView, &PG_GuiListView::setModel);
+	m_mainModel->setUiState(PG_DisaModManagerMainModel::CustomCharacters);
 }
 
 bool RootScene::event(PG_Event* e) {
