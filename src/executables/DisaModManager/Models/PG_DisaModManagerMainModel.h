@@ -26,6 +26,8 @@ public:
 	void setUiState(EUiState state);
 	EUiState getUiState() const { return m_state;}
 	PG_ListModelBase* getCenterModel() const { return m_centerModel;}
+	/// @returns Error msg
+	std::string importZip(const PG_File& zipFile);
 
 private:
 	EUiState m_state = None;

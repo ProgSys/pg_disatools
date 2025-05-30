@@ -18,7 +18,7 @@ namespace PG_JsonUtil {
 
         if constexpr (std::is_same_v<decltype(target), std::string>) {
             if (target.empty()) {
-                OUT_ERROR("'campaign.json' has no valid '" << field << "' field!");
+                OUT_ERROR("'Json is missing the mandatory field '" << field << "'!");
                 return false;
             }
         }

@@ -247,6 +247,80 @@ PG_PopUpDialog* PG_PopUpDialog::createOk(PG_GuiItem* parentItem, int type, const
 	return popup;
 }
 
+PG_PopUpDialog* PG_PopUpDialog::createConfirm(PG_GuiItem* parentItem, const std::string& titleStr, const std::string& text) {
+	auto popup = PG_new<PG_PopUpDialog>("N_PopupMenu", parentItem);
+	popup->setCreator([titleStr, text](PG_GuiPopupInstance* parent) {
+
+		auto window = createWindow(parent);
+
+		PG_GuiImage* img = PG_new<PG_GuiImage>("N_Img", window);
+		img->setSize(glm::vec2(127.f));
+		img->setPosition(glm::vec2(60.f, -20.f));
+		img->setImage("gui/icon_question_127.png");
+		PG_GuiItem::anchor(img, PG_Anchor::Left, window, PG_Anchor::Left);
+		PG_GuiItem::anchor(img, PG_Anchor::VerticalCenter, window, PG_Anchor::VerticalCenter);
+
+
+		auto title = PG_new<PG_GuiText>("N_Title", window);
+		title->setFontSize(30.f);
+		title->setColor(PG_Color::hentaiBlueFrgb);
+		title->setHorizontalAlignment(PG_GuiText::HorizontalCenter);
+		title->setPosition(glm::vec2(0.f, 45.f));
+		title->setWrapMode(PG_GuiText::None);
+		title->setText(titleStr);
+		PG_GuiItem::anchor(title, PG_Anchor::Top, window, PG_Anchor::Top);
+		PG_GuiItem::anchor(title, PG_Anchor::Left, window, PG_Anchor::Left);
+		PG_GuiItem::anchor(title, PG_Anchor::Right, window, PG_Anchor::Right);
+
+		auto infoText = PG_new<PG_GuiText>("N_Text", window);
+		infoText->setFontSize(20.f);
+		infoText->setColor(PG_Color::hentaiBlueFrgb);
+		infoText->setWrapMode(PG_GuiText::Word);
+		infoText->setText(text);
+		infoText->setMargin(PG_Anchor::Right, 20.f);
+
+		infoText->setMargin(PG_Anchor::Left, 40.f);
+		infoText->setHorizontalAlignment(PG_GuiText::ETextAlignment::Left);
+		infoText->setVerticalAlignment(PG_GuiText::ETextAlignment::VerticalCenter);
+		PG_GuiItem::anchor(infoText, PG_Anchor::Top, img, PG_Anchor::Top);
+		PG_GuiItem::anchor(infoText, PG_Anchor::Bottom, img, PG_Anchor::Bottom);
+		PG_GuiItem::anchor(infoText, PG_Anchor::Left, img, PG_Anchor::Right);
+		PG_GuiItem::anchor(infoText, PG_Anchor::Right, window, PG_Anchor::Right);
+
+		PG_GuiButton* confirm = PG_new<PG_GuiButton>("N_ConfirmButton", glm::vec2(0.f), glm::vec2(180.f, 42.f), window);
+		confirm->setText("Confirm");
+		confirm->setPosition(glm::vec2(0.f, -20.f));
+		confirm->setMargin(PG_Anchor::Left, 20.f);
+		confirm->setBackground("M_GuiRoundedRectangleAll5");
+		confirm->centerText();
+		PG_GuiItem::anchor(confirm, PG_Anchor::Bottom, window, PG_Anchor::Bottom);
+		PG_GuiItem::anchor(confirm, PG_Anchor::Left, window, PG_Anchor::Left);
+
+		PG_GuiButton* cancel = PG_new<PG_GuiButton>("N_CancelButton", glm::vec2(0.f), glm::vec2(180.f, 42.f), window);
+		cancel->setText("Cancel");
+		cancel->setPosition(glm::vec2(0.f, -20.f));
+		cancel->setMargin(PG_Anchor::Right, 20.f);
+		cancel->setBackground("M_GuiRoundedRectangleAll5");
+		cancel->centerText();
+		PG_GuiItem::anchor(cancel, PG_Anchor::Bottom, window, PG_Anchor::Bottom);
+		PG_GuiItem::anchor(cancel, PG_Anchor::Right, window, PG_Anchor::Right);
+
+
+
+		//logic
+		auto dialog = dynamic_cast<PG_PopUpDialog*>(parent->getOrigin());
+		assert(dialog);
+		connect(confirm, &PG_GuiButton::clicked, dialog, &PG_PopUpDialog::confirmClicked);
+		connect(confirm, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close);
+		connect(cancel, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close);
+		});
+
+	connect(popup, &PG_PopUpDialog::activeChanged, popup, [popup](bool active) {
+		if (!active) popup->deleteLater();
+		});
+	return popup;
+}
+
 PG_PopUpDialog* PG_PopUpDialog::createNewEntry(PG_GuiItem* parentItem, const std::string& titleStr, const std::string& text) {
 
 	auto popup = PG_new<PG_PopUpDialog>("N_PopupMenu", parentItem);

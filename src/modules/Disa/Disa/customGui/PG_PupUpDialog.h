@@ -22,6 +22,12 @@ public:
 	static PG_PopUpDialog* createError(PG_GuiItem* parent, const std::string& title, const std::string& text) {
 		return createOk(parent, 2, title, text);
 	}
+	/**
+	* @brief Ast the user to confrim a operation
+	* Will auto close on click
+	*/
+	static PG_PopUpDialog* createConfirm(PG_GuiItem* parent, const std::string& title, const std::string& text);
+
 	static PG_PopUpDialog* createNewEntry(PG_GuiItem* parentItem, const std::string& titleStr, const std::string& text);
 	static PG_PopUpDialog* openProgress(PG_GuiItem* parentItem, const std::string& titleStr, const std::string& text, float progress);
 	static PG_PopUpDialog* selectCompression(PG_GuiItem* parentItem);

@@ -1,10 +1,10 @@
-#include "FileDialog.h"
+#include "PG_FileDialog.h"
 #include <nfd.h>
 #include <Base/PG_Application.h>
 #include <Util/PG_StringUtil.h>
 
 
-PG_File openDialog(const PG_Object* owner, const std::string& fileFormat) {
+PG_File PG_FileDialog::open(const PG_Object* owner, const std::string& fileFormat) {
 	PG_Application::grabMouse(const_cast<PG_Object*>(owner));
 	nfdchar_t* outPath = nullptr;
 	nfdresult_t result = NFD_OpenDialog(fileFormat.c_str(), nullptr, &outPath);
@@ -26,7 +26,7 @@ PG_File openDialog(const PG_Object* owner, const std::string& fileFormat) {
 	return PG_File();
 }
 
-PG_File saveDialog(const PG_Object* owner, const std::string& fileFormat, const std::string& fileName) {
+PG_File PG_FileDialog::save(const PG_Object* owner, const std::string& fileFormat, const std::string& fileName) {
 	PG_Application::grabMouse(const_cast<PG_Object*>(owner));
 	nfdchar_t* outPath = nullptr;
 	nfduint_t fileTypeIndex = 0;

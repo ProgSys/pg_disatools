@@ -3,6 +3,17 @@
 #include <Models/PG_DisaModListModel.h>
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Scene/Gui/PG_GuiText.h>
+#include <Scene/Gui/PG_GuiRow.h>
+#include <Scene/Gui/PG_GuiButton.h>
+#include <Scene/Gui/PG_GuiToggleButton.h>
+#include <Disa/customGui/PG_PupUpDialog.h>
+
+static inline void callFunc(PG_ListModelLocation loc, const std::string& name) {
+	if (!loc) return;
+	auto func = loc.getModel()->getFunction(name);
+	if (!func) return;
+	func.callArgs(loc.getModel(), loc);
+}
 
 void PG_DisaModListItem::init() {
 	PG_GuiItem::init();
@@ -44,6 +55,63 @@ void PG_DisaModListItem::init() {
 	m_decription->setFontSize(24.f);
 	m_decription->setColor(PG_Color::hentaiBlueFrgb);
 	m_decription->setClip(true);
+
+	auto toolbarRow = PG_new<PG_GuiRow>("ToolbarRow", glm::vec2(0.f, 10.f), glm::vec2(200.f, 30.f), this);
+	anchor(toolbarRow, PG_Anchor::Top, this, PG_Anchor::Top);
+	anchor(toolbarRow, PG_Anchor::Right, this, PG_Anchor::Right);
+
+	{
+		auto btn = PG_new<PG_GuiButton>("MoveUpButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
+		btn->setIcon("gui/disa/icon_up.png");
+		btn->setBackground("M_GuiToolButtonStart");
+		btn->setTooltipText("Move up");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+
+		connect(btn, &PG_GuiButton::clicked, this, [this] {
+			callFunc(m_location, "void moveUp(PG_ListModelLocation)");
+			});
+	}
+
+	{
+		auto btn = PG_new<PG_GuiButton>("MoveDownButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
+		btn->setIcon("gui/disa/icon_down.png");
+		btn->setBackground("M_GuiToolButton");
+		btn->setTooltipText("Move down");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+
+		connect(btn, &PG_GuiButton::clicked, this, [this] {
+			callFunc(m_location, "void moveDown(PG_ListModelLocation)");
+			});
+	}
+
+	{
+		auto btn = PG_new<PG_GuiToggleButton>("DisableButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
+		btn->setIcon("gui/icon_actor.png");
+		btn->setBackground("M_GuiToolButton");
+		btn->setTooltipText("Disable");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+		m_disableBtn = btn;
+
+		connect(btn, &PG_GuiButton::clicked, this, [this] {
+			callFunc(m_location, "void disableMod(PG_ListModelLocation)");
+			});
+	}
+
+	{
+		auto btn = PG_new<PG_GuiButton>("DeleteButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
+		btn->setIcon("gui/icon_delete.png");
+		btn->setBackground("M_GuiToolButtonEnd");
+		btn->setTooltipText("Delete");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+
+		connect(btn, &PG_GuiButton::clicked, this, [this] {
+			auto* popup = PG_PopUpDialog::createConfirm(this, "Delete mod?", "Do you really want to delete the mod \"" + m_location.getDataT<std::string>(Identity_Text) +"\"? ");
+			connect(popup, &PG_PopUpDialog::confirmClicked, this, [this] {
+				callFunc(m_location, "void deleteMod(PG_ListModelLocation)");
+				});
+			popup->open();
+			});
+	}
 }
 
 void PG_DisaModListItem::setLocation(const PG_ListModelLocation& location) {
@@ -54,6 +122,7 @@ void PG_DisaModListItem::setLocation(const PG_ListModelLocation& location) {
 	m_title->setText(location.getDataT<std::string>(Identity_Text));
 	updateAutor();
 	m_decription->setText(location.getDataT<std::string>(PG_DisaModListModel::Identity_Description));
+	m_disableBtn->setToggled(location.getDataT<bool>(PG_DisaModListModel::Identity_Disabled));
 }
 
 void PG_DisaModListItem::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
@@ -72,6 +141,10 @@ void PG_DisaModListItem::update(const PG_ListModelLocation& location, const PG_I
 	}
 	if (hasItem || identities.count(PG_DisaModListModel::Identity_Description)) {
 		m_decription->setText(location.getDataT<std::string>(PG_DisaModListModel::Identity_Description));
+	}
+
+	if (hasItem || identities.count(PG_DisaModListModel::Identity_Disabled)) {
+		m_disableBtn->setToggled(location.getDataT<bool>(PG_DisaModListModel::Identity_Disabled));
 	}
 }
 

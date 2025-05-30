@@ -5,6 +5,7 @@
 
 class PG_GuiImage;
 class PG_GuiText;
+class PG_GuiToggleButton;
 
 class PG_DisaModListItem : public PG_GuiRectangle
 {
@@ -22,4 +23,5 @@ private:
 	PG_GuiText* m_title = nullptr;
 	PG_GuiText* m_author = nullptr;
 	PG_GuiText* m_decription = nullptr;
+	PG_GuiToggleButton* m_disableBtn = nullptr;
 };

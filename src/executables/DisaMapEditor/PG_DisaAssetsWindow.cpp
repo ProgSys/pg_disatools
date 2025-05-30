@@ -17,8 +17,8 @@
 #include <Disa/PG_DisaModelNode.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <Disa/CustomGui/PG_PupUpDialog.h>
+#include <Disa/utils/PG_FileDialog.h>
 #include <Views/PG_DisaMapSceneView.h>
-#include <FileDialog.h>
 #include <Models/PG_DisaMapEditorMainModel.h>
 
 constexpr glm::vec3 backgroundDarkColor = PG_Color::rgbToF({25,25,30});
@@ -175,7 +175,7 @@ static inline void exportTexture(PG_DisaAssetsListItem* owner, PG_ListModelLocat
 
 	name += std::to_string(location.getIndex());
 
-	PG_File file = saveDialog(owner, "TX2;PNG", name);
+	PG_File file = PG_FileDialog::save(owner, "TX2;PNG", name);
 	if (file) {
 		model->exportTexture(file, location, type);
 	}
@@ -186,7 +186,7 @@ static inline void importTexture(PG_DisaAssetsListItem* owner, PG_ListModelLocat
 	auto* model = location.getModel()->getParent<PG_DisaAssetsModel>();
 	if (!model) return;
 
-	PG_File file = openDialog(owner, "TX2;PNG");
+	PG_File file = PG_FileDialog::open(owner, "TX2;PNG");
 	if (!file) return;
 	auto extension = file.getFileExtensionFormated();
 	if (extension == "png") {
@@ -230,7 +230,7 @@ static inline void exportGeoemtry(PG_DisaAssetsListItem* owner, PG_ListModelLoca
 	std::string name = hd ? "geometryHD" : "geometrySD";
 	name += std::to_string(location.getIndex());
 
-	PG_File file = saveDialog(owner, "GEO", name);
+	PG_File file = PG_FileDialog::save(owner, "GEO", name);
 	if (file) {
 		model->exportGeometry(file, location, hd);
 	}
@@ -241,7 +241,7 @@ static inline void importGeoemtry(PG_DisaAssetsListItem* owner, PG_ListModelLoca
 	auto* model = location.getModel()->getParent<PG_DisaAssetsModel>();
 	if (!model) return;
 
-	PG_File file = openDialog(owner, "GEO");
+	PG_File file = PG_FileDialog::open(owner, "GEO");
 	if (file) {
 		model->importGeometry(file, location, hd);
 	}
@@ -252,7 +252,7 @@ static inline void importGeoemtryGLTF(PG_DisaAssetsListItem* owner, PG_ListModel
 	auto* model = location.getModel()->getParent<PG_DisaAssetsModel>();
 	if (!model) return;
 
-	PG_File file = openDialog(owner, "glb");
+	PG_File file = PG_FileDialog::open(owner, "glb");
 	if (file) {
 		model->importGeometryGLTF(file, location, hd);
 	}

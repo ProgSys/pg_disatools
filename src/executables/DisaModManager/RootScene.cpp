@@ -42,6 +42,8 @@
 
 
 #include <Disa/utils/PG_DisaInstaller.h>
+#include <Disa/utils/PG_FileDialog.h>
+#include <Disa/customGui/PG_PupUpDialog.h>
 #include <Models/PG_DisaModManagerMainModel.h>
 #include <CustomGui/PG_DisaModListItem.h>
 
@@ -106,7 +108,15 @@ void RootScene::setupToolbar() {
 	importButton->setTooltipText("Import zip");
 	importButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 
-	//TODO add connect
+	connect(importButton, &PG_GuiButton::clicked, this, [this] {
+		PG_File file = PG_FileDialog::open(this, "zip");
+		if (file.isEmpty()) return;
+		std::string error = m_mainModel->importZip(file);
+		if (error.empty()) return;
+
+		auto* popup = PG_PopUpDialog::createError(rootItem, "Import failed", "Failed to import mod!\nReason: " + error);
+		popup->open();
+	});
 
 	auto actorButton = PG_new<PG_GuiToggleButton>("ActorModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	actorButton->setToggled(false);
