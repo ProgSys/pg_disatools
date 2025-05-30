@@ -33,7 +33,7 @@
 #include <Scene/Model/PG_ListModelLocation.h>
 #include <Disa/utils/PG_DisaConfig.h>
 
-class PG_DisaGridTile;
+class PG_DisaMainModel;
 
 class PG_GuiItem;
 class PG_GuiRectangle;
@@ -72,6 +72,5 @@ private:
     void openExe(PG_File exePath);
 
     PG_GuiItem* m_center = nullptr;
-    PG_ListModelLocation m_centerLocation;
-    PG_DisaConfig m_config;
+    PG_DisaMainModel* m_mainModel = nullptr;
 };

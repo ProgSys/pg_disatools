@@ -42,6 +42,7 @@
 
 
 #include <Disa/utils/PG_DisaInstaller.h>
+#include <Disa/models/PG_DisaMainModel.h>
 
 constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
 constexpr glm::vec3 backgroundDecoColor = glm::vec3(45.f / 255.f);
@@ -53,6 +54,8 @@ constexpr glm::vec3 bobbleTextColor = glm::vec3(76.f, 111.f, 199.f) / 255.f;
 
 void RootScene::init() {
 	PG_Scene::init();
+
+	m_mainModel = PG_new<PG_DisaMainModel>("PG_DisaMainModel", this);
 
 	auto guiMain = PG_new<PG_GuiMain>("guiMain", getRoot());
 	rootItem = PG_new<PG_GuiItem>("rootItem", glm::vec2(0.f), glm::vec2(300.f, 400.f), guiMain);
@@ -89,10 +92,7 @@ void RootScene::init() {
 	setupToolbar();
 	setupCenter();
 
-	//read config
-	m_config.open();
-
-	postCallEvent(&RootScene::openInit, m_config.getDisaExeVersion(), PG_File(m_config.getDisaExePath()));
+	postCallEvent(&RootScene::openInit, m_mainModel->getConfig().getDisaExeVersion(), PG_File(m_mainModel->getConfig().getDisaExePath()));
 }
 
 void RootScene::setupToolbar() {
@@ -152,7 +152,7 @@ void RootScene::importZip(const PG_File& file) {
 void RootScene::openInit(std::string version, PG_File exePath) {
 	PG_DisaInstaller* install = PG_new<PG_DisaInstaller>(rootItem);
 	connect(install, &PG_DisaInstaller::done, this, [this](std::string newVersion, const PG_File& newExeFile) {
-		m_config.setExePath(newVersion, newExeFile);
+		m_mainModel->getConfig().setExePath(newVersion, newExeFile);
 		openExe(newExeFile);
 	});
 

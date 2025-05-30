@@ -1,30 +1,14 @@
 #include "PG_DisaModCampaignsListModel.h"
-#include <Util/PG_Dir.h>
 #include <Disa/models/PG_CustomCampaignsModel.h>
+#include <Disa/models/PG_DisaMainModel.h>
 
-void PG_DisaModCampaignsListModel::reload() {
-	{ //clean up
-		auto oldItems = std::move(m_items);
-		emit itemsRemoved(0, oldItems.size() - 1);
-		emit sizeChanged();
-	}
-
-	PG_File path; // mainModel->getExePath();
-	if (path.isEmpty()) return;
+void PG_DisaModCampaignsListModel::loadData() {
+	PG_Dir dir = PG_DisaMainModel::getBase()->getCustomCampaignsDir();
+	if (!dir.exists()) return;
 
 	std::vector<PG_DisaModListModelItem> items;
-	addCustomCampaigns(items, path);
+	addCustomCampaigns(items, dir);
 	set(std::move(items));
-}
-
-PG_Variety PG_DisaModCampaignsListModel::getData(PG_Index index, Identity identity) const {
-	switch (identity) {
-	case Identity_PreviewImage: return m_items[index].previewImage();
-	case Identity_Description: return m_items[index].description();
-	case Identity_Author: return m_items[index].author();
-	case Identity_Order: return m_items[index].order;
-	}
-	return PG_ListModel<PG_DisaModListModelItem>::getData(index, identity);
 }
 
 static inline void customDelete(PG_ListModelBase* ptr) {
@@ -32,9 +16,7 @@ static inline void customDelete(PG_ListModelBase* ptr) {
 	else ptr->deleteLater();
 }
 
-void PG_DisaModCampaignsListModel::addCustomCampaigns(std::vector<PG_DisaModListModelItem>& items, const PG_File& exePath) {
-	PG_Dir dir(exePath.getDir());
-	dir += "/mod/CustomCampaigns";
+void PG_DisaModCampaignsListModel::addCustomCampaigns(std::vector<PG_DisaModListModelItem>& items, const PG_Dir& dir) {
 
 	auto files = dir.findFiles([](const PG_File& f) ->bool {
 		return f.getFileExtensionFormated() == "zip";
