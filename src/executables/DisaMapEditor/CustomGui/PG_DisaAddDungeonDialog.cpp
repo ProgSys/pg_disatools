@@ -21,7 +21,7 @@
 #include <Scene/Model/PG_ListSelectionModel.h>
 #include <Models/PG_OverviewListModel.h>
 #include <Models/PG_DisaDataDatModel.h>
-#include <PG_DisaMainModel.h>
+#include <Models/PG_DisaMapEditorMainModel.h>
 #include <Resources/PG_ResourceManager.h>
 
 constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
@@ -69,9 +69,9 @@ public:
 };
 
 static inline PG_DisaDataDatModel* getDisaDataDatModel() {
-	if (!PG_DisaMainModel::get() || PG_DisaMainModel::get()->getUiStackSize() < 1) return nullptr;
+	if (!PG_DisaMapEditorMainModel::get() || PG_DisaMapEditorMainModel::get()->getUiStackSize() < 1) return nullptr;
 	
-	if (auto* overviewModel = dynamic_cast<PG_OverviewListModel*>(PG_DisaMainModel::get()->getUiStackEntry(0).get())) {
+	if (auto* overviewModel = dynamic_cast<PG_OverviewListModel*>(PG_DisaMapEditorMainModel::get()->getUiStackEntry(0).get())) {
 		if (overviewModel->empty()) return nullptr;
 
 		if (auto dataDatModel = dynamic_cast<PG_DisaDataDatModel*>(overviewModel->get(0).model.get())) {

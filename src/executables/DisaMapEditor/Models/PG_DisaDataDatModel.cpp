@@ -1,7 +1,7 @@
 #include "PG_DisaDataDatModel.h"
 #include <Models/PG_CategoryFilterModel.h>
 #include <Models/PG_DisaMapContainerModel.h>
-#include <PG_DisaMainModel.h>
+#include <Models/PG_DisaMapEditorMainModel.h>
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 #include <Scene/PG_CameraNode.h>
 
@@ -39,7 +39,7 @@ void PG_DisaDataDatModel::tileClicked(PG_ListModelLocation location) {
 	auto var = location.getData(Identity_PreviewImage);
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
-		PG_DisaMainModel* mainModel = PG_DisaMainModel::get();
+		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
 		mainModel->pushStateStack(PG_DisaMapContainerModel::open(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD()));
 		return;
 	}
@@ -49,7 +49,7 @@ void PG_DisaDataDatModel::tileClicked(PG_ListModelLocation location, PG_CameraNo
 	auto var = location.getData(Identity_PreviewImage);
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
-		PG_DisaMainModel* mainModel = PG_DisaMainModel::get();
+		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
 		auto model = PG_DisaMapContainerModel::open(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD());
 		if(camera) model->setCameraStartTransformation(camera->getTransformation());
 		mainModel->pushStateStack(model);

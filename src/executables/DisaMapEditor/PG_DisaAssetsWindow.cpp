@@ -16,10 +16,10 @@
 #include <Disa/PG_DisaAssetsModel.h>
 #include <Disa/PG_DisaModelNode.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
+#include <Disa/CustomGui/PG_PupUpDialog.h>
 #include <Views/PG_DisaMapSceneView.h>
 #include <FileDialog.h>
-#include <CustomGui/PG_PupUpDialog.h>
-#include <PG_DisaMainModel.h>
+#include <Models/PG_DisaMapEditorMainModel.h>
 
 constexpr glm::vec3 backgroundDarkColor = PG_Color::rgbToF({25,25,30});
 constexpr glm::vec3 backgroundColor = PG_Color::rgbToF(glm::rgba(40));
@@ -69,10 +69,10 @@ void PG_DisaAssetsListItem::init() {
 	connect(bottomBtn, &PG_GuiButton::clicked, this, [this]() {
 		if (!m_location) return;
 		if (m_isTexture) {
-			emit PG_DisaMainModel::get()->paintSurfacesPressed(m_location.getIndex());
+			emit PG_DisaMapEditorMainModel::get()->paintSurfacesPressed(m_location.getIndex());
 		}
 		else {
-			emit PG_DisaMainModel::get()->addModelPressed(m_location.getIndex());
+			emit PG_DisaMapEditorMainModel::get()->addModelPressed(m_location.getIndex());
 		}
 	});
 }

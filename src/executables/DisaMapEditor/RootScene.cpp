@@ -76,7 +76,7 @@
 #include <PG_DisaGridTile.h>
 #include <PG_DisaMapListModel.h>
 #include <PG_DisaAssetsWindow.h>
-#include <PG_DisaMainModel.h>
+#include <Models/PG_DisaMapEditorMainModel.h>
 #include <Scene/Model/PG_ListModelFilter.h>
 
 #include <Util/PG_Dir.h>
@@ -115,7 +115,7 @@ void RootScene::clearCenter() {
 void RootScene::init() {
 	PG_Scene::init();
 
-	if (!m_mainModel) m_mainModel = PG_new<PG_DisaMainModel>("PG_DisaMainModel", this);
+	if (!m_mainModel) m_mainModel = PG_new<PG_DisaMapEditorMainModel>("PG_DisaMapEditorMainModel", this);
 	auto& config = m_mainModel->getConfig();
 
 	auto guiMain = PG_new<PG_GuiMain>("guiMain", getRoot());
@@ -186,7 +186,7 @@ void RootScene::init() {
 		guiMain->setTooltipItem(PG_new<PG_GuiTooltip>("Tooltip", rootItem));
 	}
 
-	connect(m_mainModel, &PG_DisaMainModel::uiStateChanged, this, [this](PG_UiStateBaseModel::UiState state) {
+	connect(m_mainModel, &PG_DisaMapEditorMainModel::uiStateChanged, this, [this](PG_UiStateBaseModel::UiState state) {
 		if (auto window = findFirstChild<PG_GuiWindowPopup>("AssetsWindow"); window && !window->isDeleteLater()) {
 			window->close();
 		}
@@ -220,7 +220,7 @@ void RootScene::init() {
 		}
 	});
 
-	connect(m_mainModel, &PG_DisaMainModel::displayProgress, this, [this](const std::string& text, float progress) {
+	connect(m_mainModel, &PG_DisaMapEditorMainModel::displayProgress, this, [this](const std::string& text, float progress) {
 		PG_PopUpDialog::openProgress(rootItem,
 			"Please wait",
 			text,
@@ -697,7 +697,7 @@ void RootScene::setupToolbarGeneric() {
 	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 	backButton->setVisible(m_mainModel->getUiStackSize() > 1);
 
-	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMainModel::back, ConnectionType_Event);
+	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMapEditorMainModel::back, ConnectionType_Event);
 
 	auto currObject = m_mainModel->getCurrentObject();
 	if (!currObject) return;
@@ -824,7 +824,7 @@ void RootScene::setupToolbarMapView() {
 	backButton->setTooltipText("Back");
 	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 
-	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMainModel::back, ConnectionType_Event);
+	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMapEditorMainModel::back, ConnectionType_Event);
 
 
 	auto saveButton = PG_new<PG_GuiButton>("SaveButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);

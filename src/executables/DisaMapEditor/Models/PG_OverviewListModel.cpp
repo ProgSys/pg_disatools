@@ -1,9 +1,9 @@
 #include "PG_OverviewListModel.h"
-#include <PG_DisaMainModel.h>
 #include <Util/PG_Dir.h>
 #include <PG_DisaMapListModel.h>
 #include <Disa/fileformats/PG_TX2.h>
-#include <Disa/models/PG_CustomCampaignsModel.h>
+#include <Models/PG_UiStateCustomCampaignsModel.h>
+#include <Models/PG_DisaMapEditorMainModel.h>
 #include <Models/PG_DisaDataDatModel.h>
 
 PG_OverviewListModel::~PG_OverviewListModel() {
@@ -17,7 +17,7 @@ void PG_OverviewListModel::reload() {
 		emit sizeChanged();
 	}
 	
-	PG_DisaMainModel* mainModel = PG_DisaMainModel::get();
+	PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
 	if (!mainModel) {
 		return;
 	}
@@ -88,7 +88,7 @@ void PG_OverviewListModel::addCustomCampaigns(std::vector<PG_OverviewListModelIt
 
 	for (const auto& file : files) {
 
-		PG_CustomCampaignsModel* customCampaignsModel = PG_new<PG_CustomCampaignsModel>("PG_CustomCampaignsModel", this);
+		PG_UiStateCustomCampaignsModel* customCampaignsModel = PG_new<PG_UiStateCustomCampaignsModel>("PG_UiStateCustomCampaignsModel", this);
 		auto sPtr = std::shared_ptr<PG_ListModelBase>(customCampaignsModel, customDelete);
 		customCampaignsModel->PG_DisaFileContainer::open(file);
 		if (!customCampaignsModel->getCampaignJsonContainer()  || customCampaignsModel->getCampaignJsonContainer()->getId().empty()) {
@@ -118,15 +118,15 @@ PG_Variety PG_OverviewListModel::getData(PG_Index index, Identity identity) cons
 void PG_OverviewListModel::tileClicked(PG_ListModelLocation location) {
 	auto model = location.getDataT<std::shared_ptr<PG_UiStateBaseModel>>(Identity_OpenModel);
 	if (!model) return;
-	PG_DisaMainModel* mainModel = PG_DisaMainModel::get();
+	PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
 	mainModel->pushStateStack(std::move(model));
 }
 
 void PG_OverviewListModel::addNewCampaign(const std::string& campainName, bool* successFlag) {
 	if (campainName.empty()) return;
-	PG_DisaMainModel* mainModel = PG_DisaMainModel::get();
+	PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
 
-	PG_CustomCampaignsModel* customCampaignsModel = PG_new<PG_CustomCampaignsModel>("PG_CustomCampaignsModel", this);
+	PG_UiStateCustomCampaignsModel* customCampaignsModel = PG_new<PG_UiStateCustomCampaignsModel>("PG_UiStateCustomCampaignsModel", this);
 	auto sPtr = std::shared_ptr<PG_ListModelBase>(customCampaignsModel, customDelete);
 	if (!customCampaignsModel->open(mainModel->getCustomCampaignsDir().toFilePath(campainName + ".zip"))) {
 		if (successFlag) *successFlag = false;
@@ -145,7 +145,7 @@ void PG_OverviewListModel::addNewCampaign(const std::string& campainName, bool* 
 	[customCampaignsModel]()->PG_Texture { return customCampaignsModel->getPreviewImg(); },
 	std::move(sPtr)
 	};
-	customCampaignsModel->setSubUiState(PG_CustomCampaignsModel::SubUiState_Settings);
+	customCampaignsModel->setSubUiState(PG_UiStateCustomCampaignsModel::SubUiState_Settings);
 	push_back(std::move(item));
 
 	tileClicked(getLocation(size() - 1));

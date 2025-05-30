@@ -9,7 +9,7 @@
 #include <Util/Color/ColorConverters.h>
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Models/PG_DisaMapContainerModel.h>
-#include <Models/PG_CustomCampaignsModel.h>
+#include <Models/PG_UiStateCustomCampaignsModel.h>
 #include <Views/PG_DisaMapSceneView.h>
 #include <PG_DisaMapListModel.h>
 #include <RootScene.h>
@@ -80,7 +80,7 @@ void PG_DisaGridTile::init(){
 			popup->addOption("Import Json", true, this, [this, mapsModel] { mapsModel->importJSON(m_location); });
 			popup->openAndDestroyOnClose();
 		}
-		else if (dynamic_cast<PG_CustomCampaignsModel*>(rootModel)) {
+		else if (dynamic_cast<PG_UiStateCustomCampaignsModel*>(rootModel)) {
 			auto* model = m_location.getModel();
 			auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", this);
 			popup->addOption("Remove", model, [model, i = m_location.getIndex()] {

@@ -9,7 +9,7 @@
 #include <Util/Color/ColorDefined.h>
 #include <PG_DisaGridTile.h>
 #include <Models/PG_CategoryFilterModel.h>
-#include <CustomGui/PG_PupUpDialog.h>
+#include <Disa/CustomGui/PG_PupUpDialog.h>
 
 void PG_DisaItemSelector::init() {
 	PG_GuiRectangle::init();

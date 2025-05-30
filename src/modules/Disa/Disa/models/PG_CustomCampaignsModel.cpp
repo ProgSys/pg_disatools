@@ -1,17 +1,16 @@
 #include "PG_CustomCampaignsModel.h"
 
-#include <PG_DisaMainModel.h>
 #include <nlohmann/json.hpp>
 
-#include <PG_DisaDefines.h>
-#include <Models/PG_CategoryFilterModel.h>
-#include <Models/PG_DisaMapContainerModel.h>
 #include <Disa/fileformats/PG_DisaMPDPack.h>
+#include <Disa/models/PG_DisaMainModel.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamInOutByteVector.h>
 #include <Scene/PG_CameraNode.h>
 #include <Util/PG_ImageLoad.h>
+#include <Util/PG_StringUtil.h>
+
 
 NLOHMANN_JSON_SERIALIZE_ENUM(EDisaUnlockCriteria, {
 	{DisaUnlockCriteria_None, "NONE"},
@@ -346,7 +345,7 @@ bool PG_DisaCampaignJsonContainer::save(std::shared_ptr<PG::STREAM::Out> writer)
 	setTo(j, "description", m_description);
 	setTo(j, "previewImage", PG_File(m_previewImgPath).getFile());
 	setTo(j, "backgroundImage", PG_File(m_backgroundImgPath).getFile());
-	setTo(j, "toolVersion", std::string(APP_VERSION));
+	setTo(j, "toolVersion", PG_DisaMainModel::getBase()->getConfig().getDisaExeVersion());
 	setTo(j, "saveTime", getCurrentTimepoint());
 
 	toJsonFromListModel(m_areas, j, "areas");
@@ -413,49 +412,7 @@ void PG_CustomCampaignsModel::createNew(std::string name) {
 	m_campaignJsonContainer->markModified();
 }
 
-void PG_CustomCampaignsModel::setSubUiState(SubUiState state) {
-	if (m_subUiState == state) return;
-	auto oldState = getUiState();
-	m_subUiState = state;
 
-	updateFilter();
-	emit subUiStateChanged();
-	if(getUiState() != oldState)
-		emit uiStateChanged();
-}
-
-PG_CustomCampaignsModel::UiState PG_CustomCampaignsModel::getUiState() const  { 
-	switch (m_subUiState)
-	{
-	case PG_CustomCampaignsModel::SubUiState_Settings: return UiState::CustomCampaignSetting;
-	case PG_CustomCampaignsModel::SubUiState_DungeonsPlan: return UiState::CustomCampaignPlan;
-	default: return UiState::GridFileView;
-	}
- }
-
-std::vector<PG_CustomCampaignsModel::ModeIcon> PG_CustomCampaignsModel::getSubModeIcons() const {
-	return {
-		{SubUiState_Settings, "Settings", "gui/icon_tag.png"},
-		{SubUiState_DungeonsPlan, "Plan", "gui/icon_flag.png"},
-		{SubUiState_Dungeons, "Dungeons", "gui/icon_actor.png"},
-		{SubUiState_Images, "Images", "gui/icon_texture.png"},
-		{SubUiState_Scripts, "Scripts", "gui/icon_connection.png"},
-	};
-}
-
-void PG_CustomCampaignsModel::openUi() {
-	if (!m_filterModel) {
-		m_filterModel = PG_new<PG_CategoryFilterModel>("PG_CategoryFilterModel", this);
-		m_filterModel->setModel(this);
-	}
-	updateFilter();
-}
-
-void PG_CustomCampaignsModel::closeUi() {
-	if (!m_filterModel) return;
-	delete m_filterModel;
-	m_filterModel = nullptr;
-}
 
 void PG_CustomCampaignsModel::afterOpen(zipUPtr& zip) {
 	auto campaignInfo = find(PG_File("campaign.json"));
@@ -485,48 +442,6 @@ PG_Texture PG_CustomCampaignsModel::getPreviewImg() const {
 	return texture;
 }
 
-void PG_CustomCampaignsModel::tileClicked(PG_ListModelLocation location) {
-	auto var = location.getData(Identity_PreviewImage);
-	if (var.is<PG_DisaMPDPack>()) {
-		auto pack = var.get<PG_DisaMPDPack>();
-		PG_DisaMainModel* mainModel = PG_DisaMainModel::get();
-		mainModel->pushStateStack(PG_DisaMapContainerModel::open(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD()));
-		return;
-	}
-}
-
-void PG_CustomCampaignsModel::tileClicked(PG_ListModelLocation location, PG_CameraNode* camera) {
-	auto var = location.getData(Identity_PreviewImage);
-	if (var.is<PG_DisaMPDPack>()) {
-		auto pack = var.get<PG_DisaMPDPack>();
-		PG_DisaMainModel* mainModel = PG_DisaMainModel::get();
-		auto model = PG_DisaMapContainerModel::open(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD());
-		if(camera) model->setCameraStartTransformation(camera->getTransformation());
-		mainModel->pushStateStack(model);
-		return;
-	}
-}
-
-
-void PG_CustomCampaignsModel::updateFilter() {
-	if (!m_filterModel) return;
-	switch (m_subUiState)
-	{
-	case PG_CustomCampaignsModel::SubUiState_Settings:
-		break;
-	default:
-	case PG_CustomCampaignsModel::SubUiState_DungeonsPlan:
-	case PG_CustomCampaignsModel::SubUiState_Dungeons:
-		m_filterModel->setFilterCategory(PG_CategoryFilterModel::Dungeons);
-		break;
-	case PG_CustomCampaignsModel::SubUiState_Images:
-		m_filterModel->setFilterCategory(PG_CategoryFilterModel::Image);
-		break;
-	case PG_CustomCampaignsModel::SubUiState_Scripts:
-		m_filterModel->setFilterCategory(PG_CategoryFilterModel::Script);
-		break;
-	}
-}
 
 static inline void addFile(PG_ZIP* self, std::vector<std::shared_ptr<PG_DisaChangedDataContainer>>& keepers, const PG_File& file, std::string name,
 	const std::function<bool(std::vector<char>& data)>& dataCheck = {}) {

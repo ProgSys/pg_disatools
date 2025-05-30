@@ -21,7 +21,8 @@
 #include <Util/Color/ColorConverters.h>
 #include <Util/PG_RangesTransform.h>
 #include <Util/PG_StringUtil.h>
-#include <PG_DisaMainModel.h>
+#include <Models/PG_DisaMapEditorMainModel.h>
+
 
 #include <Disa/map/PG_DisaIntersection.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
@@ -1385,7 +1386,7 @@ void Inspector::createInspector() {
 
 					auto* materialModel = PG_new<PG_DisaMapTileMaterialModel>("PG_DisaMapTileMaterialModel", wrapper);
 					materialModel->setSortIndex(info.index);
-					connect(PG_DisaMainModel::get(), &PG_DisaMainModel::paintSurfacesPressed, materialModel, [materialModel](unsigned int index) {
+					connect(PG_DisaMapEditorMainModel::get(), &PG_DisaMapEditorMainModel::paintSurfacesPressed, materialModel, [materialModel](unsigned int index) {
 						materialModel->setTextureIndex(index + 1);
 						});
 					materialModel->setTileModel(model);

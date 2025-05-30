@@ -247,14 +247,10 @@ private:
 	PG_ListModel<PG_DisaCustomAreaModel*>* m_areas = nullptr;
 };
 
-class PG_CustomCampaignsModel : public PG_ZIP, public PG_UiStateBaseModel {
+class PG_CustomCampaignsModel : public PG_ZIP {
 	PG_OBJECT(PG_CustomCampaignsModel);
 	PG_PARENT(PG_ZIP);
-	PG_PROPERTY(int subUiState GET getSubUiStateInt SET setSubUiStateInt CHANGED subUiStateChanged);
 	PG_PROPERTY(PG_Object* campaignJson GET getCampaignJsonContainer);
-signals:
-	void uiStateChanged();
-	void subUiStateChanged();
 public:
 	enum SubUiState: int {
 		SubUiState_Settings,
@@ -269,37 +265,19 @@ public:
 
 	void createNew(std::string name);
 
-	UiState getUiState() const final;
-	PG_ListModelBase* getGridModel() const final { return (PG_ListModelBase*)m_filterModel; }
-
-	SubUiState getSubUiState() const { return m_subUiState; }
-	void setSubUiState(SubUiState state);
-
-	int getSubUiStateInt() const { return static_cast<int>(getSubUiState()); }
-	void setSubUiStateInt(int state) { setSubUiState(static_cast<SubUiState>(glm::clamp(state, 0, (int)SubUiState_SIZE - 1))); }
-
-	std::vector<ModeIcon> getSubModeIcons() const final;
 	PG_DisaCampaignJsonContainer* getCampaignJsonContainer() const { return m_campaignJsonContainer.get(); }
 
 	PG_Texture getPreviewImg() const;
 
 receivers:
-	void tileClicked(PG_ListModelLocation location);
-	void tileClicked(PG_ListModelLocation location, PG_CameraNode* camera);
 	void importFile(const PG_File& file);
 	void addNewDungeon(const std::string& name, const PG_DisaFileEntry& mppSD, const PG_DisaFileEntry& mppHD, int topIndex = 1, int sideIndex = 2, int decalIndex = 0);
 	void customRemove(std::size_t index); //called when item shall be removed
-
-	void openUi();
-	void closeUi();
 
 	void saveToFile() { save(); }
 
 private:
 	void afterOpen(zipUPtr& zip) final;
-	void updateFilter();
 
-	SubUiState m_subUiState = SubUiState_Dungeons;
-	PG_CategoryFilterModel* m_filterModel = nullptr;
 	std::shared_ptr<PG_DisaCampaignJsonContainer> m_campaignJsonContainer;
 };

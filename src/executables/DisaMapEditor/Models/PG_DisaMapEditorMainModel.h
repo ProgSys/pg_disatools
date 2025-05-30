@@ -4,6 +4,7 @@
 #include <Util/PG_File.h>
 #include <Util/PG_Dir.h>
 #include <Disa/utils/PG_DisaConfig.h>
+#include <Disa/models/PG_DisaMainModel.h>
 #include <Models/PG_UiStateBaseModel.h>
 
 class PG_DisaMapListModel;
@@ -13,10 +14,11 @@ class PG_DisaItemsModel;
 class PG_ListModelBase;
 class PG_PSPFS;
 class PG_OLA;
-class PG_DisaMainModelResources;
+class PG_DisaMapEditorMainModelResources;
 
-class PG_DisaMainModel : public PG_Object {
-	PG_OBJECT(PG_DisaMainModel);
+class PG_DisaMapEditorMainModel : public PG_DisaMainModel {
+	PG_OBJECT(PG_DisaMapEditorMainModel);
+	PG_PARENT(PG_DisaMainModel);
 signals:
 	void uiStateChanged(PG_UiStateBaseModel::UiState state);
 	void gridModelChanged(PG_ListModelBase* model);
@@ -24,11 +26,11 @@ signals:
 	void addModelPressed(unsigned int index); //emmited when paint brush is selected in asset window
 	void displayProgress(const std::string& text, float progress); //emmited when a progress disalog is running
 public:
-	using PG_Object::PG_Object;
+	using PG_DisaMainModel::PG_DisaMainModel;
 
-	void init();
+	void init() override;
 
-	static PG_DisaMainModel* get();
+	static PG_DisaMapEditorMainModel* get();
 	//Ui state
 	PG_UiStateBaseModel::UiState getUiState() const;
 	auto getUiStackSize() const { return m_modelStack.size(); }
@@ -37,15 +39,6 @@ public:
 	std::shared_ptr<PG_Object> getCurrentObject() const { return std::dynamic_pointer_cast<PG_Object>(m_modelStack.back()); }
 
 	PG_ListModelBase* getGridModel() const { return m_gridModel; }
-
-	//Config
-	PG_DisaConfig& getConfig() { return m_config; }
-	const PG_DisaConfig& getConfig() const { return m_config; }
-
-	PG_File getExePath() const;
-
-	PG_Dir getModDir() const;
-	PG_Dir getCustomCampaignsDir() const;
 
 	//Functions
 	void back();
@@ -66,7 +59,7 @@ private:
 	PG_DisaCharactersModel* m_charactersModel = nullptr;
 	PG_DisaItemsModel* m_itemsModel = nullptr;
 	PG_DisaGeoEffectsModel* m_geoEffectsModel = nullptr;
-	PG_DisaMainModelResources* m_disaMainModelResources = nullptr;
+	PG_DisaMapEditorMainModelResources* m_disaMainModelResources = nullptr;
 
 	PG_DisaConfig m_config;
 	PG_ListModelBase* m_gridModel = nullptr; //buffer pointer set by pushStateStack

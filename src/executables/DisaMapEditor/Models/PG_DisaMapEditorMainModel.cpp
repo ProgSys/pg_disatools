@@ -1,4 +1,4 @@
-#include "PG_DisaMainModel.h"
+#include "PG_DisaMapEditorMainModel.h"
 
 #include <Base/Thread/PG_Thread.h>
 #include <PG_DisaMapListModel.h>
@@ -21,45 +21,32 @@
 #include <Stream/PG_StreamInOutByteVector.h>
 
 
-static PG_DisaMainModel* g_mainModel = nullptr;
+static PG_DisaMapEditorMainModel* g_mainModel = nullptr;
 
 /**
 * @brief Holds some globaly cashed resourses
 */
-struct PG_DisaMainModelResources: public PG_Object {
+struct PG_DisaMapEditorMainModelResources: public PG_Object {
 	using PG_Object::PG_Object;
 
 	PG_DisaModel teleporterModel;
 };
 
-void PG_DisaMainModel::init() {
-	m_config.open();
+void PG_DisaMapEditorMainModel::init() {
+	PG_DisaMainModel::init();
 	g_mainModel = this;
 }
 
-PG_DisaMainModel* PG_DisaMainModel::get() {
+PG_DisaMapEditorMainModel* PG_DisaMapEditorMainModel::get() {
 	return g_mainModel;
 }
 
-PG_File PG_DisaMainModel::getExePath() const {
-	return m_config.getDisaExePath();
-}
-
-PG_Dir PG_DisaMainModel::getModDir() const {
-	auto exePath = getExePath();
-	return exePath.getDir() + "/mod";
-}
-PG_Dir PG_DisaMainModel::getCustomCampaignsDir() const {
-	auto exePath = getExePath();
-	return exePath.getDir() + "/mod/CustomCampaigns";
-}
-
-void PG_DisaMainModel::back() {
+void PG_DisaMapEditorMainModel::back() {
 	//TODO check save state
 	popStateStack();
 }
 
-void PG_DisaMainModel::openExe() {
+void PG_DisaMapEditorMainModel::openExe() {
 	auto file = getExePath();
 	auto dir = file.getDir();
 	PG_File dataFile(dir + "/DATA.DAT");
@@ -117,7 +104,7 @@ void PG_DisaMainModel::openExe() {
 				PSPFS->PG_DisaFileContainer::open(PSPFS->getFile());
 			}
 			float progress = 0.0F;
-			PG_DisaMainModel* mainModel;
+			PG_DisaMapEditorMainModel* mainModel;
 			std::shared_ptr<PG_OLA> startDat;
 			std::shared_ptr<PG_PSPFS> PSPFS;
 		};
@@ -176,21 +163,21 @@ void PG_DisaMainModel::openExe() {
 	pushStateStack(std::shared_ptr<PG_UiStateBaseModel>(model, [](PG_UiStateBaseModel*) {}));
 }
 
-PG_UiStateBaseModel::UiState PG_DisaMainModel::getUiState() const {
+PG_UiStateBaseModel::UiState PG_DisaMapEditorMainModel::getUiState() const {
 	if (m_modelStack.empty()) return PG_UiStateBaseModel::UiState::Empty;
 	return m_modelStack.back()->getUiState();
 }
 
-void PG_DisaMainModel::setGridModel(PG_ListModelBase* model) {
+void PG_DisaMapEditorMainModel::setGridModel(PG_ListModelBase* model) {
 	if (m_gridModel == model) return;
 	m_gridModel = model;
 	emit gridModelChanged(m_gridModel);
 }
 
-void PG_DisaMainModel::loadDisaMainModelResources(PG_OLA* startDat) {
+void PG_DisaMapEditorMainModel::loadDisaMainModelResources(PG_OLA* startDat) {
 	assert(startDat);
 	if (!m_disaMainModelResources) {
-		m_disaMainModelResources = PG_new<PG_DisaMainModelResources>("PG_DisaMainModelResources", this);
+		m_disaMainModelResources = PG_new<PG_DisaMapEditorMainModelResources>("PG_DisaMapEditorMainModelResources", this);
 	}
 
 	if (auto entry = startDat->find(PG_File("BASE.KM2"), false)) {
@@ -204,7 +191,7 @@ void PG_DisaMainModel::loadDisaMainModelResources(PG_OLA* startDat) {
 
 constexpr auto uiStateChnagedStr = "void uiStateChanged()";
 
-void PG_DisaMainModel::pushStateStack(std::shared_ptr<PG_UiStateBaseModel> model) {
+void PG_DisaMapEditorMainModel::pushStateStack(std::shared_ptr<PG_UiStateBaseModel> model) {
 	assert(model);
 	if (!m_modelStack.empty()) { //disconnect from uiStateChanged
 		auto obj = getCurrentObject();
@@ -232,7 +219,7 @@ void PG_DisaMainModel::pushStateStack(std::shared_ptr<PG_UiStateBaseModel> model
 	}
 }
 
-void PG_DisaMainModel::popStateStack() {
+void PG_DisaMapEditorMainModel::popStateStack() {
 	if (m_modelStack.empty()) return;
 	const auto uiState = getUiState();
 	auto old = std::move(m_modelStack.back());

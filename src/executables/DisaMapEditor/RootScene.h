@@ -42,7 +42,7 @@ class PG_GuiToggleButton;
 class PG_GuiGridView;
 class PG_GuiTextField;
 class PG_GuiRow;
-class PG_DisaMainModel;
+class PG_DisaMapEditorMainModel;
 
 struct RootGui {
     PG_GuiItem* rootItem = nullptr;
@@ -86,6 +86,6 @@ private:
     void setupCustomCampaignPlanView();
 
     PG_GuiItem* m_center = nullptr;
-    PG_DisaMainModel* m_mainModel = nullptr;
+    PG_DisaMapEditorMainModel* m_mainModel = nullptr;
     PG_ListModelLocation m_centerLocation;
 };

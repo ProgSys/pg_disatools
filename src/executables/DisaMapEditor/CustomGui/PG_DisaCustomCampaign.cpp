@@ -17,8 +17,9 @@
 #include <Scene/Model/PG_ListModelFilter.h>
 #include <CustomGui/PG_DisaItemSelector.h>
 #include <CustomGui/PG_DisaSelectorDropDown.h>
-#include <Models/PG_CustomCampaignsModel.h>
+#include <Models/PG_DisaMapEditorMainModel.h>
 #include <Models/PG_CategoryFilterModel.h>
+#include <Models/PG_UiStateCustomCampaignsModel.h>
 
 constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
 constexpr glm::vec3 backgroundDecoColor = glm::vec3(45.f / 255.f);
