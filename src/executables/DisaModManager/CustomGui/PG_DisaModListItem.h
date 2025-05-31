@@ -18,6 +18,7 @@ public:
 	void update(const PG_ListModelLocation& location, const PG_IdentitySet& identities);
 private:
 	void updateAutor();
+	void updateImage();
 	PG_ListModelLocation m_location;
 	PG_GuiImage* m_img = nullptr;
 	PG_GuiText* m_title = nullptr;

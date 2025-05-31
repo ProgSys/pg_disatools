@@ -39,6 +39,7 @@
 #include <Scene/Gui/PG_GuiButton.h>
 #include <Scene/Gui/PG_GuiToggleButton.h>
 #include <Scene/Gui/PG_GuiListView.h>
+#include <Scene/Gui/PG_GuiScrollBar.h>
 
 
 #include <Disa/utils/PG_DisaInstaller.h>
@@ -46,6 +47,7 @@
 #include <Disa/customGui/PG_PupUpDialog.h>
 #include <Models/PG_DisaModManagerMainModel.h>
 #include <CustomGui/PG_DisaModListItem.h>
+#include <Util/Color/ColorDefined.h>
 
 constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
 constexpr glm::vec3 backgroundDecoColor = glm::vec3(45.f / 255.f);
@@ -158,6 +160,27 @@ void RootScene::setupCenter() {
 	listView->setCellSize(150.f);
 	listView->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
 	listView->setSpacing(5.f);
+	listView->setMargin(7.f);
+
+	PG_GuiScrollBar* scrollY = PG_new<PG_GuiScrollBar>("PG_GuiScrollBarY", center);
+	scrollY->setSize(glm::vec2(10.0f, 0.0f));
+	scrollY->setScrollBarColors({
+		PG_Color::hentaiBlueFrgb * 0.5f, PG_Color::hentaiBlueFrgb * 0.7f, PG_Color::hentaiBlueFrgb
+		});
+	if (auto rec = dynamic_cast<PG_GuiRectangle*>(scrollY->getHandle())) {
+		rec->setMaterial("M_GuiRoundedRectangleAll5");
+	}
+	PG_GuiItem::anchor(scrollY, PG_Anchor::Top, center, PG_Anchor::Top);
+	PG_GuiItem::anchor(scrollY, PG_Anchor::Bottom, center, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(scrollY, PG_Anchor::Right, center, PG_Anchor::Right);
+	scrollY->setMargin(PG_Anchor::Top, 3.f);
+	scrollY->setMargin(PG_Anchor::Bottom, 3.f);
+	scrollY->setMargin(PG_Anchor::Right, 3.f);
+	listView->setupVerticalScrollBar(scrollY);
+	connect(scrollY, &PG_GuiMouseArea::enabledChanged, listView, [listView](bool visible) {
+		listView->setMargin(PG_Anchor::Right, visible? 17.f: 7.f);
+		});
+
 
 	connect(m_mainModel, &PG_DisaModManagerMainModel::centerModelChanged, listView, &PG_GuiListView::setModel);
 	m_mainModel->setUiState(PG_DisaModManagerMainModel::CustomCharacters);
@@ -177,11 +200,6 @@ bool RootScene::event(PG_Event* e) {
 	}
 
 	return PG_Scene::event(e);
-}
-
-
-void RootScene::importZip(const PG_File& file) {
-
 }
 
 void RootScene::openInit(std::string version, PG_File exePath) {

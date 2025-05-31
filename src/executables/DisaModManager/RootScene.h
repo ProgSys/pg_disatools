@@ -68,7 +68,6 @@ private:
     void setupToolbar();
     void setupCenter();
 
-    void importZip(const PG_File& file);
     void openInit(std::string version, PG_File exePath);
     void openExe(PG_File exePath);
 
