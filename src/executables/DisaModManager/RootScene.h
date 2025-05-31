@@ -69,7 +69,6 @@ private:
     void setupCenter();
 
     void openInit(std::string version, PG_File exePath);
-    void openExe(PG_File exePath);
 
 
     PG_DisaModManagerMainModel* m_mainModel = nullptr;

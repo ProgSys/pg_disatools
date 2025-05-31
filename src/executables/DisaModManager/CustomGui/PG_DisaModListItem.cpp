@@ -28,7 +28,7 @@ void PG_DisaModListItem::init() {
 	anchor(m_img, PG_Anchor::Bottom, this, PG_Anchor::Bottom);
 	anchor(m_img, PG_Anchor::Left, this, PG_Anchor::Left);
 	connect(m_img, &PG_GuiImage::midGuiUpdate, this, [this](glm::vec2* pos, glm::vec2* scale){
-		scale->x = getSize().y * 1.3f;
+		scale->x = getSize().y * 1.5f;
 	});
 
 	auto seperator = PG_new<PG_GuiRectangle>("seperator", this);
@@ -99,7 +99,7 @@ void PG_DisaModListItem::init() {
 
 	{
 		auto btn = PG_new<PG_GuiToggleButton>("DisableButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-		btn->setIcon("gui/icon_actor.png");
+		btn->setIcon("gui/disa/icon_disabled.png");
 		btn->setBackground("M_GuiToolButton");
 		btn->setTooltipText("Disable");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
@@ -184,7 +184,7 @@ void PG_DisaModListItem::updateAutor() {
 }
 
 void PG_DisaModListItem::updateImage() {
-	constexpr auto missingImg = "gui/disa/disaMissingno.png";
+	constexpr auto missingImg = "gui/disa/pg_img_missing_thumbnail.png";
 	if (!m_location) {
 		m_img->setImage(missingImg);
 		return;

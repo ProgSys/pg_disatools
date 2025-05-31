@@ -124,7 +124,7 @@ void RootScene::setupToolbar() {
 	actorButton->setToggled(false);
 	actorButton->setIcon("gui/icon_actor.png");
 	actorButton->setBackground("M_GuiToolButtonStart");
-	actorButton->setTooltipText("Character Mods");
+	actorButton->setTooltipText("Characters");
 	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
 	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
 
@@ -137,9 +137,9 @@ void RootScene::setupToolbar() {
 
 	auto mapsButton = PG_new<PG_GuiToggleButton>("MapModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	mapsButton->setToggled(false);
-	mapsButton->setIcon("gui/icon_model.png");
+	mapsButton->setIcon("gui/disa/icon_disaTerrain.png");
 	mapsButton->setBackground("M_GuiToolButtonEnd");
-	mapsButton->setTooltipText("Map Mods");
+	mapsButton->setTooltipText("Campaigns");
 	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
 	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
 
@@ -206,12 +206,7 @@ void RootScene::openInit(std::string version, PG_File exePath) {
 	PG_DisaInstaller* install = PG_new<PG_DisaInstaller>(rootItem);
 	connect(install, &PG_DisaInstaller::done, this, [this](std::string newVersion, const PG_File& newExeFile) {
 		m_mainModel->getConfig().setExePath(newVersion, newExeFile);
-		openExe(newExeFile);
 	});
 
 	install->runInstall(version, exePath);
-}
-
-void RootScene::openExe(PG_File exePath) {
-
 }
