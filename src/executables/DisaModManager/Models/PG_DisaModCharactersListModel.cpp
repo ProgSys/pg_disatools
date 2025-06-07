@@ -1,7 +1,7 @@
 #include "PG_DisaModCharactersListModel.h"
 #include <Disa/models/PG_CustomCharacterModel.h>
 #include <Disa/models/PG_DisaMainModel.h>
-#include <Models/PG_DisaModLoadOrderListModel.h>
+#include <Disa/Models/PG_DisaModLoadOrderListModel.h>
 
 void PG_DisaModCharactersListModel::loadData() {
 	PG_Dir dir = PG_DisaMainModel::getBase()->getCustomCharactersDir();
@@ -38,7 +38,7 @@ void PG_DisaModCharactersListModel::addZip(const PG_File& file) {
 	}
 	PG_File targetFile = dir.toFilePath(file.getFile());
 	if (file == targetFile) throw_Exception("Mod already installed!");
-	if (file.copy(targetFile)) throw_Exception("Failed to copy file!");
+	if (!file.copy(targetFile, true)) throw_Exception("Failed to copy file!");
 
 
 	PG_CustomCharacterModel* customCharacterModel = PG_new<PG_CustomCharacterModel>("PG_CustomCharacterModel", this);

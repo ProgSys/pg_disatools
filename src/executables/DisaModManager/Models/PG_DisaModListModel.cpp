@@ -1,6 +1,6 @@
 #include "PG_DisaModListModel.h"
 #include <Base/PG_Timer.h>
-#include <Models/PG_DisaModLoadOrderListModel.h>
+#include <Disa/Models/PG_DisaModLoadOrderListModel.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 
 PG_DisaModListModel::~PG_DisaModListModel() {
@@ -69,17 +69,11 @@ void PG_DisaModListModel::loadAndApplyOrder(std::vector<PG_DisaModListModelItem>
 		return;
 	}
 
-	std::unordered_map<std::string, size_t> idOrder;
-	for (size_t i = 0; i < order.size(); ++i) {
-		idOrder[order.get(i).id] = i;
-	}
+	std::unordered_map<std::string, size_t> idOrder = order.getOrderMapping();
 	//sort by order
-	std::ranges::sort(items, [&idOrder](const PG_DisaModListModelItem& a, const PG_DisaModListModelItem& b) {
-		auto findIt = idOrder.find(a.id());
-		const size_t aIndex = findIt != idOrder.end() ? findIt->second : std::numeric_limits<size_t>::max();
-		findIt = idOrder.find(b.id());
-		const size_t bIndex = findIt != idOrder.end() ? findIt->second : std::numeric_limits<size_t>::max();
-		return aIndex < bIndex;
+	std::ranges::sort(items, {}, [&idOrder](const PG_DisaModListModelItem& i) {
+		auto findIt = idOrder.find(i.id());
+		return findIt != idOrder.end() ? findIt->second : std::numeric_limits<size_t>::max();
 	});
 	//apply disabled
 	for (auto& item : items) {

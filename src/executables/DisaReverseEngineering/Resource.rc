@@ -1,0 +1,33 @@
+#include <winver.h>
+
+//I have no idea what it does so I asked ChatGTP to write it :P
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION 0,4,3,0     // Major, Minor, Build, Revision
+PRODUCTVERSION 0,4,3,0  // Same as FILEVERSION
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS (VS_FF_PRIVATEBUILD | VS_FF_PRERELEASE)  // Flags, e.g., debug, pre-release, etc.
+FILEOS VOS__WINDOWS32       // Indicates the OS (VOS_NT_WINDOWS32)
+FILETYPE VFT_DLL         // Indicates it's a DLL (VFT_DLL)
+FILESUBTYPE VFT2_UNKNOWN
+
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"       // Language and codepage (US English + Unicode)
+        BEGIN
+            VALUE "CompanyName", "PG"
+            VALUE "FileDescription", "Partial reverse engineering of Disa"
+            VALUE "FileVersion", "0.4.3.0"
+            VALUE "InternalName", "DisaReverseEngineering"
+            VALUE "OriginalFilename", "DisaReverseEngineering.dll"
+            VALUE "ProductName", "DisaReverseEngineering"
+            VALUE "ProductVersion", "0.4.3.0"
+            VALUE "LegalCopyright", "Copyright © 2025 PG. All rights reserved."
+        END
+    END
+
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x0409, 1200  // Language and codepage
+    END
+END

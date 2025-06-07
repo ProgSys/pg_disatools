@@ -47,6 +47,18 @@ std::string PG_DisaModLoadOrderListModel::writeJson() const {
 	return j.dump(3);
 }
 
+std::unordered_map<std::string, std::size_t> PG_DisaModLoadOrderListModel::getOrderMapping() const {
+	std::unordered_map<std::string, std::size_t> out;
+	std::size_t index = 0;
+	for (auto& i : *this) {
+		if (!i.name.empty() && !i.id.empty()) {
+			out[i.id] = index;
+		}
+		++index;
+	}
+	return out;
+}
+
 PG_Variety PG_DisaModLoadOrderListModel::getData(PG_Index index, Identity identity) const {
 	switch (identity) {
 	case Identity_Id: return m_items[index].id;

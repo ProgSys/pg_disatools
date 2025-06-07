@@ -71,7 +71,7 @@ private:
 class PG_CustomCharacterModel : public PG_ZIP {
 	PG_OBJECT(PG_CustomCharacterModel);
 	PG_PARENT(PG_ZIP);
-	PG_PROPERTY(PG_Object* charactersJson GET getCampaignJsonContainer);
+	PG_PROPERTY(PG_Object* charactersJson GET getCharacterJsonContainer);
 public:
 	enum SubUiState: int {
 		SubUiState_Settings,

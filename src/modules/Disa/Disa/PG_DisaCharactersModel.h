@@ -38,6 +38,7 @@ class PG_OLA;
 class PG_SOLA;
 class PG_PSPFS;
 class PG_DisaFileContainer;
+class MetaCharInfo;
 
 struct PG_DisaCharacterModel {
 	enum EPDisaCharacterModelIdentity : Identity {
@@ -78,6 +79,7 @@ public:
 	};
 
 	struct CharacterMod {
+		std::string id;
 		std::string name;
 		std::string namespaceMod;
 
@@ -149,6 +151,7 @@ protected:
 	static std::pair<bool, unsigned int> addInfo(Info&& info, std::vector<Info>& list, std::map<std::string, unsigned int>& mapper);
 
 	void loadCharactersFromZip(const PG_File& file);
+	void loadCharacters(const MetaCharInfo& info);
 
 	//mod file data
 	std::list<CharacterMod> m_mods;

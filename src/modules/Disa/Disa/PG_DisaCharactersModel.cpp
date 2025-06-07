@@ -5,6 +5,7 @@
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/fileformats/PG_ZIPUtil.h>
 #include <Disa/fileformats/PG_JsonUtil.h>
+#include <Disa/models/PG_DisaModLoadOrderListModel.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Util/PG_StringUtil.h>
 #include <Stream/PG_StreamInOutByteVector.h>
@@ -25,6 +26,14 @@ static PG_DisaCharacterModel g_emptyCharacterModel = {
 	"Missingno",
 };
 
+struct MetaCharInfo {
+	PG_File file;
+	std::string id;
+	nlohmann::json json;
+
+	bool operator==(const MetaCharInfo& other) const { return id == other.id; }
+};
+
 void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) {
 
 	m_charactersMapper.clear();
@@ -39,9 +48,83 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 		return;
 	}
 	PG_Dir customCharactersDir(exePath.getDir() + "/mod/CustomCharacters");
+	
+	std::vector<MetaCharInfo> metaCharInfos;
 
 	for (const auto& zipFile : customCharactersDir.findFiles([](const PG_File& file)->bool {  return file.getFileExtensionFormated() == "zip"; }, 1)) {
-		loadCharactersFromZip(zipFile);
+		auto archive = PG_ZIPUtil::openZip(zipFile);
+		if (!archive) continue;
+		MetaCharInfo info;
+		info.file = zipFile;
+		try {
+			info.json = PG_ZIPUtil::readJson(archive, "character.json");
+			if (info.json.empty()) {
+				OUT_ERROR("Failed to parse 'character.json' inside zip '" << zipFile << "'!");
+				continue;
+			}
+
+			if (!readFromJsonMandatory(info.json, "id", info.id)) {
+				OUT_ERROR("'character.json' has no 'id' inside zip '" << zipFile << "'!");
+				continue;
+			}
+		}
+		catch (const std::exception& ex) {
+			OUT_ERROR("Failed to parse 'character.json' inside zip '" << zipFile << "'! Reason: " << ex.what());
+			continue;
+		}
+		catch (...) {
+			OUT_ERROR("Failed to parse 'character.json' inside zip '" << zipFile << "'!");
+			continue;
+		}
+		metaCharInfos.push_back(std::move(info));
+	}
+
+	{ //remove dubliucate ids
+		std::ranges::sort(metaCharInfos, {}, &MetaCharInfo::id);
+		auto range = std::ranges::unique(metaCharInfos);
+		metaCharInfos.erase(range.begin(), range.end());
+	}
+
+	std::unordered_map<std::string, std::size_t> mapping;
+	{ //sort by load order
+		PG_DisaModLoadOrderListModel orderModel;
+		orderModel.open(customCharactersDir.toFilePath("loadOrder.json"));
+		 mapping = orderModel.getOrderMapping();
+		//load the items on the bottom first
+		std::ranges::sort(metaCharInfos, std::ranges::greater{}, [&mapping](const MetaCharInfo& c) {
+			auto findIt = mapping.find(c.id);
+			return findIt != mapping.end() ? findIt->second : std::numeric_limits<std::size_t>::max();
+			});
+		std::erase_if(metaCharInfos, [&mapping, &orderModel](const MetaCharInfo& c) {
+			auto findIt = mapping.find(c.id);
+			return findIt != mapping.end() ? orderModel.get(findIt->second).disabled : false;
+			});
+	}
+
+	for (const auto& metaCharInfo : metaCharInfos) {
+		m_mods.push_back({});
+		try {
+			loadCharacters(metaCharInfo);
+		}
+		catch (const std::exception& ex) {
+			m_mods.pop_back();
+			OUT_ERROR("Failed to parse 'character.json' inside zip '" << metaCharInfo.file << "'! Reason: " << ex.what());
+		}
+		catch (...) {
+			m_mods.pop_back();
+			OUT_ERROR("Failed to parse 'character.json' inside zip '" << metaCharInfo.file << "'!");
+		}
+	}
+
+	//sort mods to be the same order, as load order
+	if(!mapping.empty()){
+		m_mods.sort([&mapping](const CharacterMod& a, const CharacterMod& b) {
+			auto findIt = mapping.find(a.id);
+			size_t aOrder = findIt != mapping.end() ? findIt->second : std::numeric_limits<std::size_t>::max();
+			findIt = mapping.find(b.id);
+			size_t bOrder = findIt != mapping.end() ? findIt->second : std::numeric_limits<std::size_t>::max();
+			return aOrder < bOrder;
+			});
 	}
 }
 
@@ -50,126 +133,13 @@ void PG_DisaCustomCharactersModel::loadCharactersFromZip(const PG_File& file) {
 	if (!archive) return;
 
 	m_mods.push_back({});
-	CharacterMod& mod = m_mods.back();
+
 
 	try {
-		nlohmann::json j = PG_ZIPUtil::readJson(archive, "character.json");
-
-		if (j.empty()) {
-			m_mods.pop_back();
-			OUT_ERROR("Failed to parse 'character.json' inside zip '" << file << "'!");
-			return;
-		}
-
-		if (!readFromJsonMandatory(j, "name", mod.name)) {
-			m_mods.pop_back();
-			return;
-		}
-
-		readFromJson(j, "namesspace", mod.namespaceMod);
-		if (mod.namespaceMod.empty()) {
-			mod.namespaceMod = file.getName();
-		}
-		mod.namespaceMod = PG_StringUtil::toLowerCopy(mod.namespaceMod);
-
-		if (!PG_SimpleWordValidator()(mod.namespaceMod) || mod.namespaceMod.empty()) {
-			OUT_ERROR("Invalid namespace format for \"" << file << " \"! Please check filename or namesspace field!");
-			m_mods.pop_back();
-			return;
-		}
-
-		mod.zipFile = file;
-
-		if (auto findIt = j.find("sprites"); findIt != j.end()) {
-			for (auto& jSprite : *findIt) {
-				Info info{ &mod };
-
-				if (!readFromJsonMandatory(jSprite, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
-					OUT_ERROR("'identifier' missing or is invalid for sprite in \"" << file << "\"!");
-					continue;
-				}
-
-				if (!readFromJsonMandatory(jSprite, "file", info.fileInZip)) {
-					OUT_ERROR("'file' missing for sprite in \"" << file << "\"!");
-					continue;
-				}
-				info.fileInZip = std::string("sprites/") + info.fileInZip.getPath();
-
-				addInfo(std::move(info), m_sprites, m_spritesMapper);
-			}
-		}
-
-		if (auto findIt = j.find("faces"); findIt != j.end()) {
-			for (auto& jFace : *findIt) {
-				Info info{ &mod };
-
-				if (!readFromJsonMandatory(jFace, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
-					OUT_ERROR("'identifier' missing or is invalid for sprite in \"" << file << "\"!");
-					continue;
-				}
-
-				readFromJson(jFace, "fileHD", info.fileInZip);
-				readFromJson(jFace, "fileSD", info.secondfileInZip);
-
-				if (info.fileInZip.isEmpty()) {
-					OUT_ERROR("'fileHD' missing for face in \"" << file << "\"! An HD image must be provided!");
-					continue;
-				}
-
-				info.fileInZip = std::string("img/") + info.fileInZip.getPath();
-
-				if (!info.secondfileInZip.isEmpty()) {
-					info.secondfileInZip = std::string("img/") + info.secondfileInZip.getPath();
-				}
-
-				addInfo(std::move(info), m_faces, m_facesMapper);
-			}
-		}
-
-		if (auto findIt = j.find("characters"); findIt != j.end()) {
-			for (auto& jCharacter : *findIt) {
-				CharacterInfo info;
-
-				if (!readFromJsonMandatory(jCharacter, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
-					OUT_ERROR("'identifier' missing or is invalid for character in \"" << file << "\"!");
-					continue;
-				}
-				if (!readFromJsonMandatory(jCharacter, "spriteIdentifier", info.spriteIdentifier.value) || !info.spriteIdentifier.build(mod.namespaceMod)) {
-					OUT_ERROR("'spriteIdentifier' missing or is invalid for character in \"" << file << "\"!");
-					continue;
-				}
-
-
-				readFromJson(jCharacter, "faceIdentifier", info.faceIdentifier.value);
-				if (!info.faceIdentifier.build(mod.namespaceMod)) {
-					info.faceIdentifier = "Disa::0";
-				}
-
-				readFromJson(jCharacter, "isRecruitable", info.isRecruitable);
-				readFromJson(jCharacter, "recruitGroupName", info.recruitGroupName);
-				PG_SimpleWordValidator()(info.recruitGroupName);
-
-				memset(&info.charData, 0, sizeof(PG_DisaDataCharacter));
-				std::string deriveFrom;
-				readFromJson(jCharacter, "deriveFrom", deriveFrom);
-				PG_SimpleWordValidator()(deriveFrom);
-				if (!deriveFrom.empty()) {
-					if (auto findIt = std::ranges::find(mod.characters, deriveFrom, [](const CharacterInfo& c) { return c.identifier.getName(); });
-						findIt != mod.characters.end()) {
-						info.charData = findIt->charData;
-					}
-					else {
-						OUT_ERROR("Failed to find deriveFrom \"" << deriveFrom << "\" in json!");
-					}
-				}
-
-				info.charData.fromJson(jCharacter);
-				info.charData.characterId = 0;
-				info.charData.spriteId = 0;
-
-				mod.characters.push_back(std::move(info));
-			}
-		}
+		MetaCharInfo info;
+		info.file = file;
+		info.json = PG_ZIPUtil::readJson(archive, "character.json");
+		loadCharacters(info);
 	}
 	catch (const std::exception& ex) {
 		m_mods.pop_back();
@@ -178,6 +148,126 @@ void PG_DisaCustomCharactersModel::loadCharactersFromZip(const PG_File& file) {
 	catch (...) {
 		m_mods.pop_back();
 		OUT_ERROR("Failed to parse 'character.json' inside zip '" << file << "'!");
+	}
+}
+
+void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) {
+	CharacterMod& mod = m_mods.back();
+	auto& j = metaInfo.json;
+
+	if (j.empty()) {
+		throw std::exception("Json is empty!");
+	}
+
+	if (!readFromJsonMandatory(j, "id", mod.id)) {
+		throw std::exception("'id' is missing in 'character.json'!");
+	}
+
+	if (!readFromJsonMandatory(j, "name", mod.name)) {
+		throw std::exception("'name' is missing in 'character.json'!");
+	}
+
+	readFromJson(j, "namesspace", mod.namespaceMod);
+	if (mod.namespaceMod.empty()) {
+		mod.namespaceMod = metaInfo.file.getName();
+	}
+	mod.namespaceMod = PG_StringUtil::toLowerCopy(mod.namespaceMod);
+
+	if (!PG_SimpleWordValidator()(mod.namespaceMod) || mod.namespaceMod.empty()) {
+		throw std::exception("Invalid namespace format! Either filename or namesspace dosn't match naming convention!");
+	}
+
+	mod.zipFile = metaInfo.file;
+
+	if (auto findIt = j.find("sprites"); findIt != j.end()) {
+		for (auto& jSprite : *findIt) {
+			Info info{ &mod };
+
+			if (!readFromJsonMandatory(jSprite, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
+				OUT_ERROR("'identifier' missing or is invalid for sprite in \"" << metaInfo.file << "\"!");
+				continue;
+			}
+
+			if (!readFromJsonMandatory(jSprite, "file", info.fileInZip)) {
+				OUT_ERROR("'file' missing for sprite in \"" << metaInfo.file << "\"!");
+				continue;
+			}
+			info.fileInZip = std::string("sprites/") + info.fileInZip.getPath();
+
+			addInfo(std::move(info), m_sprites, m_spritesMapper);
+		}
+	}
+
+	if (auto findIt = j.find("faces"); findIt != j.end()) {
+		for (auto& jFace : *findIt) {
+			Info info{ &mod };
+
+			if (!readFromJsonMandatory(jFace, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
+				OUT_ERROR("'identifier' missing or is invalid for sprite in \"" << metaInfo.file << "\"!");
+				continue;
+			}
+
+			readFromJson(jFace, "fileHD", info.fileInZip);
+			readFromJson(jFace, "fileSD", info.secondfileInZip);
+
+			if (info.fileInZip.isEmpty()) {
+				OUT_ERROR("'fileHD' missing for face in \"" << metaInfo.file << "\"! An HD image must be provided!");
+				continue;
+			}
+
+			info.fileInZip = std::string("img/") + info.fileInZip.getPath();
+
+			if (!info.secondfileInZip.isEmpty()) {
+				info.secondfileInZip = std::string("img/") + info.secondfileInZip.getPath();
+			}
+
+			addInfo(std::move(info), m_faces, m_facesMapper);
+		}
+	}
+
+	if (auto findIt = j.find("characters"); findIt != j.end()) {
+		for (auto& jCharacter : *findIt) {
+			CharacterInfo info;
+
+			if (!readFromJsonMandatory(jCharacter, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
+				OUT_ERROR("'identifier' missing or is invalid for character in \"" << metaInfo.file << "\"!");
+				continue;
+			}
+			if (!readFromJsonMandatory(jCharacter, "spriteIdentifier", info.spriteIdentifier.value) || !info.spriteIdentifier.build(mod.namespaceMod)) {
+				OUT_ERROR("'spriteIdentifier' missing or is invalid for character in \"" << metaInfo.file << "\"!");
+				continue;
+			}
+
+
+			readFromJson(jCharacter, "faceIdentifier", info.faceIdentifier.value);
+			if (!info.faceIdentifier.build(mod.namespaceMod)) {
+				info.faceIdentifier = "Disa::0";
+			}
+
+			readFromJson(jCharacter, "isRecruitable", info.isRecruitable);
+			readFromJson(jCharacter, "recruitGroupName", info.recruitGroupName);
+			PG_SimpleWordValidator()(info.recruitGroupName);
+
+			memset(&info.charData, 0, sizeof(PG_DisaDataCharacter));
+			std::string deriveFrom;
+			readFromJson(jCharacter, "deriveFrom", deriveFrom);
+			PG_SimpleWordValidator()(deriveFrom);
+			if (!deriveFrom.empty()) {
+				if (auto findIt = std::ranges::find(mod.characters, deriveFrom, [](const CharacterInfo& c) { return c.identifier.getName(); });
+					findIt != mod.characters.end()) {
+					info.charData = findIt->charData;
+				}
+				else {
+					OUT_ERROR("Failed to find deriveFrom \"" << deriveFrom << "\" in json!");
+				}
+			}
+
+			info.charData.fromJson(jCharacter);
+			info.charData.characterId = 0;
+			info.charData.spriteId = 0;
+
+			mod.characters.push_back(std::move(info));
+		}
 	}
 }
 

@@ -40,6 +40,8 @@
 #include <Scene/Gui/PG_GuiToggleButton.h>
 #include <Scene/Gui/PG_GuiListView.h>
 #include <Scene/Gui/PG_GuiScrollBar.h>
+#include <Scene/Gui/PG_GuiImage.h>
+#include <Scene/Gui/PG_GuiText.h>
 
 
 #include <Disa/utils/PG_DisaInstaller.h>
@@ -181,8 +183,33 @@ void RootScene::setupCenter() {
 		listView->setMargin(PG_Anchor::Right, visible? 17.f: 7.f);
 		});
 
+	auto* tutorialArrow = PG_new<PG_GuiImage>("tutorialArrow", glm::vec2(25.f, 0.f), glm::vec2(120.f, 84.f), center);
+	PG_GuiItem::anchor(tutorialArrow, PG_Anchor::Top, center, PG_Anchor::Top);
+	PG_GuiItem::anchor(tutorialArrow, PG_Anchor::Left, center, PG_Anchor::Left);
+	tutorialArrow->setImage("gui/disa/pg_tutorial_arrow.png");
+
+	auto* tutorialText = PG_new<PG_GuiText>("tutorialText", center);
+	PG_GuiItem::anchor(tutorialText, PG_Anchor::Bottom, tutorialArrow, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(tutorialText, PG_Anchor::Left, tutorialArrow, PG_Anchor::Right);
+	tutorialText->setText("Add new mods here!");
+	tutorialText->setColor(PG_Color::hentaiBlueFrgb);
+	tutorialText->setFontSize(20.f);
+	tutorialText->setHeight(20.f);
+	tutorialText->setWrapMode(PG_GuiText::None);
 
 	connect(m_mainModel, &PG_DisaModManagerMainModel::centerModelChanged, listView, &PG_GuiListView::setModel);
+	connect(m_mainModel, &PG_DisaModManagerMainModel::centerModelChanged, this, [this](PG_ListModelBase* model) {
+		if (!model) return;
+		auto* arrow = center->findFirstChild<PG_GuiItem>("tutorialArrow");
+		auto* tutorialText = center->findFirstChild<PG_GuiItem>("tutorialText");
+		if (!arrow || !tutorialText) return;
+		auto updateVisibility = [arrow, tutorialText, model] {
+			arrow->setVisible(model->empty());
+			tutorialText->setVisible(model->empty());
+		};
+		connect(model, &PG_ListModelBase::sizeChanged, arrow, updateVisibility);
+		updateVisibility();
+	});
 	m_mainModel->setUiState(PG_DisaModManagerMainModel::CustomCharacters);
 }
 

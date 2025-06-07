@@ -1,0 +1,105 @@
+#pragma once
+
+#include <DisaFunctions.h>
+#include <nlohmann/json.hpp>
+#include <Disa/dataStructs/PG_DisaStats.h>
+#include <Disa/dataStructs/PG_DisaDataCharacter.h>
+#include <Disa/dataStructs/PG_DisaPartyCharacter.h>
+
+
+
+/**
+* @brief Unit inside current player party
+* The number of units in player party is stored in aUnitsOwned.
+* Located at &FP::getData<uint>(0x0061a45c) - 0x171.
+*/
+struct DisaPartyCharacterInfo : public PG_DisaPartyCharacter { //1720 unsigned char
+    static std::string playerPartyToString();
+    static std::string playerPartyToJson();
+
+    static DisaPartyCharacterInfo& addNewEntry();
+    static unsigned int getSize();
+    static DisaPartyCharacterInfo& getEntry(unsigned int index);
+
+    static DisaPartyCharacterInfo* begin();
+    static DisaPartyCharacterInfo* end();
+
+};
+
+/**
+* @brief From Char.dat
+*/
+struct DisaDataCharacterInfo : public PG_DisaDataCharacter { //size 216
+    /**
+    * @brief Copies original data into our managed memory and swap all pointers to our data
+    * Must be called before other functions
+    */
+    static void steal();
+    static DisaDataCharacterInfo& addNewEntry();
+    static unsigned int getSize();
+    static DisaDataCharacterInfo& getEntry(unsigned int index);
+
+    static std::vector<DisaDataCharacterInfo>::iterator begin();
+    static std::vector<DisaDataCharacterInfo>::iterator end();
+};
+
+/**
+* @brief From Magic.dat
+*/
+struct DisaDataMagicInfo { //size 86
+    unsigned short id;
+    unsigned short level;
+    unsigned short pow;
+    unsigned short sp;
+
+    std::array<char, 33> name; //shiftJis encoded
+    std::array<char, 112> description; //shiftJis encoded
+
+    std::array<unsigned char, 5> effectPrams;
+    unsigned char wt;
+    unsigned char e;
+    unsigned char st;
+    unsigned char wt2;
+    unsigned char rg;
+    unsigned char pat;
+    unsigned char up;
+    unsigned char dn;
+    std::array<unsigned char, 5> effect;
+
+    std::string getName() const;
+    void setName(const std::string& name);
+
+    std::string getDescription() const;
+    void setDescription(const std::string& str);
+
+
+    void fromJson(const nlohmann::json& j);
+    std::string toString() const;
+
+    static std::string globalToString();
+};
+
+struct DisaAssemblyUnitInfo {
+    unsigned short field0x0;
+    unsigned short characterId;
+    unsigned int field0x4;
+};
+
+//render status screen
+void __fastcall FUN_0047f080_ProccessStatusMenu(unsigned int i);
+
+//to create new character Proccess: FUN_0048dfd0
+//to create new character Render: FUN_0048dba0
+
+void FUN_0048cd40_BuildAssemblyUnitInfosLookup();
+
+
+void FUN_0048dfd0_ProccessAssemblyMenu();
+
+
+void __fastcall FUN_004b5490(unsigned int portraitImageId, unsigned int portraitColor, int param_3, int param_4, int param_5, int param_6, int param_7);
+
+void FUN_004b5490_NoneStd(int param_3, int param_4, int param_5, int param_6, int param_7);
+
+//is called after characters where loaded
+void __stdcall FUN_004cf3c0(); //called after all data has been loaded
