@@ -29,7 +29,7 @@
 
 #include <Util/Typedefs.h>
 #include <Util/PG_File.h>
-#include <Scene/Model/PG_ListModel.h>
+#include <Scene/Model/PG_TableModel.h>
 #include <Disa/fileformats/PG_DisaFileInfo.h>
 #include <Stream/PG_StreamIn.h>
 #include <Stream/PG_StreamInOutByteArray.h>
@@ -192,8 +192,10 @@ public:
     bool saveTo(const PG_File& file) const;
     void triggerFileChanged();
 
-    PG_Variety getData(Identity identity) const;
+    PG_Variety getData(std::size_t column, Identity identity) const;
     bool setData(const PG_Variety& data, Identity identity);
+    static std::size_t dimension() { return 2; }
+    static std::size_t getColumns() { return 4; }
 private:
     void setContainerInParent(std::shared_ptr<PG_DisaContainerInterface> container);
     void setContainerIntern(std::shared_ptr<PG_DisaContainerInterface> container);
@@ -233,9 +235,9 @@ protected:
 /**
 * @brief Base contanier
 */
-class PG_DisaFileContainer: public PG_DisaContainerInterface, public PG_ListModel<PG_DisaFileEntry> {
+class PG_DisaFileContainer: public PG_DisaContainerInterface, public PG_TableModel<PG_DisaFileEntry> {
     PG_OBJECT(PG_DisaFileContainer);
-    PG_PARENT(PG_ListModel<PG_DisaFileEntry>);
+    PG_PARENT(PG_TableModel<PG_DisaFileEntry>);
     PG_PROPERTY(bool isModified GET isModified CHANGED isModifiedChanged);
     friend PG_DisaFileEntry;
 signals:
@@ -243,7 +245,7 @@ signals:
     void isModifiedChanged();
 public:
 
-    using PG_ListModel<PG_DisaFileEntry>::PG_ListModel;
+    using PG_TableModel<PG_DisaFileEntry>::PG_TableModel;
 
     void init();
 

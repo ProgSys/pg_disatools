@@ -61,6 +61,7 @@ public:
         TALK_SCRIPT, 
         SCRIPT, 
         ZIP,
+        OGG,
         UNKNOWN
     };
 
@@ -79,6 +80,8 @@ public:
     inline void setType(Type type) {m_type = type;}
     void setType(const std::string& extention);
     inline void determinTypeFromFileExtention() { setType(m_name.getFileExtensionFormated()); }
+    static std::string toString(Type type);
+
 
     inline unsigned int getSize() const {return m_size;}
     inline void setSize(unsigned int size)  { m_size = size;}
@@ -88,6 +91,7 @@ public:
 
     inline unsigned int getOffset() const {return m_offset;}
     inline void setOffset(unsigned int offset) { m_offset = offset;}
+
 
     inline void clear() {
         m_name.clear();

@@ -257,11 +257,18 @@ void PG_DisaFileEntry::triggerFileChanged() {
 }
 
 
-PG_Variety PG_DisaFileEntry::getData(Identity identity) const {
+PG_Variety PG_DisaFileEntry::getData(std::size_t column, Identity identity) const {
 	switch (identity)
 	{
-	case Identity_Text:
-		return getName();
+	case Identity_Text: {
+		switch (column) {
+			default:
+			case 0: return getName();
+			case 1: return PG_DisaFileInfo::toString(m_info.getType());
+			case 2: return std::to_string(m_info.getSize());
+			case 3: return std::to_string(getLocation());
+		}
+	}
 	case Identity_Edit:
 		return m_info.getName().getPath();
 	case Identity_Modified:

@@ -36,6 +36,32 @@ void PG_DisaFileInfo::setType(const std::string& extention) {
 	else if (extention == "png") setType(PNG);
 	else if (extention == "tx2") setType(TX2);
 	else if (extention == "geo") setType(GEO);
+	else if (extention == "ogg") setType(OGG);
 	else if (extention == "tscript") setType(TALK_SCRIPT);
 	else if (extention == "script") setType(SCRIPT);
+}
+
+std::string PG_DisaFileInfo::toString(Type type) {
+    switch (type) {
+    case PSPFS_V1: return "PSPFS_V1";
+    case OLA: return "OLA";
+    case COLA: return "COLA";
+    case SOLA: return "SOLA";
+    case TX2: return "TX2";
+    case IMY: return "IMY";
+    case MPD: return "MPD";
+    case MPP: return "MPP";
+    case SH: return "SH";
+    case SH2: return "SH2";
+    case GEO: return "GEO";
+    case LZS: return "LZS";
+    case PNG: return "PNG";
+    case JSON: return "JSON";
+    case TALK_SCRIPT: return "TALK_SCRIPT";
+    case SCRIPT: return "SCRIPT";
+    case ZIP: return "ZIP";
+    case OGG: return "OGG";
+    default:
+    case UNKNOWN: return "UNKNOWN";
+    }
 }

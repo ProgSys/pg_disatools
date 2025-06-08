@@ -7,8 +7,7 @@ include(${CMAKE_MODULE_PATH}/generators/PG_Executable.cmake)
 get_filename_component(DEBUG_DLL_DIR "${EXTERNAL_PG_ENGINE_LIBRARIES_DEBUG}" DIRECTORY)
 get_filename_component(RELEASE_DLL_DIR "${EXTERNAL_PG_ENGINE_LIBRARIES_RELEASE}" DIRECTORY)
 
-message("DEBUG_DLL_DIR" ${DEBUG_DLL_DIR})
-set_target_properties(DisaMapEditor PROPERTIES
+set_target_properties(${ProjectId} PROPERTIES
   VS_DEBUGGER_ENVIRONMENT
     "$<$<CONFIG:Debug>:PATH=${DEBUG_DLL_DIR};%PATH%>\$<$<CONFIG:Release>:PATH=${RELEASE_DLL_DIR};%PATH%>"
 )
