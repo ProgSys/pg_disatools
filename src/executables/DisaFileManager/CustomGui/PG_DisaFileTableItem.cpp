@@ -14,6 +14,7 @@ void PG_DisaFileTableItem::init() {
 	m_text->setColor(PG_Color::hentaiBlueFrgb);
 	m_text->setMargin(PG_Anchor::Top, 0.f);
 	m_text->setMargin(PG_Anchor::Left, 0.f);
+	m_text->setVerticalAlignment(PG_GuiText::ETextAlignment::VerticalCenter);
 }
 
 void PG_DisaFileTableItem::setLocation(const PG_ListModelLocation& location) {
