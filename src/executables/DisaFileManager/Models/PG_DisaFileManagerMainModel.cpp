@@ -1,6 +1,7 @@
 #include "PG_DisaFileManagerMainModel.h"
 #include <Disa/fileformats/PG_ZIP.h>
 #include <Disa/fileformats/PG_PSPFS.h>
+#include <Scene/Model/PG_ListSelectionWrapperModel.h>
 
 static PG_DisaFileManagerMainModel* g_mainModel = nullptr;
 
@@ -21,8 +22,11 @@ bool PG_DisaFileManagerMainModel::open(const PG_File& file) {
 		delete model;
 		return false;
 	}
-
 	m_centerModel = model;
-	emit centerModelChanged(m_centerModel);
+	if (!m_selectionModel) {
+		m_selectionModel = PG_new<PG_ListSelectionWrapperModel>("PG_ListSelectionWrapperModel", this);
+	}
+	reinterpret_cast<PG_ListSelectionWrapperModel*>(m_selectionModel)->setModel(m_centerModel);
+	emit centerModelChanged(m_selectionModel);
 	return true;
 }

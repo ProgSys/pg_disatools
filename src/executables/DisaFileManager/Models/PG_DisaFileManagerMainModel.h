@@ -22,5 +22,6 @@ public:
 
 private:
 	PG_ListModelBase* m_centerModel = nullptr;
+	PG_ListModelBase* m_selectionModel = nullptr;
 	PG_File m_openFile;
 };

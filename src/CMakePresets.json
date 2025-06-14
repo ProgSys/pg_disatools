@@ -1,0 +1,56 @@
+{
+    "cmakeMinimumRequired": {
+        "major": 4,
+        "minor": 0,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "binaryDir": "${sourceDir}/../build/winVS/Debug",
+            "description": "Default build using Ninja generator",
+            "displayName": "Default Config",
+            "environment": {
+            },
+            "generator": "Ninja",
+            "hidden": true,
+            "name": "default"
+        },
+        {
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "description": "Use this preset for Debug mode in Visual Studio.",
+            "displayName": "Debug",
+            "hidden": true,
+            "inherits": "default",
+            "name": "debug_preset"
+        },
+        {
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            },
+            "description": "Use this preset for Release mode in Visual Studio.",
+            "displayName": "Release",
+            "hidden": true,
+            "inherits": "default",
+            "name": "release_preset"
+        },
+        {
+            "architecture": "Win32",
+            "description": "Use this preset for Debug mode in Visual Studio.",
+            "displayName": "Debug (x86)",
+            "hidden": true,
+            "inherits": "debug_preset",
+            "name": "debug_x86_preset"
+        },
+        {
+            "architecture": "Win32",
+            "description": "Use this preset for Release mode in Visual Studio.",
+            "displayName": "Release (x86)",
+            "hidden": true,
+            "inherits": "release_preset",
+            "name": "release_x86_preset"
+        }
+    ],
+    "version": 3
+}

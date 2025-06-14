@@ -8,6 +8,10 @@
 *CMakeCache.txt
 *CMakeLists.txt.user*
 *.orig
+CMakeSettings.json
+CMakeUserPresets.json
+.vs
+src/out
 src/CMakeFiles/
 build_src/
 src/externals/*

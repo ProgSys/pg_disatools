@@ -59,7 +59,7 @@ struct DungeonStyleEntry {
 			return style;
 		default: break;
 		}
-		return orgaFileEntry.getData(identity);
+		return orgaFileEntry.getData(0, identity);
 	}
 };
 

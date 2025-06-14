@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
 set(MODULES Disa)
 set(PRIVATE_LINK_LIBRARIES pg_engine::pg_engine NFD::NFD Json::Json)
 include(${CMAKE_MODULE_PATH}/generators/PG_Executable.cmake)

@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.5)
 set(MODULES Disa)
 set(PRIVATE_LIBRARIES OpenGL GLEW)
 set(PRIVATE_LINK_LIBRARIES pg_engine::pg_engine ZLIB::ZLIB ZIPLIB::ZIPLIB Json::Json)

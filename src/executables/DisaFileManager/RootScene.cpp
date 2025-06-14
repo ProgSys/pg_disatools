@@ -44,6 +44,7 @@
 #include <Scene/Gui/PG_GuiText.h>
 #include <Scene/Gui/PG_GuiTableView.h>
 #include <Scene/Gui/PG_GuiTableHeaderView.h>
+#include <Scene/Model/PG_ListSelectionWrapperModel.h>
 
 
 #include <Disa/utils/PG_DisaInstaller.h>
@@ -126,24 +127,50 @@ void RootScene::setupToolbar() {
 
 void RootScene::setupCenter() {
 
-	PG_GuiTableHeaderView* tableHeader = PG_new<PG_GuiTableHeaderView>("PG_GuiTableHeaderView", rootItem);
+	PG_GuiTableHeaderView* tableHeader = PG_new<PG_GuiTableHeaderView>("PG_GuiTableHeaderView", center);
 	PG_GuiItem::anchor(tableHeader, PG_Anchor::Top, center, PG_Anchor::Top);
 	PG_GuiItem::anchor(tableHeader, PG_Anchor::Left, center, PG_Anchor::Left);
 	PG_GuiItem::anchor(tableHeader, PG_Anchor::Right, center, PG_Anchor::Right);
 	tableHeader->setHeight(32.f);
 
-	auto tableView = PG_new<PG_GuiTableView>("PG_GuiTableView", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), center);
+	tableHeader->setItem([](PG_GuiItem* parent, std::size_t columnIndex) {
+		auto h = PG_new<PG_DisaFileTableHeaderItem>("HeaderItem" + std::to_string(columnIndex), parent);
+		switch (columnIndex) {
+		case 0: h->getTextItem()->setText("File"); break;
+		case 1: h->getTextItem()->setText("Type"); break;
+		case 2: h->getTextItem()->setText("Size"); break;
+		case 3: h->getTextItem()->setText("Index"); break;
+		}
+		return h;
+	});
+
+	auto bgList = PG_new<PG_GuiListView>("PG_GuiListView", center);
+	bgList->setClip(true);
+	bgList->setUserInteractionEnabled(false);
+	bgList->setItem(PG_GuiListView::getDefaultCreateFunc<PG_DisaFileTableRowItem>());
+	bgList->setItemUpdate(PG_GuiListView::getDefaultUpdateFunc<PG_DisaFileTableRowItem>());
+
+
+	auto tableView = PG_new<PG_GuiTableView>("PG_GuiTableView", center);
 	PG_GuiItem::anchor(tableView, PG_Anchor::Top, tableHeader, PG_Anchor::Bottom);
 	PG_GuiItem::anchor(tableView, PG_Anchor::Bottom, center, PG_Anchor::Bottom);
 	PG_GuiItem::anchor(tableView, PG_Anchor::Left, center, PG_Anchor::Left);
 	PG_GuiItem::anchor(tableView, PG_Anchor::Right, center, PG_Anchor::Right);
 
+	//bgList->fill(tableView);
+	PG_GuiItem::anchor(bgList, PG_Anchor::Top, tableHeader, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(bgList, PG_Anchor::Bottom, center, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(bgList, PG_Anchor::Left, center, PG_Anchor::Left);
+	PG_GuiItem::anchor(bgList, PG_Anchor::Right, center, PG_Anchor::Right);
+
+
+	bgList->setCellSize(tableView->getCellSize().y);
+	connect(tableView, &PG_GuiGridView::scrollChanged, bgList, &PG_GuiGridView::setScrollPosition);
+
+
 	tableView->setColumnWidthModel(tableHeader);
 	tableView->setItem(PG_GuiListView::getDefaultCreateFunc<PG_DisaFileTableItem>());
 	tableView->setItemUpdate(PG_GuiListView::getDefaultUpdateFunc<PG_DisaFileTableItem>());
-	tableView->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
-	//tableView->setSpacing(5.f);
-	//tableView->setMargin(7.f);
 	tableView->setClip(true);
 
 	PG_GuiScrollBar* scrollY = PG_new<PG_GuiScrollBar>("PG_GuiScrollBarY", center);
@@ -161,10 +188,12 @@ void RootScene::setupCenter() {
 	scrollY->setMargin(PG_Anchor::Bottom, 3.f);
 	scrollY->setMargin(PG_Anchor::Right, 3.f);
 	tableView->setupVerticalScrollBar(scrollY);
+	tableHeader->moveToBack();
 	connect(scrollY, &PG_GuiMouseArea::enabledChanged, tableView, [tableView](bool visible) {
 		tableView->setMargin(PG_Anchor::Right, visible? 17.f: 7.f);
 		});
 
+	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, bgList, &PG_GuiListView::setModel);
 	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, tableView, &PG_GuiListView::setModel);
 }
 
