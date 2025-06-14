@@ -53,9 +53,9 @@ void PG_DisaFileTableHeaderItem::init() {
 	line->setColor(PG_Color::hentaiBlueFrgb * 0.7f);
 }
 
+
 void PG_DisaFileTableRowItem::init() {
 	PG_GuiItem::init();
-
 	m_bg = PG_new<PG_GuiRectangle>("sperator", this);
 	m_bg->setColor(PG_Color::grayFrgb);
 	m_bg->setAlpha(0.1f);
@@ -68,10 +68,41 @@ void PG_DisaFileTableRowItem::init() {
 
 	connect(m_area, &PG_GuiMouseArea::mouseClicked, this, [this](PG_MouseButtonEvent* e) {
 		if (e->isUp() && e->getButton() & PG_BUTTON_LEFT) {
-			m_location.setData(
-				PG_ListSelectionData{ true, !(e->getKeyMod() & PG_KMOD_SHIFT)},
-				Identity_Selected
-			);
+			auto parent = getParent<PG_GuiItem>();
+			if (!parent || !m_location) return;
+			auto lastSelected = parent->getLayoutProperty(LayoutProperty_LastSelect, PG_Index());
+			auto* model = m_location.getModel();
+			if (!model->isIndexValid(lastSelected)) {
+				lastSelected = m_location.getIndex();
+				parent->setLayoutProperty(LayoutProperty_LastSelect, lastSelected);
+			}
+
+			if (e->getKeyMod() & PG_KMOD_SHIFT) {
+				auto start = lastSelected;
+				auto end = m_location.getIndex();
+				if (start > end) std::swap(start, end);
+				std::vector<PG_Index> changeRange = parent->getLayoutProperty(LayoutProperty_Data1, std::vector<PG_Index>{});
+				if (!changeRange.empty()) {
+					model->setData(lastSelected, PG_ListSelectionRangeValuesData{ std::move(changeRange), false, false }, Identity_Selected);
+				}
+
+				while (start != end && changeRange.size() < 100000) {
+					if (!model->getData(start, Identity_Selected).get<bool>()) changeRange.push_back(start);
+					start = model->next(start);
+				}
+				if (!model->getData(start, Identity_Selected).get<bool>()) changeRange.push_back(start);
+
+				model->setData(lastSelected, PG_ListSelectionRangeValuesData{ changeRange, true, false }, Identity_Selected);
+				parent->setLayoutProperty(LayoutProperty_Data1, std::move(changeRange));
+			}
+			else {
+				parent->setLayoutProperty(LayoutProperty_LastSelect, m_location.getIndex());
+				parent->setLayoutProperty(LayoutProperty_Data1, std::vector<PG_Index>{});
+				m_location.setData(
+					PG_ListSelectionData{ true, !(e->getKeyMod() & PG_KMOD_CTRL)},
+					Identity_Selected
+				);
+			}
 		}
 		});
 
