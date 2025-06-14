@@ -10,3 +10,7 @@ set_target_properties(${ProjectId} PROPERTIES
   VS_DEBUGGER_ENVIRONMENT
     "$<$<CONFIG:Debug>:PATH=${DEBUG_DLL_DIR};%PATH%>\$<$<CONFIG:Release>:PATH=${RELEASE_DLL_DIR};%PATH%>"
 )
+
+if(MSVC)
+  target_link_options(${ProjectId}  PRIVATE "/MANIFEST:NO")
+endif()

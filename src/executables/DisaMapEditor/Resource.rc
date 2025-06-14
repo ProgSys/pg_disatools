@@ -19,7 +19,11 @@
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
 
+1 RT_MANIFEST "dpi.manifest"
+
 #ifdef APSTUDIO_INVOKED
+
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // TEXTINCLUDE
@@ -68,4 +72,3 @@ IDI_ICON1               ICON                    "icon.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
