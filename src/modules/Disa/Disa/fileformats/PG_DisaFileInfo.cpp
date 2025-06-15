@@ -79,9 +79,9 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
         PairType{Type::PSPFS_V1, &PG_Disa::isPSPFS},
         PairType{Type::IMY, &PG_Disa::isIMY},
         PairType{Type::COLA, &PG_Disa::isIMYPackage},
-        PairType{Type::OLA, &PG_Disa::isOLA},
         PairType{Type::SOLA, &PG_Disa::isSOLA},
         PairType{Type::TX2, &PG_Disa::isTX2},
+        PairType{Type::OLA, &PG_Disa::isOLA},
     };
 
     for (const auto [type, testFunc] : tests) {

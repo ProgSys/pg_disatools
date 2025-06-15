@@ -35,7 +35,7 @@
 #include <Stream/PG_StreamInByteArray.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamInOutByteVector.h>
-
+#include <resources/PG_ResourceManager.h>
 
 inline void skipSCVColumn(PG::STREAM::InByteFile& reader) {
 	char c;
@@ -63,7 +63,7 @@ static inline std::map<unsigned short, std::string> readFileNames(std::string fi
 	std::map<unsigned short, std::string> outNames;
 	std::transform(filename.begin(), filename.end(), filename.begin(), ::toupper);
 
-	PG::STREAM::InByteFile reader(PROJECT_RESOURCES_PATH  "/script/disa/nameTables/" + filename + ".csv");
+	PG::STREAM::InByteFile reader(PG_ResourceManager::get()->getResourceLocation() + "/script/disa/nameTables/" + filename + ".csv");
 	if (reader.isOpen()) {
 		skipSCVLine(reader);
 
