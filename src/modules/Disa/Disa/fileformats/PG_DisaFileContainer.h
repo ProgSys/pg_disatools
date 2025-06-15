@@ -250,6 +250,7 @@ public:
     void init();
 
     inline const PG_File& getFile() const { return m_file; }
+    inline void setFile(const PG_File& file) { m_file = file; }
 
     PG_DisaFileEntry find(const PG_File& file, bool caseSensitive = true) const;
     std::vector<PG_DisaFileEntry> findAll(const std::regex& regex) const;

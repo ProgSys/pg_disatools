@@ -24,7 +24,6 @@
 
 #include "PG_PSPFS.h"
 #include <Util/Debug/PG_DebugOut.h>
-#include <Disa/fileformats/PG_DisaFileTests.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamOutByteFile.h>
 #include <Stream/PG_StreamInOutByteFile.h>
@@ -57,12 +56,25 @@ bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
         entry.setInfo(std::move(info));
 
         if (auto findIt = std::ranges::find(*this, entry.getName(), &PG_DisaFileEntry::getName); findIt != end()) {
-            if(auto c = findIt->getContainer())
+            if (auto c = findIt->getContainer()) {
+                entry.getInfo().setType(findIt->getInfo().getType());
                 entry.setContainer(c);
+            }
         }
 
         contains.push_back(entry);
     }
+    m_originalReader = reader;
+    const unsigned int currentPos = reader->pos();
+    for (PG_DisaFileEntry& entry : contains) {
+        if (entry.getContainer()) continue;
+        if (entry.getInfo().getType() != PG_DisaFileInfo::UNKNOWN) continue;
+        auto entryReader = entry.createReaderOriginal();
+        entry.getInfo().determinTypeFromFileFormat(entryReader.get());
+    }
+    reader->seek(currentPos);
+    m_originalReader.reset();
+
     set(std::move(contains));
 
     return SUCCESS;

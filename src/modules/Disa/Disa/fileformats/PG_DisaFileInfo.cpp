@@ -23,6 +23,9 @@
  */
 
 #include "PG_DisaFileInfo.h"
+#include <Stream/PG_StreamIn.h>
+#include <Disa/fileformats/PG_DisaFileTests.h>
+#include <array>
 
 
 PG_DisaFileInfo::PG_DisaFileInfo(const PG_File& externalFile) : m_name(externalFile), m_size(externalFile.size()) {
@@ -63,5 +66,27 @@ std::string PG_DisaFileInfo::toString(Type type) {
     case OGG: return "OGG";
     default:
     case UNKNOWN: return "UNKNOWN";
+    }
+}
+
+void PG_DisaFileInfo::determinTypeFromFileFormat(PG::STREAM::In* reader) {
+    if (!reader) return;
+    const unsigned int startPos = reader->pos();
+
+    using TestFunc = bool(*)(PG::STREAM::In* reader);
+    using PairType = std::pair<Type, TestFunc>;
+    constexpr static std::array<std::pair<Type, TestFunc>, 3> tests = {
+        PairType{Type::COLA, &PG_Disa::isIMYPackage},
+        PairType{Type::IMY, &PG_Disa::isIMY},
+        PairType{Type::OLA, &PG_Disa::isOLA},
+    };
+
+    for (const auto [type, testFunc] : tests) {
+        bool result = std::invoke(testFunc, reader);
+        reader->seek(startPos);
+        if (result) {
+            m_type = type;
+            return;
+        }
     }
 }

@@ -40,6 +40,12 @@ if (x) {\
 
 class PG_DisaFileEntry;
 
+namespace PG {
+    namespace STREAM {
+        class In;
+    }
+}
+
 class PG_DisaFileInfo {
 public:
     enum Type {
@@ -80,6 +86,7 @@ public:
     inline void setType(Type type) {m_type = type;}
     void setType(const std::string& extention);
     inline void determinTypeFromFileExtention() { setType(m_name.getFileExtensionFormated()); }
+    void determinTypeFromFileFormat(PG::STREAM::In* reader);
     static std::string toString(Type type);
 
 

@@ -50,6 +50,7 @@
 #include <Disa/utils/PG_DisaInstaller.h>
 #include <Disa/utils/PG_FileDialog.h>
 #include <Disa/customGui/PG_PupUpDialog.h>
+#include <Disa/CustomGui/PG_DisaSearchField.h>
 #include <Util/Color/ColorDefined.h>
 
 #include <Models/PG_DisaFileManagerMainModel.h>
@@ -123,6 +124,27 @@ void RootScene::setupToolbar() {
 		popup->open();
 	});
 
+
+	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, toolbarRow, [this](PG_UiStateBaseModel* model) {
+		auto* asObject = dynamic_cast<PG_Object*>(model);
+		PG_DisaSearchField* searchField = toolbarRow->findFirstChild<PG_DisaSearchField>("searchField");
+		if(asObject){
+			if (auto prop = asObject->getProperty("searchText")) {
+				if(!searchField) searchField = PG_new<PG_DisaSearchField>("searchField", glm::vec2(0.f), glm::vec2(300.f, 30.f), toolbarRow);
+				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::VerticalCenter);
+				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(300.f, 30.f));
+				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_MinSize, glm::vec2(80.f, 30.f));
+
+				connect(searchField, searchField->getProperty("text"), asObject, prop);
+				return;
+			}
+		}
+		
+		if(searchField) delete searchField;
+		
+	});
 }
 
 void RootScene::setupCenter() {
@@ -193,8 +215,11 @@ void RootScene::setupCenter() {
 		tableView->setMargin(PG_Anchor::Right, visible? 17.f: 7.f);
 		});
 
-	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, bgList, &PG_GuiListView::setModel);
-	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, tableView, &PG_GuiListView::setModel);
+	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, this, [this, tableView, bgList] (PG_UiStateBaseModel* model){
+		if (!model) return;
+		bgList->setModel(model->getListModel());
+		tableView->setModel(model->getListModel());
+		});
 }
 
 bool RootScene::event(PG_Event* e) {

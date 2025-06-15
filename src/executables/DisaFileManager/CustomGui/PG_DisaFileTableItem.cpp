@@ -95,6 +95,15 @@ void PG_DisaFileTableRowItem::init() {
 				model->setData(lastSelected, PG_ListSelectionRangeValuesData{ changeRange, true, false }, Identity_Selected);
 				parent->setLayoutProperty(LayoutProperty_Data1, std::move(changeRange));
 			}
+			else if (e->isDoubleClick()) {
+				parent->setLayoutProperty(LayoutProperty_LastSelect, m_location.getIndex());
+				m_location.setData( PG_ListSelectionData{ true, true }, Identity_Selected );
+				auto mainModel = m_location.getModelRoot()->getParent();
+				if (!mainModel) return;
+				auto func = mainModel->getFunction("void openEntry(const PG_Index&)");
+				if (!func) return;
+				func.callArgs(mainModel, m_location.getIndex());
+			}
 			else {
 				parent->setLayoutProperty(LayoutProperty_LastSelect, m_location.getIndex());
 				parent->setLayoutProperty(LayoutProperty_Data1, std::vector<PG_Index>{});
@@ -120,6 +129,7 @@ void PG_DisaFileTableRowItem::update(const PG_ListModelLocation& location, const
 
 	if (hasItem) {
 		m_location = location;
+		m_area->unfocus();
 	}
 
 	if (hasItem || identities.contains(Identity_Selected)) {

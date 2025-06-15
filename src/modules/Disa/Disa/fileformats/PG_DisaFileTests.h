@@ -32,8 +32,14 @@ namespace PG_Disa {
     bool isIMY(const PG_File& file);
     bool isIMY(PG::STREAM::In* reader);
 
-    unsigned int isIMYPackage(const PG_File& file);
-    unsigned int isIMYPackage(PG::STREAM::In* reader);
+    unsigned int getIMYPackageSize(const PG_File& file);
+    unsigned int getIMYPackageSize(PG::STREAM::In* reader);
+
+    inline bool isIMYPackage(const PG_File& file) { return getIMYPackageSize(file) > 0; } //COLA - Compressed Offset List Archive
+    inline bool isIMYPackage(PG::STREAM::In* reader) { return getIMYPackageSize(reader) > 0; } //COLA - Compressed Offset List Archive
+
+    bool isOLA(const PG_File& file);
+    bool isOLA(PG::STREAM::In* reader);
 
     bool isSpriteSheetPackage(const PG_File& file);
     bool isSpriteSheetPackage(PG::STREAM::In* reader);

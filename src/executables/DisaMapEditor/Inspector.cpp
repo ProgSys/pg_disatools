@@ -32,11 +32,11 @@
 #include <Disa/PG_DisaCharactersModel.h>
 #include <Disa/PG_DisaItemModel.h>
 #include <Disa/PG_DisaGeoEffectsModel.h>
+#include <Disa/CustomGui/PG_DisaSearchField.h>
 
 #include <Drag/DisaNewCharacterDrag.h>
 
 #include <CustomGui/PG_DisaCharacterPortraitGridTile.h>
-#include <CustomGui/PG_DisaSearchField.h>
 #include <CustomGui/PG_DisaEventTileListItem.h>
 #include <CustomGui/PG_DisaItemDropDown.h>
 #include <CustomGui/PG_DisaUVItem.h>

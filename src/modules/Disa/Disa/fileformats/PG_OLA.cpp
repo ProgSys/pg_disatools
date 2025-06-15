@@ -94,7 +94,7 @@ static inline std::vector<std::string> readFileNames(std::string filename) {
 
 bool PG_OLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 	close();
-	if (!reader->isOpen()) {
+	if (!reader || !reader->isOpen()) {
 		OUT_ERROR("Reader is not open!");
 		return FAILURE;
 	}

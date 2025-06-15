@@ -50,14 +50,14 @@ bool PG_Disa::isIMY(PG::STREAM::In* reader) {
 
 
 
-unsigned int PG_Disa::isIMYPackage(const PG_File& file) {
-	return openFile<unsigned int>(file, isIMYPackage);
+unsigned int PG_Disa::getIMYPackageSize(const PG_File& file) {
+	return openFile<unsigned int>(file, getIMYPackageSize);
 }
 
-unsigned int PG_Disa::isIMYPackage(PG::STREAM::In* reader) {
+unsigned int PG_Disa::getIMYPackageSize(PG::STREAM::In* reader) {
 	const unsigned int start = reader->pos();
-	const unsigned int number_of_files = reader->readUnsignedInt();
-	if (number_of_files > 9000) return 0;
+	const unsigned int numberOfFiles = reader->readUnsignedInt();
+	if (numberOfFiles > 9000) return 0;
 
 	const unsigned int commpress_size = reader->readUnsignedInt();
 	const unsigned int first_offset = reader->readUnsignedInt();
@@ -65,9 +65,25 @@ unsigned int PG_Disa::isIMYPackage(PG::STREAM::In* reader) {
 	reader->seek(start + first_offset);
 
 	if (PG_Disa::isIMY(reader)) {
-		return number_of_files * commpress_size;
+		return numberOfFiles * commpress_size;
 	}
 	return 0;
+}
+
+bool PG_Disa::isOLA(const PG_File& file) {
+	return openFile(file, isOLA);
+}
+bool PG_Disa::isOLA(PG::STREAM::In* reader) {
+	const unsigned int numberOfFiles = reader->readUnsignedInt();
+	if (numberOfFiles > 90000) return FAILURE;
+	unsigned int fileOffset = reader->readUnsignedInt();
+	const unsigned int readerSize = reader->size();
+	const unsigned int headerSize = sizeof(unsigned int) + sizeof(unsigned int) * numberOfFiles;
+	if(headerSize >= readerSize || fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+	reader->skip(headerSize - sizeof(unsigned int) * 3);
+	fileOffset = reader->readUnsignedInt();
+	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+	return SUCCESS;
 }
 
 bool PG_Disa::isSpriteSheetPackage(const PG_File& file) {
@@ -75,13 +91,13 @@ bool PG_Disa::isSpriteSheetPackage(const PG_File& file) {
 }
 
 bool PG_Disa::isSpriteSheetPackage(PG::STREAM::In* reader) {
-	const unsigned int number_of_files = reader->readUnsignedInt();
-	if (number_of_files > 9000) return FAILURE;
+	const unsigned int numberOfFiles = reader->readUnsignedInt();
+	if (numberOfFiles > 90000) return FAILURE;
 
 	const unsigned int firstFileOffset = reader->readUnsignedInt();
 
-	const unsigned int chracterIdsOffset = number_of_files * 4 + 4;
-	if (firstFileOffset < chracterIdsOffset + number_of_files * 2) return FAILURE;
+	const unsigned int chracterIdsOffset = numberOfFiles * 4 + 4;
+	if (firstFileOffset < chracterIdsOffset + numberOfFiles * 2) return FAILURE;
 
 	return SUCCESS;
 }

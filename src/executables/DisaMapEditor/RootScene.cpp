@@ -56,7 +56,6 @@
 #include <Scene/Gui/PG_GuiFlowView.h>
 #include <Scene/PG_CameraNode.h>
 #include <Scene/PG_ModelNode.h>
-#include <CustomGui/PG_DisaSearchField.h>
 #include <CustomGui/PG_DisaItemSelector.h>
 #include <CustomGui/PG_DisaCustomCampaign.h>
 #include <CustomGui/PG_DisaAddDungeonDialog.h>
@@ -72,6 +71,7 @@
 #include <Disa/utils/PG_DisaConfig.h>
 #include <Disa/utils/PG_DisaInstaller.h>
 #include <Disa/CustomGui/PG_PupUpDialog.h>
+#include <Disa/CustomGui/PG_DisaSearchField.h>
 
 #include <PG_DisaGridTile.h>
 #include <PG_DisaMapListModel.h>
