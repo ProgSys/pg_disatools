@@ -87,7 +87,7 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 	auto container = createFileContainer(fileEntry.getInfo().getType());
 	if (!container) return;
 	fileEntry.setContainer(container);
-	container->open(fileEntry.createReader());
+	if (!container->open(fileEntry.createReader())) return;
 
 	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel", container.get());
 	containerModel->setContainer(container.get());

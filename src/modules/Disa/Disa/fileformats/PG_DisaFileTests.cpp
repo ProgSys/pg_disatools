@@ -101,9 +101,39 @@ bool PG_Disa::isSOLA(PG::STREAM::In* reader) {
 	unsigned int fileOffset = reader->readUnsignedInt();
 	if (headerSize >= readerSize || fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
 	if (numberOfFiles == 1) return SUCCESS;
-	reader->skip(sizeof(unsigned int) * (numberOfFiles - 2));
+	fileOffset = reader->readUnsignedInt();
+	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+	if (numberOfFiles == 2) return SUCCESS;
+	reader->skip(sizeof(unsigned int) * (numberOfFiles - 1));
 	fileOffset = reader->readUnsignedInt(); //last file
 	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+
+	return SUCCESS;
+}
+
+bool PG_Disa::isScript(const PG_File& file) {
+	return openFile(file, isScript);
+}
+bool PG_Disa::isScript(PG::STREAM::In* reader) {
+	const unsigned int scripts = reader->readUnsignedInt();
+	const unsigned int zero = reader->readUnsignedInt();
+	if (scripts == 0 || scripts > 90000 || zero != 0) return FAILURE;
+	const unsigned int headerSize = sizeof(unsigned int) * 2 + sizeof(unsigned int) * scripts * 2; //offsets + ids
+	const unsigned int readerSize = reader->size();
+
+	if ((headerSize + sizeof(unsigned int)) >= readerSize) return FAILURE;
+
+	std::vector<unsigned int> data(scripts); //address
+	reader->read((char*)data.data(), scripts * sizeof(int));
+	for (unsigned int a : data) {
+		if ((headerSize + a) > readerSize) return FAILURE;
+	}
+	reader->read((char*)data.data(), scripts * sizeof(int));
+	for (unsigned int a : data) {
+		if (a > std::numeric_limits<unsigned int>::max() / 2) return FAILURE;
+	}
+
+	return SUCCESS;
 }
 
 bool PG_Disa::isSpriteSheetPackage(const PG_File& file) {
