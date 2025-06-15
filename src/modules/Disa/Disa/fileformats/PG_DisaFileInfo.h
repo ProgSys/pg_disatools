@@ -87,6 +87,7 @@ public:
     void setType(const std::string& extention);
     inline void determinTypeFromFileExtention() { setType(m_name.getFileExtensionFormated()); }
     void determinTypeFromFileFormat(PG::STREAM::In* reader);
+    static Type typeFromFileFormat(PG::STREAM::In* reader);
     static std::string toString(Type type);
 
 

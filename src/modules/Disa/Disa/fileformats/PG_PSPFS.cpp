@@ -69,7 +69,8 @@ bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
     for (PG_DisaFileEntry& entry : contains) {
         if (entry.getContainer()) continue;
         if (entry.getInfo().getType() != PG_DisaFileInfo::UNKNOWN) continue;
-        auto entryReader = entry.createReaderOriginal();
+        auto entryReader = entry.createReader();
+        entryReader->rewind();
         entry.getInfo().determinTypeFromFileFormat(entryReader.get());
     }
     reader->seek(currentPos);

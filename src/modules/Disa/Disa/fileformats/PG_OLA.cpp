@@ -29,7 +29,6 @@
 #include <Stream/PG_StreamOutByteFile.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_Exception.h>
-#include <Disa/fileformats/PG_DisaFileTests.h>
 #include <Disa/fileformats/PG_IMY.h>
 #include <Stream/PG_StreamInByteArray.h>
 #include <Stream/PG_StreamInByteFile.h>
@@ -147,7 +146,6 @@ bool PG_OLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 		FILE_CONTAINER_ERROR_TEST(info.getOffset() + info.getSize() > fileSize, "File is outside the range (" << (info.getOffset() + info.getSize()) << " > " << fileSize << ")!");
 
 		//try dertermin file type
-		const unsigned int currentPos = reader->pos();
 		{
 			std::stringstream o;
 			if (i < nameTable.size()) {
@@ -160,28 +158,26 @@ bool PG_OLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 				o << i << ".DAT";
 			}
 			info.setName(o.str());
-
-			reader->seek(info.getOffset());
-			if (PG_Disa::isIMY(reader.get())) {
-				info.getName().replaceFileExtension("IMY");
-				info.setType(PG_DisaFileInfo::IMY);
-			}
-			else {
-				reader->seek(info.getOffset());
-				if (PG_Disa::isTX2(reader.get())) {
-					info.getName().replaceFileExtension("TX2");
-					info.setType(PG_DisaFileInfo::TX2);
-				}
-				else {
-					info.getName().replaceFileExtension("DAT");
-				}
-			}
+			info.determinTypeFromFileExtention();
 		}
 
-		reader->seek(currentPos);
 		entry.setInfo(std::move(info));
 		contains.push_back(entry);
 	}
+
+	m_originalReader = reader;
+	const unsigned int currentPos = reader->pos();
+	for (PG_DisaFileEntry& entry : contains) {
+		if (entry.getContainer()) continue;
+		auto entryReader = entry.createReader();
+		entryReader->rewind();
+		entry.getInfo().determinTypeFromFileFormat(entryReader.get());
+		//we don't trust the deffinition file
+		if(entry.getInfo().getType() == PG_DisaFileInfo::UNKNOWN) entry.getInfo().getName().replaceFileExtension("DAT");
+	}
+	reader->seek(currentPos);
+	m_originalReader.reset();
+
 	set(std::move(contains));
 
 	return SUCCESS;

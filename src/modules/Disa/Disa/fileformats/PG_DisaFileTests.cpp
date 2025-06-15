@@ -57,7 +57,7 @@ unsigned int PG_Disa::getIMYPackageSize(const PG_File& file) {
 unsigned int PG_Disa::getIMYPackageSize(PG::STREAM::In* reader) {
 	const unsigned int start = reader->pos();
 	const unsigned int numberOfFiles = reader->readUnsignedInt();
-	if (numberOfFiles > 9000) return 0;
+	if (numberOfFiles == 0 || numberOfFiles > 9000) return 0;
 
 	const unsigned int commpress_size = reader->readUnsignedInt();
 	const unsigned int first_offset = reader->readUnsignedInt();
@@ -75,15 +75,35 @@ bool PG_Disa::isOLA(const PG_File& file) {
 }
 bool PG_Disa::isOLA(PG::STREAM::In* reader) {
 	const unsigned int numberOfFiles = reader->readUnsignedInt();
-	if (numberOfFiles > 90000) return FAILURE;
-	unsigned int fileOffset = reader->readUnsignedInt();
-	const unsigned int readerSize = reader->size();
+	if (numberOfFiles == 0 || numberOfFiles > 90000) return FAILURE;
 	const unsigned int headerSize = sizeof(unsigned int) + sizeof(unsigned int) * numberOfFiles;
-	if(headerSize >= readerSize || fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+	const unsigned int readerSize = reader->size();
+
+	unsigned int fileOffset = reader->readUnsignedInt();
+	if (headerSize >= readerSize || fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+	if (numberOfFiles == 1) return SUCCESS;
 	reader->skip(headerSize - sizeof(unsigned int) * 3);
 	fileOffset = reader->readUnsignedInt();
 	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+
 	return SUCCESS;
+}
+
+bool PG_Disa::isSOLA(const PG_File& file) {
+	return openFile(file, isSOLA);
+}
+bool PG_Disa::isSOLA(PG::STREAM::In* reader) {
+	const unsigned int numberOfFiles = reader->readUnsignedInt();
+	if (numberOfFiles == 0 || numberOfFiles > 90000) return FAILURE;
+	const unsigned int headerSize = sizeof(unsigned int) + sizeof(unsigned int) * numberOfFiles + sizeof(unsigned short) * numberOfFiles;
+	const unsigned int readerSize = reader->size();
+
+	unsigned int fileOffset = reader->readUnsignedInt();
+	if (headerSize >= readerSize || fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
+	if (numberOfFiles == 1) return SUCCESS;
+	reader->skip(sizeof(unsigned int) * (numberOfFiles - 2));
+	fileOffset = reader->readUnsignedInt(); //last file
+	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
 }
 
 bool PG_Disa::isSpriteSheetPackage(const PG_File& file) {
@@ -92,7 +112,7 @@ bool PG_Disa::isSpriteSheetPackage(const PG_File& file) {
 
 bool PG_Disa::isSpriteSheetPackage(PG::STREAM::In* reader) {
 	const unsigned int numberOfFiles = reader->readUnsignedInt();
-	if (numberOfFiles > 90000) return FAILURE;
+	if (numberOfFiles == 0 || numberOfFiles > 90000) return FAILURE;
 
 	const unsigned int firstFileOffset = reader->readUnsignedInt();
 

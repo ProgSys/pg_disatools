@@ -69,24 +69,34 @@ std::string PG_DisaFileInfo::toString(Type type) {
     }
 }
 
-void PG_DisaFileInfo::determinTypeFromFileFormat(PG::STREAM::In* reader) {
-    if (!reader) return;
+PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader) {
+    if (!reader) return UNKNOWN;
     const unsigned int startPos = reader->pos();
 
     using TestFunc = bool(*)(PG::STREAM::In* reader);
     using PairType = std::pair<Type, TestFunc>;
-    constexpr static std::array<std::pair<Type, TestFunc>, 3> tests = {
-        PairType{Type::COLA, &PG_Disa::isIMYPackage},
+    constexpr static std::array<std::pair<Type, TestFunc>, 6> tests = {
+        PairType{Type::PSPFS_V1, &PG_Disa::isPSPFS},
         PairType{Type::IMY, &PG_Disa::isIMY},
+        PairType{Type::COLA, &PG_Disa::isIMYPackage},
         PairType{Type::OLA, &PG_Disa::isOLA},
+        PairType{Type::SOLA, &PG_Disa::isSOLA},
+        PairType{Type::TX2, &PG_Disa::isTX2},
     };
 
     for (const auto [type, testFunc] : tests) {
         bool result = std::invoke(testFunc, reader);
         reader->seek(startPos);
         if (result) {
-            m_type = type;
-            return;
+            return type;
         }
+    }
+
+    return UNKNOWN;
+}
+
+void PG_DisaFileInfo::determinTypeFromFileFormat(PG::STREAM::In* reader) {
+    if (auto type = typeFromFileFormat(reader); type != UNKNOWN) {
+        m_type = type;
     }
 }

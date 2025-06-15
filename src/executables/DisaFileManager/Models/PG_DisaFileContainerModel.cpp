@@ -5,7 +5,10 @@
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <Models/PG_DisaFileFilterModel.h>
 #include <Models/PG_DisaFileManagerMainModel.h>
+#include <Disa/fileformats/PG_DisaFileTests.h>
 #include <Disa/fileformats/PG_OLA.h>
+#include <Disa/fileformats/PG_SOLA.h>
+#include <Disa/fileformats/PG_PSPFS.h>
 
 PG_ListModelBase* PG_DisaFileContainerModel::getListModel() const {
 	return m_selectionModel;
@@ -18,7 +21,7 @@ void PG_DisaFileContainerModel::setSearchText(const std::string& str) {
 	if(m_filterModel) m_filterModel->setSearchText(str);
 }
 
-void PG_DisaFileContainerModel::open(PG_DisaFileContainer* fileContainer) {
+void PG_DisaFileContainerModel::setContainer(PG_DisaFileContainer* fileContainer) {
 	if (m_fileContainer == fileContainer) return;
 	if (m_fileContainer) delete m_fileContainer;
 
@@ -40,10 +43,36 @@ struct OpenedFiles : public PG_Object {
 	std::vector<std::shared_ptr<PG_DisaFileContainer>> files;
 };
 
-void PG_DisaFileContainerModel::addContainer(std::shared_ptr<PG_DisaFileContainer>&& container) {
-	OpenedFiles* openedFiles = findFirstChild<OpenedFiles>("OpenedFiles");
-	if (!openedFiles) openedFiles = PG_new<OpenedFiles>("OpenedFiles", this);
+void PG_DisaFileContainerModel::addOpenedFile(std::shared_ptr<PG_DisaFileContainer>&& container, std::string&& name) {
+	OpenedFiles* openedFiles = findFirstChild<OpenedFiles>(name);
+	if (!openedFiles) openedFiles = PG_new<OpenedFiles>(name, this);
 	openedFiles->files.push_back(std::move(container));
+}
+
+static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(PG_DisaFileInfo::Type type) {
+	switch (type) {
+	case PG_DisaFileInfo::PSPFS_V1: return std::shared_ptr<PG_PSPFS>(PG_new<PG_PSPFS>("PG_PSPFS"));
+	case PG_DisaFileInfo::OLA: return std::shared_ptr<PG_OLA>(PG_new<PG_OLA>("PG_OLA"));
+	case PG_DisaFileInfo::SOLA: return std::shared_ptr<PG_SOLA>(PG_new<PG_SOLA>("PG_SOLA"));
+	}
+	return {};
+}
+
+static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(const std::shared_ptr<PG::STREAM::In>& reader) {
+	if (!reader) return {};
+	return createFileContainer(PG_DisaFileInfo::typeFromFileFormat(reader.get()));
+}
+
+PG_DisaFileContainerModel* PG_DisaFileContainerModel::tryOpen(const PG_File& file, std::shared_ptr<PG::STREAM::In> reader) {
+	auto container = createFileContainer(reader);
+	if (!container) return nullptr;
+	container->setFile(file);
+	container->open(reader);
+	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel", container.get());
+	containerModel->setContainer(container.get());
+	containerModel->addOpenedFile(std::move(container), "RootFile");
+
+	return containerModel;
 }
 
 void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
@@ -51,18 +80,18 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 
 	std::shared_ptr<PG_DisaFileContainer> containerSptr;
 	PG_DisaFileEntry fileEntry = m_filterModel->getData(index, Identity_Item).get<PG_DisaFileEntry>();
+
 	//TODO check if filecontaner is allready present
-	switch (fileEntry.getInfo().getType()) {
-	case PG_DisaFileInfo::OLA: {
-		auto model = fileEntry.open<PG_OLA>();
-		auto container = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel", model.get());
-		container->open(model.get());
-		containerSptr = std::move(model);
-		PG_DisaFileManagerMainModel::get()->pushStack(container);
-	} break;
-	}
+	if (fileEntry.getContainer()) return;
 
-	if (!containerSptr) return;
+	auto container = createFileContainer(fileEntry.getInfo().getType());
+	if (!container) return;
+	fileEntry.setContainer(container);
+	container->open(fileEntry.createReader());
 
-	addContainer(std::move(containerSptr));
+	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel", container.get());
+	containerModel->setContainer(container.get());
+	PG_DisaFileManagerMainModel::get()->pushStack(containerModel);
+	
+	addOpenedFile(std::move(container));
 }

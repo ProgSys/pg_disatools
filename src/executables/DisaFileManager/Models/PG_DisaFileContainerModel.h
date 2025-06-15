@@ -5,6 +5,7 @@
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <Util/PG_File.h>
 #include <Base/PG_Index.h>
+#include <Stream/PG_StreamIn.h>
 
 class PG_DisaFileContainer;
 class PG_ListSelectionWrapperModel;
@@ -26,15 +27,16 @@ public:
 	const std::string& getSearchText() const;
 	void setSearchText(const std::string& str);
 
-	void open(PG_DisaFileContainer* fileContainer);
-	
-	void addContainer(std::shared_ptr<PG_DisaFileContainer>&& container);
+	static PG_DisaFileContainerModel* tryOpen(const PG_File& file, std::shared_ptr<PG::STREAM::In> reader);
 receivers:
 	/**
 	* @brief Will open given entry
 	*/
 	void openEntry(const PG_Index& index);
 private:
+	void setContainer(PG_DisaFileContainer* fileContainer);
+	void addOpenedFile(std::shared_ptr<PG_DisaFileContainer>&& container, std::string&& name = "OpenedFiles");
+
 	PG_DisaFileContainer* m_fileContainer = nullptr;
 	PG_ListSelectionWrapperModel* m_selectionModel = nullptr;
 	PG_DisaFileFilterModel* m_filterModel = nullptr;

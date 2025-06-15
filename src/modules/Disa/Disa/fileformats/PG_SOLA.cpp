@@ -149,10 +149,6 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 		entry.setExtraData(*it);
 		entry.getInfoOriginal().setName(o.str());
 		reader->seek(entry.getInfoOriginal().getOffset());
-		if (PG_Disa::isTX2(reader.get())) {
-			entry.getInfoOriginal().getName().replaceFileExtension("TX2");
-			entry.getInfoOriginal().setType(PG_DisaFileInfo::TX2);
-		}
 		++it;
 	}
 
