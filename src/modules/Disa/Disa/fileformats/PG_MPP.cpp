@@ -220,11 +220,11 @@ bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader) {
 	if (header.file_size > file_size) {
 		FILE_CONTAINER_ON_ERROR("Header references a bigger file size than actual file size! (" << header.file_size << " > " << file_size << ")");
 	}
+	
 
 	auto mpp_size = std::min(header.file_size, file_size);
-	std::vector<unsigned int> file_offsets((header.has_normals) ? header.number_of_textures * 2 + header.number_of_models : header.number_of_textures + header.number_of_models);
+	std::vector<unsigned int> file_offsets(header.number_of_textures * (header.has_normals ? 2 : 1) + header.number_of_models);
 	reader->read((char*)file_offsets.data(), file_offsets.size() * sizeof(unsigned int));
-	reader->skip(header.file_size - sizeof(mppfileHeader));
 
 	const auto getStartEnd = [&file_offsets, mpp_size](int index) ->std::pair<unsigned, unsigned> {
 		unsigned file_start_offset = file_offsets[index];
@@ -234,46 +234,46 @@ bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader) {
 
 
 	std::vector<PG_DisaFileEntry> contains;
+	contains.reserve(file_offsets.size());
+	PG_DisaFileEntry entry;
+	PG_DisaFileInfo info;
 
 	for (int i = 0; i < header.number_of_textures; ++i) {
 		auto [start, end] = getStartEnd(i);
-		PG_DisaFileEntry entry = PG_DisaFileEntry(this);
-		PG_DisaFileInfo info;
+		entry = PG_DisaFileEntry(this);
 		info.setName("Texture" + std::to_string(i));
 		info.setType(PG_DisaFileInfo::TX2);
 		info.setOffset(start);
 		info.setSize(end - start);
 		entry.setInfo(std::move(info));
-		contains.push_back(entry);
+		contains.push_back(std::move(entry));
 	}
 	std::uint32_t indexOffset = header.number_of_textures;
 	if (header.has_normals) {
 		for (int i = 0; i < header.number_of_textures; ++i) {
 			auto [start, end] = getStartEnd(indexOffset + i);
-			PG_DisaFileEntry entry = PG_DisaFileEntry(this);
-			PG_DisaFileInfo info;
+			entry = PG_DisaFileEntry(this);
 			info.setName("Normal" + std::to_string(i));
 			info.setType(PG_DisaFileInfo::TX2);
 			info.setOffset(start);
 			info.setSize(end - start);
 			entry.setInfo(std::move(info));
-			contains.push_back(entry);
+			contains.push_back(std::move(entry));
 		}
 		indexOffset += header.number_of_textures;
 	}
 
 	for (int i = 0; i < header.number_of_models; ++i) {
 		auto [start, end] = getStartEnd(indexOffset + i);
-		PG_DisaFileEntry entry = PG_DisaFileEntry(this);
-		PG_DisaFileInfo info;
+		entry = PG_DisaFileEntry(this);
 		info.setName("Geometry" + std::to_string(i));
 		info.setType(PG_DisaFileInfo::GEO);
 		info.setOffset(start);
 		info.setSize(end - start);
 		entry.setInfo(std::move(info));
-		contains.push_back(entry);
+		contains.push_back(std::move(entry));
 	}
-	contains.shrink_to_fit();
+
 	set(std::move(contains));
 
 	return SUCCESS;
