@@ -13,7 +13,7 @@ class PG_DisaFileManagerMainModel : public PG_DisaMainModel {
 
 	PG_PROPERTY(std::string navText GET getNavText CHANGED centerModelChanged)
 signals:
-	void centerModelChanged(PG_UiStateBaseModel* model);
+	void centerModelChanged(PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel);
 public:
 	using PG_DisaMainModel::PG_DisaMainModel;
 

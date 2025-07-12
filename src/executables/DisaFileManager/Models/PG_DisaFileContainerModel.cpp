@@ -27,6 +27,11 @@ void PG_DisaFileContainerModel::setSearchText(const std::string& str) {
 	if(m_filterModel) m_filterModel->setSearchText(str);
 }
 
+PG_ListModelLocation PG_DisaFileContainerModel::getLastSelected() const {
+	if (!m_selectionModel || !m_selectionModel->hasSelection()) return {};
+	return m_selectionModel->getLocation(*std::prev(m_selectionModel->getSelection().end()));
+}
+
 void PG_DisaFileContainerModel::setContainer(PG_DisaFileContainer* fileContainer) {
 	if (m_fileContainer == fileContainer) return;
 	if (m_fileContainer) delete m_fileContainer;
@@ -38,7 +43,10 @@ void PG_DisaFileContainerModel::setContainer(PG_DisaFileContainer* fileContainer
 		m_filterModel = PG_new<PG_DisaFileFilterModel>("PG_DisaFileFilterModel", this);
 		connect(m_filterModel, &PG_DisaFileFilterModel::searchStringChanged, this, &PG_DisaFileContainerModel::searchStringChanged);
 	}
-	if(!m_selectionModel) m_selectionModel = PG_new<PG_ListSelectionWrapperModel>("PG_ListSelectionWrapperModel", this);
+	if (!m_selectionModel) {
+		m_selectionModel = PG_new<PG_ListSelectionWrapperModel>("PG_ListSelectionWrapperModel", this);
+		connect(m_selectionModel, &PG_ListSelectionWrapperModel::selectionChanged, this, &PG_DisaFileContainerModel::lastSelectedChanged);
+	}
 
 	m_selectionModel->setModel(m_filterModel);
 	m_filterModel->setModel(fileContainer);

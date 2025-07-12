@@ -16,8 +16,11 @@ class PG_DisaFileContainerModel : public PG_Object, public PG_UiStateBaseModel {
 	PG_PARENT(PG_Object);
 
 	PG_PROPERTY(std::string searchText GET getSearchText SET setSearchText CHANGED searchStringChanged)
+	PG_PROPERTY(PG_ListModelLocation lastSelected GET getLastSelected CHANGED lastSelectedChanged)
+
 signals:
 	void searchStringChanged();
+	void lastSelectedChanged();
 public:
 	using PG_Object::PG_Object;
 
@@ -27,6 +30,8 @@ public:
 
 	const std::string& getSearchText() const;
 	void setSearchText(const std::string& str);
+
+	PG_ListModelLocation getLastSelected() const;
 
 	void closeUi() override;
 	bool isHoldingContainer(PG_DisaFileContainer* fileContainer) const override { return m_fileContainer == fileContainer; }

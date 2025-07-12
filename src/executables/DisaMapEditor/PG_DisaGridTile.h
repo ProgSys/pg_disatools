@@ -32,7 +32,6 @@ public:
 	void setLocation(const PG_ListModelLocation& location);
 	void update(const PG_ListModelLocation& location, const PG_IdentitySet& identities);
 
-	PG_DisaMPDPack getMapFiles() const;
 	inline PG_DisaMapSceneView* getGameScene() const { return m_gameScene; }
 
 private:

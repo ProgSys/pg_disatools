@@ -248,12 +248,6 @@ void PG_DisaGridTile::update(const PG_ListModelLocation& location, const PG_Iden
 	}
 }
 
-PG_DisaMPDPack PG_DisaGridTile::getMapFiles() const {
-	if (!m_location) return {};
-	auto var = m_location.getData(Identity_Item);
-	return var.is<PG_DisaMPDPack>() ? var.get<PG_DisaMPDPack>() : PG_DisaMPDPack();
-}
-
 void PG_DisaGridTile::updateBorder() {
 	auto area = findFirstChild<PG_GuiMouseArea>("DisaGridTileArea");
 	const bool display = area->isHovered() || m_location.getDataT<bool>(Identity_Selected);

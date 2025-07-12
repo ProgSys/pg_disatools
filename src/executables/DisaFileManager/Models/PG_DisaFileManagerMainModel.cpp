@@ -14,11 +14,11 @@ PG_DisaFileManagerMainModel* PG_DisaFileManagerMainModel::get() {
 }
 
 void PG_DisaFileManagerMainModel::close() {
+	emit centerModelChanged(getCenterModel(), nullptr);
 	while (!m_modelStack.empty()) {
 		delete dynamic_cast<PG_Object*>(m_modelStack.back());
 		m_modelStack.pop_back();
 	}
-	emit centerModelChanged(nullptr);
 }
 
 void PG_DisaFileManagerMainModel::navBack() {
@@ -37,36 +37,25 @@ std::string PG_DisaFileManagerMainModel::getNavText() const {
 }
 
 bool PG_DisaFileManagerMainModel::open(const PG_File& file) {
-	if (file.isEmpty()) {
-		close();
-		return false;
-	}
+	close(); //could be optimized, as centerModelChanged is emited twice
+	if (file.isEmpty()) return false;
+	
 
 	std::shared_ptr<PG::STREAM::In> reader(new PG::STREAM::InByteFile(file));
-	if (!reader->isOpen()) {
-		close();
-		return false;
-	}
-
+	if (!reader->isOpen()) return false;
+	
 	PG_UiStateBaseModel* newCenterModel = PG_DisaFileContainerModel::tryOpen(file, reader);
-
-	while (!m_modelStack.empty()) {
-		delete dynamic_cast<PG_Object*>(m_modelStack.back());
-		m_modelStack.pop_back();
-	}
-
-	if (!newCenterModel) {
-		emit centerModelChanged(newCenterModel);
-		return false;
-	}
+	if (!newCenterModel) return false;
+	
 	pushStack(newCenterModel);
 	return true;
 }
 
 void PG_DisaFileManagerMainModel::pushStack(PG_UiStateBaseModel* model) {
 	if (!model) return;
+	auto old = getCenterModel();
 	m_modelStack.push_back(model);
-	emit centerModelChanged(model);
+	emit centerModelChanged(old, model);
 }
 
 void PG_DisaFileManagerMainModel::popStack() {
@@ -74,6 +63,6 @@ void PG_DisaFileManagerMainModel::popStack() {
 	auto* top = m_modelStack.back();
 	top->closeUi();
 	m_modelStack.pop_back();
+	emit centerModelChanged(top, getCenterModel());
 	delete dynamic_cast<PG_Object*>(top);
-	emit centerModelChanged(getCenterModel());
 }
