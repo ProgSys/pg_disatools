@@ -23,9 +23,13 @@ public:
 
 	UiState getUiState() const override { return FileArchive; }
 	PG_ListModelBase* getListModel() const;
+	std::string getFileName() const override;
 
 	const std::string& getSearchText() const;
 	void setSearchText(const std::string& str);
+
+	void closeUi() override;
+	bool isHoldingContainer(PG_DisaFileContainer* fileContainer) const override { return m_fileContainer == fileContainer; }
 
 	static PG_DisaFileContainerModel* tryOpen(const PG_File& file, std::shared_ptr<PG::STREAM::In> reader);
 receivers:

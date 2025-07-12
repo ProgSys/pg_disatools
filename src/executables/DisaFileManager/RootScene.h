@@ -46,6 +46,8 @@ struct RootGui {
     PG_GuiRectangle* toolbar = nullptr;
     PG_GuiRow* toolbarRow = nullptr;
     PG_GuiButton* openButton = nullptr;
+    PG_GuiRectangle* navbar = nullptr;
+    PG_GuiRow* navbarRow = nullptr;
 
     PG_GuiText* fpsItem = nullptr;
     PG_GuiItem* center = nullptr;
@@ -66,6 +68,7 @@ public:
 
 private:
     void setupToolbar();
+    void setupNavbar();
     void setupCenter();
 
 

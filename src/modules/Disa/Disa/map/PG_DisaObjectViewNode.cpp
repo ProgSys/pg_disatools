@@ -52,7 +52,6 @@ void PG_DisaObjectViewNode::loadGeometry() {
 		return;
 	}
 
-
 	auto model = m_location.getDataT<PG_DisaObjectModel*>(Identity_Item);
 	const auto& object = model->getData();
 	auto mapModel = model->findParent<PG_DisaMapModel>(3);

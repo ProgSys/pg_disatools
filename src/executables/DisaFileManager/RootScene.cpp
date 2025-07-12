@@ -44,6 +44,7 @@
 #include <Scene/Gui/PG_GuiText.h>
 #include <Scene/Gui/PG_GuiTableView.h>
 #include <Scene/Gui/PG_GuiTableHeaderView.h>
+#include <Scene/Gui/PG_GuiFootlooseView.h>
 #include <Scene/Model/PG_ListSelectionWrapperModel.h>
 
 
@@ -80,16 +81,31 @@ void RootScene::init() {
 		toolbar->getAnchor(PG_Anchor::Left)->setAnchor(rootItem->getAnchor(PG_Anchor::Left));
 		toolbar->getAnchor(PG_Anchor::Right)->setAnchor(rootItem->getAnchor(PG_Anchor::Right));
 
-		toolbarRow = PG_new<PG_GuiRow>("ToolbarRow", glm::vec2(0.f, 10.f), glm::vec2(39.f, 30.f), toolbar);
+		toolbarRow = PG_new<PG_GuiRow>("toolbarRow", glm::vec2(0.f, 10.f), glm::vec2(39.f, 30.f), toolbar);
 		toolbarRow->setSpacing(3.f);
 		toolbarRow->setMargin(PG_Anchor::Left, 10.f);
 		toolbarRow->setMargin(PG_Anchor::Right, 10.f);
 		toolbarRow->fill(toolbar);
 	}
 
+	{
+		navbar = PG_new<PG_GuiRectangle>("navbar", glm::vec2(0.f), glm::vec2(0.f, 30.f), rootItem);
+		navbar->setColor(backgroundColor * 1.3f);
+		PG_GuiItem::anchor(navbar, PG_Anchor::Top, toolbar, PG_Anchor::Bottom);
+		PG_GuiItem::anchor(navbar, PG_Anchor::Left, rootItem, PG_Anchor::Left);
+		PG_GuiItem::anchor(navbar, PG_Anchor::Right, rootItem, PG_Anchor::Right);
+
+		navbarRow = PG_new<PG_GuiRow>("navbarRow", glm::vec2(0.f, 3.f), glm::vec2(39.f, 24.f), navbar);
+		navbarRow->setSpacing(3.f);
+		navbarRow->setMargin(PG_Anchor::Left, 10.f);
+		navbarRow->setMargin(PG_Anchor::Right, 10.f);
+		navbarRow->fill(navbar);
+
+	}
+
 	{ //default center
 		PG_GuiItem* defaultWrapper = PG_new<PG_GuiItem>("defaultWrapper", rootItem);
-		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Top, toolbar, PG_Anchor::Bottom);
+		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Top, navbar, PG_Anchor::Bottom);
 		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Left, rootItem, PG_Anchor::Left);
 		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Right, rootItem, PG_Anchor::Right);
 		PG_GuiItem::anchor(defaultWrapper, PG_Anchor::Bottom, rootItem, PG_Anchor::Bottom);
@@ -103,6 +119,7 @@ void RootScene::init() {
 	}
 
 	setupToolbar();
+	setupNavbar();
 	setupCenter();
 }
 
@@ -126,25 +143,45 @@ void RootScene::setupToolbar() {
 
 
 	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, toolbarRow, [this](PG_UiStateBaseModel* model) {
-		auto* asObject = dynamic_cast<PG_Object*>(model);
 		PG_DisaSearchField* searchField = toolbarRow->findFirstChild<PG_DisaSearchField>("searchField");
-		if(asObject){
-			if (auto prop = asObject->getProperty("searchText")) {
-				if(!searchField) searchField = PG_new<PG_DisaSearchField>("searchField", glm::vec2(0.f), glm::vec2(300.f, 30.f), toolbarRow);
-				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::VerticalCenter);
-				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
-				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
-				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(300.f, 30.f));
-				searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_MinSize, glm::vec2(80.f, 30.f));
+		if (searchField) delete searchField;
+		auto* asObject = dynamic_cast<PG_Object*>(model);
+		if (!asObject) return;
+		auto prop = asObject->getProperty("searchText");
+		if (!prop) return;
 
-				connect(searchField, searchField->getProperty("text"), asObject, prop);
-				return;
-			}
-		}
-		
-		if(searchField) delete searchField;
-		
+		searchField = PG_new<PG_DisaSearchField>("searchField", glm::vec2(0.f), glm::vec2(300.f, 30.f), toolbarRow);
+		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::VerticalCenter);
+		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(300.f, 30.f));
+		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_MinSize, glm::vec2(80.f, 30.f));
+		searchField->setText(asObject->getPropertyValue(prop).toString());
+
+		connect(searchField, searchField->getProperty("text"), asObject, prop);
 	});
+}
+
+void RootScene::setupNavbar() {
+	navbarRow->clearGuiChildren();
+
+	auto backButton = PG_new<PG_GuiButton>("backButton", glm::vec2(0.0f), glm::vec2(39.f, 24.f), navbarRow);
+	backButton->setIcon("gui/icon_back.png");
+	backButton->setBackground("M_GuiRoundedRectangleAll5");
+	backButton->setTooltipText("Back");
+	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+
+	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaFileManagerMainModel::navBack);
+
+	auto navText = PG_new<PG_GuiText>("navText", glm::vec2(0.0f), glm::vec2(39.f, 24.f), navbarRow);
+	navText->setText(m_mainModel->getNavText());
+	navText->setColor(PG_Color::hentaiBlueFrgb);
+	navText->setFontSize(20.f);
+	navText->setWrapMode(PG_GuiText::Elide);
+	navText->setVerticalAlignment(PG_Anchor::VerticalCenter);
+	navText->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+
+	connect(m_mainModel, m_mainModel->getProperty("navText"), navText, navText->getProperty("text"));
 }
 
 void RootScene::setupCenter() {

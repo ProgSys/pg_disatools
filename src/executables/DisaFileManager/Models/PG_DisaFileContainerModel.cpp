@@ -10,6 +10,12 @@
 #include <Disa/fileformats/PG_SOLA.h>
 #include <Disa/fileformats/PG_PSPFS.h>
 
+std::string PG_DisaFileContainerModel::getFileName() const {
+	if (!m_fileContainer) return {};
+	if (!m_fileContainer->getFile().isEmpty()) return m_fileContainer->getFile().getFile();
+	return m_fileContainer->getParentEntry().getName();
+}
+
 PG_ListModelBase* PG_DisaFileContainerModel::getListModel() const {
 	return m_selectionModel;
 }
@@ -38,17 +44,6 @@ void PG_DisaFileContainerModel::setContainer(PG_DisaFileContainer* fileContainer
 	m_filterModel->setModel(fileContainer);
 }
 
-struct OpenedFiles : public PG_Object {
-	using PG_Object::PG_Object;
-	std::vector<std::shared_ptr<PG_DisaFileContainer>> files;
-};
-
-void PG_DisaFileContainerModel::addOpenedFile(std::shared_ptr<PG_DisaFileContainer>&& container, std::string&& name) {
-	OpenedFiles* openedFiles = findFirstChild<OpenedFiles>(name);
-	if (!openedFiles) openedFiles = PG_new<OpenedFiles>(name, this);
-	openedFiles->files.push_back(std::move(container));
-}
-
 static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(PG_DisaFileInfo::Type type) {
 	switch (type) {
 	case PG_DisaFileInfo::PSPFS_V1: return std::shared_ptr<PG_PSPFS>(PG_new<PG_PSPFS>("PG_PSPFS"));
@@ -56,6 +51,34 @@ static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(PG_DisaF
 	case PG_DisaFileInfo::SOLA: return std::shared_ptr<PG_SOLA>(PG_new<PG_SOLA>("PG_SOLA"));
 	}
 	return {};
+}
+
+static std::list<std::shared_ptr<PG_DisaFileContainer>> g_openFiles;
+using ListIt = std::list<std::shared_ptr<PG_DisaFileContainer>>::iterator;
+struct OpenedFiles : public PG_Object {
+	using PG_Object::PG_Object;
+	ListIt file;
+};
+
+void PG_DisaFileContainerModel::addOpenedFile(std::shared_ptr<PG_DisaFileContainer>&& container, std::string&& name) {
+	OpenedFiles* openedFiles = findFirstChild<OpenedFiles>(name);
+	if (!openedFiles) openedFiles = PG_new<OpenedFiles>(name, this);
+	auto findIt = std::ranges::find(g_openFiles, container);
+	if (findIt != g_openFiles.end()) {
+		openedFiles->file = findIt;
+		return;
+	}
+	g_openFiles.push_back(std::move(container));
+	openedFiles->file = std::prev(g_openFiles.end());
+}
+
+void PG_DisaFileContainerModel::closeUi() {
+	OpenedFiles* openedFiles = findFirstChild<OpenedFiles>("OpenedFiles");
+	if (!openedFiles) return; //nothing to do
+
+	if ((*openedFiles->file)->isModified()) return;
+	g_openFiles.erase(openedFiles->file);
+	delete openedFiles;
 }
 
 static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(const std::shared_ptr<PG::STREAM::In>& reader) {
@@ -68,7 +91,7 @@ PG_DisaFileContainerModel* PG_DisaFileContainerModel::tryOpen(const PG_File& fil
 	if (!container) return nullptr;
 	container->setFile(file);
 	container->open(reader);
-	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel", container.get());
+	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel");
 	containerModel->setContainer(container.get());
 	containerModel->addOpenedFile(std::move(container), "RootFile");
 
@@ -81,17 +104,18 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 	std::shared_ptr<PG_DisaFileContainer> containerSptr;
 	PG_DisaFileEntry fileEntry = m_filterModel->getData(index, Identity_Item).get<PG_DisaFileEntry>();
 
-	//TODO check if filecontaner is allready present
-	if (fileEntry.getContainer()) return;
+	//check if filecontaner is allready present
+	std::shared_ptr<PG_DisaFileContainer> container = fileEntry.getContainer<PG_DisaFileContainer>();
+	if (!container) {
+		container = createFileContainer(fileEntry.getInfo().getType());
+		if (!container) return;
+		fileEntry.setContainer(container);
+		if (!container->open(fileEntry.createReader())) return;
+	}
 
-	auto container = createFileContainer(fileEntry.getInfo().getType());
-	if (!container) return;
-	fileEntry.setContainer(container);
-	if (!container->open(fileEntry.createReader())) return;
-
-	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel", container.get());
+	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel");
 	containerModel->setContainer(container.get());
+
 	PG_DisaFileManagerMainModel::get()->pushStack(containerModel);
-	
-	addOpenedFile(std::move(container));
+	containerModel->addOpenedFile(std::move(container));
 }
