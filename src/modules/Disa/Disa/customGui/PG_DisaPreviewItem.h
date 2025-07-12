@@ -30,6 +30,7 @@ public:
 	void update(const PG_ListModelLocation& location, const PG_IdentitySet& identities);
 
 private:
+	void clear();
 	void createGameScene();
 	void updateBorder();
 

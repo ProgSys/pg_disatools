@@ -281,7 +281,6 @@ void RootScene::setupCenter() {
 	PG_GuiItem::anchor(preview, PG_Anchor::Top, previewContent, PG_Anchor::Top);
 	PG_GuiItem::anchor(preview, PG_Anchor::Left, previewContent, PG_Anchor::Left);
 	PG_GuiItem::anchor(preview, PG_Anchor::Right, previewContent, PG_Anchor::Right);
-
 	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, preview, [preview](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
 		if(oldModel) disconnect(dynamic_cast<PG_Object*>(oldModel), nullptr, preview, nullptr);
 
@@ -290,7 +289,7 @@ void RootScene::setupCenter() {
 		if (!asObject) return;
 		auto prop = asObject->getProperty("lastSelected");
 		if (!prop) return;
-
+		preview->openPreview(asObject->getPropertyValue(prop));
 		connect(asObject, prop, preview, preview->getProperty("location"));
 	});
 }

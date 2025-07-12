@@ -17,7 +17,7 @@ void PG_DisaPreviewItem::init() {
 	m_container->fill(this);
 
 	constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
-	m_text = PG_new<PG_GuiText>("MapName", glm::vec2(0.f, 0.f), glm::vec2(110.f, 30.f), "Name", this);
+	m_text = PG_new<PG_GuiText>("text", glm::vec2(0.f, 0.f), glm::vec2(110.f, 30.f),  this);
 	anchor(m_text, PG_Anchor::Bottom, this, PG_Anchor::Bottom);
 	anchor(m_text, PG_Anchor::Left, this, PG_Anchor::Left);
 	anchor(m_text, PG_Anchor::Right, this, PG_Anchor::Right);
@@ -52,7 +52,7 @@ void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
 		open(var.get<std::string>());
 		return;
 	}
-	m_container->clearGuiChildren();
+	clear();
 }
 
 void PG_DisaPreviewItem::open(const PG_Texture& img) {
@@ -77,8 +77,13 @@ void PG_DisaPreviewItem::open(const std::string& imgPath) {
 	imgItem->setImage(imgPath);
 }
 
-void PG_DisaPreviewItem::createGameScene() {
+void PG_DisaPreviewItem::clear() {
 	m_container->clearGuiChildren();
+	if (m_text) m_text->setText({});
+}
+
+void PG_DisaPreviewItem::createGameScene() {
+	clear();
 	return;
 	/*
 	PG_GuiRenderItem* renderItem = m_container->findFirstChild<PG_GuiRenderItem>();
@@ -151,8 +156,7 @@ void PG_DisaPreviewItem::setLocation(const PG_ListModelLocation& location) {
 	if (m_location == location) return;
 	m_location = location;
 	if (!m_location) {
-		m_container->clearGuiChildren();
-		if (m_text) m_text->setText(std::string());
+		clear();
 		return;
 	}
 
