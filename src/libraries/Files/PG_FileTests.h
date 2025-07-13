@@ -67,6 +67,9 @@ EXPORT bool isPSFS(const PG::UTIL::File& file);
 EXPORT bool isANMD2(PG::STREAM::InByteFile& reader);
 EXPORT bool isANMD2(const PG::UTIL::File& file);
 
+EXPORT bool isScript(PG::STREAM::InByteFile& reader);
+EXPORT bool isScript(const PG::UTIL::File& file);
+
 } /* namespace FILE */
 } /* namespace PG */
 

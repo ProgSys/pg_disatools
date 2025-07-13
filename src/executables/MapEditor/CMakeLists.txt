@@ -21,7 +21,6 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  ]]
-cmake_minimum_required(VERSION 3.14.0)
 set(UI_FILES mapEditor.ui)
 set(RESOURCE_FILES "${PROJECT_ICONS_PATH}/map_editor_icon.res") #windres aminoVisIcon.rc -O coff -o aminoVisIcon.res
 set(VERSION_NUMBER 0.1.7)

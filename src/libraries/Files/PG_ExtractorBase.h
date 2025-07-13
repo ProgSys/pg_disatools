@@ -64,6 +64,7 @@ struct fileInfo{
 		SH2,   /// Sprite sheet Disgaea 2
 		GEO,
 		LZS, /// LZS compressed file
+		Script, 
 		UNKNOWN
 	} fileType = UNKNOWN;
 

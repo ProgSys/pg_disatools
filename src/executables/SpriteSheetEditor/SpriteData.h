@@ -738,6 +738,7 @@ private:
 	bool openPGSHv2(QDataStream& in);
 	bool openPGSHv3(QDataStream& in);
 	void resizeSpritesOnSheet(SpriteSheet* sheet, int oldWidth, int oldHeight, int targetWidth, int targetHeight);
+	void resizeSpritesOnSheet(SpriteSheet* sheet, float xScale, float yScale);
 
 	QUndoStack* m_undoStack = nullptr;
 

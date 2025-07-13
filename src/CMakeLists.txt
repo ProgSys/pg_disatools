@@ -1,7 +1,7 @@
 #[[
  * The MIT License (MIT)
  *
- *	Copyright (c) 2018 ProgSys
+ *	Copyright (c) 2025 ProgSys
  *
  *	Permission is hereby granted, free of charge, to any person obtaining a copy
  *	of this file, CMake project files and associated documentation files (the "Software"), to deal
@@ -21,8 +21,7 @@
  *	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  *	SOFTWARE.
  ]]
- 
-cmake_minimum_required(VERSION 3.14.0)
+cmake_minimum_required(VERSION 4.0.0)
 project(DisaTools VERSION 1.0.0 LANGUAGES CXX HOMEPAGE_URL "https://github.com/ProgSys/pg_disatools" DESCRIPTION "Modding tools for Disgaea PC")
 
 set(PROJECT_GLOBAL_NUMBER 1.0.0 CACHE PATH "Project version number.")

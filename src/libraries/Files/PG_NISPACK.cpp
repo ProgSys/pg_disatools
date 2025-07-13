@@ -123,7 +123,7 @@ bool NISPACK::open(const PG::UTIL::File& file, PercentIndicator* percent){
 
 			 reader.seek(current_pos);
 
-			 m_fileInfos.push_back(info);
+			 m_fileInfos.push_back(std::move(info));
 		 }
 
 		 reader.close();

@@ -338,6 +338,31 @@ EXPORT bool isANMD2(const PG::UTIL::File& file){
 	return openFile(file, isANMD2);
 }
 
+EXPORT bool isScript(PG::STREAM::InByteFile& reader) {
+	const unsigned int scripts = reader.readUnsignedInt();
+	const unsigned int zero = reader.readUnsignedInt();
+	if (scripts > 90000 || zero != 0) return false;
+	auto totalSize = reader.size();
+	if (scripts * sizeof(int) * 2 > totalSize) return false;
+
+	std::vector<unsigned int> address(scripts);
+	reader.read((char*)address.data(), scripts * sizeof(int));
+	std::vector<unsigned int> ids(scripts);
+	reader.read((char*)ids.data(), scripts * sizeof(int));
+	
+	for (unsigned int a : address) {
+		if(a > totalSize) return false;
+	}
+	for (unsigned int a : ids) {
+		if (a > std::numeric_limits<unsigned int>::max()/2) return false;
+	}
+
+	return true;
+}
+
+EXPORT bool isScript(const PG::UTIL::File& file) {
+	return openFile(file, isScript);
+}
 
 } /* namespace FILE */
 } /* namespace PG */

@@ -392,10 +392,11 @@ Rectangle {
 			}
 		
 			onReleased:{
+				var targetDuration = Math.floor((parent.x+parent.width)/((timeline.steps*4)/10));
 				parent.parent.z = zParent
 				parent.x = parent.parent.width - parent.width
 				spritedata.pushUndoLayer(layerModel);
-				keyframeModel.setDuration((parent.x+parent.width)/((timeline.steps*4)/10), snapMove)
+				keyframeModel.setDuration(targetDuration, snapMove)
 				timeline.updateTimeline();
 			}
 			

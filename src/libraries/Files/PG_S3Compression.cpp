@@ -48,7 +48,7 @@ using namespace UTIL;
  */
 void findSameColorBestMatch(PG::UTIL::rgba target, PG::UTIL::rgba& c0, PG::UTIL::rgba& c1){
 	//found my math and try and error
-	int cy = std::floor((3*int(target.r))/16.0f) * 8;
+	int cy = static_cast<int>(std::floor((3 * int(target.r))/16.f) * 8);
 	if(cy > 248) cy = 248;
 	int cx = 0;
 	int cxpart;

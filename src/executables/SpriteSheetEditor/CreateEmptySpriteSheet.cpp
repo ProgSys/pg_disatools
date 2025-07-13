@@ -9,6 +9,8 @@
 
 #include <QDebug>
 
+constexpr auto g_auto3xStr = "Auto3x";
+
 CreateEmptySpriteSheet::CreateEmptySpriteSheet(QWidget* parent) :
 	QDialog(parent)
 {
@@ -16,7 +18,7 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(QWidget* parent) :
 	setWindowTitle("Create empty sprite sheet");
 	m_isNew = true;
 
-	init();
+	init(false);
 
 	pushButton_delete->close();
 	checkBox_resizeSprites->close();
@@ -31,7 +33,7 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 	setupUi(this);
 	setWindowTitle("Edit sprite sheet");
 
-	init();
+	init(true);
 	auto getSizeIndex = [](int size) {
 		switch (size)
 		{
@@ -40,6 +42,8 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 		case 128: return 2;
 		case 256: return 3;
 		case 512: return 4;
+		case 1024: return 5;
+		case 2048: return 6;
 		}
 		return 3;
 	};
@@ -83,22 +87,25 @@ CreateEmptySpriteSheet::CreateEmptySpriteSheet(int width, int height, int power,
 	connect(pushButton_delete, SIGNAL(clicked()), this, SLOT(remove()));
 }
 
-void CreateEmptySpriteSheet::init() {
-	auto addSizeOptions = [](QComboBox* box) {
+void CreateEmptySpriteSheet::init(bool isEdit) {
+	auto addSizeOptions = [isEdit](QComboBox* box, bool isSize = false) {
 		box->addItem("32");
 		box->addItem("64");
 		box->addItem("128");
 		box->addItem("256");
 		box->addItem("512");
+		box->addItem("1024");
+		box->addItem("2048");
+		if(isEdit && isSize) box->addItem(QString(g_auto3xStr) + " (HD)");
 		box->setCurrentIndex(3);
 	};
 
 	// == width ==
-	addSizeOptions(comboBox_width);
+	addSizeOptions(comboBox_width, true);
 	addSizeOptions(comboBox_OriginalWidth);
 
 	// == height ==
-	addSizeOptions(comboBox_height);
+	addSizeOptions(comboBox_height, true);
 	addSizeOptions(comboBox_OriginalHeight);
 
 	// == color ==
@@ -160,8 +167,17 @@ int CreateEmptySpriteSheet::getExternalID() const {
 }
 
 void CreateEmptySpriteSheet::accepted() {
-	m_width = comboBox_width->currentText().toInt();
-	m_height = comboBox_height->currentText().toInt();
+	const auto getSize = [](const QComboBox& box) {
+		if (box.currentText().startsWith(g_auto3xStr)) {
+			return auto3xResizeMarker;
+		}
+		else {
+			return box.currentText().toInt();
+		}
+	};
+
+	m_width = getSize(*comboBox_width);
+	m_height = getSize(*comboBox_height);
 
 	m_originalWidth = comboBox_OriginalWidth->currentText().toInt();
 	m_originalHeight = comboBox_OriginalHeight->currentText().toInt();

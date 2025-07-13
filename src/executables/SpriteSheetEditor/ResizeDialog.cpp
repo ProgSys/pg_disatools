@@ -28,6 +28,8 @@ ResizeDialog::ResizeDialog(int sheetId, int fromWidth, int fromHeight, int toWid
 		case 128: return 2;
 		case 256: return 3;
 		case 512: return 4;
+		case 1024: return 5;
+		case 2048: return 6;
 		}
 		return 3;
 	};
@@ -49,6 +51,8 @@ void ResizeDialog::init() {
 		box->addItem("128");
 		box->addItem("256");
 		box->addItem("512");
+		box->addItem("1024");
+		box->addItem("2048");
 		box->setCurrentIndex(3);
 	};
 	addSizeOptions(comboBox_from_width);

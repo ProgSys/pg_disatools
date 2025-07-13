@@ -24,7 +24,7 @@
  
 
 # A cmake tempalte for a c++ project using QT and glew(OpenGl).
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 4.0)
 string(REPLACE "/" ";" p2list "${CMAKE_SOURCE_DIR}")
 string(REPLACE "\\" ";" p2list "${p2list}")
 list(REVERSE p2list)

@@ -38,6 +38,7 @@
 #include <Files/PG_NISPACK.h>
 #include <Files/PG_DSARCFL.h>
 #include <Files/PG_ANMD2.h>
+#include <Files/PG_Script.h>
 #include <Files/PG_SH.h>
 #include <QCryptographicHash>
 
@@ -97,6 +98,9 @@ bool TreeModel::open(const QString& file) {
 		}
 		else if (PG::FILE::isANMD2(file.toStdString())) {
 			m_fileExtractor = new PG::FILE::ANMD2();
+		}
+		else if (PG::FILE::isScript(file.toStdString())) {
+			m_fileExtractor = new PG::FILE::Script();
 		}
 		else {
 			m_fileExtractor = new PG::FILE::StartDAT();

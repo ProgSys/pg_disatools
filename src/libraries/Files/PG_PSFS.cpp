@@ -112,7 +112,7 @@ namespace PG {
 
 					reader.seek(current_pos);
 
-					m_fileInfos.push_back(info);
+					m_fileInfos.push_back(std::move(info));
 				}
 
 				reader.close();

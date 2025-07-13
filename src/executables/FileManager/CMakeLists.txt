@@ -22,7 +22,6 @@
  *	SOFTWARE.
  ]]
  
-cmake_minimum_required(VERSION 3.14.0)
 set(UI_FILES mainwindow.ui entervaluedialog.ui fileinfobox.ui increaseMemAlloc.ui)
 set(RESOURCE_FILES "${PROJECT_ICONS_PATH}/disa_tools_icon.res") #windres aminoVisIcon.rc -O coff -o aminoVisIcon.res
 set(VERSION_NUMBER 0.1.7)

@@ -14,8 +14,8 @@ PG::UTIL::RGBAImage PG::UTIL::dumpToImage(const std::vector<char>& dump, int wid
 	auto dumpIt = dump.begin() + offset;
 
 	for (; imageIt != outImage.end() && dumpIt != dump.end(); ++imageIt, ++dumpIt) {
-		unsigned char a = ((*dumpIt & 0x0F)/16.0f) * 255.0f;
-		unsigned char b = ((*dumpIt >> 4) / 16.0f) * 255.0f;
+		unsigned char a = static_cast<unsigned char>(((*dumpIt & 0x0F)/16.0f) * 255.0f);
+		unsigned char b = static_cast<unsigned char>(((*dumpIt >> 4) / 16.0f) * 255.0f);
 		*imageIt = PG::UTIL::rgba(a, a, a, 255);
 		imageIt++;
 		*imageIt = PG::UTIL::rgba(b, b, b, 255);

@@ -27,6 +27,7 @@
 #include <QInputDialog>
 #include <QVector>
 #include <QKeyEvent>
+#include <unordered_set>
 
 #include <Files/PG_SH.h>
 #include <Files/PG_ImageFiles.h>
@@ -1187,7 +1188,7 @@ void SpriteAnimation::move(Layer* lay, int newPosition) {
 
 bool SpriteAnimation::addLayer() {
 	beginInsertRows(QModelIndex(), m_Layers.size(), m_Layers.size());
-	m_Layers.push_back(new Layer("layer" + QString::number(m_Layers.size())));
+	m_Layers.push_back(new Layer("layer" + QString::number(m_Layers.size()), this));
 	endInsertRows();
 	emit onNumberOfLayersChanged();
 	return true;
@@ -1197,7 +1198,7 @@ bool SpriteAnimation::addLayer(Layer* lay) {
 	const int indexOf = m_Layers.indexOf(lay);
 	if (indexOf != -1) {
 		beginInsertRows(QModelIndex(), indexOf, indexOf);
-		m_Layers.insert(indexOf, new Layer("layer" + QString::number(m_Layers.size())));
+		m_Layers.insert(indexOf, new Layer("layer" + QString::number(m_Layers.size()), this));
 		endInsertRows();
 		emit onNumberOfLayersChanged();
 		return true;
@@ -2548,26 +2549,40 @@ inline QColorTable extractColorTable(int offset, int colortableSize, const QColo
 }
 
 inline QColorTable buildColorTable(const QImage& image) {
-	QColorTable table;
 
-	for (int y = 0; y < image.height(); y++)
-		for (int x = 0; x < image.width(); x++) {
-			QColor col(image.pixel(x, y));
-			int alpha = qAlpha(image.pixel(x, y));
+	struct TableItem {
+		QColor color;
+		int alpha;
 
-			bool found = false;
-			for (const QColor& rgba : table) {
-				if (alpha == 0 && rgba.alpha() == 0) {
-					found = true;
-					break;
-				}
-				if (rgba.red() == col.red() && rgba.green() == col.green() && rgba.blue() == col.blue() && rgba.alpha() == alpha) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) table.push_back(QColor(col.red(), col.green(), col.blue(), alpha));
+		bool operator==(const TableItem& other) const {
+			return (alpha == 0 && other.alpha == 0) || color == other.color;
 		}
+
+		size_t operator()(const TableItem& v) const {
+			return std::hash<unsigned int>{}(v.color.rgba());
+		}
+	};
+	
+	std::unordered_set<TableItem, TableItem> tableSet;
+	QRgb pix;
+	TableItem item;
+	
+	for (int y = 0; y < image.height(); ++y)
+		for (int x = 0; x < image.width(); ++x) {
+			pix = image.pixel(x, y);
+			item.color = QColor(pix);
+			item.alpha = qAlpha(pix);
+
+			tableSet.insert(std::move(item));
+		}
+	QColorTable table;
+	table.reserve(tableSet.size());
+	for (auto& item : tableSet) {
+		table.push_back(std::move(item.color));
+	}
+	std::sort(table.begin(), table.end(), [](const QColor& a, const QColor& b) {
+		return a.alpha() < b.alpha();
+		});
 	return table;
 }
 
@@ -2622,10 +2637,10 @@ bool SpriteData::importSpriteAsColorForSheet(int sheetID, const QString& fileIn)
 
 	//target image
 	QImage newColorCutout(file);
-	if (!(newColorCutout.width() == 32 || newColorCutout.width() == 64 ||  newColorCutout.width() == 128 || newColorCutout.width() == 256 || newColorCutout.width() == 512) ||
-		!(newColorCutout.height() == 32 || newColorCutout.height() == 64 ||  newColorCutout.height() == 128 || newColorCutout.height() == 256 || newColorCutout.height() == 512)) {
+	if (!(newColorCutout.width() == 32 || newColorCutout.width() == 64 ||  newColorCutout.width() == 128 || newColorCutout.width() == 256 || newColorCutout.width() == 512 || newColorCutout.width() == 1024) ||
+		!(newColorCutout.height() == 32 || newColorCutout.height() == 64 ||  newColorCutout.height() == 128 || newColorCutout.height() == 256 || newColorCutout.height() == 512 || newColorCutout.height() == 1024)) {
 		QMessageBox::critical(nullptr, "Error",
-			"Given image has invalid size, must be power of 2 and between 32 - 512!",
+			"Given image has invalid size, must be power of 2 and between 32 - 1024!",
 			QMessageBox::Ok);
 		return false;
 	}
@@ -3872,7 +3887,11 @@ bool SpriteData::removeSpriteSheet(unsigned int index) {
 void SpriteData::resizeSpritesOnSheet(SpriteSheet* sheet, int oldWidth, int oldHeight, int targetWidth, int targetHeight) {
 	const float xScale = targetWidth / (float)oldWidth;
 	const float yScale = targetHeight / (float)oldHeight;
-	//resize cutotus
+	resizeSpritesOnSheet(sheet, xScale, yScale);
+}
+
+void SpriteData::resizeSpritesOnSheet(SpriteSheet* sheet, float xScale, float yScale) {
+	//resize cutouts
 	for (int i : sheet->getCutoutIDs()) {
 		Cutout* c = m_cutouts[i];
 		c->setPosition(c->getX() * xScale, c->getY() * yScale);
@@ -3895,65 +3914,101 @@ void SpriteData::resizeSpritesOnSheet(SpriteSheet* sheet, int oldWidth, int oldH
 				}
 }
 
+static inline int getNextPowerOf2(int value) {
+	if (value <= 0) return 1;
+
+	// If value is already a power of 2, return it directly
+	if ((value & (value - 1)) == 0) return value;
+
+	// Use bit manipulation to compute the next power of 2
+	value--;
+	value |= value >> 1;
+	value |= value >> 2;
+	value |= value >> 4;
+	value |= value >> 8;
+	value |= value >> 16;
+
+	// This works for 32-bit ints
+	++value;
+
+	// Handle overflow case
+	if (value < 0) return std::numeric_limits<int>::max();
+
+	return value;
+}
+
 bool SpriteData::editSpriteSheet(unsigned int index) {
 	if (index >= m_spriteSheets.size()) return false;
 	SpriteSheet* editTarget = m_spriteSheets[index];
 
 	CreateEmptySpriteSheet create(editTarget->getWidth(), editTarget->getHeight(), editTarget->getPowerOfColorTable(), editTarget->getExternalID());
 	create.exec();
-	if (create.isAccepted()) {
-		if (create.isDelete()) {
-			if (index == 0) {
-				QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
-					"You can't delete the first sprite sheet!",
-					QMessageBox::Ok);
-				return false;
-			}
+	if (!create.isAccepted()) return false;
 
-			QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Delete sprite sheet?",
-				"Are you sure you want to delete the sprite sheet?",
-				QMessageBox::Yes | QMessageBox::Cancel);
-
-			if (reply == QMessageBox::No)
-				return false;
-
-			return removeSpriteSheet(index);
-
+	if (create.isDelete()) {
+		if (index == 0) {
+			QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
+				"You can't delete the first sprite sheet!",
+				QMessageBox::Ok);
+			return false;
 		}
 
-		if (editTarget->isExternal() && create.getExternalID() < 0) { //make external to none external
-			editTarget->makeNotExternal(create.getWidth(), create.getHeight(), create.getColorTablePower());
-		}
-		else if (create.getExternalID() >= 0) { // make external
-			auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(),
-				[externalId = create.getExternalID()](SpriteSheet* sheet) { return sheet->getExternalID() == externalId; });
-			if (findIt == m_spriteSheets.end()) {
-				editTarget->makeExternal(create.getExternalID());
-			}
-			else if(editTarget->getExternalID() != create.getExternalID()){
-				QMessageBox::warning(nullptr, "Duplicate sprite sheet",
-					"External sprite sheet with the id " + QString::number(create.getExternalID()) + " is already present!"
-					"\nIt is sprite sheet Nr. " + QString::number(std::distance(m_spriteSheets.begin(), findIt) + 1) + ".",
-					QMessageBox::Ok);
-				return false;
-			}
-		}
+		QMessageBox::StandardButton reply = QMessageBox::warning(nullptr, "Delete sprite sheet?",
+			"Are you sure you want to delete the sprite sheet?",
+			QMessageBox::Yes | QMessageBox::Cancel);
 
-		//color table too small?
-		if (!editTarget->isExternal()) {
-			const int colorTableSetsToAdd = (pow(2, create.getColorTablePower()) / 16) - getNumberOfColortableSets();
-			if (colorTableSetsToAdd > 0) addColors(-1, colorTableSetsToAdd * 16);
+		if (reply == QMessageBox::No)
+			return false;
 
-			editTarget->set(create.getWidth(), create.getHeight(), create.getColorTablePower(), true);
-			emit spriteSheetChanged(index);
-		}
-
-		if (create.isResizeSprites() && create.isResized())
-			resizeSpritesOnSheet(editTarget, create.getOriginalWidth(), create.getOriginalHeight(), create.getWidth(), create.getHeight());
-
-		return true;
+		return removeSpriteSheet(index);
 	}
-	return false;
+
+	if (editTarget->isExternal() && create.getExternalID() < 0) { //make external to none external
+		editTarget->makeNotExternal(std::min(2048, create.getWidth()), std::min(2048, create.getHeight()), create.getColorTablePower());
+	}
+	else if (create.getExternalID() >= 0) { // make external
+		auto findIt = std::find_if(m_spriteSheets.begin(), m_spriteSheets.end(),
+			[externalId = create.getExternalID()](SpriteSheet* sheet) { return sheet->getExternalID() == externalId; });
+		if (findIt == m_spriteSheets.end()) {
+			editTarget->makeExternal(create.getExternalID());
+		}
+		else if(editTarget->getExternalID() != create.getExternalID()){
+			QMessageBox::warning(nullptr, "Duplicate sprite sheet",
+				"External sprite sheet with the id " + QString::number(create.getExternalID()) + " is already present!"
+				"\nIt is sprite sheet Nr. " + QString::number(std::distance(m_spriteSheets.begin(), findIt) + 1) + ".",
+				QMessageBox::Ok);
+			return false;
+		}
+	}
+	int width = create.getWidth();
+	int height = create.getHeight();
+	float xScale = width / (float)create.getOriginalWidth();
+	float yScale = height / (float)create.getOriginalHeight();
+
+	if (width == CreateEmptySpriteSheet::auto3xResizeMarker || height == CreateEmptySpriteSheet::auto3xResizeMarker) {
+		//peform auto resize
+		width = getNextPowerOf2(editTarget->getWidth() * 3);
+		height = getNextPowerOf2(editTarget->getHeight() * 3);
+		xScale = 3;
+		yScale = 3;
+	}
+
+	width = std::min(2048, width);
+	height = std::min(2048, height);
+
+	//color table too small?
+	if (!editTarget->isExternal()) {
+		const int colorTableSetsToAdd = (pow(2, create.getColorTablePower()) / 16) - getNumberOfColortableSets();
+		if (colorTableSetsToAdd > 0) addColors(-1, colorTableSetsToAdd * 16);
+
+		editTarget->set(width, height, create.getColorTablePower(), true);
+		emit spriteSheetChanged(index);
+	}
+
+	if (create.isResizeSprites() && create.isResized())
+		resizeSpritesOnSheet(editTarget, xScale, yScale);
+
+	return true;
 }
 
 unsigned char SpriteData::getColorIndex(int spriteSheetIndex, int x, int y) {

@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <cassert>
 #include <cmath>
+#include <unordered_set>
 
 using namespace std;
 
@@ -33,18 +34,36 @@ bool operator<( QColor const& c1,  QColor const & c2){
 
 namespace ImageLib {
 
-struct HistogrammRow{
-	QColor color;
-	unsigned int count;
+struct QColorHash {
+	static inline size_t operator()(const QColor& v) {
+		return std::hash<unsigned int>{}(v.rgba());
+	}
 };
 
-bool histogrammRowLessThan(const HistogrammRow &v1, const HistogrammRow &v2){
-    return v1.count < v2.count;
+struct HistogrammRow {
+	QColor color;
+	mutable std::size_t count = 0;
+
+	HistogrammRow() = default;
+	HistogrammRow(QColor&& colorIn) : color(std::move(colorIn)) {};
+	HistogrammRow(const QColor& colorIn) : color(colorIn) {};
+
+	bool operator==(const HistogrammRow& other) const {
+		return (color.alpha() == 0 && other.color.alpha() == 0) || color == other.color;
+	}
+
+	size_t operator()(const HistogrammRow& v) const {
+		return QColorHash()(v.color);
+	}
+};
+
+
+bool histogrammRowLessThan(const HistogrammRow& v1, const HistogrammRow& v2) {
+	return v1.count < v2.count;
 }
 
 struct Histogramm{
-
-	QList<HistogrammRow> histo;
+	std::unordered_set<HistogrammRow, HistogrammRow> histo;
 
 	Histogramm(const QImage& image) { fill(image);};
 
@@ -54,106 +73,64 @@ struct Histogramm{
 	}
 
 	void fill(const QImage& image){
-		for(int y = 0; y < image.height(); y++){
-			for(int x = 0; x < image.width(); x++){
+		for(int y = 0; y < image.height(); ++y){
+			for(int x = 0; x < image.width(); ++x){
 				(*this)[image.pixel(x,y)] += 1;
 			}
 		}
 	}
 
-	void sort(){qSort(histo.begin(), histo.end(), histogrammRowLessThan);}
-
-	unsigned int& operator[](const QRgb& color){
-		for(HistogrammRow& row: histo)
-			if(row.color.rgba() == color) return row.count;
-		histo.push_back({QColor(qRed(color), qGreen(color), qBlue(color), qAlpha(color)), 0});
-		return histo.back().count;
+	std::size_t& operator[](const QRgb& color){
+		auto findIt = histo.find(QColor(color));
+		return histo.insert(QColor(color)).first->count;
 	}
-	unsigned int operator[](const QRgb& color) const{
-		for(const HistogrammRow& row: histo)
-			if(row.color.rgba() == color) return row.count;
-		return 0;
+	std::size_t operator[](const QRgb& color) const{
+		auto findIt = histo.find(QColor(color));
+		return findIt == histo.end()? 0: findIt->count;
 	}
-	unsigned int& operator[](const QColor& color){
-		for(HistogrammRow& row: histo)
-			if(row.color.rgba() == color.rgba()) return row.count;
-		histo.push_back({color, 0});
-		return histo.back().count;
+	std::size_t& operator[](const QColor& color){
+		return histo.insert(color).first->count;
 	}
 	unsigned int operator[](const QColor& color) const {
-		for(const auto& row: histo)
-			if(row.color.rgba() == color.rgba()) return row.count;
-		return 0;
+		auto findIt = histo.find(color);
+		return findIt == histo.end() ? 0 : findIt->count;
 	}
 
-	void mergeFirstWithClosest(QImage& targetImage);
+	void mergeFirstWithClosest(std::unordered_map<QColor, QColor, QColorHash>& replaceMap);
 	void mapToClosestColor(QMap<QRgb, int>& mapping, const QVector<QColor>& targetColors) const;
 
 	int size() const { return histo.size(); }
 
-	HistogrammRow& first()  { return histo.first(); }
-	const HistogrammRow& first() const { return histo.first(); }
-	HistogrammRow& last()  { return histo.last(); }
-	const HistogrammRow& last() const { return histo.last(); }
-
-	//last
-	QList<HistogrammRow>::iterator begin()  { return histo.begin(); }
-	QList<HistogrammRow>::iterator end()  { return histo.end(); }
-	QList<HistogrammRow>::const_iterator begin() const { return histo.begin(); }
-	QList<HistogrammRow>::const_iterator end() const { return histo.end(); }
 };
 
-void Histogramm::mergeFirstWithClosest(QImage& targetImage){
+void Histogramm::mergeFirstWithClosest(std::unordered_map<QColor, QColor, QColorHash>& replaceMap){
 	if(size() <= 1) return;
+	//find color that is used the least
+	auto minIt = std::min_element(histo.begin(), histo.end(), [](const HistogrammRow& a, const HistogrammRow& b) ->bool {
+		return a.count < b.count;
+		});
+	HistogrammRow toMerge = std::move(*minIt);
+	histo.erase(minIt);
+
 	//find closest color
-	int findIndex = -1;
-	double findDisstance = std::numeric_limits<double>::max();
-	HistogrammRow findRow;
-	const HistogrammRow firstRow = histo.first();
-	//qDebug()<<__LINE__<<"Find similar to: ("<<qRed(firstRow.color.rgba())<<", "<<qGreen(firstRow.color.rgba())<<", "<<qBlue(firstRow.color.rgba())<<", "<<qAlpha(firstRow.color.rgba())<<") from "<<size()  ;
-	for(int i = 1; i < size(); i++){
-		HistogrammRow& row = histo[i];
-		//special case for alpha values
-		if(firstRow.color.alpha() < 10 && row.color.alpha() == 0){
-			findIndex = i;
-			findRow = row;
-			break;
-		}
-		const double tempDistance = euclideanDis(firstRow.color.rgba(), row.color.rgba());//CIEDE2000::CIEDE2000(LAB(firstRow.color), LAB(row.color));
-		if(tempDistance < findDisstance){
-			findDisstance = tempDistance;
-			findIndex = i;
-			findRow = row;
-		}
-	}
-	//qDebug()<<__LINE__<<"Replace at "<<findIndex<<" out of "<<histo.size() ;
-	//merge historgramm colors
-	const QRgb replaceColor = histo[findIndex].color.rgba();
-	//qDebug()<<__LINE__<<"Replace: ("<<qRed(replaceColor)<<", "<<qGreen(replaceColor)<<", "<<qBlue(replaceColor)<<", "<<qAlpha(replaceColor)<<") at "<<findIndex  ;
-	assert(replaceColor != firstRow.color.rgba());
-	histo[findIndex].count += firstRow.count;
-	histo.pop_front();
+	auto mergeWithIt = std::min_element(histo.begin(), histo.end(), [&toMerge](const HistogrammRow& a, const HistogrammRow& b) ->bool{
+		auto compDistance = [&toMerge](const HistogrammRow& v) {
+			if (v.color.alpha() < 10 && toMerge.color.alpha() == 0) return 0.0;
+			return euclideanDis(v.color.rgba(), toMerge.color.rgba());//CIEDE2000::CIEDE2000(LAB(firstRow.color), LAB(row.color));
+		};
+		const double distanceA = compDistance(a);
+		const double distanceB = compDistance(b);
+		return (distanceA == distanceB && a.count > b.count) || distanceA < distanceB;
+	});
+	mergeWithIt->count += toMerge.count;
 
-	//replace in image
-	for(int y = 0; y < targetImage.height(); y++){
-		for(int x = 0; x < targetImage.width(); x++){
-			const QRgb color = targetImage.pixel(x,y);
-			//qDebug()<<__LINE__<<"Try replace at: ("<<x<<", "<<y<<") color: ("<<qRed(color)<<", "<<qGreen(color)<<", "<<qBlue(color)<<", "<<qAlpha(color)<<")"  ;
-			if( color == firstRow.color.rgba()){
-				targetImage.setPixel(x,y, replaceColor);
-				//qDebug()<<__LINE__<<"Replace at: ("<<x<<", "<<y<<") color: ("<<qRed(color)<<", "<<qGreen(color)<<", "<<qBlue(color)<<", "<<qAlpha(color)<<")"  ;
-			}
-		}
-	}
-
-	sort();
+	replaceMap[toMerge.color] = mergeWithIt->color;
 }
 
 
 
 void Histogramm::mapToClosestColor(QMap<QRgb, int>& mapping, const QVector<QColor>& targetColors) const{
-	for(int i = 0; i < size(); i++){
-		const HistogrammRow& row = histo[i];
+	for(const HistogrammRow& row: histo){
 		int findIndex = -1;
 		double findDisstance = std::numeric_limits<double>::max();
 		//const LAB histoRowTarget(row.color);
@@ -185,11 +162,28 @@ void reduceColors(QImage& image, unsigned int targetColors){
 	//create Histogramm
 	Histogramm histogramm(image);
 	if(histogramm.size() <= targetColors) return;
-	histogramm.sort();
 
+	std::unordered_map<QColor, QColor, QColorHash> replaceMap;
 	while(histogramm.size() > targetColors){
-		//qDebug()<<__LINE__<<": Image merge"<<histogramm.size()<<" to "<<targetColors;
-		histogramm.mergeFirstWithClosest(image);
+		qDebug()<<__LINE__<<": Image merge"<<histogramm.size()<<" to "<<targetColors;
+		histogramm.mergeFirstWithClosest(replaceMap);
+	}
+
+	//replace in image
+	int breakCount = 0;
+	for (int y = 0; y < image.height(); ++y) {
+		for (int x = 0; x < image.width(); ++x) {
+			const QRgb color = image.pixel(x, y);
+			auto findIt = replaceMap.find(color);
+			if (findIt == replaceMap.end()) continue;
+			breakCount = image.height() * image.width();
+			while (--breakCount > 0) {
+				auto findIt2 = replaceMap.find(findIt->second);
+				if (findIt2 == replaceMap.end()) break;
+				findIt = findIt2;
+			}
+			image.setPixel(x, y, findIt->second.rgba());
+		}
 	}
 }
 

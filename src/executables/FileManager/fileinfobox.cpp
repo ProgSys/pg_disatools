@@ -66,6 +66,9 @@ void FileInfoBox::setModel(const PG::FILE::fileProperties& info) {
 	case PG::FILE::fileInfo::GEO:
 		ui->label_type->setText("Geomety");
 		break;
+	case PG::FILE::fileInfo::Script:
+		ui->label_type->setText("Script");
+		break;
 	default:
 		ui->label_type->setText("Unknown");
 		break;

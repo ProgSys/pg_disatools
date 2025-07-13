@@ -28,6 +28,8 @@
 class CreateEmptySpriteSheet : public QDialog, public Ui::NewSpriteSheetDialog {
 	Q_OBJECT
 public:
+	constexpr static int auto3xResizeMarker = 420690;
+
 	CreateEmptySpriteSheet(QWidget* parent = 0);
 	CreateEmptySpriteSheet(int width, int height, int power, int externalId, QWidget* parent = 0);
 
@@ -57,7 +59,7 @@ signals:
 private slots:
 	void externalIndexChanged(int i);
 private:
-	void init();
+	void init(bool isEdit);
 
 	bool m_isNew = false;
 	unsigned char m_accepted = 0;
