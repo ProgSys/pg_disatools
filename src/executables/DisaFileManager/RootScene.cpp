@@ -192,6 +192,7 @@ void RootScene::setupCenter() {
 	cell->fill(center);
 
 	auto* content = PG_new<PG_GuiItem>("content", cell);
+	content->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
 	cell->addLeft(content, 480.f);
 
 	PG_GuiTableHeaderView* tableHeader = PG_new<PG_GuiTableHeaderView>("PG_GuiTableHeaderView", content);
