@@ -2,6 +2,7 @@
 
 #include <Scene/Gui/PG_GuiPopup.h>
 #include <Util/PG_File.h>
+#include <Util/PG_Dir.h>
 
 class PG_PopUpDialog: public PG_GuiPopup {
 	PG_OBJECT(PG_PopUpDialog);
@@ -33,4 +34,6 @@ public:
 	static PG_PopUpDialog* selectCompression(PG_GuiItem* parentItem);
 
 	static PG_File selectFile(const std::string& fileExtensions);
+	static PG_File saveAs(const std::string& fileName);
+	static PG_Dir selectDir();
 };

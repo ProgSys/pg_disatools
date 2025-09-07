@@ -9,6 +9,7 @@
 #include <Disa/fileformats/PG_OLA.h>
 #include <Disa/fileformats/PG_SOLA.h>
 #include <Disa/fileformats/PG_PSPFS.h>
+#include <Stream/PG_StreamOutByteFile.h>
 
 std::string PG_DisaFileContainerModel::getFileName() const {
 	if (!m_fileContainer) return {};
@@ -25,6 +26,15 @@ const std::string& PG_DisaFileContainerModel::getSearchText() const {
 }
 void PG_DisaFileContainerModel::setSearchText(const std::string& str) {
 	if(m_filterModel) m_filterModel->setSearchText(str);
+}
+
+bool PG_DisaFileContainerModel::hasSelection() const {
+	return m_selectionModel && m_selectionModel->hasSelection();
+}
+
+int PG_DisaFileContainerModel::getSelectionSize() const {
+	if (!m_selectionModel || !m_selectionModel->hasSelection()) return 0;
+	return m_selectionModel->getSelection().size();
 }
 
 PG_ListModelLocation PG_DisaFileContainerModel::getLastSelected() const {
@@ -126,4 +136,46 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 
 	PG_DisaFileManagerMainModel::get()->pushStack(containerModel);
 	containerModel->addOpenedFile(std::move(container));
+}
+
+static inline void copyFile(const PG_DisaFileEntry& entry, const PG_File& tagetFile, std::vector<char>& buffer) {
+	auto reader = entry.createReader();
+	if (!reader) {
+		OUT_ERROR("Failed to create reader for: " << entry.getName() << "!");
+		return;
+	}
+
+	PG::STREAM::OutByteFile writer(tagetFile);
+	if (!writer.isOpen()) return;
+
+	size_t remainingSize = reader->size();
+	size_t toCopy;
+	while (remainingSize > 0) {
+		toCopy = std::min(remainingSize, buffer.size());
+		reader->read(buffer.data(), toCopy);
+		remainingSize -= toCopy;
+		writer.write(buffer.data(), toCopy);
+	}
+	writer.close();
+}
+
+void PG_DisaFileContainerModel::exportSelected(const PG_Dir& targetDir) {
+	if (targetDir.isEmpty() || !targetDir.exists() || !m_selectionModel->hasSelection()) return;
+
+	std::vector<char> data(1024 * 1024);
+	for (const auto& index : m_selectionModel->getSelection()) {
+		auto var = m_selectionModel->getData(index, EIdentity::Identity_Item);
+		if (!var) continue;
+		auto entry = var.cast<PG_DisaFileEntry>();
+		copyFile(*entry, targetDir.toFilePath(entry->getName()), data);
+	}
+}
+
+void PG_DisaFileContainerModel::exportLastSelected(const PG_File& targetFile) {
+	if (targetFile.isEmpty() || !m_selectionModel->hasSelection()) return;
+	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::Identity_Item);
+	if (!var) return;
+	auto entry = var.cast<PG_DisaFileEntry>();
+	std::vector<char> data(1024 * 1024);
+	copyFile(*entry, targetFile, data);
 }

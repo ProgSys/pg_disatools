@@ -46,6 +46,7 @@
 #include <Scene/Gui/PG_GuiTableHeaderView.h>
 #include <Scene/Gui/PG_GuiFootlooseView.h>
 #include <Scene/Gui/PG_GuiCell.h>
+#include <Scene/Gui/PG_GuiColumn.h>
 #include <Scene/Model/PG_ListSelectionWrapperModel.h>
 
 
@@ -268,20 +269,24 @@ void RootScene::setupCenter() {
 		tableView->setModel(newModel->getListModel());
 		});
 
+	// ========= RIGHT SIDE =========
 	auto* previewContent = PG_new<PG_GuiRectangle>("preview", cell);
 	previewContent->setColor(backgroundDarkColor);
 
 	cell->addRight(previewContent, 250.f);
 
-	PG_DisaPreviewItem* preview = PG_new<PG_DisaPreviewItem>("PG_DisaPreviewItem", previewContent);
+	PG_GuiColumn* previewColumn = PG_new<PG_GuiColumn>("PG_GuiColumn", previewContent);
+	previewColumn->fill(previewContent);
+
+	PG_DisaPreviewItem* preview = PG_new<PG_DisaPreviewItem>("PG_DisaPreviewItem", previewColumn);
 	preview->setHeight(250.f);
 	connect(preview, &PG_DisaPreviewItem::midGuiUpdate, preview, [](glm::vec2* pos, glm::vec2* size) {
 		size->y = size->x;
 		});
 
-	PG_GuiItem::anchor(preview, PG_Anchor::Top, previewContent, PG_Anchor::Top);
-	PG_GuiItem::anchor(preview, PG_Anchor::Left, previewContent, PG_Anchor::Left);
-	PG_GuiItem::anchor(preview, PG_Anchor::Right, previewContent, PG_Anchor::Right);
+	PG_GuiItem::anchor(preview, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
+	PG_GuiItem::anchor(preview, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
+
 	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, preview, [preview](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
 		if(oldModel) disconnect(dynamic_cast<PG_Object*>(oldModel), nullptr, preview, nullptr);
 
@@ -293,6 +298,50 @@ void RootScene::setupCenter() {
 		preview->openPreview(asObject->getPropertyValue(prop));
 		connect(asObject, prop, preview, preview->getProperty("location"));
 	});
+
+	{
+		PG_GuiButton* btn = PG_new<PG_GuiButton>("PG_GuiButton_Export", glm::vec2(0.0f), glm::vec2(39.f, 30.f), previewColumn);
+		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
+		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
+
+		btn->setText("Extract selected files");
+		btn->setIcon("gui/icon_export.png");
+		btn->setEnabled(false);
+
+		connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, btn, [btn](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
+			if (oldModel) disconnect(btn, nullptr, dynamic_cast<PG_Object*>(oldModel), nullptr);
+
+			if (!newModel) return;
+			auto* asObject = dynamic_cast<PG_Object*>(newModel);
+			if (!asObject) return;
+			auto funcExport = asObject->getFunction("void exportSelected(const PG_Dir&)");
+			auto funcExportSingle = asObject->getFunction("void exportLastSelected(const PG_File&)");
+			if (!funcExport) return;
+			auto prop = asObject->getProperty("hasSelection");
+			if (!prop) return;
+			connect(asObject, prop, btn, btn->getProperty("enabled"));
+			btn->setEnabled(asObject->getPropertyValue(prop).toBool());
+			connect(btn, &PG_GuiButton::clicked, asObject, [asObject, funcExport, funcExportSingle] {
+				//only a single file is selected -> file name can be changed 
+				if (auto selectionSize = asObject->getPropertyValue("selectionSize"); 
+					funcExportSingle && selectionSize && selectionSize.toInt() == 1) {
+					PG_ListModelLocation loc = asObject->getPropertyValue("lastSelected").get<PG_ListModelLocation>();
+					if (!loc) return;
+
+					if (PG_File result = PG_PopUpDialog::saveAs(loc.getDataT<std::string>(EIdentity::Identity_Text))) {
+						funcExportSingle.callArgs(asObject, result);
+						return;
+					}
+				}
+
+				//more then one file is selected -> select folder
+				if (PG_Dir result = PG_PopUpDialog::selectDir(); !result.isEmpty()) {
+					funcExport.callArgs(asObject, result);
+				}
+			});
+		});
+
+	}
 }
 
 bool RootScene::event(PG_Event* e) {

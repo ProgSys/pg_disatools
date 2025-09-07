@@ -24,9 +24,44 @@ constexpr glm::vec3 offWeightColor = glm::vec3(200.f / 255.f);
 constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
 constexpr glm::vec3 bobbleTextColor = glm::vec3(76.f, 111.f, 199.f) / 255.f;
 
+static inline PG_File toFile(nfdresult_t result, nfdchar_t* outPath) {
+	std::string path;
+	if (outPath) {
+		path = outPath;
+		delete[] outPath;
+	}
+
+	if (result != NFD_OKAY) {
+		path.clear();
+	}
+	return PG_File(std::move(path));
+}
+
 PG_File PG_PopUpDialog::selectFile(const std::string& fileExtensions) {
 	nfdchar_t* outPath = nullptr;
 	nfdresult_t result = NFD_OpenDialog(fileExtensions.c_str(), nullptr, &outPath);
+
+	PG_EventLoop::doRun();
+	PG_Application::grabMouse(nullptr);
+
+	return toFile(result, outPath);
+}
+
+PG_File PG_PopUpDialog::saveAs(const std::string& fileName) {
+	PG_File orgFile(fileName);
+	nfdchar_t* outPath = nullptr;
+	nfdresult_t result = NFD_SaveDialog(orgFile.getFileExtensionFormated().c_str(), nullptr, fileName.c_str(), &outPath, nullptr);
+
+	PG_EventLoop::doRun();
+	PG_Application::grabMouse(nullptr);
+
+	return toFile(result, outPath);
+}
+
+PG_Dir PG_PopUpDialog::selectDir() {
+	nfdchar_t* outPath = nullptr;
+	nfduint_t fileTypeIndex = 0;
+	nfdresult_t result = NFD_PickFolder(nullptr, &outPath);
 
 	PG_EventLoop::doRun();
 	PG_Application::grabMouse(nullptr);
@@ -37,10 +72,10 @@ PG_File PG_PopUpDialog::selectFile(const std::string& fileExtensions) {
 		delete[] outPath;
 	}
 
-	if (result == NFD_OKAY) {
-		return PG_File(path);
+	if (result != NFD_OKAY) {
+		path.clear();
 	}
-	return PG_File();
+	return PG_Dir(std::move(path));
 }
 
 static inline PG_GuiRectangle* createWindow(PG_GuiPopupInstance* parent) {
