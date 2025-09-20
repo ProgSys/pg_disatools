@@ -90,8 +90,6 @@ public:
     const PG_DisaFileInfo& getInfo() const { return m_info; }
     void setInfo(const PG_DisaFileInfo& info) { m_info = info; }
     void setInfo(PG_DisaFileInfo&& info) { m_info = std::move(info); }
-    const PG_DisaFileInfo& getInfoOriginal() const { return m_info; }
-    PG_DisaFileInfo& getInfoOriginal() { return m_info; }
 
     const PG_Variety& getExtraData() const { return m_extraData; }
     void setExtraData(const PG_Variety& data)  { m_extraData = data; }
@@ -393,6 +391,44 @@ public:
     * @brief Is always true
     */
     bool isModified() const override { return true; }
-private:
+    /**
+    * @brief Copy data from reader to writer
+    * @param targetBuffer Optinal buffer to use. Otherwise default will be used.
+    */
+    static void copyData(PG::STREAM::In& reader, PG::STREAM::Out& writer);
+    /**
+    * @brief Copy data from reader to writer
+    * @param targetBuffer Buffer to use to copy data.
+    */
+    static void copyData(PG::STREAM::In& reader, PG::STREAM::Out& writer, std::vector<char>& targetBuffer);
+protected:
     std::shared_ptr<PG::STREAM::In> m_reader;
+};
+
+/**
+* @brief Conainer for modefierd data
+*/
+class PG_DisaChangedFileContainer : public PG_DisaChangedContainer {
+    PG_OBJECT(PG_DisaChangedFileContainer);
+    PG_PARENT(PG_DisaChangedContainer);
+
+public:
+    using PG_DisaChangedContainer::PG_DisaChangedContainer;
+    PG_DisaChangedFileContainer(const PG_File& file) : m_file(file) {}
+
+    bool open(std::shared_ptr<PG::STREAM::In> reader) override { return true; }
+
+    bool save(std::shared_ptr<PG::STREAM::Out> writer) const override;
+    /**
+    * @brief Create reader for current
+    * If current is modefied then it will store into buffer
+    * Otherwise will create reader of original file
+    */
+    std::shared_ptr<PG::STREAM::In> createReader() const override;
+    /**
+    * @brief Is always true
+    */
+    bool isModified() const override { return true; }
+private:
+    PG_File m_file;
 };

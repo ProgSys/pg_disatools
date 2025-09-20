@@ -433,6 +433,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 * Debugging -> Command -> D:/Steam/SteamApps/common/Disgaea PC/dis1_st.exe
 */
 DWORD WINAPI startMain() {
+    commandTerminal.openConsole();
 #ifdef _DEBUG
     //commandTerminal.openConsole();
 #endif // _DEBUG

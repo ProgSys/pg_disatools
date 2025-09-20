@@ -6,6 +6,7 @@
 #include <Scene/Gui/PG_GuiRectangle.h>
 #include <Scene/Model/PG_ListModelBase.h>
 #include <Base/Events/PG_MouseButtonEvent.h> 
+#include <Disa/fileformats/PG_DisaFileContainer.h>
 
 
 
@@ -37,8 +38,13 @@ void PG_DisaFileTableItem::update(const PG_ListModelLocation& location, const PG
 	if (hasItem) {
 		m_location = location;
 	}
-	if (hasItem || identities.count(Identity_Text)) {
-		m_text->setText(location.getDataT<std::string>(Identity_Text));
+	
+	if (hasItem || identities.count(Identity_Text) || identities.count(PG_DisaFileEntry::Identity_Modified)) {
+		std::string str = location.getDataT<std::string>(Identity_Text);
+		if (location.getIndex().get(1) == 0 && location.getDataT<bool>(PG_DisaFileEntry::Identity_Modified)) {
+			str += "*";
+		}
+		m_text->setText(str);
 	}
 }
 

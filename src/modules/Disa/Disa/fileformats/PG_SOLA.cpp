@@ -147,8 +147,8 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 			o << "FILE.SH";
 		}
 		entry.setExtraData(*it);
-		entry.getInfoOriginal().setName(o.str());
-		reader->seek(entry.getInfoOriginal().getOffset());
+		entry.getInfo().setName(o.str());
+		reader->seek(entry.getInfo().getOffset());
 		++it;
 	}
 

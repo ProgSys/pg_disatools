@@ -304,7 +304,8 @@ void RootScene::setupCenter() {
 		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
 		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
 
-		btn->setText("Extract selected files");
+		btn->setText("Extract");
+		btn->setTooltipText("Extract selected file or files");
 		btn->setIcon("gui/icon_export.png");
 		btn->setEnabled(false);
 
@@ -341,6 +342,36 @@ void RootScene::setupCenter() {
 			});
 		});
 
+	}
+
+	{
+		PG_GuiButton* btn = PG_new<PG_GuiButton>("PG_GuiButton_Replace", glm::vec2(0.0f), glm::vec2(39.f, 30.f), previewColumn);
+		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
+		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
+
+		btn->setText("Replace");
+		btn->setTooltipText("Replace selected file keeping its name");
+		btn->setIcon("gui/icon_folder.png");
+		btn->setEnabled(false);
+
+		connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, btn, [btn](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
+			if (oldModel) disconnect(btn, nullptr, dynamic_cast<PG_Object*>(oldModel), nullptr);
+
+			if (!newModel) return;
+			auto* asObject = dynamic_cast<PG_Object*>(newModel);
+			if (!asObject) return;
+			auto funcSingle = asObject->getFunction("void replaceLastSelected(const PG_File&,bool)");
+			if (!funcSingle) return;
+			auto prop = asObject->getProperty("hasSingleSelection");
+			if (!prop) return;
+			connect(asObject, prop, btn, btn->getProperty("enabled"));
+			btn->setEnabled(asObject->getPropertyValue(prop).toBool());
+			connect(btn, &PG_GuiButton::clicked, asObject, [asObject, funcSingle] {
+				PG_File result = PG_PopUpDialog::selectFile({});
+				if (!result) return;
+				funcSingle.callArgs(asObject, result, false);
+				});
+			});
 	}
 }
 

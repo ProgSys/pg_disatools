@@ -11,14 +11,17 @@
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Stream/PG_StreamOutByteFile.h>
 
+
+bool PG_DisaFileContainerModel::isModified() const {
+	if (!m_fileContainer) return false;
+	return m_fileContainer->isModified();
+}
+
+
 std::string PG_DisaFileContainerModel::getFileName() const {
 	if (!m_fileContainer) return {};
 	if (!m_fileContainer->getFile().isEmpty()) return m_fileContainer->getFile().getFile();
 	return m_fileContainer->getParentEntry().getName();
-}
-
-PG_ListModelBase* PG_DisaFileContainerModel::getListModel() const {
-	return m_selectionModel;
 }
 
 const std::string& PG_DisaFileContainerModel::getSearchText() const {
@@ -30,6 +33,10 @@ void PG_DisaFileContainerModel::setSearchText(const std::string& str) {
 
 bool PG_DisaFileContainerModel::hasSelection() const {
 	return m_selectionModel && m_selectionModel->hasSelection();
+}
+
+bool PG_DisaFileContainerModel::hasSingleSelection() const {
+	return m_selectionModel && m_selectionModel->getSelection().size() == 1;
 }
 
 int PG_DisaFileContainerModel::getSelectionSize() const {
@@ -58,8 +65,10 @@ void PG_DisaFileContainerModel::setContainer(PG_DisaFileContainer* fileContainer
 		connect(m_selectionModel, &PG_ListSelectionWrapperModel::selectionChanged, this, &PG_DisaFileContainerModel::lastSelectedChanged);
 	}
 
+	connect(m_fileContainer, &PG_DisaFileContainer::isModifiedChanged, this, &PG_DisaFileContainerModel::isModifiedChanged);
+
 	m_selectionModel->setModel(m_filterModel);
-	m_filterModel->setModel(fileContainer);
+	m_filterModel->setModel(m_fileContainer);
 }
 
 static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(PG_DisaFileInfo::Type type) {
@@ -148,14 +157,7 @@ static inline void copyFile(const PG_DisaFileEntry& entry, const PG_File& tagetF
 	PG::STREAM::OutByteFile writer(tagetFile);
 	if (!writer.isOpen()) return;
 
-	size_t remainingSize = reader->size();
-	size_t toCopy;
-	while (remainingSize > 0) {
-		toCopy = std::min(remainingSize, buffer.size());
-		reader->read(buffer.data(), toCopy);
-		remainingSize -= toCopy;
-		writer.write(buffer.data(), toCopy);
-	}
+	PG_DisaChangedReaderContainer::copyData(*reader, writer, buffer);
 	writer.close();
 }
 
@@ -178,4 +180,37 @@ void PG_DisaFileContainerModel::exportLastSelected(const PG_File& targetFile) {
 	auto entry = var.cast<PG_DisaFileEntry>();
 	std::vector<char> data(1024 * 1024);
 	copyFile(*entry, targetFile, data);
+}
+
+void PG_DisaFileContainerModel::replaceLastSelected(const PG_File& targetFile, bool replaceName) {
+	if (targetFile.isEmpty() || !targetFile.exists()) {
+		OUT_ERROR("The file " << targetFile << " dosn't exist!");
+		return;
+	}
+	if (!m_selectionModel->hasSelection()) return;
+
+	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::Identity_Item);
+	if (!var) return;
+	PG_DisaFileEntry& entry = var.get<PG_DisaFileEntry>();
+
+	auto container = std::make_shared<PG_DisaChangedFileContainer>(targetFile);
+	if (auto reader = container->createReader(); reader && reader->isOpen()) {
+		entry.getInfo().setSize(reader->size());
+		entry.getInfo().determinTypeFromFileFormat(reader.get());
+		if (replaceName) {
+			entry.getInfo().setName(targetFile.getFile());
+		}
+	}
+	else {
+		OUT_ERROR("Failed to open file " << targetFile << "!");
+		return;
+	}
+
+	if (auto oldContainer = entry.getContainer()) {
+		m_changedFiles.erase(oldContainer);
+	}
+	entry.setContainer(container);
+	m_fileContainer->setData(entry.getLocation(), entry, EIdentity::Identity_Item);
+
+	m_changedFiles.insert(std::move(container));
 }

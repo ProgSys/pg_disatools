@@ -197,11 +197,12 @@ bool PG_DisaFileEntry::saveTo(const PG_File& file) const {
 void PG_DisaFileEntry::setContainerInParent(std::shared_ptr<PG_DisaContainerInterface> container) {
 	setContainerIntern(container);
 	assert(m_parent);
-	dynamic_cast<PG_ListModel<PG_DisaFileEntry>*>(m_parent)->setData(getLocation(), std::move(container), Identity_Container);
+	auto* listModel = dynamic_cast<PG_ListModel<PG_DisaFileEntry>*>(m_parent);
+	listModel->setData(getLocation(), std::move(container), Identity_Container);
 }
 
 void PG_DisaFileEntry::setContainerIntern(std::shared_ptr<PG_DisaContainerInterface> container) {
-	if (getLocation() < 0 || !m_parent) return;
+	if (getLocation() < 0 || !m_parent || container == m_container.lock()) return;
 
 	auto* fileContainer = dynamic_cast<PG_DisaFileContainer*>(m_parent);
 	if (!fileContainer) return;
@@ -209,7 +210,7 @@ void PG_DisaFileEntry::setContainerIntern(std::shared_ptr<PG_DisaContainerInterf
 	auto& item = fileContainer->getItems()[getLocation()];
 
 	bool isModefiedOrg = false;
-	if (auto oldContainer = fileContainer->getItems()[getLocation()].getContainer()) {
+	if (auto oldContainer = item.getContainer()) {
 		if (oldContainer == container) return;
 		isModefiedOrg = oldContainer->isModified();
 	}
@@ -285,14 +286,15 @@ bool PG_DisaFileEntry::setData(const PG_Variety& data, Identity identity) {
 	switch (identity)
 	{
 	case Identity_Container: {
-		if(data.is<std::shared_ptr<PG_DisaContainerInterface>>()){
+		if (data.is<std::shared_ptr<PG_DisaContainerInterface>>()) {
 			setContainerIntern(data.get<std::shared_ptr<PG_DisaContainerInterface>>());
-			return true;
-		}else if (data.is<std::weak_ptr<PG_DisaContainerInterface>>()) {
-			setContainerIntern(data.get<std::weak_ptr<PG_DisaContainerInterface>>().lock());
-			return true;
 		}
-	}
+		else if (data.is<std::weak_ptr<PG_DisaContainerInterface>>()) {
+			setContainerIntern(data.get<std::weak_ptr<PG_DisaContainerInterface>>().lock());
+		}
+		else break;
+		return true;
+	} break;
 	}
 	return false;
 }
@@ -466,7 +468,7 @@ bool PG_DisaFileContainer::isModified() const {
 }
 
 void PG_DisaFileContainer::fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {
-	emit itemsChanged(entry.getLocation(), entry.getLocation(), { PG_DisaFileEntry::Identity_Modified });
+	emit itemsChanged(entry.getLocation(), entry.getLocation(), { Identity_Item, PG_DisaFileEntry::Identity_Modified });
 }
 
 /**
@@ -523,19 +525,44 @@ std::shared_ptr<PG::STREAM::In> PG_DisaChangedDataContainer::createReader() cons
 /**
 * =============== PG_DisaChangedReaderContainer ===============
 */
+void PG_DisaChangedReaderContainer::copyData(PG::STREAM::In& reader, PG::STREAM::Out& writer) {
+	std::vector<char> buffer(1024 * 1024);
+	copyData(reader, writer, buffer);
+}
+
+void PG_DisaChangedReaderContainer::copyData(PG::STREAM::In& reader, PG::STREAM::Out& writer, std::vector<char>& targetBuffer) {
+	size_t remainingSize = reader.size();
+	size_t toCopy;
+	while (remainingSize > 0) {
+		toCopy = std::min(remainingSize, targetBuffer.size());
+		reader.read(targetBuffer.data(), toCopy);
+		remainingSize -= toCopy;
+		writer.writeData(targetBuffer);
+	}
+}
 
 bool PG_DisaChangedReaderContainer::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 	m_reader->rewind();
-	std::vector<char> data(4096);
-	size_t totalSize = m_reader->size();
-	while (totalSize > 0){
-		m_reader->read(data.data(), std::min(data.size(), totalSize));
-		totalSize -= std::min(data.size(), totalSize);
-		writer->writeData(data);
-	}
+	if (!m_reader->isOpen()) return FAILURE;
+	copyData(*m_reader, *writer);
 	return SUCCESS;
 }
 
 std::shared_ptr<PG::STREAM::In> PG_DisaChangedReaderContainer::createReader() const {
 	return m_reader;
+}
+
+/**
+* =============== PG_DisaChangedFileContainer ===============
+*/
+bool PG_DisaChangedFileContainer::save(std::shared_ptr<PG::STREAM::Out> writer) const {
+	PG::STREAM::InByteFile reader(m_file);
+	if (!reader.isOpen()) return FAILURE;
+	PG_DisaChangedReaderContainer::copyData(reader, *writer);
+	reader.close();
+	return SUCCESS;
+}
+
+std::shared_ptr<PG::STREAM::In> PG_DisaChangedFileContainer::createReader() const {
+	return std::make_shared<PG::STREAM::InByteFile>(m_file);
 }
