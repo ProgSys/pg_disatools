@@ -469,6 +469,17 @@ bool PG_DisaFileContainer::isModified() const {
 
 void PG_DisaFileContainer::fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {
 	emit itemsChanged(entry.getLocation(), entry.getLocation(), { Identity_Item, PG_DisaFileEntry::Identity_Modified });
+	emit isModifiedChanged();
+	auto parent = m_disaFileParent.lock();
+	while (parent) {
+		if (auto fileContainer = std::dynamic_pointer_cast<PG_DisaFileContainer>(parent)) {
+			emit fileContainer->isModifiedChanged();
+			parent = fileContainer->m_disaFileParent.lock();
+		}
+		else {
+			break;
+		}
+	}
 }
 
 /**

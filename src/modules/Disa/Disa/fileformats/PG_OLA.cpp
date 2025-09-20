@@ -185,7 +185,7 @@ bool PG_OLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 
 
 bool PG_OLA::save(std::shared_ptr<PG::STREAM::Out> writer) const {
-
+	const auto startPos = writer->pos();
 	m_originalReader = createReaderOriginal();
 
 	writer->writeInt(size());
@@ -197,23 +197,19 @@ bool PG_OLA::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 	std::vector<unsigned int> fileTable;
 	fileTable.resize(size());
 	writer->writeData(fileTable);
-	const unsigned int fileTableEndOffset = writer->pos();
+	const unsigned int fileTableEndOffset = m_isHeaderSizeIncluded? startPos: writer->pos();
 
 	std::vector<char> data;
 	auto it = fileTable.begin();
 	for (auto& entry : *this) {
-		if (m_isHeaderSizeIncluded) {
-			*it = writer->pos();
-		}
-		else {
-			*it = writer->pos() - fileTableEndOffset;
-		}
+		*it = writer->pos() - fileTableEndOffset;
 		auto reader = entry.createReader();
 		if (!reader || !reader->isOpen()) {
 			doneSaving();
 			return FAILURE;
 		}
 		reader->read(data, reader->size());
+		writer->writeData(data);
 		++it;
 	}
 

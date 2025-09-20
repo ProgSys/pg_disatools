@@ -42,28 +42,41 @@ bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
     reader->readUnsignedInt(); //Unknown
     std::vector<PG_DisaFileEntry> contains;
     contains.reserve(number_of_files);
+
+    struct FileEntryHeaderInfo {
+        std::array<char, 40> name;
+        unsigned int decompressedSize;
+        unsigned int size;
+        unsigned int offset;
+    };
+    std::vector<FileEntryHeaderInfo> fileEntries;
+    reader->read(fileEntries, number_of_files);
+
+    std::unordered_map<std::string, PG_DisaFileEntry*> lookUp;
+    for (auto& entry : *this) {
+        if (!entry.getContainer()) continue;
+        lookUp[entry.getName()] = &entry;
+    }
+
     //read the file infos
-    for (unsigned int i = 0; i < number_of_files; ++i) {
+    for (const FileEntryHeaderInfo& fileEntryData: fileEntries) {
         PG_DisaFileEntry entry = PG_DisaFileEntry(this);
         PG_DisaFileInfo info;
-        std::string filename = reader->readString(40);
-        filename = filename.substr(0, filename.find_first_of(char(0x00)));
-        info.setName(std::move(filename));
-        info.setDecompressedSize(reader->readUnsignedInt());
-        info.setSize(reader->readUnsignedInt());
-        info.setOffset(reader->readUnsignedInt());
+        info.setName(std::string(fileEntryData.name.begin(), std::ranges::find(fileEntryData.name, char(0x00))));
+        info.setDecompressedSize(fileEntryData.decompressedSize);
+        info.setSize(fileEntryData.size);
+        info.setOffset(fileEntryData.offset);
         info.determinTypeFromFileExtention();
         entry.setInfo(std::move(info));
 
-        if (auto findIt = std::ranges::find(*this, entry.getName(), &PG_DisaFileEntry::getName); findIt != end()) {
-            if (auto c = findIt->getContainer()) {
-                entry.getInfo().setType(findIt->getInfo().getType());
-                entry.setContainer(c);
-            }
+        if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
+            entry.getInfo().setType(findIt->second->getInfo().getType());
+            entry.setContainer(findIt->second->getContainer());
         }
 
-        contains.push_back(entry);
+        contains.emplace_back(std::move(entry));
     }
+
     m_originalReader = reader;
     const unsigned int currentPos = reader->pos();
     for (PG_DisaFileEntry& entry : contains) {

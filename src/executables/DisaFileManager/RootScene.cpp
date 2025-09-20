@@ -129,20 +129,33 @@ void RootScene::init() {
 void RootScene::setupToolbar() {
 	toolbarRow->clearGuiChildren();
 
-	auto openButton = PG_new<PG_GuiButton>("openButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-	openButton->setIcon("gui/icon_folder.png");
-	openButton->setBackground("M_GuiRoundedRectangleAll5");
-	openButton->setTooltipText("Open file");
-	openButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+	{
+		auto openButton = PG_new<PG_GuiButton>("openButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
+		openButton->setIcon("gui/icon_folder.png");
+		openButton->setBackground("M_GuiRoundedRectangleAll5");
+		openButton->setTooltipText("Open file");
+		openButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 
-	connect(openButton, &PG_GuiButton::clicked, this, [this] {
-		PG_File file = PG_FileDialog::open(this, "dat");
-		if (file.isEmpty()) return;
-		if (m_mainModel->open(file)) return;
+		connect(openButton, &PG_GuiButton::clicked, this, [this] {
+			PG_File file = PG_FileDialog::open(this, "dat");
+			if (file.isEmpty()) return;
+			if (m_mainModel->open(file)) return;
 
-		auto* popup = PG_PopUpDialog::createError(rootItem, "Open failed", "Failed to open file!");
-		popup->open();
-	});
+			auto* popup = PG_PopUpDialog::createError(rootItem, "Open failed", "Failed to open file!");
+			popup->open();
+		});
+	}
+
+	{
+		auto saveButton = PG_new<PG_GuiButton>("saveButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
+		saveButton->setIcon("gui/icon_save.png");
+		saveButton->setBackground("M_GuiRoundedRectangleAll5");
+		saveButton->setTooltipText("Save file");
+		saveButton->setEnabled(false);
+		saveButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
+		connect(m_mainModel, m_mainModel->getProperty("isModified"), saveButton, saveButton->getProperty("enabled"));
+		connect(saveButton, &PG_GuiButton::clicked, m_mainModel, m_mainModel->getFunction("void save()"));
+	}
 
 
 	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, toolbarRow, [this](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {

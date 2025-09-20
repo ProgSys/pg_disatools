@@ -104,7 +104,7 @@ bool PG_Disa::isSOLA(PG::STREAM::In* reader) {
 	fileOffset = reader->readUnsignedInt();
 	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
 	if (numberOfFiles == 2) return SUCCESS;
-	reader->skip(sizeof(unsigned int) * (numberOfFiles - 1));
+	reader->skip(sizeof(unsigned int) * (numberOfFiles - 3));
 	fileOffset = reader->readUnsignedInt(); //last file
 	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
 

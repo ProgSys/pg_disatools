@@ -160,27 +160,27 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 
 
 bool PG_SOLA::save(std::shared_ptr<PG::STREAM::Out> writer) const{
+	const unsigned int startPos = writer->pos();
 
 	m_originalReader = createReaderOriginal();
 
 	writer->writeInt(size());
 
-	
-	const unsigned int startOffset = writer->pos();
-	std::vector<unsigned int> fileTable;
-	fileTable.resize(size());
-	writer->writeData(fileTable);
-	std::vector<unsigned short> idTable;
-	idTable.resize(size());
-	writer->writeData(idTable);
-	const unsigned int fileTableEndOffset = writer->pos();
+	//write file table
+	const unsigned int startFileTable = writer->pos();
+	std::vector<unsigned int> fileTable(size());
+	std::vector<unsigned short> idTable(size());
 
+	writer->writeData(fileTable);
+	writer->writeData(idTable);
+
+	//write content
 	std::vector<char> data;
 	auto tableIt = fileTable.begin();
-	auto idIt = fileTable.begin();
+	auto idIt = idTable.begin();
 	for (const auto& entry : *this) {
-		*tableIt = writer->pos();
-		*tableIt = entry.getExtraData().get<unsigned short>();
+		*tableIt = writer->pos() - startPos;
+		*idIt = entry.getExtraData().get<unsigned short>();
 
 		auto reader = entry.createReader();
 		if (!reader || !reader->isOpen()) {
@@ -190,10 +190,11 @@ bool PG_SOLA::save(std::shared_ptr<PG::STREAM::Out> writer) const{
 		reader->read(data, reader->size());
 		++tableIt;
 		++idIt;
+		writer->writeData(data);
 	}
 
 	const unsigned int endOffset = writer->pos();
-	writer->seek(startOffset);
+	writer->seek(startFileTable);
 	writer->writeData(fileTable);
 	writer->writeData(idTable);
 	writer->seek(endOffset);

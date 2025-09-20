@@ -17,6 +17,15 @@ bool PG_DisaFileContainerModel::isModified() const {
 	return m_fileContainer->isModified();
 }
 
+PG_File PG_DisaFileContainerModel::getOriginFile() const {
+	if (!m_fileContainer) return {};
+	if (!m_fileContainer->getFile().isEmpty()) return m_fileContainer->getFile();
+	auto parent = m_fileContainer->getParentEntry().getParent();
+	while (parent) {
+		if (parent->getFile()) return parent->getFile();
+		parent->getParentEntry().getParent();
+	}
+}
 
 std::string PG_DisaFileContainerModel::getFileName() const {
 	if (!m_fileContainer) return {};
@@ -80,32 +89,47 @@ static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(PG_DisaF
 	return {};
 }
 
-static std::list<std::shared_ptr<PG_DisaFileContainer>> g_openFiles;
-using ListIt = std::list<std::shared_ptr<PG_DisaFileContainer>>::iterator;
-struct OpenedFiles : public PG_Object {
-	using PG_Object::PG_Object;
-	ListIt file;
+struct Ownership: public PG_Object {
+	std::shared_ptr<PG_DisaFileContainer> container;
 };
 
-void PG_DisaFileContainerModel::addOpenedFile(std::shared_ptr<PG_DisaFileContainer>&& container, std::string&& name) {
-	OpenedFiles* openedFiles = findFirstChild<OpenedFiles>(name);
-	if (!openedFiles) openedFiles = PG_new<OpenedFiles>(name, this);
-	auto findIt = std::ranges::find(g_openFiles, container);
-	if (findIt != g_openFiles.end()) {
-		openedFiles->file = findIt;
-		return;
+void PG_DisaFileContainerModel::setOwningContainer(std::shared_ptr<PG_DisaFileContainer>&& container) {
+	if (!container) return;
+	
+	Ownership* ownership = container->findFirstChild<Ownership>("Ownership");
+	if (!ownership) {
+		ownership = new Ownership();
+		ownership->setName("Ownership");
+		ownership->setParent(container.get());
+		ownership->container = container;
 	}
-	g_openFiles.push_back(std::move(container));
-	openedFiles->file = std::prev(g_openFiles.end());
+	m_ownershipContainer = std::move(container);
+}
+
+void PG_DisaFileContainerModel::openUi() {
+	assert(m_ownershipContainer);
+	if (!m_ownershipContainer) return;
+	Ownership* ownership = m_ownershipContainer->findFirstChild<Ownership>("Ownership");
+	if (!ownership) return;
+
+	disconnect(ownership->container.get(), &PG_DisaFileContainer::isModifiedChanged, ownership, nullptr);
 }
 
 void PG_DisaFileContainerModel::closeUi() {
-	OpenedFiles* openedFiles = findFirstChild<OpenedFiles>("OpenedFiles");
-	if (!openedFiles) return; //nothing to do
+	assert(m_ownershipContainer);
+	Ownership* ownership = m_ownershipContainer->findFirstChild<Ownership>("Ownership");
+	if (!ownership) return;
 
-	if ((*openedFiles->file)->isModified()) return;
-	g_openFiles.erase(openedFiles->file);
-	delete openedFiles;
+	if (!ownership->container->isModified()) {
+		delete ownership;
+		return;
+	}
+	connect(ownership->container.get(), &PG_DisaFileContainer::isModifiedChanged, ownership, [ownership] {
+		if (ownership->container->isModified()) return;
+		ownership->setParent(nullptr);
+		ownership->deleteLater();
+		ownership->container.reset();
+	});
 }
 
 static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(const std::shared_ptr<PG::STREAM::In>& reader) {
@@ -120,9 +144,46 @@ PG_DisaFileContainerModel* PG_DisaFileContainerModel::tryOpen(const PG_File& fil
 	container->open(reader);
 	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel");
 	containerModel->setContainer(container.get());
-	containerModel->addOpenedFile(std::move(container), "RootFile");
+	containerModel->setOwningContainer(std::move(container));
 
 	return containerModel;
+}
+
+void PG_DisaFileContainerModel::exportToFile(const PG_File& file) {
+	if (!m_fileContainer || file.isEmpty()) return;
+
+	auto saveFile = file.replaceFileName(file.getName() + "_tempSave");
+	auto writer = std::make_shared<PG::STREAM::OutByteFile>(saveFile);
+	if (!writer->isOpen()) {
+		OUT_ERROR("Failed to open file " << file << "!");
+		return;
+	}
+	if (!m_fileContainer->save(writer)) {
+		OUT_ERROR("Failed to save file " << file << "!");
+		saveFile.remove();
+		return;
+	}
+	writer.reset();
+
+	if (file.exists()) {
+		if (!file.remove()) {
+			OUT_ERROR("Failed to remove original file " << file << "!");
+			saveFile.remove();
+			return;
+		}
+	}
+
+	if (!saveFile.rename(file)) {
+		saveFile.remove();
+		return;
+	}
+
+	if (file == m_fileContainer->getFile()) {
+		if (!m_fileContainer->refresh()) {
+			OUT_ERROR("Failed to refresh loaded data from file: " << file << "!");
+			return;
+		}
+	}
 }
 
 void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
@@ -143,8 +204,8 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 	auto containerModel = PG_new<PG_DisaFileContainerModel>("PG_DisaFileContainerModel");
 	containerModel->setContainer(container.get());
 
+	containerModel->setOwningContainer(std::move(container));
 	PG_DisaFileManagerMainModel::get()->pushStack(containerModel);
-	containerModel->addOpenedFile(std::move(container));
 }
 
 static inline void copyFile(const PG_DisaFileEntry& entry, const PG_File& tagetFile, std::vector<char>& buffer) {
@@ -207,10 +268,9 @@ void PG_DisaFileContainerModel::replaceLastSelected(const PG_File& targetFile, b
 	}
 
 	if (auto oldContainer = entry.getContainer()) {
-		m_changedFiles.erase(oldContainer);
+		PG_DisaFileManagerMainModel::get()->eraseChangedFile(oldContainer);
 	}
 	entry.setContainer(container);
 	m_fileContainer->setData(entry.getLocation(), entry, EIdentity::Identity_Item);
-
-	m_changedFiles.insert(std::move(container));
+	PG_DisaFileManagerMainModel::get()->addChangedFile(std::move(container));
 }

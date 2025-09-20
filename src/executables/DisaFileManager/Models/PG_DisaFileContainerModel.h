@@ -35,6 +35,7 @@ public:
 
 	UiState getUiState() const override { return FileArchive; }
 	PG_ListModelBase* getListModel() const 	{ return (PG_ListModelBase*)m_selectionModel; }
+	PG_File getOriginFile() const;
 	std::string getFileName() const override;
 
 	const std::string& getSearchText() const;
@@ -44,17 +45,18 @@ public:
 	bool hasSingleSelection() const;
 	int getSelectionSize() const;
 	PG_ListModelLocation getLastSelected() const;
+	PG_DisaFileContainer* getDisaFileContainer() const { return m_fileContainer; }
 
+	void openUi() override;
 	void closeUi() override;
 	bool isHoldingContainer(PG_DisaFileContainer* fileContainer) const override { return m_fileContainer == fileContainer; }
 
 	static PG_DisaFileContainerModel* tryOpen(const PG_File& file, std::shared_ptr<PG::STREAM::In> reader);
 receivers:
 	/**
-	* @brief Save all changes
-	* @see isModified
+	* @brief Save data to given file
 	*/
-	//void save();
+	void exportToFile(const PG_File& file);
 	/**
 	* @brief Will open given entry
 	*/
@@ -74,10 +76,10 @@ receivers:
 	void replaceLastSelected(const PG_File& targetFile, bool replaceName);
 private:
 	void setContainer(PG_DisaFileContainer* fileContainer);
-	void addOpenedFile(std::shared_ptr<PG_DisaFileContainer>&& container, std::string&& name = "OpenedFiles");
+	void setOwningContainer(std::shared_ptr<PG_DisaFileContainer>&& container);
 
 	PG_DisaFileContainer* m_fileContainer = nullptr;
 	PG_ListSelectionWrapperModel* m_selectionModel = nullptr;
 	PG_DisaFileFilterModel* m_filterModel = nullptr;
-	std::set<std::shared_ptr<PG_DisaContainerInterface>> m_changedFiles;
+	std::shared_ptr<PG_DisaFileContainer> m_ownershipContainer;
 };
