@@ -11,15 +11,13 @@ PG_DisaFaceHit::Intersection PG_DisaFaceHit::intersection(PG_DisaTileViewNode* t
 
 
 	using PointsFunc = std::array<glm::vec3, 4>(PG_DisaMapTileModel::*)(const glm::vec3&) const;
-	std::vector<std::pair<PG_DisaFaceHit::Face, PointsFunc>> pointsFunc;
+	std::vector<std::pair<PG_DisaFaceHit::Face, PointsFunc>> pointsFunc =
+		{ { Face_Top, &PG_DisaMapTileModel::getTop} };
 	if (includeSides) {
-		pointsFunc = { 
-			{ Face_Top, &PG_DisaMapTileModel::getTop}, 
-			{ Face_North, &PG_DisaMapTileModel::getSideN}, 
-			{ Face_East, &PG_DisaMapTileModel::getSideE},
-			{ Face_South, &PG_DisaMapTileModel::getSideS}, 
-			{ Face_West, &PG_DisaMapTileModel::getSideW}
-		};
+		if (model->hasSideN()) pointsFunc.emplace_back(Face_North, &PG_DisaMapTileModel::getSideN);
+		if (model->hasSideE()) pointsFunc.emplace_back(Face_East, &PG_DisaMapTileModel::getSideE);
+		if (model->hasSideS()) pointsFunc.emplace_back(Face_South, &PG_DisaMapTileModel::getSideS);
+		if (model->hasSideW()) pointsFunc.emplace_back(Face_West, &PG_DisaMapTileModel::getSideW);
 	}
 	else {
 		pointsFunc = { { Face_Top, &PG_DisaMapTileModel::getTop} };

@@ -138,6 +138,8 @@ class PG_DisaMapTileModel : public PG_Object {
 	PG_PROPERTY(glm::i8vec2 bottomB GET getBottomB SET setBottomB CHANGED bottomBChanged)
 	PG_PROPERTY(glm::i8vec2 bottomC GET getBottomC SET setBottomC CHANGED bottomCChanged)
 	PG_PROPERTY(glm::i8vec2 bottomD GET getBottomD SET setBottomD CHANGED bottomDChanged)
+
+	PG_PROPERTY(glm::bvec4 sideVisibility GET getSideVisibility SET setSideVisibility CHANGED sideVisibilityChanged)
 signals:
 	void mobilityChanged();
 	void geoColorChanged();
@@ -153,6 +155,8 @@ signals:
 	void bottomBChanged();
 	void bottomCChanged();
 	void bottomDChanged();
+
+	void sideVisibilityChanged();
 
 	void textureIndexChanged(int slotIndex);
 public:
@@ -210,6 +214,13 @@ public:
 	void setSideEVisible(bool value) { setSideIVisible(1, value); }
 	void setSideSVisible(bool value) { setSideIVisible(2, value); }
 	void setSideWVisible(bool value) { setSideIVisible(3, value); }
+	glm::bvec4 getSideVisibility() const {
+		//N, E, S, W,
+		return glm::bvec4(m_data.textures[0].textureIndex != 0, m_data.textures[1].textureIndex != 0,
+			m_data.textures[2].textureIndex != 0, m_data.textures[3].textureIndex != 0);
+	}
+	void setSideVisibility(glm::bvec4 value);
+
 
 	int getTopTextureIndex() const;
 	int getSideNTextureIndex() const;
@@ -222,7 +233,7 @@ public:
 	*       S
 	*    2-----3
 	* E  |     |  W
-	* z  |     | 
+	* z  |     |
 	* ^  0-----1
 	* |     N
 	*  -> x
@@ -259,16 +270,16 @@ public:
 		Impassable
 	};
 	EMobility getMobility() const { return static_cast<EMobility>(m_data.mobility); }
-	void setMobility(EMobility mobility) { 
+	void setMobility(EMobility mobility) {
 		if (m_data.mobility == mobility) return;
-		m_data.mobility = mobility; 
+		m_data.mobility = mobility;
 		emit mobilityChanged();
 	}
 	void setMobility(int mobility) { setMobility(static_cast<EMobility>(mobility)); }
 
 
 	bool hasGeoColor() const { return static_cast<bool>(m_data.geo_mark); }
-	EDisaGeoColor getGeoColor() const { return m_data.geo_mark?  static_cast<EDisaGeoColor>(m_data.geo_color + 1): DisaGeoColor_None; }
+	EDisaGeoColor getGeoColor() const { return m_data.geo_mark ? static_cast<EDisaGeoColor>(m_data.geo_color + 1) : DisaGeoColor_None; }
 	void setGeoColor(EDisaGeoColor color);
 	void setGeoColor(int color) { setGeoColor(static_cast<EDisaGeoColor>(color)); }
 
@@ -295,7 +306,6 @@ public:
 
 	glm::i8vec2 getBottomD() const { return -m_data.sideW; }
 	void setBottomD(glm::i8vec2 value);
-
 	/**
 	* @brief Sets the texture index to zero (empty)
 	*/

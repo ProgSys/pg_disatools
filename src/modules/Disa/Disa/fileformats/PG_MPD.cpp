@@ -240,7 +240,7 @@ static inline mpdfileTile jsonToTile(const nlohmann::json& jTile) {
 	jTile["geo_mark"].get_to(tile.geo_mark);
 	{
 		for (int i = 0; i < 6; ++i) {
-			jTile["padding_" + std::to_string(i + 1)].get_to(tile.pad2[i]);
+			jTile["padding_" + std::to_string(i + 1)].get_to(tile.padding[i]);
 		}
 	}
 	return tile;
@@ -457,7 +457,7 @@ static inline nlohmann::json tileToJson(const mpdfileTile& tile) {
 	jTile["geo_mark"] = tile.geo_mark;
 	{
 		for (int i = 0; i < 6; ++i) {
-			jTile["padding_" + std::to_string(i + 1)] = tile.pad2[i];
+			jTile["padding_" + std::to_string(i + 1)] = tile.padding[i];
 		}
 	}
 	return jTile;

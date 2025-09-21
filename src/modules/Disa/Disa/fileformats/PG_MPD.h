@@ -124,7 +124,7 @@ PACK( struct mpdfileTile{ //128 bytes
   unsigned char  mobility;     // 0 = Unlimited, 1 = Fly only, 2 = Impassable
   unsigned char  geo_color;
   unsigned char  geo_mark;     // 0 = No geopanel, 100 = Has geopanel
-  unsigned char  pad2[6];
+  unsigned char  padding[6]; //seam to be padding and not used for anything
 });
 
 PACK(struct mpdfileChunkDef{

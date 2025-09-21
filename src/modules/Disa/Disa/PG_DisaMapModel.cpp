@@ -23,7 +23,7 @@ inline char ec(float c) {
 }
 
 inline bool isValid(const mpdfileTexdata& tex) {
-	return tex.height != 0 && tex.width != 0 && tex.textureIndex >= 0;
+	return tex.height != 0 && tex.width != 0 && tex.textureIndex != 0;
 }
 
 inline int getTextureIndex(const mpdfileTexdata& tex) {
@@ -336,18 +336,19 @@ void PG_DisaMapTileModel::setSideIVisible(int index, bool value) {
 	if (static_cast<bool>(m_data.textures[index].textureIndex) == value) return;
 	if (value) {
 		auto& tex = m_data.textures[index];
-		tex.textureIndex = m_data.pad2[index];
+		tex.textureIndex = m_data.padding[index];
 		if (tex.textureIndex <= 0) tex.textureIndex = 1;
 		if (tex.width <= 0) tex.width = 32;
 		if (tex.height <= 0) tex.height = 32;
 	}
 	else {
-		m_data.pad2[index] = m_data.textures[index].textureIndex;
+		m_data.padding[index] = m_data.textures[index].textureIndex;
 		m_data.textures[index].textureIndex = 0;
 	}
 	if (auto* base = getParent<PG_ListModelBase>(); base && getLocation() >= 0) {
 		emit base->itemsChanged(getLocation(), getLocation(), { Identity_Geometry });
 	}
+	emit sideVisibilityChanged();
 }
 
 int PG_DisaMapTileModel::getTopTextureIndex() const {
@@ -495,6 +496,9 @@ void PG_DisaMapTileModel::setBottomD(glm::i8vec2 value) {
 	change(this, m_data.sideW, value, &PG_DisaMapTileModel::bottomDChanged);
 }
 
+void PG_DisaMapTileModel::setSideVisibility(glm::bvec4 value) {
+	for(int i = 0; i < 4; ++i) setSideIVisible(i, value[i]);
+}
 
 void PG_DisaMapTileModel::clearTexture(int slotIndex) {
 	if (slotIndex >= 12) return;

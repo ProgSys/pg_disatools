@@ -72,7 +72,7 @@ static void setVecValue(const std::vector<PG_Object*>& selection, const std::vec
 
 	auto selcIt = selection.begin();
 	auto propIt = properties.begin();
-	R memberValue = value.get<int>();
+	R memberValue = value.is<int>()? value.get<int>(): value.get<R>();
 	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
 		auto model = PG_SelectionWrapper::overrideWithModel(*selcIt);
 		auto any = model->getPropertyValue(*propIt);
@@ -216,6 +216,11 @@ static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrappe
 	wrapper->registerProperty("bottomCy", "bottomC", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>);
 	wrapper->registerProperty("bottomDx", "bottomD", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>);
 	wrapper->registerProperty("bottomDy", "bottomD", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>);
+	
+	wrapper->registerProperty("sideVisibleN", "sideVisibility", PG_Any::from<bool>(false), &getVecValue<glm::bvec4, bool, &glm::bvec4::x>, &setVecValue<glm::bvec4, bool, &glm::bvec4::x>);
+	wrapper->registerProperty("sideVisibleE", "sideVisibility", PG_Any::from<bool>(false), &getVecValue<glm::bvec4, bool, &glm::bvec4::y>, &setVecValue<glm::bvec4, bool, &glm::bvec4::y>);
+	wrapper->registerProperty("sideVisibleS", "sideVisibility", PG_Any::from<bool>(false), &getVecValue<glm::bvec4, bool, &glm::bvec4::z>, &setVecValue<glm::bvec4, bool, &glm::bvec4::z>);
+	wrapper->registerProperty("sideVisibleW", "sideVisibility", PG_Any::from<bool>(false), &getVecValue<glm::bvec4, bool, &glm::bvec4::w>, &setVecValue<glm::bvec4, bool, &glm::bvec4::w>);
 
 	constexpr float textWidth = 140.f;
 	{
@@ -265,36 +270,33 @@ static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrappe
 	{
 		PG_GuiRow* row = createRow(column, "Corners:", 90.f);
 
+		struct CreateInfo {
+			std::string target;
+			std::string background;
+		};
+
 		constexpr float spinTexWidth = 50.0f;
-		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topASpinBox", "topA");
-		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
-		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
-		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
-		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+		for (CreateInfo& info : std::array<CreateInfo, 4>{
+			CreateInfo{"topA", "M_GuiRoundedRectangleLeft5"},
+			CreateInfo{"topB", "M_GuiRectangle"},
+			CreateInfo{"topC", "M_GuiRectangle"},
+			CreateInfo{"topD", "M_GuiRoundedRectangleRight5"},
+			}) {
 
-		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topBSpinBox", "topB");
-		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
-		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
-		spinBox->getBackground()->setMaterial("M_GuiRectangle");
-		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+			auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, info.target + "SpinBox", info.target);
+			PG_GuiSpinBox::setupInt(spinBox, 1, 127);
+			spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+			spinBox->getBackground()->setMaterial(info.background);
+			spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
 
-		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topCSpinBox", "topC");
-		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
-		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
-		spinBox->getBackground()->setMaterial("M_GuiRectangle");
-		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
-
-		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, char>(row, wrapper, "topDSpinBox", "topD");
-		PG_GuiSpinBox::setupInt(spinBox, 1, 127);
-		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
-		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
-		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+		}
 	}
 
 	{
 		PG_GuiRow* row = createRow(column, "Bottom:", 90.f);
 
 		constexpr float spinTexWidth = 48.0f;
+
 		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomAxSpinBox", "bottomAx");
 		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
 		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
@@ -352,6 +354,38 @@ static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrappe
 		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
 		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
 		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		PG_GuiRow* row = createRow(column, "Visible:", 90.f);
+
+		struct CreateInfo {
+			std::string target;
+			std::string toolTip;
+			std::string background;
+		};
+
+		for (CreateInfo& info : std::array<CreateInfo, 4>{
+			CreateInfo{"sideVisibleN", "Side visible N", "M_GuiRoundedRectangleLeft5"},
+			CreateInfo{"sideVisibleE", "Side visible E", "M_GuiRectangle"},
+			CreateInfo{"sideVisibleS", "Side visible S", "M_GuiRectangle"},
+			CreateInfo{"sideVisibleW", "Side visible W", "M_GuiRoundedRectangleRight5"},
+			}) {
+
+			PG_Gui::createGuiElementV2<PG_GuiToggleButton>(row, wrapper, info.target + "Checkbox", info.target, "toggled",
+				[&info](const std::string& name, PG_GuiItem* root) {
+					auto toggleButton = PG_new<PG_GuiToggleButton>(name, glm::vec2(0.f), glm::vec2(50.f, 32.f), root);
+					toggleButton->setTooltipText(info.toolTip);
+					toggleButton->setIcon("gui/icon_eye.png");
+					toggleButton->setBackground(info.background);
+					toggleButton->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+					return toggleButton;
+				});
+		}
+
+
+
+
 	}
 
 	auto* guiToggleButton = PG_Gui::createGuiElementV2<PG_GuiToggleButton>(column, wrapper, "isStartingPointCheckbox", "isStartingPoint", "toggled",
