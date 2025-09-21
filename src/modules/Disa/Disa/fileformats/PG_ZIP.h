@@ -13,7 +13,7 @@ class PG_ZIP : public PG_DisaFileContainer {
 public:
 	using PG_DisaFileContainer::PG_DisaFileContainer;
 	bool open(const PG_File& file) override;
-	bool open(std::shared_ptr<PG::STREAM::In> reader) override;
+	bool open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) override;
 	bool save(std::shared_ptr<PG::STREAM::Out> writer) const override;
 	bool refresh(std::shared_ptr<PG::STREAM::In> reader) override;
 	bool save() override;

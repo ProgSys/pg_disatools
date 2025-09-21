@@ -35,7 +35,8 @@ class PG_SOLA : public PG_DisaFileContainer {
 public:
     using PG_DisaFileContainer::PG_DisaFileContainer;
 
-    bool open(std::shared_ptr<PG::STREAM::In> reader) final;
+    using PG_DisaFileContainer::open;
+    bool open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) final;
     bool save(std::shared_ptr<PG::STREAM::Out> writer) const final;
 
 };

@@ -34,7 +34,7 @@ public:
     using PG_DisaFileContainer::PG_DisaFileContainer;
 
     void close();
-    bool open(std::shared_ptr<PG::STREAM::In> reader) final;
+    bool open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) final;
     bool save(std::shared_ptr<PG::STREAM::Out> writer) const final;
 
     inline bool isHeaderSizeIncluded() const { return m_isHeaderSizeIncluded; }

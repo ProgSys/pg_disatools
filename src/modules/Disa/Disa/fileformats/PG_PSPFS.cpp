@@ -29,7 +29,7 @@
 #include <Stream/PG_StreamInOutByteFile.h>
 
 
-bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
+bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
     if (reader->size() <= 0) return FAILURE;
    
     if (reader->readString(8) != "PSPFS_V1") {
@@ -52,8 +52,6 @@ bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
     std::vector<FileEntryHeaderInfo> fileEntries;
     reader->read(fileEntries, number_of_files);
 
-    const auto lookUp = getEntiesWithContainer();
-
     //read the file infos
     for (const FileEntryHeaderInfo& fileEntryData: fileEntries) {
         PG_DisaFileEntry entry = PG_DisaFileEntry(this);
@@ -64,11 +62,7 @@ bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
         info.setOffset(fileEntryData.offset);
         info.determinTypeFromFileExtention();
         entry.setInfo(std::move(info));
-
-        if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
-            entry.getInfo().setType(findIt->second->getInfo().getType());
-            entry.setContainerRestore(findIt->second->getContainer());
-        }
+        if(visitor) visitor(entry);
 
         contains.emplace_back(std::move(entry));
     }
@@ -267,8 +261,4 @@ bool PG_PSPFS::save() {
     writer->writeData(fileTable);
 
     return SUCCESS;
-}
-
-bool PG_PSPFS::refresh(std::shared_ptr<PG::STREAM::In> reader) {
-    return open(reader);
 }

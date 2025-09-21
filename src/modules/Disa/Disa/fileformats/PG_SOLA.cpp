@@ -82,12 +82,8 @@ static inline std::map<unsigned short, std::string> readFileNames(std::string fi
 }
 
 
-bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
-	clear();
-	if (!reader->isOpen()) {
-		OUT_ERROR("Reader is not open!");
-		return FAILURE;
-	}
+bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
+	FILE_CONTAINER_ERROR_TEST(!reader->isOpen(), "Reader is not open!");
 
 	std::map<unsigned short, std::string> nameTable;
 	if (auto entry = getParentEntry()) {
@@ -99,8 +95,6 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 	const unsigned int headerSize = sizeof(int) + numberOfFiles * sizeof(int);
 
 	FILE_CONTAINER_ERROR_TEST(numberOfFiles > 9000, "*.DAT has too many files!");
-
-	const auto lookUp = getEntiesWithContainer();
 
 	std::vector<PG_DisaFileEntry> contains;
 	contains.reserve(numberOfFiles);
@@ -127,9 +121,7 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 
 		reader->seek(currentPos);
 		entry.setInfo(std::move(info));
-		if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
-			entry.setContainerRestore(findIt->second->getContainer());
-		}
+		if (visitor) visitor(entry);
 		contains.push_back(std::move(entry));
 	}
 

@@ -216,6 +216,7 @@ public:
     */
     virtual std::shared_ptr<PG::STREAM::In> createEntryReaderOriginal(const PG_DisaFileEntry& entry) const;
 
+    using PG_DisaFileInterface::open;
     using PG_DisaFileInterface::save;
     /**
     * @brief Will save the container at original opened file, if possible
@@ -260,8 +261,13 @@ public:
     std::vector<PG_DisaFileEntry> findAll(const std::regex& regex) const;
     PG_ListModelLocation findLocation(const PG_File& file, bool caseSensitive = true) const;
 
+    virtual bool open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) = 0;
+    bool open(std::shared_ptr<PG::STREAM::In> reader) final {
+        return open(reader, {});
+    }
     inline bool open(const std::string& file) { return open(PG_File(file)); }
     virtual bool open(const PG_File& file);
+    bool refresh(std::shared_ptr<PG::STREAM::In> reader) override;
     using PG_DisaFileInterface::open;
     using PG_DisaFileInterface::save;
     using PG_DisaFileInterface::refresh;

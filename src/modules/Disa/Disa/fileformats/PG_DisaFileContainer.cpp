@@ -370,6 +370,17 @@ bool PG_DisaFileContainer::open(const PG_File& file) {
 	}
 }
 
+bool PG_DisaFileContainer::refresh(std::shared_ptr<PG::STREAM::In> reader) {
+	const auto lookUp = getEntiesWithContainer();
+	return open(reader, [&lookUp](PG_DisaFileEntry& entry) {
+		if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
+			entry.setContainerRestore(findIt->second->getContainer());
+			entry.refresh(entry.createReader());
+		}
+		});
+
+}
+
 
 bool PG_DisaFileContainer::save() {
 	if (getFile().isEmpty()) return FAILURE;

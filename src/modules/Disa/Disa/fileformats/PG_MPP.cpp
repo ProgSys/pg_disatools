@@ -202,7 +202,7 @@ void PG_MPP::dump(const std::string& file) const {
 }
 
 
-bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader) {
+bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
 	if (!reader) return FAILURE;
 
 	const unsigned int file_size = reader->size();
@@ -246,6 +246,7 @@ bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader) {
 		info.setOffset(start);
 		info.setSize(end - start);
 		entry.setInfo(std::move(info));
+		if (visitor) visitor(entry);
 		contains.push_back(std::move(entry));
 	}
 	std::uint32_t indexOffset = header.number_of_textures;
@@ -258,6 +259,7 @@ bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader) {
 			info.setOffset(start);
 			info.setSize(end - start);
 			entry.setInfo(std::move(info));
+			if (visitor) visitor(entry);
 			contains.push_back(std::move(entry));
 		}
 		indexOffset += header.number_of_textures;
@@ -271,6 +273,7 @@ bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader) {
 		info.setOffset(start);
 		info.setSize(end - start);
 		entry.setInfo(std::move(info));
+		if (visitor) visitor(entry);
 		contains.push_back(std::move(entry));
 	}
 
@@ -341,10 +344,6 @@ bool PG_MPPContainer::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 	doneSaving();
 
 	return SUCCESS;
-}
-
-bool PG_MPPContainer::refresh(std::shared_ptr<PG::STREAM::In> reader) {
-	return open(reader);
 }
 
 PG_MPPContainer::Stats PG_MPPContainer::getStats() const {

@@ -470,7 +470,7 @@ bool PG_ZIP::open(const PG_File& file) {
     return PG_DisaFileContainer::open(file);
 }
 
-bool PG_ZIP::open(std::shared_ptr<PG::STREAM::In> reader) {
+bool PG_ZIP::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
     if (!reader->isOpen()) return FAILURE;
     auto zipU = openZip(reader); 
     if (!zipU) return FAILURE;
@@ -488,13 +488,14 @@ bool PG_ZIP::open(std::shared_ptr<PG::STREAM::In> reader) {
 
         PG_DisaFileEntry entry = PG_DisaFileEntry(this);
         entry.setInfo(std::move(info));
+        if (visitor) visitor(entry);
         entries.push_back(std::move(entry));
     }
     set(std::move(entries));
     m_originalReader = reader;
     m_originalZip = zipU.get();
     afterOpen(zipU);
-    m_originalReader = nullptr;
+    m_originalReader.reset();
     m_originalZip = nullptr;
 
     return SUCCESS;
