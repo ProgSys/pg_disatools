@@ -133,7 +133,9 @@ PG_Variety PG_DisaFileEntry::getPreviewImage() const {
 
 void PG_DisaFileEntry::setLocation(int index) {
 	m_index = index;
-	if (auto container = getContainer()) container->m_parentFileEntryLocation = index;
+	if (auto container = getContainer()) {
+		container->m_parentFileEntryLocation = index;
+	}
 }
 
 std::shared_ptr<PG::STREAM::In> PG_DisaFileEntry::createReader() const {
@@ -160,13 +162,6 @@ bool PG_DisaFileEntry::close() {
 		dynamic_cast<PG_Object*>(container.get())->setParent(nullptr);
 		container.reset();
 		setContainerIntern(nullptr);
-	}
-	return SUCCESS;
-}
-
-bool PG_DisaFileEntry::refresh() {
-	if (auto container = getContainer()) {
-		return container->refresh();
 	}
 	return SUCCESS;
 }
@@ -412,10 +407,12 @@ bool PG_DisaFileContainer::refresh() {
 	auto reader = std::make_shared<PG::STREAM::InByteFile>(getFile());
 	if (!reader->isOpen()) return FAILURE;
 
-	if(!refresh(reader)) return FAILURE;
 	m_originalReader = reader;
+	if(!refresh(reader)) return FAILURE;
+
 	for (auto& item : *this) {
-		item.refresh();
+		if (!item.getContainer()) continue;
+		item.refresh(item.createReaderOriginal());
 	}
 
 	m_originalReader.reset();
@@ -480,6 +477,15 @@ void PG_DisaFileContainer::fileEntryModefiedChanged(const PG_DisaFileEntry& entr
 			break;
 		}
 	}
+}
+
+std::unordered_map<std::string, const PG_DisaFileEntry*> PG_DisaFileContainer::getEntiesWithContainer() const {
+	std::unordered_map<std::string, const PG_DisaFileEntry*> lookUp;
+	for (auto& entry : *this) {
+		if (!entry.getContainer()) continue;
+		lookUp[entry.getName()] = &entry;
+	}
+	return lookUp;
 }
 
 /**

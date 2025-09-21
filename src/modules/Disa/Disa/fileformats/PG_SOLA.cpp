@@ -100,6 +100,8 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 
 	FILE_CONTAINER_ERROR_TEST(numberOfFiles > 9000, "*.DAT has too many files!");
 
+	const auto lookUp = getEntiesWithContainer();
+
 	std::vector<PG_DisaFileEntry> contains;
 	contains.reserve(numberOfFiles);
 	unsigned int lastOffset = reader->readUnsignedInt();
@@ -125,7 +127,10 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 
 		reader->seek(currentPos);
 		entry.setInfo(std::move(info));
-		contains.push_back(entry);
+		if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
+			entry.setContainerRestore(findIt->second->getContainer());
+		}
+		contains.push_back(std::move(entry));
 	}
 
 	std::vector<unsigned short> chractersIDs;

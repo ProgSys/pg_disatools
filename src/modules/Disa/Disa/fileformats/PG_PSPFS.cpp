@@ -52,11 +52,7 @@ bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
     std::vector<FileEntryHeaderInfo> fileEntries;
     reader->read(fileEntries, number_of_files);
 
-    std::unordered_map<std::string, PG_DisaFileEntry*> lookUp;
-    for (auto& entry : *this) {
-        if (!entry.getContainer()) continue;
-        lookUp[entry.getName()] = &entry;
-    }
+    const auto lookUp = getEntiesWithContainer();
 
     //read the file infos
     for (const FileEntryHeaderInfo& fileEntryData: fileEntries) {
@@ -71,7 +67,7 @@ bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader) {
 
         if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
             entry.getInfo().setType(findIt->second->getInfo().getType());
-            entry.setContainer(findIt->second->getContainer());
+            entry.setContainerRestore(findIt->second->getContainer());
         }
 
         contains.emplace_back(std::move(entry));
@@ -153,7 +149,6 @@ bool PG_PSPFS::save(std::shared_ptr<PG::STREAM::Out> writer) const {
         data.clear();
         const auto& entry = get(index);
         item = get(index).getInfo();
-
         auto reader = entry.createReader();
         if (!reader) OUT_WARNING("Convert failed! Writing dummy file instead!");
         else if (item.getName() != "DUMMY.DAT") {

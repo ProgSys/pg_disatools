@@ -66,8 +66,7 @@ public:
     * @brief Will read opened file to refresh all file entries
     * @returns true if refresh was successful
     */
-    virtual bool refresh(std::shared_ptr<PG::STREAM::In> reader) { return FAILURE; };
-    virtual bool refresh() { return FAILURE; };
+    virtual bool refresh(std::shared_ptr<PG::STREAM::In> reader) { return open(reader); };
 };
 
 
@@ -128,6 +127,9 @@ public:
         else
             setContainerIntern(container);
     }
+    void setContainerRestore(const std::shared_ptr<PG_DisaContainerInterface>& container) {
+        m_container = container;
+    }
 
     /**
     * @brief Will open file as given type
@@ -183,8 +185,6 @@ public:
     bool close();
 
     bool refresh(std::shared_ptr<PG::STREAM::In> reader) override;
-    bool refresh() override;
-
 
     //==== Misc ====
     bool saveTo(const PG_File& file) const;
@@ -222,6 +222,12 @@ public:
     * @returns true if save was successful
     */
     virtual bool save();
+    using PG_DisaFileInterface::refresh;
+    /**
+    * @brief Will refresh data refrences used when file has changed
+    * @returns Usualy called after save
+    */
+    virtual bool refresh() { return FAILURE; };
 protected:
     virtual void fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {/* does nothing by default*/ }
 
@@ -294,6 +300,7 @@ receivers:
 protected:
     void doneSaving() const { m_originalReader.reset(); }
     void fileEntryModefiedChanged(const PG_DisaFileEntry& entry) override;
+    std::unordered_map<std::string, const PG_DisaFileEntry*> getEntiesWithContainer() const;
 
     PG_File m_file;
     bool m_filesRemoved = false;

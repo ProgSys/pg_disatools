@@ -92,9 +92,9 @@ static inline std::vector<std::string> readFileNames(std::string filename) {
 
 
 bool PG_OLA::open(std::shared_ptr<PG::STREAM::In> reader) {
-	close();
 	if (!reader || !reader->isOpen()) {
 		OUT_ERROR("Reader is not open!");
+		close();
 		return FAILURE;
 	}
 
@@ -126,6 +126,7 @@ bool PG_OLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 	if (!m_isHeaderSizeIncluded) {
 		lastOffset += headerSize;
 	}
+	const auto lookUp = getEntiesWithContainer();
 
 	for (unsigned int i = 0; i < numberOfFiles; ++i) {
 		PG_DisaFileEntry entry = PG_DisaFileEntry(this);
@@ -162,7 +163,10 @@ bool PG_OLA::open(std::shared_ptr<PG::STREAM::In> reader) {
 		}
 
 		entry.setInfo(std::move(info));
-		contains.push_back(entry);
+		if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
+			entry.setContainerRestore(findIt->second->getContainer());
+		}
+		contains.push_back(std::move(entry));
 	}
 
 	m_originalReader = reader;

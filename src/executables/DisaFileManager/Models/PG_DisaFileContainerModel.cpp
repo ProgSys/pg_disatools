@@ -23,8 +23,9 @@ PG_File PG_DisaFileContainerModel::getOriginFile() const {
 	auto parent = m_fileContainer->getParentEntry().getParent();
 	while (parent) {
 		if (parent->getFile()) return parent->getFile();
-		parent->getParentEntry().getParent();
+		parent = parent->getParentEntry().getParent();
 	}
+	return {};
 }
 
 std::string PG_DisaFileContainerModel::getFileName() const {
