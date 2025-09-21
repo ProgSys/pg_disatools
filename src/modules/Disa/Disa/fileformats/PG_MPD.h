@@ -28,6 +28,7 @@
 #include <vector>
 #include <array>
 #include <ostream>
+#include <glm/glm.hpp>
 #include <Util/Typedefs.h>
 #include <Util/PG_File.h>
 #include <Stream/PG_StreamIn.h>
@@ -112,10 +113,10 @@ PACK( struct mpdfileTile{ //128 bytes
 	*  SW0-----SE1
 	*/
   std::array<char, 4> cornersTop;   // Height in each corner of the tile, negative = up; (SW, SE, NW, NE) 
-  std::array<char, 2> sideN; //North bottom points, are usualy 0 if side face is hidden or starts from ground
-  std::array<char, 2> sideE; //East bottom points, are usualy 0 if side face is hidden or starts from ground
-  std::array<char, 2> sideS; //South bottom points, are usualy 0 if side face is hidden or starts from ground
-  std::array<char, 2> sideW; //West bottom points, are usualy 0 if side face is hidden or starts from ground
+  glm::i8vec2 sideN; //North bottom points, are usualy 0 if side face is hidden or starts from ground
+  glm::i8vec2 sideE; //East bottom points, are usualy 0 if side face is hidden or starts from ground
+  glm::i8vec2 sideS; //South bottom points, are usualy 0 if side face is hidden or starts from ground
+  glm::i8vec2 sideW; //West bottom points, are usualy 0 if side face is hidden or starts from ground
   unsigned char  unk2[4];      // TBD
   char visible;
   unsigned char  x, z; //position of tile

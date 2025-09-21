@@ -203,23 +203,23 @@ static inline mpdfileTile jsonToTile(const nlohmann::json& jTile) {
 	}
 	{
 		auto& corners = jTile["corners_sideN"];
-		corners["a"].get_to(tile.sideN[0]);
-		corners["b"].get_to(tile.sideN[1]);
+		corners["a"].get_to(tile.sideN.x);
+		corners["b"].get_to(tile.sideN.y);
 	}
 	{
 		auto& corners = jTile["corners_sideE"];
-		corners["a"].get_to(tile.sideE[0]);
-		corners["b"].get_to(tile.sideE[1]);
+		corners["a"].get_to(tile.sideE.x);
+		corners["b"].get_to(tile.sideE.y);
 	}
 	{
 		auto& corners = jTile["corners_sideS"];
-		corners["a"].get_to(tile.sideS[0]);
-		corners["b"].get_to(tile.sideS[1]);
+		corners["a"].get_to(tile.sideS.x);
+		corners["b"].get_to(tile.sideS.y);
 	}
 	{
 		auto& corners = jTile["corners_sideW"];
-		corners["a"].get_to(tile.sideW[0]);
-		corners["b"].get_to(tile.sideW[1]);
+		corners["a"].get_to(tile.sideW.x);
+		corners["b"].get_to(tile.sideW.y);
 	}
 
 	{
@@ -420,23 +420,23 @@ static inline nlohmann::json tileToJson(const mpdfileTile& tile) {
 	}
 	{
 		auto& corners = jTile["corners_sideN"];
-		corners["a"] = tile.sideN[0];
-		corners["b"] = tile.sideN[1];
+		corners["a"] = tile.sideN.x;
+		corners["b"] = tile.sideN.y;
 	}
 	{
 		auto& corners = jTile["corners_sideE"];
-		corners["a"] = tile.sideE[0];
-		corners["b"] = tile.sideE[1];
+		corners["a"] = tile.sideE.x;
+		corners["b"] = tile.sideE.y;
 	}
 	{
 		auto& corners = jTile["corners_sideS"];
-		corners["a"] = tile.sideS[0];
-		corners["b"] = tile.sideS[1];
+		corners["a"] = tile.sideS.x;
+		corners["b"] = tile.sideS.y;
 	}
 	{
 		auto& corners = jTile["corners_sideW"];
-		corners["a"] = tile.sideW[0];
-		corners["b"] = tile.sideW[1];
+		corners["a"] = tile.sideW.x;
+		corners["b"] = tile.sideW.y;
 	}
 
 	{

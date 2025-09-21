@@ -53,10 +53,13 @@ void PG_DisaMapViewNode::setModel(const std::shared_ptr<PG_DisaMPDContainer>& co
 	if (m_mpdContainer) {
 		auto* model = m_mpdContainer->getModel();
 		connect(model->getTiles(), &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex, const PG_IdentitySet& identities) {
-			if (auto* selectionHandler = findFirstChild<PG_DisaMapSelectionHandlerNode>()) {
-				for (int i = startIndex; i <= endIndex; ++i) {
-					selectionHandler->update(m_mpdContainer->getModel()->getTiles()->get(i)->getTilePosition());
-				}
+			auto* selectionHandler = findFirstChild<PG_DisaMapSelectionHandlerNode>();
+			if (!selectionHandler) return;
+			auto* tiles = m_mpdContainer->getModel()->getTiles();
+			if (tiles->empty()) return;
+			endIndex = std::min(endIndex, (unsigned int)tiles->getItems().size() - 1);
+			for (int i = startIndex; i <= endIndex; ++i) {
+				selectionHandler->update(tiles->get(i)->getTilePosition());
 			}
 		});
 		connect(model, &PG_DisaMapModel::mapChanged, this, &PG_DisaMapViewNode::contentChanged, ConnectionType_Event);
@@ -116,10 +119,13 @@ void PG_DisaMapViewNode::setMode(EMode mode) {
 		auto selectionHandler = PG_new<PG_DisaMapSelectionHandlerNode>("PG_DisaMapSelectionHandlerNode", this);
 		selectionHandler->moveFront(getTileView());
 		connect(model->getTiles(), &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex, const PG_IdentitySet& identities) {
-			if (auto* selectionHandler = findFirstChild<PG_DisaMapSelectionHandlerNode>()) {
-				for (int i = startIndex; i <= endIndex; ++i) {
-					selectionHandler->update(getMapModel()->getTiles()->get(i)->getTilePosition());
-				}
+			auto* selectionHandler = findFirstChild<PG_DisaMapSelectionHandlerNode>();
+			if (!selectionHandler) return;
+			auto* tiles = getMapModel()->getTiles();
+			if (tiles->empty()) return;
+			endIndex = std::min(endIndex, (unsigned int)tiles->getItems().size() - 1);
+			for (int i = startIndex; i <= endIndex; ++i) {
+				selectionHandler->update(getMapModel()->getTiles()->get(i)->getTilePosition());
 			}
 		});
 

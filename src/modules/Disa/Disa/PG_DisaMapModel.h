@@ -133,6 +133,11 @@ class PG_DisaMapTileModel : public PG_Object {
 	PG_PROPERTY(char topB GET getTopB SET setTopB CHANGED topBChanged)
 	PG_PROPERTY(char topC GET getTopC SET setTopC CHANGED topCChanged)
 	PG_PROPERTY(char topD GET getTopD SET setTopD CHANGED topDChanged)
+
+	PG_PROPERTY(glm::i8vec2 bottomA GET getBottomA SET setBottomA CHANGED bottomAChanged)
+	PG_PROPERTY(glm::i8vec2 bottomB GET getBottomB SET setBottomB CHANGED bottomBChanged)
+	PG_PROPERTY(glm::i8vec2 bottomC GET getBottomC SET setBottomC CHANGED bottomCChanged)
+	PG_PROPERTY(glm::i8vec2 bottomD GET getBottomD SET setBottomD CHANGED bottomDChanged)
 signals:
 	void mobilityChanged();
 	void geoColorChanged();
@@ -143,6 +148,11 @@ signals:
 	void topBChanged();
 	void topCChanged();
 	void topDChanged();
+
+	void bottomAChanged();
+	void bottomBChanged();
+	void bottomCChanged();
+	void bottomDChanged();
 
 	void textureIndexChanged(int slotIndex);
 public:
@@ -274,6 +284,18 @@ public:
 	char getTopD() const { return -m_data.cornersTop[3]; }
 	void setTopD(char value);
 
+	glm::i8vec2 getBottomA() const { return -m_data.sideN; }
+	void setBottomA(glm::i8vec2 value);
+
+	glm::i8vec2 getBottomB() const { return -m_data.sideE; }
+	void setBottomB(glm::i8vec2 value);
+
+	glm::i8vec2 getBottomC() const { return -m_data.sideS; }
+	void setBottomC(glm::i8vec2 value);
+
+	glm::i8vec2 getBottomD() const { return -m_data.sideW; }
+	void setBottomD(glm::i8vec2 value);
+
 	/**
 	* @brief Sets the texture index to zero (empty)
 	*/
@@ -403,6 +425,8 @@ public:
 		createModel()->openMap(reader);
 		return SUCCESS;
 	};
+
+	bool refresh(std::shared_ptr<PG::STREAM::In> reader) override { return SUCCESS; };
 
 	bool save(std::shared_ptr<PG::STREAM::Out> writer) const override {
 		if (!m_model) return FAILURE;

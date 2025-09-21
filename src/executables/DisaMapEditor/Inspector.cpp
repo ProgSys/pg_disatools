@@ -46,6 +46,54 @@
 constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
 constexpr float inspectorWidth = 310.f;
 
+template<typename T, typename R, R T::* Member>
+static PG_Any getVecValue(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& defaultValue) {
+	auto selcIt = selection.begin();
+	auto propIt = properties.begin();
+
+	auto any = PG_SelectionWrapper::overrideWithModel(*selcIt)->getPropertyValue(*propIt);
+
+	R out = any.get<T>().*Member;
+	++selcIt, ++propIt;
+
+	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
+		auto any2 = PG_SelectionWrapper::overrideWithModel(*selcIt)->getPropertyValue(*propIt);
+
+		if (out != any2.get<T>().*Member) return defaultValue;
+	}
+
+	return PG_Any::from<R>(out);
+
+}
+
+
+template<typename T, typename R, R T::* Member>
+static void setVecValue(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& value) {
+
+	auto selcIt = selection.begin();
+	auto propIt = properties.begin();
+	R memberValue = value.get<int>();
+	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
+		auto model = PG_SelectionWrapper::overrideWithModel(*selcIt);
+		auto any = model->getPropertyValue(*propIt);
+		T v = any.get<T>();
+		(v.*Member) = memberValue;
+		model->setPropertyValue(*propIt, PG_Any::from(v));
+	}
+}
+
+
+template<int glm::ivec3::* Member>
+static PG_Any getIVec3Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& defaultValue) {
+	return getVecValue<glm::ivec3, int, Member>(selection, properties, defaultValue);
+}
+
+template<int glm::ivec3::* Member>
+static void setIVec3Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& value) {
+	return setVecValue<glm::ivec3, int, Member>(selection, properties, value);
+}
+
+
 /******* Models ********/
 
 /**
@@ -159,6 +207,16 @@ static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrappe
 	wrapper->registerProperty("topC", PG_Any::from<char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
 	wrapper->registerProperty("topD", PG_Any::from<char>(0), &PG_SelectionWrapper::getValueFirst, &PG_SelectionWrapper::setValueDiff);
 
+
+	wrapper->registerProperty("bottomAx", "bottomA", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>);
+	wrapper->registerProperty("bottomAy", "bottomA", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>);
+	wrapper->registerProperty("bottomBx", "bottomB", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>);
+	wrapper->registerProperty("bottomBy", "bottomB", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>);
+	wrapper->registerProperty("bottomCx", "bottomC", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>);
+	wrapper->registerProperty("bottomCy", "bottomC", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>);
+	wrapper->registerProperty("bottomDx", "bottomD", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::x>);
+	wrapper->registerProperty("bottomDy", "bottomD", PG_Any::from<int8_t>(0), &getVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>, &setVecValue<glm::i8vec2, int8_t, &glm::i8vec2::y>);
+
 	constexpr float textWidth = 140.f;
 	{
 		PG_GuiRow* row = createRow(column, "Mobility:", textWidth);
@@ -233,6 +291,68 @@ static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrappe
 		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
 	}
 
+	{
+		PG_GuiRow* row = createRow(column, "Bottom:", 90.f);
+
+		constexpr float spinTexWidth = 48.0f;
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomAxSpinBox", "bottomAx");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomAySpinBox", "bottomAy");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		auto spacer = PG_new<PG_GuiItem>("spacer", glm::vec2(0.f), glm::vec2(1.f), row);
+		spacer->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomBxSpinBox", "bottomBx");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomBySpinBox", "bottomBy");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		PG_GuiRow* row = createRow(column, "", 90.f);
+		constexpr float spinTexWidth = 48.0f;
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomCxSpinBox", "bottomCx");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomCySpinBox", "bottomCy");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		auto spacer = PG_new<PG_GuiItem>("spacer", glm::vec2(0.f), glm::vec2(1.f), row);
+		spacer->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomDxSpinBox", "bottomDx");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int8_t>(row, wrapper, "bottomDySpinBox", "bottomDy");
+		PG_GuiSpinBox::setupInt(spinBox, 0, 127);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
 
 	auto* guiToggleButton = PG_Gui::createGuiElementV2<PG_GuiToggleButton>(column, wrapper, "isStartingPointCheckbox", "isStartingPoint", "toggled",
 		[](const std::string& name, PG_GuiItem* root) {
@@ -626,40 +746,6 @@ static inline void createForEventEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 
 constexpr float spinTexWidth = 50.f;
 
-template<int glm::ivec3::* Member>
-static PG_Any getIVec3Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& defaultValue) {
-	auto selcIt = selection.begin();
-	auto propIt = properties.begin();
-
-	auto any = PG_SelectionWrapper::overrideWithModel(*selcIt)->getPropertyValue(*propIt);
-
-	int out = any.get<glm::ivec3>().*Member;
-	++selcIt, ++propIt;
-
-	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
-		auto any2 = PG_SelectionWrapper::overrideWithModel(*selcIt)->getPropertyValue(*propIt);
-
-		if (out != any2.get<glm::ivec3>().*Member) return defaultValue;
-	}
-
-	return PG_Any::from<int>(out);
-	
-}
-
-template<int glm::ivec3::* Member>
-static void setIVec3Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& value) {
-
-	auto selcIt = selection.begin();
-	auto propIt = properties.begin();
-	int intValue = value.get<int>();
-	for (; selcIt != selection.end(); ++selcIt, ++propIt) {
-		auto model = PG_SelectionWrapper::overrideWithModel(*selcIt);
-		auto any = model->getPropertyValue(*propIt);
-		glm::ivec3 v = any.get<glm::ivec3>();
-		(v.*Member) = intValue;
-		model->setPropertyValue(*propIt, PG_Any::from(v));
-	}
-}
 
 static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
 	column->clearGuiChildren();

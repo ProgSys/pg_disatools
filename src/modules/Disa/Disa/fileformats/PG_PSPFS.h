@@ -37,6 +37,7 @@ public:
 	});
 	using PG_DisaFileContainer::PG_DisaFileContainer;
 
+	using PG_DisaFileInterface::open;
     bool open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) final;
 	bool save(std::shared_ptr<PG::STREAM::Out> writer) const final;
 	bool save() final;

@@ -475,6 +475,27 @@ void PG_DisaMapTileModel::setTopD(char value) {
 	change(this, m_data.cornersTop[3], value, &PG_DisaMapTileModel::topDChanged);
 }
 
+void PG_DisaMapTileModel::setBottomA(glm::i8vec2 value) {
+	value *= -1;
+	change(this, m_data.sideN, value, &PG_DisaMapTileModel::bottomAChanged);
+}
+
+void PG_DisaMapTileModel::setBottomB(glm::i8vec2 value) {
+	value *= -1;
+	change(this, m_data.sideE, value, &PG_DisaMapTileModel::bottomBChanged);
+}
+
+void PG_DisaMapTileModel::setBottomC(glm::i8vec2 value) {
+	value *= -1;
+	change(this, m_data.sideS, value, &PG_DisaMapTileModel::bottomCChanged);
+}
+
+void PG_DisaMapTileModel::setBottomD(glm::i8vec2 value) {
+	value *= -1;
+	change(this, m_data.sideW, value, &PG_DisaMapTileModel::bottomDChanged);
+}
+
+
 void PG_DisaMapTileModel::clearTexture(int slotIndex) {
 	if (slotIndex >= 12) return;
 	if (m_data.textures[slotIndex].textureIndex == 0) return;
@@ -568,10 +589,10 @@ PG_ListModelLocation PG_DisaMapTileListModel::addNewTile(glm::ivec2 pos, std::ar
 
 
 	std::ranges::fill(data.cornersTop, -8);
-	std::ranges::fill(data.sideN, 0);
-	std::ranges::fill(data.sideE, 0);
-	std::ranges::fill(data.sideS, 0);
-	std::ranges::fill(data.sideW, 0);
+	data.sideN = glm::i8vec2(0);
+	data.sideE = glm::i8vec2(0);
+	data.sideS = glm::i8vec2(0);
+	data.sideW = glm::i8vec2(0);
 	data.visible = 1;
 	data.x = 0;
 	data.z = 0;
