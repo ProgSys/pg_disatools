@@ -223,6 +223,7 @@ void DisaNewCharacterDrag::released() {
 		data.level = static_cast<unsigned short>(level);
 		data.alliance = 1;
 		data.rotation = m_modelMoc->p_rotation;
+		data.visible = 0;
 		data.ai = 1;
 		data.unk5 = 0;
 		data.unk6 = 0;
