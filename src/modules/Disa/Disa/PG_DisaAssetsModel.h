@@ -249,6 +249,8 @@ public:
 	const std::shared_ptr<PG_MPPContainer>& getContainerSD() const { return m_containerSD; }
 	const std::shared_ptr<PG_MPPContainer>& getContainerHD() const { return m_containerHD; }
 
+	inline void clearModified() { m_modified.clear(); }
+
 private:
 	void importTexture(PG_TX2&& tx2, PG_ListModelLocation location, ETextureType type);
 

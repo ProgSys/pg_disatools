@@ -1120,3 +1120,12 @@ std::shared_ptr<PG::STREAM::In> PG_DisaMPDContainer::createReader() const {
 	}
 	return nullptr;
 }
+
+bool PG_DisaMPDContainer::saveFile() {
+	if (!PG_DisaContainerInterface::save()) return FAILURE;
+	if (m_model && m_model->getAssets()) {
+		m_model->getAssets()->clearModified();
+		emit isModifiedChanged();
+	}
+	return SUCCESS;
+}

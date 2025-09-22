@@ -462,7 +462,8 @@ public:
 		return m_model;
 	}
 receivers:
-	bool saveFile() { return PG_DisaContainerInterface::save(); }//a bit ugly
+	//a bit ugly
+	bool saveFile();
 private:
 	PG_DisaMapModel* m_model = nullptr;
 };
