@@ -152,7 +152,7 @@ static inline zip_int64_t writeCallback(void* state, void* data, zip_uint64_t le
     }
 }
 
-struct StreamWriteDataRockback {
+struct StreamWriteDataRollback {
     using BufferListItem = std::pair<std::size_t, std::vector<char>>;
     using BufferList = std::vector<BufferListItem>;
     PG::STREAM::InOut* stream;
@@ -176,36 +176,6 @@ struct StreamWriteDataRockback {
         size = std::max(size, buffer.back().first + buffer.back().second.size());
     }
 
-    void read(void* data, zip_uint64_t len) {
-        if (len == 0) return;
-        //read original data
-        if (pos < sizeOrg){ 
-            size_t readStart = pos;
-            size_t readEnd = std::min(sizeOrg, static_cast<size_t>(pos + len));
-            if (readStart < readEnd) {
-                stream->seek(pos);
-                stream->read(static_cast<char*>(data), readEnd - readStart);
-            } 
-        }
-
-        //read buffers
-        auto findIt = std::ranges::find_if(buffer, [pos = pos, end = pos + len](const BufferListItem& item) {
-            return PG_Math::overlap1D<size_t>(item.first, item.first + item.second.size(), pos, end);
-            });
-
-        if (findIt != buffer.end()) {
-            for (auto it = findIt; it != buffer.end(); ++it) {
-                if (it->first >= pos + len) break;
-                size_t writeTo = (pos < it->first) ? it->first - pos: 0;
-                size_t readAt =  (pos > it->first) ? pos - it->first: 0;
-                memcpy((char*)data + writeTo, it->second.data() + readAt, std::min<size_t>(len, it->second.size() - readAt));
-            }
-
-        }
-
-        pos += len;
-    }
-
     void rollback() {
         buffer.clear();
         size = sizeOrg;
@@ -223,8 +193,11 @@ struct StreamWriteDataRockback {
             stream->seek(b.first);
             stream->writeData(b.second);
         }
-        sizeOrg = size;
         buffer.clear();
+        if (size < sizeOrg) {
+            stream->truncate(size);
+        }
+        sizeOrg = size;
     }
 
     bool seek(int offset, int whence) {
@@ -265,8 +238,7 @@ struct StreamWriteDataRockback {
         //merge them together
         size_t startIndex = std::min(overlap.front()->first, pos);
         size_t endIndex = std::max(overlap.back()->first + overlap.back()->second.size(), static_cast<size_t>(pos + len));
-        std::vector<char> data(endIndex - startIndex, 0);// = std::move(buffer.front().second);
-       // data.resize(endIndex - startIndex, 0);
+        std::vector<char> data(endIndex - startIndex);
 
         for (auto it : overlap) {
             memcpy(data.data() + (it->first - startIndex), it->second.data(), it->second.size());
@@ -282,11 +254,11 @@ struct StreamWriteDataRockback {
 };
 
 static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip_uint64_t len, zip_source_cmd_t cmd) {
-    StreamWriteDataRockback* streamData = static_cast<StreamWriteDataRockback*>(state);
+    StreamWriteDataRollback* streamData = static_cast<StreamWriteDataRollback*>(state);
 
     switch (cmd) {
     case ZIP_SOURCE_OPEN:
-        // OUT_INFO("ZIP_SOURCE_OPEN");
+        //OUT_INFO("ZIP_SOURCE_OPEN");
         streamData->stream->seek(0);
         return 0;
     case ZIP_SOURCE_CLOSE:
@@ -313,8 +285,8 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
         return 0;
     case ZIP_SOURCE_READ:
         //OUT_INFO("ZIP_SOURCE_READ");
-        if (streamData->size <= streamData->stream->pos()) return 0;
-        len = std::min(zip_uint64_t(streamData->size - streamData->stream->pos()), len);
+        if (streamData->stream->pos() >= streamData->sizeOrg) return -1;
+        len = std::min(zip_uint64_t(streamData->sizeOrg - streamData->stream->pos()), len);
         streamData->stream->read(static_cast<char*>(data), len);
         return len;
     case ZIP_SOURCE_SEEK_WRITE: {
@@ -365,6 +337,8 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
     case ZIP_SOURCE_SUPPORTS:
         //OUT_INFO("ZIP_SOURCE_SUPPORTS");
         return ZIP_SOURCE_SUPPORTS_WRITABLE;
+    case ZIP_SOURCE_BEGIN_WRITE_CLONING:
+        //OUT_INFO("ZIP_SOURCE_BEGIN_WRITE_CLONING");
     default:
         return -1;
     }
@@ -421,10 +395,10 @@ zip* openZip(const std::shared_ptr<PG::STREAM::InOut>& reader) {
     zip_error_t error;
     error.str = nullptr;
 
-    StreamWriteDataRockback* streamData = new StreamWriteDataRockback;
+    StreamWriteDataRollback* streamData = new StreamWriteDataRollback;
     streamData->stream = reader.get();
-    streamData->size = reader->size();
-    streamData->sizeOrg = streamData->size;
+    streamData->sizeOrg = reader->size();
+    streamData->size = 0;
     streamData->pos = 0;
     
     zip_source_t* src = zip_source_function_create(writeRollbackableCallback, streamData, &error);
@@ -434,7 +408,7 @@ zip* openZip(const std::shared_ptr<PG::STREAM::InOut>& reader) {
         return nullptr;
     }
 
-    zip* ptr = zip_open_from_source(src, 0, &error);
+    zip* ptr = zip_open_from_source(src, ZIP_CHECKCONS, &error);
     if (!ptr) {
         OUT_ERROR("Failed to open ZIP archive: " << zip_error_strerror(&error));
         zip_source_free(src);
@@ -733,42 +707,55 @@ bool PG_ZIP::save() {
         }
     }
 
+    OUT_INFO("Perform .zip diff save.");
 
     zip_error_t error;
     for (auto& change : changes) {
         if (!change.reader) continue;
 
-        if (!zipU) zipU = openZip(std::dynamic_pointer_cast<PG::STREAM::InOut>(writer));
+        //will call zip_open_from_source to open the zip
+        if (!zipU) {
+            zipU = openZip(std::dynamic_pointer_cast<PG::STREAM::InOut>(writer));
+        }
         if (!zipU) return FAILURE;
 
+        //holds the momery that shall be written
         StreamDataMem* streamData = new StreamDataMem;
         streamData->stream = change.reader.get();
         streamData->size = change.reader->size();
+        if (streamData->size == 0) {
+            OUT_ERROR("Invalid zero size!");
+            delete streamData;
+            zip_discard(zipU);
+            return FAILURE;
+        }
         change.reader->seek(0);
-        streamData->hold = std::move(change.reader);
+        streamData->hold = std::move(change.reader); //take onwership of the shared ptr
 
+        // create source_function, clean up will handle ziplib unless there is an error
         zip_source_t* src = zip_source_function_create(readCallback, streamData, &error);
+        if (src == nullptr) {
+            delete streamData;
+            OUT_ERROR("Failed to create source_function: " << zip_strerror(zipU));
+            zip_discard(zipU);
+            return FAILURE;
+        }
 
+        //if index is smaller zero then its a new file
         if (change.index < 0) {
-            if (src == nullptr || zip_file_add(zipU, change.entry->getInfo().getName().getPath().c_str(), src, ZIP_FL_OVERWRITE) < 0) {
+            OUT_INFO("Add file " << change.index);
+            if (zip_file_add(zipU, change.entry->getInfo().getName().getPath().c_str(), src, ZIP_FL_OVERWRITE) < 0) {
                 OUT_ERROR("Failed to add file to zip: " << zip_strerror(zipU));
                 if (src != nullptr) zip_source_free(src);
             }
         }
         else {
-            if (src == nullptr || zip_file_replace(zipU, change.index, src, 0) < 0) {
+            OUT_INFO("Replace file "<< change.index);
+            if (zip_file_replace(zipU, change.index, src, 0) < 0) {
                 OUT_ERROR("Failed to replace file in zip: " << zip_strerror(zipU));
                 if (src != nullptr) zip_source_free(src);
             }
         }
-        //this is stupid, but files become currupted otherwise
-        if (zip_close(zipU) != 0) {
-            OUT_ERROR("Failed to save zip: " << zip_strerror(zipU));
-            zip_discard(zipU);
-            return FAILURE;
-        }
-        writer->rewind();
-        zipU = nullptr;
     }
 
     changes.clear();
