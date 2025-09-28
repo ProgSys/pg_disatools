@@ -721,6 +721,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 		auto btn = PG_new<PG_GuiButton>("autoPlaneProjectBtn", glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), column);
 		btn->setText("Auto plane project");
 		btn->setIcon("gui/disa/icon_event.png");
+		btn->setTooltipText("Projects UVs onto the plane originating from the first selected face");
 		btn->setBackground("M_GuiRoundedRectangleAll5");
 		PG_GuiItem::anchor(btn, PG_Anchor::Right, column, PG_Anchor::Right);
 		PG_GuiItem::anchor(btn, PG_Anchor::Left, column, PG_Anchor::Left);
@@ -765,7 +766,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 					glm::vec3(0.f, 0.f, -1.f) //normal
 				};
 				pointsGetFunc = &PG_DisaMapTileModel::getSideN;
-			}
+			} break;
 			case 6:
 			case 1: { //E
 				plane.base = {
