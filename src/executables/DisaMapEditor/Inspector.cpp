@@ -42,6 +42,7 @@
 #include <CustomGui/PG_DisaUVItem.h>
 #include <Util/Color/ColorDefined.h>
 #include <Util/PG_Math.h>
+#include <Util/PG_RangesTransform.h>
 
 constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
 constexpr float inspectorWidth = 310.f;
@@ -716,7 +717,200 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 		PG_Gui::connectGuiElementV2(wrapper, "texIsGridEnabled", btn, "toggled");
 	}
 
+	{
+		auto btn = PG_new<PG_GuiButton>("autoPlaneProjectBtn", glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), column);
+		btn->setText("Auto plane project");
+		btn->setIcon("gui/disa/icon_event.png");
+		btn->setBackground("M_GuiRoundedRectangleAll5");
+		PG_GuiItem::anchor(btn, PG_Anchor::Right, column, PG_Anchor::Right);
+		PG_GuiItem::anchor(btn, PG_Anchor::Left, column, PG_Anchor::Left);
 
+		PG_Object::connect(btn, &PG_GuiButton::clicked, wrapper, [wrapper] {
+			const auto& selection = wrapper->getSelectionItems();
+			if (selection.size() < 1) return;
+			auto* tileMaterialModel = dynamic_cast<PG_DisaMapTileMaterialModel*>(selection.front());
+			if (!tileMaterialModel) return;
+			
+			struct ProjetionPlane {
+				glm::vec3 origin;
+				glm::vec3 dirU;
+				glm::vec3 dirV;
+				glm::vec3 normal;
+
+				glm::vec2 project(glm::vec3 p) const{
+					p -= origin;
+					glm::vec2 uv(glm::dot(dirU, p), glm::dot(dirV, p));
+					uv *= 256.f;
+					uv = glm::round(uv);
+					/*
+					uv.x = std::fmodf(uv.x, 256.f);
+					uv.y = std::fmodf(uv.y, 256.f);
+					if (uv.x < 0.f) uv.x += 256.f;
+					if (uv.y < 0.f) uv.y += 256.f;
+					*/
+					return uv;
+				}
+			};
+
+
+			ProjetionPlane plane;
+			plane.origin = tileMaterialModel->getTile()->getTranslation();
+
+			using PointsGetFunc = std::array<glm::vec3, 4>(PG_DisaMapTileModel::*)(const glm::vec3&) const;
+			PointsGetFunc pointsGetFunc;
+			switch (tileMaterialModel->getIndex()) {
+			case 5:
+			case 0: {
+				plane.normal = glm::vec3(0.f, 0.f, -1.f);//N
+				plane.dirU = glm::vec3(-1.f, 0.f, 0.f);
+				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+				pointsGetFunc = &PG_DisaMapTileModel::getSideN;
+			}
+			case 6:
+			case 1: {
+				plane.normal = glm::vec3(-1.f, 0.f, 0.f);  //E
+				plane.dirU = glm::vec3(0.f, 0.f, 1.f);
+				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+				pointsGetFunc = &PG_DisaMapTileModel::getSideE;
+			} break;
+			case 7:
+			case 2: {
+				plane.normal = glm::vec3(0.f, 0.f, 1.f);  //S
+				plane.dirU = glm::vec3(1.f, 0.f, 0.f);
+				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+				pointsGetFunc = &PG_DisaMapTileModel::getSideS;
+			} break;
+			case 8:
+			case 3: {
+				plane.normal = glm::vec3(1.f, 0.f, 0.f);  //W
+				plane.dirU = glm::vec3(0.f, 0.f, -1.f);
+				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+				pointsGetFunc = &PG_DisaMapTileModel::getSideW;
+			} break;
+			default:
+			case 4: //top base
+			case 9: // top decal, top shadow
+			case 10: {
+				plane.normal = glm::vec3(0.f, 1.f, 0.f);
+				plane.dirU = glm::vec3(-1.f, 0.f, 0.f);
+				plane.dirV = glm::vec3(0.f, 0.f, -1.f);
+				pointsGetFunc = &PG_DisaMapTileModel::getTop;
+			} break;
+			}
+
+			
+			if (tileMaterialModel->getRotation() != 0) {
+				glm::quat q = glm::angleAxis(glm::radians(-90.f * tileMaterialModel->getRotation()), plane.normal);
+				plane.dirU = glm::round(q * plane.dirU);
+				plane.dirV = glm::round(q * plane.dirV);
+			}
+
+			constexpr float textureScale = 256.f;
+			{
+
+				glm::vec2 projectDirU(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+				glm::vec2 projectDirV(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+				glm::vec2 projectOriginMin(std::numeric_limits<float>::max());
+
+				for (glm::vec3 p : std::invoke(pointsGetFunc, tileMaterialModel->getTile(), tileMaterialModel->getTile()->getTranslation())) {
+					glm::vec2 project(glm::dot(plane.dirU, p), glm::dot(plane.dirV, p));
+					std::cout << "Point: " << p << " proj: " << project << std::endl;
+					projectDirU = { glm::min(projectDirU.x, project.x),  glm::max(projectDirU.y, project.x) };
+					projectDirV = { glm::min(projectDirV.x, project.y),  glm::max(projectDirV.y, project.y) };
+					if (project.x <= projectOriginMin.x && project.y <= projectOriginMin.y) {
+						plane.origin = p;
+						projectOriginMin = project + glm::vec2(0.1f);
+					}
+				}
+				std::cout << "Origin: " << plane.origin << std::endl;
+
+				const glm::vec2 scale(tileMaterialModel->getWidth() / textureScale, tileMaterialModel->getHeight() / textureScale);
+				plane.origin -= (plane.dirU / scale.y) * (tileMaterialModel->getU() / textureScale) + (plane.dirV / scale.y) * (tileMaterialModel->getV() / textureScale);
+				plane.dirU /= projectDirU.y - projectDirU.x;
+				plane.dirV /= projectDirV.y - projectDirV.x;
+				plane.dirU *= scale.x;
+				plane.dirV *= scale.y;
+			}
+
+
+
+			std::array<glm::vec2, 4> projected;
+			for (auto* item : selection ) {
+				auto* model = dynamic_cast<PG_DisaMapTileMaterialModel*>(item);
+				if (!model) continue;
+				model->setMirrorHorizontal(tileMaterialModel->isMirrorHorizontal());
+				model->setMirrorVertical(tileMaterialModel->isMirrorVertical());
+				model->setRotation(tileMaterialModel->getRotation());
+
+
+				int i = 0;
+				for (glm::vec3 p : std::invoke(pointsGetFunc, model->getTile(), model->getTile()->getTranslation())) {
+					projected[i++] = plane.project(p);
+				}
+				glm::vec2 min(std::numeric_limits<float>::max());
+				glm::vec2 max(std::numeric_limits<float>::lowest());
+				for (glm::vec2 p : projected) {
+					min = glm::min(min, p);
+					max = glm::max(max, p);
+				}
+				constexpr auto modV = [](float x) {
+					x = std::fmodf(x, textureScale);
+					if (x < 0.f) x += textureScale;
+					return x;
+				};
+
+				//shift into bounds
+				{
+					glm::vec2 shift = glm::vec2(modV(min.x), modV(min.y)) - min;
+					for (glm::vec2& p : projected) p += shift;
+					min += shift;
+					max += shift;
+				}
+
+				//compute the trapeze
+				glm::vec2 segmentLeft(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+				glm::vec2 segmentRight(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
+				const float center = glm::mix(min.x, max.x, 0.5f);
+				for (glm::vec2 p : projected) {
+					if (p.x < center) {
+						segmentLeft.x = std::min(segmentLeft.x , p.y);
+						segmentLeft.y = std::max(segmentLeft.y, p.y);
+					}else {
+						segmentRight.x = std::min(segmentRight.x, p.y);
+						segmentRight.y = std::max(segmentRight.y, p.y);
+					}
+				}
+
+				segmentLeft = glm::round(segmentLeft);
+				segmentRight = glm::round(segmentRight);
+
+				model->setU(min.x);
+				model->setV(segmentLeft.x);
+				model->setVRight(std::min(segmentRight.x, textureScale-1.f));
+
+				model->setWidth(std::min(glm::distance(min.x, max.x), 255.f));
+				model->setHeight(std::min(glm::distance(segmentLeft.x, segmentLeft.y), 255.f));
+				model->setHeightRight(std::min(glm::distance(segmentRight.x, segmentRight.y), 255.f));
+			}
+		});
+	}
+
+	{
+		auto btn = PG_new<PG_GuiButton>("clearTextureBtn", glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), column);
+		btn->setText("Clear texture");
+		btn->setIcon("gui/icon_delete.png");
+		btn->setBackground("M_GuiRoundedRectangleAll5");
+		PG_GuiItem::anchor(btn, PG_Anchor::Right, column, PG_Anchor::Right);
+		PG_GuiItem::anchor(btn, PG_Anchor::Left, column, PG_Anchor::Left);
+
+		PG_Object::connect(btn, &PG_GuiButton::clicked, wrapper, [wrapper] {
+			for (auto* item : wrapper->getSelectionItems()) {
+				auto func = item->getFunction("void clearTexture()");
+				if (!func) continue;
+				func.callArgs(item);
+			}
+		});
+	}
 }
 
 static inline void createForEventEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {

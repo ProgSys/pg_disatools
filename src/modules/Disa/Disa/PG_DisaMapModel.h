@@ -112,6 +112,8 @@ public:
 	void setIsShadow(bool value);
 
 	std::array<glm::vec2, 4> getUVOutline() const;
+receivers:
+	void clearTexture() { setTextureIndex(0); }
 private:
 	mpdfileTexdata& getData() const;
 	PG_DisaMapTileModel* m_tile = nullptr;
