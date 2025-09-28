@@ -3,6 +3,7 @@
 #include <Util/Debug/PG_DebugOut.h>
 #include <istream>
 #include <Stream/PG_StreamInByteArray.h>
+#include <Stream/PG_StreamInOutByteVector.h>
 #include <Stream/PG_StreamInOutByteFile.h>
 #include <Util/PG_Math.h>
 #include <Util/PG_Dir.h>
@@ -153,51 +154,34 @@ static inline zip_int64_t writeCallback(void* state, void* data, zip_uint64_t le
 }
 
 struct StreamWriteDataRollback {
-    using BufferListItem = std::pair<std::size_t, std::vector<char>>;
-    using BufferList = std::vector<BufferListItem>;
     PG::STREAM::InOut* stream;
-    BufferList buffer; //position, data
-    std::size_t pos;
-    std::size_t size;
-    std::size_t sizeOrg;
+    PG::STREAM::InOutByteVector out;
+    std::size_t sizeOriginal;
 
     void reset() {
         stream->seek(0);
-        buffer.clear();
-        pos = 0;
-        size = 0;
-        sizeOrg = 0;
+        out.truncate(0);
+        sizeOriginal = 0;
     }
 
     void write(void* data, zip_uint64_t len) {
-        std::pair<std::size_t, std::vector<char>>& b = getBuffer(pos, len);
-        memcpy(b.second.data() + (pos - b.first), data, len);
-        pos += len;
-        size = std::max(size, buffer.back().first + buffer.back().second.size());
+        out.write((char*)data, len);
     }
 
     void rollback() {
-        buffer.clear();
-        size = sizeOrg;
+        out.truncate(0);
     }
 
     void submit() {
-        if (buffer.empty()) return;
-
-        size_t lastWrite = buffer.front().first;
-        for (auto& b : buffer) {
-            if (lastWrite < b.first) {
-                std::vector<char> zero(b.first - lastWrite, 0);
-                stream->writeData(zero);
-            }
-            stream->seek(b.first);
-            stream->writeData(b.second);
+        if (out.getData().empty()) return;
+        auto posBefor = stream->pos();
+        stream->seek(0);
+        stream->write(out.getData().data(), out.getData().size());
+        if (sizeOriginal > out.getData().size()) {
+            stream->truncate(out.getData().size());
+            sizeOriginal = out.getData().size();
         }
-        buffer.clear();
-        if (size < sizeOrg) {
-            stream->truncate(size);
-        }
-        sizeOrg = size;
+        out.truncate(0);
     }
 
     bool seek(int offset, int whence) {
@@ -206,49 +190,15 @@ struct StreamWriteDataRollback {
         {
         default:
         case std::ios_base::beg: target = offset; break;
-        case std::ios_base::cur: target = (pos + offset); break;
-        case std::ios_base::end: target = (size + offset); break;
+        case std::ios_base::cur: target = (out.pos() + offset); break;
+        case std::ios_base::end: target = (out.size() + offset); break;
             break;
         }
 
-        if (target > size) return FAILURE;
-        pos = target;
+        if (target > out.size()) return FAILURE;
+        out.seek(target);
 
         return SUCCESS;
-    }
-
-    std::pair<std::size_t, std::vector<char>>& getBuffer(std::size_t pos, zip_uint64_t len) {
-        std::ranges::sort(buffer, {}, &std::pair<std::size_t, std::vector<char>>::first);
-        std::vector<BufferList::iterator> overlap;
-        for (auto it = buffer.begin(); it != buffer.end(); ++it) {
-            if (!PG_Math::intersection1D<size_t>(it->first, it->first + it->second.size(), pos, pos + len)) continue;
-            overlap.push_back(it);
-        }
-
-        if (overlap.empty()) {
-            buffer.push_back({ pos, std::vector<char>(len) });
-            return buffer.back();
-        }
-
-        //requested buffer is inside or equal
-        if (overlap.size() == 1 && buffer.front().first <= pos && (pos + len) <= (buffer.front().first + buffer.front().second.size())) {
-            return *overlap.front();
-        }
-
-        //merge them together
-        size_t startIndex = std::min(overlap.front()->first, pos);
-        size_t endIndex = std::max(overlap.back()->first + overlap.back()->second.size(), static_cast<size_t>(pos + len));
-        std::vector<char> data(endIndex - startIndex);
-
-        for (auto it : overlap) {
-            memcpy(data.data() + (it->first - startIndex), it->second.data(), it->second.size());
-        }
-
-        buffer.erase(std::next(overlap.front()), std::next(overlap.back()));
-
-        overlap.front()->first = startIndex;
-        overlap.front()->second = std::move(data);
-        return *overlap.front();
     }
 
 };
@@ -260,6 +210,7 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
     case ZIP_SOURCE_OPEN:
         //OUT_INFO("ZIP_SOURCE_OPEN");
         streamData->stream->seek(0);
+        streamData->sizeOriginal = streamData->stream->size();
         return 0;
     case ZIP_SOURCE_CLOSE:
         //OUT_INFO("ZIP_SOURCE_CLOSE");
@@ -270,7 +221,7 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
         zip_stat_init(st);
         st->valid |= (ZIP_STAT_SIZE | ZIP_STAT_INDEX | ZIP_STAT_COMP_METHOD | ZIP_STAT_CRC | ZIP_STAT_ENCRYPTION_METHOD);
         st->index = streamData->stream->pos();
-        st->size = streamData->sizeOrg;
+        st->size = streamData->sizeOriginal;
         st->comp_method = ZIP_CM_STORE; // Compression method (none)
         st->encryption_method = ZIP_EM_NONE; // No encryption
         st->crc = 0; // No check
@@ -285,8 +236,8 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
         return 0;
     case ZIP_SOURCE_READ:
         //OUT_INFO("ZIP_SOURCE_READ");
-        if (streamData->stream->pos() >= streamData->sizeOrg) return -1;
-        len = std::min(zip_uint64_t(streamData->sizeOrg - streamData->stream->pos()), len);
+        if (streamData->stream->pos() >= streamData->sizeOriginal) return -1;
+        len = std::min(zip_uint64_t(streamData->sizeOriginal - streamData->stream->pos()), len);
         streamData->stream->read(static_cast<char*>(data), len);
         return len;
     case ZIP_SOURCE_SEEK_WRITE: {
@@ -304,10 +255,10 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
         default:
         case std::ios_base::beg: target = args->offset; break;
         case std::ios_base::cur: target = (streamData->stream->pos() + args->offset); break;
-        case std::ios_base::end: target = (streamData->sizeOrg + args->offset); break;
+        case std::ios_base::end: target = (streamData->sizeOriginal + args->offset); break;
             break;
         }
-        if (target >= streamData->sizeOrg) return -1;
+        if (target >= streamData->sizeOriginal) return -1;
 
         streamData->stream->seek(target);
         return 0;
@@ -317,7 +268,7 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
         return streamData->stream->pos();
     case ZIP_SOURCE_TELL_WRITE:
         //OUT_INFO("ZIP_SOURCE_TELL_WRITE");
-        return streamData->pos;
+        return streamData->out.pos();
     case ZIP_SOURCE_BEGIN_WRITE:
         //OUT_INFO("ZIP_SOURCE_BEGIN_WRITE");
         return 0;
@@ -345,77 +296,105 @@ static inline zip_int64_t writeRollbackableCallback(void* state, void* data, zip
     
 }
 
-zipUPtr openZip(const std::shared_ptr<PG::STREAM::In>& reader) {
-    zip_error_t error;
-    error.str = nullptr;
-    StreamData* streamData = new StreamData;
-    streamData->stream = reader.get();
-    streamData->size = reader->size();
 
-    zip_source_t* src = zip_source_function_create(readCallback, streamData, &error);
-    if (!src) {
-        OUT_ERROR("Failed to create ZIP source: " << zip_error_strerror(&error));
-        delete streamData;
-        return zipUPtr(nullptr, [](zip* a) { if (zip_close(a) != 0) zip_discard(a); });
+struct ZipWrapper : public zipUPtr {
+    using zipUPtr::zipUPtr;
+    void discard() {
+        if(get()) zip_discard(get());
     }
 
-    zip* ptr = zip_open_from_source(src, 0, &error);
-    if (!ptr) {
-        OUT_ERROR("Failed to open ZIP archive: " << zip_error_strerror(&error));
-        zip_source_free(src);
-        return zipUPtr(nullptr, [](zip* a) {if (zip_close(a) != 0) zip_discard(a); });
-    }
-    return zipUPtr(ptr, [](zip* a) { if (zip_close(a) != 0) zip_discard(a); });
-}
-
-zip* openZip(const std::shared_ptr<PG::STREAM::Out>& reader) {
-    zip_error_t error;
-    error.str = nullptr;
-    StreamWriteData* streamData = new StreamWriteData;
-    streamData->stream = reader.get();
-    streamData->size = 0;
-
-    zip_source_t* src = zip_source_function_create(writeCallback, streamData, &error);
-    if (!src) {
-        OUT_ERROR("Failed to create ZIP source: " << zip_error_strerror(&error));
-        delete streamData;
-        return nullptr;
+    static void detroyFunc(zip* a) {
+        if (!a) return;
+        if (zip_close(a) != 0) {
+            OUT_ERROR("Failed to save zip: " << zip_strerror(a));
+            zip_discard(a);
+        }
     }
 
-    zip* ptr = zip_open_from_source(src, ZIP_CREATE, &error);
-    if (!ptr) {
-        OUT_ERROR("Failed to open ZIP archive: " << zip_error_strerror(&error));
-        zip_source_free(src);
-        return nullptr;
-    }
-    return ptr;
-}
+    static ZipWrapper open(const std::string& file) {
+        int error = 0;
+        zip* ptr = zip_open(file.c_str(), 0, &error);
+        if (ptr == nullptr) {
+            OUT_ERROR("Failed to open the zip '" << file << "': error code " << error);
+            return ZipWrapper(nullptr, &ZipWrapper::detroyFunc);
+        }
 
-zip* openZip(const std::shared_ptr<PG::STREAM::InOut>& reader) {
-    zip_error_t error;
-    error.str = nullptr;
-
-    StreamWriteDataRollback* streamData = new StreamWriteDataRollback;
-    streamData->stream = reader.get();
-    streamData->sizeOrg = reader->size();
-    streamData->size = 0;
-    streamData->pos = 0;
-    
-    zip_source_t* src = zip_source_function_create(writeRollbackableCallback, streamData, &error);
-    if (!src) {
-        OUT_ERROR("Failed to create ZIP source: " << zip_error_strerror(&error));
-        delete streamData;
-        return nullptr;
+        return ZipWrapper(ptr, &ZipWrapper::detroyFunc);
     }
 
-    zip* ptr = zip_open_from_source(src, ZIP_CHECKCONS, &error);
-    if (!ptr) {
-        OUT_ERROR("Failed to open ZIP archive: " << zip_error_strerror(&error));
-        zip_source_free(src);
-        return nullptr;
+    static ZipWrapper open(const std::shared_ptr<PG::STREAM::In>& reader) {
+        zip_error_t error;
+        error.str = nullptr;
+        StreamData* streamData = new StreamData;
+        streamData->stream = reader.get();
+        streamData->size = reader->size();
+
+        zip_source_t* src = zip_source_function_create(readCallback, streamData, &error);
+        if (!src) {
+            OUT_ERROR("Failed to create ZIP source: " << zip_error_strerror(&error));
+            delete streamData;
+            return ZipWrapper(nullptr, &ZipWrapper::detroyFunc);
+        }
+
+        zip* ptr = zip_open_from_source(src, 0, &error);
+        if (!ptr) {
+            OUT_ERROR("Failed to open ZIP archive: " << zip_error_strerror(&error));
+            zip_source_free(src);
+            return ZipWrapper(nullptr, &ZipWrapper::detroyFunc);
+        }
+        return ZipWrapper(ptr, &ZipWrapper::detroyFunc);
     }
-    return ptr;
-}
+
+    static ZipWrapper open(const std::shared_ptr<PG::STREAM::Out>& writer) {
+        zip_error_t error;
+        error.str = nullptr;
+        StreamWriteData* streamData = new StreamWriteData;
+        streamData->stream = writer.get();
+        streamData->size = 0;
+
+        zip_source_t* src = zip_source_function_create(writeCallback, streamData, &error);
+        if (!src) {
+            OUT_ERROR("Failed to create ZIP source: " << zip_error_strerror(&error));
+            delete streamData;
+            return ZipWrapper(nullptr, &ZipWrapper::detroyFunc);
+        }
+
+        zip* ptr = zip_open_from_source(src, ZIP_CREATE, &error);
+        if (!ptr) {
+            OUT_ERROR("Failed to open ZIP archive: " << zip_error_strerror(&error));
+            zip_source_free(src);
+            return ZipWrapper(nullptr, &ZipWrapper::detroyFunc);
+        }
+        return ZipWrapper(ptr, &ZipWrapper::detroyFunc);
+    }
+
+    static ZipWrapper open(const std::shared_ptr<PG::STREAM::InOut>& reader) {
+        zip_error_t error;
+        error.str = nullptr;
+
+        StreamWriteDataRollback* streamData = new StreamWriteDataRollback;
+        streamData->stream = reader.get();
+        streamData->sizeOriginal = reader->size();
+
+        zip_source_t* src = zip_source_function_create(writeRollbackableCallback, streamData, &error);
+        if (!src) {
+            OUT_ERROR("Failed to create ZIP source: " << zip_error_strerror(&error));
+            delete streamData;
+            return ZipWrapper(nullptr, &ZipWrapper::detroyFunc);
+        }
+
+        zip* ptr = zip_open_from_source(src, ZIP_CHECKCONS, &error);
+        if (!ptr) {
+            OUT_ERROR("Failed to open ZIP archive: " << zip_error_strerror(&error));
+            zip_source_free(src);
+            return ZipWrapper(nullptr, &ZipWrapper::detroyFunc);
+        }
+        return ZipWrapper(ptr, &ZipWrapper::detroyFunc);
+    }
+
+};
+
+
 
 PG_DisaFileInfo toFileInfo(struct zip_stat& st) {
     PG_DisaFileInfo info;
@@ -446,7 +425,7 @@ bool PG_ZIP::open(const PG_File& file) {
 
 bool PG_ZIP::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
     if (!reader->isOpen()) return FAILURE;
-    auto zipU = openZip(reader); 
+    auto zipU = ZipWrapper::open(reader);
     if (!zipU) return FAILURE;
 
     zip_int64_t numEntries = zip_get_num_entries(zipU.get(), 0);
@@ -477,7 +456,7 @@ bool PG_ZIP::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<vo
 
 bool PG_ZIP::refresh(std::shared_ptr<PG::STREAM::In> reader)  {
     if (!reader->isOpen()) return FAILURE;
-    auto zipU = openZip(reader);
+    auto zipU = ZipWrapper::open(reader);
     if (!zipU) return FAILURE;
     zip_int64_t numEntries = zip_get_num_entries(zipU.get(), 0);
     m_originalReader = reader;
@@ -537,9 +516,9 @@ bool PG_ZIP::save(std::shared_ptr<PG::STREAM::Out> writer) const {
     m_originalReader.reset();
     m_originalReader = createReaderOriginal();
 
-    auto* zipU = openZip(writer);
+    auto zipU = ZipWrapper::open(writer);
     if (!zipU) return FAILURE;
-    auto zipOrg = openZip(m_originalReader);
+    auto zipOrg = ZipWrapper::open(m_originalReader);
     m_originalZip = zipOrg.get();
 
     zip_error_t error;
@@ -553,19 +532,15 @@ bool PG_ZIP::save(std::shared_ptr<PG::STREAM::Out> writer) const {
         streamData->hold = std::move(reader);
 
         zip_source_t* src = zip_source_function_create(readCallback, streamData, &error);
-        if (src == nullptr || zip_file_add(zipU, entry.getInfo().getName().getPath().c_str(), src, ZIP_FL_OVERWRITE) < 0) {
-            OUT_ERROR("Failed to add file to zip: " << zip_strerror(zipU));
+        if (src == nullptr || zip_file_add(zipU.get(), entry.getInfo().getName().getPath().c_str(), src, ZIP_FL_OVERWRITE) < 0) {
+            OUT_ERROR("Failed to add file to zip: " << zip_strerror(zipU.get()));
             if (src != nullptr) zip_source_free(src);
         }
 
     }
 
     m_originalZip = nullptr;
-    if (zip_close(zipU) != 0) {
-        OUT_ERROR("Failed to save zip: " << zip_strerror(zipU));
-        zip_discard(zipU);
-        return FAILURE;
-    }
+    zipU.reset();
 
     return SUCCESS;
 }
@@ -609,7 +584,7 @@ std::shared_ptr<PG::STREAM::In> PG_ZIP::createEntryReaderOriginal(const PG_DisaF
     }
     auto containerReader = createReaderOriginal();
     containerReader->seek(0);
-    auto zipU = openZip(containerReader);
+    auto zipU = ZipWrapper::open(containerReader);
     if (!zipU) return nullptr;
     return createReaderFromZip(zipU.get(), entry);
 }
@@ -622,7 +597,6 @@ std::shared_ptr<PG::STREAM::In> PG_ZIP::createReaderFromZip(zip* zip, const PG_D
     }
 
     auto content = readZipData(zf);
-    zip_fclose(zf);
     if (content.empty()) {
         OUT_ERROR("Failed to read '" << entry.getName() << "' in zip!");
         return nullptr;
@@ -664,16 +638,16 @@ bool PG_ZIP::save() {
     if (!writer->isOpen()) return FAILURE;
     writer->seek(0);
 
-    auto* zipU = openZip(std::dynamic_pointer_cast<PG::STREAM::InOut>(writer));
+    auto zipU = ZipWrapper::open(std::dynamic_pointer_cast<PG::STREAM::InOut>(writer));
     if (!zipU) 
         return FAILURE;
 
     {//check if file count is different
-        zip_int64_t numEntries = zip_get_num_entries(zipU, 0);
+        zip_int64_t numEntries = zip_get_num_entries(zipU.get(), 0);
         zip_int64_t fileCount = 0;
         struct zip_stat st;
         for (zip_int64_t i = 0; i < numEntries; ++i) {
-            zip_stat_index(zipU, i, 0, &st);
+            zip_stat_index(zipU.get(), i, 0, &st);
             if (st.size == 0) continue; //is folder
             assert(st.index == i);
             PG_DisaFileInfo info = toFileInfo(st);
@@ -681,7 +655,7 @@ bool PG_ZIP::save() {
             if (info.getName().isEmpty() || info.getName().getPath().back() == '/') continue; //is folder
             auto findIt = std::ranges::find_if(*this, [&info](const PG_DisaFileEntry& e) { return e.getInfo().getName() == info; });
             if (findIt == end()) { //file is not tracked
-                zip_discard(zipU);
+                zipU.reset();
                 writer.reset();
                 return PG_DisaFileContainer::save();
             }
@@ -701,23 +675,18 @@ bool PG_ZIP::save() {
         }
 
         if (fileCount != size()) {
-            zip_discard(zipU);
+            zipU.reset();
             writer.reset();
             return PG_DisaFileContainer::save();
         }
     }
 
+    if (!zipU) return FAILURE;
     OUT_INFO("Perform .zip diff save.");
 
     zip_error_t error;
     for (auto& change : changes) {
         if (!change.reader) continue;
-
-        //will call zip_open_from_source to open the zip
-        if (!zipU) {
-            zipU = openZip(std::dynamic_pointer_cast<PG::STREAM::InOut>(writer));
-        }
-        if (!zipU) return FAILURE;
 
         //holds the momery that shall be written
         StreamDataMem* streamData = new StreamDataMem;
@@ -726,7 +695,7 @@ bool PG_ZIP::save() {
         if (streamData->size == 0) {
             OUT_ERROR("Invalid zero size!");
             delete streamData;
-            zip_discard(zipU);
+            zipU.discard();
             return FAILURE;
         }
         change.reader->seek(0);
@@ -736,28 +705,29 @@ bool PG_ZIP::save() {
         zip_source_t* src = zip_source_function_create(readCallback, streamData, &error);
         if (src == nullptr) {
             delete streamData;
-            OUT_ERROR("Failed to create source_function: " << zip_strerror(zipU));
-            zip_discard(zipU);
+            OUT_ERROR("Failed to create source_function: " << zip_strerror(zipU.get()));
+            zipU.discard();
             return FAILURE;
         }
 
         //if index is smaller zero then its a new file
         if (change.index < 0) {
             OUT_INFO("Add file " << change.index);
-            if (zip_file_add(zipU, change.entry->getInfo().getName().getPath().c_str(), src, ZIP_FL_OVERWRITE) < 0) {
-                OUT_ERROR("Failed to add file to zip: " << zip_strerror(zipU));
+            if (zip_file_add(zipU.get(), change.entry->getInfo().getName().getPath().c_str(), src, ZIP_FL_OVERWRITE) < 0) {
+                OUT_ERROR("Failed to add file to zip: " << zip_strerror(zipU.get()));
                 if (src != nullptr) zip_source_free(src);
             }
         }
         else {
             OUT_INFO("Replace file "<< change.index);
-            if (zip_file_replace(zipU, change.index, src, 0) < 0) {
-                OUT_ERROR("Failed to replace file in zip: " << zip_strerror(zipU));
+            if (zip_file_replace(zipU.get(), change.index, src, 0) < 0) {
+                OUT_ERROR("Failed to replace file in zip: " << zip_strerror(zipU.get()));
                 if (src != nullptr) zip_source_free(src);
             }
         }
     }
 
+    zipU.reset();
     changes.clear();
 
     writer->rewind(); 

@@ -952,7 +952,8 @@ void RootScene::setupToolbarMapView() {
 
 	//EDIT
 	auto editToggleButton = PG_new<PG_GuiToggleButton>("EditButton", glm::vec2(3.f, 0.f), glm::vec2(100.f, 30.f), toolbarRow);
-	editToggleButton->setIcon("gui/icon_connection.png");
+	editToggleButton->setIcon("gui/icon_edit.png");
+	editToggleButton->getIcon()->setPosition(glm::vec2(3.f, 0.f));
 	editToggleButton->setText("Edit");
 	editToggleButton->setBackground("M_GuiToolButtonStart");
 	editToggleButton->setTooltipText("Enable editting");

@@ -142,7 +142,7 @@ std::vector<PG_UiStateCustomCampaignsModel::ModeIcon> PG_UiStateCustomCampaignsM
 		{SubUiState_DungeonsPlan, "Plan", "gui/icon_flag.png"},
 		{SubUiState_Dungeons, "Dungeons", "gui/icon_actor.png"},
 		{SubUiState_Images, "Images", "gui/icon_texture.png"},
-		{SubUiState_Scripts, "Scripts", "gui/icon_connection.png"},
+		{SubUiState_Scripts, "Scripts", "gui/icon_script.png"},
 	};
 }
 
