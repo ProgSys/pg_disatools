@@ -733,13 +733,11 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 			
 			struct ProjetionPlane {
 				glm::vec3 origin;
-				glm::vec3 dirU;
-				glm::vec3 dirV;
-				glm::vec3 normal;
+				glm::mat3 base;
 
 				glm::vec2 project(glm::vec3 p) const{
 					p -= origin;
-					glm::vec2 uv(glm::dot(dirU, p), glm::dot(dirV, p));
+					glm::vec2 uv(base * p);
 					uv *= 256.f;
 					uv = glm::round(uv);
 					/*
@@ -760,60 +758,69 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 			PointsGetFunc pointsGetFunc;
 			switch (tileMaterialModel->getIndex()) {
 			case 5:
-			case 0: {
-				plane.normal = glm::vec3(0.f, 0.f, -1.f);//N
-				plane.dirU = glm::vec3(-1.f, 0.f, 0.f);
-				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+			case 0: { //N
+				plane.base = {
+					glm::vec3(-1.f, 0.f, 0.f),
+					glm::vec3(0.f, -1.f, 0.f),
+					glm::vec3(0.f, 0.f, -1.f) //normal
+				};
 				pointsGetFunc = &PG_DisaMapTileModel::getSideN;
 			}
 			case 6:
-			case 1: {
-				plane.normal = glm::vec3(-1.f, 0.f, 0.f);  //E
-				plane.dirU = glm::vec3(0.f, 0.f, 1.f);
-				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+			case 1: { //E
+				plane.base = {
+				glm::vec3(0.f, 0.f, 1.f),
+				glm::vec3(0.f, -1.f, 0.f),
+				glm::vec3(-1.f, 0.f, 0.f) //normal
+				};
 				pointsGetFunc = &PG_DisaMapTileModel::getSideE;
 			} break;
 			case 7:
-			case 2: {
-				plane.normal = glm::vec3(0.f, 0.f, 1.f);  //S
-				plane.dirU = glm::vec3(1.f, 0.f, 0.f);
-				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+			case 2: { //S
+				plane.base = {
+				glm::vec3(1.f, 0.f, 0.f),
+				glm::vec3(0.f, -1.f, 0.f),
+				glm::vec3(0.f, 0.f, 1.f) //normal
+				};
 				pointsGetFunc = &PG_DisaMapTileModel::getSideS;
 			} break;
 			case 8:
-			case 3: {
-				plane.normal = glm::vec3(1.f, 0.f, 0.f);  //W
-				plane.dirU = glm::vec3(0.f, 0.f, -1.f);
-				plane.dirV = glm::vec3(0.f, -1.f, 0.f);
+			case 3: { //W
+				plane.base = {
+				glm::vec3(0.f, 0.f, -1.f),
+				glm::vec3(0.f, -1.f, 0.f),
+				glm::vec3(1.f, 0.f, 0.f) //normal
+				};
 				pointsGetFunc = &PG_DisaMapTileModel::getSideW;
 			} break;
 			default:
 			case 4: //top base
 			case 9: // top decal, top shadow
 			case 10: {
-				plane.normal = glm::vec3(0.f, 1.f, 0.f);
-				plane.dirU = glm::vec3(-1.f, 0.f, 0.f);
-				plane.dirV = glm::vec3(0.f, 0.f, -1.f);
+				plane.base = {
+				glm::vec3(-1.f, 0.f, 0.f),
+				glm::vec3(0.f, 0.f, -1.f),
+				glm::vec3(0.f, 1.f, 0.f) //normal
+				};
 				pointsGetFunc = &PG_DisaMapTileModel::getTop;
 			} break;
 			}
 
 			
 			if (tileMaterialModel->getRotation() != 0) {
-				glm::quat q = glm::angleAxis(glm::radians(-90.f * tileMaterialModel->getRotation()), plane.normal);
-				plane.dirU = glm::round(q * plane.dirU);
-				plane.dirV = glm::round(q * plane.dirV);
+				glm::quat q = glm::angleAxis(glm::radians(-90.f * tileMaterialModel->getRotation()), plane.base[2]);
+				plane.base = glm::mat3(q) * plane.base;
 			}
 
 			constexpr float textureScale = 256.f;
 			{
-
+				glm::mat3 toTextureSpace = glm::inverse(plane.base);
 				glm::vec2 projectDirU(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
 				glm::vec2 projectDirV(std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest());
 				glm::vec2 projectOriginMin(std::numeric_limits<float>::max());
 
 				for (glm::vec3 p : std::invoke(pointsGetFunc, tileMaterialModel->getTile(), tileMaterialModel->getTile()->getTranslation())) {
-					glm::vec2 project(glm::dot(plane.dirU, p), glm::dot(plane.dirV, p));
+					glm::vec2 project(toTextureSpace * p);
 					std::cout << "Point: " << p << " proj: " << project << std::endl;
 					projectDirU = { glm::min(projectDirU.x, project.x),  glm::max(projectDirU.y, project.x) };
 					projectDirV = { glm::min(projectDirV.x, project.y),  glm::max(projectDirV.y, project.y) };
@@ -824,12 +831,12 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 				}
 				std::cout << "Origin: " << plane.origin << std::endl;
 
-				const glm::vec2 scale(tileMaterialModel->getWidth() / textureScale, tileMaterialModel->getHeight() / textureScale);
-				plane.origin -= (plane.dirU / scale.y) * (tileMaterialModel->getU() / textureScale) + (plane.dirV / scale.y) * (tileMaterialModel->getV() / textureScale);
-				plane.dirU /= projectDirU.y - projectDirU.x;
-				plane.dirV /= projectDirV.y - projectDirV.x;
-				plane.dirU *= scale.x;
-				plane.dirV *= scale.y;
+				plane.base[0] *= projectDirU.y - projectDirU.x;
+				plane.base[1] *= projectDirV.y - projectDirV.x;
+				plane.base[0] *= textureScale / tileMaterialModel->getWidth();
+				plane.base[1] *= textureScale / tileMaterialModel->getHeight();
+				plane.origin -= plane.base[0] * (tileMaterialModel->getU() / textureScale) + plane.base[1] * (tileMaterialModel->getV() / textureScale);
+				plane.base = glm::inverse(plane.base);
 			}
 
 
