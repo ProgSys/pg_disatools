@@ -8,58 +8,52 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.0.2 alpha](https://www.dropbox.com/scl/fi/l0h4fjgcx4qp2kdnf0rog/Disgaea-Tools-v1.0.2-alpha.zip?rlkey=rj66s7ehzcprqnxsj1lkn7bsd&dl=0)**
-
+* **[Version v1.0.5 alpha](https://www.dropbox.com/scl/fi/zg0t1gk6lk7rc58wjsrfo/Disgaea-Tools-v1.0.5-alpha.zip?rlkey=towf71mk682dg4zxq6xsou6bz&dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  30.07.2023 - v0.9.5 ===
-  * Disa PC File Manager v0.6.2 alpha:
-	- Better support for NEW .MPP files
-  * TX2 Editor v0.0.4 alpha:
-	- Added basic support for DXT4 textures
-  * Disa Map Viewer v0.1.0 alpha
-	- Added a toggle button to switch to the HD version of a map when a DATA.DAT file is open
-	- Added a search field 
-	- Several improvements to the .gltf exporter
-===  06.08.2023 - v0.9.6 ===
-  * Disa Map Viewer v0.1.1 alpha
-	- Fixed loading of some tiles
-		- Noticeable in Laharls castle
-	- Fixed loading of some models that had too many nodes
-===  13.08.2023 - v0.9.7 ===
-  * Disa Map Viewer v0.1.2 alpha
-	- You now can export/import a Json file of a map when DATA.DAT is opened
-		- You can modify the human readable Json and import it back
-		- You can directly save the modifications (dont forget to make a backup!)
-	- Fixed interpretation of tile UV values. It now should look the same as in game.
-===  03.11.2023 - v0.9.8 ===
-  * Sprite Sheet Editor v0.4.7 alpha
-	- When adding a color set the other sets are moved to the right and the cutout color offset ID is incremented as needed.
-		- Added a plus btn to simply add a color set to the end
-===  17.11.2024 - v1.0.0 ===
-  * (NEW) Data Map Editor v0.2.9 alpha
-	- Allows you not to just edit maps but also create completely new maps and shareable campaigns!
-	- It is possible to create custom intro and exit dialog/scripts 
-  * Sprite Sheet Editor v0.4.9 alpha
-	- Added simple pixel brush tool 
-		- Left click to paint color
-		- Control-Left click to paint with second color
-		- Alt-Left click to pick color form canvas
-		- Alt-Control-Left click to pick second color form canvas
-		- Control-Z Undo
-	- Improved sheet navigation, middle mouse btn can now be used for panning
-	- Improved timeline timer to be consistent. Its speed no longer depens on the fps.
-  * Data Editor v0.0.8 alpha:
-    - Fields now can be split into a sub range of bits. (final size must always be divisible by 8) Example: "uint(3b); uint(13b);", short split into two numbers
 ===  07.12.2024 - v1.0.1 ===
  * Data Map Editor v0.3.0 alpha
 	- When a geo symbol is set, alliance is automatically set to "Enemy, third party"
  	- (DisaReverseEngineering) The entire function stack now should be used
 	- (DisaReverseEngineering) When an invalid function is detected the game will crash, but before that a message box will be displayed
+	
 ===  24.03.2025 - v1.0.2 ===
  * Data Map Editor v0.3.1 alpha
 	- Improved error handling when creating a new campaign (issues/30)
+	
+===  28.04.2025 - v1.0.3 prerelease ===
+ * Data Map Editor v0.3.2 alpha
+	- Added handling for loading custom characters
+ * Sprite Sheet Editor v0.5.1 alpha
+	- Fixed frame selection when a new layer is added
+ * DisaReverseEngineering
+	- Can now load character information from zip files located at "mod/CustomCharacters"
+	- Custom characters can be recruited in the dark assembly 
+	- If custom characters are present in player party then meta data will be added to the save file for remapping
+	- Added new terminal commands
+		- "printParty" will print player party into terminal or export it as json
+		- "addCharacter" will add new character to party from given identifier
+		- "printMagic" will print loaded magic/skills
+		
+===  30.09.2025 - v1.0.5  ===
+ * Disa Map Editor v0.3.5 alpha
+	- Hopefully fixed an issue that could cause zip corruption when saving
+	- Added an "Add" button in the Asset Manager to add new assets
+    - Terrain editing:
+	   - Added the ability to modify bottom corners of a tile in the Inspector
+       - Added the ability to hide individual tile faces in the Inspector
+    - Material editing:
+	   - Added option to clear a texture slot
+	   - Added a new function to plane-project selected faces based on the first selected face
+    - General performance optimizations
+ * Sprite Sheet Editor v0.5.2 alpha
+    - Improved performance when reducing the number of colors in a sprite sheet. I should be now much faster, even with millions of colors
+	- Added support for exporting and importing cutout outlines, with each outline color-coded by its ID
+    - Added an "Auto3x (HD)" option for upscaling sprite sheets to HD format (may only be compatible with modded game version)
+	- Markers now show more accurate and detailed option settings
+ * Disa PC File Manager v0.6.5 alpha:
+    - Added support for opening script archives
 ```
 
 ## Content
@@ -137,6 +131,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)
 * [Version v1.0.0 alpha](https://www.dropbox.com/scl/fi/ndlkk49s16b2mb2vjbw2g/Disgaea-Tools-v1.0.0-alpha.zip?rlkey=fqpdx69tru4v9dvmvcnmppnf0&dl=0)
 * [Version v1.0.1 alpha](https://www.dropbox.com/scl/fi/1j0ndx9r5myiksbdxygpd/Disgaea-Tools-v1.0.1-alpha.zip?rlkey=5qgksppysog8owe7y6r6u5893&dl=0)
+* [Version v1.0.2 alpha](https://www.dropbox.com/scl/fi/l0h4fjgcx4qp2kdnf0rog/Disgaea-Tools-v1.0.2-alpha.zip?rlkey=rj66s7ehzcprqnxsj1lkn7bsd&dl=0)
 ---
 
 # Disclaimer && License

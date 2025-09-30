@@ -545,3 +545,36 @@
  * Data Map Editor v0.3.1 alpha
 	- Improved error handling when creating a new campaign (issues/30)
 	
+===  28.04.2025 - v1.0.3 prerelease ===
+ * Data Map Editor v0.3.2 alpha
+	- Added handling for loading custom characters
+ * Sprite Sheet Editor v0.5.1 alpha
+	- Fixed frame selection when a new layer is added
+ * DisaReverseEngineering
+	- Can now load character information from zip files located at "mod/CustomCharacters"
+	- Custom characters can be recruited in the dark assembly 
+	- If custom characters are present in player party then meta data will be added to the save file for remapping
+	- Added new terminal commands
+		- "printParty" will print player party into terminal or export it as json
+		- "addCharacter" will add new character to party from given identifier
+		- "printMagic" will print loaded magic/skills
+		
+===  30.09.2025 - v1.0.5  ===
+ * Disa Map Editor v0.3.5 alpha
+	- Hopefully fixed an issue that could cause zip corruption when saving
+	- Added an "Add" button in the Asset Manager to add new assets
+    - Terrain editing:
+	   - Added the ability to modify bottom corners of a tile in the Inspector
+       - Added the ability to hide individual tile faces in the Inspector
+    - Material editing:
+	   - Added option to clear a texture slot
+	   - Added a new function to plane-project selected faces based on the first selected face
+    - General performance optimizations
+ * Sprite Sheet Editor v0.5.2 alpha
+    - Improved performance when reducing the number of colors in a sprite sheet. I should be now much faster, even with millions of colors
+	- Added support for exporting and importing cutout outlines, with each outline color-coded by its ID
+    - Added an "Auto3x (HD)" option for upscaling sprite sheets to HD format (may only be compatible with modded game version)
+	- Markers now show more accurate and detailed option settings
+ * Disa PC File Manager v0.6.5 alpha:
+    - Added support for opening script archives
+	
