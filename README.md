@@ -48,7 +48,7 @@ You can download the latest version of the tools here:
 	   - Added a new function to plane-project selected faces based on the first selected face
     - General performance optimizations
  * Sprite Sheet Editor v0.5.2 alpha
-    - Improved performance when reducing the number of colors in a sprite sheet. I should be now much faster, even with millions of colors
+    - Improved performance when reducing the number of colors in a sprite sheet. It should be now much faster, even with millions of colors
 	- Added support for exporting and importing cutout outlines, with each outline color-coded by its ID
     - Added an "Auto3x (HD)" option for upscaling sprite sheets to HD format (may only be compatible with modded game version)
 	- Markers now show more accurate and detailed option settings
