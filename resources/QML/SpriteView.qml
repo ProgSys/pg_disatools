@@ -107,6 +107,28 @@ Rectangle {
 		
 		MenuSeparator { visible: spritedata.selected }
 		
+				
+		
+		MenuItem {
+			//export cutout outlines as image
+			//Ids are stored as color
+			text: qsTr('Export cutout outlines')
+			onTriggered:{
+				spritedata.exportCutoutOutlines(activeSpriteSheet, "")
+			}
+		}
+		
+		MenuItem {
+			//import cutout outlines from image
+			//this will not create new outlines just reposition existing
+			text: qsTr('Import cutout outlines')
+			onTriggered:{
+				spritedata.importCutoutOutlines(activeSpriteSheet, "")
+			}
+		}
+		
+		MenuSeparator { }
+		
 		MenuItem {
 			text: qsTr('Import sheet as color')
 			onTriggered:{
@@ -122,6 +144,8 @@ Rectangle {
 				spriteimage.refresh();
 			}
 		}
+		
+
 		
 		MenuSeparator { }
 		MenuItem {

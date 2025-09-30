@@ -24,9 +24,9 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QQueue>
-#include <QInputDialog>
 #include <QVector>
 #include <QKeyEvent>
+#include <QPainter>
 #include <unordered_set>
 
 #include <Files/PG_SH.h>
@@ -1709,7 +1709,7 @@ bool SpriteData::save(const QString& file) {
 		for (const Marker* mark : ani->getMarkers()->getList()) {
 			out << (quint32)mark->getStart();
 			out << (quint32)mark->getDuration();
-			out << (quint32)mark->getType();
+			out << (quint32)mark->getTypeBits();
 			out << (qint16)mark->getX();
 			out << (quint16)mark->getY();
 		}
@@ -1887,11 +1887,28 @@ bool SpriteData::importSH(const QString& file) {
 			assert_Test("Current key can't be the end key", currKey == sh.getKeyframes().end());
 
 			//add marker
-			if (currKey->global_x || currKey->global_y || (currKey->type != 0 && currKey->type != 3 && currKey->type != 2))
-				m_animations.back()->getMarkers()->push_back(new Marker(startOffset, 1, currKey->type, currKey->global_x, currKey->global_y));
+			if (currKey->global_x || currKey->global_y || currKey->type != Marker::KnownType_Default) {
+				if (currKey->duration == 0) {
+					//look back
+					auto lastKey = currKey;
+					while (lastKey->duration == 0 && lastKey != sh.getKeyframes().begin()) {
+						--lastKey;
+					}
+					auto lastOffset = startOffset - lastKey->duration;
+					if (m_animations.back()->getMarkers()->empty() || m_animations.back()->getMarkers()->back()->getStart() != lastOffset) {
+						m_animations.back()->getMarkers()->push_back(new Marker(lastOffset, 1, currKey->type, currKey->global_x, currKey->global_y));
+					}else{
+						auto& marker = m_animations.back()->getMarkers()->getList().back();
+						marker->setTypeValue(currKey->type, true);
+					}
+				}
+				else {
+					m_animations.back()->getMarkers()->push_back(new Marker(startOffset, 1, currKey->type, currKey->global_x, currKey->global_y));
+				}
+			}
 
-			if (currKey->duration == 0 || currKey->type == 3 || currKey->type == 2) {
-				currKey++;
+			if (currKey->duration == 0) {
+				++currKey;
 				continue;
 			}
 
@@ -2045,6 +2062,7 @@ bool SpriteData::exportSH(const QString& file) {
 			assert_Test("Start frame and end frame are the same!", startFrame == nextFrame);
 
 			PG::FILE::shfileKeyframe shKey;
+			std::vector<unsigned int> shKeyTypes;
 			shKey.duration = ((nextFrame - startFrame) > 255) ? 255 : (nextFrame - startFrame);
 			shKey.type = 0;
 			shKey.global_x = 0;
@@ -2054,9 +2072,11 @@ bool SpriteData::exportSH(const QString& file) {
 			if (foundMarker) {
 				shKey.global_x = foundMarker->getX();
 				shKey.global_y = foundMarker->getY();
-
-				if (foundMarker->getType() != 0 && foundMarker->getType() != 2 && foundMarker->getType() != 3)
-					shKey.type = foundMarker->getType();
+				shKeyTypes = foundMarker->getTypes();
+				if (!shKeyTypes.empty()) {
+					shKey.type = shKeyTypes.front();
+					shKeyTypes.erase(shKeyTypes.begin());
+				}
 			}
 
 			//bundels
@@ -2124,16 +2144,11 @@ bool SpriteData::exportSH(const QString& file) {
 			startFrame += shKey.duration;
 
 			sh.getKeyframes().push_back(shKey);
-
-			if (shKey.type == 1) {
-				if (keyCount != 0 && nextFrame != totalTrackSize) {
-					PG::FILE::shfileKeyframe skKeyType3 = shKey;
-					skKeyType3.duration = 0;
-					skKeyType3.type = 3;
-					skKeyType3.global_x = shKey.global_x;
-					skKeyType3.global_y = shKey.global_y;
-					sh.getKeyframes().push_back(skKeyType3);
-				}
+			for (auto extraType : shKeyTypes) {
+				PG::FILE::shfileKeyframe shMarkerKey = shKey;
+				shMarkerKey.duration = 0;
+				shMarkerKey.type = extraType;
+				sh.getKeyframes().push_back(shMarkerKey);
 			}
 			keyCount++;
 		}
@@ -2469,6 +2484,135 @@ bool SpriteData::exportSpriteSheet(Cutout* cut, const QString& file) {
 	return false;
 }
 
+bool SpriteData::exportCutoutOutlines(int sheetID, QString file) {
+	if (sheetID < 0 || sheetID >= m_spriteSheets.size()) return false;
+
+	const SpriteSheet* sheet = m_spriteSheets[sheetID];
+
+	if (file.isEmpty()) {
+		file = QFileDialog::getSaveFileName(nullptr, tr("Export cutout outlines"),
+			QFileInfo(m_lastFile).baseName() + "_sheetCutoutOutlines" + QString::number(sheetID),
+			tr("PNG (*.png);;TGA (*.tga)"));
+
+		if (file.isEmpty()) return false;
+	}
+
+	QImage img(sheet->getWidth(), sheet->getHeight(), QImage::Format_ARGB32);
+	img.fill(Qt::transparent);
+	if (sheet->getCutoutIDs().empty()) {
+		img.save(file);
+		return true;
+	}
+
+	QPainter painter(&img);
+
+	QPen pen(Qt::green); // Set border color
+	pen.setWidth(1);     // 1-pixel thin line
+	painter.setPen(pen);
+	painter.setBrush(Qt::NoBrush); // No fill
+
+	int minId = *std::min_element(sheet->getCutoutIDs().begin(), sheet->getCutoutIDs().end());
+
+	int i = 0;
+	for (auto cutoutID : sheet->getCutoutIDs()) {
+		pen.setColor(QColor((cutoutID - minId) % 255, 255, std::min((cutoutID - minId) / 255, 255 )));
+		painter.setPen(pen);
+
+		auto cutout = m_cutouts[cutoutID];
+		QRect rect(cutout->getX(), cutout->getY(), cutout->getWidth() - 1, cutout->getHeight() - 1);
+		painter.drawRect(rect);
+		++i;
+	}
+	painter.end();
+	img.save(file);
+
+	return true;
+}
+
+static inline QString openImage() {
+	QFileDialog openDialog(nullptr);
+	openDialog.setNameFilter(QObject::tr("PNG (*.png);;TGA (*.tga)"));
+
+	QStringList fileNames;
+	if (openDialog.exec()) {
+		fileNames = openDialog.selectedFiles();
+		if (fileNames.size() > 0)
+			return fileNames[0];
+	}
+	return QString();
+}
+
+bool SpriteData::importCutoutOutlines(int sheetID, QString file) {
+	if (file.isEmpty()) {
+		file = openImage();
+	}
+
+	if (file.isEmpty()) return false;
+	if (sheetID < 0 || sheetID >= m_spriteSheets.size()) return false;
+
+	const SpriteSheet* sheet = m_spriteSheets[sheetID];
+
+	if (sheet->getCutoutIDs().isEmpty()) return false;
+
+	QImage img(file);
+	if (img.isNull()) {
+		qInfo() << "Failed to open image " << file << "!";
+		return false;
+	}
+
+	if (sheet->getWidth() != img.width() || sheet->getHeight() != img.height()) {
+		qInfo() << "Image " << file << " has not the same size! Should be same size as sprite sheet! ("<< sheet->getWidth()<<","<< sheet->getHeight()<<")";
+		return false;
+	}
+
+	int minId = *std::min_element(sheet->getCutoutIDs().begin(), sheet->getCutoutIDs().end());
+	struct BVRect {
+		int x = -1, y = -1, width, height;
+
+		void update(int _x, int _y) {
+			if (x == -1) {
+				x = _x;
+				y = _y;
+				width = 1;
+				height = 1;
+				return;
+			}
+			int xMax = x + width;
+			int yMax = y + height;
+			x = std::min(x, _x);
+			y = std::min(y, _y);
+			xMax = std::max(xMax, _x);
+			yMax = std::max(yMax, _y);
+			width = xMax - x;
+			height = yMax - y;
+		}
+	};
+	std::unordered_map<QRgb, BVRect> rects;
+
+	for (int y = 0; y < img.height(); ++y) {
+		for (int x = 0; x < img.width(); ++x) {
+			QRgb color = img.pixel(x, y);
+			if (qAlpha(color) < 128) continue;
+			rects[color].update(x, y);
+		}
+	}
+
+	if (rects.size() > 128) {
+		qInfo() << "Too many colors! The colors are used to map the ids.";
+		return false;
+	}
+
+	for (auto& [color, rect] : rects) {
+		if (qGreen(color) < 254) continue;
+		auto cutoutID = minId + qRed(color) + qBlue(color) * 255;
+		if (cutoutID < 0 || cutoutID >= m_cutouts.size() || m_cutouts[cutoutID]->getSheetID() != sheetID) continue;
+		auto* cutout = m_cutouts[cutoutID];
+		cutout->setPosition(rect.x, rect.y);
+		cutout->setSize(rect.width + 1, rect.height + 1);
+	}
+
+}
+
 bool SpriteData::importSpriteAsIDs(int cutoutID, const QString& file) {
 	if (cutoutID < 0 || cutoutID >= m_cutouts.size()) return false;
 	return importSpriteAsIDs(*m_cutouts[cutoutID], file);
@@ -2482,20 +2626,8 @@ bool SpriteData::importSpriteAsIDs(int sheetID, int x, int y, int width, int hei
 
 bool SpriteData::importSpriteAsIDs(Cutout& cut, const QString& fileIn) {
 	QString file = fileIn;
-	if (file.isEmpty()) {
-		QFileDialog openDialog(nullptr);
-		openDialog.setNameFilter(tr("PNG (*.png);;TGA (*.tga)"));
-
-		QStringList fileNames;
-		if (openDialog.exec()) {
-			fileNames = openDialog.selectedFiles();
-			if (fileNames.size() > 0) {
-				file = fileNames[0];
-			}
-			else
-				return false;
-		}
-	}
+	if (file.isEmpty()) file = openImage();
+	if (file.isEmpty()) return false;
 
 	assert_Test("sheetID is out of bound!", cut.getSheetID() > m_spriteSheets.size());
 	SpriteSheet* sheet = m_spriteSheets[cut.getSheetID()];
@@ -2572,7 +2704,7 @@ inline QColorTable buildColorTable(const QImage& image) {
 			pix = image.pixel(x, y);
 			item.color = QColor(pix);
 			item.alpha = qAlpha(pix);
-
+			item.color.setAlpha(item.alpha); //why do I need to do this!?
 			tableSet.insert(std::move(item));
 		}
 	QColorTable table;
@@ -2586,18 +2718,7 @@ inline QColorTable buildColorTable(const QImage& image) {
 	return table;
 }
 
-inline QString openImage() {
-	QFileDialog openDialog(nullptr);
-	openDialog.setNameFilter(QObject::tr("PNG (*.png);;TGA (*.tga)"));
 
-	QStringList fileNames;
-	if (openDialog.exec()) {
-		fileNames = openDialog.selectedFiles();
-		if (fileNames.size() > 0)
-			return fileNames[0];
-	}
-	return "";
-}
 
 bool SpriteData::importSpriteAsColor(int cutoutID, const QString& fileIn) {
 	if (cutoutID < 0 || cutoutID >= m_cutouts.size()) return false;

@@ -23,7 +23,7 @@
 static QString gResourcePath = "";
 
 void initResourcePath() {
-	#if !_DEBUG
+	#if _DEBUG
 	QDir dir("resources");
 	if (dir.exists())
 		gResourcePath = "resources";

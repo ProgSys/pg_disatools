@@ -320,7 +320,7 @@ private:
 		const void getCurrentMarker(unsigned short& type, PG::UTIL::vec2& globalOffset, int frame) const {
 			const Marker* foundmarker = getCurrentMarker(frame);
 			if (foundmarker) {
-				type = foundmarker->getType();
+				type = foundmarker->getTypeBits();
 				globalOffset.x = foundmarker->getX();
 				globalOffset.y = foundmarker->getY();
 			}

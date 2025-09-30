@@ -30,16 +30,20 @@ Marker::Marker(int start, int duration, short x, short y, QObject *parent): QObj
 		if(m_duration < 1) m_duration = 1;
 		}
 
-Marker::Marker(int start, int duration, unsigned int type, QObject *parent ): QObject(parent),
-	m_start(start), m_duration(duration), m_global_x(0), m_global_y(0), m_type(type)
-{}
+Marker::Marker(int start, int duration, unsigned int typeValue, QObject *parent ): QObject(parent),
+	m_start(start), m_duration(duration), m_global_x(0), m_global_y(0)
+{
+	setTypeValue(typeValue, true);
+}
 
-Marker::Marker(int start, int duration,  unsigned int type, short x, short y, QObject *parent): QObject(parent),
-		m_start(start), m_duration(duration), m_global_x(x), m_global_y(y), m_type(type)
-{}
+Marker::Marker(int start, int duration,  unsigned int typeValue, short x, short y, QObject *parent): QObject(parent),
+		m_start(start), m_duration(duration), m_global_x(x), m_global_y(y)
+{
+	setTypeValue(typeValue, true);
+}
 
 Marker::Marker(const Marker& marker):
-		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_global_x(marker.getX()), m_global_y(marker.getY()), m_type(marker.getType())
+		QObject(marker.parent()), m_start(marker.getStart()), m_duration(marker.getDuration()), m_global_x(marker.getX()), m_global_y(marker.getY()), m_type(marker.getTypeBits())
 {}
 
 Marker::~Marker(){
@@ -53,7 +57,7 @@ void Marker::operator =(const Marker& marker){
 	setDuration(marker.getDuration());
 	setX(marker.getX());
 	setY(marker.getY());
-	setType(marker.getType());
+	setTypeBits(marker.getTypeBits());
 
 }
 
@@ -71,8 +75,18 @@ short Marker::getY() const{
 	return m_global_y;
 }
 
-unsigned int Marker::getType() const{
+unsigned int Marker::getTypeBits() const{
 	return m_type;
+}
+
+std::vector<unsigned int> Marker::getTypes() const {
+	if (m_type == 0) return { 0 };
+	std::vector<unsigned int> types;
+	unsigned int bit = KnownTypeMask_LoopStart;
+	for (int i = 1; i < 4; ++i, bit <<= 1) {
+		if (m_type & bit) types.push_back(i);
+	}
+	return types;
 }
 
 //setters
@@ -103,9 +117,16 @@ void Marker::setY(short y){
 	emit onYChanged();
 }
 
-void Marker::setType(unsigned int type){
+void Marker::setTypeBits(unsigned int type){
 	if(m_type == type) return;
 	m_type = type;
+	emit onTypeChanged();
+}
+
+void Marker::setTypeValue(unsigned int type, bool enabled) {
+	auto mask = 1U << type;
+	if (bool(m_type & mask) == enabled) return; //already set
+	m_type ^= mask; //flip bit
 	emit onTypeChanged();
 }
 

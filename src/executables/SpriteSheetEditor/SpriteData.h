@@ -661,6 +661,9 @@ public slots:
 	*/
 	Q_INVOKABLE bool exportSpriteSheet(Cutout* cutout, const QString& file);
 
+	Q_INVOKABLE bool exportCutoutOutlines(int sheetID, QString file);
+	Q_INVOKABLE bool importCutoutOutlines(int sheetID, QString file);
+
 	Q_INVOKABLE bool importSpriteAsIDs(int cutoutID, const QString& file = "");
 	Q_INVOKABLE bool importSpriteAsIDs(int sheetID, int x, int y, int width, int height, const QString& file = "");
 	Q_INVOKABLE bool importSpriteAsIDs(Cutout& cut, const QString& file = "");

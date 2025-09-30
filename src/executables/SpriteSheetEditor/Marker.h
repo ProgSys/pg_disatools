@@ -27,12 +27,30 @@ class Marker: public QObject{
 	Q_PROPERTY(unsigned int duration READ getDuration WRITE setDuration NOTIFY onDirationChanged)
 	Q_PROPERTY(short x READ getX WRITE setX NOTIFY onXChanged)
 	Q_PROPERTY(short y READ getY WRITE setY NOTIFY onYChanged)
-	Q_PROPERTY(unsigned int type READ getType WRITE setType NOTIFY onTypeChanged)
+
+	Q_PROPERTY(unsigned int type READ getTypeBits WRITE setTypeBits NOTIFY onTypeChanged)
+	Q_PROPERTY(bool isLoopStart READ isLoopStart WRITE setLoopStart NOTIFY onTypeChanged)
+	Q_PROPERTY(bool isLoopEnd READ isLoopEnd WRITE setLoopEnd NOTIFY onTypeChanged)
+	Q_PROPERTY(bool isLoopContinue READ isLoopContinue WRITE setLoopContinue NOTIFY onTypeChanged)
 public:
+	enum EKnownType : unsigned int {
+		KnownType_Default = 0,
+		KnownType_LoopStart = 1, //indicates the start of the loop
+		KnownType_LoopEnd = 2, //indicates the end of the loop
+		KnownType_LoopContinue = 3, //indicates where the loop is exited?
+	};
+
+	enum EKnownTypeMask : unsigned int {
+		KnownTypeMask_Default = 0b0001,
+		KnownTypeMask_LoopStart = 0b0010, //indicates the start of the loop
+		KnownTypeMask_LoopEnd = 0b0100, //indicates the end of the loop
+		KnownTypeMask_LoopContinue = 0b1000, //indicates where the loop is exited?
+	};
+
 	Marker(QObject *parent = 0);
 	Marker(int start, int duration, short x, short y, QObject *parent = 0);
-	Marker(int start, int duration, unsigned int type, QObject *parent = 0);
-	Marker(int start, int duration, unsigned int type, short x, short y,  QObject *parent = 0);
+	Marker(int start, int duration, unsigned int typeValue, QObject *parent = 0);
+	Marker(int start, int duration, unsigned int typeValue, short x, short y,  QObject *parent = 0);
 	Marker(const Marker& marker);
 	virtual ~Marker();
 
@@ -43,14 +61,23 @@ public:
 	int getDuration() const;
 	short getX() const;
 	short getY() const;
-	unsigned int getType() const;
+	unsigned int getTypeBits() const;
+	std::vector<unsigned int> getTypes() const;
 
 	//setters
 	void setStart(int start);
 	void setDuration(int duration);
 	void setX(short x);
 	void setY(short y);
-	void setType(unsigned int type);
+	void setTypeBits(unsigned int type);
+	void setTypeValue(unsigned int type, bool enabled);
+
+	bool isLoopStart() const { return getTypeBits() & KnownTypeMask_LoopStart; }
+	void setLoopStart(bool value) { return setTypeValue(KnownType_LoopStart, value); }
+	bool isLoopEnd() const { return getTypeBits() & KnownTypeMask_LoopEnd; }
+	void setLoopEnd(bool value) { return setTypeValue(KnownType_LoopEnd, value); }
+	bool isLoopContinue() const { return getTypeBits() & KnownTypeMask_LoopContinue; }
+	void setLoopContinue(bool value) { return setTypeValue(KnownType_LoopContinue, value); }
 
 signals:
 	void onStartChanged();
@@ -109,6 +136,9 @@ public:
 		emit sizeChanged();
 	}
 
+	Marker* back() const {
+		return m_list.back();
+	}
 
 	bool empty() const{
 		return m_list.isEmpty();

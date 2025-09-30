@@ -372,7 +372,25 @@ Rectangle {
 			}
 			
 			//type
-			Text{ text: "Type:";font.pointSize: 12}
+			CheckBox {
+				Binding on checked { value: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.isLoopStart : false }
+				onCheckedChanged: if(selectedItem) selectedItem.markerModel.isLoopStart = checked
+				text: "isLoopStart"
+			}
+			
+			CheckBox {
+				Binding on checked { value: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.isLoopEnd : false }
+				onCheckedChanged: if(selectedItem) selectedItem.markerModel.isLoopEnd = checked
+				text: "isLoopEnd"
+			}
+			
+			CheckBox {
+				Binding on checked { value: (selectedItem && selectedItem.elementType == 1)? selectedItem.markerModel.isLoopContinue : false }
+				onCheckedChanged: if(selectedItem) selectedItem.markerModel.isLoopContinue = checked
+				text: "isLoopContinue"
+			}
+			
+			Text{ text: "BitMask:";font.pointSize: 10}
 			PGIntField {
 					width: 30;
 					max: 32
