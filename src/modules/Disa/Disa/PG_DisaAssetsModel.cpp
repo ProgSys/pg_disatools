@@ -44,6 +44,10 @@ static inline const PG_Texture& textureUpdate(std::string&& name, PG_Texture& te
 	if (changed && loc) {
 		PG_TX2 tx2;
 		auto item = loc.getDataT<PG_DisaFileEntry>(Identity_Item);
+		if (item.getInfo().getSize() == 0 && !item.getContainer()) {
+			tex.reset();
+			return tex;
+		}
 		tx2.open(item.createReader().get());
 		name += std::to_string(loc.getIndex());
 		tex.load(name, TextureLoader{ std::move(tx2) });
@@ -635,6 +639,48 @@ void PG_DisaAssetsModel::importGeometryGLTF(const PG_File& file, PG_ListModelLoc
 
 	//geo.save(file.replaceFileNameAndExtension("imporetedDebug.geo"));
 	importGeometry(geo, location, hd);
+}
+
+void PG_DisaAssetsModel::addItem(bool texture) {
+	if (!m_containerSD || !m_containerHD ||
+		m_containerSD->size() > 254 || m_containerHD->size() > 254) return;
+
+	const auto statsSD = m_containerSD->getStats();
+	const auto statsHD = m_containerHD->getStats();
+
+	PG_DisaFileInfo info;
+	if (texture) {
+
+		std::vector<char> mocData = {
+			'\x04','\x00','\x04','\x00','\x00','\x00','\x02','\x02',
+			'\x00','\x00','\x00','\x00','\x00','\x00','\x01','\x00',
+			'\x1F','\xF8','\x00','\x00','\x44','\x11','\x44','\x11'
+		};
+		
+		info.setName(PG_File("TextureNewSD.TX2"));
+		info.setType(PG_DisaFileInfo::TX2);
+
+		auto it = m_containerSD->insert(std::next(m_containerSD->begin(), statsSD.texturesSize), PG_DisaFileEntry(info, m_containerSD.get()));
+		m_modified.insert(it->open<PG_DisaChangedDataContainer>(mocData));
+			
+		info.setName(PG_File("TextureNewHD.TX2"));
+		it = m_containerHD->insert(std::next(m_containerHD->begin(), statsHD.texturesSize), PG_DisaFileEntry(info, m_containerHD.get()));
+		m_modified.insert(it->open<PG_DisaChangedDataContainer>(mocData));
+		info.setName(PG_File("NormalNewHD.TX2"));
+		it = m_containerHD->insert(std::next(m_containerHD->begin(), statsHD.texturesSize + 1 + statsHD.normalsSize), PG_DisaFileEntry(info, m_containerHD.get()));
+		m_modified.insert(it->open<PG_DisaChangedDataContainer>(std::move(mocData)));
+	}
+	else {
+		//TODO add moc data
+		info.setName(PG_File("GeometryNewSD.GEO"));
+		info.setType(PG_DisaFileInfo::GEO);
+
+		m_containerSD->insert(std::next(m_containerSD->begin(), statsSD.totalSize()), PG_DisaFileEntry(info, m_containerSD.get()));
+		
+		info.setName(PG_File("GeometryNewHD.TX2"));
+		m_containerHD->insert(std::next(m_containerHD->begin(), statsHD.totalSize()), PG_DisaFileEntry(info, m_containerHD.get()));
+	}
+
 }
 
 

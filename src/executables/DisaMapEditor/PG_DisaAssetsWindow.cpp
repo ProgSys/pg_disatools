@@ -475,6 +475,17 @@ void PG_DisaAssetsWindow::init() {
 	anchor(toolbar, PG_Anchor::Right, bg, PG_Anchor::Right);
 
 	{
+
+		auto addButton = PG_new<PG_GuiButton>("AddButton", glm::vec2(15.f, 10.f), glm::vec2(32.f, 30.f), toolbar);
+		addButton->setIcon("gui/icon_add.png");
+		addButton->setBackground("M_GuiRoundedRectangleAll5");
+		PG_GuiItem::anchor(addButton, PG_Anchor::Left, toolbar, PG_Anchor::Left);
+
+		connect(addButton, &PG_GuiButton::clicked, this, [this]() {
+			if (!m_model) return;
+			m_model->addItem(isShowTextures());
+		});
+
 		auto toggleCenter = PG_new<PG_GuiItem>("toggleCenter", glm::vec2(10.f, 0.f), glm::vec2(4.f, 30.f), toolbar);
 		anchor(toggleCenter, PG_Anchor::HorizontalCenter, toolbar, PG_Anchor::HorizontalCenter);
 

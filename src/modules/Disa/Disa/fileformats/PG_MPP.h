@@ -85,7 +85,8 @@ public:
 	struct Stats {
 		unsigned texturesSize = 0;
 		unsigned normalsSize = 0;
-		unsigned geoemtrySize = 0;
+		unsigned geometrySize = 0;
+		unsigned totalSize() const { return texturesSize + normalsSize + geometrySize; }
 	};
 
 	Stats getStats() const;

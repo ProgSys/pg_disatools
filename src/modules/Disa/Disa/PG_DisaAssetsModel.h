@@ -211,6 +211,8 @@ public:
 	void importGeometry(const PG_GEO& geo, PG_ListModelLocation location, bool hd);
 	void importGeometryGLTF(const PG_File& file, PG_ListModelLocation location, bool hd);
 
+	void addItem(bool texture);
+
 	PG_ResourceSynchronisator* getResourceSynchronisator();
 
 	bool isEnabled() const { return m_enabled; }

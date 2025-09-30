@@ -358,6 +358,7 @@ class PG_DisaChangedDataContainer : public PG_DisaChangedContainer {
 
 public:
     using PG_DisaChangedContainer::PG_DisaChangedContainer;
+    PG_DisaChangedDataContainer(const std::vector<char>& data) : m_data(data) {}
     PG_DisaChangedDataContainer(std::vector<char>&& data) : m_data(std::move(data)) {}
 
     void setData(std::vector<char>&& data) { m_data = std::move(data); triggerFileChanged(); }

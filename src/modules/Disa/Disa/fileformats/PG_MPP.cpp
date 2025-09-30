@@ -320,6 +320,8 @@ bool PG_MPPContainer::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 	writer->writeData(fileOffsets);
 	const unsigned int fileStart = writer->pos() - start;
 	auto it = fileOffsets.begin();
+	std::vector<unsigned char> data;
+
 	for (const auto& item : *this) {
 		*it = writer->pos() - start;
 		++it;
@@ -329,11 +331,10 @@ bool PG_MPPContainer::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 			return FAILURE;
 		}
 		if (reader->size() == 0) continue;
-
-		std::vector<unsigned char> data;
-		reader->read(data, reader->size());
-		if (data.size() > 999999999)
-			return FAILURE;
+		const auto readerSize = reader->size();
+		if (readerSize > 999999999) return FAILURE;
+		
+		reader->read(data, readerSize);
 		writer->writeData(data);
 	}
 	header.file_size = writer->pos() - start;
@@ -352,7 +353,7 @@ PG_MPPContainer::Stats PG_MPPContainer::getStats() const {
 		auto info = item.getInfo();
 
 		if (info.getType() == PG_DisaFileInfo::GEO) {
-			++stats.geoemtrySize;
+			++stats.geometrySize;
 		}
 		else if (info.getType() == PG_DisaFileInfo::TX2) {
 			if (info.getName().getPath()[0] == 'N')  ++stats.normalsSize;
