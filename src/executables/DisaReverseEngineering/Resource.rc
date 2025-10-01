@@ -2,8 +2,8 @@
 
 //I have no idea what it does so I asked ChatGTP to write it :P
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION 0,4,3,0     // Major, Minor, Build, Revision
-PRODUCTVERSION 0,4,3,0  // Same as FILEVERSION
+FILEVERSION 0,4,4,0     // Major, Minor, Build, Revision
+PRODUCTVERSION 0,4,4,0  // Same as FILEVERSION
 FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
 FILEFLAGS (VS_FF_PRIVATEBUILD | VS_FF_PRERELEASE)  // Flags, e.g., debug, pre-release, etc.
 FILEOS VOS__WINDOWS32       // Indicates the OS (VOS_NT_WINDOWS32)
@@ -17,11 +17,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "PG"
             VALUE "FileDescription", "Partial reverse engineering of Disa"
-            VALUE "FileVersion", "0.4.3.0"
+            VALUE "FileVersion", "0.4.4.0"
             VALUE "InternalName", "DisaReverseEngineering"
             VALUE "OriginalFilename", "DisaReverseEngineering.dll"
             VALUE "ProductName", "DisaReverseEngineering"
-            VALUE "ProductVersion", "0.4.3.0"
+            VALUE "ProductVersion", "0.4.4.0"
             VALUE "LegalCopyright", "Copyright © 2025 PG. All rights reserved."
         END
     END

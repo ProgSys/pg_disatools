@@ -12,7 +12,7 @@
 #include <RootScene.h>
 #include <Renderer/PG_SceneRenderer.h>
 
-#define APP_NAME "Disa Mod Manager v0.3.4"
+#define APP_NAME "Disa Mod Manager v0.3.5"
 
 int main(int argc, char* args[]) {
 	PG_SDLApplication app;
