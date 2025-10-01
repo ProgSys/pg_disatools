@@ -65,7 +65,7 @@ void PG_DisaObjectModel::setObjectDisaRotation(glm::ivec3 t) {
 }
 
 void PG_DisaObjectModel::setObjectDisaScale(glm::ivec3 t) {
-	if (m_data.xScale == t.x && m_data.yScale == t.y && m_data.xScale == t.z) return;
+	if (m_data.xScale == t.x && m_data.yScale == t.y && m_data.zScale == t.z) return;
 	m_data.xScale = t.x;
 	m_data.yScale = t.y;
 	m_data.zScale = t.z;
