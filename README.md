@@ -2,7 +2,7 @@
 
 ## Builds
 
-Please make a backup of your files before using this tools!
+Please make a backup of your files before using the tools!
 
 You can download the latest version of the tools here:
 
