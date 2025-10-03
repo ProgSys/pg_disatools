@@ -12,6 +12,8 @@ class PG_DisaObjectModel : public PG_Object {
 	PG_PARENT(PG_Object);
 
 
+	PG_PROPERTY(int location GET getLocation SET setLocation);
+	
 	PG_PROPERTY(glm::ivec3 objectDisaTranslation GET getObjectDisaTranslation SET setObjectDisaTranslation CHANGED objectTranslationChanged);
 	PG_PROPERTY(glm::ivec3 objectDisaRotation GET getObjectDisaRotation SET setObjectDisaRotation CHANGED objectRotationChanged);
 	PG_PROPERTY(glm::ivec3 objectDisaScale GET getObjectDisaScale SET setObjectDisaScale CHANGED objectScaleChanged);

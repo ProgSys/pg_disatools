@@ -25,7 +25,8 @@ signals:
 	void uiStateChanged(PG_UiStateBaseModel::UiState state);
 	void gridModelChanged(PG_ListModelBase* model);
 	void paintSurfacesPressed(unsigned int index); //emmited when paint brush is selected in asset window
-	void addModelPressed(unsigned int index); //emmited when paint brush is selected in asset window
+	void addModelPressed(int index); //emmited when paint brush is selected in asset window
+	void dublicateModelPressed(int modelIndex); //emmited when dublicate model was clicked
 	void displayProgress(const std::string& text, float progress); //emmited when a progress disalog is running
 public:
 	using PG_DisaMainModel::PG_DisaMainModel;

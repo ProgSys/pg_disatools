@@ -15,6 +15,7 @@ class PG_DisaObjectViewNode : public PG_ActorNode {
 	PG_OBJECT(PG_DisaObjectViewNode);
 	PG_PARENT(PG_ActorNode);
 
+	PG_PROPERTY(int index GET getIndex);
 	PG_PROPERTY(PG_Object* model GET getObjectModel);
 	PG_PROPERTY(glm::vec3 translationUser GET getTranslationUser SET setTranslationUser CHANGED translationUserChanged);
 	PG_PROPERTY(glm::quat rotationUser GET getRotationUser SET setRotationUser CHANGED rotationUserChanged);
@@ -27,6 +28,7 @@ public:
 	using PG_ActorNode::PG_ActorNode;
 
 	PG_Object* getObjectModel() const;
+	int getIndex() const { return m_location.getIndex(); }
 	PG_ListModelLocation getLocation() const { return m_location; }
 	void setLocation(PG_ListModelLocation loc);
 	void update(const PG_ListModelLocation& location, const PG_IdentitySet& identities);

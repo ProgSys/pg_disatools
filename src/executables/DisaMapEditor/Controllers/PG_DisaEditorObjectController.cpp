@@ -40,6 +40,12 @@ PG_DisaEditorObjectController::PG_DisaEditorObjectController() {
 			const glm::vec3 point = PG_DisaEditorTileController::findCollisionPoint(ray, getEditor()->getScene()->getRoot());
 			scene->addModelClicked(index, point);
 		}
+	});
+
+	connect(PG_DisaMapEditorMainModel::get(), &PG_DisaMapEditorMainModel::dublicateModelPressed, this, [this](int modelIndex) {
+		if (auto scene = dynamic_cast<PG_DisaMapSceneView*>(getEditor()->getScene())) {
+			scene->addDublicateClicked(modelIndex);
+		}
 		});
 }
 

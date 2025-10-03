@@ -40,6 +40,7 @@ public:
 
 	void exportGLTFClicked();
 	void addModelClicked(int index, glm::vec3 pos);
+	void addDublicateClicked(int objectIndex);
 
 	PG_DisaMapViewNode* getMapNode() const { return m_mapNodeV2; }
 	PG_DisaMapModel* getMapModel() const;

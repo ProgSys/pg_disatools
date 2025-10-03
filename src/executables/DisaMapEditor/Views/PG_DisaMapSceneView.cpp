@@ -299,6 +299,33 @@ void PG_DisaMapSceneView::addModelClicked(int index, glm::vec3 pos) {
 	objects->push_back(object);
 }
 
+void PG_DisaMapSceneView::addDublicateClicked(int objectIndex) {
+	if (!m_mapNodeV2) return;
+
+	auto model = m_mapNodeV2->getModel()->getModel();
+	auto objects = model->getObjects();
+	if (objectIndex < 0 || objectIndex >= objects->size()) return;
+
+	static int lastAdded = -1;
+	static int offsetCounter = 0;
+	if (objectIndex != lastAdded) {
+		lastAdded = objectIndex;
+		offsetCounter = 1;
+	}
+	else {
+		++offsetCounter;
+	}
+
+	auto dublicateData = objects->get(objectIndex)->getData();
+	dublicateData.x += 5 * offsetCounter;
+
+	auto object = PG_new<PG_DisaObjectModel>("PG_DisaObjectModel", objects);
+	object->setChunk(model->getChunks()->back());
+	mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
+	object->setData(dublicateData);
+	objects->push_back(object);
+}
+
 PG_DisaMapModel* PG_DisaMapSceneView::getMapModel() const {
 	return m_mapNodeV2->getMapModel();
 }

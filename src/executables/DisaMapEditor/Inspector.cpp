@@ -1067,6 +1067,24 @@ static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper
 		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
 		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
 	}
+
+	{
+		auto duplicateButton = PG_new<PG_GuiButton>("DuplicateButton", glm::vec2(0.f), glm::vec2(100.f, 30.f), column);
+		duplicateButton->setIcon("gui/icon_add.png");
+		duplicateButton->setText("Duplicate");
+		duplicateButton->setBackground("M_GuiRoundedRectangleAll5");
+		PG_GuiItem::anchor(duplicateButton, PG_Anchor::Left, column, PG_Anchor::Left);
+		PG_GuiItem::anchor(duplicateButton, PG_Anchor::Right, column, PG_Anchor::Right);
+
+		PG_GuiItem::connect(duplicateButton, &PG_GuiButton::clicked, wrapper, [wrapper] {
+			for (auto* obj : wrapper->getSelectionItems()) {
+				auto val = obj->getPropertyValue("index");
+				if (!val) continue;
+				PG_DisaMapEditorMainModel::get()->dublicateModelPressed(val.toInt());
+			}
+
+			});
+	}
 }
 
 constexpr glm::vec3 g_disaTextColor = PG_Color::rgbToF(glm::rgb(70, 52, 48));
@@ -1421,16 +1439,18 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 
 				model->set({
 					{ "Disabled"},
-					{ "Guard Mode"},
-					{ "Advance"},
+					{ "Guard"},
+					{ "Attack"},
+					{ "Hold Ground"},
 					});
 				dropDown->setModel(model);
 				PG_GuiDropDown::connect(dropDown, &PG_GuiDropDown::indexChanged, dropDown, [dropDown](int index) {
 					switch (index)
 					{
 					case 0: dropDown->setTooltipText("Does nothing"); break;
-					case 1: dropDown->setTooltipText("Attack when in range"); break;
-					case 2: dropDown->setTooltipText("Attack and move forward"); break;
+					case 1: dropDown->setTooltipText("The AI holds its position, engaging only if attacked or if an enemy enters its range."); break;
+					case 2: dropDown->setTooltipText("The AI actively advances toward enemies to brutally fight."); break;
+					case 3: dropDown->setTooltipText("The AI remains stationary, attacking only enemies that come within weapon range."); break;
 					default:
 						break;
 					}
