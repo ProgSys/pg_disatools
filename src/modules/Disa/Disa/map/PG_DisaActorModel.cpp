@@ -142,6 +142,46 @@ void PG_DisaActorModel::setCharacterItemSlot2(unsigned short value) {
 	notifyParent(this, { Identity_ItemSlot2 });
 }
 
+void PG_DisaActorModel::setCharacterMagicSlot0(unsigned short value) {
+	if (getCharacterMagicSlot0() == value) return;
+	m_data.magic[0] = value;
+
+	emit characterMagicSlot0Changed();
+	notifyParent(this, { Identity_MagicSlot0 });
+}
+
+void PG_DisaActorModel::setCharacterMagicSlot1(unsigned short value) {
+	if (getCharacterMagicSlot1() == value) return;
+	m_data.magic[1] = value;
+
+	emit characterMagicSlot1Changed();
+	notifyParent(this, { Identity_MagicSlot1 });
+}
+
+void PG_DisaActorModel::setCharacterMagicSlot2(unsigned short value) {
+	if (getCharacterMagicSlot2() == value) return;
+	m_data.magic[2] = value;
+
+	emit characterMagicSlot2Changed();
+	notifyParent(this, { Identity_MagicSlot2 });
+}
+
+void PG_DisaActorModel::setCharacterMagicSlot3(unsigned short value) {
+	if (getCharacterMagicSlot3() == value) return;
+	m_data.magic[3] = value;
+
+	emit characterMagicSlot3Changed();
+	notifyParent(this, { Identity_MagicSlot3 });
+}
+
+void PG_DisaActorModel::setCharacterMagicLevels(glm::u8vec4 levels) {
+	if (getCharacterMagicLevels() == levels) return;
+	std::memcpy(&m_data.magic_level[0], &levels.x, sizeof(unsigned char) * 4);
+
+	emit characterMagicLevelsChanged();
+	notifyParent(this, { Identity_MagicLevels });
+}
+
 void PG_DisaActorModel::updateStatMods() {
 	//reset stat mods
 	if (m_data.geo_effect != 0) {

@@ -233,11 +233,8 @@ void DisaNewCharacterDrag::released() {
 		data.geo_effect = 0;
 		data.unk8 = 0;
 		std::memset(&data.magic, 0, sizeof(unsigned short) * 4);
-		std::memset(&data.unk, 0, sizeof(char) * 30);
-		data.unk[0] = 64;
-		data.unk[1] = 32;
-		data.unk[2] = 96;
-		data.unk[3] = 96;
+		std::memset(&data.magic_level, 0, sizeof(unsigned char) * 4);
+		std::memset(&data.unk, 0, sizeof(char) * 26);
 
 		auto model = PG_new<PG_DisaActorModel>("PG_DisaActorModel", actors);
 		model->setData(data);

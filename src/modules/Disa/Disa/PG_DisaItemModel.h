@@ -29,9 +29,6 @@
 #pragma once
 
 #include <Scene/Model/PG_ListModel.h>
-#include <Disa/resources/PG_DisaSprite.h>
-#include <Resources/PG_Texture.h>
-
 class PG_OLA;
 
 struct PG_DisaItemModel {
@@ -68,12 +65,10 @@ public:
 	void open(std::shared_ptr<PG_OLA> startDat);
 
 	const PG_DisaItemModel& getItemModel(unsigned short id);
-	const PG_Texture& getIconsTexture() const { return m_iconsTexture; };
 
 	using  PG_ListModel<PG_DisaItemModel>::getData;
 
 	static PG_DisaItemsModel* get();
 private:
 	std::shared_ptr<PG_OLA> m_startDat;
-	PG_Texture m_iconsTexture;
 };

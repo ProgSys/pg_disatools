@@ -24,6 +24,13 @@ class PG_DisaActorModel : public PG_Object {
 	PG_PROPERTY(unsigned short characterItemSlot1 GET getCharacterItemSlot1 SET setCharacterItemSlot1 CHANGED characterItemSlot1Changed);
 	PG_PROPERTY(unsigned short characterItemSlot2 GET getCharacterItemSlot2 SET setCharacterItemSlot2 CHANGED characterItemSlot2Changed);
 
+	PG_PROPERTY(unsigned short characterMagicSlot0 GET getCharacterMagicSlot0 SET setCharacterMagicSlot0 CHANGED characterMagicSlot0Changed);
+	PG_PROPERTY(unsigned short characterMagicSlot1 GET getCharacterMagicSlot1 SET setCharacterMagicSlot1 CHANGED characterMagicSlot1Changed);
+	PG_PROPERTY(unsigned short characterMagicSlot2 GET getCharacterMagicSlot2 SET setCharacterMagicSlot2 CHANGED characterMagicSlot2Changed);
+	PG_PROPERTY(unsigned short characterMagicSlot3 GET getCharacterMagicSlot3 SET setCharacterMagicSlot3 CHANGED characterMagicSlot3Changed);
+
+	PG_PROPERTY(glm::u8vec4 characterMagicLevels GET getCharacterMagicLevels SET setCharacterMagicLevels CHANGED characterMagicLevelsChanged);
+
 	//only for geo constructs (2800)
 	PG_PROPERTY(int characterGeoColor GET getGeoColor SET setGeoColor CHANGED geoColorChanged)
 	PG_PROPERTY(unsigned short characterGeoEffect GET getGeoEffect SET setGeoEffect CHANGED geoEffectChanged)
@@ -38,6 +45,13 @@ signals:
 	void characterItemSlot0Changed();
 	void characterItemSlot1Changed();
 	void characterItemSlot2Changed();
+
+	void characterMagicSlot0Changed();
+	void characterMagicSlot1Changed();
+	void characterMagicSlot2Changed();
+	void characterMagicSlot3Changed();
+	void characterMagicLevelsChanged();
+
 	void geoColorChanged();
 	void geoEffectChanged();
 public:
@@ -55,6 +69,13 @@ public:
 		Identity_ItemSlot0,
 		Identity_ItemSlot1,
 		Identity_ItemSlot2,
+
+		Identity_MagicSlot0,
+		Identity_MagicSlot1,
+		Identity_MagicSlot2,
+		Identity_MagicSlot3,
+		Identity_MagicLevels,
+
 		Identity_GeoColor,
 		Identity_GeoEffect,
 	};
@@ -101,6 +122,21 @@ public:
 
 	unsigned short getCharacterItemSlot2() const { return m_data.items[3]; }
 	void setCharacterItemSlot2(unsigned short value);
+
+	unsigned short getCharacterMagicSlot0() const { return m_data.magic[0]; }
+	void setCharacterMagicSlot0(unsigned short value);
+
+	unsigned short getCharacterMagicSlot1() const { return m_data.magic[1]; }
+	void setCharacterMagicSlot1(unsigned short value);
+
+	unsigned short getCharacterMagicSlot2() const { return m_data.magic[2]; }
+	void setCharacterMagicSlot2(unsigned short value);
+
+	unsigned short getCharacterMagicSlot3() const { return m_data.magic[3]; }
+	void setCharacterMagicSlot3(unsigned short value);
+
+	glm::u8vec4 getCharacterMagicLevels() const { return { m_data.magic_level[0], m_data.magic_level[1], m_data.magic_level[2], m_data.magic_level[3] }; };
+	void setCharacterMagicLevels(glm::u8vec4 levels);
 
 	/**
 	* Only for geo constructs (2800)

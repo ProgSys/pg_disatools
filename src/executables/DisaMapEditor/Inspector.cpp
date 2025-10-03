@@ -31,6 +31,7 @@
 #include <Disa/PG_DisaMapModel.h>
 #include <Disa/PG_DisaCharactersModel.h>
 #include <Disa/PG_DisaItemModel.h>
+#include <Disa/PG_DisaMagicModel.h>
 #include <Disa/PG_DisaGeoEffectsModel.h>
 #include <Disa/CustomGui/PG_DisaSearchField.h>
 
@@ -1178,6 +1179,24 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 		}
 	};
 
+	struct MagicIdToIndex {
+		PG_Any operator()(const PG_Any& v) const {
+			auto weaponId = v.get<unsigned short>();
+			auto findIt = std::ranges::find(*PG_DisaMagicsModel::get(), weaponId, &PG_DisaMagicModel::id);
+			if (findIt == PG_DisaMagicsModel::get()->end()) return (int)-1;
+			return (int)std::distance(PG_DisaMagicsModel::get()->begin(), findIt);
+		}
+	};
+
+	struct IndexToMagicId {
+		PG_Any operator()(const PG_Any& v) const {
+			int index = v.get<int>();
+			if (index < 0) return (unsigned short)0;
+			const PG_DisaMagicsModel* itemsModel = PG_DisaMagicsModel::get();
+			return itemsModel->PG_ListModel<PG_DisaMagicModel>::get(index).id;
+		}
+	};
+
 	struct GeoEffectIdToIndex {
 		PG_Any operator()(const PG_Any& v) const {
 			auto weaponId = v.get<unsigned short>();
@@ -1215,6 +1234,21 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 	wrapper->registerProperty("characterItemSlot1Index", "characterItemSlot1", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<WeaponIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToWeaponId>);
 	wrapper->registerProperty("characterItemSlot2", PG_Any::from<unsigned short>(1));
 	wrapper->registerProperty("characterItemSlot2Index", "characterItemSlot2", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<WeaponIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToWeaponId>);
+
+
+	wrapper->registerProperty("characterMagicSlot0", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterMagicSlot0Index", "characterMagicSlot0", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<MagicIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToMagicId>);
+	wrapper->registerProperty("characterMagicSlot1", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterMagicSlot1Index", "characterMagicSlot1", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<MagicIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToMagicId>);
+	wrapper->registerProperty("characterMagicSlot2", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterMagicSlot2Index", "characterMagicSlot2", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<MagicIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToMagicId>);
+	wrapper->registerProperty("characterMagicSlot3", PG_Any::from<unsigned short>(1));
+	wrapper->registerProperty("characterMagicSlot3Index", "characterMagicSlot3", PG_Any::from<unsigned int>(0), &PG_PropertyDynamicWrapper::getValueRemap<MagicIdToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToMagicId>);
+	
+	wrapper->registerProperty("characterMagicLevel0", "characterMagicLevels", PG_Any::from<unsigned char>(0), &getVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::x>, &setVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::x>);
+	wrapper->registerProperty("characterMagicLevel1", "characterMagicLevels", PG_Any::from<unsigned char>(0), &getVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::y>, &setVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::y>);
+	wrapper->registerProperty("characterMagicLevel2", "characterMagicLevels", PG_Any::from<unsigned char>(0), &getVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::z>, &setVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::z>);
+	wrapper->registerProperty("characterMagicLevel3", "characterMagicLevels", PG_Any::from<unsigned char>(0), &getVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::w>, &setVecValue<glm::u8vec4, unsigned char, &glm::u8vec4::w>);
 
 	wrapper->registerProperty("characterGeoColor", PG_Any::from<unsigned int>(0));
 	wrapper->registerProperty("characterGeoEffect", PG_Any::from<unsigned short>(0));
@@ -1406,30 +1440,68 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 			});
 		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
 	}
+	PG_new<PG_GuiItem>("spacerItem", glm::vec2(0.f), glm::vec2(12.f), column);
+	{
+		const auto addItemSelection = [&](const char* title, const char* slot, const char* slotIndex) {
+			PG_GuiRow* row = createRow(column, title);
 
-	const auto addItemSelection = [&](const char* title, const char* slot, const char* slotIndex) {
-		PG_GuiRow* row = createRow(column, title);
+			auto spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(row, wrapper, "itemID", slot);
+			spinBox->setWidth(80.f);
+			spinBox->setHeight(32.f);
+			PG_GuiSpinBox::setupInt(spinBox, 0, std::numeric_limits<unsigned short>::max());
+			spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
 
-		auto spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(row, wrapper, "itemID", slot);
-		spinBox->setWidth(80.f);
-		spinBox->setHeight(32.f);
-		PG_GuiSpinBox::setupInt(spinBox, 0, std::numeric_limits<unsigned short>::max());
-		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+			auto dropDown = PG_Gui::createGuiElementV2<PG_DisaItemDropDown>(row, wrapper, "itemDropDown", slotIndex, "index",
+				[](const std::string& name, PG_GuiItem* root) {
+					auto dropDown = PG_new<PG_DisaItemDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+					dropDown->setModel(PG_DisaItemsModel::get());
+					return dropDown;
+				});
+			dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+			dropDown->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+			};
 
-		auto dropDown = PG_Gui::createGuiElementV2<PG_DisaItemDropDown>(row, wrapper, "itemDropDown", slotIndex, "index",
-			[](const std::string& name, PG_GuiItem* root) {
-				auto dropDown = PG_new<PG_DisaItemDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
-				dropDown->setModel(PG_DisaItemsModel::get());
-				return dropDown;
-			});
-		dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
-		dropDown->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
-		};
+		addItemSelection("Weapon ID:", "characterWeapon", "characterWeaponIndex");
+		addItemSelection("Item 1 ID:", "characterItemSlot0", "characterItemSlot0Index");
+		addItemSelection("Item 2 ID:", "characterItemSlot1", "characterItemSlot1Index");
+		addItemSelection("Item 3 ID:", "characterItemSlot2", "characterItemSlot2Index");
+	}
+	PG_new<PG_GuiItem>("spacerItem", glm::vec2(0.f), glm::vec2(12.f), column);
+	{
+		const auto addMagicSelection = [&](const char* title, const char* slot, const char* slotIndex, const char* slotLevel) {
+			PG_GuiRow* row = createRow(column, title, 160.f);
 
-	addItemSelection("Weapon ID:", "characterWeapon", "characterWeaponIndex");
-	addItemSelection("Item 1 ID:", "characterItemSlot0", "characterItemSlot0Index");
-	addItemSelection("Item 2 ID:", "characterItemSlot1", "characterItemSlot1Index");
-	addItemSelection("Item 3 ID:", "characterItemSlot2", "characterItemSlot2Index");
+			auto spinBoxLevel = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned char>(row, wrapper, "magicLevel", slotLevel);
+			spinBoxLevel->setWidth(80.f);
+			spinBoxLevel->setHeight(32.f);
+			PG_GuiSpinBox::setupInt(spinBoxLevel, 0, std::numeric_limits<unsigned char>::max());
+			spinBoxLevel->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+
+			auto spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(row, wrapper, "magicID", slot);
+			spinBox->setWidth(80.f);
+			spinBox->setHeight(32.f);
+			PG_GuiSpinBox::setupInt(spinBox, 0, std::numeric_limits<unsigned short>::max());
+			spinBox->getBackground()->setMaterial("M_GuiRoundedRectangle");
+
+
+			auto dropDown = PG_Gui::createGuiElementV2<PG_DisaItemDropDown>(row, wrapper, "magicDropDown", slotIndex, "index",
+				[](const std::string& name, PG_GuiItem* root) {
+					auto dropDown = PG_new<PG_DisaItemDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
+					dropDown->setModel(PG_DisaMagicsModel::get());
+					return dropDown;
+				});
+			dropDown->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+			dropDown->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+
+
+
+			};
+
+		addMagicSelection("Magic 1 Lv/ID:", "characterMagicSlot0", "characterMagicSlot0Index", "characterMagicLevel0");
+		addMagicSelection("Magic 2 Lv/ID:", "characterMagicSlot1", "characterMagicSlot1Index", "characterMagicLevel1");
+		addMagicSelection("Magic 3 Lv/ID:", "characterMagicSlot2", "characterMagicSlot2Index", "characterMagicLevel2");
+		addMagicSelection("Magic 4 Lv/ID:", "characterMagicSlot3", "characterMagicSlot3Index", "characterMagicLevel3");
+	}
 
 	{
 		auto text = PG_new<PG_GuiText>("Text", glm::vec2(0.f), glm::vec2(300, 32.f), column);

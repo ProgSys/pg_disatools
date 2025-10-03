@@ -1,7 +1,7 @@
 #include "PG_DisaItemModel.h"
 #include <Disa/fileformats/PG_OLA.h>
 #include <Disa/fileformats/PG_TableDAT.h>
-#include <Disa/fileformats/PG_TX2.h>
+#include <Disa/PG_DisaUiTextursModel.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Util/PG_StringUtil.h>
 
@@ -16,34 +16,14 @@ static PG_DisaItemModel g_emptyItemModel = {
 	0
 };
 
-static inline glm::vec4 getIconLocation(unsigned short iconIndex, unsigned short iconType) {
-	glm::vec4 out;
-	out.x = (iconIndex % 16) * 16.f;
-	out.y = (iconIndex / 16) * 16.f;
-	if (iconIndex == 78 && iconType == 2) {
-		out.z = 32.f;
-		out.x -= out.z;
-		out.w = 16.f;
-	}else if (iconIndex == 76 && iconType == 3) {
-		out.z = 32.f;
-		out.w = 32.f;
-		out.x += out.z;
-	}
-	else{
-		out.z = 16.f;
-		out.w = 16.f;
-	}
-
-	return out;
-}
-
 PG_Variety PG_DisaItemModel::getData(Identity identity) const {
 	switch (identity)
 	{
 	case Identity_Id: return id;
 	case Identity_Name: return nameNormelized;
+	case Identity_Tooltip:
 	case Identity_Description: return descriptionNormelized;
-	case Identity_PreviewImage: return getIconLocation(iconIndex, iconType);
+	case Identity_PreviewImage: return PG_DisaUiTextursModel::getIconLocation(iconIndex, iconType);
 	}
 	return PG_Variety();
 }
@@ -114,21 +94,6 @@ void PG_DisaItemsModel::open(std::shared_ptr<PG_OLA> startDat) {
 	}
 
 	set(std::move(models));
-
-	if (iconIndexIndex >= 0) {
-		entry = startDat->find(PG_File("ITEM.TX2"), false);
-
-		PG_TX2 tx2;
-		auto reader = entry.createReader();
-		if (tx2.open(reader.get())) {
-			m_iconsTexture.load("DisaIconsAtlas", [tex = std::move(tx2)]() -> PG_Texture::ImageFormats {
-				PG_RGBAImage out;
-				decompressTX2(tex, out);
-				return out;
-				});
-
-		}
-	}
 }
 
 const PG_DisaItemModel& PG_DisaItemsModel::getItemModel(unsigned short id) {

@@ -11,6 +11,8 @@ class PG_DisaMapListModel;
 class PG_DisaCharactersModel;
 class PG_DisaGeoEffectsModel;
 class PG_DisaItemsModel;
+class PG_DisaMagicsModel;
+class PG_DisaUiTextursModel;
 class PG_ListModelBase;
 class PG_PSPFS;
 class PG_OLA;
@@ -46,7 +48,9 @@ public:
 
 	PG_DisaCharactersModel* getCharactersModel() const { return m_charactersModel; }
 	PG_DisaItemsModel* getItemsModel() const { return m_itemsModel; }
+	PG_DisaMagicsModel* getMagicsModel() const { return m_magicsModel; }
 	PG_DisaGeoEffectsModel* getGeoEffectsModel() const { return m_geoEffectsModel; }
+	PG_DisaUiTextursModel* getUiTextursModel() const { return m_uiTextursModel; }
 
 	void pushStateStack(std::shared_ptr<PG_UiStateBaseModel> model);
 	void popStateStack();
@@ -58,7 +62,9 @@ private:
 	std::shared_ptr<PG_PSPFS> m_PSPFS; //subdata
 	PG_DisaCharactersModel* m_charactersModel = nullptr;
 	PG_DisaItemsModel* m_itemsModel = nullptr;
+	PG_DisaMagicsModel* m_magicsModel = nullptr;
 	PG_DisaGeoEffectsModel* m_geoEffectsModel = nullptr;
+	PG_DisaUiTextursModel* m_uiTextursModel = nullptr;
 	PG_DisaMapEditorMainModelResources* m_disaMainModelResources = nullptr;
 
 	PG_DisaConfig m_config;

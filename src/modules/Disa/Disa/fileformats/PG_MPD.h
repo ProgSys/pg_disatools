@@ -154,9 +154,11 @@ PACK( struct mpdfileActor
   unsigned char  appearance;  // 0 = Appear Normal, 1 = Absent 2nd, 2 = Appear 2nd
   unsigned char  unk7;
   unsigned short geo_effect;  // Only(?) used for geosymbols, val%10 = color, val/10 = effect
-  unsigned short unk8;
+  unsigned char weapon_mastery_multiplier; // Multiplies all weapon masteries and unlocks all relevant skills 
+  unsigned char unk8;
   unsigned short magic[4];
-  char  unk[30];     // TBD stat modifiers?
+  unsigned char magic_level[4]; // None weapon related magic spells
+  char  unk[26];     // TBD stat modifiers?
 } );
 
 

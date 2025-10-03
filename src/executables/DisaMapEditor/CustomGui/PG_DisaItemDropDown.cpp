@@ -3,7 +3,7 @@
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Util/Color/ColorDefined.h>
 #include <Models/PG_DisaMapEditorMainModel.h>
-#include <Disa/PG_DisaItemModel.h>
+#include <Disa/PG_DisaUiTextursModel.h>
 
 
 PG_GuiItem* PG_DisaItemDropDown::createDisplayElement(PG_GuiItem* parent) const {
@@ -12,7 +12,7 @@ PG_GuiItem* PG_DisaItemDropDown::createDisplayElement(PG_GuiItem* parent) const 
 	auto icon = PG_new<PG_GuiImageCropped>("Icon", glm::vec2(0.f), glm::vec2(30.f), container);
 	PG_GuiItem::anchor(icon, PG_Anchor::Top, container, PG_Anchor::Top);
 	PG_GuiItem::anchor(icon, PG_Anchor::Left, container, PG_Anchor::Left);
-	icon->setImage(PG_DisaMapEditorMainModel::get()->getItemsModel()->getIconsTexture());
+	icon->setImage(PG_DisaMapEditorMainModel::get()->getUiTextursModel()->getIconsTexture());
 	
 	auto text = PG_new<PG_GuiText>("DropText", glm::vec2(0.f), glm::vec2(30.f), container);
 	PG_GuiItem::anchor(text, PG_Anchor::Top, container, PG_Anchor::Top);

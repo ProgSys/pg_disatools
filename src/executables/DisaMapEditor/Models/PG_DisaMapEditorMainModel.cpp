@@ -5,7 +5,9 @@
 
 #include <Disa/PG_DisaCharactersModel.h>
 #include <Disa/PG_DisaItemModel.h>
+#include <Disa/PG_DisaMagicModel.h>
 #include <Disa/PG_DisaGeoEffectsModel.h>
+#include <Disa/PG_DisaUiTextursModel.h>
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/fileformats/PG_OLA.h>
 #include <Disa/fileformats/PG_SOLA.h>
@@ -58,8 +60,14 @@ void PG_DisaMapEditorMainModel::openExe() {
 	if (!m_itemsModel) {
 		m_itemsModel = PG_new<PG_DisaItemsModel>("PG_DisaItemsModel", this);
 	}
+	if (!m_magicsModel) {
+		m_magicsModel = PG_new<PG_DisaMagicsModel>("PG_DisaMagicsModel", this);
+	}
 	if (!m_geoEffectsModel) {
 		m_geoEffectsModel = PG_new<PG_DisaGeoEffectsModel>("PG_DisaGeoEffectsModel", this);
+	}
+	if (!m_uiTextursModel) {
+		m_uiTextursModel = PG_new<PG_DisaUiTextursModel>("PG_DisaUiTextursModel", this);
 	}
 
 	PG_File subdataFile(dir + "/SUBDATA.DAT");
@@ -154,7 +162,9 @@ void PG_DisaMapEditorMainModel::openExe() {
 	
 	m_charactersModel->open(file, m_PSPFS, startDat);
 	m_itemsModel->open(startDat);
+	m_magicsModel->open(startDat);
 	m_geoEffectsModel->open(startDat);
+	m_uiTextursModel->open(startDat);
 	loadDisaMainModelResources(startDat.get());
 
 	//main Data.dat
