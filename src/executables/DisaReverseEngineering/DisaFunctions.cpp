@@ -853,7 +853,7 @@ struct  Local_c {
 
 };
 
-void FUN_0050a1f0_GetFileData(int param_1, int** fileData, bool param_4) {
+void FUN_0050a1f0_GetFileData(int fileIndex, int** fileData, bool param_4) {
     int* piVar1;
     int** ppiVar2;
     void* pvVar3;
@@ -869,11 +869,11 @@ void FUN_0050a1f0_GetFileData(int param_1, int** fileData, bool param_4) {
         local_20 = (void*)0x0;
         local_c.i = 0;
         if (param_4) {
-            piVar1 = FP::callStdFarA<int*>(0x004195e0, &local_24, (&FP::getData<int>(0x0055f9f0))[param_1], 1);
+            piVar1 = FP::callStdFarA<int*>(0x004195e0, &local_24, (&FP::getData<int>(0x0055f9f0))[fileIndex], 1);
             local_c.a = 1;
         }
         else {
-            int i = (&FP::getData<int>(0x00555e48))[param_1];
+            int i = (&FP::getData<int>(0x00555e48))[fileIndex];
             piVar1 = FP::callStdFarA<int*>(0x004195e0, &local_24, i, 0, 0, 0, 0, 0, 0);
             local_c.a = 2;
         }
