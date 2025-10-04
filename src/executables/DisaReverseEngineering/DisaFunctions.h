@@ -10,7 +10,7 @@ static inline void emptyFunc(unsigned char* b) {}
 
 #pragma pack(push, 1)
 struct DisaDungeon {
-    unsigned short sx0;
+    unsigned short difficulty; //used to spawn chracters that have the difficulty_spawn_rule set
     unsigned short sx2;
 
     unsigned short id;

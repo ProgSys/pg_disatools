@@ -228,8 +228,7 @@ void DisaNewCharacterDrag::released() {
 		data.unk5 = 0;
 		data.unk6 = 0;
 		std::memset(&data.items, 0, sizeof(unsigned short) * 4);
-		data.appearance = 0;
-		data.unk7 = 0;
+		data.difficulty_spawn_rule = 0;
 		data.geo_effect = 0;
 		data.unk8 = 0;
 		std::memset(&data.magic, 0, sizeof(unsigned short) * 4);

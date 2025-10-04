@@ -1191,7 +1191,6 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
                 if (info.characterId == 0) {
                     OUT_ERROR("Failed to find custom character \"" << identifier.getIdentifier() << "\"! Replacing with prinny!");
                     charInfo.id = 2210;
-                    charInfo.appearance = 0;
                     continue;
                 }
                 charInfo.id = info.characterId;
@@ -1404,6 +1403,7 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
         //BEGIN custom code
         //fix loaded characters (ids are already remapped)
         DisaPartyCharacterInfo* charInfos = FP::getData<DisaPartyCharacterInfo*>(0x00738994);
+        if (!charInfos) return;
         unsigned int numberOfActors = FP::getData<unsigned int>(0x008acd40);
         for (auto& charInfo : std::ranges::subrange(charInfos, charInfos + numberOfActors)) {
             if (!PG_DisaIdentifier::isCustomId(charInfo.characterId)) continue;

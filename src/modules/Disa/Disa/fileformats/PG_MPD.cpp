@@ -371,13 +371,13 @@ bool PG_MPD::openJson(PG::STREAM::In* reader) {
 			jActor["unknown3"].get_to(actor.unk5);
 			jActor["unknown4"].get_to(actor.unk6);
 			jActor["items"].get_to(actor.items);
-			jActor["appearance"].get_to(actor.appearance);
-			jActor["unknown5"].get_to(actor.unk7);
+			jActor["difficulty_spawn_rule"].get_to(actor.difficulty_spawn_rule);
 			jActor["geo_effect"].get_to(actor.geo_effect);
 			jActor["unk8"].get_to(actor.unk8);
 			jActor["magic"].get_to(actor.magic);
+			jActor["magic_level"].get_to(actor.magic_level);
 			{
-				for (int i = 0; i < 30; ++i) {
+				for (int i = 0; i < 26; ++i) {
 					jActor["unknown_stat" + std::to_string(i + 1)].get_to(actor.unk[i]);
 				}
 			}
@@ -545,13 +545,13 @@ void PG_MPD::saveJson(const std::string& file) const {
 		jActor["unknown3"] = actor.unk5;
 		jActor["unknown4"] = actor.unk6;
 		jActor["items"] = actor.items;
-		jActor["appearance"] = actor.appearance;
-		jActor["unknown5"] = actor.unk7;
+		jActor["difficulty_spawn_rule"] = actor.difficulty_spawn_rule;
 		jActor["geo_effect"] = actor.geo_effect;
 		jActor["unk8"] = actor.unk8;
 		jActor["magic"] = actor.magic;
+		jActor["magic_level"] = actor.magic_level;
 		{
-			for (int i = 0; i < 30; ++i) {
+			for (int i = 0; i < 26; ++i) {
 				jActor["unknown_stat" + std::to_string(i + 1)] = actor.unk[i];
 			}
 		}

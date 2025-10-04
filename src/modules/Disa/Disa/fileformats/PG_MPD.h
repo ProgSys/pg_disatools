@@ -151,8 +151,7 @@ PACK( struct mpdfileActor
   unsigned char  ai;          // 0 = Disabled, 1 = Guard, 2 = Attack
   unsigned char  unk5, unk6; //health multiplyer? speed?
   unsigned short items[4];
-  unsigned char  appearance;  // 0 = Appear Normal, 1 = Absent 2nd, 2 = Appear 2nd
-  unsigned char  unk7;
+  unsigned short difficulty_spawn_rule;  // 0 == Always Spawn, Difficulty: (x - 1) / 3, TestMode: (x - 1) % 3
   unsigned short geo_effect;  // Only(?) used for geosymbols, val%10 = color, val/10 = effect
   unsigned char weapon_mastery_multiplier; // Multiplies all weapon masteries and unlocks all relevant skills 
   unsigned char unk8;

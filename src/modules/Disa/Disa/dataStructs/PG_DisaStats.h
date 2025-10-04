@@ -69,3 +69,18 @@ struct PG_DisaStats { //32 unsigned chars
     nlohmann::json toJson() const;
     void fromJson(const nlohmann::json& j);
 };
+
+/**
+* Memory Layout to compute final stats
+* ebp-168h
+*/
+struct PG_DisaLocalComputeStats {
+    unsigned long long hp;
+    unsigned long long sp;
+    unsigned long long attack;
+    unsigned long long defence;
+    unsigned long long intelligence;
+    unsigned long long speed;
+    unsigned long long hit;
+    unsigned long long resistence;
+};

@@ -91,7 +91,8 @@ struct PG_DisaPartyCharacter { //1720 unsigned char
     std::array<unsigned int, 8> weaponMasteryEXP; //fists, swort, spears, bows, guns, axes, staves, unknown (always zero)
 
     unsigned int mana;
-    std::array<unsigned short, 6 * 2> unknownData3;
+    PG_DisaBaseStats bonusStats; //added to the stats to compute final stats (FUN_004db610)
+    std::array<unsigned short, 4> unknownData3; //0x640
     std::array<unsigned char, 8> weaponMasteryLevels; //fists,swort, spears, bows, guns, axes, staves, unknown (always zero)
     std::array<unsigned char, 8> weaponMasteryBaseStats; //fists,swort, spears, bows, guns, axes, staves, unknown (always zero)
     std::array<unsigned short, 2 * 2> unknownData4;

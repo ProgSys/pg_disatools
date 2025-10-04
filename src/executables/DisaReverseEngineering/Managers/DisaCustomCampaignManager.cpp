@@ -300,7 +300,7 @@ void DisaCustomCampaignManager::diactivate() {
 
 static inline void startCutomMap() {
     DisaDungeon& dungeon = FP::getData<DisaDungeon>(0x00653a98);
-    dungeon.sx0 = 0;
+    dungeon.difficulty = 0;
     dungeon.sx2 = 0;
     dungeon.id = 65501;
     dungeon.bonusRank = 15;
@@ -842,7 +842,7 @@ void DisaCustomCampaignManager::readMPD(int* dataLocation) const {
 void DisaCustomCampaignManager::runTestMap() {
     FP::getData<unsigned short>(0x0065db1a) = 0;
     DisaDungeon& dungeon = FP::getData<DisaDungeon>(0x00653a98);
-    dungeon.sx0 = 0;
+    dungeon.difficulty = 0;
     dungeon.sx2 = 0;
     dungeon.id = 65500;
     dungeon.bonusRank = 15;

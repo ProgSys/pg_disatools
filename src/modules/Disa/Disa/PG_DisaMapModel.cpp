@@ -777,7 +777,6 @@ struct PG_JobOpenMPD : public PG_Job {
 
 				if (actor.id == 0) {
 					actor.id = 2210; //prinny
-					actor.appearance = 0;
 				}
 			}
 		}
