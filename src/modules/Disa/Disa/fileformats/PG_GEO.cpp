@@ -601,7 +601,7 @@ struct GLTFToGEOParser {
 				geoTexture.header.powerWidth = PG_Math::nextPowerOfTwoExponent(tx2.getWidth());
 				geoTexture.header.powerHeight = PG_Math::nextPowerOfTwoExponent(tx2.getHeight());
 				geoTexture.header.colortableSize = tx2.header.colortableSize;
-				geoTexture.header.unkFlag = 0;
+				geoTexture.header.hasNormal = 0;
 				geoTexture.setTypeArgs(geoTexture.type);
 				geoTexture.header.unk0 = 0;
 				geoTexture.header.unk4 = 0;

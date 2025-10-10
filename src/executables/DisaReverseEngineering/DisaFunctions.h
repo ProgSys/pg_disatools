@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <glm/glm.hpp>
+#include <Util/Color/RGBA.h>
 
 static unsigned int patch_emptyFunc = 0;
 static inline void emptyFunc(unsigned char* b) {}
@@ -462,8 +463,45 @@ void __stdcall FUN_004710d0();
 
 
 //rendering
+void _stdcall FUN_004201d0_RenderClearBegin(); //called at the begin of each frame to clear buffers
+
 void _stdcall FUN_glViewport(int x, int y, int width, int height); //render Begin
 
 void _stdcall FUN_glDrawArrays(unsigned int mode, int first, int count); //render inbetween
 
 void __fastcall FUN_RenderEnd(int param_1); //render End
+
+#include <Disa/fileformats/PG_GEO.h>
+/*!
+* @brief Points to the loaded geometry file and contains the curret state how the geomery should be rendered
+*/
+struct DisaRenderObjectContext {
+    glm::frgba* m_colorMultiplier; //0x0 per-item color multipliers (r,g,b,a)
+    uint32_t m_field0x4; //0x4 Decompiler never reads?
+    DisaRenderObjectContext* m_self; //0x8 pointer to self for some reason
+    float m_field0xC; //0xC 
+    uint32_t m_field0x10; //0x10 
+    uint32_t m_field0x14; //0x14 
+    uint32_t m_field0x18; //0x18 
+    geofileMeshHeader* m_geofileHeader; //0x1C Pointer to geometry file header. Defines how the mesh is structured .
+    glm::vec3* m_triangles; //0x20 
+    glm::vec2* m_uvs; //0x24 
+    uint32_t m_field0x28; //0x28
+    uint32_t m_numberOfTriangels; //0x2C 
+    uint32_t m_field0x30; //0x30 same as unk9 field from geofileMeshHeader
+    uint32_t m_numberOfSurfaces; //0x34
+    uint32_t m_numberOfTextures; //0x38
+    const geofileSurface* m_geofileSurfaces; //0x3C Pointer to geometry file header texture settings. Defines how the surface looks.
+    std::array<geofileTextureHeader*, 7> m_textures; //0x40 Pointers to geometry file colore textures settings. (first texture is present twice)
+    std::array<float, 24> m_unknown0x5c; //0x5c
+    std::array<uint8_t*, 7> m_textureData; //0xBC
+    std::array<float, 38> m_unknown0xAC; //0xd8
+    float m_alphaScale; //0x170
+    std::array<uint32_t, 3> m_unknown0x174; //0x174
+    glm::vec2 m_uvScrollLocal; //0x180
+    glm::vec4* m_uvScroll; //0x188
+    uint m_field0x18c; //0x18c
+    glm::vec2 m_uvScrollSpeed; //0x190
+
+    void __thiscall FUN_004e2180(glm::mat4* param1, glm::frgba* colorMultiplier, uint32_t param_3, float param_4);
+};

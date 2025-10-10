@@ -108,7 +108,7 @@ static inline std::vector<PG_Model::Surface> loadSurfaces(const geofileMesh& geo
 			skipNext = false;
 			continue;
 		}
-		skipNext = geoModel.header.isNew && tex.header.unkFlag;
+		skipNext = geoModel.header.isNew && tex.header.hasNormal;
 		const std::string idetifier = std::to_string(disaModelId) + std::to_string(i) + (geoModel.header.isNew ? "_NEW" : "");
 		textures.push_back(PG_Texture(modelId + "Texture" + idetifier, tex.toImageRGBA()));
 		++i;

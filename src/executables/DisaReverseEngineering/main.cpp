@@ -148,6 +148,15 @@ struct HockManager {
         replaceFunctionIndirectCall("glDrawArraysPointer", "", 0x0042111c, FUN_glDrawArraysPointer); //render begin
         replaceFunction("RenderEnd", "", 0x00509d44, FUN_RenderEnd); //render begin
 
+        {
+            auto f = &DisaRenderObjectContext::FUN_004e2180; //find talk Dat
+            unsigned int i = *((unsigned int*)&f);
+            replaceFunction("TEST", "", 0x004E1E08, i);
+            replaceFunction("TEST", "", 0x00508ba5, FUN_004201d0_RenderClearBegin);
+
+
+        }
+
         replaceDefaultCase();
     }
 

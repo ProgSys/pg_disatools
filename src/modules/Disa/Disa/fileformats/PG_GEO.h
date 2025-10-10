@@ -83,7 +83,7 @@ PACK(struct geofileTextureHeader// x bytes
     unsigned short totalSize;
     unsigned char unk0;
     unsigned char type : 7;
-    bool unkFlag : 1;
+    bool hasNormal : 1; //normal texture, also has tangents and bitangents 
     unsigned short width, height, colortableSize;
     unsigned char powerWidth, powerHeight;
     unsigned int unk4;

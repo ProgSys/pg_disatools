@@ -1680,6 +1680,56 @@ void __stdcall FUN_004710d0() {
     }
 }
 
+namespace detail {
+
+    // A decent hash_combine (like boost::hash_combine)
+    inline void hash_combine(std::size_t& seed, std::size_t value) {
+        // 64-bit mix; fine on 32-bit too.
+        seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+    }
+
+    // Base case: anything that already has std::hash<T>
+    template <class T>
+    inline std::size_t hash_value(const T& v) {
+        return std::hash<T>{}(v);
+    }
+
+    // Overload for std::pair — recursively hash its members
+    template <class A, class B>
+    inline std::size_t hash_value(const std::pair<A, B>& p) {
+        std::size_t seed = 0;
+        hash_combine(seed, hash_value(p.first));
+        hash_combine(seed, hash_value(p.second));
+        return seed;
+    }
+
+    // (Optional) Overload for std::tuple — also recursive
+    template <class... Ts>
+    inline std::size_t hash_value(const std::tuple<Ts...>& t) {
+        std::size_t seed = 0;
+        std::apply([&](const auto&... elems) {
+            (hash_combine(seed, hash_value(elems)), ...);
+            }, t);
+        return seed;
+    }
+
+} // namespace detail
+
+struct pair_hash {
+    template <class T1, class T2>
+    std::size_t operator()(const std::pair<T1, T2>& p) const {
+        return detail::hash_value(p); // this will recurse for nested pairs
+    }
+};
+
+using GeoemtryBatchKey = std::pair<unsigned short, unsigned char>;
+static std::unordered_map<std::pair<geofileMeshHeader*, GeoemtryBatchKey>, byte*, pair_hash> g_geometryMemoryBuffer;
+
+void _stdcall FUN_004201d0_RenderClearBegin() {
+    FP::callStdFarA(0x004201d0);
+    g_geometryMemoryBuffer.clear();
+}
+
 void _stdcall FUN_glViewport(int x, int y, int width, int height) {
     DisaCustomRenderManager::get()->glViewportReplace(x, y, width, height);
 }
@@ -1690,4 +1740,167 @@ void _stdcall FUN_glDrawArrays(unsigned int mode, int first, int count) {
 
 void __fastcall FUN_RenderEnd(int param_1) {
     DisaCustomRenderManager::get()->lastReplace();
+}
+
+
+struct VertexSolidColor {
+    uint32_t  color;   //  4
+    glm::vec3 pos;     // 12
+}; // 16 bytes
+
+struct VertexBasic {
+    glm::vec2 uv;      //  8
+    uint32_t  color;   //  4
+    glm::vec3 pos;     // 12
+}; // 24 bytes
+
+struct VertexWithNormal {
+    uint32_t  color;     // +8
+    glm::vec3 pos;       // +12
+    glm::vec2 uv;        // +0
+    glm::vec3 tangent;  // +24 
+    glm::vec3 bitangent; // +36 
+}; // 48 bytes
+
+void __fastcall FUN_004ef8a0(DisaRenderObjectContext* context, glm::mat4* modelMatrix) {
+    if (context->m_numberOfSurfaces == 0) return;
+
+    // Compute batches. i.e. merge all surfaces into on
+    std::unordered_map<GeoemtryBatchKey, uint32_t, pair_hash> batches; //texture index, addative
+    for (const geofileSurface& surface : std::ranges::subrange(context->m_geofileSurfaces, context->m_geofileSurfaces + context->m_numberOfSurfaces)) {
+        batches[{surface.index, surface.additive}] += surface.length;
+    }
+
+    /*
+    byte* memoryManager =  FP::getData<byte*>(0x005bb02c);
+    uint32_t* byteCount = (uint32_t*)(memoryManager + 0x76038);
+    uint32_t* memoryIndex = (uint32_t*)(memoryManager + 0x76040);
+    uint32_t* memoryBank = (uint32_t*)(memoryManager + 0x76038 + *memoryIndex * 4);
+    */
+
+   
+    for (auto& [key, totalLength] : batches) {
+        if (totalLength == 0) continue;
+
+        bool hasNormalMap = false;
+        if (key.first >= 0) { //does it even has a texture
+            if (geofileTextureHeader* texture = context->m_textures[key.first]) {
+                hasNormalMap = texture->hasNormal; // (*(size_t*)texture) & 0x80000000
+            }
+        }
+
+        const size_t stride = hasNormalMap ? sizeof(VertexWithNormal) : sizeof(VertexBasic);
+        const size_t bytes = (totalLength * 3) * stride;
+
+
+        size_t& arraySize = FP::getData<size_t>(0x005bae84);
+        auto arrayRoot = FP::getData<size_t*>(0x005bae88);
+        //iVar15 = *(int*)(&DAT_005bae88 + DAT_005bae84 * 4);
+
+        size_t* memoryPtr = arrayRoot + arraySize;
+       
+        //CUSTOM memory reusage if we already build same geometry 
+        byte*& memory = g_geometryMemoryBuffer[{context->m_geofileHeader, key}];
+        //byte* memory = nullptr;
+        if (!memory) { 
+            if (arrayRoot + arraySize == 0) {
+                memory = FP::callStdFarA<byte*>(0x00425c10, 0x20, bytes);
+                if (!memory) return; //CSUTOM out of memory check
+            }
+            else {
+                //rewrite and explain this part
+                auto uVar18 = *(uint*)((uint)memoryPtr + 0x20) >> 0x1d & 1;
+                if (*(int*)((uint)memoryPtr + 8 + uVar18 * 4) == 0) {
+                    memory = nullptr;
+                }
+                else {
+                    auto uVar13 = *(int*)((uint)memoryPtr + uVar18 * 4) + 0x1fU & 0xffffffe0;
+                    *(uint*)((uint)memoryPtr + uVar18 * 4) = uVar13 + bytes;
+                    memory = (byte*)(*(int*)((uint)memoryPtr + 0x10 + (*(uint*)((uint)memoryPtr + 0x20) >> 0x1d & 1) * 4) + uVar13);
+                }
+            }
+
+            VertexBasic* outIt = (VertexBasic*)memory;
+            VertexSolidColor* outSolidIt = (VertexSolidColor*)memory;
+
+            uint32_t dataStart = 0;
+            for (const geofileSurface& surface : std::ranges::subrange(context->m_geofileSurfaces, context->m_geofileSurfaces + context->m_numberOfSurfaces)) {
+                if (surface.index != key.first || surface.additive != key.second) {
+                    dataStart += surface.length;
+                    continue; //todo would be better to colect the indeces?
+                }
+
+                glm::rgba color;
+                {  // Compute final rgba and pack it into an sizeof(int)
+                    glm::frgba colorAsFloat(
+                        (float)surface.rMult * context->m_colorMultiplier->r,
+                        (float)surface.gMult * context->m_colorMultiplier->g,
+                        (float)surface.bMult * context->m_colorMultiplier->b,
+                        (float)surface.aMult * context->m_colorMultiplier->a * context->m_alphaScale
+                    );
+                    colorAsFloat = glm::round(colorAsFloat);
+                    colorAsFloat = glm::clamp(colorAsFloat, 0.f, 255.f); //clamp to byte
+                    color = glm::rgba(colorAsFloat);
+                }
+
+                if (key.first == 0) {
+                    //TODO no texture render as solid color blob
+                    auto trianglesIt = context->m_triangles + dataStart;
+                    for (int i = 0; i < surface.length; ++i) {
+                        outSolidIt->color = *((uint32_t*)&color.r);
+                        outSolidIt->pos = *trianglesIt;
+                        ++trianglesIt;
+                        ++outSolidIt;
+                    }
+                    //-> FP::callStdFarA(0x00426040, 41000, memory, totalLength, 3, -1, modelMatrix, 1, 0, 0);
+                    dataStart += surface.length;
+                    continue;
+                }
+                //TODO gather scroll value
+
+
+                auto trianglesIt = context->m_triangles + dataStart;
+                auto uvsIt = context->m_uvs + dataStart;
+
+                for (int i = 0; i < surface.length; ++i) {
+                    outIt->uv = *uvsIt;
+                    outIt->color = *((uint32_t*)&color.r);
+                    outIt->pos = *trianglesIt;
+                    ++uvsIt;
+                    ++trianglesIt;
+                    ++outIt;
+                }
+                dataStart += surface.length;
+            }
+        }
+        if (totalLength == 0) continue;
+
+        auto piVar3 = *(int**)(context->m_textureData[0] + (key.first - 1) * 4);
+        if ((piVar3 != (int*)0x0) && ((int)piVar3 - 0x10001U < 0xeffeffff)) {
+            *piVar3 = *piVar3 + 1;
+        }
+
+        //FP::callStdFarA(0x00425df0, (float)41000, piVar3, memory, totalLength, 3, -1, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
+        //FP::callStdFarA(0x00425df0, 0x0019e180, piVar3, memory, totalLength, 3, key.second > 2? -1: key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
+        FP::callStdFarA(0x00425df0, static_cast<float>(key.second != 0 ? 45000: 41000), piVar3, memory, totalLength, 3, key.second > 2? -1: key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
+
+    }
+}
+
+void __thiscall DisaRenderObjectContext::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba* colorMultiplier, uint32_t param_3, float param_4) {
+    //no need to render geometry if its alpha is zero
+    if (glm::isnan(colorMultiplier->a) || colorMultiplier->a == 0.f) return;
+
+    m_colorMultiplier = colorMultiplier;
+    m_field0x4 = param_3;
+    m_self = this;
+    m_field0xC = param_4;
+    static bool switchFun = true;
+
+    if (switchFun) {
+        FUN_004ef8a0(this, modelMatrix);
+    }
+    else {
+        FP::callFastFarA(0x004ef8a0, this, modelMatrix); //original
+    }
 }
