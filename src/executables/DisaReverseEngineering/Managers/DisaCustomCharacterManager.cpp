@@ -168,7 +168,7 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 		return;
 	}
 
-	OUT_INFO("Addding character \""<< newCharData->getName() <<"\" with identifier \"" << identifier << "\" and level "<< level << ".");
+	OUT_INFO("Adding character \""<< newCharData->getName() <<"\" with identifier \"" << identifier << "\" and level "<< level << ".");
 
 	auto& newChar = DisaPartyCharacterInfo::addNewEntry();
 	newChar.charName = newCharData->name;
