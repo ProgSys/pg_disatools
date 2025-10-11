@@ -41,7 +41,7 @@ struct PG_DisaDataCharacter { //size 216
     unsigned short counter;
 
     std::array<unsigned short, 20> skillIds;
-    std::array<unsigned short, 20> skillLevels;
+    std::array<unsigned short, 20> skillLevels; //when the skill unlockes
 
     std::string getName() const;
     void setName(const std::string& name);

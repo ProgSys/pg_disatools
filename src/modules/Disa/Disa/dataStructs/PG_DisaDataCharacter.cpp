@@ -84,7 +84,16 @@ void PG_DisaDataCharacter::fromJson(const nlohmann::json& j) {
     readFromJson(j, "unknownValue0x83", unknownValue0x83);
     readFromJson(j, "counter", counter);
 
-    readFromJson(j, "skillIds", skillIds);
-    readFromJson(j, "skillLevels", skillLevels);
+    std::vector<unsigned short> data;
+    readFromJson(j, "skillIds", data);
+    if (data.size() > 20) {
+        OUT_WARNING("\"skillIds\" of " << getName() << " can only have a maximum of 20 entries!");
+    }
+    std::copy(data.begin(), std::next(data.begin(), std::min(data.size(), skillIds.size())), skillIds.begin());
+    readFromJson(j, "skillLevels", data);
+    if (data.size() > 20) {
+        OUT_WARNING("\"skillLevels\" of " << getName() << " can only have a maximum of 20 entries!");
+    }
+    std::copy(data.begin(), std::next(data.begin(), std::min(data.size(), skillLevels.size())), skillLevels.begin());
 
 }
