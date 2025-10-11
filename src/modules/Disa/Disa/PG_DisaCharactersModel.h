@@ -32,6 +32,7 @@
 #include <Disa/resources/PG_DisaSprite.h>
 #include <Disa/PG_DisaIdentifier.h>
 #include <Disa/dataStructs/PG_DisaDataCharacter.h>
+#include <Disa/dataStructs/PG_DisaDataMagic.h>
 #include <Resources/PG_Texture.h>
 
 class PG_OLA;
@@ -76,6 +77,13 @@ public:
 		unsigned int charDataIndex = 0;
 		bool isRecruitable = true; //can be recruted in assebly
 		std::string recruitGroupName;
+		std::vector<std::pair<PG_DisaIdentifier, uint16_t>> skills; //identifier, unlock level
+	};
+
+	struct MagicInfo {
+		PG_DisaIdentifier identifier;
+
+		PG_DisaDataMagic magicData;
 	};
 
 	struct CharacterMod {
@@ -86,6 +94,7 @@ public:
 		PG_File zipFile;
 
 		std::vector<CharacterInfo> characters;
+		std::vector<MagicInfo> magics;
 	};
 
 	struct Info {
@@ -129,6 +138,22 @@ public:
 			return PG_DisaIdentifier(std::to_string(id), "disa");
 		}
 	}
+	unsigned int getMagicId(const PG_DisaIdentifier& identifier) const {
+		if (!identifier) return 0;
+		auto findIt = m_magicsMapper.find(identifier.getIdentifier());
+		if (findIt == m_magicsMapper.end()) return 0;
+		return findIt->second + PG_DisaIdentifier::customMagicIdStart;
+	}
+	PG_DisaIdentifier getMagicIdentifier(unsigned int id) {
+		if (PG_DisaIdentifier::isCustomMagicId(id)) {
+			id -= PG_DisaIdentifier::customMagicIdStart;
+			if (id >= m_magics.size()) return PG_DisaIdentifier();
+			return m_magics[id].identifier;
+		}
+		else {
+			return PG_DisaIdentifier(std::to_string(id), "disa");
+		}
+	}
 	unsigned short getSpriteId(const PG_DisaIdentifier& identifier) const {
 		if (!identifier) return 0;
 		auto findIt = m_spritesMapper.find(identifier.getIdentifier());
@@ -148,6 +173,10 @@ protected:
 	static const Info& getInfo(unsigned int id, const std::vector<Info>& list);
 	static const Info& getInfo(const std::string& id, const std::vector<Info>& list, const std::map<std::string, unsigned int>& mapper);
 
+	/**
+	* Added to searchable info
+	* @returns Bool if added and index
+	*/
 	static std::pair<bool, unsigned int> addInfo(Info&& info, std::vector<Info>& list, std::map<std::string, unsigned int>& mapper);
 
 	void loadCharactersFromZip(const PG_File& file);
@@ -162,6 +191,8 @@ protected:
 	std::map<std::string, unsigned int> m_spritesMapper;
 	std::vector<Info> m_faces; //portraits
 	std::map<std::string, unsigned int> m_facesMapper;
+	std::vector<Info> m_magics; //skills
+	std::map<std::string, unsigned int> m_magicsMapper;
 };
 
 

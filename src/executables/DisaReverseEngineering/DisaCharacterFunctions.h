@@ -5,6 +5,7 @@
 #include <Disa/dataStructs/PG_DisaStats.h>
 #include <Disa/dataStructs/PG_DisaDataCharacter.h>
 #include <Disa/dataStructs/PG_DisaPartyCharacter.h>
+#include <Disa/dataStructs/PG_DisaDataMagic.h>
 
 
 
@@ -43,39 +44,23 @@ struct DisaDataCharacterInfo : public PG_DisaDataCharacter { //size 216
     static std::vector<DisaDataCharacterInfo>::iterator end();
 };
 
-/**
-* @brief From Magic.dat
-*/
-struct DisaDataMagicInfo { //size 86
-    unsigned short id;
-    unsigned short level;
-    unsigned short pow;
-    unsigned short sp;
+struct DisaDataMagicInfo : public PG_DisaDataMagic {
 
-    std::array<char, 33> name; //shiftJis encoded
-    std::array<char, 112> description; //shiftJis encoded
+    /**
+    * @brief Copies original data into our managed memory and swap all pointers to our data
+    * Must be called before other functions
+    */
+    static void steal();
+    static DisaDataMagicInfo& addNewEntry();
+    static unsigned int getSize();
+    static DisaDataMagicInfo& getEntry(unsigned int index);
 
-    std::array<unsigned char, 5> effectPrams;
-    unsigned char wt;
-    unsigned char e;
-    unsigned char st;
-    unsigned char wt2;
-    unsigned char rg;
-    unsigned char pat;
-    unsigned char up;
-    unsigned char dn;
-    std::array<unsigned char, 5> effect;
+    static std::vector<DisaDataMagicInfo>::iterator begin();
+    static std::vector<DisaDataMagicInfo>::iterator end();
 
-    std::string getName() const;
-    void setName(const std::string& name);
-
-    std::string getDescription() const;
-    void setDescription(const std::string& str);
-
-
-    void fromJson(const nlohmann::json& j);
-    std::string toString() const;
-
+    /**
+    * @brief Convertrs the curret magic table to a string
+    */
     static std::string globalToString();
 };
 

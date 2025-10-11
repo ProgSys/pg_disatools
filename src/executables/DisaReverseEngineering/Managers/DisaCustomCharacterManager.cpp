@@ -173,18 +173,12 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 	auto& newChar = DisaPartyCharacterInfo::addNewEntry();
 	newChar.charName = newCharData->name;
 	newChar.charTitle = newCharData->title;
-	newChar.level = level;
+	newChar.level = 1;
 	if(level != 1) newChar.experience = FP::getData<std::array<unsigned long long, 9999>>(0x005e9b28)[level] * newCharData->experienceScale;
 	newChar.characterId = displayInfo.characterId;
 	newChar.spriteId = displayInfo.spriteId;
 	newChar.charDatIndex = displayInfo.charDatIndex;
-	if (PG_DisaIdentifier::isCustomId(displayInfo.faceId)) {
-		newChar.setCustomPortraitId(displayInfo.faceId);
-	}
-	else {
-		newChar.portraitColor = newCharData->paletteIndex;
-		newChar.portraitImageId = displayInfo.faceId;
-	}
+
 	newChar.counterBase = newCharData->counter;
 	newChar.counter = newCharData->counter;
 	newChar.jumpingPowerBase = newCharData->jumpPower;
@@ -196,7 +190,16 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 	newChar.weaponMasteryBaseStats = newCharData->weaponMasteryBaseStats;
 	std::copy(newCharData->skillIds.begin(), newCharData->skillIds.end(), newChar.skillId.begin());
 	
-	FP::callFastFarA(0x004db610, &newChar, 0); //peform level up
+	FP::callFastFarA(0x004dafc0, &newChar, newChar.characterId, level, 0 , 0); //peform level up
+	//level up function changes the face ID
+	if (PG_DisaIdentifier::isCustomId(displayInfo.faceId)) {
+		newChar.setCustomPortraitId(displayInfo.faceId);
+	}
+	else {
+		newChar.portraitColor = newCharData->paletteIndex;
+		newChar.portraitImageId = displayInfo.faceId;
+	}
+
 	newChar.currentHP = newChar.activeStats.hp;
 	newChar.currentSP = newChar.activeStats.sp;
 
@@ -208,35 +211,102 @@ void DisaCustomCharacterManager::loadCharacters() {
 }
 
 void DisaCustomCharacterManager::loadCharactersIntoMememory() {
-	m_characters.clear();
-	m_charactersMapper.clear();
+	//load magic
+	{
+		DisaDataMagicInfo::steal();
+		const unsigned int originalMagicSize = DisaDataMagicInfo::getSize();
+		for (auto& mod : m_mods) {
+			for (auto& m : mod.magics) {
+				if (!m.identifier) continue;
 
-	DisaDataCharacterInfo::steal();
-	const unsigned int originalCharactersSize = DisaDataCharacterInfo::getSize();
+				if (auto findIt = m_magicsMapper.find(m.identifier.getIdentifier()); findIt != m_magicsMapper.end()) {
+					m.magicData.id = findIt->second + PG_DisaIdentifier::customMagicIdStart;
+				}
+				else if (m.identifier.getNamespace() == "disa") {
+					m.magicData.id = m.identifier.getNameAsNumber();
+				}
 
-	for (auto& mod : m_mods) {
-		for (auto& c : mod.characters) {
-			if (!c.identifier || !c.spriteIdentifier) continue;
-
-			if (auto findIt = m_spritesMapper.find(c.spriteIdentifier.getIdentifier()); findIt != m_spritesMapper.end()){
-				c.charData.spriteId = findIt->second + PG_DisaIdentifier::customIdStart;
-			} else if (c.spriteIdentifier.getNamespace() == "disa") {
-				c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
-			}else continue;
-
-			if (c.charData.spriteId == 0) continue;
-			auto [added, index] = addInfo(Info{ &mod, c.identifier }, m_characters, m_charactersMapper);
-			
-			c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
-			c.charDataIndex = index + originalCharactersSize;
-			if (added) {
-				reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::addNewEntry()) = c.charData;
-			}
-			else {
-				reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(index + originalCharactersSize)) = c.charData;
+				if (PG_DisaIdentifier::isCustomMagicId(m.magicData.id)) {
+					reinterpret_cast<PG_DisaDataMagic&>(DisaDataMagicInfo::addNewEntry()) = m.magicData;
+				}
+				else if (auto findIt = std::ranges::find(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end(), m.magicData.id, &PG_DisaDataMagic::id);
+					findIt != DisaDataMagicInfo::end()) {
+					reinterpret_cast<PG_DisaDataMagic&>(*findIt) = m.magicData;
+				} else {
+					OUT_ERROR("Failed to replace magic/skill with identifier \""<< m.identifier <<"\"! Entry not found!");
+					m.identifier.splitAt = 0;
+				}
 			}
 		}
 	}
+
+	//load characters
+	{
+		m_characters.clear();
+		m_charactersMapper.clear();
+		DisaDataCharacterInfo::steal();
+		const unsigned int originalCharactersSize = DisaDataCharacterInfo::getSize();
+
+		for (auto& mod : m_mods) {
+			for (auto& c : mod.characters) {
+				if (!c.identifier || !c.spriteIdentifier) continue;
+
+				if (auto findIt = m_spritesMapper.find(c.spriteIdentifier.getIdentifier()); findIt != m_spritesMapper.end()) {
+					c.charData.spriteId = findIt->second + PG_DisaIdentifier::customIdStart;
+				}
+				else if (c.spriteIdentifier.getNamespace() == "disa") {
+					c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
+				}
+				else continue;
+
+				if (c.charData.spriteId == 0) continue;
+				auto [added, index] = addInfo(Info{ &mod, c.identifier }, m_characters, m_charactersMapper);
+
+				assert(c.skills.size() <= c.charData.skillIds.size());
+				if (!c.skills.empty()) {
+					c.charData.skillIds.fill(0);
+					c.charData.skillLevels.fill(0);
+					int i = 0;
+					for (const auto& skill : c.skills) {
+						if (!skill.first.isValid()) continue;
+
+						if (skill.first.isCustom()) {
+							auto findIt = m_magicsMapper.find(skill.first);
+							if (findIt == m_magicsMapper.end()) continue;
+							c.charData.skillIds[i] = findIt->second + PG_DisaIdentifier::customMagicIdStart;
+						}
+						else {
+							c.charData.skillIds[i] = skill.first.getNameAsNumber();
+						}
+						c.charData.skillLevels[i] = skill.second;
+						++i;
+					}
+				}
+
+				if (c.identifier.isCustom()) {
+					c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
+					c.charDataIndex = index + originalCharactersSize;
+					if (added) {
+						reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::addNewEntry()) = c.charData;
+					}
+					else {
+						reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(index + originalCharactersSize)) = c.charData;
+					}
+				}
+				else {
+					c.charData.characterId = c.identifier.getNameAsNumber();
+					if (auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), c.charData.characterId, &PG_DisaDataCharacter::characterId);
+						findIt != DisaDataCharacterInfo::end()) {
+						c.charDataIndex = std::distance(DisaDataCharacterInfo::begin(), findIt);
+						reinterpret_cast<PG_DisaDataCharacter&>(*findIt) = c.charData;
+					}
+					else {
+						OUT_ERROR("Failed to replace character with identifier \"" << c.identifier << "\"! Entry not found!");
+					}
+				}
+			}
+		} //for loop
+	}//load characters end
 }
 
 DisaCustomCharacterManager* DisaCustomCharacterManager::get() {

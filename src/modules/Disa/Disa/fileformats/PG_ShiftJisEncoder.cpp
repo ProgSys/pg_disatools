@@ -246,6 +246,7 @@ std::vector<std::string> splitShiftJisBySpace(const std::string& str) {
 
 
 static inline std::string::const_iterator moveSteps(std::string::const_iterator it, std::string::const_iterator itEnd, unsigned int steps) {
+	if (steps == 0) return it;
 	unsigned char c;
 	do {
 		c = *it;

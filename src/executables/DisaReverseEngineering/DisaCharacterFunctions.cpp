@@ -14,191 +14,91 @@
 
 using namespace PG_JsonUtil;
 
-static std::vector<DisaDataCharacterInfo> gDisaDataCharacterInfos;
-static DisaDataCharacterInfo* gDisaDataCharacterInfoOriginalPtr = nullptr;
-static unsigned int gDisaDataCharacterInfoOriginalSize = 0;
+template<typename T, uint32_t AddressOrgData, uint32_t AddressOrgSize>
+struct DisaDataRemap {
+    std::vector<T> customData;
+    T* originalPtr = nullptr;
+    uint32_t originalSize = 0;
+
+    void peformSteel() {
+        if (!originalPtr) {
+            originalPtr = FP::getData<T*>(AddressOrgData);
+            originalSize = FP::getData<uint32_t>(AddressOrgSize);
+        }
+        customData.clear();
+        customData.reserve(originalSize + 10);
+        auto range = std::ranges::subrange(originalPtr, originalPtr + originalSize);
+        customData.insert(customData.end(), range.begin(), range.end());
+        FP::getData<T*>(AddressOrgData) = customData.data();
+    }
+
+    T& addNewEntry() {
+        T& back = customData.emplace_back();
+        FP::getData<T*>(AddressOrgData) = customData.data();
+        FP::getData<uint32_t>(AddressOrgSize) = customData.size();
+        return back;
+    }
+};
+
+static DisaDataRemap<DisaDataCharacterInfo, 0x005d9cdc, 0x00663ff8> gDisaDataCharacterRemap;
+static DisaDataRemap<DisaDataMagicInfo, 0x0066402c, 0x00664030> gDisaDataMagicRemap;
+
 
 void DisaDataCharacterInfo::steal() {
-    if (!gDisaDataCharacterInfoOriginalPtr) {
-        gDisaDataCharacterInfoOriginalPtr = FP::getData<DisaDataCharacterInfo*>(0x005d9cdc);
-        gDisaDataCharacterInfoOriginalSize = FP::getData<unsigned int>(0x00663ff8);
-    }
-    gDisaDataCharacterInfos.clear();
-    gDisaDataCharacterInfos.reserve(gDisaDataCharacterInfoOriginalSize + 10);
-    auto range = std::ranges::subrange(gDisaDataCharacterInfoOriginalPtr, gDisaDataCharacterInfoOriginalPtr + gDisaDataCharacterInfoOriginalSize);
-    gDisaDataCharacterInfos.insert(gDisaDataCharacterInfos.end(), range.begin(), range.end());
-    FP::getData<DisaDataCharacterInfo*>(0x005d9cdc) = gDisaDataCharacterInfos.data();
+    gDisaDataCharacterRemap.peformSteel();
 }
 
 DisaDataCharacterInfo& DisaDataCharacterInfo::addNewEntry() {
-    DisaDataCharacterInfo& back = gDisaDataCharacterInfos.emplace_back();
-    FP::getData<DisaDataCharacterInfo*>(0x005d9cdc) = gDisaDataCharacterInfos.data();
-    FP::getData<unsigned int>(0x00663ff8) = gDisaDataCharacterInfos.size();
-    return back;
+    return gDisaDataCharacterRemap.addNewEntry();
 }
 
 unsigned int DisaDataCharacterInfo::getSize() {
-    return gDisaDataCharacterInfos.size(); //FP::getData<unsigned int>(0x00663ff8);
+    return gDisaDataCharacterRemap.customData.size(); //FP::getData<unsigned int>(0x00663ff8);
 }
 
 DisaDataCharacterInfo& DisaDataCharacterInfo::getEntry(unsigned int index) {
-    return gDisaDataCharacterInfos[index];
+    return gDisaDataCharacterRemap.customData[index];
 }
 
 std::vector<DisaDataCharacterInfo>::iterator DisaDataCharacterInfo::begin() {
-    return gDisaDataCharacterInfos.begin();
+    return gDisaDataCharacterRemap.customData.begin();
 }
 std::vector<DisaDataCharacterInfo>::iterator DisaDataCharacterInfo::end() {
-    return gDisaDataCharacterInfos.end();
+    return gDisaDataCharacterRemap.customData.end();
 }
 
-
-std::string DisaDataMagicInfo::getName() const {
-    return shiftJisToString(toShiftJisString(name));
-}
-void DisaDataMagicInfo::setName(const std::string& nameIn) {
-    memset(name.data(), 0, name.size());
-    if (nameIn.empty() || nameIn.size() > 100) return;
-
-    const std::string shiftStr = stringToShiftJis(nameIn);
-    memcpy(name.data(), shiftStr.data(), std::min(shiftStr.size(), name.size() - 1));
+void DisaDataMagicInfo::steal() {
+    gDisaDataMagicRemap.peformSteel();
 }
 
-std::string DisaDataMagicInfo::getDescription() const {
-    return shiftJisToString(toShiftJisString(description));
+DisaDataMagicInfo& DisaDataMagicInfo::addNewEntry() {
+    return gDisaDataMagicRemap.addNewEntry();
+}
+unsigned int DisaDataMagicInfo::getSize() {
+    return gDisaDataMagicRemap.customData.size();
 }
 
-static std::map<std::string, unsigned int> gIconMapper = {
-    {"fist", 0},
-    {"swort", 1},
-    {"spear", 2},
-    {"bow", 3},
-    {"pistol", 4},
-    {"axe", 5},
-    {"staff", 6},
-    {"special", 7},
-    {"poison", 8},
-    {"sleep", 9},
-    {"paralysis", 10},
-    {"questionmark", 11},
-    {"whirl", 12},
-    {"special2", 22},
-};
-
-void DisaDataMagicInfo::setDescription(const std::string& str) {
-    memset(description.data(), 0, description.size());
-    if (str.empty() || str.size() > 256) return;
-
-    //add special markers for icons
-
-    std::string shiftStr;
-    std::string specialChar;
-    int counter = 0;
-    std::vector<std::pair<int, int>> insertTable;
-    for (char c : str) {
-        if (c == '<') {
-            if (counter != 0) {
-                shiftStr.clear();
-                break;
-            }
-            ++counter;
-            insertTable.emplace_back(shiftStr.size(), -1);
-        }
-        else if (c == '>') {
-            if (counter != 1) {
-                shiftStr.clear();
-                break;
-            }
-            --counter;
-            if (!specialChar.empty() && !insertTable.empty()) {
-                if (auto findIt = gIconMapper.find(specialChar); findIt != gIconMapper.end()) {
-                    insertTable.back().second = findIt->second;
-                }
-                else {
-                    try {
-                        insertTable.back().second = PG_StringUtil::toInt(specialChar);
-                    }
-                    catch (...) {}
-                }
-            }
-            specialChar.clear();
-        }
-        else if (counter != 0) {
-            specialChar.push_back(c);
-        }
-        else {
-            shiftStr.push_back(c);
-        }
-    }
-
-    if (shiftStr.empty() && insertTable.empty()) return;
-    shiftStr = stringToShiftJis(shiftStr);
-
-    if (!insertTable.empty()) {
-        unsigned int lastAt = 0;
-        unsigned int offset = 0;
-        for (auto [at, toInsert] : insertTable) {
-            offset = offset + indexToShiftJisOffset(shiftStr, at - lastAt, offset);
-            lastAt = at;
-            if (toInsert < 0) toInsert = 11;
-            unsigned short specialChar = 0x873f + glm::clamp(toInsert + 1, 1, 93);
-            std::string insertStr = { (char)(specialChar >> 8) , (char)specialChar };
-            shiftStr.insert(offset, insertStr);
-            offset += 2;
-        }
-    }
-
-    memcpy(description.data(), shiftStr.data(), std::min(shiftStr.size(), description.size() - 1));
+DisaDataMagicInfo& DisaDataMagicInfo::getEntry(unsigned int index) {
+    return gDisaDataMagicRemap.customData[index];
 }
 
-void DisaDataMagicInfo::fromJson(const nlohmann::json& j) {
-    readFromJson(j, "level", level);
-    readFromJson(j, "pow", pow);
-    readFromJson(j, "sp", sp);
-
-    {
-        std::string str;
-        readFromJson(j, "name", str, 32);
-        setName(str);
-    }
-    {
-        std::string str;
-        readFromJson(j, "description", str, 128);
-        setDescription(str);
-    }
-
-    readFromJson(j, "effectPrams", effectPrams);
-    readFromJson(j, "wt", wt);
-    readFromJson(j, "e", e);
-    readFromJson(j, "st", st);
-    readFromJson(j, "wt2", wt2);
-    readFromJson(j, "rg", rg);
-    readFromJson(j, "pat", pat);
-    readFromJson(j, "up", up);
-    readFromJson(j, "dn", dn);
-    readFromJson(j, "effect", effectPrams);
+std::vector<DisaDataMagicInfo>::iterator DisaDataMagicInfo::begin() {
+    return gDisaDataMagicRemap.customData.begin();
 }
-
-std::string DisaDataMagicInfo::toString() const {
-    std::stringstream stream;
-    stream << "(" << std::setw(4) << std::setfill(' ') << id << ") " << getName() << " - " << getDescription() << ";";
-    return stream.str();
+std::vector<DisaDataMagicInfo>::iterator DisaDataMagicInfo::end() {
+    return gDisaDataMagicRemap.customData.end();
 }
 
 std::string DisaDataMagicInfo::globalToString() {
     std::stringstream stream;
-    const unsigned int unitsOwnedSize = FP::getData<unsigned int>(0x00664030);
-    stream << " == Global magic/skills with " << unitsOwnedSize << " items == \n";
-    auto* info = FP::getData<DisaDataMagicInfo*>(0x0066402c);
-    for (int i = 0; i < unitsOwnedSize; ++i) {
-        if (info->id == 1001) info->setDescription("<20><21><22><23><24><25><26><27><28><29>");
-        stream << " - 0x" << std::hex << info << std::dec << ": " << info->toString() << "\n";
-        ++info;
+
+    stream << " == Global magic/skills with " << DisaDataMagicInfo::getSize() << " items == \n";
+    for (const DisaDataMagicInfo& info : std::ranges::subrange(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end())) {
+        stream << " - 0x" << std::hex << &info << std::dec << ": " << info.toString() << "\n";
     }
 
     return stream.str();
 }
-
 
 
 std::string DisaPartyCharacterInfo::playerPartyToString() {
@@ -495,8 +395,6 @@ struct DisaAssemblyInfo {
     }
 
     static DisaAssemblyInfo getFromCustom() {
-
-
         return { .unitCount = customUnitCount,
             .unitVarianceCount = customUnitVarianceCount.data(),
             .assemblyUnitInfos = customAssemblyUnitInfos.data(),
@@ -672,10 +570,10 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
             ((float*)unitMemory)[0x53] = float(variantIndex) * 21.f; //z
             unitMemory[0x70] = 0xff00ff; //color
             unitMemory[0x6f] = 0xff00ff; //color
-
-            FP::callStdFastFarA<int, unsigned int*, unsigned int&>(0x0046c830, unitMemory - 2, uVar10, &FP::getData<unsigned int>(0x00703280), 0);
-            //renders the sprite
-            FP::callStdFastFarA<void>(0x0046cf80, unitMemory - 2, uVar10, &FP::getData<unsigned int>(0x00703280), 0, 0, '\0', 41000, '\0');
+            if (*unitMemory != 0) { //Custom memory check
+                FP::callStdFastFarA<int, unsigned int*, unsigned int&>(0x0046c830, unitMemory - 2, uVar10, &cameraInfo, 0);
+                FP::callStdFastFarA<void>(0x0046cf80, unitMemory - 2, uVar10, &cameraInfo, 0, 0, '\0', 41000, '\0');
+            }
 
             ++unitLookupIndex;
             ++counter;

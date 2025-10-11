@@ -79,7 +79,7 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 		metaCharInfos.push_back(std::move(info));
 	}
 
-	{ //remove dubliucate ids
+	{ //remove dublicate ids
 		std::ranges::sort(metaCharInfos, {}, &MetaCharInfo::id);
 		auto range = std::ranges::unique(metaCharInfos);
 		metaCharInfos.erase(range.begin(), range.end());
@@ -89,7 +89,7 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 	{ //sort by load order
 		PG_DisaModLoadOrderListModel orderModel;
 		orderModel.open(customCharactersDir.toFilePath("loadOrder.json"));
-		 mapping = orderModel.getOrderMapping();
+		mapping = orderModel.getOrderMapping();
 		//load the items on the bottom first
 		std::ranges::sort(metaCharInfos, std::ranges::greater{}, [&mapping](const MetaCharInfo& c) {
 			auto findIt = mapping.find(c.id);
@@ -179,6 +179,42 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 
 	mod.zipFile = metaInfo.file;
 
+	if (auto findIt = j.find("magic"); findIt != j.end()) {
+		for (auto& jMagic : *findIt) {
+			Info info{ &mod };
+			if (!readFromJsonMandatory(jMagic, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
+				OUT_ERROR("'identifier' missing or is invalid for spmagicrite in \"" << metaInfo.file << "\"!");
+				continue;
+			}
+
+			if (!readFromJsonMandatory(jMagic, "file", info.fileInZip)) {
+				OUT_ERROR("'file' missing for magic in \"" << metaInfo.file << "\"!");
+				continue;
+			}
+			MagicInfo magicInfo;
+			magicInfo.identifier = info.identifier;
+			magicInfo.magicData.fromJson(jMagic);
+
+			if (magicInfo.magicData.name.empty()) {
+				OUT_ERROR("Magic/Skill with identifier \"" << info.identifier << "\" has no name in file \"" << metaInfo.file << "\"! Magic must have a name!");
+				continue;
+			}
+
+			if (magicInfo.magicData.description.empty()) {
+				OUT_WARNING("Magic/Skill with identifier \"" << info.identifier << "\" has no description in file \"" << metaInfo.file << "\"!");
+			}
+
+			auto [added, index] = addInfo(std::move(info), m_magics, m_magicsMapper);
+			if (!added) {
+				OUT_ERROR("Magic/Skill with identifier \"" << info.identifier << "\" is already present \"" << metaInfo.file << "\"!");
+				continue;
+			}
+			magicInfo.magicData.id = index;
+
+			mod.magics.push_back(std::move(magicInfo));
+		}
+	}
+
 	if (auto findIt = j.find("sprites"); findIt != j.end()) {
 		for (auto& jSprite : *findIt) {
 			Info info{ &mod };
@@ -265,6 +301,23 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 			info.charData.fromJson(jCharacter);
 			info.charData.characterId = 0;
 			info.charData.spriteId = 0;
+
+			if (auto findSkillIt = jCharacter.find("skills"); findSkillIt != jCharacter.end()) {
+				std::pair<PG_DisaIdentifier, uint16_t> skillEntry;
+				for (auto& jSkill : *findSkillIt) {
+					readFromJson(jSkill, "identifier", skillEntry.first.value);
+					if (!skillEntry.first.build(mod.namespaceMod) || !skillEntry.first.isValid()) {
+						OUT_WARNING("'identifier' for a magic/skill is invalid for character \"" << info.identifier << "\" in \"" << metaInfo.file << "\"!");
+						continue;
+					}
+					skillEntry.second = 0;
+					readFromJson(jSkill, "level", skillEntry.second);
+					skillEntry.second = std::min(skillEntry.second, static_cast<uint16_t>(9999));
+					info.skills.emplace_back(std::move(skillEntry));
+				}
+				if (info.skills.size() > 20) info.skills.resize(20);
+				std::ranges::stable_sort(info.skills, {}, & std::pair<PG_DisaIdentifier, uint16_t>::second);
+			}
 
 			mod.characters.push_back(std::move(info));
 		}

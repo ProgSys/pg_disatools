@@ -93,6 +93,15 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
             if (auto info = charMeta[std::to_string(characterId)]; !info.isSet()) {
                 info = identifier.getIdentifier();
             }
+        };
+        const auto addMagic = [&metaData](unsigned short magicId) {
+            if (!PG_DisaIdentifier::isCustomMagicId(magicId)) return;
+            PG_DisaIdentifier identifier = DisaCustomCharacterManager::get()->getMagicIdentifier(magicId);
+            if (!identifier) return;
+            auto charMeta = metaData["magic"];
+            if (auto info = charMeta[std::to_string(magicId)]; !info.isSet()) {
+                info = identifier.getIdentifier();
+            }
          };
 
         {
@@ -100,6 +109,9 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
             auto playerUnitsSize = *(unsigned short*)(data + 3000 + 277624);
             for (const PG_DisaPartyCharacter& c : std::ranges::subrange(playerUnits, playerUnits + playerUnitsSize)) {
                 addCharacter(c.characterId);
+                for (auto id : c.skillId) {
+                    addMagic(id);
+                }
             }
         }
 
@@ -167,17 +179,31 @@ bool __fastcall FUN_0043e600_decompressSave(char*& decompressedData, uint& decom
             metaData.open(&reader);
 
             auto charMeta = metaData["characters"];
-            if(charMeta.isValid()){
+            auto magicMeta = metaData["magic"];
+            if(charMeta.isValid() || magicMeta.isValid()){
                 auto* playerUnits = (PG_DisaPartyCharacter*)(decompressedData + 3000);
                 auto playerUnitsSize = *(unsigned short*)(decompressedData + 3000 + 277624);
                 for (PG_DisaPartyCharacter& c : std::ranges::subrange(playerUnits, playerUnits + playerUnitsSize)) {
-                    if (!PG_DisaIdentifier::isCustomId(c.characterId)) continue;
+                    //check if any skill is special
+                    for (unsigned short& id : c.skillId) {
+                        if (id == 0) break;
+                        if (!PG_DisaIdentifier::isCustomMagicId(id)) continue;
+                        PG_DisaIdentifier identifier(magicMeta[std::to_string(id)].asString());
+                        id = DisaCustomCharacterManager::get()->getMagicId(identifier);
+                        if (id == 0) {
+                            OUT_ERROR("Save file contains unknown skill/magic \"" << identifier << "\"!");
+                            id = 2213;//prinny bomb
+                        }
+                    }
 
+
+                    if (!PG_DisaIdentifier::isCustomId(c.characterId)) continue;
+                    
                     PG_DisaIdentifier identifier(charMeta[std::to_string(c.characterId)].asString());
                     auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
 
                     if (displayInfo.characterId == 0) {
-                        OUT_ERROR("Save file contains unknown character \"" << identifier.getIdentifier() << "\"!");
+                        OUT_ERROR("Save file contains unknown character \"" << identifier << "\"!");
                         c.characterId = 2210;
                         c.spriteId = 2210;
                         c.paletteIndex = 0;

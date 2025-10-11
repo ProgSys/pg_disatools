@@ -4,6 +4,7 @@
 
 struct PG_DisaIdentifier {
 	constexpr static unsigned int customIdStart = 10001;
+	constexpr static unsigned int customMagicIdStart = 5000;
 
 	PG_DisaIdentifier() = default;
 	PG_DisaIdentifier(std::string&& v) : value(std::move(v)) {
@@ -56,6 +57,7 @@ struct PG_DisaIdentifier {
 	bool build(const std::string& baseNamespace);
 
 	static inline bool isCustomId(unsigned int id) { return id >= customIdStart; }
+	static inline bool isCustomMagicId(unsigned int id) { return id >= customMagicIdStart; }
 
 	std::string value;
 	unsigned int splitAt = 0;
