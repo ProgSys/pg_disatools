@@ -1,4 +1,4 @@
-#include "PG_DisaInstaller.h"
+﻿#include "PG_DisaInstaller.h"
 
 #include <Base/PG_Application.h>
 #include <Resources/PG_ResourceManager.h>
@@ -12,8 +12,46 @@
 #include <Disa/fileformats/PG_Exe.h>
 #include <Disa/fileformats/PG_ZIP.h>
 #include <Script/CScript/PG_CScript.h>
+#include <Windows.h>
 
-void PG_DisaInstaller::runInstall(std::string version, PG_File exePath) {
+static inline bool isVCppRedistInstalled() {
+	HKEY hKey;
+	// Visual Studio 2015-2022 Redistributable (x86)
+	const wchar_t* subkey = L"SOFTWARE\\WOW6432Node\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x86";
+	const wchar_t* subkeyFallback = L"SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x86";
+
+	if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, subkey, 0, KEY_READ, &hKey) != ERROR_SUCCESS) {
+		if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, subkeyFallback, 0, KEY_READ, &hKey) != ERROR_SUCCESS) {
+			return false;
+		}
+	}
+		
+	DWORD installed = 0, size = sizeof(installed);
+	RegQueryValueExW(hKey, L"Installed", nullptr, nullptr, reinterpret_cast<LPBYTE>(&installed), &size);
+	RegCloseKey(hKey);
+
+	return installed == 1;
+}
+
+static inline bool isVersionStringValid(const std::string& version) {
+	auto splits = PG_StringUtil::split(version, '.');
+	if (splits.size() != 4) {
+		OUT_ERROR("A version string must have 4 entries! (x.y.z.w)");
+		return false;
+	}
+	try {
+		for (const std::string& s : splits) {
+			PG_StringUtil::toInt(s);
+		}
+	}
+	catch (...) {
+		OUT_ERROR("The version string contains not a number!");
+		return false;
+	}
+	return true;
+}
+
+void PG_DisaInstaller::runInstall(std::string currentVersion, PG_File exePath) {
 	if (isDeleteLater()) return;
 	connect(this, &PG_DisaInstaller::done, this, &PG_ActorNode::deleteLater, ConnectionType_Event);
 
@@ -22,8 +60,16 @@ void PG_DisaInstaller::runInstall(std::string version, PG_File exePath) {
 		return;
 	}
 
-	if (version != DISA_ISNTALL_APP_VERSION) {
-		OUT_INFO("Config version number dosn't match, running install!");
+	PG_File versionFile(PG_ResourceManager::resourceLocation() + "/script/disa/disaInstallVersion.txt");
+	std::string version = versionFile.readAsString(10);
+	PG_StringUtil::trim(version);
+	if (version.empty() || !isVersionStringValid(version)) {
+		OUT_ERROR("Failed to find valid install version! Using fallback!");
+		version = DISA_ISNTALL_APP_VERSION;
+	}
+
+	if (currentVersion != version) {
+		OUT_INFO("Config version number dosn't match, running install! (" << currentVersion << " != " << version << ")");
 	}
 
 	const std::string errorMsg = execInstall(exePath, false);
@@ -32,7 +78,7 @@ void PG_DisaInstaller::runInstall(std::string version, PG_File exePath) {
 		OUT_ERROR(errorMsg);
 		PG_PopUpDialog* errorPopup = PG_PopUpDialog::createError(this,
 			"Error",
-			"Installation of version " DISA_ISNTALL_APP_VERSION " failed!\nReason: " + errorMsg
+			"Installation of version "+ version + " failed!\nReason: " + errorMsg
 		);
 		errorPopup->open();
 		connect(errorPopup, &PG_PopUpDialog::confirmClicked, errorPopup, [] {
@@ -41,7 +87,20 @@ void PG_DisaInstaller::runInstall(std::string version, PG_File exePath) {
 		return;
 	}
 
-	emit done(DISA_ISNTALL_APP_VERSION, exePath);
+	if (!isVCppRedistInstalled()) {
+		OUT_WARNING("Microsoft Visual C++ Redistributable (2015-2022) X86 (32bit) is not installed!");
+		PG_PopUpDialog* errorPopup = PG_PopUpDialog::createError(this,
+			"Redistributable missing!",
+			"Microsoft Visual C++ Redistributable (2015-2022) X86 (32bit) is not installed!\nPlease download and install it from Microsoft!"
+		);
+		errorPopup->open();
+		connect(errorPopup, &PG_PopUpDialog::confirmClicked, errorPopup, [this, version, exePath] {
+			emit done(version, exePath);
+		});
+		return;
+	}
+
+	emit done(version, exePath);
 }
 
 void PG_DisaInstaller::runFreshInstall() {

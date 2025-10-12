@@ -54,7 +54,7 @@ void PG_DisaDataMagic::setDescription(const std::string& str) {
                 break;
             }
             ++counter;
-            insertTable.emplace_back(shiftStr.size(), -1);
+            insertTable.emplace_back(static_cast<int>(shiftStr.size()), -1);
         }
         else if (c == '>') {
             if (counter != 1) {

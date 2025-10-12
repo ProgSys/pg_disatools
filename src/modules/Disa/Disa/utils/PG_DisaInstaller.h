@@ -27,7 +27,7 @@
  */
 #pragma once
 
-#define DISA_ISNTALL_APP_VERSION "0.3.3"
+#define DISA_ISNTALL_APP_VERSION "0.4.5"
 
 #include <Scene/Gui/PG_GuiItem.h>
 #include <Util/PG_File.h>
