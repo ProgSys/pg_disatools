@@ -292,6 +292,9 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 				if (auto findIt = std::ranges::find(mod.characters, deriveFrom, [](const CharacterInfo& c) { return c.identifier.getName(); });
 					findIt != mod.characters.end()) {
 					info.charData = findIt->charData;
+					info.isRecruitable = findIt->isRecruitable;
+					info.recruitGroupName = findIt->recruitGroupName;
+					info.skills = findIt->skills;
 				}
 				else {
 					OUT_ERROR("Failed to find deriveFrom \"" << deriveFrom << "\" in json!");
