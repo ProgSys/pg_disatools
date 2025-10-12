@@ -148,15 +148,15 @@ struct HockManager {
         replaceFunctionIndirectCall("glDrawArraysPointer", "", 0x0042111c, FUN_glDrawArraysPointer); //render begin
         replaceFunction("RenderEnd", "", 0x00509d44, FUN_RenderEnd); //render begin
 
+        /*
         {
-            auto f = &DisaRenderObjectContext::FUN_004e2180; //find talk Dat
+            auto f = &DisaObjectRenderContext::FUN_004e2180; 
             unsigned int i = *((unsigned int*)&f);
             replaceFunction("TEST", "", 0x004E1E08, i);
             replaceFunction("TEST", "", 0x00508ba5, FUN_004201d0_RenderClearBegin);
-
-
         }
-
+        */
+        
         replaceDefaultCase();
     }
 
@@ -349,6 +349,9 @@ struct CommandTerminal {
                 std::cout << DisaPartyCharacterInfo::playerPartyToString() << std::endl;
             }
         }
+        else if (msg == "pc" || msg == "printCharacters") {
+            std::cout << DisaDataCharacterInfo::globalToString() << std::endl;
+        }
         else if (msg == "pm" || msg == "printMagic") {
             std::cout << DisaDataMagicInfo::globalToString() << std::endl;
         }
@@ -370,7 +373,10 @@ struct CommandTerminal {
                 return;
             }
 
-            DisaCustomCharacterManager::get()->addCharacterToPary(identifier, args.size() > 1? std::max(1, PG_StringUtil::toInt(args[1])) : 1);
+            DisaCustomCharacterManager::get()->addCharacterToPary(identifier, 
+                args.size() > 1 ? std::max(1, PG_StringUtil::toInt(args[1])) : 1,
+                args.size() > 2 ? glm::clamp(-1,128, PG_StringUtil::toInt(args[2])): -1
+            );
         }
         else if (msg == "help") {
             std::cout << "* hook:name (h:name) - Inject custom code. Optional second argument is a target name." << std::endl;
@@ -379,8 +385,9 @@ struct CommandTerminal {
             std::cout << "* playtest (p) - Run playtest map from 'customCampainsTest'." << std::endl;
             std::cout << "* printScript (ps) - Will print scripts into console when they are executed." << std::endl;
             std::cout << "* printParty:mode (pp:mode) - Will print the current party as info (default) or dump a full json into clipboard (pp:json)." << std::endl;
+            std::cout << "* printCharacters (pc) - Will print the current loaded character data." << std::endl;
             std::cout << "* printMagic (pm) - Will print the current loaded magic/skills data." << std::endl;
-            std::cout << "* addCharacter:identifier,level (ac:id-l) - Add a new character to your party. Example to add Etna with level 42: 'ac:Disa::2,42'" << std::endl;
+            std::cout << "* addCharacter:identifier,level,mentorIndex (ac:id,l,m) - Add a new character to your party. Example to add Etna with level 42: 'ac:Disa::2,42'. Level and mentor are optional." << std::endl;
             std::cout << "* exit (e) - Close injection thread" << std::endl;
         }
         else {
@@ -485,8 +492,34 @@ DWORD WINAPI startMain() {
 
 }
 
+bool IsVCppRedistInstalled()
+{
+    HKEY hKey;
+    // Visual Studio 2015–2022 Redistributable (x86)
+    const wchar_t* subkey = L"SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x86";
+
+    if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, subkey, 0, KEY_READ, &hKey) != ERROR_SUCCESS)
+        return false;
+
+    DWORD installed = 0, size = sizeof(installed);
+    RegQueryValueExW(hKey, L"Installed", nullptr, nullptr, reinterpret_cast<LPBYTE>(&installed), &size);
+    RegCloseKey(hKey);
+
+    return installed == 1;
+}
+
 
 BOOL APIENTRY DllMain(HINSTANCE, DWORD  reason, LPVOID) {
+    /*
+    if (!IsVCppRedistInstalled()) {
+        MessageBoxW(nullptr,
+            L"Microsoft Visual C++ Redistributable (2015–2022) X86 (32bit) is not installed!\n\n"
+            L"Please download and install it from microsoft!",
+            L"Missing Runtime",
+            MB_ICONERROR | MB_OK);
+        return 1;
+    }
+    */
 
     if (reason == DLL_PROCESS_ATTACH) {
         CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)startMain, NULL, 0, NULL);

@@ -163,7 +163,7 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
     j["portraitColor"] = portraitColor;
     j["field_0x68d"] = field_0x68d;
     j["field_0x68e"] = field_0x68e;
-    j["field_0x690"] = field_0x690;
+    j["mentorIndex"] = mentorIndex;
     j["field_0x691"] = field_0x691;
     j["field_0x692"] = field_0x692;
     j["field_0x693"] = field_0x693;

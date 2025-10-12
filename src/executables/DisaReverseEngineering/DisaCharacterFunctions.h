@@ -42,6 +42,11 @@ struct DisaDataCharacterInfo : public PG_DisaDataCharacter { //size 216
 
     static std::vector<DisaDataCharacterInfo>::iterator begin();
     static std::vector<DisaDataCharacterInfo>::iterator end();
+
+    /**
+    * @brief Convertrs the curret characters table to a string
+    */
+    static std::string globalToString();
 };
 
 struct DisaDataMagicInfo : public PG_DisaDataMagic {

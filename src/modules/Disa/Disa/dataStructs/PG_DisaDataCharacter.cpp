@@ -47,7 +47,7 @@ void PG_DisaDataCharacter::fromJson(const nlohmann::json& j) {
     readFromJson(j, "unknownValue0x3d", unknownValue0x3d);
     readFromJson(j, "unknownValue0x3e", unknownValue0x3e);
     readFromJson(j, "gender", gender);
-    readFromJson(j, "unknownValue0x40", unknownValue0x40);
+    readFromJson(j, "numberOfSkills", numberOfSkills);
     readFromJson(j, "paletteIndex", paletteIndex);
     readFromJson(j, "learnSpeed", learnSpeed);
     readFromJson(j, "jumpPower", jumpPower);
@@ -96,4 +96,10 @@ void PG_DisaDataCharacter::fromJson(const nlohmann::json& j) {
     }
     std::copy(data.begin(), std::next(data.begin(), std::min(data.size(), skillLevels.size())), skillLevels.begin());
 
+}
+
+std::string PG_DisaDataCharacter::toString() const {
+    std::stringstream stream;
+    stream << "(" << std::setw(4) << std::setfill(' ') << characterId << ") " << getName() << " - " << getTitle() << ";";
+    return stream.str();
 }

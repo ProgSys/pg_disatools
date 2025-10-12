@@ -88,13 +88,13 @@ struct PG_DisaPartyCharacter { //1720 unsigned char
     PG_DisaStats stats;  //fixed character stats used to calculate active stats
 
     //weapon mastery (levels are saved seperatly, see weaponMasteryLevels)
-    std::array<unsigned int, 8> weaponMasteryEXP; //fists, swort, spears, bows, guns, axes, staves, unknown (always zero)
+    std::array<unsigned int, 8> weaponMasteryEXP; //fists, sword, spears, bows, guns, axes, staves, unknown (always zero)
 
     unsigned int mana;
     PG_DisaBaseStats bonusStats; //added to the stats to compute final stats (FUN_004db610)
     std::array<unsigned short, 4> unknownData3; //0x640
-    std::array<unsigned char, 8> weaponMasteryLevels; //fists,swort, spears, bows, guns, axes, staves, unknown (always zero)
-    std::array<unsigned char, 8> weaponMasteryBaseStats; //fists,swort, spears, bows, guns, axes, staves, unknown (always zero)
+    std::array<unsigned char, 8> weaponMasteryLevels; //fists,sword, spears, bows, guns, axes, staves, unknown (always zero)
+    std::array<unsigned char, 8> weaponMasteryBaseStats; //fists,sword, spears, bows, guns, axes, staves, unknown (always zero)
     std::array<unsigned short, 2 * 2> unknownData4;
 
     unsigned int level;
@@ -126,7 +126,7 @@ struct PG_DisaPartyCharacter { //1720 unsigned char
     unsigned char portraitColor;
     unsigned char field_0x68d;
     unsigned short field_0x68e;
-    unsigned char field_0x690;
+    int8_t mentorIndex; // 0x690-1 for no mentor
     unsigned char field_0x691;
     unsigned char field_0x692;
     unsigned char field_0x693;

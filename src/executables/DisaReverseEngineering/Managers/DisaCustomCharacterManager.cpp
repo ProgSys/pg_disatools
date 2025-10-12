@@ -125,7 +125,7 @@ DisaCustomCharacterManager::FaceHeader* DisaCustomCharacterManager::getFaceData(
 
 }
 
-void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& identifier, unsigned short level) const{
+void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& identifier, unsigned short level, int8_t mentorIndex) const{
 	if (!identifier.isValid()) return;
 	level = glm::clamp<unsigned short>(level, 1, 9999);
 
@@ -135,12 +135,12 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 	if (identifier.isCustom()) {
 		auto findIt = m_charactersMapper.find(identifier);
 		if (findIt == m_charactersMapper.end()) {
-			OUT_ERROR("Failed to find custom character with identifier \"" << identifier << "\"!");
+			OUT_ERROR("Failed to find custom character with identifier \"" << identifier.getIdentifier() << "\"!");
 			return;
 		}
 		auto findCharDataIt = std::ranges::find(m_characters[findIt->second].mod->characters, identifier, [](const CharacterInfo& i) { return i.identifier; });
 		if (findCharDataIt == m_characters[findIt->second].mod->characters.end()) {
-			OUT_ERROR("Failed to find custom character data with identifier \"" << identifier << "\"!");
+			OUT_ERROR("Failed to find custom character data with identifier \"" << identifier.getIdentifier() << "\"!");
 			return;
 		}
 
@@ -150,7 +150,7 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 	else {
 		auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), identifier.getNameAsNumber(), &DisaDataCharacterInfo::characterId);
 		if (findIt == DisaDataCharacterInfo::end()) {
-			OUT_ERROR("Failed to find character with identifier \"" << identifier << "\"!");
+			OUT_ERROR("Failed to find character with identifier \"" << identifier.getIdentifier() << "\"!");
 			return;
 		}
 
@@ -164,13 +164,26 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 
 
 	if (!newCharData || displayInfo.characterId == 0 || displayInfo.charDatIndex == 0) {
-		OUT_ERROR("The character \"" << identifier << "\" has invalid data! (characterId or charDatIndex is 0)");
+		OUT_ERROR("The character \"" << identifier.getIdentifier() << "\" has invalid data! (characterId or charDatIndex is 0)");
 		return;
 	}
 
-	OUT_INFO("Adding character \""<< newCharData->getName() <<"\" with identifier \"" << identifier << "\" and level "<< level << ".");
+	
+	if (mentorIndex > -1) {
+		if (mentorIndex >= DisaPartyCharacterInfo::getSize()) {
+			OUT_ERROR("Mentor index " << mentorIndex << " is out of bounds! Player party size is: " << DisaPartyCharacterInfo::getSize());
+			return;
+		}
+		OUT_INFO("Adding character \"" << newCharData->getName() << "\" with identifier \"" << identifier.getIdentifier() << "\" at level " << level << " and \"" << DisaPartyCharacterInfo::getEntry(mentorIndex).getName() << "\" as mentor.");
+	}
+	else {
+		mentorIndex = std::max(mentorIndex, static_cast<int8_t>(-1));
+		OUT_INFO("Adding character \"" << newCharData->getName() << "\" with identifier \"" << identifier.getIdentifier() << "\" at level " << level << " and no mentor.");
+	}
 
 	auto& newChar = DisaPartyCharacterInfo::addNewEntry();
+
+	//TODO all of this may do nothing as 0x004dafc0 resets everything :p
 	newChar.charName = newCharData->name;
 	newChar.charTitle = newCharData->title;
 	newChar.level = 1;
@@ -185,13 +198,14 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 	newChar.jumpingPower = newCharData->jumpPower;
 	newChar.movementBase = newCharData->movement;
 	newChar.movement = newCharData->movement;
+	
 
 	newChar.stats = newCharData->baseStats;
 	newChar.weaponMasteryBaseStats = newCharData->weaponMasteryBaseStats;
 	std::copy(newCharData->skillIds.begin(), newCharData->skillIds.end(), newChar.skillId.begin());
 	
-	FP::callFastFarA(0x004dafc0, &newChar, newChar.characterId, level, 0 , 0); //peform level up
-	//level up function changes the face ID
+	FP::callFastFarA(0x004dafc0, &newChar, newChar.characterId, level, 0, 0); //peform level up
+	//level up function changes the face ID and other values
 	if (PG_DisaIdentifier::isCustomId(displayInfo.faceId)) {
 		newChar.setCustomPortraitId(displayInfo.faceId);
 	}
@@ -200,8 +214,7 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 		newChar.portraitImageId = displayInfo.faceId;
 	}
 
-	newChar.currentHP = newChar.activeStats.hp;
-	newChar.currentSP = newChar.activeStats.sp;
+	newChar.mentorIndex = mentorIndex;
 
 }
 

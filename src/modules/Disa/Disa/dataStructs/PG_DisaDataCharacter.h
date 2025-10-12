@@ -13,7 +13,7 @@ struct PG_DisaDataCharacter { //size 216
     unsigned char unknownValue0x3d; //0x3d
     unsigned char unknownValue0x3e; //0x3e
     unsigned char gender; //0x3f
-    unsigned char unknownValue0x40; //0x40
+    unsigned char numberOfSkills; //0x40
     unsigned char paletteIndex; //0x41
     unsigned char learnSpeed; //0x42
     unsigned char jumpPower; //0x43
@@ -52,4 +52,6 @@ struct PG_DisaDataCharacter { //size 216
     void clear();
 
     void fromJson(const nlohmann::json& j);
+
+    std::string toString() const;
 };

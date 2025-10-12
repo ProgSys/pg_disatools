@@ -22,7 +22,7 @@ public:
 	char* getSpriteData(unsigned int spriteId);
 	FaceHeader* getFaceData(unsigned int faceId, bool isHD);
 
-	void addCharacterToPary(const PG_DisaIdentifier& identifier, unsigned short level = 1) const;
+	void addCharacterToPary(const PG_DisaIdentifier& identifier, unsigned short level = 1, int8_t mentorIndex = -1) const;
 
 	static DisaCustomCharacterManager* get();
 private:

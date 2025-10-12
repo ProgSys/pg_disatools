@@ -67,6 +67,20 @@ std::vector<DisaDataCharacterInfo>::iterator DisaDataCharacterInfo::end() {
     return gDisaDataCharacterRemap.customData.end();
 }
 
+/**
+* @brief Convertrs the curret characters table to a string
+*/
+std::string DisaDataCharacterInfo::globalToString() {
+    std::stringstream stream;
+
+    stream << " == Global characters with " << DisaDataCharacterInfo::getSize() << " entries == \n";
+    for (const DisaDataCharacterInfo& info : std::ranges::subrange(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end())) {
+        stream << " - 0x" << std::hex << &info << std::dec << ": " << info.toString() << "\n";
+    }
+
+    return stream.str();
+}
+
 void DisaDataMagicInfo::steal() {
     gDisaDataMagicRemap.peformSteel();
 }
@@ -93,7 +107,7 @@ std::string DisaDataMagicInfo::globalToString() {
     std::stringstream stream;
 
     stream << " == Global magic/skills with " << DisaDataMagicInfo::getSize() << " items == \n";
-    for (const DisaDataMagicInfo& info : std::ranges::subrange(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end())) {
+    for (DisaDataMagicInfo& info : std::ranges::subrange(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end())) {
         stream << " - 0x" << std::hex << &info << std::dec << ": " << info.toString() << "\n";
     }
 
@@ -137,6 +151,7 @@ DisaPartyCharacterInfo& DisaPartyCharacterInfo::addNewEntry() {
     DisaPartyCharacterInfo* ret = (&FP::getData<DisaPartyCharacterInfo>(0x0061a45c - 0x171 * 4) + unitsOwnedSize);
     ++unitsOwnedSize;
     memset((char*)ret, 0, sizeof(DisaPartyCharacterInfo));
+    ret->mentorIndex = -1;
     return *ret;
 }
 
@@ -749,7 +764,7 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
 
                 creationCharacter.field_0x6ac = strType;
                 creationCharacter.field_0x691 = assemblyParentUnit->field_0x691;
-                creationCharacter.field_0x690 = assemblyParentUnit->field_0x690;
+                creationCharacter.mentorIndex = assemblyParentUnit->mentorIndex;
                 creationCharacter.field_0x69a = assemblyParentUnit->field_0x69a;
                 creationCharacter.field_0x6a0 = assemblyParentUnit->field_0x6a0;
 
@@ -763,7 +778,7 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
                     FUN_004e3530_shiftJisCpy(&FP::getData<char>(0x0088b540), creationCharacter.charName.data());
                 }
                 creationCharacter.field_0x6ac = settings->field_0x30;
-                creationCharacter.field_0x690 = (unsigned char)FP::getData<unsigned int>(0x0088ae18);
+                creationCharacter.mentorIndex = (unsigned char)FP::getData<unsigned int>(0x0088ae18);
             }
         }
     }

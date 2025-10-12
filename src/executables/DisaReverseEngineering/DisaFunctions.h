@@ -472,13 +472,19 @@ void _stdcall FUN_glDrawArrays(unsigned int mode, int first, int count); //rende
 void __fastcall FUN_RenderEnd(int param_1); //render End
 
 #include <Disa/fileformats/PG_GEO.h>
+struct DisaObjectScrollInfo {
+    float* uvScrollX;
+    float* uvScrollY;
+    int8_t* uvScrollSpeedX;
+    int8_t* uvScrollSpeedY;
+};
 /*!
 * @brief Points to the loaded geometry file and contains the curret state how the geomery should be rendered
 */
-struct DisaRenderObjectContext {
+struct DisaObjectRenderContext {
     glm::frgba* m_colorMultiplier; //0x0 per-item color multipliers (r,g,b,a)
     uint32_t m_field0x4; //0x4 Decompiler never reads?
-    DisaRenderObjectContext* m_self; //0x8 pointer to self for some reason
+    DisaObjectRenderContext* m_self; //0x8 pointer to self for some reason
     float m_field0xC; //0xC 
     uint32_t m_field0x10; //0x10 
     uint32_t m_field0x14; //0x14 
@@ -497,11 +503,12 @@ struct DisaRenderObjectContext {
     std::array<uint8_t*, 7> m_textureData; //0xBC
     std::array<float, 38> m_unknown0xAC; //0xd8
     float m_alphaScale; //0x170
-    std::array<uint32_t, 3> m_unknown0x174; //0x174
-    glm::vec2 m_uvScrollLocal; //0x180
-    glm::vec4* m_uvScroll; //0x188
+    std::array<uint32_t, 2> m_unknown0x174; //0x174
+    DisaObjectScrollInfo* m_uvScrollObject; //0x17C
+    glm::vec2 m_uvScroll; //0x180 copy from  m_uvScrollObject
+    int* m_field0x188; //0x188
     uint m_field0x18c; //0x18c
-    glm::vec2 m_uvScrollSpeed; //0x190
+    glm::vec2 m_uvScrollSpeed; //0x190 copy from  m_uvScrollObject
 
     void __thiscall FUN_004e2180(glm::mat4* param1, glm::frgba* colorMultiplier, uint32_t param_3, float param_4);
 };

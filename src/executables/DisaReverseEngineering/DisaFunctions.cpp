@@ -1762,7 +1762,7 @@ struct VertexWithNormal {
     glm::vec3 bitangent; // +36 
 }; // 48 bytes
 
-void __fastcall FUN_004ef8a0(DisaRenderObjectContext* context, glm::mat4* modelMatrix) {
+void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelMatrix) {
     if (context->m_numberOfSurfaces == 0) return;
 
     // Compute batches. i.e. merge all surfaces into on
@@ -1843,7 +1843,7 @@ void __fastcall FUN_004ef8a0(DisaRenderObjectContext* context, glm::mat4* modelM
                     color = glm::rgba(colorAsFloat);
                 }
 
-                if (key.first == 0) {
+                if (key.first < 0) {
                     //TODO no texture render as solid color blob
                     auto trianglesIt = context->m_triangles + dataStart;
                     for (int i = 0; i < surface.length; ++i) {
@@ -1856,14 +1856,26 @@ void __fastcall FUN_004ef8a0(DisaRenderObjectContext* context, glm::mat4* modelM
                     dataStart += surface.length;
                     continue;
                 }
-                //TODO gather scroll value
-
 
                 auto trianglesIt = context->m_triangles + dataStart;
                 auto uvsIt = context->m_uvs + dataStart;
 
+                //TODO gather scroll value
+                if (surface.animated && key.first > -1 && (context->m_uvScrollObject->uvScrollSpeedX || context->m_uvScrollObject->uvScrollSpeedY)) {
+                    context->m_uvScrollSpeed = glm::vec2(*context->m_uvScrollObject->uvScrollSpeedX, *context->m_uvScrollObject->uvScrollSpeedY);
+                    *context->m_uvScrollObject->uvScrollX += context->m_uvScrollSpeed.x;
+                    *context->m_uvScrollObject->uvScrollY += context->m_uvScrollSpeed.y;
+                    context->m_uvScroll = glm::vec2(*context->m_uvScrollObject->uvScrollX, *context->m_uvScrollObject->uvScrollY);
+
+                    // Wrap if we moved out of [0,1] over the tile grid
+                    glm::vec2 firstUVValue = *uvsIt + context->m_uvScroll;
+
+                }
+
+
+
                 for (int i = 0; i < surface.length; ++i) {
-                    outIt->uv = *uvsIt;
+                    outIt->uv = *uvsIt + context->m_uvScroll;
                     outIt->color = *((uint32_t*)&color.r);
                     outIt->pos = *trianglesIt;
                     ++uvsIt;
@@ -1887,7 +1899,7 @@ void __fastcall FUN_004ef8a0(DisaRenderObjectContext* context, glm::mat4* modelM
     }
 }
 
-void __thiscall DisaRenderObjectContext::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba* colorMultiplier, uint32_t param_3, float param_4) {
+void __thiscall DisaObjectRenderContext::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba* colorMultiplier, uint32_t param_3, float param_4) {
     //no need to render geometry if its alpha is zero
     if (glm::isnan(colorMultiplier->a) || colorMultiplier->a == 0.f) return;
 
@@ -1898,6 +1910,7 @@ void __thiscall DisaRenderObjectContext::FUN_004e2180(glm::mat4* modelMatrix, gl
     static bool switchFun = true;
 
     if (switchFun) {
+        return;
         FUN_004ef8a0(this, modelMatrix);
     }
     else {

@@ -317,6 +317,7 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 				}
 				if (info.skills.size() > 20) info.skills.resize(20);
 				std::ranges::stable_sort(info.skills, {}, & std::pair<PG_DisaIdentifier, uint16_t>::second);
+				info.charData.numberOfSkills = info.skills.size();
 			}
 
 			mod.characters.push_back(std::move(info));
