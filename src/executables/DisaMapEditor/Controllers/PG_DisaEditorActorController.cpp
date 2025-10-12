@@ -129,7 +129,10 @@ void PG_DisaEditorActorController::clicked(PG_EditorCameraComponent* comp, PG_Mo
 	auto model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 	if (!model) return;
 	if (e->getButton() == PG_BUTTON_RIGHT) {
-		model->setTilePosition(m_startTilePos);
+		if (actor->isDragged()) {
+			actor->setDragged(false);
+			model->setTilePosition(m_startTilePos);
+		}
 	}else{
 		m_startTilePos = model->getTilePosition();
 	}
@@ -157,7 +160,7 @@ void PG_DisaEditorActorController::drag(PG_EditorCameraComponent* comp, PG_Mouse
 	auto model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 	if (!model) return;
 
-	if (auto* tile =  findMinTile(scene, ray)) {
+	if (auto* tile = findMinTile(scene, ray)) {
 		actor->setDragged(true);
 		model->setTilePosition(tile->getTilePosition());
 	}
@@ -167,6 +170,13 @@ void PG_DisaEditorActorController::release(PG_EditorCameraComponent* comp, PG_Mo
 	if (!comp->getHovered() || editorModule->isPicking()) return;
 	auto actor = dynamic_cast<PG_DisaActorViewNode*>(comp->getHovered().get());
 	if (!actor) return;
+
+	if (BUTTON_BIT(e->getButton()) & PG_BUTTON_RMASK) {
+		auto model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
+		if (!model) return;
+		model->setTilePosition(m_startTilePos);
+		editorModule->clearHovered();
+	}
 	actor->setDragged(false);
 }
 

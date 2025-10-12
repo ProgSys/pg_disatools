@@ -82,6 +82,7 @@ public:
 	/**
 	* @brief Will play a funny animation when dragged
 	*/
+	bool isDragged() const;
 	void setDragged(bool value);
 
 	bool event(PG_Event* e) override;

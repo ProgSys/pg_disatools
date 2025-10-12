@@ -27,5 +27,5 @@ protected:
 	void onSelectionChanged(const std::set<PG_EditorActorInfo>& deselected, const std::set<PG_EditorActorInfo>& selected);
 	void onHoverChanged(const std::set<PG_EditorActorInfo>& unhovered, const std::set<PG_EditorActorInfo>& hovered);
 
-	glm::ivec2 m_startTilePos;
+	glm::ivec2 m_startTilePos = glm::ivec2(0);
 };

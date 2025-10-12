@@ -94,6 +94,10 @@ void PG_DisaActorViewNode::loadSprite(unsigned short id) {
 	}
 }
 
+bool PG_DisaActorViewNode::isDragged() const {
+	return m_dragged;
+}
+
 void PG_DisaActorViewNode::setDragged(bool value) {
 	if (m_dragged == value) return;
 	m_dragged = value;
