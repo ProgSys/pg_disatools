@@ -588,3 +588,12 @@
  * DisaReverseEngineering v4.5.0
 	- Fixed level setting when adding character via terminal
 	- Properly implemented the ability to add new magic/skills
+    - Added new command to print all loaded characters
+	
+===  12.10.2025 - v1.0.7  ===
+ * Disa Map Editor v0.3.7 alpha
+	- Fixed the ability to throw units into oblivion
+	- Fixed the ability to select stuff with right click
+ * DisaReverseEngineering v4.6.0
+	- You can now set the mentor with the AddCharacter (ac) command
+	- Fixed derived units not copying skills

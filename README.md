@@ -8,24 +8,10 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.0.6 alpha](https://www.dropbox.com/scl/fi/feh0yqdqg4vrs5p885nej/Disgaea-Tools-v1.0.6-alpha.zip?rlkey=l1e4aghzwi78sasgbblxxdnbp&dl=0)**
+* **[Version v1.0.7 alpha](https://www.dropbox.com/scl/fi/9ta6s49vpelchnfml4f1k/Disgaea-Tools-v1.0.7-alpha.zip?rlkey=xt93bageykcldlbiclp2efphu&dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  28.04.2025 - v1.0.3 prerelease ===
- * Data Map Editor v0.3.2 alpha
-	- Added handling for loading custom characters
- * Sprite Sheet Editor v0.5.1 alpha
-	- Fixed frame selection when a new layer is added
- * DisaReverseEngineering
-	- Can now load character information from zip files located at "mod/CustomCharacters"
-	- Custom characters can be recruited in the dark assembly 
-	- If custom characters are present in player party then meta data will be added to the save file for remapping
-	- Added new terminal commands
-		- "printParty" will print player party into terminal or export it as json
-		- "addCharacter" will add new character to party from given identifier
-		- "printMagic" will print loaded magic/skills
-		
 ===  30.09.2025 - v1.0.5  ===
  * Disa Map Editor v0.3.5 alpha
 	- Hopefully fixed an issue that could cause zip corruption when saving
@@ -55,6 +41,15 @@ You can download the latest version of the tools here:
  * DisaReverseEngineering v4.5.0
 	- Fixed level setting when adding character via terminal
 	- Properly implemented the ability to add new magic/skills
+	- Added new command to print all loaded characters
+	
+===  12.10.2025 - v1.0.7  ===
+ * Disa Map Editor v0.3.7 alpha
+	- Fixed the ability to throw units into oblivion
+	- Fixed the ability to select stuff with right click
+ * DisaReverseEngineering v4.6.0
+	- You can now set the mentor with the AddCharacter (ac) command
+	- Fixed derived units not copying skills
 ```
 
 ## Content
@@ -134,6 +129,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v1.0.1 alpha](https://www.dropbox.com/scl/fi/1j0ndx9r5myiksbdxygpd/Disgaea-Tools-v1.0.1-alpha.zip?rlkey=5qgksppysog8owe7y6r6u5893&dl=0)
 * [Version v1.0.2 alpha](https://www.dropbox.com/scl/fi/l0h4fjgcx4qp2kdnf0rog/Disgaea-Tools-v1.0.2-alpha.zip?rlkey=rj66s7ehzcprqnxsj1lkn7bsd&dl=0)
 * [Version v1.0.5 alpha](https://www.dropbox.com/scl/fi/zg0t1gk6lk7rc58wjsrfo/Disgaea-Tools-v1.0.5-alpha.zip?rlkey=towf71mk682dg4zxq6xsou6bz&dl=0)
+* [Version v1.0.6 alpha](https://www.dropbox.com/scl/fi/feh0yqdqg4vrs5p885nej/Disgaea-Tools-v1.0.6-alpha.zip?rlkey=l1e4aghzwi78sasgbblxxdnbp&dl=0)
 ---
 
 # Disclaimer && License
