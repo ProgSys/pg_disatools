@@ -571,10 +571,20 @@
 	   - Added a new function to plane-project selected faces based on the first selected face
     - General performance optimizations
  * Sprite Sheet Editor v0.5.2 alpha
-    - Improved performance when reducing the number of colors in a sprite sheet. I should be now much faster, even with millions of colors
+    - Improved performance when reducing the number of colors in a sprite sheet. It should be now much faster, even with millions of colors
 	- Added support for exporting and importing cutout outlines, with each outline color-coded by its ID
     - Added an "Auto3x (HD)" option for upscaling sprite sheets to HD format (may only be compatible with modded game version)
 	- Markers now show more accurate and detailed option settings
  * Disa PC File Manager v0.6.5 alpha:
     - Added support for opening script archives
 	
+===  12.10.2025 - v1.0.6  ===
+ * Disa Map Editor v0.3.6 alpha
+ 	- Fixed z Scale not working correctly in inspector
+	- Added duplicate button for selected object in inspector
+ * Disa Mod Manager v0.3.6 alpha
+    - Added check if "Microsoft Visual C++ Redistributable" for x86 (32bit) are installed
+	- Improved installed version check
+ * DisaReverseEngineering v4.5.0
+	- Fixed level setting when adding character via terminal
+	- Properly implemented the ability to add new magic/skills

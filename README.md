@@ -8,20 +8,10 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.0.5 alpha](https://www.dropbox.com/scl/fi/zg0t1gk6lk7rc58wjsrfo/Disgaea-Tools-v1.0.5-alpha.zip?rlkey=towf71mk682dg4zxq6xsou6bz&dl=0)**
+* **[Version v1.0.6 alpha](https://www.dropbox.com/scl/fi/feh0yqdqg4vrs5p885nej/Disgaea-Tools-v1.0.6-alpha.zip?rlkey=l1e4aghzwi78sasgbblxxdnbp&dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  07.12.2024 - v1.0.1 ===
- * Data Map Editor v0.3.0 alpha
-	- When a geo symbol is set, alliance is automatically set to "Enemy, third party"
- 	- (DisaReverseEngineering) The entire function stack now should be used
-	- (DisaReverseEngineering) When an invalid function is detected the game will crash, but before that a message box will be displayed
-	
-===  24.03.2025 - v1.0.2 ===
- * Data Map Editor v0.3.1 alpha
-	- Improved error handling when creating a new campaign (issues/30)
-	
 ===  28.04.2025 - v1.0.3 prerelease ===
  * Data Map Editor v0.3.2 alpha
 	- Added handling for loading custom characters
@@ -54,6 +44,17 @@ You can download the latest version of the tools here:
 	- Markers now show more accurate and detailed option settings
  * Disa PC File Manager v0.6.5 alpha:
     - Added support for opening script archives
+	
+===  12.10.2025 - v1.0.6  ===
+ * Disa Map Editor v0.3.6 alpha
+ 	- Fixed z Scale not working correctly in inspector
+	- Added duplicate button for selected object in inspector
+ * Disa Mod Manager v0.3.6 alpha
+    - Added check if "Microsoft Visual C++ Redistributable" for x86 (32bit) are installed
+	- Improved installed version check
+ * DisaReverseEngineering v4.5.0
+	- Fixed level setting when adding character via terminal
+	- Properly implemented the ability to add new magic/skills
 ```
 
 ## Content
@@ -132,6 +133,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v1.0.0 alpha](https://www.dropbox.com/scl/fi/ndlkk49s16b2mb2vjbw2g/Disgaea-Tools-v1.0.0-alpha.zip?rlkey=fqpdx69tru4v9dvmvcnmppnf0&dl=0)
 * [Version v1.0.1 alpha](https://www.dropbox.com/scl/fi/1j0ndx9r5myiksbdxygpd/Disgaea-Tools-v1.0.1-alpha.zip?rlkey=5qgksppysog8owe7y6r6u5893&dl=0)
 * [Version v1.0.2 alpha](https://www.dropbox.com/scl/fi/l0h4fjgcx4qp2kdnf0rog/Disgaea-Tools-v1.0.2-alpha.zip?rlkey=rj66s7ehzcprqnxsj1lkn7bsd&dl=0)
+* [Version v1.0.5 alpha](https://www.dropbox.com/scl/fi/zg0t1gk6lk7rc58wjsrfo/Disgaea-Tools-v1.0.5-alpha.zip?rlkey=towf71mk682dg4zxq6xsou6bz&dl=0)
 ---
 
 # Disclaimer && License
