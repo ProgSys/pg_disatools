@@ -373,6 +373,7 @@ struct DisaAssemblyInfo {
             }
         }
 
+        constexpr unsigned short manaCostInverseScale = 30;
         //add all untis that belong to a group
         for (const auto& [name, ids] : groups) {
             if (name.empty()) continue;
@@ -381,7 +382,7 @@ struct DisaAssemblyInfo {
             customAssemblyLookUp.push_back(customAssemblyUnitInfos.size());
             for (auto id : ids) {
                 customAssemblyUnitInfosLookup.push_back(customAssemblyUnitInfos.size());
-                customAssemblyUnitInfos.emplace_back(0, id, 0);
+                customAssemblyUnitInfos.emplace_back(manaCostInverseScale, id, 0);
             }
             ++customUnitCount;
         }
@@ -392,7 +393,7 @@ struct DisaAssemblyInfo {
                 customUnitVarianceCount.push_back(1);
                 customAssemblyLookUp.push_back(customAssemblyUnitInfos.size());
                 customAssemblyUnitInfosLookup.push_back(customAssemblyUnitInfos.size());
-                customAssemblyUnitInfos.emplace_back(0, id, 0);
+                customAssemblyUnitInfos.emplace_back(manaCostInverseScale, id, 0);
                 ++customUnitCount;
             }
         }
@@ -586,8 +587,8 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
             unitMemory[0x70] = 0xff00ff; //color
             unitMemory[0x6f] = 0xff00ff; //color
             if (*unitMemory != 0) { //Custom memory check
-                FP::callStdFastFarA<int, unsigned int*, unsigned int&>(0x0046c830, unitMemory - 2, uVar10, &cameraInfo, 0);
-                FP::callStdFastFarA<void>(0x0046cf80, unitMemory - 2, uVar10, &cameraInfo, 0, 0, '\0', 41000, '\0');
+                FP::callStdFastFarA<int, unsigned int*, unsigned int&>(0x0046c830, unitMemory - 2, uVar10, &cameraInfo, 0); //setup sprite?
+                FP::callStdFastFarA<void>(0x0046cf80, unitMemory - 2, uVar10, &cameraInfo, 0, 0, '\0', 41000, '\0'); //render sprite
             }
 
             ++unitLookupIndex;
@@ -722,8 +723,6 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
         else {
             FP::callFastFarA<void>(fPlaySound, 1, FP::getData<int>(0x00677274), 0, 0, 0);
 
-
-
             FP::getData<const DisaAssemblyUnitInfo*>(0x0088b4f8) = &selectedUnitInfo;
             FP::callFastFarA<void>(0x004dafc0, &creationCharacter, selectedUnitInfo.characterId, 1, 0, 0);//load char info
 
@@ -778,7 +777,8 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
                     FUN_004e3530_shiftJisCpy(&FP::getData<char>(0x0088b540), creationCharacter.charName.data());
                 }
                 creationCharacter.field_0x6ac = settings->field_0x30;
-                creationCharacter.mentorIndex = (unsigned char)FP::getData<unsigned int>(0x0088ae18);
+                creationCharacter.mentorIndex = (int8_t)FP::getData<unsigned int>(0x0088ae18);
+                //next function will be FUN_0048ebb0
             }
         }
     }

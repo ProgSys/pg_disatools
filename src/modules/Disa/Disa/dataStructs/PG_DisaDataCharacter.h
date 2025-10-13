@@ -37,7 +37,7 @@ struct PG_DisaDataCharacter { //size 216
     unsigned short unknownValue0x7d;
     unsigned short unknownValue0x7f;
     unsigned short unknownValue0x81;
-    unsigned short unknownValue0x83;
+    unsigned short manaCostScale; // (baseRankCost * manaCostScale) / 10
     unsigned short counter;
 
     std::array<unsigned short, 20> skillIds;

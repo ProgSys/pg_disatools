@@ -81,7 +81,7 @@ void PG_DisaDataCharacter::fromJson(const nlohmann::json& j) {
     readFromJson(j, "unknownValue0x7d", unknownValue0x7d);
     readFromJson(j, "unknownValue0x7f", unknownValue0x7f);
     readFromJson(j, "unknownValue0x81", unknownValue0x81);
-    readFromJson(j, "unknownValue0x83", unknownValue0x83);
+    readFromJson(j, "manaCostScale", manaCostScale);
     readFromJson(j, "counter", counter);
 
     std::vector<unsigned short> data;

@@ -284,7 +284,13 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 			readFromJson(jCharacter, "recruitGroupName", info.recruitGroupName);
 			PG_SimpleWordValidator()(info.recruitGroupName);
 
-			memset(&info.charData, 0, sizeof(PG_DisaDataCharacter));
+			info.charData.clear();
+			//some default values
+			info.charData.type = 3;
+			info.charData.manaCostScale = 10;
+			info.charData.gender = 13;
+			info.charData.experienceScale = 1;
+
 			std::string deriveFrom;
 			readFromJson(jCharacter, "deriveFrom", deriveFrom);
 			PG_SimpleWordValidator()(deriveFrom);

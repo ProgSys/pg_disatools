@@ -70,7 +70,7 @@ struct DisaDataMagicInfo : public PG_DisaDataMagic {
 };
 
 struct DisaAssemblyUnitInfo {
-    unsigned short field0x0;
+    unsigned short extraManaScale; //unconfimed, applied to character ids over 2000. Inversed, staring from 29 to 0
     unsigned short characterId;
     unsigned int field0x4;
 };
