@@ -464,7 +464,7 @@ PG_DisaCustomCharactersModel::DisplayInfo PG_DisaCustomCharactersModel::getDispl
 void PG_DisaCustomCharactersModel::CharacterInfo::fromString(ERecruitmentType& type, std::string str) {
 	PG_StringUtil::toUpper(str);
 	if (str.empty() || str == "NORMAL") type = PG_DisaCustomCharactersModel::CharacterInfo::RecruitmentType_Normal;
-	else if (str == "DEFETED") type = PG_DisaCustomCharactersModel::CharacterInfo::RecruitmentType_Defeted;
+	else if (str == "DEFEATED") type = PG_DisaCustomCharactersModel::CharacterInfo::RecruitmentType_Defeated ;
 	else if (str == "MONSTER") type = PG_DisaCustomCharactersModel::CharacterInfo::RecruitmentType_Monster;
 	else type = RecruitmentType_None;
 }

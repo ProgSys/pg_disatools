@@ -392,7 +392,7 @@ struct DisaAssemblyInfo {
 
                 switch (modChar.recruitmentType) {
                 case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_None: continue;
-                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_Defeted: {
+                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_Defeated : {
                     if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier); 
                         findIt != manager.getAssemblyHistory().end()) {
                         unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;

@@ -72,7 +72,7 @@ public:
 		enum ERecruitmentType {
 			RecruitmentType_None, //can't be recruted
 			RecruitmentType_Normal, //used normal recruitment logic
-			RecruitmentType_Defeted, //at least once killed
+			RecruitmentType_Defeated, //at least once killed
 			RecruitmentType_Monster, //at least once killed, plus mana cost scaling on number of killed
 		};
 
@@ -90,7 +90,7 @@ public:
 			switch (type) {
 			case RecruitmentType_None: return "NONE";
 			case RecruitmentType_Normal: return "NORMAL";
-			case RecruitmentType_Defeted: return "DEFETED";
+			case RecruitmentType_Defeated : return "DEFEATED";
 			case RecruitmentType_Monster: return "MONSTER";
 			default: return {};
 			}
