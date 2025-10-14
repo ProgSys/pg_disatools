@@ -589,7 +589,7 @@
 	- Fixed level setting when adding character via terminal
 	- Properly implemented the ability to add new magic/skills
     - Added new command to print all loaded characters
-	
+
 ===  12.10.2025 - v1.0.7  ===
  * Disa Map Editor v0.3.7 alpha
 	- Fixed the ability to throw units into oblivion
@@ -597,3 +597,11 @@
  * DisaReverseEngineering v4.6.0
 	- You can now set the mentor with the AddCharacter (ac) command
 	- Fixed derived units not copying skills
+	
+===  14.10.2025 - v1.0.8  ===
+ * Disa Map Editor v0.3.8 alpha
+	- Fixed some gizmos not visible in object mode
+ * DisaReverseEngineering v4.6.1
+	- Updated recruitment, see "Adding-Custom-Characters" Wiki for more info!
+	    - Changed "isRecruitable" to "recruitmentType", allowing for more precise settings.
+	    - Changed "unknownValue0x83" to "manaCostScale", allowing to scale the mana cost of a unit in dark assembly

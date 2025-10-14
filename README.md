@@ -8,29 +8,10 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.0.7 alpha](https://www.dropbox.com/scl/fi/9ta6s49vpelchnfml4f1k/Disgaea-Tools-v1.0.7-alpha.zip?rlkey=xt93bageykcldlbiclp2efphu&dl=0)**
+* **[Version v1.0.8 alpha](https://www.dropbox.com/scl/fi/wynb5gtmqyb397iw515yj/Disgaea-Tools-v1.0.8-alpha.zip?rlkey=lpsdggr08lq8dncotyld6jf9h&dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  30.09.2025 - v1.0.5  ===
- * Disa Map Editor v0.3.5 alpha
-	- Hopefully fixed an issue that could cause zip corruption when saving
-	- Added an "Add" button in the Asset Manager to add new assets
-    - Terrain editing:
-	   - Added the ability to modify bottom corners of a tile in the Inspector
-       - Added the ability to hide individual tile faces in the Inspector
-    - Material editing:
-	   - Added option to clear a texture slot
-	   - Added a new function to plane-project selected faces based on the first selected face
-    - General performance optimizations
- * Sprite Sheet Editor v0.5.2 alpha
-    - Improved performance when reducing the number of colors in a sprite sheet. It should be now much faster, even with millions of colors
-	- Added support for exporting and importing cutout outlines, with each outline color-coded by its ID
-    - Added an "Auto3x (HD)" option for upscaling sprite sheets to HD format (may only be compatible with modded game version)
-	- Markers now show more accurate and detailed option settings
- * Disa PC File Manager v0.6.5 alpha:
-    - Added support for opening script archives
-	
 ===  12.10.2025 - v1.0.6  ===
  * Disa Map Editor v0.3.6 alpha
  	- Fixed z Scale not working correctly in inspector
@@ -50,6 +31,14 @@ You can download the latest version of the tools here:
  * DisaReverseEngineering v4.6.0
 	- You can now set the mentor with the AddCharacter (ac) command
 	- Fixed derived units not copying skills
+	
+===  14.10.2025 - v1.0.8  ===
+ * Disa Map Editor v0.3.8 alpha
+	- Fixed some gizmos not visible in object mode
+ * DisaReverseEngineering v4.6.1
+	- Updated recruitment, see "Adding-Custom-Characters" Wiki for more info!
+	    - Changed "isRecruitable" to "recruitmentType", allowing for more precise settings.
+		- Changed "unknownValue0x83" to "manaCostScale", allowing to scale the mana cost of a unit in dark assembly
 ```
 
 ## Content
@@ -120,16 +109,14 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v0.8.9 alpha](https://www.dropbox.com/s/dhy0bwv35wu5gnm/Disgaea%20Tools%20v0.8.9%20alpha.zip?dl=0)
 * [Version v0.9.0 alpha](https://www.dropbox.com/s/ufcerz9cm2lcqi7/Disgaea%20Tools%20v0.9.0%20alpha.zip?dl=0)
 * [Version v0.9.2 alpha](https://www.dropbox.com/s/l4fsbvxp3vry0ei/Disgaea%20Tools%20v0.9.2%20alpha.zip?dl=0)
-* [Version v0.9.3 alpha](https://www.dropbox.com/s/px3jhlqee9bhcqj/Disgaea%20Tools%20v0.9.3%20alpha.zip?dl=0)
 * [Version v0.9.4 alpha](https://www.dropbox.com/s/9gz829c4eh2yf23/Disgaea%20Tools%20v0.9.4%20alpha.zip?dl=0)
-* [Version v0.9.6 alpha](https://www.dropbox.com/s/3gimgyqxcqxls50/Disgaea%20Tools%20v0.9.6%20alpha.zip?dl=0)
-* [Version v0.9.7 alpha](https://www.dropbox.com/scl/fi/dd2tt56r3atd391h86ej2/Disgaea-Tools-v0.9.7-alpha.zip?rlkey=94buh59vka4rlbbq2cygcohlt&dl=0)
 * [Version v0.9.8 alpha](https://www.dropbox.com/scl/fi/b9hr5rtc42rp9x7ggtbvu/Disgaea-Tools-v0.9.8-alpha.zip?rlkey=tsu3fgzowyickizq1fzyqe5m3&dl=0)
 * [Version v1.0.0 alpha](https://www.dropbox.com/scl/fi/ndlkk49s16b2mb2vjbw2g/Disgaea-Tools-v1.0.0-alpha.zip?rlkey=fqpdx69tru4v9dvmvcnmppnf0&dl=0)
 * [Version v1.0.1 alpha](https://www.dropbox.com/scl/fi/1j0ndx9r5myiksbdxygpd/Disgaea-Tools-v1.0.1-alpha.zip?rlkey=5qgksppysog8owe7y6r6u5893&dl=0)
 * [Version v1.0.2 alpha](https://www.dropbox.com/scl/fi/l0h4fjgcx4qp2kdnf0rog/Disgaea-Tools-v1.0.2-alpha.zip?rlkey=rj66s7ehzcprqnxsj1lkn7bsd&dl=0)
 * [Version v1.0.5 alpha](https://www.dropbox.com/scl/fi/zg0t1gk6lk7rc58wjsrfo/Disgaea-Tools-v1.0.5-alpha.zip?rlkey=towf71mk682dg4zxq6xsou6bz&dl=0)
 * [Version v1.0.6 alpha](https://www.dropbox.com/scl/fi/feh0yqdqg4vrs5p885nej/Disgaea-Tools-v1.0.6-alpha.zip?rlkey=l1e4aghzwi78sasgbblxxdnbp&dl=0)
+* [Version v1.0.7 alpha](https://www.dropbox.com/scl/fi/9ta6s49vpelchnfml4f1k/Disgaea-Tools-v1.0.7-alpha.zip?rlkey=xt93bageykcldlbiclp2efphu&dl=0)
 ---
 
 # Disclaimer && License
