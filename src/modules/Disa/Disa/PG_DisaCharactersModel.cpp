@@ -274,15 +274,10 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 				continue;
 			}
 
-
 			readFromJson(jCharacter, "faceIdentifier", info.faceIdentifier.value);
 			if (!info.faceIdentifier.build(mod.namespaceMod)) {
 				info.faceIdentifier = "Disa::0";
 			}
-
-			readFromJson(jCharacter, "isRecruitable", info.isRecruitable);
-			readFromJson(jCharacter, "recruitGroupName", info.recruitGroupName);
-			PG_SimpleWordValidator()(info.recruitGroupName);
 
 			info.charData.clear();
 			//some default values
@@ -298,7 +293,7 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 				if (auto findIt = std::ranges::find(mod.characters, deriveFrom, [](const CharacterInfo& c) { return c.identifier.getName(); });
 					findIt != mod.characters.end()) {
 					info.charData = findIt->charData;
-					info.isRecruitable = findIt->isRecruitable;
+					info.recruitmentType = findIt->recruitmentType;
 					info.recruitGroupName = findIt->recruitGroupName;
 					info.skills = findIt->skills;
 				}
@@ -306,6 +301,15 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 					OUT_ERROR("Failed to find deriveFrom \"" << deriveFrom << "\" in json!");
 				}
 			}
+
+			{
+				std::string recruitmentType;
+				readFromJson(jCharacter, "recruitmentType", recruitmentType, 32);
+				CharacterInfo::fromString(info.recruitmentType, std::move(recruitmentType));
+			}
+
+			readFromJson(jCharacter, "recruitGroupName", info.recruitGroupName);
+			PG_SimpleWordValidator()(info.recruitGroupName);
 
 			info.charData.fromJson(jCharacter);
 			info.charData.characterId = 0;
@@ -455,6 +459,14 @@ PG_DisaCustomCharactersModel::DisplayInfo PG_DisaCustomCharactersModel::getDispl
 		getId(m_facesMapper, c.faceIdentifier),
 		static_cast<unsigned short>(c.charDataIndex)
 	};
+}
+
+void PG_DisaCustomCharactersModel::CharacterInfo::fromString(ERecruitmentType& type, std::string str) {
+	PG_StringUtil::toUpper(str);
+	if (str.empty() || str == "NORMAL") type = PG_DisaCustomCharactersModel::CharacterInfo::RecruitmentType_Normal;
+	else if (str == "DEFETED") type = PG_DisaCustomCharactersModel::CharacterInfo::RecruitmentType_Defeted;
+	else if (str == "MONSTER") type = PG_DisaCustomCharactersModel::CharacterInfo::RecruitmentType_Monster;
+	else type = RecruitmentType_None;
 }
 
 const PG_DisaCustomCharactersModel::Info& PG_DisaCustomCharactersModel::getInfo(unsigned int id, const std::vector<PG_DisaCustomCharactersModel::Info>& list) {

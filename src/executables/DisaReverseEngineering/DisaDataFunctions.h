@@ -44,3 +44,5 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename);
 */
 bool __fastcall FUN_0043e600_decompressSave(char*& decompressedData, unsigned int& decompressedSize, char* data);
 void FUN_0043e600_decompressSave_NoneStd(char* data); //do not clean stack
+
+bool __stdcall FUN_004422c0_LoadSave(void* dst, size_t dstSize, char* filename, int* param_4, __time64_t* param_5);

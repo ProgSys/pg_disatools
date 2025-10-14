@@ -218,9 +218,36 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 
 }
 
+void DisaCustomCharacterManager::recordEnemyKilled(DisaPartyCharacterInfo* characterInfo) {
+	if (!characterInfo || !PG_DisaIdentifier::isCustomId(characterInfo->characterId)) return;
+
+	const auto& charInfo = getCharacterInfo(characterInfo->characterId);
+	if (!charInfo.identifier.isValid() || !charInfo.mod) {
+		assert(false);
+		return;
+	}
+
+	//can unit even be recruited
+	auto findIt = std::ranges::find(charInfo.mod->characters, charInfo.identifier, &CharacterInfo::identifier);
+	if (findIt == charInfo.mod->characters.end() || 
+		findIt->recruitmentType == CharacterInfo::RecruitmentType_None ||
+		findIt->recruitmentType == CharacterInfo::RecruitmentType_Normal) return;
+
+	//add to history
+	auto [it, idAdded] = m_assemblyHistory.try_emplace(charInfo.identifier);
+	if (idAdded) it->second.clear(); //needed as we cant use construct
+	it->second.characterId = characterInfo->characterId;
+	if (it->second.killCount != std::numeric_limits<unsigned short>::max()) {
+		++it->second.killCount;
+	}
+	it->second.killCountLevelSum = std::min(it->second.killCountLevelSum + characterInfo->level, DisaCustomCharacterManager::maxKillLevelSum);
+	m_isHistoryChanged = true;
+}
+
 void DisaCustomCharacterManager::loadCharacters() {
 	loadCustomCharacters(DisaCustomBaseModManager::getPath());
 	loadCharactersIntoMememory();
+	m_isHistoryChanged = true;
 }
 
 void DisaCustomCharacterManager::loadCharactersIntoMememory() {

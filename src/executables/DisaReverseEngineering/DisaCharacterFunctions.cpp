@@ -285,6 +285,26 @@ inline int positiveMod(int a, int mod) {
     return a;
 }
 
+void __fastcall FUN_004d63b0_EnemyUnitKilled(DisaPartyCharacterInfo* character) {
+    auto characterId = character->characterId;
+    //BEGIN custom
+    if (PG_DisaIdentifier::isCustomId(characterId)) {
+        DisaCustomCharacterManager::get()->recordEnemyKilled(character);
+        return;
+    }
+    //END custom
+    if (((2210 < characterId && characterId < 2215) || (characterId - 2000 < 200)) && characterId != 2140) {
+        int asseblyIndex = FP::callFastFarA<int>(0x004d6250, characterId);
+        if (asseblyIndex < 0) return;
+        auto& assemblyUnitInfos = FP::getData<std::array<DisaAssemblyUnitInfo, 288>>(aAssemblyUnitInfos);
+        auto& item = assemblyUnitInfos[asseblyIndex];
+        if (item.killCount != std::numeric_limits<unsigned short>::max()) {
+            ++item.killCount;
+        }
+        item.killCountLevelSum = std::min(item.killCountLevelSum + character->level, DisaCustomCharacterManager::maxKillLevelSum);
+    }
+}
+
 void FUN_0048cd40_BuildAssemblyUnitInfosLookup() {
     unsigned short& assemblyUnitInfosLookupSize = FP::getData<unsigned short>(aAssemblyUnitInfosLookupSize);
     assemblyUnitInfosLookupSize = 0;
@@ -349,72 +369,104 @@ struct DisaAssemblyInfo {
 
     static inline bool isCustomDisplay = false;
     static inline int customUnitCount = 0;
-    static inline std::vector<unsigned short> customUnitVarianceCount;
+    static inline std::vector<unsigned short> customUnitVarianceCount; //how many units are in one column
     static inline std::vector<DisaAssemblyUnitInfo> customAssemblyUnitInfos;
     static inline std::vector<unsigned short> customAssemblyUnitInfosLookup;
-    static inline std::vector<unsigned int> customAssemblyLookUp;
+    static inline std::vector<unsigned int> customAssemblyLookUp; 
 
     static void buildCustom() {
-        static bool customCharsAreBuild = false;
+        DisaCustomCharacterManager& manager = *DisaCustomCharacterManager::get();
 
-        if (customCharsAreBuild) return;
+        if (!manager.isUpdatedNeededForAssemblyHistory()) return;
 
-        std::map<std::string, std::vector<unsigned short>> groups;
-
-        for (auto& mod : DisaCustomCharacterManager::get()->getMods()) {
+        std::map<std::string, std::vector<DisaAssemblyUnitInfo>> groups; //id monster
+        DisaAssemblyUnitInfo unitInfo;
+        for (auto& mod : manager.getMods()) {
             for (auto& modChar : mod.characters) {
-                if (!modChar.identifier || !modChar.isRecruitable) continue;
+                if (!modChar.identifier) continue;
+
+                //stated as game thinks every* ID over 1999 is a monster thus having special mana cost scaling 
+                unitInfo.killCount = 30;
+                unitInfo.characterId = modChar.charData.characterId;
+                unitInfo.killCountLevelSum = 0;
+
+                switch (modChar.recruitmentType) {
+                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_None: continue;
+                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_Defeted: {
+                    if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier); 
+                        findIt != manager.getAssemblyHistory().end()) {
+                        unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;
+                        if(findIt->second.killCount > 0) break;
+                    }
+                    continue;
+                }
+                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_Monster: {
+                    if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier);
+                        findIt != manager.getAssemblyHistory().end() && findIt->second.killCount > 0) {
+                        unitInfo.killCount = findIt->second.killCount; //used to scale mana cost
+                        unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;
+                        break;
+                    }
+                    continue;
+                }
+                default: break;
+                }
+
                 if (modChar.recruitGroupName.empty()) {
-                    groups[modChar.recruitGroupName].push_back(modChar.charData.characterId);
+                    groups[modChar.recruitGroupName].emplace_back(unitInfo);
                 }
                 else {
-                    groups[mod.namespaceMod + modChar.recruitGroupName].push_back(modChar.charData.characterId);
+                    groups[mod.namespaceMod + modChar.recruitGroupName].emplace_back(unitInfo);
                 }
             }
         }
 
-        constexpr unsigned short manaCostInverseScale = 30;
+        customUnitVarianceCount.clear();
+        customAssemblyLookUp.clear();
+        customAssemblyUnitInfosLookup.clear();
+        customAssemblyUnitInfos.clear();
+        customUnitCount = 0;
+
         //add all untis that belong to a group
-        for (const auto& [name, ids] : groups) {
+        for (const auto& [name, infos] : groups) {
             if (name.empty()) continue;
 
-            customUnitVarianceCount.push_back(ids.size());
+            customUnitVarianceCount.push_back(infos.size());
             customAssemblyLookUp.push_back(customAssemblyUnitInfos.size());
-            for (auto id : ids) {
+            for (auto info : infos) {
                 customAssemblyUnitInfosLookup.push_back(customAssemblyUnitInfos.size());
-                customAssemblyUnitInfos.emplace_back(manaCostInverseScale, id, 0);
+                customAssemblyUnitInfos.emplace_back(info);
             }
             ++customUnitCount;
         }
 
         //add all units that have no group
         if (auto it = groups.find(std::string()); it != groups.end()) {
-            for (unsigned short id : it->second) {
+            for (auto info : it->second) {
                 customUnitVarianceCount.push_back(1);
                 customAssemblyLookUp.push_back(customAssemblyUnitInfos.size());
                 customAssemblyUnitInfosLookup.push_back(customAssemblyUnitInfos.size());
-                customAssemblyUnitInfos.emplace_back(manaCostInverseScale, id, 0);
+                customAssemblyUnitInfos.emplace_back(info);
                 ++customUnitCount;
             }
         }
 
-
-        customCharsAreBuild = true;
     }
+
 
     static DisaAssemblyInfo getFromDisa() {
         return { .unitCount = FP::getData<int>(0x0088bd54),
                 .unitVarianceCount = &FP::getData<std::array<unsigned short, 64>>(0x0088c060).front(),
-            .assemblyUnitInfos = &FP::getData<std::array<DisaAssemblyUnitInfo, 288>>(aAssemblyUnitInfos).front(),
-            .assemblyUnitInfosLookup = &FP::getData<std::array<unsigned short, 288>>(aAssemblyUnitInfosLookup).front()
+                .assemblyUnitInfos = &FP::getData<std::array<DisaAssemblyUnitInfo, 288>>(aAssemblyUnitInfos).front(),
+                .assemblyUnitInfosLookup = &FP::getData<std::array<unsigned short, 288>>(aAssemblyUnitInfosLookup).front()
         };
     }
 
     static DisaAssemblyInfo getFromCustom() {
         return { .unitCount = customUnitCount,
-            .unitVarianceCount = customUnitVarianceCount.data(),
-            .assemblyUnitInfos = customAssemblyUnitInfos.data(),
-            .assemblyUnitInfosLookup = customAssemblyUnitInfosLookup.data(),
+                .unitVarianceCount = customUnitVarianceCount.data(),
+                .assemblyUnitInfos = customAssemblyUnitInfos.data(),
+                .assemblyUnitInfosLookup = customAssemblyUnitInfosLookup.data(),
         };
     }
 

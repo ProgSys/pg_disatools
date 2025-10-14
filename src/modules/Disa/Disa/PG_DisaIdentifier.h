@@ -43,7 +43,10 @@ struct PG_DisaIdentifier {
 	}
 
 	inline operator bool() const { return isValid(); }
-	inline operator const std::string() const { return getIdentifier(); }
+	inline operator const std::string&() const { return getIdentifier(); }
+
+	bool operator==(const PG_DisaIdentifier& other) const { return getIdentifier() == other.getIdentifier(); }
+	bool operator!=(const PG_DisaIdentifier& other) const { return getIdentifier() != other.getIdentifier(); }
 
 	void operator=(std::string&& v) {
 		value = std::move(v);
@@ -56,9 +59,24 @@ struct PG_DisaIdentifier {
 
 	bool build(const std::string& baseNamespace);
 
+	void clear() {
+		splitAt = 0;
+		value.clear();
+	}
+
 	static inline bool isCustomId(unsigned int id) { return id >= customIdStart; }
 	static inline bool isCustomMagicId(unsigned int id) { return id >= customMagicIdStart; }
 
 	std::string value;
 	unsigned int splitAt = 0;
 };
+
+// Define hash specialization in std namespace
+namespace std {
+	template <>
+	struct hash<PG_DisaIdentifier> {
+		std::size_t operator()(const PG_DisaIdentifier& k) const noexcept {
+			return std::hash<std::string>{}(k.getIdentifier());
+		}
+	};
+}

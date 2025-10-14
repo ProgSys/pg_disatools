@@ -81,6 +81,8 @@ struct HockManager {
         replaceFunction("assemblyMenu", "The dark assembly menu", 0x004a0d72, FUN_0048dfd0_ProccessAssemblyMenu);
         replaceFunction("assemblyMenu", "The dark assembly menu", 0x0049f06c, FUN_0048cd40_BuildAssemblyUnitInfosLookup);
         replaceFunction("assemblyMenu", "The dark assembly menu", 0x004a0bfc, FUN_0048cd40_BuildAssemblyUnitInfosLookup);
+        replaceFunction("enemyUnitKilled", "Records history when enemy unit killed", 0x004764ea, FUN_004d63b0_EnemyUnitKilled);
+
 
         replaceFunction("getSpriteData", "Finds loaded sprite data with given sprite id", 0x0046b262, FUN_004de880_getSpriteData);
         replaceFunction("getSpriteData", "Finds loaded sprite data with given sprite id", 0x0048e461, FUN_004de880_getSpriteData);
@@ -92,7 +94,8 @@ struct HockManager {
         replaceFunction("afterCharDataLoad", "Used to init custom characters", 0x0048afc7, FUN_004cf3c0);
 
         replaceFunction("save", "Create new save file", 0x0043f6a7, FUN_00442260_Save);
-        replaceFunction("decompressSave", "Is run to decompress a save file, usualy after load", 0x00442495, FUN_0043e600_decompressSave_NoneStd);
+        replaceFunction("loadSave", "Load save file", 0x00442495, FUN_0043e600_decompressSave_NoneStd); //Is run to decompress a save file, usualy after load
+        replaceFunction("loadSave", "Load save file", 0x0043f8a9, FUN_004422c0_LoadSave);
 
         {
             auto f = &DisaTScriptManager::FUN_004bf7e0_RunTalkScript; //find talk Dat

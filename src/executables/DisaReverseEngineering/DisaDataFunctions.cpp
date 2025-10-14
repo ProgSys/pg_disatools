@@ -122,6 +122,15 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
             }
         }
 
+        if (!DisaCustomCharacterManager::get()->getAssemblyHistory().empty()){
+            auto assemblyHistory = metaData["assemblyHistory"];
+            for (auto& [identifier, info] : DisaCustomCharacterManager::get()->getAssemblyHistory()) {
+                auto entry = assemblyHistory[identifier.getIdentifier()];
+                entry["killCount"] = info.killCount;
+                entry["killCountLevelSum"] = info.killCountLevelSum;
+            }
+        }
+
         if (!metaData.isEmpty()) {
             PG::STREAM::InOutByteVector customData;
             customData.write(data, fileSize);
@@ -140,6 +149,122 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
         FP::callFastFarA<unsigned int>(0x00433380, compressedData);
     }  
     return true;
+}
+
+
+/*!
+* @brief Try read meta data to remap saved nummerical ids to correct values
+* The save contains the static numerical id and there string ids. 
+* We remap the save numerical id to the current loaded id using the stored string ids.
+*/
+static inline void remapSaveIds(const PG_DataSerializer& metaData, char*& decompressedData, uint& decompressedSize) {
+
+    auto charMeta = metaData["characters"];
+    auto magicMeta = metaData["magic"];
+    if (!charMeta.isValid() && !magicMeta.isValid()) return; //nothing was saved
+
+    auto* playerUnits = (PG_DisaPartyCharacter*)(decompressedData + 3000);
+    auto playerUnitsSize = *(unsigned short*)(decompressedData + 3000 + 277624);
+    for (PG_DisaPartyCharacter& c : std::ranges::subrange(playerUnits, playerUnits + playerUnitsSize)) {
+        //check if any skill is special
+        for (unsigned short& id : c.skillId) {
+            if (id == 0) break;
+            if (!PG_DisaIdentifier::isCustomMagicId(id)) continue;
+            PG_DisaIdentifier identifier(magicMeta[std::to_string(id)].asString());
+            id = DisaCustomCharacterManager::get()->getMagicId(identifier);
+            if (id == 0) {
+                OUT_ERROR("Save file contains unknown skill/magic \"" << identifier << "\"!");
+                id = 2213;//prinny bomb
+            }
+        }
+
+
+        if (!PG_DisaIdentifier::isCustomId(c.characterId)) continue;
+
+        PG_DisaIdentifier identifier(charMeta[std::to_string(c.characterId)].asString());
+        auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
+
+        if (displayInfo.characterId == 0) {
+            OUT_ERROR("Save file contains unknown character \"" << identifier << "\"!");
+            c.characterId = 2210;
+            c.spriteId = 2210;
+            c.paletteIndex = 0;
+            c.portraitColor = 5;
+            c.portraitImageId = 43;
+            c.charDatIndex = 0;
+            continue;
+        }
+
+        c.characterId = displayInfo.characterId;
+        c.spriteId = displayInfo.spriteId;
+        c.setCustomPortraitId(displayInfo.faceId);
+        c.charDatIndex = displayInfo.charDatIndex;
+    }
+
+    { //dark assembly
+        auto& assemblyUnitInfos = *(std::array<DisaAssemblyUnitInfo, 288>*)(decompressedData + 696);
+        for (auto& disaAssemblyUnitInfo : assemblyUnitInfos) {
+            if (!PG_DisaIdentifier::isCustomId(disaAssemblyUnitInfo.characterId)) continue;
+            PG_DisaIdentifier identifier(charMeta[std::to_string(disaAssemblyUnitInfo.characterId)].asString());
+            auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
+            if (displayInfo.characterId == 0) {
+                OUT_ERROR("Save file contains unknown character \"" << identifier.getIdentifier() << "\"!");
+                disaAssemblyUnitInfo.characterId = 2210;
+            }
+            else {
+                disaAssemblyUnitInfo.characterId = displayInfo.characterId;
+            }
+        }
+    }
+    
+}
+
+//temporary storage for unit info
+//readMetaData is performed for every entry in the load save menu
+//but we only want to load the date when the entry is actually opened
+static std::unordered_map<PG_DisaIdentifier, DisaAssemblyUnitInfo> g_assemblyHistoryLoadMap;
+
+static inline void readMetaData(char*& decompressedData, uint& decompressedSize) {
+    g_assemblyHistoryLoadMap.clear();
+    if (!decompressedData) return;
+
+    unsigned int customDataStart = *(unsigned int*)(decompressedData + decompressedSize - sizeof(unsigned int));
+    //check size and magic
+    if (customDataStart >= decompressedSize || customDataStart <= 3000 ||
+        decompressedData[customDataStart] != 'P' ||
+        decompressedData[customDataStart + 1] != 'G' ||
+        decompressedData[customDataStart + 2] != 'M' ||
+        decompressedData[customDataStart + 3] != 'D') {
+        return;
+    }
+
+    customDataStart += 4;
+    PG::STREAM::InByteArray reader(decompressedData + customDataStart, decompressedSize - customDataStart);
+    decompressedSize = customDataStart - 4;
+    PG_DataSerializer metaData;
+    metaData.open(&reader);
+
+    remapSaveIds(metaData, decompressedData, decompressedSize);
+
+    if (auto assemblyHistory = metaData["assemblyHistory"]; !assemblyHistory.isEmpty()) {
+        DisaAssemblyUnitInfo info;
+        for (PG_DataSerializer entry : assemblyHistory) {
+            PG_DisaIdentifier identifier(entry.getKey());
+            if (!identifier.isValid()) {
+                OUT_ERROR("Assembly history entry for \""<< identifier.getIdentifier()<< "\" is invalid! Entry skipped!");
+                continue;
+            }
+            info.characterId = DisaCustomCharacterManager::get()->getCharacterId(identifier);
+            if (info.characterId == 0) {
+                OUT_ERROR("Assembly history entry for \"" << identifier.getIdentifier() << "\" is unknown!" \
+                    "There is no mod present that references that identifier! Entry skipped!");
+                continue;
+            }
+            entry["killCount"].getTo(info.killCount);
+            entry["killCountLevelSum"].getTo(info.killCountLevelSum);
+            g_assemblyHistoryLoadMap[std::move(identifier)] = info;
+        }
+    }
 }
 
 bool __fastcall FUN_0043e600_decompressSave(char*& decompressedData, uint& decompressedSize, char* data) {
@@ -168,76 +293,10 @@ bool __fastcall FUN_0043e600_decompressSave(char*& decompressedData, uint& decom
     }
 
     FP::callVariadicThisFarA<void, char*, char*&, uint&, uint>(0x00415600, _Dst, decompressedData, decompressedSize, 0xffffffff);
-    if (decompressedData){ //BEGIN custom code
-        unsigned int customDataStart = *(unsigned int*)(decompressedData + decompressedSize - sizeof(unsigned int));
-        if (customDataStart < decompressedSize && customDataStart > 3000 &&
-            decompressedData[customDataStart] == 'P' && decompressedData[customDataStart + 1] == 'G' && decompressedData[customDataStart + 2] == 'M' && decompressedData[customDataStart + 3] == 'D') {
-            customDataStart += 4;
-            PG::STREAM::InByteArray reader(decompressedData + customDataStart, decompressedSize - customDataStart);
-            decompressedSize = customDataStart - 4;
-            PG_DataSerializer metaData;
-            metaData.open(&reader);
-
-            auto charMeta = metaData["characters"];
-            auto magicMeta = metaData["magic"];
-            if(charMeta.isValid() || magicMeta.isValid()){
-                auto* playerUnits = (PG_DisaPartyCharacter*)(decompressedData + 3000);
-                auto playerUnitsSize = *(unsigned short*)(decompressedData + 3000 + 277624);
-                for (PG_DisaPartyCharacter& c : std::ranges::subrange(playerUnits, playerUnits + playerUnitsSize)) {
-                    //check if any skill is special
-                    for (unsigned short& id : c.skillId) {
-                        if (id == 0) break;
-                        if (!PG_DisaIdentifier::isCustomMagicId(id)) continue;
-                        PG_DisaIdentifier identifier(magicMeta[std::to_string(id)].asString());
-                        id = DisaCustomCharacterManager::get()->getMagicId(identifier);
-                        if (id == 0) {
-                            OUT_ERROR("Save file contains unknown skill/magic \"" << identifier << "\"!");
-                            id = 2213;//prinny bomb
-                        }
-                    }
-
-
-                    if (!PG_DisaIdentifier::isCustomId(c.characterId)) continue;
-                    
-                    PG_DisaIdentifier identifier(charMeta[std::to_string(c.characterId)].asString());
-                    auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
-
-                    if (displayInfo.characterId == 0) {
-                        OUT_ERROR("Save file contains unknown character \"" << identifier << "\"!");
-                        c.characterId = 2210;
-                        c.spriteId = 2210;
-                        c.paletteIndex = 0;
-                        c.portraitColor = 5;
-                        c.portraitImageId = 43;
-                        c.charDatIndex = 0;
-                        continue;
-                    }
-
-                    c.characterId = displayInfo.characterId;
-                    c.spriteId = displayInfo.spriteId;
-                    c.setCustomPortraitId(displayInfo.faceId);
-                    c.charDatIndex = displayInfo.charDatIndex;
-                }
-
-                {
-                    auto& assemblyUnitInfos = *(std::array<DisaAssemblyUnitInfo, 288>*)(decompressedData + 696);
-                    for (auto& disaAssemblyUnitInfo : assemblyUnitInfos) {
-                        if (!PG_DisaIdentifier::isCustomId(disaAssemblyUnitInfo.characterId)) continue;
-                        PG_DisaIdentifier identifier(charMeta[std::to_string(disaAssemblyUnitInfo.characterId)].asString());
-                        auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
-                        if (displayInfo.characterId == 0) {
-                            OUT_ERROR("Save file contains unknown character \"" << identifier.getIdentifier() << "\"!");
-                            disaAssemblyUnitInfo.characterId = 2210;
-                        }
-                        else {
-                            disaAssemblyUnitInfo.characterId = displayInfo.characterId;
-                        }
-                    }
-                }
-            }
-        }
-
-    } //END custom data
+   
+    //BEGIN custom code
+    readMetaData(decompressedData, decompressedSize);
+    //END custom data
 
 
     FP::callFastFarA(0x00433380, _Dst);
@@ -252,4 +311,11 @@ __declspec(naked) void FUN_0043e600_decompressSave_NoneStd(char* data) {
         call FUN_0043e600_decompressSave
         ret
     }
+}
+
+bool __stdcall FUN_004422c0_LoadSave(void* dst, size_t dstSize, char* filename, int* param_4, __time64_t* param_5) {
+    auto v = FP::callStdFarA<bool>(0x004422c0, dst, dstSize, filename, param_4, param_5);
+    //apply load
+    DisaCustomCharacterManager::get()->setAssemblyHistory(std::move(g_assemblyHistoryLoadMap));
+    return v;
 }

@@ -70,9 +70,15 @@ struct DisaDataMagicInfo : public PG_DisaDataMagic {
 };
 
 struct DisaAssemblyUnitInfo {
-    unsigned short extraManaScale; //unconfimed, applied to character ids over 2000. Inversed, staring from 29 to 0
+    unsigned short killCount; //used to scale mana cost applied to character ids over 2000. Inversed, staring from 29 to 0
     unsigned short characterId;
-    unsigned int field0x4;
+    unsigned int killCountLevelSum; //the level sum of all units killed
+
+    void clear() {
+        killCount = 0;
+        characterId = 0;
+        killCountLevelSum = 0;
+    }
 };
 
 //render status screen
@@ -80,6 +86,8 @@ void __fastcall FUN_0047f080_ProccessStatusMenu(unsigned int i);
 
 //to create new character Proccess: FUN_0048dfd0
 //to create new character Render: FUN_0048dba0
+
+void __fastcall FUN_004d63b0_EnemyUnitKilled(DisaPartyCharacterInfo* character);
 
 void FUN_0048cd40_BuildAssemblyUnitInfosLookup();
 

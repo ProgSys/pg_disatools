@@ -69,15 +69,34 @@ struct PG_DisaCharacterModel {
 class PG_DisaCustomCharactersModel {
 public:
 	struct CharacterInfo {
+		enum ERecruitmentType {
+			RecruitmentType_None, //can't be recruted
+			RecruitmentType_Normal, //used normal recruitment logic
+			RecruitmentType_Defeted, //at least once killed
+			RecruitmentType_Monster, //at least once killed, plus mana cost scaling on number of killed
+		};
+
 		PG_DisaIdentifier identifier;
 		PG_DisaIdentifier spriteIdentifier;
 		PG_DisaIdentifier faceIdentifier;
 
 		PG_DisaDataCharacter charData;
 		unsigned int charDataIndex = 0;
-		bool isRecruitable = true; //can be recruted in assebly
+		ERecruitmentType recruitmentType = RecruitmentType_Normal; //can be recruted in assebly
 		std::string recruitGroupName;
 		std::vector<std::pair<PG_DisaIdentifier, uint16_t>> skills; //identifier, unlock level
+
+		static inline std::string toString(ERecruitmentType type) {
+			switch (type) {
+			case RecruitmentType_None: return "NONE";
+			case RecruitmentType_Normal: return "NORMAL";
+			case RecruitmentType_Defeted: return "DEFETED";
+			case RecruitmentType_Monster: return "MONSTER";
+			default: return {};
+			}
+		}
+
+		static void fromString(ERecruitmentType& type, std::string str);
 	};
 
 	struct MagicInfo {
