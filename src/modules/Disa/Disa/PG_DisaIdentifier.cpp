@@ -39,3 +39,16 @@ bool PG_DisaIdentifier::build(const std::string& baseNamespace) {
 	}
 	return isValid();
 }
+
+std::pair<uint8_t, uint32_t> PG_DisaIdentifier::splitScriptId(unsigned int id) {
+	constexpr uint32_t scriptTypeRange = 1000000;
+	return { id / scriptTypeRange, id % scriptTypeRange };
+}
+
+bool PG_DisaIdentifier::isCustomScriptId(std::pair<uint8_t, uint32_t> value) {
+	switch (value.first) {
+	case ScriptType_Magic: return isCustomMagicId(value.second);
+	}
+
+	return false;
+}

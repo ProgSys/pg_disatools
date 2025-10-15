@@ -5,6 +5,10 @@
 struct PG_DisaIdentifier {
 	constexpr static unsigned int customIdStart = 10001;
 	constexpr static unsigned int customMagicIdStart = 5000;
+	enum EScriptType : uint8_t {
+		ScriptType_None = 0,
+		ScriptType_Magic = 2
+	};
 
 	PG_DisaIdentifier() = default;
 	PG_DisaIdentifier(std::string&& v) : value(std::move(v)) {
@@ -66,6 +70,10 @@ struct PG_DisaIdentifier {
 
 	static inline bool isCustomId(unsigned int id) { return id >= customIdStart; }
 	static inline bool isCustomMagicId(unsigned int id) { return id >= customMagicIdStart; }
+
+	static std::pair<uint8_t, uint32_t> splitScriptId(unsigned int id); //to type and id
+	static bool isCustomScriptId(std::pair<uint8_t, uint32_t> value); //to type and id
+	static inline bool isCustomScriptId(unsigned int id) { return isCustomScriptId(splitScriptId(id)); }
 
 	std::string value;
 	unsigned int splitAt = 0;
