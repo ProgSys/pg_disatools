@@ -68,11 +68,16 @@ void PG_DisaInstaller::runInstall(std::string currentVersion, PG_File exePath) {
 		version = DISA_ISNTALL_APP_VERSION;
 	}
 
+
+	std::string errorMsg;
 	if (currentVersion != version) {
 		OUT_INFO("Config version number dosn't match, running install! (" << currentVersion << " != " << version << ")");
+		errorMsg = execInstall(exePath, true);
+	}
+	else {
+		errorMsg = execInstall(exePath, false);
 	}
 
-	const std::string errorMsg = execInstall(exePath, false);
 	if (!errorMsg.empty()) {
 		//handle error
 		OUT_ERROR(errorMsg);
