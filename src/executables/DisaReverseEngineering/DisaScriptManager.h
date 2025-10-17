@@ -10,7 +10,7 @@ struct DisaScriptManager: public PG_DisaScriptManager {
 	int __thiscall callTalkScript(const std::string& scriptName, unsigned int param_4);
 
 	int readDisaTalkScript(unsigned char*& dataLocation, uint32_t scriptId, uint32_t dungeonId, uint32_t stateFlag);
-	void readDisaScript(unsigned int*& dataLocation, uint32_t scriptId);
+	int readDisaScript(unsigned int*& dataLocation, uint32_t scriptId);
 
 	void clearCharDisplay();
 

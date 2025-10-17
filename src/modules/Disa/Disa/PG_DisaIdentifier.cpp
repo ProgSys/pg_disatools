@@ -46,6 +46,7 @@ std::pair<uint8_t, uint32_t> PG_DisaIdentifier::splitScriptId(unsigned int id) {
 }
 
 bool PG_DisaIdentifier::isCustomScriptId(std::pair<uint8_t, uint32_t> value) {
+	if (value.first > 9) return true;
 	switch (value.first) {
 	case ScriptType_Magic: return isCustomMagicId(value.second);
 	}

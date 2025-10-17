@@ -32,7 +32,7 @@ PG_Dir PG_DisaMainBaseModel::getCustomCharactersDir() const {
 
 PG_Dir PG_DisaMainBaseModel::getCustomScripsDir() const {
 	auto exePath = getExePath();
-	return exePath.getDir() + "/mod/CustomScripts";
+	return exePath.getDir() + "/mod/CustomScript";
 }
 
 PG_Dir PG_DisaMainBaseModel::getCustomTalkScripsDir() const {

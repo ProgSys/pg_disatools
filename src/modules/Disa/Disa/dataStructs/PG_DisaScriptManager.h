@@ -69,8 +69,14 @@ struct PG_DisaScriptManager {
 	int field0_0x0[4];               // 0x0    - 0xc
 	int portraitIndex;				// 0x10
 	int portraitColor;				// 0x14
-	int field_0x18[8];               // 0x18    - 0x38
-	int totalScripts;                 // 0x38   - 0x3c
+	//int field_0x18[8];               // 0x18    - 0x38
+	int field_0x18[3];               // 0x18    - 0x38
+	int sizeScripts; //0x24
+	uint32_t* scriptsCodeAdresses;
+	uint32_t* scriptsIdList;
+	int scriptsOriginAdress;
+	bool* scriptActiveList;
+	int sizeTalkScripts;                 // 0x38   - 0x3c
 	PG_DisaTalkDatScriptEntry* talkScriptsEntries; // 0x3c
 	int scriptId; //0x40 The requested id
 	unsigned int dungeonId; //0x44

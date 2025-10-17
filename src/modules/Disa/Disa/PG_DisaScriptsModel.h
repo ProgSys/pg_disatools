@@ -31,17 +31,19 @@ public:
 	* @param identifier A valid disa identifier.
 	* "Disa" is the namespace for all original scripts.
 	*/
-	void readScript(unsigned int*& dataLocation, const PG_DisaIdentifier& identifier);
+	int readScript(unsigned int*& dataLocation, const PG_DisaIdentifier& identifier);
 
 	virtual int readDisaTalkScript(unsigned char*& dataLocation, uint32_t scriptId, uint32_t dungeonId, uint32_t stateFlag) {
 		dataLocation = nullptr;
 		return 0;
 	}
 
-	virtual void readDisaScript(unsigned int*& dataLocation, uint32_t id) {
+	virtual int readDisaScript(unsigned int*& dataLocation, uint32_t id) {
 		dataLocation = nullptr;
-		return;
+		return -1;
 	}
+
+	std::string scriptToString(unsigned int* dataLocation) const;
 protected:
 	void loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModLoadInfo& info); //can throw
 

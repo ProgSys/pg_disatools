@@ -334,36 +334,24 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
 
 //call SCRIPT
 int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
-    unsigned int size = FP::getData<unsigned int>(0x0071b534);
-    if (size == 0) return -1;
-
+    unsigned int* codeLocation = nullptr;
     //BEGIN custom code
+    int index = DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);
+    if (index < 0 || !codeLocation) return index;
+    //END custom code
+    //do we neen to run the script?
     if (auto split = PG_DisaIdentifier::splitScriptId(scriptId); PG_DisaIdentifier::isCustomScriptId(split)) {
         auto i = 0; //todo
+        return -1;
+    } 
+
+    DisaScriptManager& manager = FP::getData<DisaScriptManager>(0x0071b510);
+    assert(index < manager.sizeScripts);
+
+    if ((scriptId - 0xf4241 < 999999) && manager.scriptActiveList[index]) {
+        return -1; //script is in use
     }
-
-    //END custom code
-
-    const auto startIt = FP::getData<int*>(0x0071b53c);
-    const auto endIt = startIt + size;
-    const auto findIt = std::find(startIt, endIt, scriptId);
-    if (findIt == endIt) return -1;
-
-    const unsigned int index = std::distance(startIt, findIt);
-    OUT_INFO("Found Script at index " << std::dec << index << " id: " << scriptId);
-
-    if ((scriptId - 0xf4241 < 999999) && (*(bool*)(FP::getData<unsigned int>(0x0071b544) + index) != false))
-        return -1; //script is in use?
-
-    *(bool*)(FP::getData<unsigned int>(0x0071b544) + index) = true;
-
-    unsigned int* codeLocation = nullptr;
-    if (scriptId < 9000000) {
-        codeLocation = (unsigned int*)(*(unsigned int*)(FP::getData<unsigned int>(0x0071b538) + index * 4) + FP::getData<unsigned int>(0x0071b540)); //code ptr
-    }
-    //BEGIN custom code
-    DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);
-    //END custom code
+    manager.scriptActiveList[index] = true;
 
     return runScriptIntern(scriptId, index, codeLocation, param_2);
 }

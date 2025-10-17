@@ -854,8 +854,7 @@ void DisaCustomCampaignManager::runTestMap() {
 
 void DisaCustomCampaignManager::readMPPTestMap(int* dataLocation, bool hdTextures) const {
 
-    std::string path = DisaCustomBaseModManager::get()->getCustomCampaignsDir().getDir();
-    path += hdTextures? "new_debugMap.MPP": "debugMap.MPP";
+    std::string path = DisaCustomBaseModManager::get()->getCustomCampaignsDir().toFilePath(hdTextures ? "new_debugMap.MPP" : "debugMap.MPP");
 
     PG::STREAM::InByteFile reader(path);
     if (!reader.isOpen() || reader.size() < 10) {

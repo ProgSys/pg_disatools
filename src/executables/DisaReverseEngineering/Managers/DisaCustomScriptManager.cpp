@@ -37,24 +37,25 @@ int DisaCustomScriptManager::readTalkScript(unsigned char*& dataLocation, unsign
 	return PG_DisaScriptsModel::readTalkScript(dataLocation, identifier);
 }
 
-void DisaCustomScriptManager::readScript(unsigned int*& dataLocation, int scriptId) {
+int DisaCustomScriptManager::readScript(unsigned int*& dataLocation, int scriptId) {
     PG_DisaIdentifier functionName;
-    if (scriptId == 9000001) {
+    if (scriptId == PG_DisaIdentifier::customScriptIdStart + 1) {
         functionName = "Base::genericDungeonIntro";
     }
     else {
         functionName = "Disa::" + std::to_string(scriptId);
     }
 
-    PG_DisaScriptsModel::readScript(dataLocation, functionName);
+    return readScript(dataLocation, functionName);
 }
+
 
 int DisaCustomScriptManager::readDisaTalkScript(unsigned char*& dataLocation, uint32_t scriptId, uint32_t dungeonId, uint32_t stateFlag) {
     return DisaScriptManager::get().readDisaTalkScript(dataLocation, scriptId, dungeonId, stateFlag);
 }
 
-void DisaCustomScriptManager::readDisaScript(unsigned int*& dataLocation, uint32_t id) {
-    DisaScriptManager::get().readDisaScript(dataLocation, id);
+int DisaCustomScriptManager::readDisaScript(unsigned int*& dataLocation, uint32_t id) {
+   return DisaScriptManager::get().readDisaScript(dataLocation, id);
 }
 
 DisaCustomScriptManager* DisaCustomScriptManager::get() {

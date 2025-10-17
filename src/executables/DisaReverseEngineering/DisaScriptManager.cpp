@@ -22,7 +22,7 @@ void DisaScriptManager::clearCharDisplay() {
 
 int __thiscall DisaScriptManager::FUN_004bf7e0_RunTalkScript(unsigned int scriptId, unsigned int dungeonId, unsigned int stateFlag, unsigned int param_4) {
     // return FP::callThisFarA<int>(0x004bf7e0, this, scriptId, dungeonId, unknownFlag, param_4);
-    if (isActive != 0 || totalScripts <= 0) return -1;
+    if (isActive != 0 || sizeTalkScripts <= 0) return -1;
 
     this->resolvedScriptId = DisaCustomScriptManager::get()->readTalkScript(this->scriptPointer, scriptId, dungeonId, stateFlag);
     if (!this->scriptPointer) return -1;
@@ -81,7 +81,7 @@ int __thiscall DisaScriptManager::FUN_004bf7e0_RunTalkScript(unsigned int script
 
 int DisaScriptManager::readDisaTalkScript(unsigned char*& dataLocation, uint32_t scriptId, uint32_t dungeonId, uint32_t stateFlag) {
     const PG_DisaTalkDatScriptEntry* startIt = talkScriptsEntries;
-    const PG_DisaTalkDatScriptEntry* endIt = startIt + totalScripts;
+    const PG_DisaTalkDatScriptEntry* endIt = startIt + sizeTalkScripts;
 
     //search for script
     auto findIt = std::find_if(startIt, endIt, [&](const PG_DisaTalkDatScriptEntry& entry) ->bool {
@@ -111,25 +111,23 @@ int DisaScriptManager::readDisaTalkScript(unsigned char*& dataLocation, uint32_t
     return findIt->scriptId;
 }
 
-void DisaScriptManager::readDisaScript(unsigned int*& dataLocation, uint32_t scriptId) {
+int DisaScriptManager::readDisaScript(unsigned int*& dataLocation, uint32_t scriptId) {
     dataLocation = nullptr;
-    if (scriptId >= 9000000) return;
-    //TOOD
-    /* 
+    if (scriptId >= 9000000) return -1;
+    /*
     uint32_t scriptIndex = <find scriptId in scriptsIdList>
     bate* scriptCode = scriptsOriginAdress + scriptsCodeAdresses[scriptIndex]
     */
-    unsigned int size = FP::getData<unsigned int>(0x0071b534);
-    if (size == 0) return;
-    const auto startIt = FP::getData<int*>(0x0071b53c);
-    const auto endIt = startIt + size;
-    const auto findIt = std::find(startIt, endIt, scriptId);
-    if (findIt == endIt) return;
+    DisaScriptManager& manager = FP::getData<DisaScriptManager>(0x0071b510);
+    if (manager.sizeScripts == 0) return -1;
+    auto rng = std::ranges::subrange(manager.scriptsIdList, manager.scriptsIdList + manager.sizeScripts);
+    auto findIt = std::ranges::find(rng, scriptId);
+    if (findIt == rng.end()) return -1;
 
-    const unsigned int index = std::distance(startIt, findIt);
-    OUT_INFO("Found Script at index " << std::dec << index << " id: " << scriptId);
-
-    dataLocation = (unsigned int*)(*(unsigned int*)(FP::getData<unsigned int>(0x0071b538) + index * 4) + FP::getData<unsigned int>(0x0071b540)); //code ptr
+    const int index = std::distance(rng.begin(), findIt);
+    OUT_INFO("Found disa script at index " << std::dec << index << " id: " << scriptId);
+    dataLocation = (unsigned int*)(manager.scriptsOriginAdress + scriptsCodeAdresses[index]);
+    return index;
 }
 
 

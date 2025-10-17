@@ -176,22 +176,20 @@ static inline std::string opCodeToComment(unsigned char op) {
 }
 
 
-static inline void printScript(unsigned char* ptr) {
+static inline void printScript(unsigned char* ptr, std::ostream& out) {
 	if (!ptr) return;
-	OUT_INFO("Script:");
 
-	std::stringstream stream;
-	stream << "\n";
-	stream.fill('0');
+	out << "\n";
+	out.fill('0');
 	int killCount = 10000;
 	while (--killCount > 0) {
 		const unsigned char opCode = *ptr;
 		if (opCode == 0) {
-			stream << std::hex << std::setw(2) << (int)opCode << "\n";
+			out << std::hex << std::setw(2) << (int)opCode << "\n";
 			break;
 		}
 		unsigned int argsSize = *(ptr + 1);
-		stream << std::hex << std::setw(2) << (int)opCode << " " << std::hex << std::setw(2) << (int)argsSize;
+		out << std::hex << std::setw(2) << (int)opCode << " " << std::hex << std::setw(2) << (int)argsSize;
 		ptr += 2;
 
 		//is if statement
@@ -201,34 +199,38 @@ static inline void printScript(unsigned char* ptr) {
 		}
 
 		for (int i = 0; i < argsSize; ++i) {
-			stream << " " << std::hex << std::setw(2) << (int)*ptr;
+			out << " " << std::hex << std::setw(2) << (int)*ptr;
 			++ptr;
 		}
 		if (auto comment = opCodeToComment(opCode); !comment.empty()) {
-			stream << " #" << comment;
+			out << " #" << comment;
 		}
 		if (opCode == 0x02)
 			break;
-		stream << "\n";
+		out << "\n";
 	}
-	OUT_INFO(stream.str());
 }
 
-void PG_DisaScriptsModel::readScript(unsigned int*& dataLocation, const PG_DisaIdentifier& identifier) {
+int PG_DisaScriptsModel::readScript(unsigned int*& dataLocation, const PG_DisaIdentifier& identifier) {
 	if (!identifier.isValid()) {
 		dataLocation = nullptr;
-		return;
+		return -1;
 	}
 
 	if (isPrintScript())  OUT_INFO("Script requested with identifier: " << identifier.getIdentifier());
 
 	std::string code;
+	int foundIndex = PG_DisaIdentifier::customScriptIdStart;
 	{ //try load from file system
-		PG_File scriptFile = PG_DisaMainBaseModel::get()->getCustomTalkScripsDir().toFilePath(identifier.getNamespace() + "/" + identifier.getName() + ".tscript");
+		PG_File scriptFile = PG_DisaMainBaseModel::get()->getCustomScripsDir().toFilePath(identifier.getNamespace() + "/" + identifier.getName() + ".script");
 		if (isPrintScript()) OUT_INFO("Searching replacement at: " << scriptFile);
 		
 		if (scriptFile.exists()) {
 			if (PG::STREAM::InByteFile streamFile(scriptFile); streamFile.isOpen()) {
+				if (PG_StringUtil::isEqualCaseless(identifier.getNamespace(), "disa")) {
+					foundIndex = readDisaScript(dataLocation, identifier.getNameAsNumber());
+				}
+
 				OUT_INFO("Replacement talk script found at: " << scriptFile);
 				code.resize(streamFile.size());
 				streamFile.read(code.data(), code.size());
@@ -256,19 +258,30 @@ void PG_DisaScriptsModel::readScript(unsigned int*& dataLocation, const PG_DisaI
 		}
 		OUT_ERROR("Failed to read or find script: " << identifier.getIdentifier());
 		dataLocation = nullptr;
-		return;
+		return -1;
 	}
 
 	auto hexData = PG_StringUtil::hexToData(code);
 	if (hexData.empty()) {
 		OUT_ERROR("Failed to compile script: \"" << identifier.getIdentifier() << "\"!");
 		dataLocation = 0;
-		return;
+		return -1;
 	}
 
-	if (isPrintScript()) printScript(hexData.data());
+	if (isPrintScript()) {
+		OUT_INFO("Script:");
+		printScript(hexData.data(), std::cout);
+		std::cout << std::endl;
+	}
 
 	gRollingScriptMemory.next();
 	gRollingScriptMemory.current() = std::move(hexData);
 	dataLocation = (unsigned int*)gRollingScriptMemory.current().data();
+	return foundIndex;
+}
+
+std::string PG_DisaScriptsModel::scriptToString(unsigned int* dataLocation) const {
+	std::stringstream ss;
+	printScript((unsigned char*)dataLocation, ss);
+	return ss.str();
 }

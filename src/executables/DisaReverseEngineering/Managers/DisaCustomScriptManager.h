@@ -14,11 +14,11 @@ public:
 	* @brief Reads a script found by given identifier
 	* Otherwise will search for a replacement script with "Disa" as namespace.
 	*/
-	void readScript(unsigned int*& dataLocation, int scriptId);
-
+	int readScript(unsigned int*& dataLocation, int scriptId);
 
 	int readDisaTalkScript(unsigned char*& dataLocation, uint32_t scriptId, uint32_t dungeonId, uint32_t stateFlag) override;
-	void readDisaScript(unsigned int*& dataLocation, uint32_t id) override;
+	int readDisaScript(unsigned int*& dataLocation, uint32_t id) override;
+
 
 	static DisaCustomScriptManager* get();
 };

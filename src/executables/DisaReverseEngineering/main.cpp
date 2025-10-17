@@ -341,9 +341,9 @@ struct CommandTerminal {
         else if (msg == "i" || msg == "info") {
             gHockManager.info();
         }
-        else if (msg == "ps" || msg == "printScript") {
+        else if (msg == "ds" || msg == "debugScript") {
             DisaCustomScriptManager::get()->setIsPrintScript(!DisaCustomScriptManager::get()->isPrintScript());
-            std::cout << "Printing script: " << DisaCustomScriptManager::get()->isPrintScript() << std::endl;
+            std::cout << "Debug script: " << DisaCustomScriptManager::get()->isPrintScript() << std::endl;
         }
         else if (msg == "pp" || msg == "printParty") {
             if (split.size() == 2 && (split.back() == "j" || split.back() == "json")) {
@@ -359,6 +359,32 @@ struct CommandTerminal {
         }
         else if (msg == "pm" || msg == "printMagic") {
             std::cout << DisaDataMagicInfo::globalToString() << std::endl;
+        }
+        else if (msg == "ps" || msg == "printScript") {
+            if (split.size() != 2) {
+                std::cout << "Error: printScript needs arguments!" << std::endl;
+                return;
+            }
+            auto args = PG_StringUtil::split(split.back(), ",");
+            if (args.empty()) return;
+
+            auto* manager = DisaCustomScriptManager::get();
+            unsigned int* data = nullptr;
+            manager->PG_DisaScriptsModel::readScript(data, PG_DisaIdentifier(args[0]));
+            if (!data) {
+                std::cout << "Script: \""<< args[0]<< "\" not found!" << std::endl;
+                return;
+            }
+
+            const std::string script = manager->PG_DisaScriptsModel::scriptToString(data);
+            if (args.size() == 2 && (args.back() == "c" || args.back() == "clipboard")) {
+                OUT_INFO("Script \"" << args[0] << "\" added to clipboard!");
+                OS::Clipboard::textToClipboard(script);
+            }
+            else {
+                OUT_INFO("Script: \"" << args[0]<<"\"");
+                std::cout << script << std::endl;
+            }
         }
         else if (msg == "ac" || msg == "addCharacter") {
             if (split.size() != 2) {
@@ -388,10 +414,11 @@ struct CommandTerminal {
             std::cout << "* unhook:name (u:name) - Remove injected custom code. Optional second argument is a target name." << std::endl;
             std::cout << "* info (i) - Info about all registerd functions." << std::endl;
             std::cout << "* playtest (p) - Run playtest map from 'customCampainsTest'." << std::endl;
-            std::cout << "* printScript (ps) - Will print scripts into console when they are executed." << std::endl;
+            std::cout << "* debugScript (ds) - Will print scripts into console when they are executed." << std::endl;
             std::cout << "* printParty:mode (pp:mode) - Will print the current party as info (default) or dump a full json into clipboard (pp:json)." << std::endl;
             std::cout << "* printCharacters (pc) - Will print the current loaded character data." << std::endl;
             std::cout << "* printMagic (pm) - Will print the current loaded magic/skills data." << std::endl;
+            std::cout << "* printScript (ps:id,c) - Will will print script with given Id. Example 'ps:Disa::2001012'. You can add arg 'c' to dump into clipboard." << std::endl;
             std::cout << "* addCharacter:identifier,level,mentorIndex (ac:id,l,m) - Add a new character to your party. Example to add Etna with level 42: 'ac:Disa::2,42'. Level and mentor are optional." << std::endl;
             std::cout << "* exit (e) - Close injection thread" << std::endl;
         }
