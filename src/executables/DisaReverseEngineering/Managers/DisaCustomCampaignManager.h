@@ -5,10 +5,13 @@
 #include <variant>
 #include <Util/PG_File.h>
 #include <glm/glm.hpp>
+#include <Disa/PG_DisaIdentifier.h>
+#include <Disa/utils/PG_DisaModInfo.h>
 
 class zip;
 using zipUPtr = std::unique_ptr<zip, void(*)(zip*)>;
 class DisaSettings;
+class PG_DisaScriptsModel;
 
 /**
 * @brief Manages custom campaigns
@@ -24,18 +27,15 @@ public:
 		CampaignDungeonList
 	};
 
-	struct BaseEntry {
-		std::string name;
-	};
-
 	struct TalkScripts {
-		std::string intro;
-		std::string introSkipStory;
-		std::string exit;
-		std::string exitSkipStory;
+		PG_DisaIdentifier intro;
+		PG_DisaIdentifier introSkipStory;
+		PG_DisaIdentifier exit;
+		PG_DisaIdentifier exitSkipStory;
 	};
 
-	struct CampaignDungeon : BaseEntry {
+	struct CampaignDungeon {
+		std::string name;
 		std::string description;
 		unsigned int bonusRank = 10;
 		std::string mpd;
@@ -45,29 +45,28 @@ public:
 		TalkScripts scripts;
 	};
 
-	struct CampaignArea : BaseEntry {
+	struct CampaignArea {
+		std::string name;
 		std::string backgroundImage;
 		std::vector<CampaignDungeon> entries;
 	};
 
-	struct Campaign : BaseEntry {
-		std::string id;
-		std::string scriptIdentifier;
+	struct Campaign : PG_DisaModInfo{
 		std::string description;
 		std::string author;
 		std::string previewImage;
 		std::string backgroundImage;
 
-		PG_File zipFile;
-
 		std::vector<CampaignArea> entries;
 
 		inline bool operator==(const Campaign& other) const { return id == other.id; }
 
-		void open(zipUPtr& archive);
+		void open();
 	};
 
 	using EntriesVariant = std::variant<DisaCustomCampaignManager*, Campaign*, CampaignArea*>;
+
+	DisaCustomCampaignManager(PG_DisaScriptsModel* scriptsModel);
 
 	bool isActive() const { return !m_entriesState.empty(); }
 	bool isEmpty() const { return m_campaigns.empty(); }
@@ -99,14 +98,10 @@ public:
 	
 	/**
 	* @brief Get the talk stripts of the current loaded custom map
-	* @returns First scriptIdentifierm, secend TalkScripts
+	* @returns TalkScripts
 	*/
-	std::pair<std::string*, TalkScripts*> getActiveTalkScripts() const; //first campain identifier, second talk scripts
-	/**
-	* @brief Get the scriot code of the current loaded custom map
-	* @returns Script code
-	*/
-	std::string readScript(const std::string& scriptNamespace, const std::string& scriptName, bool isTalkScript = true) const;
+	TalkScripts* getActiveTalkScripts() const; //first campain identifier, second talk scripts
+
 	/**
 	* @brief Returns the current selected background music of selected/loaded map
 	*/
@@ -124,7 +119,6 @@ private:
 	void renderCustomImage(bool foreground, const std::string& id, const std::string& path, const glm::vec2& pos, const glm::vec2& size);
 
 	std::vector<Campaign> m_campaigns;
-	zipUPtr m_archive = { nullptr, [](zip* a) {} }; //currently loaded/selected campaign
 
 	struct EntriesState {
 		EMenuState type = None;
@@ -156,4 +150,6 @@ private:
 
 	EntriesState m_selectEntry; //the entry that is currently hovered
 	std::vector<EntriesState> m_entriesState;
+	Campaign* m_activeCampaign = nullptr;
+	PG_DisaScriptsModel* m_scriptsModel = nullptr;
 };

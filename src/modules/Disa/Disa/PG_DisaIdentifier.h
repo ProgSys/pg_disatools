@@ -9,7 +9,8 @@ struct PG_DisaIdentifier {
 
 	enum EScriptType : uint8_t {
 		ScriptType_None = 0,
-		ScriptType_Magic = 2
+		ScriptType_Magic = 2,
+		ScriptType_Custom = 9,
 	};
 
 	PG_DisaIdentifier() = default;

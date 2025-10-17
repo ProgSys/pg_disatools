@@ -6,28 +6,27 @@
 #include "FunctionPatcher.h"
 
 template<typename T>
-PG_DisaIdentifier getScriptName(const std::string* scriptIdentifier, const DisaCustomCampaignManager::TalkScripts* scripts, T valuePtr, const std::string& defaultScriptName) {
-    if (!scriptIdentifier || scriptIdentifier->empty()) return defaultScriptName;
-    return PG_DisaIdentifier((scripts && !(scripts->*valuePtr).empty()) ? (*scriptIdentifier + "::" + (scripts->*valuePtr)) : defaultScriptName);
+PG_DisaIdentifier getScriptName(const DisaCustomCampaignManager::TalkScripts* scripts, T valuePtr, const std::string& defaultScriptName) {
+    return PG_DisaIdentifier((scripts && !(scripts->*valuePtr).isValid()) ? (scripts->*valuePtr) : PG_DisaIdentifier(defaultScriptName));
 }
 
 int DisaCustomScriptManager::readTalkScript(unsigned char*& dataLocation, unsigned int scriptId, unsigned int dungeonId, unsigned int stateFlag) {
 	if (dungeonId / 100 >= 655) {
-		auto [scriptIdentifier, scripts] = DisaCustomCampaignManager::get()->getActiveTalkScripts();
+		auto scripts = DisaCustomCampaignManager::get()->getActiveTalkScripts();
 
         unsigned char* globalStateIt = &FP::getData<unsigned char>(aGlobalStateBits);
 
         switch (stateFlag)
         {
         case 1: {
-            return PG_DisaScriptsModel::readTalkScript(dataLocation, getScriptName(scriptIdentifier, scripts,
+            return PG_DisaScriptsModel::readTalkScript(dataLocation, getScriptName(scripts,
                 filterPlayStory.isSet(globalStateIt) ? &DisaCustomCampaignManager::TalkScripts::intro : &DisaCustomCampaignManager::TalkScripts::introSkipStory,
-                "genericDungeonIntro"));
+                "base::genericDungeonIntro"));
         }break;
         case 2: {
-            return PG_DisaScriptsModel::readTalkScript(dataLocation, getScriptName(scriptIdentifier, scripts,
+            return PG_DisaScriptsModel::readTalkScript(dataLocation, getScriptName(scripts,
                 filterPlayStory.isSet(globalStateIt) ? &DisaCustomCampaignManager::TalkScripts::exit : &DisaCustomCampaignManager::TalkScripts::exitSkipStory,
-                "genericDungeonExit"));
+                "base::genericDungeonExit"));
         }break;
         default: return -1;
         }
@@ -39,8 +38,27 @@ int DisaCustomScriptManager::readTalkScript(unsigned char*& dataLocation, unsign
 
 int DisaCustomScriptManager::readScript(unsigned int*& dataLocation, int scriptId) {
     PG_DisaIdentifier functionName;
-    if (scriptId == PG_DisaIdentifier::customScriptIdStart + 1) {
-        functionName = "Base::genericDungeonIntro";
+
+    if (auto split = PG_DisaIdentifier::splitScriptId(scriptId); PG_DisaIdentifier::isCustomScriptId(split)) {
+        switch (split.first) {
+        case PG_DisaIdentifier::ScriptType_Magic: {
+            auto* charManager = DisaCustomCharacterManager::get();
+            const auto& info = charManager->getMagicInfo(split.second - PG_DisaIdentifier::customMagicIdStart);
+            if (!info.mod) return -1;
+
+            auto findIt = std::ranges::find(info.mod->magics, info.identifier, &PG_DisaCustomCharactersModel::MagicInfo::identifier);
+            if (findIt == info.mod->magics.end() || !findIt->scriptIdentifier.isValid()) {
+                OUT_INFO("Failed to find a custom script for magic! (" << scriptId << ")");
+                return -1;
+            }
+
+            functionName = findIt->scriptIdentifier;
+        } break;
+        case PG_DisaIdentifier::ScriptType_Custom: {
+            functionName = getScriptInfo(split.second).identifier;
+        } break;
+        }
+        return -1;
     }
     else {
         functionName = "Disa::" + std::to_string(scriptId);

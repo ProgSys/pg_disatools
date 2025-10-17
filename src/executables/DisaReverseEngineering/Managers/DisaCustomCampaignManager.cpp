@@ -1,6 +1,7 @@
 #include "DisaCustomCampaignManager.h"
 #include <Managers/DisaCustomBaseModManager.h>
 #include <Managers/DisaCustomRenderManager.h>
+#include <Managers/DisaCustomScriptManager.h>
 #include <DisaFunctions.h>
 #include "FunctionPatcher.h"
 #include <ranges>
@@ -10,6 +11,7 @@
 #include <Disa/fileformats/PG_ShiftJisEncoder.h> 
 #include <Disa/fileformats/PG_ZIPUtil.h>
 #include <Disa/models/PG_DisaModLoadOrderListModel.h>
+#include <Disa/utils/PG_DisaModLoadInfo.h>
 #include <Util/Color/RGBA.h>
 #include <Util/PG_ImageLoad.h>
 #include <Util/Debug/PG_DebugOut.h>
@@ -46,58 +48,33 @@ static inline bool readFromJsonMandatory(auto& j, const std::string& field, auto
     return true;
 }
 
-
-
-static inline DisaCustomCampaignManager::Campaign readCampaignInitFromZip(const PG_File& file) {
-    // Open the zip archive
-    int error = 0;
-    zip* archive = zip_open(file.c_str(), 0, &error);
-    if (archive == nullptr) {
-        OUT_ERROR("Failed to open the zip '" << file << "': error code " << error);
-        return {};
-    }
-    zipUPtr archiveHolder(archive, [](zip* a) { zip_close(a); });
-    nlohmann::json j;
-    try {
-        j = PG_ZIPUtil::readJson(archive, "campaign.json");
-    }
-    catch (const PG_RuntimeError& e) {
-        OUT_ERROR("Failed to parse campaign json in zip '" << file << "' with error: "<<e.what());
-        return {};
-    }
-    catch (...) {
-        OUT_ERROR("Failed to parse campaign json in zip '" << file<<"'!");
-        return {};
-    }
-
-    if (j.empty()) {
-        OUT_ERROR("Failed to parse 'campaign.json' inside zip '" << file << "'!");
-        return {};
-    }
+static inline void readCampaign(DisaCustomCampaignManager::Campaign& campain, const PG_DisaModLoadInfo& info) {
+    auto& j = info.json;
 
     if (auto item = j.find("areas"); item == j.end() || !item->is_array() || item->empty()) {
-        OUT_ERROR("'campaign.json' has no areas inside zip '" << file << "'!");
-        return {};
+        throw_Exception("'campaign.json' has no areas inside zip!");
     }
 
-    DisaCustomCampaignManager::Campaign campain;
-    if (!readFromJsonMandatory(j, "id", campain.id)) return {};
-    if (!readFromJsonMandatory(j, "name", campain.name)) return {};
+    if (!readFromJsonMandatory(j, "id", campain.id)) throw_Exception("'campaign.json' has no id inside zip!");
+    if (!readFromJsonMandatory(j, "name", campain.name)) throw_Exception("'campaign.json' has no name inside zip!");
     readFromJson(j, "description", campain.description, 1024);
     readFromJson(j, "author", campain.author);
     readFromJson(j, "previewImage", campain.previewImage);
     readFromJson(j, "backgroundImage", campain.backgroundImage);
 
-    campain.scriptIdentifier = campain.name;
+    readFromJson(j, "namesspace", campain.namespaceMod);
+    if (campain.namespaceMod.empty()) {
+        campain.namespaceMod = info.file.getName();
+    }
+    campain.namespaceMod = PG_StringUtil::toLowerCopy(campain.namespaceMod);
+
     campain.name = stringToShiftJis(campain.name);
     campain.description = stringToShiftJis(campain.description);
     campain.author = stringToShiftJis(campain.author);
-    campain.zipFile = file;
-
-    return campain;
+    campain.zipFile = info.file;
 }
 
-void DisaCustomCampaignManager::Campaign::open(zipUPtr& archive) {
+void DisaCustomCampaignManager::Campaign::open() {
     if (archive) archive.reset();
     entries.clear();
     int error = 0;
@@ -155,10 +132,14 @@ void DisaCustomCampaignManager::Campaign::open(zipUPtr& archive) {
             }
 
             if (auto findScriptsIt = jDungeon.find("talkScripts"); findScriptsIt != jDungeon.end()) {
-                readFromJson(*findScriptsIt, "intro", dungeon.scripts.intro);
-                readFromJson(*findScriptsIt, "introSkipStory", dungeon.scripts.introSkipStory);
-                readFromJson(*findScriptsIt, "exit", dungeon.scripts.exit);
-                readFromJson(*findScriptsIt, "exitSkipStory", dungeon.scripts.exitSkipStory);
+                readFromJson(*findScriptsIt, "intro", dungeon.scripts.intro.value);
+                readFromJson(*findScriptsIt, "introSkipStory", dungeon.scripts.introSkipStory.value);
+                readFromJson(*findScriptsIt, "exit", dungeon.scripts.exit.value);
+                readFromJson(*findScriptsIt, "exitSkipStory", dungeon.scripts.exitSkipStory.value);
+                for (int i = 0; i < 4; ++i) {
+                    auto& id = ((PG_DisaIdentifier*)(&dungeon.scripts))[i];
+                    if (!id.build(namespaceMod)) id.clear();
+                }
             }
 
             dungeon.name = stringToShiftJis(dungeon.name);
@@ -182,42 +163,19 @@ void computeMaxWidth(int& width, const T* item) {
     width += 11;
 }
 
-
-std::pair<std::string*, DisaCustomCampaignManager::TalkScripts*>  DisaCustomCampaignManager::getActiveTalkScripts() const {
-    if (m_entriesState.empty())  return { nullptr, nullptr };
-
-    if (CampaignArea* area = std::get<CampaignArea*>(m_entriesState.back().entry)) {
-        if (m_entriesState.back().hoverIndex < 0 || m_entriesState.back().hoverIndex >= area->entries.size()) return { nullptr, nullptr };
-
-        std::string* scriptIdentifier = nullptr;
-        if (m_entriesState.size() >= 2) {
-            if (Campaign* campaign = std::get<Campaign*>(m_entriesState[1].entry)) {
-                scriptIdentifier = &campaign->scriptIdentifier;
-            }
-        }
-
-        return { scriptIdentifier, &area->entries[m_entriesState.back().hoverIndex].scripts };
-    }
-
-    return { nullptr, nullptr };
+DisaCustomCampaignManager::DisaCustomCampaignManager(PG_DisaScriptsModel* scriptsModel) : m_scriptsModel(scriptsModel) {
+    assert(m_scriptsModel);
 }
 
-std::string DisaCustomCampaignManager::readScript(const std::string& scriptNamespace, const std::string& scriptName, bool isTalkScript) const {
-    if (m_entriesState.size() < 2 || !m_archive) return {};
-    Campaign* campaign = std::get<Campaign*>(m_entriesState[1].entry);
-    if (!campaign || !PG_StringUtil::isEqualCaseless(campaign->scriptIdentifier, scriptNamespace))  return {};
-    PG_File scriptFile = isTalkScript? ("talkScript/" + scriptName + ".tscript"): ("script/" + scriptName + ".script");
+DisaCustomCampaignManager::TalkScripts* DisaCustomCampaignManager::getActiveTalkScripts() const {
+    if (m_entriesState.empty())  return nullptr;
 
-    try {
-        return PG_ZIPUtil::readString(m_archive.get(), scriptFile.getPath());
+    if (CampaignArea* area = std::get<CampaignArea*>(m_entriesState.back().entry)) {
+        if (m_entriesState.back().hoverIndex < 0 || m_entriesState.back().hoverIndex >= area->entries.size()) return nullptr;
+        return &area->entries[m_entriesState.back().hoverIndex].scripts;
     }
-    catch (const PG_RuntimeError& e) {
-        OUT_ERROR("Failed to read script from zip '" << scriptFile << "' with error: " << e.what());
-    }
-    catch (...) {
-        OUT_ERROR("Failed to read script from zip '" << scriptFile << "'!");
-    }
-    return {};
+
+    return nullptr;
 }
 
 unsigned int DisaCustomCampaignManager::getBGM() const {
@@ -231,10 +189,45 @@ void DisaCustomCampaignManager::loadCampaigns() {
 
     PG_Dir customCampaignsDir(customCampaignsDirPath);
     for (const auto& zipFile : customCampaignsDir.findFiles([](const PG_File& file)->bool {  return file.getFileExtensionFormated() == "zip"; }, 1)) {
-        Campaign campain = readCampaignInitFromZip(zipFile);
-        if (campain.id.empty()) continue;
+        auto archive = PG_ZIPUtil::openZip(zipFile);
+        if (!archive) continue;
 
-        m_campaigns.push_back(std::move(campain));
+        PG_DisaModLoadInfo info;
+        info.file = zipFile;
+        try {
+            info.json = PG_ZIPUtil::readJson(archive, "campaign.json");
+            if (info.json.empty()) {
+                OUT_ERROR("Failed to parse 'campaign.json' inside zip '" << zipFile << "'!");
+                continue;
+            }
+
+            if (!readFromJsonMandatory(info.json, "id", info.id)) {
+                OUT_ERROR("'campaign.json' has no 'id' inside zip '" << zipFile << "'!");
+                continue;
+            }
+        }
+        catch (const std::exception& ex) {
+            OUT_ERROR("Failed to parse 'campaign.json' inside zip '" << zipFile << "'! Reason: " << ex.what());
+            continue;
+        }
+        catch (...) {
+            OUT_ERROR("Failed to parse 'campaign.json' inside zip '" << zipFile << "'!");
+            continue;
+        }
+      
+        m_campaigns.push_back({});
+        try {
+            readCampaign(m_campaigns.back(), info);
+            m_scriptsModel->loadScripts(&m_campaigns.back(), info);
+        }
+        catch (const std::exception& ex) {
+            m_campaigns.pop_back();
+            OUT_ERROR("Failed to parse 'campaign.json' inside zip '" << info.file << "'! Reason: " << ex.what());
+        }
+        catch (...) {
+            m_campaigns.pop_back();
+            OUT_ERROR("Failed to parse 'campaign.json' inside zip '" << info.file << "'!");
+        }
     }
     { //remove dubliucate ids
         std::ranges::sort(m_campaigns, {}, &Campaign::id);
@@ -294,6 +287,7 @@ void DisaCustomCampaignManager::reactivate() {
 
 void DisaCustomCampaignManager::diactivate() {
     m_entriesState.clear();
+    if (m_activeCampaign) m_activeCampaign->archive.reset();
     DisaCustomRenderManager::get()->clear();
     DisaCustomRenderManager::get()->setEnabled(false);
 }
@@ -519,7 +513,7 @@ void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::st
     if (id.empty()) return;
 
     auto layer = foreground ? DisaCustomRenderManager::Front : DisaCustomRenderManager::Back;
-    if (!m_archive || path.empty()) {
+    if (!m_activeCampaign || !m_activeCampaign->archive || path.empty()) {
         DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
         return;
     }
@@ -537,7 +531,7 @@ void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::st
     PG_RGBAImage img;
     
     try {
-        img = PG_ZIPUtil::readPNGImage(m_archive.get(), fullPath);
+        img = PG_ZIPUtil::readPNGImage(m_activeCampaign->archive.get(), fullPath);
     }
     catch (const PG_RuntimeError& e) {
         OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
@@ -561,7 +555,7 @@ void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::st
     if (id.empty()) return;
 
     auto layer = foreground ? DisaCustomRenderManager::Front : DisaCustomRenderManager::Back;
-    if (!m_archive || path.empty()) {
+    if (!m_activeCampaign || !m_activeCampaign->archive || path.empty()) {
         DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
         return;
     }
@@ -581,7 +575,7 @@ void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::st
     PG_RGBAImage img;
     
     try {
-        img = PG_ZIPUtil::readPNGImage(m_archive.get(), fullPath);
+        img = PG_ZIPUtil::readPNGImage(m_activeCampaign->archive.get(), fullPath);
     }
     catch (const PG_RuntimeError& e) {
         OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
@@ -666,7 +660,7 @@ void DisaCustomCampaignManager::processUserRender() {
 
 
 DisaCustomCampaignManager* DisaCustomCampaignManager::get() {
-    static DisaCustomCampaignManager manager;
+    static DisaCustomCampaignManager manager(DisaCustomBaseModManager::get()->getScriptsModel());
     return &manager;
 }
 
@@ -765,8 +759,9 @@ DisaCustomCampaignManager::EntriesState DisaCustomCampaignManager::EntriesState:
         using T = std::decay_t<std::remove_const_t<std::remove_pointer_t<decltype(arg)>>>;
         DisaCustomCampaignManager::EntriesState state;
         if constexpr (std::is_same_v<T, DisaCustomCampaignManager>) {
+            if (arg->m_activeCampaign) arg->m_activeCampaign->archive.reset();
             Campaign* campain = &arg->m_campaigns[index];
-            campain->open(arg->m_archive);
+            campain->open();
             state.entry = campain;
             state.type = DisaCustomCampaignManager::CampaignAreaList;
             state.titleText = DisaCustomCampaignManager::CampaignAreaList;
@@ -776,6 +771,7 @@ DisaCustomCampaignManager::EntriesState DisaCustomCampaignManager::EntriesState:
             state.titleText = campain->name;
             state.infoText = stringToShiftJis("Select the campaign area you want to go to");
             computeMaxWidth(state.width, campain);
+            arg->m_activeCampaign = campain;
         } else if constexpr (std::is_same_v<T, Campaign>) {
             CampaignArea* area = &arg->entries[index];
             state.entry = area;
@@ -827,14 +823,16 @@ static inline void readMapFile(int* dataLocation, const zipUPtr& archive, const 
 }
 
 void DisaCustomCampaignManager::readMPP(int* dataLocation, bool hdTextures) const {
-    readMapFile(dataLocation, m_archive, m_entriesState, [hdTextures](const DisaCustomCampaignManager::CampaignDungeon& d) { 
+    assert(m_activeCampaign);
+    readMapFile(dataLocation, m_activeCampaign->archive, m_entriesState, [hdTextures](const DisaCustomCampaignManager::CampaignDungeon& d) {
         if (hdTextures && !d.mppHD.empty()) return d.mppHD;
         return d.mpp; 
         });
 }
 
 void DisaCustomCampaignManager::readMPD(int* dataLocation) const {
-    readMapFile(dataLocation, m_archive, m_entriesState, [](const DisaCustomCampaignManager::CampaignDungeon& d) { return d.mpd; });
+    assert(m_activeCampaign);
+    readMapFile(dataLocation, m_activeCampaign->archive, m_entriesState, [](const DisaCustomCampaignManager::CampaignDungeon& d) { return d.mpd; });
 }
 
 

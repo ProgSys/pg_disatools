@@ -24,59 +24,11 @@ int __thiscall DisaScriptManager::FUN_004bf7e0_RunTalkScript(unsigned int script
     // return FP::callThisFarA<int>(0x004bf7e0, this, scriptId, dungeonId, unknownFlag, param_4);
     if (isActive != 0 || sizeTalkScripts <= 0) return -1;
 
-    this->resolvedScriptId = DisaCustomScriptManager::get()->readTalkScript(this->scriptPointer, scriptId, dungeonId, stateFlag);
+    int index = this->resolvedScriptId = DisaCustomScriptManager::get()->readTalkScript(this->scriptPointer, scriptId, dungeonId, stateFlag);
     if (!this->scriptPointer) return -1;
     setupTalkScript(scriptId, dungeonId, stateFlag, param_4);
     FP::callStdFarA(0x004bde60); //used by tutorial cutscene (and maybe others things)
-    return 0;
-    /*
-    //@see FUN_LoadDungeonsCategories
-    //BEGIN custom code
-
-    if (dungeonId / 100 >= 655) { //is custom dungeon?
-        this->resolvedScriptId = DisaCustomScriptManager::get()->readTalkScript(this->scriptPointer, scriptId, dungeonId, stateFlag);
-        if (this->scriptPointer == nullptr) return -1;
-        OUT_INFO("Found custom talk script with dungeonId " << std::dec << dungeonId);
-    } //END custom code
-    else {
-
-        const PG_DisaTalkDatScriptEntry* startIt = talkScriptsEntries;
-        const PG_DisaTalkDatScriptEntry* endIt = startIt + totalScripts;
-
-        //search for script
-        auto findIt = std::find_if(startIt, endIt, [&](const PG_DisaTalkDatScriptEntry& entry) ->bool {
-
-            //test if script fits
-            if (!((scriptId == 0 || scriptId == entry.scriptId) &&
-                (dungeonId == 0 || dungeonId == entry.dungeonId) &&
-                (stateFlag == 0 || stateFlag == entry.stateFlag)
-                )) return false;
-
-            //Tests if flag IS set
-            unsigned char* globalStateIt = &FP::getData<unsigned char>(aGlobalStateBits);
-            for (int i = 0; i < entry.gameStateFilterSizePositive; ++i) {
-                if (entry.gameStateFilterPositive[i].isSet(globalStateIt)) return false;
-            }
-            //Tests if flag is NOT set
-            for (int i = 0; i < entry.gameStateFilterSizeNegative; ++i) {
-                if (!entry.gameStateFilterNegative[i].isSet(globalStateIt)) return false;
-            }
-
-            return true;
-            });
-
-        if (findIt == endIt) return -1;
-        index = std::distance(startIt, findIt);
-        OUT_INFO("Found disa talk script at index " << std::dec << index);
-        this->scriptPointer = this->scriptsData + findIt->address;//the script to play
-        this->resolvedScriptId = findIt->scriptId;
-        DisaCustomScriptManager::get()->readTalkScript(this->scriptPointer, scriptId, dungeonId, stateFlag);
-    }
-
-    setupTalkScript(scriptId, dungeonId, stateFlag, param_4);
-    FP::callStdFarA(0x004bde60); //used by tutorial cutscene (and maybe others things)
     return index;
-    */
 }
 
 int DisaScriptManager::readDisaTalkScript(unsigned char*& dataLocation, uint32_t scriptId, uint32_t dungeonId, uint32_t stateFlag) {

@@ -9,12 +9,15 @@ struct PG_DisaModInfo;
 
 class PG_DisaScriptsModel {
 	friend class PG_DisaCustomCharactersModel;
+	friend class DisaCustomCampaignManager;
 public:
 	struct ScriptInfo {
 		PG_DisaModInfo* modInfo = nullptr;
 		PG_DisaIdentifier identifier;
 		PG_File fileInZip;
 	};
+
+	PG_DisaScriptsModel();
 
 	bool isPrintScript() const { return m_isPrintScript; }
 	void setIsPrintScript(bool v) { m_isPrintScript = v; }
@@ -44,6 +47,9 @@ public:
 	}
 
 	std::string scriptToString(unsigned int* dataLocation) const;
+
+	const ScriptInfo& getScriptInfo(unsigned int index);
+	const ScriptInfo& getTalkScriptInfo(unsigned int index);
 protected:
 	void loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModLoadInfo& info); //can throw
 

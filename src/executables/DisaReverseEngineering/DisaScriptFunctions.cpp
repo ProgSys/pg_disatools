@@ -338,12 +338,6 @@ int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
     //BEGIN custom code
     int index = DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);
     if (index < 0 || !codeLocation) return index;
-
-    //do we neen to run the script?
-    if (auto split = PG_DisaIdentifier::splitScriptId(scriptId); PG_DisaIdentifier::isCustomScriptId(split)) {
-        auto i = 0; //TODO
-        return -1;
-    } 
     //END custom code
 
     DisaScriptManager& manager = FP::getData<DisaScriptManager>(0x0071b510);

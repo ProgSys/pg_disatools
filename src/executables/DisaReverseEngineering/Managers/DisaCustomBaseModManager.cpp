@@ -13,6 +13,10 @@
 #include <Util/Debug/PG_DebugOut.h>
 #include <DisaFunctions.h>
 #include "FunctionPatcher.h"
+#include <Managers/DisaCustomScriptManager.h>
+
+DisaCustomBaseModManager::DisaCustomBaseModManager():
+    PG_DisaMainBaseModel(), m_scriptsModel(new DisaCustomScriptManager()){}
 
 static inline std::string getExecutablePath() {
     char path[MAX_PATH];

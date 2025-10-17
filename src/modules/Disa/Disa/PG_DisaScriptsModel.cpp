@@ -28,6 +28,11 @@ struct RollingScriptMemory {
 
 static RollingScriptMemory gRollingScriptMemory;
 
+PG_DisaScriptsModel::PG_DisaScriptsModel() {
+	m_scripts.emplace_back(nullptr, PG_DisaIdentifier("Base::genericDungeonIntro"));
+	m_scriptsMapper[m_scripts.back().identifier] = 0;
+}
+
 void PG_DisaScriptsModel::loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModLoadInfo& metaInfo) {
 	if (!modInfo || modInfo->id.empty()) return;
 
@@ -75,6 +80,24 @@ void PG_DisaScriptsModel::loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModL
 	}
 }
 
+static inline std::string readFromZip(const PG_DisaScriptsModel::ScriptInfo& info) {
+	std::string code;
+	bool closeAfterwards = false;
+	if (!info.modInfo->archive) {
+		info.modInfo->archive = PG_ZIPUtil::openZip(info.modInfo->zipFile);
+		closeAfterwards = true;
+	}
+	if (info.modInfo->archive) {
+		code = PG_ZIPUtil::readString(info.modInfo->archive.get(), info.fileInZip);
+	}
+	else {
+		OUT_ERROR("Failed to read file from zip \"" << info.identifier.getIdentifier() << "\" from zip '" << info.modInfo->zipFile << "!");
+	}
+	if (closeAfterwards) info.modInfo->archive.reset();
+
+	return code;
+}
+
 int PG_DisaScriptsModel::readTalkScript(unsigned char*& dataLocation, const PG_DisaIdentifier& identifier) {
 	if (!identifier.isValid()) {
 		dataLocation = nullptr;
@@ -97,13 +120,7 @@ int PG_DisaScriptsModel::readTalkScript(unsigned char*& dataLocation, const PG_D
 	if (code.empty()) {
 		if (auto findIt = m_talkScriptsMapper.find(identifier.getIdentifier()); findIt != m_talkScriptsMapper.end()) {
 			const auto& info = m_talkScripts[findIt->second];
-			auto zip = PG_ZIPUtil::openZip(info.modInfo->zipFile);
-			if (zip) {
-				code = PG_ZIPUtil::readString(zip.get(), info.fileInZip);
-			}
-			else {
-				OUT_ERROR("Failed to read talk script \""<< identifier.getIdentifier() << "\" from zip '" << info.modInfo->zipFile << "!");
-			}
+			code = readFromZip(info);
 		}
 	}
 
@@ -242,13 +259,7 @@ int PG_DisaScriptsModel::readScript(unsigned int*& dataLocation, const PG_DisaId
 	if (code.empty()) {
 		if (auto findIt = m_scriptsMapper.find(identifier.getIdentifier()); findIt != m_scriptsMapper.end()) {
 			const auto& info = m_scripts[findIt->second];
-			auto zip = PG_ZIPUtil::openZip(info.modInfo->zipFile);
-			if (zip) {
-				code = PG_ZIPUtil::readString(zip.get(), info.fileInZip);
-			}
-			else {
-				OUT_ERROR("Failed to read script \"" << identifier.getIdentifier() << "\" from zip '" << info.modInfo->zipFile << "!");
-			}
+			code = readFromZip(info);
 		}
 	}
 
@@ -284,4 +295,15 @@ std::string PG_DisaScriptsModel::scriptToString(unsigned int* dataLocation) cons
 	std::stringstream ss;
 	printScript((unsigned char*)dataLocation, ss);
 	return ss.str();
+}
+
+PG_DisaScriptsModel::ScriptInfo g_emtpy;
+const PG_DisaScriptsModel::ScriptInfo& PG_DisaScriptsModel::getScriptInfo(unsigned int index) {
+	if (index >= m_scripts.size()) return g_emtpy;
+	return m_scripts[index];
+}
+
+const PG_DisaScriptsModel::ScriptInfo& PG_DisaScriptsModel::getTalkScriptInfo(unsigned int index) {
+	if (index >= m_talkScripts.size()) return g_emtpy;
+	return m_talkScripts[index];
 }

@@ -104,6 +104,7 @@ public:
 	struct MagicInfo {
 		PG_DisaIdentifier identifier;
 
+		PG_DisaIdentifier scriptIdentifier;
 		PG_DisaDataMagic magicData;
 	};
 
@@ -135,6 +136,7 @@ public:
 	inline const Info& getCharacterInfo(unsigned int id) const { return getInfo(id, m_characters); }
 	inline const Info& getSpriteInfo(unsigned int id) const { return getInfo(id, m_sprites); }
 	inline const Info& getFaceInfo(unsigned int id) const { return getInfo(id, m_faces); }
+	inline const Info& getMagicInfo(unsigned int id) const { return getInfo(id, m_magic); }
 	const Info& getCharacterInfoIndex(unsigned int index) const;
 
 	const std::list<CharacterMod>& getMods() const { return m_mods; };
@@ -157,15 +159,15 @@ public:
 	}
 	unsigned int getMagicId(const PG_DisaIdentifier& identifier) const {
 		if (!identifier) return 0;
-		auto findIt = m_magicsMapper.find(identifier.getIdentifier());
-		if (findIt == m_magicsMapper.end()) return 0;
+		auto findIt = m_magicMapper.find(identifier.getIdentifier());
+		if (findIt == m_magicMapper.end()) return 0;
 		return findIt->second + PG_DisaIdentifier::customMagicIdStart;
 	}
 	PG_DisaIdentifier getMagicIdentifier(unsigned int id) {
 		if (PG_DisaIdentifier::isCustomMagicId(id)) {
 			id -= PG_DisaIdentifier::customMagicIdStart;
-			if (id >= m_magics.size()) return PG_DisaIdentifier();
-			return m_magics[id].identifier;
+			if (id >= m_magic.size()) return PG_DisaIdentifier();
+			return m_magic[id].identifier;
 		}
 		else {
 			return PG_DisaIdentifier(std::to_string(id), "disa");
@@ -210,8 +212,8 @@ protected:
 	std::map<std::string, unsigned int> m_spritesMapper;
 	std::vector<Info> m_faces; //portraits
 	std::map<std::string, unsigned int> m_facesMapper;
-	std::vector<Info> m_magics; //skills
-	std::map<std::string, unsigned int> m_magicsMapper;
+	std::vector<Info> m_magic; //skills
+	std::map<std::string, unsigned int> m_magicMapper;
 
 	PG_DisaScriptsModel* m_scriptsModel = nullptr;
 };

@@ -130,30 +130,6 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 			});
 	}
 }
-/*
-void PG_DisaCustomCharactersModel::loadCharactersFromZip(const PG_File& file) {
-	auto archive = PG_ZIPUtil::openZip(file);
-	if (!archive) return;
-
-	m_mods.push_back({});
-
-	try {
-		PG_DisaModLoadInfo info;
-		info.file = file;
-		info.json = PG_ZIPUtil::readJson(archive, "character.json");
-		loadCharacters(m_mods.back(), info);
-		m_scriptsModel->loadScripts(&m_mods.back(), info);
-	}
-	catch (const std::exception& ex) {
-		m_mods.pop_back();
-		OUT_ERROR("Failed to parse 'character.json' inside zip '" << file << "'! Reason: " << ex.what());
-	}
-	catch (...) {
-		m_mods.pop_back();
-		OUT_ERROR("Failed to parse 'character.json' inside zip '" << file << "'!");
-	}
-}
-*/
 
 void PG_DisaCustomCharactersModel::loadCharacters(CharacterMod& mod, const PG_DisaModLoadInfo& metaInfo) {
 	auto& j = metaInfo.json;
@@ -207,7 +183,7 @@ void PG_DisaCustomCharactersModel::loadCharacters(CharacterMod& mod, const PG_Di
 				OUT_WARNING("Magic/Skill with identifier \"" << info.identifier << "\" has no description in file \"" << metaInfo.file << "\"!");
 			}
 
-			auto [added, index] = addInfo(std::move(info), m_magics, m_magicsMapper);
+			auto [added, index] = addInfo(std::move(info), m_magic, m_magicMapper);
 			if (!added) {
 				OUT_ERROR("Magic/Skill with identifier \"" << info.identifier << "\" is already present \"" << metaInfo.file << "\"!");
 				continue;

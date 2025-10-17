@@ -259,7 +259,7 @@ void DisaCustomCharacterManager::loadCharactersIntoMememory() {
 			for (auto& m : mod.magics) {
 				if (!m.identifier) continue;
 
-				if (auto findIt = m_magicsMapper.find(m.identifier.getIdentifier()); findIt != m_magicsMapper.end()) {
+				if (auto findIt = m_magicMapper.find(m.identifier.getIdentifier()); findIt != m_magicMapper.end()) {
 					m.magicData.id = findIt->second + PG_DisaIdentifier::customMagicIdStart;
 				}
 				else if (m.identifier.getNamespace() == "disa") {
@@ -311,8 +311,8 @@ void DisaCustomCharacterManager::loadCharactersIntoMememory() {
 						if (!skill.first.isValid()) continue;
 
 						if (skill.first.isCustom()) {
-							auto findIt = m_magicsMapper.find(skill.first);
-							if (findIt == m_magicsMapper.end()) continue;
+							auto findIt = m_magicMapper.find(skill.first);
+							if (findIt == m_magicMapper.end()) continue;
 							c.charData.skillIds[i] = findIt->second + PG_DisaIdentifier::customMagicIdStart;
 						}
 						else {
@@ -349,9 +349,9 @@ void DisaCustomCharacterManager::loadCharactersIntoMememory() {
 	}//load characters end
 }
 
-#include <Managers/DisaCustomScriptManager.h>
+
 
 DisaCustomCharacterManager* DisaCustomCharacterManager::get() {
-	static DisaCustomCharacterManager manager(new DisaCustomScriptManager());
+	static DisaCustomCharacterManager manager(DisaCustomBaseModManager::get()->getScriptsModel());
 	return &manager;
 }
