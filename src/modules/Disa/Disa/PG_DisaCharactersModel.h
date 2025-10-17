@@ -33,13 +33,15 @@
 #include <Disa/PG_DisaIdentifier.h>
 #include <Disa/dataStructs/PG_DisaDataCharacter.h>
 #include <Disa/dataStructs/PG_DisaDataMagic.h>
+#include <Disa/utils/PG_DisaModInfo.h>
 #include <Resources/PG_Texture.h>
 
 class PG_OLA;
 class PG_SOLA;
 class PG_PSPFS;
 class PG_DisaFileContainer;
-class MetaCharInfo;
+class PG_DisaModLoadInfo;
+class PG_DisaScriptsModel;
 
 struct PG_DisaCharacterModel {
 	enum EPDisaCharacterModelIdentity : Identity {
@@ -105,13 +107,7 @@ public:
 		PG_DisaDataMagic magicData;
 	};
 
-	struct CharacterMod {
-		std::string id;
-		std::string name;
-		std::string namespaceMod;
-
-		PG_File zipFile;
-
+	struct CharacterMod : public PG_DisaModInfo {
 		std::vector<CharacterInfo> characters;
 		std::vector<MagicInfo> magics;
 	};
@@ -130,6 +126,8 @@ public:
 		unsigned short charDatIndex;
 	};
 
+	PG_DisaCustomCharactersModel();
+	PG_DisaCustomCharactersModel(PG_DisaScriptsModel* scriptsModel);
 
 	std::pair<PG::STREAM::In*, const Info&> createSpriteReader(const std::string& baseDir, unsigned int spriteId);
 	std::pair<PG::STREAM::In*, const Info&> createFaceReader(const std::string& baseDir, unsigned int faceId, bool isHD);
@@ -183,6 +181,8 @@ public:
 	DisplayInfo getDisplayInfo(const PG_DisaIdentifier& identifier) const;
 	DisplayInfo getDisplayInfo(const CharacterInfo& c) const;
 
+	PG_DisaScriptsModel* getDisaScriptsModel() const { return m_scriptsModel; }
+
 protected:
 	/**
 	* @brief Load characters created by the user
@@ -198,8 +198,8 @@ protected:
 	*/
 	static std::pair<bool, unsigned int> addInfo(Info&& info, std::vector<Info>& list, std::map<std::string, unsigned int>& mapper);
 
-	void loadCharactersFromZip(const PG_File& file);
-	void loadCharacters(const MetaCharInfo& info);
+	//void loadCharactersFromZip(const PG_File& file);
+	void loadCharacters(CharacterMod& mod, const PG_DisaModLoadInfo& info);
 
 	//mod file data
 	std::list<CharacterMod> m_mods;
@@ -212,6 +212,8 @@ protected:
 	std::map<std::string, unsigned int> m_facesMapper;
 	std::vector<Info> m_magics; //skills
 	std::map<std::string, unsigned int> m_magicsMapper;
+
+	PG_DisaScriptsModel* m_scriptsModel = nullptr;
 };
 
 

@@ -227,7 +227,7 @@ unsigned int DisaCustomCampaignManager::getBGM() const {
 
 
 void DisaCustomCampaignManager::loadCampaigns() {
-    const std::string customCampaignsDirPath = DisaCustomBaseModManager::getPath() + "mod/CustomCampaigns";
+    const std::string customCampaignsDirPath = DisaCustomBaseModManager::get()->getCustomCampaignsDir().getDir();
 
     PG_Dir customCampaignsDir(customCampaignsDirPath);
     for (const auto& zipFile : customCampaignsDir.findFiles([](const PG_File& file)->bool {  return file.getFileExtensionFormated() == "zip"; }, 1)) {
@@ -854,7 +854,7 @@ void DisaCustomCampaignManager::runTestMap() {
 
 void DisaCustomCampaignManager::readMPPTestMap(int* dataLocation, bool hdTextures) const {
 
-    std::string path = DisaCustomBaseModManager::getPath() + "mod/CustomCampaigns/";
+    std::string path = DisaCustomBaseModManager::get()->getCustomCampaignsDir().getDir();
     path += hdTextures? "new_debugMap.MPP": "debugMap.MPP";
 
     PG::STREAM::InByteFile reader(path);
@@ -868,7 +868,7 @@ void DisaCustomCampaignManager::readMPPTestMap(int* dataLocation, bool hdTexture
 
 void DisaCustomCampaignManager::readMPDTestMap(int* dataLocation) const {
     //test map
-    std::string path = (DisaCustomBaseModManager::getPath() + "mod/CustomCampaigns/debugMap.mpd");
+    std::string path = DisaCustomBaseModManager::get()->getCustomCampaignsDir().toFilePath("debugMap.mpd");
 
     PG::STREAM::InByteFile reader(path);
     if (!reader.isOpen()) {

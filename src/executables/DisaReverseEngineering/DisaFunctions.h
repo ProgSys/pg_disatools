@@ -5,6 +5,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <Util/Color/RGBA.h>
+#include <Disa/dataStructs/PG_DisaScriptManager.h>
 
 static unsigned int patch_emptyFunc = 0;
 static inline void emptyFunc(unsigned char* b) {}
@@ -24,34 +25,14 @@ struct DisaDungeon {
     }
 };
 
-//the first 3 bits is the mask the others are the index
-struct DisaGameStateFilter {
-    unsigned short bitIndex : 3; //the bit that should be tested
-    unsigned short index : 13; //the index of a gamestate at 0x00619330
-    inline unsigned short getIndex() const noexcept { return index; }
-    inline unsigned char getMask() const noexcept { return 1 << bitIndex; }
 
-    inline bool isSet(unsigned char* globalStateIt) const {
-        return ((globalStateIt)[getIndex()] & getMask()) == 0;
-    }
-
-    inline void set(unsigned char* globalStateIt) const {
-        (globalStateIt)[getIndex()] = (globalStateIt)[getIndex()] | getMask();
-    }
-
-    inline void clear(unsigned char* globalStateIt) const {
-        (globalStateIt)[getIndex()] = (globalStateIt)[getIndex()] & ~getMask();
-    }
-
-    inline bool isEmpty() const { return bitIndex == 0 && index == 0; }
-};
 
 //The DUNGEON.DAT table file form START.DAT
 struct DisaDungeonDAT {
     std::array<unsigned short, 17> dungeonName; //in shift jis
     unsigned short bonusRank; //0x34
     unsigned short dungeonId; //0x36
-    DisaGameStateFilter filter;
+    PG_DisaGameStateFilter filter;
 };
 
 /**
@@ -173,16 +154,6 @@ struct DisaTransform {
 
 
 
-struct DisaTalkDatScriptEntry {
-    unsigned int address; //0
-    unsigned int scriptId; //4
-    unsigned short dungeonId; //8
-    unsigned short unknownFlag; //10
-    unsigned short gameStateFilterSizePositive; //12
-    unsigned short gameStateFilterSizeNegative; //14-16
-    std::array<DisaGameStateFilter, 4> gameStateFilterPositive; // 16-18-20-22-24
-    std::array<DisaGameStateFilter, 4> gameStateFilterNegative;// 24-26-28-30-32
-};
 
 
 struct DisaCameraInfo {
@@ -373,7 +344,7 @@ constexpr unsigned int fRender3DObject = 0x004e13a0;//pointer to 3D data, frame 
 constexpr unsigned short vCustomCampaignsCategoryIdentifier = 0x8000;
 
 //fitlers
-constexpr DisaGameStateFilter filterPlayStory = { 0, 275 };
+constexpr PG_DisaGameStateFilter filterPlayStory = { 0, 275 };
 
 /**
 * @brief Render a simple background box

@@ -1,21 +1,23 @@
 #include "DisaScriptFunctions.h"
 #include "FunctionPatcher.h"
-#include <Managers/DisaCustomBaseModManager.h>
+#include "DisaScriptManager.h"
+#include <Managers/DisaCustomScriptManager.h>
 #include <Managers/DisaCustomCampaignManager.h>
 #include <DisaTalkScriptFunctions.h>
 #include <Scene/Gui/Validator/PG_GuiTextValidators.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Util/PG_StringUtil.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Disa/PG_DisaIdentifier.h>
 #include <ranges>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <windows.h> // Include the Windows API header
 
-void __fastcall FUN_004b6420_ScriptExec(DisaScriptMemory* disaScriptMemory, int param_2) {
+void __fastcall FUN_004b6420_ScriptExec(PG_DisaScriptMemory* disaScriptMemory, int param_2) {
     
-    DisaTScriptManager& tManager = FP::getData<DisaTScriptManager>(0x0071b510);
+    DisaScriptManager& tManager = FP::getData<DisaScriptManager>(0x0071b510);
     if (disaScriptMemory->ux24 == 1) {
         if (tManager.field_0x47f2 == 1 || (tManager.field_0x47f2 & 0x4000U) != 0 || FP::callFastFarA<bool>(0x0050f7c0, false)) {
             tManager.field_0x47f2 = 0;
@@ -72,7 +74,7 @@ void __fastcall FUN_004b6420_ScriptExec(DisaScriptMemory* disaScriptMemory, int 
 
 static unsigned int backJumpToWhileLoop = 0;
 
-void __fastcall scriptDefaultCase(unsigned char opCode, DisaScriptMemory* disaScriptMemory) {
+void __fastcall scriptDefaultCase(unsigned char opCode, PG_DisaScriptMemory* disaScriptMemory) {
     unsigned char* args = (unsigned char*)disaScriptMemory->codePointer;
     unsigned char sizeArgs = *(args - 1);
     disaScriptMemory->codePointer = (unsigned int*)((unsigned char*)disaScriptMemory->codePointer + sizeArgs);
@@ -86,8 +88,8 @@ void __fastcall scriptDefaultCase(unsigned char opCode, DisaScriptMemory* disaSc
         path.resize(sizeArgs);
         memcpy(path.data(), args, sizeArgs);
 
-        DisaTScriptManager& tScriptManager = FP::getData<DisaTScriptManager>(0x0071b510);
-        if (tScriptManager.call(path, 0) < 0) {
+        DisaScriptManager& tScriptManager = FP::getData<DisaScriptManager>(0x0071b510);
+        if (tScriptManager.callTalkScript(path, 0) < 0) {
             FP::getData<char>(0x00619330) = FP::getData<char>(0x00619330) | 0x20;
         }
         else {
@@ -224,7 +226,7 @@ void replaceDefaultCase() {
 struct DisaScriptInfo
 {
     FP::FarCdeclFunction<void, DisaScriptInfo*> function;
-    DisaScriptMemory* scriptMemory;
+    PG_DisaScriptMemory* scriptMemory;
     DisaScriptInfo* nextScript;
     short functionSlot;
     short ux16;
@@ -232,7 +234,7 @@ struct DisaScriptInfo
 };
 
 
-int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, int param_2) {
+int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, short* param_2) {
     //find free fucntion slot 2
     std::array<DisaScriptInfo, 1024>& scriptInfos = FP::getData<std::array<DisaScriptInfo, 1024>>(0x006cfa70);
     auto findScriptSlotIt = std::ranges::find(scriptInfos | std::views::reverse, nullptr, &DisaScriptInfo::function);  //stack? We go backwards
@@ -243,7 +245,7 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
         FP::callCdeclFarA<int>(0x004bd800, param_1); //__cdecl
         };
 
-    DisaScriptMemory* scriptMemoryPtr = FP::callFastFarA<DisaScriptMemory*>(0x004333f0, 0x88);
+    PG_DisaScriptMemory* scriptMemoryPtr = FP::callFastFarA<PG_DisaScriptMemory*>(0x004333f0, 0x88);
 
     findScriptSlotIt->scriptMemory = scriptMemoryPtr;
     findScriptSlotIt->nextScript = nullptr;
@@ -259,7 +261,7 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
 
     *findSlotIt = callbackFunc;
 
-    scriptMemoryPtr->ux56 = std::distance(functionSlotsArray.begin(), findSlotIt);
+    scriptMemoryPtr->scriptInfoSlotIndex = std::distance(functionSlotsArray.begin(), findSlotIt);
     scriptMemoryPtr->ux52 = 0;
     scriptMemoryPtr->ux40 = 0;
     scriptMemoryPtr->index = scriptIndex;
@@ -270,7 +272,7 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     scriptMemoryPtr->ux44 = 0;
     scriptMemoryPtr->ux80 = param_2;
 
-    FP::getData<DisaScriptMemory*>(0x008aaa00) = scriptMemoryPtr;
+    FP::getData<PG_DisaScriptMemory*>(0x008aaa00) = scriptMemoryPtr;
     scriptMemoryPtr->ux76 = FP::getData<int>(0x00730a20);
 
     if (param_2 == 0) {
@@ -288,15 +290,8 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     scriptMemoryPtr->ux68 = 0;
     scriptMemoryPtr->ux64 = 0;
     scriptMemoryPtr->ux60 = 0;
-    scriptMemoryPtr->ux84 = -1;
-    scriptMemoryPtr->ux88 = -1;
-    scriptMemoryPtr->ux92 = -1;
-    scriptMemoryPtr->ux96 = -1;
-    scriptMemoryPtr->ux100 = -1;
-    scriptMemoryPtr->ux104 = -1;
-    scriptMemoryPtr->ux108 = -1;
-    scriptMemoryPtr->ux112 = -1;
-    scriptMemoryPtr->ux116 = -1;
+    scriptMemoryPtr->memorybank0x54.fill(0xFF);
+    scriptMemoryPtr->memorybank0x74.fill(0xFF);
     scriptMemoryPtr->repeatLoopCounter = 0;
     scriptMemoryPtr->repeatLoopMax = 0;
     scriptMemoryPtr->repeatLoopStartCodePointer = -1;
@@ -335,44 +330,19 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     return scriptIndex;
 }
 
-std::string opCodeToComment(unsigned char op) {
-    switch (op)
-    {
-    case 0x01: return "Sleep";
-    case 0x02: return "Return";
-    case 0x03: return "RepeatStart";
-    case 0x04: return "RepeatEnd";
-    case 0x05: return "LockUser";
-    case 0x06: return "UnlockUser";
-    case 0x07: return "If";
-    case 0x09: return "Nop";
-    case 0x0A: return "FadeOut";
-    case 0x11: return "LoadTalkScript";
-    case 0x12: return "RunScript";
-    case 0x27: return "SetCursorPos";
-    case 0x29: return "SetCameraZoom";
-    case 0x28: return "SetCameraMode";
-    case 0x2C: return "SetCameraPos";
-    case 0x2E: return "SetCameraRotation";
-    case 0x65: return "SetActorPos";
-    case 0x67: return "SetActorAnimation";
-    case 0x6D: return "SetActor";
-    case 0x73: return "RotateActor";
-    case 0x7A: return "SetMultRGBA";
-    case 0x87: return "PlayVoice";
-    case 0x8C: return "PlaySound";
-    case 0x91: return "PlayBGM";
-    case 0xC8: return "RunFunction";
-    default:
-        break;
-    }
-    return {};
-}
+
 
 //call SCRIPT
-int __fastcall FUN_004bd930_RunScript(int scriptId, int param_2) {
+int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
     unsigned int size = FP::getData<unsigned int>(0x0071b534);
     if (size == 0) return -1;
+
+    //BEGIN custom code
+    if (auto split = PG_DisaIdentifier::splitScriptId(scriptId); PG_DisaIdentifier::isCustomScriptId(split)) {
+        auto i = 0; //todo
+    }
+
+    //END custom code
 
     const auto startIt = FP::getData<int*>(0x0071b53c);
     const auto endIt = startIt + size;
@@ -392,57 +362,18 @@ int __fastcall FUN_004bd930_RunScript(int scriptId, int param_2) {
         codeLocation = (unsigned int*)(*(unsigned int*)(FP::getData<unsigned int>(0x0071b538) + index * 4) + FP::getData<unsigned int>(0x0071b540)); //code ptr
     }
     //BEGIN custom code
-    DisaCustomBaseModManager::get()->readScript(codeLocation, scriptId);
-
-    //print script
-    if (DisaCustomBaseModManager::get()->isPrintScript() && codeLocation) {
-        OUT_INFO("Script:");
-
-        unsigned char* ptr = (unsigned char*)codeLocation;
-        std::stringstream stream;
-        stream << "\n";
-        stream.fill('0');
-        int killCount = 10000;
-        while (--killCount > 0) {
-            const unsigned char opCode = *ptr;
-            if (opCode == 0) {
-                stream << std::hex << std::setw(2) << (int)opCode << "\n";
-                break;
-            }
-            unsigned int argsSize = *(ptr + 1);
-            stream << std::hex << std::setw(2) << (int)opCode << " " << std::hex << std::setw(2) << (int)argsSize;
-            ptr += 2;
-
-            //is if statement
-            if (opCode == 7) {
-                const unsigned int operations = *(ptr + 1);
-                argsSize = 2 + operations * 7;
-            }
-
-            for (int i = 0; i < argsSize; ++i) {
-                stream << " " << std::hex << std::setw(2) << (int)*ptr;
-                ++ptr;
-            }
-            if (auto comment = opCodeToComment(opCode); !comment.empty()) {
-                stream << " #" << comment;
-            }
-            if (opCode == 0x02) 
-                break;
-            stream << "\n";
-        }
-        OUT_INFO(stream.str());
-    }
+    DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);
     //END custom code
 
     return runScriptIntern(scriptId, index, codeLocation, param_2);
 }
 
 
-int runCustomScript(const std::string& scriptStr, int param_2) {
+int runCustomScript(const std::string& scriptStr, short* param_2) {
     if (scriptStr.empty()) return -1;
 
     unsigned int* codeLocation = nullptr;
-    DisaCustomBaseModManager::get()->readScript(codeLocation, scriptStr);
+    DisaCustomScriptManager::get()->readScript(codeLocation, scriptStr);
 
 
     if (codeLocation == nullptr) return -1;
@@ -451,7 +382,7 @@ int runCustomScript(const std::string& scriptStr, int param_2) {
     return runScriptIntern(910000, 910000, codeLocation, param_2);
 }
 
-void __fastcall FUN_004f7e70_ScriptLoop(short param_1, short param_2) {
+void __fastcall FUN_004f7e70_ScriptLoop(short updateWndowIndex, short updateWndowEndIndex) {
 
     //clean
 
@@ -483,8 +414,8 @@ void __fastcall FUN_004f7e70_ScriptLoop(short param_1, short param_2) {
         }
     }
 
-    for (int i = param_1; i < param_2; ++i) {
-        for (DisaScriptInfo* info = functionSlots[i]; info; info = info->nextScript) {
+    for (; updateWndowIndex < updateWndowEndIndex; ++updateWndowIndex) {
+        for (DisaScriptInfo* info = functionSlots[updateWndowIndex]; info; info = info->nextScript) {
             if (info->function && info->ux16 == 0) {
                 info->function(info);
             }

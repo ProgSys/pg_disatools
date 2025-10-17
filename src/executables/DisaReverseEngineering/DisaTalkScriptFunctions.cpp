@@ -1,7 +1,8 @@
 #include "DisaTalkScriptFunctions.h"
 #include "FunctionPatcher.h"
-#include <Managers/DisaCustomBaseModManager.h>
 #include "DisaScriptFunctions.h"
+#include "DisaScriptManager.h"
+#include <Managers/DisaCustomBaseModManager.h>
 #include <iostream>
 #include <Util/Debug/PG_DebugOut.h>
 
@@ -14,119 +15,7 @@ using undefined4 = int;
 using undefined8 = long long;
 
 
-void DisaTScriptManager::clearCharDisplay() {
-    std::fill(std::begin(charDisplaySlot), std::begin(charDisplaySlot) + 3, -1);
-    std::fill(std::begin(charDisplayXOffset), std::begin(charDisplayXOffset) + 3, 0);
-    std::fill(std::begin(charDisplayYOffset), std::begin(charDisplayYOffset) + 3, 0);
-    std::fill(std::begin(dataMid), std::begin(dataMid) + 8, 0); //not all are cleard
-    std::fill(std::begin(loadedCharIds), std::begin(loadedCharIds) + 9, 0);
-}
-
-int __thiscall DisaTScriptManager::FUN_004bf7e0_RunTalkScript(unsigned int scriptId, unsigned int dungeonId, unsigned int unknownFlag, unsigned int param_4) {
-   // return FP::callThisFarA<int>(0x004bf7e0, this, scriptId, dungeonId, unknownFlag, param_4);
-    if (isActive != 0 || totalScripts <= 0) return -1;
-
-    unsigned int index = 0;
-    //@see FUN_LoadDungeonsCategories
-    //BEGIN custom code
-    
-    if (dungeonId / 100 >= 655) { //is custom dungeon?
-        this->resolvedScriptId = DisaCustomBaseModManager::get()->readTalkScript(this->scriptPointer, scriptId, dungeonId, unknownFlag);
-        if (this->scriptPointer == nullptr) return -1;
-        OUT_INFO("Found custom talk script with dungeonId " << std::dec << dungeonId);
-    } //END custom code
-    else {
-
-        const DisaTalkDatScriptEntry* startIt = scriptsEntries;
-        const DisaTalkDatScriptEntry* endIt = startIt + totalScripts;
-
-        //search for script
-        auto findIt = std::find_if(startIt, endIt, [&](const DisaTalkDatScriptEntry& entry) ->bool {
-
-            //test if script fits
-            if (!((scriptId == 0 || scriptId == entry.scriptId) &&
-                (dungeonId == 0 || dungeonId == entry.dungeonId) &&
-                (unknownFlag == 0 || unknownFlag == entry.unknownFlag)
-                )) return false;
-
-            //Tests if flag IS set
-            unsigned char* globalStateIt = &FP::getData<unsigned char>(aGlobalStateBits);
-            for (int i = 0; i < entry.gameStateFilterSizePositive; ++i) {
-                if (entry.gameStateFilterPositive[i].isSet(globalStateIt)) return false;
-            }
-            //Tests if flag is NOT set
-            for (int i = 0; i < entry.gameStateFilterSizeNegative; ++i) {
-                if (!entry.gameStateFilterNegative[i].isSet(globalStateIt)) return false;
-            }
-
-            return true;
-            });
-
-        if (findIt == endIt) return -1;
-        index = std::distance(startIt, findIt);
-        OUT_INFO("Found disa talk script at index " << std::dec << index);
-        this->scriptPointer = this->scriptsData + findIt->address;//the script to play
-        this->resolvedScriptId = findIt->scriptId;
-        DisaCustomBaseModManager::get()->readTalkScript(this->scriptPointer, scriptId, dungeonId, unknownFlag);
-    }
-
-    setupScript(scriptId, dungeonId, unknownFlag, param_4);
-    FP::callStdFarA(0x004bde60); //used by tutorial cutscene (and maybe others things)
-    return index;
-}
-
-
-int __thiscall DisaTScriptManager::call(const std::string& scriptName, unsigned int param_4) {
-    if (isActive != 0) return -1;
-
-    this->resolvedScriptId = DisaCustomBaseModManager::get()->readTalkScript(this->scriptPointer, scriptName);
-
-    if (this->scriptPointer == nullptr) {
-        return -1;
-    }
-
-    setupScript(990, 0, 0, param_4);
-    return 990 + this->resolvedScriptId;
-}
-
-void DisaTScriptManager::setupScript(unsigned int scriptId, unsigned int dungeonId, unsigned int unknownFlag, unsigned int param_4) {
-    //reset states
-    this->field16_0x16f2 = 0;
-    *(undefined*)this->field_0x16f8 = 0;
-    this->data2[0x57] = 0;
-    this->data2[0xd8] = 0;
-
-    DisaSettings* settings = (DisaSettings*)(FP::getData<unsigned int>(0x005d7c40));
-    if (settings->field_0x1e == 6 || settings->field_0x1e == 7) {
-        this->field_0x16f8[1] = 0;
-        this->data2[0x58] = 0;
-        this->data2[0xd9] = 0;
-    }
-
-    this->scriptId = scriptId;
-    this->dungeonId = dungeonId;
-    this->unknownFlag = unknownFlag;
-
-    *(int*)((int)this + 0x4828) = 0x110;
-    *(int*)((int)this + 0x482c) = 0;
-    this->isActive = 1;
-    this->field4_0x54 = 0;
-    this->field5_0x58 = 0;
-
-    this->speechBubbleType = 0;
-    this->speechBubbleArrowPosition = 0;
-    this->labelPosition = 0;
-    this->labelTextId = 0;
-
-    clearCharDisplay();
-
-    FP::getData<unsigned int>(0x00677264) = param_4;
-}
-
-#include <Stream/PG_StreamInByteFile.h>
-#include <Util/PG_ImageLoad.h>
-
-void __fastcall FUN_004bfa60_TalkScriptExec(DisaTScriptManager* disaTScriptManager){
+void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManager){
     const short speechBubbleAnimationFrame = disaTScriptManager->speechBubbleAnimationFrame;
     if ((speechBubbleAnimationFrame < 16) && (0 < speechBubbleAnimationFrame)) {
         disaTScriptManager->speechBubbleAnimationFrame = disaTScriptManager->speechBubbleAnimationFrame + disaTScriptManager->speechBubbleAnimationSpeed;
@@ -721,7 +610,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaTScriptManager* disaTScriptManag
             uVar9 = local_c;
         }break;
         case 9: {//Set
-            DisaGameStateFilter gameStateFilter = *(DisaGameStateFilter*)disaTScriptManager->scriptPointer; //game state
+            PG_DisaGameStateFilter gameStateFilter = *(PG_DisaGameStateFilter*)disaTScriptManager->scriptPointer; //game state
             disaTScriptManager->scriptPointer += 2;
 
             //std::cout << "Set(" << gameStateFilter.index << ", " << gameStateFilter.bitIndex << ");" << std::endl;
@@ -733,7 +622,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaTScriptManager* disaTScriptManag
             uVar9 = local_c;
         } break;
         case 10: { //Clear
-            DisaGameStateFilter gameStateFilter = *(DisaGameStateFilter*)disaTScriptManager->scriptPointer; //game state
+            PG_DisaGameStateFilter gameStateFilter = *(PG_DisaGameStateFilter*)disaTScriptManager->scriptPointer; //game state
             disaTScriptManager->scriptPointer += 2;
 
             unsigned char* globalStateIt = &FP::getData<unsigned char>(aGlobalStateBits);
@@ -797,7 +686,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaTScriptManager* disaTScriptManag
 
             disaTScriptManager->isActive = 0;
             const uint param_4 = FP::getData<uint>(0x00677264);
-            const int scriptIndex = disaTScriptManager->call(scriptName, param_4);
+            const int scriptIndex = disaTScriptManager->callTalkScript(scriptName, param_4);
             if (scriptIndex > -1) {
                 //TOOD release script
                 return;

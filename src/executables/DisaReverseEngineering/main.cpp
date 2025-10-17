@@ -3,11 +3,13 @@
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomBaseModManager.h>
 #include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomScriptManager.h>
 #include <DisaFunctions.h>
 #include <DisaTalkScriptFunctions.h>
 #include <DisaScriptFunctions.h>
 #include <DisaCharacterFunctions.h>
 #include <DisaDataFunctions.h>
+#include <DisaScriptManager.h>
 #include <Windows.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
@@ -98,7 +100,7 @@ struct HockManager {
         replaceFunction("loadSave", "Load save file", 0x0043f8a9, FUN_004422c0_LoadSave);
 
         {
-            auto f = &DisaTScriptManager::FUN_004bf7e0_RunTalkScript; //find talk Dat
+            auto f = &DisaScriptManager::FUN_004bf7e0_RunTalkScript; //find talk Dat
             unsigned int i = *((unsigned int*)&f);
             replaceFunction("RunTalkScript", "", 0x004b6b93, i);
             replaceFunction("RunTalkScript", "", 0x00463f7a, i);
@@ -290,7 +292,7 @@ struct CommandTerminal {
         std::ios::sync_with_stdio(true);
 
         OUT_INFO("Console opened! Build Date "<< __DATE__<<".");
-        auto path = DisaCustomBaseModManager::getPath();
+        auto path = DisaCustomBaseModManager::exePath();
         OUT_INFO("Current working path: "<< path);
 
     }
@@ -340,8 +342,8 @@ struct CommandTerminal {
             gHockManager.info();
         }
         else if (msg == "ps" || msg == "printScript") {
-            DisaCustomBaseModManager::get()->setIsPrintScript(!DisaCustomBaseModManager::get()->isPrintScript());
-            std::cout << "Printing script: " << DisaCustomBaseModManager::get()->isPrintScript() << std::endl;
+            DisaCustomScriptManager::get()->setIsPrintScript(!DisaCustomScriptManager::get()->isPrintScript());
+            std::cout << "Printing script: " << DisaCustomScriptManager::get()->isPrintScript() << std::endl;
         }
         else if (msg == "pp" || msg == "printParty") {
             if (split.size() == 2 && (split.back() == "j" || split.back() == "json")) {
@@ -445,6 +447,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
+static DisaCustomBaseModManager g_baseManger;
 /**
 * Build settings:
 * Build Events -> Post-Build Events -> copy /Y "$(TargetDir)$(ProjectName).dll" "D:\Steam\SteamApps\common\Disgaea PC\j.dll"

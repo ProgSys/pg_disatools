@@ -1,30 +1,45 @@
 #include "PG_DisaMainModel.h"
 
-static PG_DisaMainModel* g_baseMainModel = nullptr;
+static PG_DisaMainBaseModel* g_baseMainModel = nullptr;
 
-void PG_DisaMainModel::init() {
-	m_config.open();
+PG_DisaMainBaseModel::PG_DisaMainBaseModel() {
 	g_baseMainModel = this;
 }
 
-PG_DisaMainModel* PG_DisaMainModel::getBase() {
+void PG_DisaMainModel::init() {
+	m_config.open();
+	
+}
+
+PG_DisaMainBaseModel* PG_DisaMainBaseModel::get() {
 	return g_baseMainModel;
 }
 
-PG_File PG_DisaMainModel::getExePath() const {
-	return m_config.getDisaExePath();
-}
 
-PG_Dir PG_DisaMainModel::getModDir() const {
+PG_Dir PG_DisaMainBaseModel::getModDir() const {
 	auto exePath = getExePath();
 	return exePath.getDir() + "/mod";
 }
-PG_Dir PG_DisaMainModel::getCustomCampaignsDir() const {
+PG_Dir PG_DisaMainBaseModel::getCustomCampaignsDir() const {
 	auto exePath = getExePath();
 	return exePath.getDir() + "/mod/CustomCampaigns";
 }
 
-PG_Dir PG_DisaMainModel::getCustomCharactersDir() const {
+PG_Dir PG_DisaMainBaseModel::getCustomCharactersDir() const {
 	auto exePath = getExePath();
 	return exePath.getDir() + "/mod/CustomCharacters";
+}
+
+PG_Dir PG_DisaMainBaseModel::getCustomScripsDir() const {
+	auto exePath = getExePath();
+	return exePath.getDir() + "/mod/CustomScripts";
+}
+
+PG_Dir PG_DisaMainBaseModel::getCustomTalkScripsDir() const {
+	auto exePath = getExePath();
+	return exePath.getDir() + "/mod/CustomTalkScript";
+}
+
+PG_File PG_DisaMainModel::getExePath() const {
+	return m_config.getDisaExePath();
 }

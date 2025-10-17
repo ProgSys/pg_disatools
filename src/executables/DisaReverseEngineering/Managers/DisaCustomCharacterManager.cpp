@@ -51,7 +51,7 @@ char* DisaCustomCharacterManager::getSpriteData(unsigned int spriteId){
 	}
 
 	std::vector<char> data;
-	auto [reader, info] = createSpriteReader(DisaCustomBaseModManager::getPath(), spriteId);
+	auto [reader, info] = createSpriteReader(DisaCustomBaseModManager::exePath(), spriteId);
 
 	if (!reader) {
 		m_spriteData[spriteId] = std::move(data);
@@ -104,7 +104,7 @@ DisaCustomCharacterManager::FaceHeader* DisaCustomCharacterManager::getFaceData(
 	}
 
 	std::vector<char> data;
-	auto [reader, info] = createFaceReader(DisaCustomBaseModManager::getPath(), faceId, isHD);
+	auto [reader, info] = createFaceReader(DisaCustomBaseModManager::exePath(), faceId, isHD);
 
 	if (!reader) {
 		m_faceData[faceId] = std::move(data);
@@ -245,7 +245,7 @@ void DisaCustomCharacterManager::recordEnemyKilled(DisaPartyCharacterInfo* chara
 }
 
 void DisaCustomCharacterManager::loadCharacters() {
-	loadCustomCharacters(DisaCustomBaseModManager::getPath());
+	loadCustomCharacters(DisaCustomBaseModManager::exePath());
 	loadCharactersIntoMememory();
 	m_isHistoryChanged = true;
 }
@@ -349,7 +349,9 @@ void DisaCustomCharacterManager::loadCharactersIntoMememory() {
 	}//load characters end
 }
 
+#include <Managers/DisaCustomScriptManager.h>
+
 DisaCustomCharacterManager* DisaCustomCharacterManager::get() {
-	static DisaCustomCharacterManager manager;
+	static DisaCustomCharacterManager manager(new DisaCustomScriptManager());
 	return &manager;
 }

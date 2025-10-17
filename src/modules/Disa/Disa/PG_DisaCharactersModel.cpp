@@ -5,7 +5,9 @@
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/fileformats/PG_ZIPUtil.h>
 #include <Disa/fileformats/PG_JsonUtil.h>
+#include <Disa/utils/PG_DisaModLoadInfo.h>
 #include <Disa/models/PG_DisaModLoadOrderListModel.h>
+#include <Disa/PG_DisaScriptsModel.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Util/PG_StringUtil.h>
 #include <Stream/PG_StreamInOutByteVector.h>
@@ -26,13 +28,13 @@ static PG_DisaCharacterModel g_emptyCharacterModel = {
 	"Missingno",
 };
 
-struct MetaCharInfo {
-	PG_File file;
-	std::string id;
-	nlohmann::json json;
+PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel():
+	m_scriptsModel(new PG_DisaScriptsModel()) {}
 
-	bool operator==(const MetaCharInfo& other) const { return id == other.id; }
-};
+PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel(PG_DisaScriptsModel* scriptsModel):
+	m_scriptsModel(scriptsModel) {
+	assert(scriptsModel);
+}
 
 void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) {
 
@@ -49,12 +51,12 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 	}
 	PG_Dir customCharactersDir(exePath.getDir() + "/mod/CustomCharacters");
 	
-	std::vector<MetaCharInfo> metaCharInfos;
+	std::vector<PG_DisaModLoadInfo> metaCharInfos;
 
 	for (const auto& zipFile : customCharactersDir.findFiles([](const PG_File& file)->bool {  return file.getFileExtensionFormated() == "zip"; }, 1)) {
 		auto archive = PG_ZIPUtil::openZip(zipFile);
 		if (!archive) continue;
-		MetaCharInfo info;
+		PG_DisaModLoadInfo info;
 		info.file = zipFile;
 		try {
 			info.json = PG_ZIPUtil::readJson(archive, "character.json");
@@ -80,7 +82,7 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 	}
 
 	{ //remove dublicate ids
-		std::ranges::sort(metaCharInfos, {}, &MetaCharInfo::id);
+		std::ranges::sort(metaCharInfos, {}, &PG_DisaModLoadInfo::id);
 		auto range = std::ranges::unique(metaCharInfos);
 		metaCharInfos.erase(range.begin(), range.end());
 	}
@@ -91,11 +93,11 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 		orderModel.open(customCharactersDir.toFilePath("loadOrder.json"));
 		mapping = orderModel.getOrderMapping();
 		//load the items on the bottom first
-		std::ranges::sort(metaCharInfos, std::ranges::greater{}, [&mapping](const MetaCharInfo& c) {
+		std::ranges::sort(metaCharInfos, std::ranges::greater{}, [&mapping](const PG_DisaModLoadInfo& c) {
 			auto findIt = mapping.find(c.id);
 			return findIt != mapping.end() ? findIt->second : std::numeric_limits<std::size_t>::max();
 			});
-		std::erase_if(metaCharInfos, [&mapping, &orderModel](const MetaCharInfo& c) {
+		std::erase_if(metaCharInfos, [&mapping, &orderModel](const PG_DisaModLoadInfo& c) {
 			auto findIt = mapping.find(c.id);
 			return findIt != mapping.end() ? orderModel.get(findIt->second).disabled : false;
 			});
@@ -104,7 +106,8 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 	for (const auto& metaCharInfo : metaCharInfos) {
 		m_mods.push_back({});
 		try {
-			loadCharacters(metaCharInfo);
+			loadCharacters(m_mods.back(), metaCharInfo);
+			m_scriptsModel->loadScripts(&m_mods.back(), metaCharInfo);
 		}
 		catch (const std::exception& ex) {
 			m_mods.pop_back();
@@ -127,19 +130,19 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 			});
 	}
 }
-
+/*
 void PG_DisaCustomCharactersModel::loadCharactersFromZip(const PG_File& file) {
 	auto archive = PG_ZIPUtil::openZip(file);
 	if (!archive) return;
 
 	m_mods.push_back({});
 
-
 	try {
-		MetaCharInfo info;
+		PG_DisaModLoadInfo info;
 		info.file = file;
 		info.json = PG_ZIPUtil::readJson(archive, "character.json");
-		loadCharacters(info);
+		loadCharacters(m_mods.back(), info);
+		m_scriptsModel->loadScripts(&m_mods.back(), info);
 	}
 	catch (const std::exception& ex) {
 		m_mods.pop_back();
@@ -150,9 +153,9 @@ void PG_DisaCustomCharactersModel::loadCharactersFromZip(const PG_File& file) {
 		OUT_ERROR("Failed to parse 'character.json' inside zip '" << file << "'!");
 	}
 }
+*/
 
-void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) {
-	CharacterMod& mod = m_mods.back();
+void PG_DisaCustomCharactersModel::loadCharacters(CharacterMod& mod, const PG_DisaModLoadInfo& metaInfo) {
 	auto& j = metaInfo.json;
 
 	if (j.empty()) {
@@ -183,7 +186,7 @@ void PG_DisaCustomCharactersModel::loadCharacters(const MetaCharInfo& metaInfo) 
 		for (auto& jMagic : *findIt) {
 			Info info{ &mod };
 			if (!readFromJsonMandatory(jMagic, "identifier", info.identifier.value) || !info.identifier.build(mod.namespaceMod)) {
-				OUT_ERROR("'identifier' missing or is invalid for spmagicrite in \"" << metaInfo.file << "\"!");
+				OUT_ERROR("'identifier' missing or is invalid for magic in \"" << metaInfo.file << "\"!");
 				continue;
 			}
 

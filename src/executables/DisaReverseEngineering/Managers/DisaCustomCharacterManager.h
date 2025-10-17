@@ -8,9 +8,11 @@
 #include <Disa/PG_DisaCharactersModel.h>
 
 
-class DisaCustomCharacterManager: public PG_DisaCustomCharactersModel{
+class DisaCustomCharacterManager: public PG_DisaCustomCharactersModel {
 public:
 	constexpr static uint32_t maxKillLevelSum = 99999999u;
+
+	using PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel;
 
 	void loadCharacters();
 	void loadCharactersIntoMememory();
