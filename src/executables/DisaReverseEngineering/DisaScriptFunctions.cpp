@@ -62,7 +62,7 @@ void __fastcall FUN_004b6420_ScriptExec(PG_DisaScriptMemory* disaScriptMemory, i
             memcpy(path.data(), ptr + 2, commandSize);
 
             FP::callStdFarA(0x0043c890, 0, fVar42, (float)fVar43);
-            runCustomScript(path, disaScriptMemory->ux80);
+            runCustomScript(path, disaScriptMemory->field_0x50);
         } break;
         default:
             running = false;
@@ -106,7 +106,7 @@ void __fastcall scriptDefaultCase(unsigned char opCode, PG_DisaScriptMemory* dis
         float fVar42 = 1.0f;
         float fVar43 = 0.75f;
         FP::callStdFarA(0x0043c890, 0, fVar42, (float)fVar43);
-        runCustomScript(path, disaScriptMemory->ux80);
+        runCustomScript(path, disaScriptMemory->field_0x50);
     } break;
     case 0xa0: { //custom map bgm
         unsigned int bgmMem = 0;// = FP::callFastFarA<unsigned int>(0x004d0d90, 10);
@@ -260,7 +260,7 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     if (findSlotIt == functionSlotsArray.end()) return -1;
 
     *findSlotIt = callbackFunc;
-
+   
     scriptMemoryPtr->scriptInfoSlotIndex = std::distance(functionSlotsArray.begin(), findSlotIt);
     scriptMemoryPtr->ux52 = 0;
     scriptMemoryPtr->ux40 = 0;
@@ -270,7 +270,7 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     scriptMemoryPtr->ux20 = 0;
     scriptMemoryPtr->ux24 = 0;
     scriptMemoryPtr->ux44 = 0;
-    scriptMemoryPtr->ux80 = param_2;
+    scriptMemoryPtr->field_0x50 = param_2; //used in FUN_004b5600
 
     FP::getData<PG_DisaScriptMemory*>(0x008aaa00) = scriptMemoryPtr;
     scriptMemoryPtr->ux76 = FP::getData<int>(0x00730a20);
@@ -338,12 +338,13 @@ int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
     //BEGIN custom code
     int index = DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);
     if (index < 0 || !codeLocation) return index;
-    //END custom code
+
     //do we neen to run the script?
     if (auto split = PG_DisaIdentifier::splitScriptId(scriptId); PG_DisaIdentifier::isCustomScriptId(split)) {
-        auto i = 0; //todo
+        auto i = 0; //TODO
         return -1;
     } 
+    //END custom code
 
     DisaScriptManager& manager = FP::getData<DisaScriptManager>(0x0071b510);
     assert(index < manager.sizeScripts);
@@ -357,11 +358,11 @@ int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
 }
 
 
-int runCustomScript(const std::string& scriptStr, short* param_2) {
-    if (scriptStr.empty()) return -1;
+int runCustomScript(const PG_DisaIdentifier& id, short* param_2) {
+    if (!id.isValid()) return -1;
 
     unsigned int* codeLocation = nullptr;
-    DisaCustomScriptManager::get()->readScript(codeLocation, scriptStr);
+    DisaCustomScriptManager::get()->readScript(codeLocation, id);
 
 
     if (codeLocation == nullptr) return -1;
@@ -369,6 +370,13 @@ int runCustomScript(const std::string& scriptStr, short* param_2) {
     //TODO think of a better id method
     return runScriptIntern(910000, 910000, codeLocation, param_2);
 }
+
+int runCustomScript(const PG_DisaIdentifier& scriptName) {
+    DisaScriptManager& manager = FP::getData<DisaScriptManager>(0x0071b510);
+    short v = 0;
+    return runCustomScript(scriptName, &v);
+}
+
 
 void __fastcall FUN_004f7e70_ScriptLoop(short updateWndowIndex, short updateWndowEndIndex) {
 

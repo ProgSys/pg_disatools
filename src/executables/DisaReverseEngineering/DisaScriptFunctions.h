@@ -3,6 +3,7 @@
 #include <DisaFunctions.h>
 #include <string>
 #include <Disa/dataStructs/PG_DisaScriptManager.h>
+#include <Disa/PG_DisaIdentifier.h>
 
 
 
@@ -15,4 +16,5 @@ void __fastcall FUN_004f7e70_ScriptLoop(short param_1, short param_2);
 
 void replaceDefaultCase();
 
-int runCustomScript(const std::string& scriptName, short* param_2); //find custom script and run it
+int runCustomScript(const PG_DisaIdentifier& scriptName, short* param_2); //find custom script and run it
+int runCustomScript(const PG_DisaIdentifier& scriptName); //find custom script and run it

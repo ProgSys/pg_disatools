@@ -409,6 +409,20 @@ struct CommandTerminal {
                 args.size() > 2 ? glm::clamp(-1,128, PG_StringUtil::toInt(args[2])): -1
             );
         }
+        else if (msg == "rs" || msg == "runScript") {
+            if (split.size() != 2) {
+                std::cout << "Error: runScript needs an identifier as argument!" << std::endl;
+                return;
+            }
+
+            PG_DisaIdentifier identifier(split.back());
+            if (!identifier.isValid()) {
+                std::cout << "Error: Invalid identifier!" << std::endl;
+                return;
+            }
+
+            runCustomScript(identifier);
+        }
         else if (msg == "help") {
             std::cout << "* hook:name (h:name) - Inject custom code. Optional second argument is a target name." << std::endl;
             std::cout << "* unhook:name (u:name) - Remove injected custom code. Optional second argument is a target name." << std::endl;
@@ -418,8 +432,9 @@ struct CommandTerminal {
             std::cout << "* printParty:mode (pp:mode) - Will print the current party as info (default) or dump a full json into clipboard (pp:json)." << std::endl;
             std::cout << "* printCharacters (pc) - Will print the current loaded character data." << std::endl;
             std::cout << "* printMagic (pm) - Will print the current loaded magic/skills data." << std::endl;
-            std::cout << "* printScript (ps:id,c) - Will will print script with given Id. Example 'ps:Disa::2001012'. You can add arg 'c' to dump into clipboard." << std::endl;
+            std::cout << "* printScript:c (ps:id,c) - Will will print script with given Id. Example 'ps:Disa::2001012'. You can add arg 'c' to dump into clipboard." << std::endl;
             std::cout << "* addCharacter:identifier,level,mentorIndex (ac:id,l,m) - Add a new character to your party. Example to add Etna with level 42: 'ac:Disa::2,42'. Level and mentor are optional." << std::endl;
+            std::cout << "* runScript:identifier (rs:id) - Will execute the script with given identifier." << std::endl;
             std::cout << "* exit (e) - Close injection thread" << std::endl;
         }
         else {

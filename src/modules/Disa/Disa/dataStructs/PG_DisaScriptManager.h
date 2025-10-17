@@ -57,7 +57,7 @@ struct PG_DisaScriptMemory {
 	unsigned int ux68; //0x44
 	unsigned int ux72; //0x48
 	unsigned int ux76; //0x4c
-	short* ux80; //0x50
+	short* field_0x50; //0x50
 	std::array<uint8_t, 32> memorybank0x54; //0x54 Sets values in DAT_007200eb
 	std::array<uint8_t, 12> memorybank0x74; //0x74 Numbers smaller 32. Sets values in DAT_006192c0
 	unsigned short repeatLoopCounter; //0x80
