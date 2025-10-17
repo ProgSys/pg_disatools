@@ -43,7 +43,7 @@ int DisaCustomScriptManager::readScript(unsigned int*& dataLocation, int scriptI
         switch (split.first) {
         case PG_DisaIdentifier::ScriptType_Magic: {
             auto* charManager = DisaCustomCharacterManager::get();
-            const auto& info = charManager->getMagicInfo(split.second - PG_DisaIdentifier::customMagicIdStart);
+            const auto& info = charManager->getMagicInfo(split.second);
             if (!info.mod) return -1;
 
             auto findIt = std::ranges::find(info.mod->magics, info.identifier, &PG_DisaCustomCharactersModel::MagicInfo::identifier);
@@ -58,7 +58,6 @@ int DisaCustomScriptManager::readScript(unsigned int*& dataLocation, int scriptI
             functionName = getScriptInfo(split.second).identifier;
         } break;
         }
-        return -1;
     }
     else {
         functionName = "Disa::" + std::to_string(scriptId);

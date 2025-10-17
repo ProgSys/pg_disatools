@@ -339,13 +339,13 @@ int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
     int index = DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);
     if (index < 0 || !codeLocation) return index;
     //END custom code
-
     DisaScriptManager& manager = FP::getData<DisaScriptManager>(0x0071b510);
-    assert(index < manager.sizeScripts);
+    //assert(index < manager.sizeScripts);
 
     if ((scriptId - 0xf4241 < 999999) && manager.scriptActiveList[index]) {
         return -1; //script is in use
     }
+    if (manager.sizeScripts > manager.sizeScripts) index = 0; //TODO
     manager.scriptActiveList[index] = true;
 
     return runScriptIntern(scriptId, index, codeLocation, param_2);

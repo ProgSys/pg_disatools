@@ -175,17 +175,24 @@ void PG_DisaCustomCharactersModel::loadCharacters(CharacterMod& mod, const PG_Di
 			magicInfo.magicData.fromJson(jMagic);
 
 			if (magicInfo.magicData.name.empty()) {
-				OUT_ERROR("Magic/Skill with identifier \"" << info.identifier << "\" has no name in file \"" << metaInfo.file << "\"! Magic must have a name!");
+				OUT_ERROR("Magic/Skill with identifier \"" << info.identifier.getIdentifier() << "\" has no name in file \"" << metaInfo.file << "\"! Magic must have a name!");
 				continue;
 			}
 
 			if (magicInfo.magicData.description.empty()) {
-				OUT_WARNING("Magic/Skill with identifier \"" << info.identifier << "\" has no description in file \"" << metaInfo.file << "\"!");
+				OUT_WARNING("Magic/Skill with identifier \"" << info.identifier.getIdentifier() << "\" has no description in file \"" << metaInfo.file << "\"!");
 			}
+
+			readFromJson(jMagic, "scriptIdentifier", magicInfo.scriptIdentifier.value);
+			if (!magicInfo.scriptIdentifier.build(mod.namespaceMod) && !magicInfo.scriptIdentifier.value.empty()) {
+				magicInfo.scriptIdentifier.clear();
+				OUT_WARNING("Invalid 'scriptIdentifier' in magic \"" << info.identifier.getIdentifier() << "\" in file \"" << metaInfo.file << "\"!");
+			}
+			
 
 			auto [added, index] = addInfo(std::move(info), m_magic, m_magicMapper);
 			if (!added) {
-				OUT_ERROR("Magic/Skill with identifier \"" << info.identifier << "\" is already present \"" << metaInfo.file << "\"!");
+				OUT_ERROR("Magic/Skill with identifier \"" << info.identifier.getIdentifier() << "\" is already present \"" << metaInfo.file << "\"!");
 				continue;
 			}
 			magicInfo.magicData.id = index;
@@ -448,9 +455,16 @@ void PG_DisaCustomCharactersModel::CharacterInfo::fromString(ERecruitmentType& t
 	else type = RecruitmentType_None;
 }
 
-const PG_DisaCustomCharactersModel::Info& PG_DisaCustomCharactersModel::getInfo(unsigned int id, const std::vector<PG_DisaCustomCharactersModel::Info>& list) {
-	if (!PG_DisaIdentifier::isCustomId(id)) return gEmptyInfo;
-	id -= PG_DisaIdentifier::customIdStart;
+const PG_DisaCustomCharactersModel::Info& PG_DisaCustomCharactersModel::getInfo(unsigned int id, const std::vector<PG_DisaCustomCharactersModel::Info>& list, bool isMagic) {
+	if (isMagic) {
+		if (!PG_DisaIdentifier::isCustomMagicId(id)) return gEmptyInfo;
+		id -= PG_DisaIdentifier::customMagicIdStart;
+	}
+	else {
+		if (!PG_DisaIdentifier::isCustomId(id)) return gEmptyInfo;
+		id -= PG_DisaIdentifier::customIdStart;
+	}
+
 	if (id >= list.size()) return gEmptyInfo;
 	return list[id];
 }

@@ -28,7 +28,7 @@ public:
 
 	virtual void init();
 
-	static PG_DisaMainModel* getBase() { return reinterpret_cast<PG_DisaMainModel*>(PG_DisaMainBaseModel::get()); }
+	static PG_DisaMainModel* getBase() { return dynamic_cast<PG_DisaMainModel*>(PG_DisaMainBaseModel::get()); }
 
 	//Config
 	PG_DisaConfig& getConfig() { return m_config; }

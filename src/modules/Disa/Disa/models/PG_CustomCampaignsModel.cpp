@@ -10,7 +10,7 @@
 #include <Scene/PG_CameraNode.h>
 #include <Util/PG_ImageLoad.h>
 #include <Util/PG_StringUtil.h>
-
+#include <Scene/Gui/Validator/PG_GuiTextValidators.h>
 
 NLOHMANN_JSON_SERIALIZE_ENUM(EDisaUnlockCriteria, {
 	{DisaUnlockCriteria_None, "NONE"},
@@ -298,6 +298,7 @@ bool PG_DisaCampaignJsonContainer::open(std::shared_ptr<PG::STREAM::In> reader) 
 	getTo(j, "description", m_description);
 	getTo(j, "previewImage", m_previewImgPath);
 	getTo(j, "backgroundImage", m_backgroundImgPath);
+	setTo(j, "namespace", m_namespaceMod);
 
 	if (m_name.empty()) m_name = "Name missing";
 	appendImg(m_previewImgPath);
@@ -347,8 +348,43 @@ bool PG_DisaCampaignJsonContainer::save(std::shared_ptr<PG::STREAM::Out> writer)
 	setTo(j, "backgroundImage", PG_File(m_backgroundImgPath).getFile());
 	setTo(j, "toolVersion", PG_DisaMainModel::getBase()->getConfig().getDisaExeVersion());
 	setTo(j, "saveTime", getCurrentTimepoint());
+	setTo(j, "namespace", m_namespaceMod);
 
 	toJsonFromListModel(m_areas, j, "areas");
+
+	//save scripts
+	if (auto* zipModel = getRootModel()) {
+		std::unordered_set<std::string> presentTALK_SCRIPT;
+		std::unordered_set<std::string> presentSCRIPT;
+		nlohmann::json jScript;
+		for (const PG_DisaFileEntry& entry : *zipModel) {
+			auto type = entry.getInfo().getType();
+			if (type != PG_DisaFileInfo::TALK_SCRIPT && type != PG_DisaFileInfo::SCRIPT) continue;
+			auto id = entry.getInfo().getName().getName();
+			if (!PG_SimpleWordValidator()(id)) {
+				OUT_ERROR("File name for a script is invalid to be used as an identifier!");
+				continue;
+			}
+			if (!presentTALK_SCRIPT.insert(id).second) {
+				OUT_ERROR("File name for a script is not unique! (" << id << ")");
+				continue;
+			}
+
+			jScript["identifier"] = id;
+			auto file = entry.getInfo().getName().getFile();
+			if (PG_StringUtil::startsWidth(file, "scripts/")) {
+				file = { file.begin() + 8, file.end() };
+			}
+			jScript["file"] = std::move(file);
+
+			if (type == PG_DisaFileInfo::TALK_SCRIPT) {
+				j["talkScripts"].push_back(std::move(jScript));
+			}
+			else {
+				j["scripts"].push_back(std::move(jScript));
+			}
+		}
+	}
 
 	std::string data = j.dump(4);
 	writer->writeString(data);

@@ -243,6 +243,7 @@ private:
 	std::string m_description;
 	std::string m_previewImgPath;
 	std::string m_backgroundImgPath;
+	std::string m_namespaceMod;
 
 	PG_ListModel<PG_DisaCustomAreaModel*>* m_areas = nullptr;
 };

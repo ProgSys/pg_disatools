@@ -38,7 +38,8 @@ void PG_DisaScriptsModel::loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModL
 
 	auto& j = metaInfo.json;
 
-	auto addScript = [modInfo, &metaInfo](auto& jScripts, std::map<std::string, unsigned int>& mapper, std::vector<ScriptInfo>& infos) {
+	auto addScript = [modInfo, &metaInfo](auto& jScripts, std::map<std::string, unsigned int>& mapper,
+		std::vector<ScriptInfo>& infos, const char* extension) {
 		ScriptInfo info{ modInfo };
 		if (!readFromJsonMandatory(jScripts, "identifier", info.identifier.value) || !info.identifier.build(modInfo->namespaceMod)) {
 			OUT_ERROR("'identifier' missing or is invalid for script in \"" << metaInfo.file << "\"!");
@@ -50,8 +51,8 @@ void PG_DisaScriptsModel::loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModL
 			return;
 		}
 
-		if (info.fileInZip.getFileExtensionFormated() != "script") {
-			OUT_ERROR("'file' has invalid extension for script \"" << metaInfo.file << "\"! Should be .script!");
+		if (info.fileInZip.getFileExtensionFormated() != extension) {
+			OUT_ERROR("'file' has invalid extension for script \"" << info.fileInZip << "\"! Should be ."<< extension<<"!");
 			return;
 		}
 
@@ -68,14 +69,14 @@ void PG_DisaScriptsModel::loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModL
 
 	if (auto findIt = j.find("scripts"); findIt != j.end()) {
 		for (auto& jScripts : *findIt) {
-			addScript(jScripts, m_scriptsMapper, m_scripts);
+			addScript(jScripts, m_scriptsMapper, m_scripts, "script");
 		}
 
 	}
 
-	if (auto findIt = j.find("talkscripts"); findIt != j.end()) {
+	if (auto findIt = j.find("talkScripts"); findIt != j.end()) {
 		for (auto& jScripts : *findIt) {
-			addScript(jScripts, m_talkScriptsMapper, m_talkScripts);
+			addScript(jScripts, m_talkScriptsMapper, m_talkScripts, "tscript");
 		}
 	}
 }
@@ -88,7 +89,10 @@ static inline std::string readFromZip(const PG_DisaScriptsModel::ScriptInfo& inf
 		closeAfterwards = true;
 	}
 	if (info.modInfo->archive) {
-		code = PG_ZIPUtil::readString(info.modInfo->archive.get(), info.fileInZip);
+		try {
+			code = PG_ZIPUtil::readString(info.modInfo->archive.get(), "scripts/"+info.fileInZip.getPath());
+		}
+		catch (...) {}
 	}
 	else {
 		OUT_ERROR("Failed to read file from zip \"" << info.identifier.getIdentifier() << "\" from zip '" << info.modInfo->zipFile << "!");

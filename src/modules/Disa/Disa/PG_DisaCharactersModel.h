@@ -136,7 +136,7 @@ public:
 	inline const Info& getCharacterInfo(unsigned int id) const { return getInfo(id, m_characters); }
 	inline const Info& getSpriteInfo(unsigned int id) const { return getInfo(id, m_sprites); }
 	inline const Info& getFaceInfo(unsigned int id) const { return getInfo(id, m_faces); }
-	inline const Info& getMagicInfo(unsigned int id) const { return getInfo(id, m_magic); }
+	inline const Info& getMagicInfo(unsigned int id) const { return getInfo(id, m_magic, true); }
 	const Info& getCharacterInfoIndex(unsigned int index) const;
 
 	const std::list<CharacterMod>& getMods() const { return m_mods; };
@@ -191,7 +191,7 @@ protected:
 	*/
 	void loadCustomCharacters(const PG_File& exePath);
 
-	static const Info& getInfo(unsigned int id, const std::vector<Info>& list);
+	static const Info& getInfo(unsigned int id, const std::vector<Info>& list, bool isMagic = false);
 	static const Info& getInfo(const std::string& id, const std::vector<Info>& list, const std::map<std::string, unsigned int>& mapper);
 
 	/**
