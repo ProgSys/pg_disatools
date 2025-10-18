@@ -46,6 +46,7 @@ public:
 private:
 	void loadGeometry();
 	void updateTransformation();
+	void updateUVScroll();
 
 	PG_ListModelLocation m_location;
 };

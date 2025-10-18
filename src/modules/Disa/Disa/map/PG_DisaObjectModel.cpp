@@ -129,6 +129,15 @@ void PG_DisaObjectModel::setObjectScale(glm::vec3 v) {
 	notifyParent(this, { Identity_Scale });
 }
 
+void PG_DisaObjectModel::setUvScroll(glm::ivec2 v) {
+	if (v.x == m_data.textureScrollX && v.y == m_data.textureScrollY) return;
+	m_data.textureScrollX = v.x;
+	m_data.textureScrollY = v.y;
+
+	emit objectUVScrollChanged();
+	notifyParent(this, { Identity_UVScroll });
+}
+
 void PG_DisaObjectModel::remove() {
 	auto list = getParent<PG_DisaObjectListModel>();
 	if (list) list->remove(m_location);
@@ -139,6 +148,7 @@ PG_Variety PG_DisaObjectModel::getData(Identity identity) const {
 	case Identity_Translation: return getObjectTranslation();
 	case Identity_Rotation: return getObjectRotation();
 	case Identity_Scale: return getObjectScale();
+	case Identity_UVScroll: return getUvScroll();
 	}
 	return PG_Variety();
 }

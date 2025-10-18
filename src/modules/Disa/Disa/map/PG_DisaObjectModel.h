@@ -22,15 +22,19 @@ class PG_DisaObjectModel : public PG_Object {
 	PG_PROPERTY(glm::quat rotationUser GET getObjectRotation SET setObjectRotation CHANGED objectRotationChanged);
 	PG_PROPERTY(glm::vec3 scaleUser GET getObjectScale SET setObjectScale CHANGED objectScaleChanged);
 
+	PG_PROPERTY(glm::ivec2 uvScroll GET getUvScroll SET setUvScroll CHANGED objectUVScrollChanged);
+
 signals:
 	void objectTranslationChanged();
 	void objectRotationChanged();
 	void objectScaleChanged();
+	void objectUVScrollChanged();
 public:
 	enum ECustomIdentity : Identity {
 		Identity_Translation = Identity_Custom,
 		Identity_Rotation,
 		Identity_Scale,
+		Identity_UVScroll,
 	};
 
 	using PG_Object::PG_Object;
@@ -52,6 +56,9 @@ public:
 
 	glm::vec3 getObjectScale() const;
 	void setObjectScale(glm::vec3 v);
+
+	glm::ivec2 getUvScroll() const { return { m_data.textureScrollX , m_data.textureScrollY }; }
+	void setUvScroll(glm::ivec2 v);
 
 	glm::ivec3 getObjectDisaTranslation() const { return { m_data.x , m_data.y , m_data.z }; }
 	void setObjectDisaTranslation(glm::ivec3 t);

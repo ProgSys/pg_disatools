@@ -4,6 +4,7 @@
 #include <Disa/PG_DisaModelNode.h>
 #include <Disa/PG_DisaAssetsModel.h>
 
+constexpr float g_disassemblyScrollSpeed = 0.000073260075f;
 
 PG_Object* PG_DisaObjectViewNode::getObjectModel() const {
 	if (!m_location) return nullptr;
@@ -39,6 +40,9 @@ void PG_DisaObjectViewNode::update(const PG_ListModelLocation& location, const P
 		updateTransformation();
 		emit scaleUserChanged();
 	}
+	if (identities.contains(PG_DisaObjectModel::Identity_UVScroll)) {
+		updateUVScroll();
+	}
 }
 
 PG_DisaModelNode* PG_DisaObjectViewNode::getModelNode() const {
@@ -71,8 +75,8 @@ void PG_DisaObjectViewNode::loadGeometry() {
 		disaModel = PG_new<PG_DisaModelNode>("PG_DisaModelNode", this);
 	}
 
-	constexpr float disassemblyScrollSpeed = 0.000073260075f;
-	const glm::vec2 scroll = glm::vec2(object.textureScrollX, object.textureScrollY) * disassemblyScrollSpeed; // / 10000.0f;
+	
+	const glm::vec2 scroll = glm::vec2(object.textureScrollX, object.textureScrollY) * g_disassemblyScrollSpeed; // / 10000.0f;
 	disaModel->setTextureScroll(scroll);
 
 	{
@@ -112,6 +116,16 @@ void PG_DisaObjectViewNode::updateTransformation() {
 			model->getObjectScale()
 		)
 	);
+}
+
+void PG_DisaObjectViewNode::updateUVScroll() {
+	if (!m_location) return;
+	auto model = m_location.getDataT<PG_DisaObjectModel*>(Identity_Item);
+
+	PG_DisaModelNode* disaModel = findFirstChild<PG_DisaModelNode>("PG_DisaModelNode");
+	if (!disaModel) return;
+	const glm::vec2 scroll = glm::vec2(model->getUvScroll()) * g_disassemblyScrollSpeed; // / 10000.0f;
+	disaModel->setTextureScroll(scroll);
 }
 
 glm::vec3 PG_DisaObjectViewNode::getTranslationUser() const {

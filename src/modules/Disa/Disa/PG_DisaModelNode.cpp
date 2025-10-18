@@ -83,11 +83,12 @@ bool PG_DisaModelNode::event(PG_Event* e) {
 }
 
 void PG_DisaModelNode::updateVolume() {
+	m_aabb.clear();
 	traverseGeometry(glm::mat4(1.f), [&aabb = m_aabb](const PG_Geometry& geo, const PG_Material&, const glm::mat4& mat, const std::map<std::string, PG_Any>&, bool, const std::vector<glm::mat4>&) {
 		if (!geo) return;
 		geo.addAABB(aabb, mat);
 		}, 0.f);
-
+	m_aabb.makeThick();
 	if (m_aabb.isValid()) {
 		getVolumeVisibility().setOBB(m_aabb.min, m_aabb.max);
 		getVolumeCollision().setOBB(m_aabb.min, m_aabb.max);

@@ -95,6 +95,15 @@ static void setIVec3Value(const std::vector<PG_Object*>& selection, const std::v
 	return setVecValue<glm::ivec3, int, Member>(selection, properties, value);
 }
 
+template<int glm::ivec2::* Member>
+static PG_Any getIVec2Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& defaultValue) {
+	return getVecValue<glm::ivec2, int, Member>(selection, properties, defaultValue);
+}
+
+template<int glm::ivec2::* Member>
+static void setIVec2Value(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& value) {
+	return setVecValue<glm::ivec2, int, Member>(selection, properties, value);
+}
 
 /******* Models ********/
 
@@ -999,10 +1008,14 @@ static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper
 	wrapper->registerProperty("scaleY", "objectDisaScale", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::y>, &setIVec3Value<&glm::ivec3::y>);
 	wrapper->registerProperty("scaleZ", "objectDisaScale", PG_Any::from<int>(0), &getIVec3Value<&glm::ivec3::z>, &setIVec3Value<&glm::ivec3::z>);
 
+	wrapper->registerProperty("scrollUvX", "uvScroll", PG_Any::from<int>(0), &getIVec2Value<&glm::ivec2::x>, &setIVec2Value<&glm::ivec2::x>);
+	wrapper->registerProperty("scrollUvY", "uvScroll", PG_Any::from<int>(0), &getIVec2Value<&glm::ivec2::y>, &setIVec2Value<&glm::ivec2::y>);
+
 	{
 		auto row = createRow(column, "Translation:", 80.f);
 		row->setMargin(PG_Anchor::Right, 5.f);
 		row->setMargin(PG_Anchor::Left, 5.f);
+
 		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "xSpinBox", "posX");
 		PG_GuiSpinBox::setupInt(spinBox, -999999, 999999);
 		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
@@ -1026,6 +1039,7 @@ static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper
 		auto row = createRow(column, "Rotation:", 80.f);
 		row->setMargin(PG_Anchor::Right, 5.f);
 		row->setMargin(PG_Anchor::Left, 5.f);
+
 		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "xSpinBox", "rotationX");
 		PG_GuiSpinBox::setupInt(spinBox, 0, 360);
 		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
@@ -1049,6 +1063,7 @@ static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper
 		auto row = createRow(column, "Scale:", 80.f);
 		row->setMargin(PG_Anchor::Right, 5.f);
 		row->setMargin(PG_Anchor::Left, 5.f);
+
 		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "xSpinBox", "scaleX");
 		PG_GuiSpinBox::setupInt(spinBox, 1, 99999);
 		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
@@ -1063,6 +1078,24 @@ static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper
 
 		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "zRightSpinBox", "scaleZ");
 		PG_GuiSpinBox::setupInt(spinBox, 1, 99999);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+	}
+
+	{
+		auto row = createRow(column, "UV Scroll:", 80.f);
+		row->setMargin(PG_Anchor::Right, 5.f);
+		row->setMargin(PG_Anchor::Left, 5.f);
+
+		auto* spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "xUVSpinBox", "scrollUvX");
+		PG_GuiSpinBox::setupInt(spinBox, -255, 255);
+		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
+
+		spinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, int>(row, wrapper, "yUVSpinBox", "scrollUvY");
+		PG_GuiSpinBox::setupInt(spinBox, -255, 255);
 		spinBox->setSize(glm::vec2(spinTexWidth, 32.f));
 		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleRight5");
 		spinBox->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);

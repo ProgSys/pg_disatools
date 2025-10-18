@@ -27,6 +27,7 @@
 
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamOutByteFile.h>
+#include <Stream/PG_StreamInByteArray.h>
 
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_Image.h>
@@ -35,7 +36,9 @@
 #include <Util/PG_ImageLoad.h>
 #include <Util/PG_Math.h>
 #include <Util/PG_RangesWindow.h>
+#include <Util/PG_StringUtil.h>
 #include <Disa/PG_DisaTransformation.h>
+#include <Script/CScript/PG_CScriptTokenizer.h>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -451,6 +454,110 @@ bool PG_GEO::save(PG::STREAM::Out* writer) const {
 	return SUCCESS;
 }
 
+static inline void parseSurfaceArgs(geofileSurface& surface, const std::string& name) {
+	auto first = PG_StringUtil::findFirst(name, "[");
+	if (first == std::string::npos) return;
+	auto last = PG_StringUtil::findFirst(name, "]");
+	if (last == std::string::npos || first >= last) return;
+
+	std::string args{ name.begin() + first + 1 , name.begin() + last };
+	if (args.size() < 2) return;
+	PG::STREAM::InByteArray stream(args);
+	auto tokens = PG_CScriptTokenizer::tokenize(&stream);
+
+	std::unordered_map<std::string, std::vector<int>> parsedResult;
+
+	using namespace PG_Enum::CScript;
+	auto it = tokens.begin();
+	while (it != tokens.end()) {
+		if (it->type == EmptySpace) {
+			++it;
+			break;
+		}
+
+		if (it->type != Undefined) {
+			OUT_ERROR("Parsing parameters failed! Expected a keyword in \""<< name<<"\"!");
+			break;
+		}
+
+		auto& params = parsedResult[it->str];
+		params.clear();
+		++it;
+		if (it == tokens.end()) break;
+		
+		if (it->type == Semikolon || it->type == Comma) {
+			++it;
+			continue;
+		}
+		//read parameters
+		if (it->type != BracketOpen) {
+			OUT_ERROR("Parameters must begin via a '(' but got '"<< it->str <<"'! In \"" << name << "\"!");
+			break;
+		}
+		++it;
+		if (it == tokens.end()) break;
+
+		while (it != tokens.end()) {
+			try {
+				params.push_back(PG_StringUtil::toInt(it->str));
+			}
+			catch (...) {
+				OUT_ERROR("Failed to parse number in \"" << name << "\"!");
+				params.clear();
+				return;
+			}
+
+			++it;
+			if (it == tokens.end()) return;
+			if (it->type == BracketClose) break;
+
+			if (it->type != Comma) {
+				OUT_ERROR("Parameters must be seperated via a ',' but got '" << it->str << "'! In \"" << name << "\"!");
+				return;
+			}
+			++it;
+		}
+		if (it == tokens.end()) return;
+		if (it->type != BracketClose) {
+			OUT_ERROR("Parameters must end via a ')' but got '" << it->str << "'! In \"" << name << "\"!");
+			break;
+		}
+		++it;
+		if (it == tokens.end()) break;
+
+		if (it->type == Semikolon || it->type == Comma) {
+			++it;
+			continue;
+		}
+		break;
+	}
+
+	for (const auto& [key, params] : parsedResult) {
+		if (key == "a" || key == "animated") {
+			surface.animated = 1;
+			continue;
+		}
+
+		if (key == "ad" || key == "additive") {
+			surface.additive = params.size() > 0? glm::clamp(params.front(), 0, 3): 1;
+			continue;
+		}
+
+		if (key == "rgba") {
+			if (params.size() != 4) {
+				OUT_ERROR("Rgba expects 4 parameters! Got " << params.size() << "! In \"" << name << "\"!");
+				continue;
+			}
+			surface.rMult = glm::clamp(params[0], 0, 255);
+			surface.gMult = glm::clamp(params[1], 0, 255);
+			surface.bMult = glm::clamp(params[2], 0, 255);
+			surface.aMult = glm::clamp(params[3], 0, 255);
+			continue;
+		}
+	}
+
+}
+
 /**
 * @brief Helper struct to parse a gltf into a geo obj
 */
@@ -460,6 +567,7 @@ struct GLTFToGEOParser {
 	std::vector<geofileTreeNode> geoNodes;
 	std::vector<geofileTransformation> geoTransformation;
 	std::vector<geofileMesh> geoModels;
+	PG_CScriptTokenizer tokenizer;
 
 	static inline glm::vec3 toVec3(const std::vector<double>& vector, float defaultValue = 0.f) {
 		glm::vec3 out(defaultValue);
@@ -546,7 +654,7 @@ struct GLTFToGEOParser {
 				PG_TX2 tx2;
 
 
-				if (auto replacement =  file.replaceFileNameAndExtension(image.name + ".tx2");  replacement.exists()) {
+				if (auto replacement = file.replaceFileNameAndExtension(image.name + ".tx2");  replacement.exists()) {
 					if (!tx2.open(replacement)) {
 						OUT_WARNING("Mesh \"" << mesh.name << "\" is skipped as failed to load replacemnt tx2 at \"" << replacement << "\"!");
 						continue;
@@ -735,7 +843,8 @@ struct GLTFToGEOParser {
 			surface.gMult = 255;
 			surface.bMult = 255;
 			surface.aMult = 255;
-
+			parseSurfaceArgs(surface, mesh.name);
+			
 			geoModel.surfaces.push_back(surface);
 			geoModel.vertices.insert(geoModel.vertices.end(), vertices.begin(), vertices.end());
 			geoModel.uv.insert(geoModel.uv.end(), uv.begin(), uv.end());

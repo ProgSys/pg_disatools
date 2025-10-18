@@ -1768,7 +1768,7 @@ static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory
             memory = (byte*)outIt;
             continue;
         }
-
+        auto uvsIt = context->m_uvs + dataStart;
         //we have texture so we need to compute uv scrolling if needed
         if (surface.animated && key.textureIndex > -1 && (context->m_uvScrollObject->uvScrollSpeedX || context->m_uvScrollObject->uvScrollSpeedY)) {
             double factor = FP::getData<double>(0x00598258);
@@ -1782,10 +1782,24 @@ static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory
             context->m_uvScroll = glm::fract(context->m_uvScroll);
             *context->m_uvScrollObject->uvScrollX = context->m_uvScroll.x;
             *context->m_uvScrollObject->uvScrollY = context->m_uvScroll.y;
+            /*Original code that looks stupid
+            glm::vec2 firstUVValue = *uvsIt + context->m_uvScroll;
+            if (firstUVValue.x < 0.f || firstUVValue.x > 1.f) {
+                const float offsetValue = firstUVValue.x <= 1.f ? 1.f : -1.f;
+                context->m_uvScroll.x += offsetValue;
+                *context->m_uvScrollObject->uvScrollX = context->m_uvScroll.x;
+            }
+
+            if (firstUVValue.y < 0.f || firstUVValue.y > 1.f) {
+                const float offsetValue = firstUVValue.y <= 1.f ? 1.f : -1.f;
+                context->m_uvScroll.y += offsetValue;
+                *context->m_uvScrollObject->uvScrollY = context->m_uvScroll.y;
+            }
+            */
         }
 
 
-        auto uvsIt = context->m_uvs + dataStart;
+        
 
         if (stride == sizeof(VertexBasic)) {
             VertexBasic* outIt = (VertexBasic*)memory;
@@ -1852,9 +1866,6 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
             if (geofileTextureHeader* texture = context->m_textures[key.textureIndex -1]) {
                 hasNormalMap = texture->hasNormal; // (*(size_t*)texture) & 0x80000000
             }
-        }
-        else {
-            auto i = 0;
         }
 
         const size_t stride = key.textureIndex > 0 ? hasNormalMap ? sizeof(VertexWithNormal) : sizeof(VertexBasic): sizeof(VertexSolidColor);
