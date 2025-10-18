@@ -1680,50 +1680,16 @@ void __stdcall FUN_004710d0() {
     }
 }
 
-namespace detail {
+struct GeometryBatchKey {
+    unsigned short textureIndex;
+    unsigned char textureAdditive;
 
-    // A decent hash_combine (like boost::hash_combine)
-    inline void hash_combine(std::size_t& seed, std::size_t value) {
-        // 64-bit mix; fine on 32-bit too.
-        seed ^= value + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-    }
-
-    // Base case: anything that already has std::hash<T>
-    template <class T>
-    inline std::size_t hash_value(const T& v) {
-        return std::hash<T>{}(v);
-    }
-
-    // Overload for std::pair — recursively hash its members
-    template <class A, class B>
-    inline std::size_t hash_value(const std::pair<A, B>& p) {
-        std::size_t seed = 0;
-        hash_combine(seed, hash_value(p.first));
-        hash_combine(seed, hash_value(p.second));
-        return seed;
-    }
-
-    // (Optional) Overload for std::tuple — also recursive
-    template <class... Ts>
-    inline std::size_t hash_value(const std::tuple<Ts...>& t) {
-        std::size_t seed = 0;
-        std::apply([&](const auto&... elems) {
-            (hash_combine(seed, hash_value(elems)), ...);
-            }, t);
-        return seed;
-    }
-
-} // namespace detail
-
-struct pair_hash {
-    template <class T1, class T2>
-    std::size_t operator()(const std::pair<T1, T2>& p) const {
-        return detail::hash_value(p); // this will recurse for nested pairs
+    bool operator<(const GeometryBatchKey& other) const{
+        return textureIndex < other.textureIndex || (textureIndex == other.textureIndex && textureAdditive < other.textureAdditive);
     }
 };
 
-using GeometryBatchKey = std::pair<unsigned short, unsigned char>;
-static std::unordered_map<std::pair<geofileMeshHeader*, GeometryBatchKey>, byte*, pair_hash> g_geometryMemoryBuffer;
+static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, byte*> g_geometryMemoryBuffer;
 
 void _stdcall FUN_004201d0_RenderClearBegin() {
     FP::callStdFarA(0x004201d0);
@@ -1771,7 +1737,7 @@ static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory
         dataStart += dataNextLength;
         dataNextLength = surface.length;
 
-        if (surface.index != key.first || surface.additive != key.second) {
+        if (surface.index != key.textureIndex || surface.additive != key.textureAdditive) {
             continue; //We could collect the start index during batch computation
         }
 
@@ -1804,8 +1770,9 @@ static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory
         }
 
         //we have texture so we need to compute uv scrolling if needed
-        if (surface.animated && key.first > -1 && (context->m_uvScrollObject->uvScrollSpeedX || context->m_uvScrollObject->uvScrollSpeedY)) {
-            context->m_uvScrollSpeed = glm::vec2(*context->m_uvScrollObject->uvScrollSpeedX, *context->m_uvScrollObject->uvScrollSpeedY) * 0.00073260075f;
+        if (surface.animated && key.textureIndex > -1 && (context->m_uvScrollObject->uvScrollSpeedX || context->m_uvScrollObject->uvScrollSpeedY)) {
+            double factor = FP::getData<double>(0x00598258);
+            context->m_uvScrollSpeed = glm::vec2(*context->m_uvScrollObject->uvScrollSpeedX, *context->m_uvScrollObject->uvScrollSpeedY) * (float)factor;
             *context->m_uvScrollObject->uvScrollX += context->m_uvScrollSpeed.x;
             *context->m_uvScrollObject->uvScrollY += context->m_uvScrollSpeed.y;
             context->m_uvScroll = glm::vec2(*context->m_uvScrollObject->uvScrollX, *context->m_uvScrollObject->uvScrollY);
@@ -1863,7 +1830,7 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
     if (context->m_numberOfSurfaces == 0) return;
 
     // Compute batches. i.e. merge all surfaces into on
-    std::unordered_map<GeometryBatchKey, uint32_t, pair_hash> batches; //texture index, addative
+    std::map<GeometryBatchKey, uint32_t> batches; //texture index, addative
     for (const geofileSurface& surface : std::ranges::subrange(context->m_geofileSurfaces, context->m_geofileSurfaces + context->m_numberOfSurfaces)) {
 
         batches[{surface.index, surface.additive}] += surface.length;
@@ -1881,13 +1848,16 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
         if (totalLength == 0) continue;
 
         bool hasNormalMap = false;
-        if (key.first > 0) { //does it even has a texture
-            if (geofileTextureHeader* texture = context->m_textures[key.first -1]) {
+        if (key.textureIndex > 0) { //does it even has a texture
+            if (geofileTextureHeader* texture = context->m_textures[key.textureIndex -1]) {
                 hasNormalMap = texture->hasNormal; // (*(size_t*)texture) & 0x80000000
             }
         }
+        else {
+            auto i = 0;
+        }
 
-        const size_t stride = key.first > 0 ? hasNormalMap ? sizeof(VertexWithNormal) : sizeof(VertexBasic): sizeof(VertexSolidColor);
+        const size_t stride = key.textureIndex > 0 ? hasNormalMap ? sizeof(VertexWithNormal) : sizeof(VertexBasic): sizeof(VertexSolidColor);
         const size_t bytes = (totalLength * 3) * stride;
 
 
@@ -1929,21 +1899,21 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
         };
 
 
-        const float depth = static_cast<float>(key.second != 0 ? 45000 : 41000);
+        const float depth = static_cast<float>(key.textureAdditive != 0 ? 45000 : 41000);
         switch (stride) {
             case sizeof(VertexSolidColor) : {
                 FP::callStdFarA(0x00426040, depth, memory, totalLength, 3, -1, modelMatrix, 1, 0, 0);
             } break;
             case sizeof(VertexBasic) : {
-                auto textureSDSptr = lockSptr(context->m_textureDatas[key.first - 1]);
+                auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
 
-                FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.second > 2 ? -1 : key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
+                FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, 1, key.textureAdditive, context->m_field0xC, 0, 0, 0);
             } break;
             case sizeof(VertexWithNormal) : {
-                auto textureHDSptr = lockSptr(context->m_textureHDDatas[key.first - 1]);
-                auto textureSDSptr = lockSptr(context->m_textureDatas[key.first - 1]);
+                auto textureHDSptr = lockSptr(context->m_textureHDDatas[key.textureIndex - 1]);
+                auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
 
-                FP::callStdFarA(0x004f3450, depth, textureSDSptr, textureHDSptr, memory, totalLength, 3, key.second > 2 ? -1 : key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
+                FP::callStdFarA(0x004f3450, depth, textureSDSptr, textureHDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, 1, key.textureAdditive, context->m_field0xC, 0, 0, 0);
             } break;
         }
          
@@ -1963,7 +1933,7 @@ void __thiscall DisaObjectRenderContext::FUN_004e2180(glm::mat4* modelMatrix, gl
     static int swi = 0;
     if (flikker) {
         ++swi;
-        if (swi == 30) {
+        if (swi == 600) {
             swi = 0;
             switchFun = !switchFun;
         }
