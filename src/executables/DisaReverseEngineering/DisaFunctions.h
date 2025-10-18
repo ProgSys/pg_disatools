@@ -463,16 +463,17 @@ struct DisaObjectRenderContext {
     geofileMeshHeader* m_geofileHeader; //0x1C Pointer to geometry file header. Defines how the mesh is structured .
     glm::vec3* m_triangles; //0x20 
     glm::vec2* m_uvs; //0x24 
-    uint32_t m_field0x28; //0x28
+    glm::vec3* m_tangentAndBitangent; //0x28
     uint32_t m_numberOfTriangels; //0x2C 
     uint32_t m_field0x30; //0x30 same as unk9 field from geofileMeshHeader
     uint32_t m_numberOfSurfaces; //0x34
     uint32_t m_numberOfTextures; //0x38
     const geofileSurface* m_geofileSurfaces; //0x3C Pointer to geometry file header texture settings. Defines how the surface looks.
     std::array<geofileTextureHeader*, 31> m_textures; //0x40 Pointers to geometry file colore textures settings. (first texture is present twice)
-    //std::array<float, 3> m_unknown0x5c; //0x5c
-    std::array<uint8_t*, 28> m_textureData; //0xBC
-    std::array<float, 17> m_unknown0xAC; //0xd8
+    int** m_textureDatas; //0xBC
+    std::array<uint32_t, 30> m_field0xC0; //0xC0
+    int** m_textureHDDatas; //0x138
+    std::array<uint32_t, 13> m_field0x13c; //0x13c
     float m_alphaScale; //0x170
     std::array<uint32_t, 2> m_unknown0x174; //0x174
     DisaObjectScrollInfo* m_uvScrollObject; //0x17C

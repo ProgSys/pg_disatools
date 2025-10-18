@@ -1722,8 +1722,8 @@ struct pair_hash {
     }
 };
 
-using GeoemtryBatchKey = std::pair<unsigned short, unsigned char>;
-static std::unordered_map<std::pair<geofileMeshHeader*, GeoemtryBatchKey>, byte*, pair_hash> g_geometryMemoryBuffer;
+using GeometryBatchKey = std::pair<unsigned short, unsigned char>;
+static std::unordered_map<std::pair<geofileMeshHeader*, GeometryBatchKey>, byte*, pair_hash> g_geometryMemoryBuffer;
 
 void _stdcall FUN_004201d0_RenderClearBegin() {
     FP::callStdFarA(0x004201d0);
@@ -1755,19 +1755,117 @@ struct VertexBasic {
 }; // 24 bytes
 
 struct VertexWithNormal {
+    glm::vec2 uv;        // +0
     uint32_t  color;     // +8
     glm::vec3 pos;       // +12
-    glm::vec2 uv;        // +0
     glm::vec3 tangent;  // +24 
     glm::vec3 bitangent; // +36 
 }; // 48 bytes
+
+
+static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory, const size_t stride, const GeometryBatchKey key) {
+
+    uint32_t dataStart = 0;
+    uint32_t dataNextLength = 0;
+    for (const geofileSurface& surface : std::ranges::subrange(context->m_geofileSurfaces, context->m_geofileSurfaces + context->m_numberOfSurfaces)) {
+        dataStart += dataNextLength;
+        dataNextLength = surface.length;
+
+        if (surface.index != key.first || surface.additive != key.second) {
+            continue; //We could collect the start index during batch computation
+        }
+
+        //compute color
+        glm::rgba color;
+        {  // Compute final rgba and pack it into an sizeof(int)
+            glm::frgba colorAsFloat(
+                (float)surface.rMult * context->m_colorMultiplier->r,
+                (float)surface.gMult * context->m_colorMultiplier->g,
+                (float)surface.bMult * context->m_colorMultiplier->b,
+                (float)surface.aMult * context->m_colorMultiplier->a * context->m_alphaScale
+            );
+            colorAsFloat = glm::round(colorAsFloat);
+            colorAsFloat = glm::clamp(colorAsFloat, 0.f, 255.f); //clamp to byte
+            color = glm::rgba(colorAsFloat);
+        }
+
+        //write into memory
+        auto trianglesIt = context->m_triangles + dataStart;
+        if (stride == sizeof(VertexSolidColor)) {
+            VertexSolidColor* outIt = (VertexSolidColor*)memory;
+            for (int i = 0; i < surface.length; ++i) {
+                outIt->color = *((uint32_t*)&color.r);
+                outIt->pos = *trianglesIt;
+                ++trianglesIt;
+                ++outIt;
+            }
+            memory = (byte*)outIt;
+            continue;
+        }
+
+        //we have texture so we need to compute uv scrolling if needed
+        if (surface.animated && key.first > -1 && (context->m_uvScrollObject->uvScrollSpeedX || context->m_uvScrollObject->uvScrollSpeedY)) {
+            context->m_uvScrollSpeed = glm::vec2(*context->m_uvScrollObject->uvScrollSpeedX, *context->m_uvScrollObject->uvScrollSpeedY) * 0.00073260075f;
+            *context->m_uvScrollObject->uvScrollX += context->m_uvScrollSpeed.x;
+            *context->m_uvScrollObject->uvScrollY += context->m_uvScrollSpeed.y;
+            context->m_uvScroll = glm::vec2(*context->m_uvScrollObject->uvScrollX, *context->m_uvScrollObject->uvScrollY);
+
+            // Wrap if we moved out of [0,1] over the tile grid
+            //custom as original code does strange voodo for no reason at all
+            context->m_uvScroll = glm::fract(context->m_uvScroll);
+            *context->m_uvScrollObject->uvScrollX = context->m_uvScroll.x;
+            *context->m_uvScrollObject->uvScrollY = context->m_uvScroll.y;
+        }
+
+
+        auto uvsIt = context->m_uvs + dataStart;
+
+        if (stride == sizeof(VertexBasic)) {
+            VertexBasic* outIt = (VertexBasic*)memory;
+            for (int i = 0; i < surface.length; ++i) {
+                outIt->uv = *uvsIt + context->m_uvScroll;
+                outIt->color = *((uint32_t*)&color.r);
+                outIt->pos = *trianglesIt;
+                ++uvsIt;
+                ++trianglesIt;
+                ++outIt;
+            }
+            memory = (byte*)outIt;
+            continue;
+        }
+
+        auto tangentAndBitangentIt = context->m_tangentAndBitangent + dataStart * 2;
+
+        if (stride == sizeof(VertexWithNormal)) {
+            VertexWithNormal* outIt = (VertexWithNormal*)memory;
+            for (int i = 0; i < surface.length; ++i) {
+                outIt->uv = *uvsIt + context->m_uvScroll;
+                outIt->color = *((uint32_t*)&color.r);
+                outIt->pos = *trianglesIt;
+                outIt->tangent = *tangentAndBitangentIt;
+                ++tangentAndBitangentIt;
+                outIt->bitangent = *tangentAndBitangentIt;
+                ++tangentAndBitangentIt;
+                ++uvsIt;
+                ++trianglesIt;
+                ++outIt;
+            }
+            memory = (byte*)outIt;
+            continue;
+        }
+
+        assert(false); //unknown format
+    }
+
+}
 
 void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelMatrix) {
     if (context->m_numberOfSurfaces == 0) return;
 
     // Compute batches. i.e. merge all surfaces into on
-    std::unordered_map<GeoemtryBatchKey, uint32_t, pair_hash> batches; //texture index, addative
+    std::unordered_map<GeometryBatchKey, uint32_t, pair_hash> batches; //texture index, addative
     for (const geofileSurface& surface : std::ranges::subrange(context->m_geofileSurfaces, context->m_geofileSurfaces + context->m_numberOfSurfaces)) {
+
         batches[{surface.index, surface.additive}] += surface.length;
     }
 
@@ -1789,7 +1887,7 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
             }
         }
 
-        const size_t stride = hasNormalMap ? sizeof(VertexWithNormal) : sizeof(VertexBasic);
+        const size_t stride = key.first > 0 ? hasNormalMap ? sizeof(VertexWithNormal) : sizeof(VertexBasic): sizeof(VertexSolidColor);
         const size_t bytes = (totalLength * 3) * stride;
 
 
@@ -1802,7 +1900,7 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
         //CUSTOM memory reusage if we already build same geometry 
         byte*& memory = g_geometryMemoryBuffer[{context->m_geofileHeader, key}];
         //byte* memory = nullptr;
-        if (!memory) { 
+        if (!memory) {
             if (arrayRoot + arraySize == 0) {
                 memory = FP::callStdFarA<byte*>(0x00425c10, 0x20, bytes);
                 if (!memory) return; //CSUTOM out of memory check
@@ -1820,101 +1918,35 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
                 }
             }
 
-            VertexBasic* outIt = (VertexSolidColor*)memory;
-            VertexBasic* outIt = (VertexBasic*)memory;
-            VertexSolidColor* outSolidIt = (VertexSolidColor*)memory;
+            copyIntoMemory(context, memory, stride, key);
+        }
 
-            uint32_t dataStart = 0;
-            for (const geofileSurface& surface : std::ranges::subrange(context->m_geofileSurfaces, context->m_geofileSurfaces + context->m_numberOfSurfaces)) {
-                if (surface.index != key.first || surface.additive != key.second) {
-                    dataStart += surface.length;
-                    continue; //todo would be better to colect the indeces?
-                }
-
-                glm::rgba color;
-                {  // Compute final rgba and pack it into an sizeof(int)
-                    glm::frgba colorAsFloat(
-                        (float)surface.rMult * context->m_colorMultiplier->r,
-                        (float)surface.gMult * context->m_colorMultiplier->g,
-                        (float)surface.bMult * context->m_colorMultiplier->b,
-                        (float)surface.aMult * context->m_colorMultiplier->a * context->m_alphaScale
-                    );
-                    colorAsFloat = glm::round(colorAsFloat);
-                    colorAsFloat = glm::clamp(colorAsFloat, 0.f, 255.f); //clamp to byte
-                    color = glm::rgba(colorAsFloat);
-                }
-
-                if (key.first < 0) {
-                    //TODO no texture render as solid color blob
-                    auto trianglesIt = context->m_triangles + dataStart;
-                    for (int i = 0; i < surface.length; ++i) {
-                        outSolidIt->color = *((uint32_t*)&color.r);
-                        outSolidIt->pos = *trianglesIt;
-                        ++trianglesIt;
-                        ++outSolidIt;
-                    }
-                    //-> FP::callStdFarA(0x00426040, 41000, memory, totalLength, 3, -1, modelMatrix, 1, 0, 0);
-                    dataStart += surface.length;
-                    continue;
-                }
-
-                auto trianglesIt = context->m_triangles + dataStart;
-                auto uvsIt = context->m_uvs + dataStart;
-
-                //TODO gather scroll value
-                if (surface.animated && key.first > -1 && (context->m_uvScrollObject->uvScrollSpeedX || context->m_uvScrollObject->uvScrollSpeedY)) {
-                    context->m_uvScrollSpeed = glm::vec2(*context->m_uvScrollObject->uvScrollSpeedX, *context->m_uvScrollObject->uvScrollSpeedY) * 0.00073260075f;
-                    *context->m_uvScrollObject->uvScrollX += context->m_uvScrollSpeed.x;
-                    *context->m_uvScrollObject->uvScrollY += context->m_uvScrollSpeed.y;
-                    context->m_uvScroll = glm::vec2(*context->m_uvScrollObject->uvScrollX, *context->m_uvScrollObject->uvScrollY);
-
-                    // Wrap if we moved out of [0,1] over the tile grid
-                    //custom as original code does strange voodo for no reason at all
-                    context->m_uvScroll = glm::fract(context->m_uvScroll);
-                    *context->m_uvScrollObject->uvScrollX = context->m_uvScroll.x;
-                    *context->m_uvScrollObject->uvScrollY = context->m_uvScroll.y;
-
-                    /*
-                    glm::vec2 firstUVValue = *uvsIt + context->m_uvScroll;
-                    if (firstUVValue.x < 0.f || firstUVValue.x > 1.f) {
-                        const float offsetValue = firstUVValue.x <= 1.f? 1.f: -1.f;
-                        context->m_uvScroll.x += offsetValue;
-                        *context->m_uvScrollObject->uvScrollX = context->m_uvScroll.x;
-                    }
-
-                    if (firstUVValue.y < 0.f || firstUVValue.y > 1.f) {
-                        const float offsetValue = firstUVValue.y <= 1.f ? 1.f : -1.f;
-                        context->m_uvScroll.y += offsetValue;
-                        *context->m_uvScrollObject->uvScrollY = context->m_uvScroll.y;
-                    }
-                    */
-                }
-
-
-
-                for (int i = 0; i < surface.length; ++i) {
-                    outIt->uv = *uvsIt + context->m_uvScroll;
-                    outIt->color = *((uint32_t*)&color.r);
-                    outIt->pos = *trianglesIt;
-                    ++uvsIt;
-                    ++trianglesIt;
-                    ++outIt;
-                }
-                dataStart += surface.length;
+        constexpr auto lockSptr = [](int* sptr) -> int* {
+            if (sptr && ((int)sptr - 0x10001U < 0xeffeffff)) {
+                *sptr = *sptr + 1;
             }
-        }
+            return sptr;
+        };
 
-        if (key.first <= 0) continue;
-         
-        auto piVar3 = *(int**)(context->m_textureData[0] + (key.first - 1) * 4);
-        if ((piVar3 != (int*)0x0) && ((int)piVar3 - 0x10001U < 0xeffeffff)) {
-            *piVar3 = *piVar3 + 1;
+
+        const float depth = static_cast<float>(key.second != 0 ? 45000 : 41000);
+        switch (stride) {
+            case sizeof(VertexSolidColor) : {
+                FP::callStdFarA(0x00426040, depth, memory, totalLength, 3, -1, modelMatrix, 1, 0, 0);
+            } break;
+            case sizeof(VertexBasic) : {
+                auto textureSDSptr = lockSptr(context->m_textureDatas[key.first - 1]);
+
+                FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.second > 2 ? -1 : key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
+            } break;
+            case sizeof(VertexWithNormal) : {
+                auto textureHDSptr = lockSptr(context->m_textureHDDatas[key.first - 1]);
+                auto textureSDSptr = lockSptr(context->m_textureDatas[key.first - 1]);
+
+                FP::callStdFarA(0x004f3450, depth, textureSDSptr, textureHDSptr, memory, totalLength, 3, key.second > 2 ? -1 : key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
+            } break;
         }
          
-        //FP::callStdFarA(0x00425df0, (float)41000, piVar3, memory, totalLength, 3, -1, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
-        //FP::callStdFarA(0x00425df0, 0x0019e180, piVar3, memory, totalLength, 3, key.second > 2? -1: key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
-        FP::callStdFarA(0x00425df0, static_cast<float>(key.second != 0 ? 45000: 41000), piVar3, memory, totalLength, 3, key.second > 2? -1: key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
-
     }
 }
 
@@ -1926,7 +1958,16 @@ void __thiscall DisaObjectRenderContext::FUN_004e2180(glm::mat4* modelMatrix, gl
     m_field0x4 = param_3;
     m_self = this;
     m_field0xC = param_4;
+    static bool flikker = false;
     static bool switchFun = true;
+    static int swi = 0;
+    if (flikker) {
+        ++swi;
+        if (swi == 30) {
+            swi = 0;
+            switchFun = !switchFun;
+        }
+    }
 
     if (switchFun) {
         FUN_004ef8a0(this, modelMatrix);
