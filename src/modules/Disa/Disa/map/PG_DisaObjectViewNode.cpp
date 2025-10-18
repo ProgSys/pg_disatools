@@ -71,7 +71,8 @@ void PG_DisaObjectViewNode::loadGeometry() {
 		disaModel = PG_new<PG_DisaModelNode>("PG_DisaModelNode", this);
 	}
 
-	const glm::vec2 scroll = glm::vec2(object.textureScrollX, object.textureScrollY) / 10000.0f;
+	constexpr float disassemblyScrollSpeed = 0.000073260075f;
+	const glm::vec2 scroll = glm::vec2(object.textureScrollX, object.textureScrollY) * disassemblyScrollSpeed; // / 10000.0f;
 	disaModel->setTextureScroll(scroll);
 
 	{

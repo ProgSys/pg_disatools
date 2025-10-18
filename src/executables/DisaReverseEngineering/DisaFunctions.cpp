@@ -1783,8 +1783,8 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
         if (totalLength == 0) continue;
 
         bool hasNormalMap = false;
-        if (key.first >= 0) { //does it even has a texture
-            if (geofileTextureHeader* texture = context->m_textures[key.first]) {
+        if (key.first > 0) { //does it even has a texture
+            if (geofileTextureHeader* texture = context->m_textures[key.first -1]) {
                 hasNormalMap = texture->hasNormal; // (*(size_t*)texture) & 0x80000000
             }
         }
@@ -1820,6 +1820,7 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
                 }
             }
 
+            VertexBasic* outIt = (VertexSolidColor*)memory;
             VertexBasic* outIt = (VertexBasic*)memory;
             VertexSolidColor* outSolidIt = (VertexSolidColor*)memory;
 
@@ -1862,14 +1863,31 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
 
                 //TODO gather scroll value
                 if (surface.animated && key.first > -1 && (context->m_uvScrollObject->uvScrollSpeedX || context->m_uvScrollObject->uvScrollSpeedY)) {
-                    context->m_uvScrollSpeed = glm::vec2(*context->m_uvScrollObject->uvScrollSpeedX, *context->m_uvScrollObject->uvScrollSpeedY);
+                    context->m_uvScrollSpeed = glm::vec2(*context->m_uvScrollObject->uvScrollSpeedX, *context->m_uvScrollObject->uvScrollSpeedY) * 0.00073260075f;
                     *context->m_uvScrollObject->uvScrollX += context->m_uvScrollSpeed.x;
                     *context->m_uvScrollObject->uvScrollY += context->m_uvScrollSpeed.y;
                     context->m_uvScroll = glm::vec2(*context->m_uvScrollObject->uvScrollX, *context->m_uvScrollObject->uvScrollY);
 
                     // Wrap if we moved out of [0,1] over the tile grid
-                    glm::vec2 firstUVValue = *uvsIt + context->m_uvScroll;
+                    //custom as original code does strange voodo for no reason at all
+                    context->m_uvScroll = glm::fract(context->m_uvScroll);
+                    *context->m_uvScrollObject->uvScrollX = context->m_uvScroll.x;
+                    *context->m_uvScrollObject->uvScrollY = context->m_uvScroll.y;
 
+                    /*
+                    glm::vec2 firstUVValue = *uvsIt + context->m_uvScroll;
+                    if (firstUVValue.x < 0.f || firstUVValue.x > 1.f) {
+                        const float offsetValue = firstUVValue.x <= 1.f? 1.f: -1.f;
+                        context->m_uvScroll.x += offsetValue;
+                        *context->m_uvScrollObject->uvScrollX = context->m_uvScroll.x;
+                    }
+
+                    if (firstUVValue.y < 0.f || firstUVValue.y > 1.f) {
+                        const float offsetValue = firstUVValue.y <= 1.f ? 1.f : -1.f;
+                        context->m_uvScroll.y += offsetValue;
+                        *context->m_uvScrollObject->uvScrollY = context->m_uvScroll.y;
+                    }
+                    */
                 }
 
 
@@ -1885,13 +1903,14 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
                 dataStart += surface.length;
             }
         }
-        if (totalLength == 0) continue;
 
+        if (key.first <= 0) continue;
+         
         auto piVar3 = *(int**)(context->m_textureData[0] + (key.first - 1) * 4);
         if ((piVar3 != (int*)0x0) && ((int)piVar3 - 0x10001U < 0xeffeffff)) {
             *piVar3 = *piVar3 + 1;
         }
-
+         
         //FP::callStdFarA(0x00425df0, (float)41000, piVar3, memory, totalLength, 3, -1, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
         //FP::callStdFarA(0x00425df0, 0x0019e180, piVar3, memory, totalLength, 3, key.second > 2? -1: key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
         FP::callStdFarA(0x00425df0, static_cast<float>(key.second != 0 ? 45000: 41000), piVar3, memory, totalLength, 3, key.second > 2? -1: key.second, modelMatrix, 1, key.second, context->m_field0xC, 0, 0, 0);
@@ -1910,7 +1929,6 @@ void __thiscall DisaObjectRenderContext::FUN_004e2180(glm::mat4* modelMatrix, gl
     static bool switchFun = true;
 
     if (switchFun) {
-        return;
         FUN_004ef8a0(this, modelMatrix);
     }
     else {

@@ -469,10 +469,10 @@ struct DisaObjectRenderContext {
     uint32_t m_numberOfSurfaces; //0x34
     uint32_t m_numberOfTextures; //0x38
     const geofileSurface* m_geofileSurfaces; //0x3C Pointer to geometry file header texture settings. Defines how the surface looks.
-    std::array<geofileTextureHeader*, 7> m_textures; //0x40 Pointers to geometry file colore textures settings. (first texture is present twice)
-    std::array<float, 24> m_unknown0x5c; //0x5c
-    std::array<uint8_t*, 7> m_textureData; //0xBC
-    std::array<float, 38> m_unknown0xAC; //0xd8
+    std::array<geofileTextureHeader*, 31> m_textures; //0x40 Pointers to geometry file colore textures settings. (first texture is present twice)
+    //std::array<float, 3> m_unknown0x5c; //0x5c
+    std::array<uint8_t*, 28> m_textureData; //0xBC
+    std::array<float, 17> m_unknown0xAC; //0xd8
     float m_alphaScale; //0x170
     std::array<uint32_t, 2> m_unknown0x174; //0x174
     DisaObjectScrollInfo* m_uvScrollObject; //0x17C
