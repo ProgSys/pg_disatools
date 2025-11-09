@@ -110,7 +110,7 @@ MainWindow::MainWindow(QWidget* parent) :
 
 	connect(this, SIGNAL(saveImage(const QModelIndex&, const QString&)), m_treeModel, SLOT(saveImage(const QModelIndex&, const QString&)));
 	connect(ui->btnExtractImage, SIGNAL(clicked()), this, SLOT(saveSelectedImage()));
-	connect(this, SIGNAL(openFile(const QString&)), m_treeModel, SLOT(open(const QString&)));
+	connect(this, &MainWindow::openFile, m_treeModel, &TreeModel::open);
 
 
 	// ckeckboxes
@@ -208,7 +208,7 @@ void MainWindow::on_btnAbout_clicked()
 void MainWindow::on_btnOpen_clicked()
 {
 	QFileDialog openDialog(this);
-	openDialog.setNameFilter(tr("ARCHIVE (*.dat *.mpp *.pbd);;DATA (*.dat);;DSARC FL (*.pbd);;Map File (*.mpp)"));
+	openDialog.setNameFilter(tr("ARCHIVE (*.dat *.mpp *.pbd *.arc);;DATA (*.dat);;DSARC FL (*.pbd);;Map File (*.mpp);;ARC (*.arc)"));
 
 	QStringList fileNames;
 	if (openDialog.exec()) {
@@ -297,6 +297,12 @@ inline void decompressMany(TreeModel* treemodel, QModelIndexList& indexList, uns
 			(*count)++;
 	}
 }
+inline void decompressIMY(TreeModel* treemodel, QModelIndexList& indexList, const QString& path, bool isFolder, unsigned int* count) {
+	for (const QModelIndex& index : indexList) {
+		if (treemodel->decompresIMY(index, path, isFolder))
+			(*count)++;
+	}
+}
 
 void MainWindow::treeContextMenu(const QPoint& pos) {
 
@@ -336,11 +342,16 @@ void MainWindow::treeContextMenu(const QPoint& pos) {
 
 		QAction* action_decompress = nullptr;
 		QAction* action_decompress_replace = nullptr;
+		QAction* action_decompress_single = nullptr;
 		if (item->isCompressed() && item->isPackage()) {
 			action_decompress = menu.addAction("Decompress");
 			action_decompress->setToolTip("Decompress the IMY package.");
 			action_decompress_replace = menu.addAction("Decompress and Replace");
 			action_decompress_replace->setToolTip("Decompress the IMY package and add it back to the archive.");
+		}
+		else if (item->isCompressed() && item->fileType == PG::FILE::fileInfo::IMY) {
+			action_decompress_single = menu.addAction("Decompress as");
+			action_decompress_single->setToolTip("Decompress the IMY file into given file.");
 		}
 
 		QAction* selectedAction = menu.exec(ui->treeView->viewport()->mapToGlobal(pos));
@@ -465,6 +476,11 @@ void MainWindow::treeContextMenu(const QPoint& pos) {
 					path = QFileDialog::getExistingDirectory(this, tr("Extract Directory"), "/home", QFileDialog::ShowDirsOnly
 						| QFileDialog::DontResolveSymlinks);
 
+				if (path.isEmpty()) {
+					setEnabled(true);
+					return;
+				}
+
 				QModelIndexList selectedSource;
 				for (const QModelIndex& index : selected)
 					selectedSource.push_back(m_treeSort->mapToSource(index));
@@ -486,45 +502,43 @@ void MainWindow::treeContextMenu(const QPoint& pos) {
 						if (count)
 							ui->statusBar->showMessage(QString("Decompresed IMY pack to '%1'").arg(path));
 						else
-							ui->statusBar->showMessage(QString("Failed to decompres pack IMY!"));
+							ui->statusBar->showMessage(QString("Failed to decompress pack IMY!"));
 					else
 						ui->statusBar->showMessage(QString("%1 of %2 have been decompressed into the folder '%3'").arg(count).arg(selectedSource.size()).arg(path));
 
 				}
 			}
-			/*
-		   if(selected.size() > 1){
-								//multiple Files/
-			}else{
-			   //one file
-			   QString fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
-												   QString::fromStdString(item->name.getPath()), "Any (*)");
-			   if(fileName.isEmpty() || fileName.isNull()){
-				   ui->statusBar->showMessage("Invalid extract file.");
-				   return;
-			   }
-
-			   setEnabled(false);
-			   QProgressDialog progress;
-			   openProgress(progress);
-
-			   QFuture<bool> f1 = QtConcurrent::run(m_treeModel, &TreeModel::decompresIMYPack,pointedItem,fileName,false );
-			   while(f1.isRunning()){
-				   progress.setValue(m_treeModel->getProgress());
-				   QApplication::processEvents();
-			   }
-			   if(f1.result()){
-				   ui->statusBar->showMessage(QString("Extracted decompresed IMY to: %1").arg(fileName));;
-			   }else{
-				   ui->statusBar->showMessage(QString("Failed to decompres IMY!"));
-			   }
-			}
-			*/
 			setEnabled(true);
-
-
 		}
-		else if (action_decompress_replace == selectedAction) {
+		else if (action_decompress_single == selectedAction) {
+			QModelIndexList selected = ui->treeView->selectionModel()->selectedRows();
+			if (!selected.empty()) {
+
+				QString path = QFileDialog::getSaveFileName(this, tr("Decompress into"), "Any (*)");
+				if (path.isEmpty()) {
+					setEnabled(true);
+					return;
+				}
+				QModelIndex selectedSource = m_treeSort->mapToSource(selected.first());
+
+				setEnabled(false);
+				QProgressDialog progress;
+				openProgress(progress);
+
+				unsigned int count = 0;
+				QFuture<void> f1 = QtConcurrent::run(decompressIMY, m_treeModel, QModelIndexList{ selectedSource }, path, false, &count);
+
+				while (f1.isRunning()) {
+					progress.setValue(m_treeModel->getProgress());
+					QApplication::processEvents();
+				}
+				if (count)
+					ui->statusBar->showMessage(QString("Decompresed IMY to '%1'").arg(path));
+				else
+					ui->statusBar->showMessage(QString("Failed to decompress IMY!"));
+			}
+			setEnabled(true);
+		} else if (action_decompress_replace == selectedAction) {
 
 			QModelIndexList selected = ui->treeView->selectionModel()->selectedRows();
 			if (!selected.empty()) {
@@ -553,7 +567,7 @@ void MainWindow::treeContextMenu(const QPoint& pos) {
 						if (count)
 							ui->statusBar->showMessage(QString("Decompresed IMY pack %1").arg(QString::fromStdString(item->name.getPath())));
 						else
-							ui->statusBar->showMessage(QString("Failed to decompres pack IMY!"));
+							ui->statusBar->showMessage(QString("Failed to decompress pack IMY!"));
 					else
 						ui->statusBar->showMessage(QString("%1 of %2 have been decompressed").arg(count).arg(selectedSource.size()));
 				}
@@ -776,6 +790,11 @@ void MainWindow::on_btnSaveAs_clicked()
 		fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
 			m_treeModel->getOpenedFileName(),
 			tr("DSARC FL (*.pbd)"));
+	}
+	else if (m_treeModel->getOpenedType() == "ARC") {
+		fileName = QFileDialog::getSaveFileName(this, tr("Save File"),
+			m_treeModel->getOpenedFileName(),
+			tr("DS ARC IDX (*.ARC)"));
 	}
 	else {
 		return;

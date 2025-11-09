@@ -77,9 +77,15 @@ public slots:
 
     bool decompresIMYPack(const QModelIndex& index); //decompres IMY pack and add it back in into the archive
     /*!
-     * @para toFolder if true then the given path is not a filepath but a directory.
-     */
-    bool decompresIMYPack(const QModelIndex& index, const QString &path, bool toFolder = false) const; //save the decompress IMY pack as a seperate file
+    * @brief save the decompress IMY pack as a seperate file
+    * @param toFolder if true then the given path is not a filepath but a directory.
+    */
+    bool decompresIMYPack(const QModelIndex& index, const QString &path, bool toFolder = false) const; 
+    /*!
+    * @brief Will decompress IMY file into given seperate file
+    * @param toFolder if true then the given path is not a filepath but a directory.
+    */
+    bool decompresIMY(const QModelIndex& index, const QString &path, bool toFolder = false) const;
 
     bool checkIsValid(QString& outMessage) const;
 

@@ -29,8 +29,10 @@
 #include <Stream/PG_StreamOutByteFile.h>
 #include <Util/PG_Exception.h>
 #include <Files/PG_FileTests.h>
+#include <Util/PG_StringUtil.h>
 
 #include <algorithm>
+#include <unordered_map>
 
 namespace PG {
 namespace FILE {
@@ -93,6 +95,26 @@ void fileInfo::setAsDummy(unsigned int _offset){
 	size = 5;
 	offset = _offset;
 	decompressedFileSize = 0;
+}
+
+static std::unordered_map<std::string, fileInfo::type> gFileExtensions = {
+	{"IMY", fileInfo::IMY},
+	{"TX2", fileInfo::TX2},
+	{"MPP", fileInfo::MPP},
+	{"SH", fileInfo::SH},
+	{"ARC", fileInfo::ARC},
+	{"BIN", fileInfo::BIN}
+};
+
+void fileInfo::setTypeByFileExtension(std::string fileExtension) {
+	PG::UTIL::toUpper(fileExtension);
+	auto findIt = gFileExtensions.find(fileExtension);
+	if (findIt == gFileExtensions.end()) {
+		fileType = fileInfo::UNKNOWN;
+	}
+	else {
+		fileType = findIt->second;
+	}
 }
 
 

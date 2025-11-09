@@ -50,6 +50,9 @@ EXPORT bool isNISPACK(PG::STREAM::InByteFile& reader);
 EXPORT bool isDSARC_FL(const PG::UTIL::File& file);
 EXPORT bool isDSARC_FL(PG::STREAM::InByteFile& reader);
 
+EXPORT bool isDSARCIDX(const PG::UTIL::File& file);
+EXPORT bool isDSARCIDX(PG::STREAM::InByteFile& reader);
+
 EXPORT tx2Type getTX2CompressionType(PG::STREAM::InByteFile& reader);
 EXPORT std::string asString(tx2Type type);
 

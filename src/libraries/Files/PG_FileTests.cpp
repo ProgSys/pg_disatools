@@ -185,6 +185,13 @@ bool isDSARC_FL(PG::STREAM::InByteFile& reader){
 	return reader.readString(8) == "DSARC FL";
 }
 
+bool isDSARCIDX(const PG::UTIL::File& file) {
+	return openFile(file, isDSARCIDX);
+}
+bool isDSARCIDX(PG::STREAM::InByteFile& reader) {
+	return reader.readString(8) == "DSARCIDX";
+}
+
 
 tx2Type getTX2CompressionType(PG::STREAM::InByteFile& reader){
 	reader.skip(4);

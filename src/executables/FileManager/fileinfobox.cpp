@@ -69,6 +69,12 @@ void FileInfoBox::setModel(const PG::FILE::fileProperties& info) {
 	case PG::FILE::fileInfo::Script:
 		ui->label_type->setText("Script");
 		break;
+	case PG::FILE::fileInfo::ARC:
+		ui->label_type->setText("DSARCIDX");
+		break;
+	case PG::FILE::fileInfo::BIN:
+		ui->label_type->setText("BIN");
+		break;
 	default:
 		ui->label_type->setText("Unknown");
 		break;

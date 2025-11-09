@@ -40,6 +40,7 @@
 #include <Files/PG_ANMD2.h>
 #include <Files/PG_Script.h>
 #include <Files/PG_SH.h>
+#include <Files/PG_ARC.h>
 #include <QCryptographicHash>
 
 #include <EnterValue.h>
@@ -102,6 +103,10 @@ bool TreeModel::open(const QString& file) {
 		else if (PG::FILE::isScript(file.toStdString())) {
 			m_fileExtractor = new PG::FILE::Script();
 		}
+		else if (PG::FILE::isDSARCIDX(file.toStdString())) {
+			m_openedFileType = "ARC";
+			m_fileExtractor = new PG::FILE::ARC();
+		}
 		else {
 			m_fileExtractor = new PG::FILE::StartDAT();
 		}
@@ -113,6 +118,10 @@ bool TreeModel::open(const QString& file) {
 	else if (ext == "MPP") {
 		m_openedFileType = "MPP";
 		m_fileExtractor = new PG::FILE::MPP();
+	}
+	else if (ext == "ARC") {
+		m_openedFileType = "ARC";
+		m_fileExtractor = new PG::FILE::ARC();
 	}
 	else {
 		qInfo() << "Unknown file format: '" << ext << "' file: '" << file << "'!";
@@ -347,6 +356,29 @@ bool TreeModel::decompresIMYPack(const QModelIndex& index, const QString& path, 
 	return true;
 }
 
+bool TreeModel::decompresIMY(const QModelIndex& index, const QString& path, bool toFolder) const {
+	if (!m_fileExtractor || !index.isValid() || path.isEmpty()) return false;
+	const PG::FILE::fileInfo* item = static_cast<const PG::FILE::fileInfo*>(index.internalPointer());
+	if (!item || !item->isCompressed()) {
+		qInfo() << __LINE__ << ": File isn't a IMY '" << QString::fromStdString(item->name.getPath()) << "'";
+		return false;
+	}
+
+
+	char* c = nullptr;
+	unsigned int file_size = 0;
+	if ((file_size = m_fileExtractor->extract(*item, c)) == 0) {
+		if (c) delete c;
+		qInfo() << __LINE__ << ": Couldn't extract IMY: '" << QString::fromStdString(item->name.getPath()) << "'";
+		return false;
+	}
+	if(toFolder)
+		PG::FILE::decompressIMY(c, file_size, (path + "/" + QString::fromStdString(item->name.getFile())).toStdString(), &m_percentIndicator);
+	else
+		PG::FILE::decompressIMY(c, file_size, path.toStdString(), &m_percentIndicator);
+
+	return true;
+}
 
 
 bool TreeModel::hasDataChanged() const {

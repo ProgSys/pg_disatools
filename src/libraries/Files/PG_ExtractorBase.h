@@ -65,6 +65,8 @@ struct fileInfo{
 		GEO,
 		LZS, /// LZS compressed file
 		Script, 
+		ARC, 
+		BIN, 
 		UNKNOWN
 	} fileType = UNKNOWN;
 
@@ -94,6 +96,7 @@ struct fileInfo{
 	EXPORT void setOffset(unsigned int offset);
 	EXPORT void setExternalName(const PG::UTIL::File& externalFile);
 	EXPORT void setAsDummy(unsigned int offset = 0); // only used by PSPVS_V1 for deleting files
+	EXPORT void setTypeByFileExtension(std::string fileExtension);
 
 	EXPORT bool isExternalFile() const;
 	EXPORT bool isCompressed() const;

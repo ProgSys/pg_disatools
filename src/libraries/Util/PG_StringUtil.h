@@ -35,6 +35,16 @@ inline std::string& trim(std::string &s) {
         return ltrim(rtrim(s));
 }
 
+// to upper case letters
+inline std::string& toUpper(std::string& s) {
+    std::transform(s.begin(), s.end(), s.begin(), ::toupper);
+    return s;
+}
+
+inline std::string toUpperCopy(std::string s) {
+    return toUpper(s);
+}
+
 } /* namespace UTIL */
 } /* namespace PG */
 

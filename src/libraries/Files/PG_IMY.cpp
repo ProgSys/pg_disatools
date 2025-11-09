@@ -37,7 +37,7 @@ namespace FILE {
 PACK(struct imyHeader{
 	unsigned int magic_number; // 4
 
-	unsigned short unknown02; // 2
+	unsigned short compressedDataStart; // 2
 	unsigned short unknown03; // 2 -> 8
 	unsigned short streamOffset; //was width // 2
 	unsigned char compressionType; // 1
@@ -48,7 +48,6 @@ PACK(struct imyHeader{
 	unsigned int zero1; //padding // 4 -> 24
 	unsigned int zero2; //padding // 4
 	unsigned int zero3; //padding // 4 -> 32
-	unsigned short number_of_info_bytes;// 2 -> 34
 } );
 
 /*!
@@ -68,11 +67,11 @@ bool decompressIMYSimple(PG::STREAM::In* instream, PG::STREAM::InOut* outstream)
 	}
 
 	if( (header.compressionType >> 4) == 1){
-
+		unsigned int numberOfInfoBytes = instream->readUnsignedShort();
 		const unsigned int decompressedFileSize = header.streamOffset * header.unknown07; //not sure
 
 		unsigned int infoBytesOffset = instream->pos();
-		const unsigned int infoBytesOffsetEnd = infoBytesOffset + header.number_of_info_bytes;
+		const unsigned int infoBytesOffsetEnd = infoBytesOffset + numberOfInfoBytes;
 		unsigned int dataOffset = infoBytesOffsetEnd;
 
 		//create look up table
@@ -134,17 +133,83 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, Perce
 
 	const unsigned int startOffset = outstream->pos();
 	imyHeader header;
-	instream->read((char*) &header, 34);
+	instream->read((char*) &header, sizeof(imyHeader));
 
 	if(header.magic_number != 0x00594D49){
 		PG_ERROR_STREAM("IMY file magic number is wrong!");
 		return FAILURE;
 	}
 
-	if( (header.compressionType >> 4) == 1){
-		const unsigned int decompressedFileSize = header.streamOffset * header.unknown07;
+	const unsigned int decompressedFileSize = header.streamOffset * header.unknown07;
+
+	if (header.compressionType == 0) {
+		std::vector<char> lookUpData(1024);
+		instream->read(lookUpData.data(), 1024);
+		size_t dataOffset = 0;
+
+		PG::UTIL::Array<unsigned int, 4> lookUpTable;
+		lookUpTable[0] = 2; // go back one short
+		lookUpTable[1] = header.streamOffset;
+		lookUpTable[2] = lookUpTable[1] + 2;
+		lookUpTable[3] = lookUpTable[1] - 2;
+
+		const unsigned int compressedDataOffset = instream->pos();
+		const unsigned int compressedDataSize = instream->size() - compressedDataOffset;
+		std::vector<char> copyBuffer;
+		//read every op code
+		int i = 0;
+		while ((outstream->pos() - startOffset) < decompressedFileSize) {
+			if (percent) percent->percent = i / float(compressedDataOffset) * 100;
+
+			uint8_t opCode = instream->readChar();
+			if (opCode & 0xF0) {
+				if ((opCode & 0x80) && (opCode & 0x40)) {
+					//copy shorts from the already uncompressed stream
+					const int index = (opCode & 0x30) >> 4; // the value can only be 0-3
+					//const int shortsToCopy = (opCode & 0x0F) + 1;
+					const unsigned int bytesToWrite = ((opCode & 0x0F) + 1) * 2;
+					const unsigned int currentEnd = outstream->pos();
+					const unsigned int backOffset = currentEnd - lookUpTable[index];
+					const unsigned int bytesToCopy = currentEnd - backOffset;
+
+					if (copyBuffer.size() < bytesToCopy) copyBuffer.resize(bytesToCopy);
+					char* const c = copyBuffer.data();
+					outstream->seek(backOffset);
+					outstream->read(c, bytesToCopy);
+
+					outstream->seek(currentEnd);
+					unsigned int bytesWritten = 0;
+					unsigned int currentByte = 0;
+					while (bytesWritten < bytesToWrite) {
+						outstream->writeChar(c[currentByte]);
+						bytesWritten++;
+						currentByte++;
+						if (currentByte >= bytesToCopy)
+							currentByte = 0;
+					}
+
+				}
+				else {
+					//copy a short from the compressed stream by going back to a short
+					const unsigned int stepsBack = (opCode - 16) * 2 + 2;
+					instream->seek(dataOffset - stepsBack);
+					outstream->writeShort(instream->readShort());
+				}
+			} else { 
+				// just copy data
+				const unsigned int readSize = (opCode + 1) * 2;
+				outstream->write(&lookUpData[dataOffset], readSize);
+				dataOffset += readSize;
+			}
+
+
+			++i;
+		}
+
+	} else if ((header.compressionType >> 4) == 1) {
+		unsigned int numberOfInfoBytes = instream->readUnsignedShort();
 		unsigned int flagsOffset = instream->pos();
-		const unsigned int compressedDataOffset = flagsOffset + header.number_of_info_bytes;
+		const unsigned int compressedDataOffset = flagsOffset + numberOfInfoBytes;
 		unsigned int dataOffset = compressedDataOffset;
 
 		PG::UTIL::Array<unsigned int, 4> lookUpTable;
@@ -156,7 +221,6 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, Perce
 		//unsigned long long compressionFlags = 0;
 		unsigned char compressionFlags[128];
 		unsigned int currentFlag = 0;
-
 
 		while( (outstream->pos()-startOffset) < decompressedFileSize && flagsOffset < compressedDataOffset){
 			if(percent) percent->percent = flagsOffset/float(compressedDataOffset)*100;
@@ -173,10 +237,10 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, Perce
 				instream->read((char*)&compressionFlags[0],128);
 			}
 			unsigned char compressionFlag = compressionFlags[currentFlag];
-			currentFlag++;
-			flagsOffset++;
+			++currentFlag;
+			++flagsOffset;
 
-			if( compressionFlag & 0xF0 ){
+			if(compressionFlag & 0xF0 ){
 				if( (compressionFlag & 0x80) && (compressionFlag & 0x40)){
 					//copy shorts from the already uncompressed stream
 					const int index = (compressionFlag & 0x30) >> 4; // the value can only be 0-3
@@ -202,15 +266,6 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, Perce
 					}
 
 					delete[] c;
-					/*
-					for (int i = 0; i < shorts_to_copy; i++){
-						//read
-						const unsigned int currentEnd = outstream->pos();
-						outstream->seek(currentEnd - lookUpTable[index]);
-						const short s = outstream->readShort();
-						outstream->seek(currentEnd);
-						outstream->writeShort(s);
-					}*/
 				}else{
 					//copy a short from the compressed stream by going back to a short
 					const unsigned int stepsBack = (compressionFlag - 16)*2 + 2;
@@ -227,18 +282,12 @@ bool decompressIMY(PG::STREAM::In* instream, PG::STREAM::InOut* outstream, Perce
 				outstream->write(c, readSize);
 				dataOffset += readSize;
 				delete[] c;
-				/*
-				for(unsigned char i = 0; i < compressionFlag; ++i){
-					instream->seek(dataOffset);
-					outstream->writeShort(instream->readShort());
-					dataOffset += 2;
-				}*/
 			}
 
 		}
 
 	}else{
-		PG_ERROR_STREAM("IMY compression type '"<<header.compressionType<<"' is not supported!");
+		PG_ERROR_STREAM("IMY compression type '"<<(int)header.compressionType<<"' is not supported!");
 		return FAILURE;
 	}
 
