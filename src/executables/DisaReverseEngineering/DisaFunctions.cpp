@@ -2,6 +2,7 @@
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomCharacterManager.h>
 #include <Managers/DisaCustomRenderManager.h>
+#include <Managers/DisaCustomTranslationManager.h>
 #include <DisaCharacterFunctions.h>
 #include <Windows.h>
 #undef max
@@ -425,6 +426,95 @@ void renderSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, const
     else {
         FP::callFastFarA(fRenderTextNew, pos.x + margin + iconDisplayOffset, pos.y + margin + 2, 0xc7a7, &FP::getData<int>(0x005ad538), stringPtr, 0.3f, 0.3f, stringWidth, rowHeight, settingVar);
     }
+}
+
+void __fastcall translateMarkString(char*& jis_string, int& mode) {
+    if (DisaCustomTranslationManager::get()->translateMark(jis_string)) {
+        //mode *= 10;
+    }
+}
+
+void __declspec(naked) __fastcall FUN_RederTextNew(int x, int y, int param_3, int* param_4, unsigned short* jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
+    __asm {
+        // Save fastcall registers (x in ECX, y in EDX)
+        push ecx
+        push edx
+
+        lea  ecx, [esp + 12 + 8]
+        lea  edx, [esp + 32 + 8]
+        call translateMarkString
+
+        // Restore x,y for the final target
+        pop edx
+        pop ecx
+
+        jmp fRenderTextNew
+    }
+}
+
+constexpr std::array<std::uint8_t, 50> accented_utf8 = {
+    0x41, 0x52,
+    0xC3,0x81, // Á
+    0xC3,0xA1, // á
+    0xC3,0x80, // À
+    0xC3,0xA0, // à
+    0xC3,0x83, // Ã
+    0xC3,0xA3, // ã
+    0xC3,0x82, // Â
+    0xC3,0xA2, // â
+    0xC3,0x89, // É
+    0xC3,0xA9, // é
+    0xC3,0x8A, // Ê
+    0xC3,0xAA, // ê
+    0xC3,0x8D, // Í
+    0xC3,0xAD, // í
+    0xC3,0x93, // Ó
+    0xC3,0xB3, // ó
+    0xC3,0x95, // Õ
+    0xC3,0xB5, // õ
+    0xC3,0x94, // Ô
+    0xC3,0xB4, // ô
+    0xC3,0x9A, // Ú
+    0xC3,0xBA, // ú
+    0xC3,0x87, // Ç
+    0xC3,0xA7  // ç
+};
+
+bool __fastcall translateString(char* str, char* outStr, size_t* outLength) {
+    //*outLength = accented_utf8.size();
+    //memcpy(outStr, accented_utf8.data(), accented_utf8.size());
+    //return true;
+    if(!str) return false;
+    auto uft8Str = DisaCustomTranslationManager::get()->getUtf8FromMark(str);
+    if (uft8Str.empty()) return false;
+    *outLength = std::min<size_t>(uft8Str.size(), 254);
+    memcpy(outStr, uft8Str.c_str(), *outLength + 1);
+    return true;
+}
+
+constexpr unsigned int fToUtf8 = 0x0050c210; //func
+void __declspec(naked) __fastcall FUN_0050c210_toUtf8(char* str, char* outStr, size_t* outLength) {
+   
+    __asm {
+        push ecx
+        push edx
+        push[esp + 8 + 4] //out length
+        call translateString
+
+        test    eax, eax
+        jnz     short _return_ok
+
+        mov     ecx, [esp + 4]            // restore str
+        mov     edx, [esp]                // restore outStr
+        push    [esp + 12] //out length
+        call fToUtf8
+        add     esp, 4
+
+    _return_ok:
+        add     esp, 8                    // drop saved edx, ecx
+        ret
+    }
+    
 }
 
 void FUN_RenderDungeonScreeen(void) { //00471240
@@ -1689,11 +1779,22 @@ struct GeometryBatchKey {
     }
 };
 
-static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, byte*> g_geometryMemoryBuffer;
+static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<byte*, bool>> g_geometryMemoryBuffer;
+static std::vector<byte> g_geometryMemory;
+static uint32_t g_geometryMemoryAt = 0;
+static uint32_t g_geometryMemoryTotal = 0;
+static uint32_t g_geometryMemorySize = 500000;
 
 void _stdcall FUN_004201d0_RenderClearBegin() {
     FP::callStdFarA(0x004201d0);
     g_geometryMemoryBuffer.clear();
+    g_geometryMemoryAt = 0;
+    g_geometryMemoryTotal = 0;
+    if (g_geometryMemoryTotal > g_geometryMemorySize) {
+        g_geometryMemorySize = g_geometryMemoryTotal;
+        g_geometryMemory.clear();
+    }
+    g_geometryMemory.resize(g_geometryMemorySize);
 }
 
 void _stdcall FUN_glViewport(int x, int y, int width, int height) {
@@ -1840,6 +1941,17 @@ static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory
 
 }
 
+static byte* g_customMemory = nullptr;
+
+byte* DisaMemeoryManager::FUN_00425bb0(int requestedMemorySize) {
+    if (g_customMemory) {
+        auto out = g_customMemory;
+        g_customMemory = nullptr;
+        return out;
+    }
+    return FP::callThisFarA<byte*>(0x00425bb0, this, requestedMemorySize);
+}
+
 void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelMatrix) {
     if (context->m_numberOfSurfaces == 0) return;
 
@@ -1879,10 +1991,23 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
         size_t* memoryPtr = arrayRoot + arraySize;
        
         //CUSTOM memory reusage if we already build same geometry 
-        byte*& memory = g_geometryMemoryBuffer[{context->m_geofileHeader, key}];
+        auto& [memory, custom] = g_geometryMemoryBuffer[{context->m_geofileHeader, key}];
         //byte* memory = nullptr;
         if (!memory) {
-            if (arrayRoot + arraySize == 0) {
+            //perform custom render
+            if (totalLength > 1024) {
+                auto sum = bytes + 32;
+                g_geometryMemoryTotal += sum;
+                if (g_geometryMemoryTotal >= g_geometryMemorySize) {
+                    continue;
+                }
+                byte* dump = FP::callStdFarA<byte*>(0x00425c10, 0x20, 0x20);
+                memset(dump, 0xFF, 0x20);
+                memory = g_geometryMemory.data() + g_geometryMemoryAt;
+                g_geometryMemoryAt += sum;
+                custom = true;
+       
+            } else if (arrayRoot + arraySize == 0) {
                 memory = FP::callStdFarA<byte*>(0x00425c10, 0x20, bytes);
                 if (!memory) return; //CSUTOM out of memory check
             }
@@ -1900,6 +2025,10 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
             }
 
             copyIntoMemory(context, memory, stride, key);
+        }
+       
+        if (custom) {
+            g_customMemory = memory;
         }
 
         constexpr auto lockSptr = [](int* sptr) -> int* {

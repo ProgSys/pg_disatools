@@ -38,7 +38,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
     byte waitUserImputMode = disaTScriptManager->waitUserImputMode;
 
     //BEGIN custom code
-    //now I have no idea what the other sub blocks to, nor do I care to much for now
+    //now I have no idea what the other sub blocks do, nor do I care to much for now
     //so I just call the original function in that case
     if (waitUserImputMode != 0) {
        FP::callFastFarA(0x004bfa60, disaTScriptManager);

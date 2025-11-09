@@ -1,5 +1,6 @@
 #include "PG_ShiftJisEncoder.h"
 #include "PG_ShiftJisToUtf8LookUpTable.h"
+#include "PG_Utf8ToShiftJisLookUpTable.h"
 
 std::string shiftJisToUtf8(const std::string& shiftJs) {
 	std::string output;
@@ -44,6 +45,68 @@ std::string shiftJisToUtf8(const std::string& shiftJs) {
 	}
 
 	return output;
+}
+
+std::string utf8ToShiftJis(const std::string& utf8, const std::function<unsigned short(uint32_t)>& unknownMapping) {
+	std::string out;
+	if (utf8.empty()) return out;
+
+	uint32_t utf8Char;
+	unsigned short shiftJisChar;
+	auto it = utf8.begin();
+	while (it != utf8.end()) {
+		unsigned char c = *it;
+		if (c & 0x80) { // Single-byte character
+			utf8Char = c;
+			++it;
+		}
+		else if (c & 0xE0) { // Two-byte character
+			if (std::distance(it, utf8.end()) < 2) break; //invalid size
+			utf8Char = c;
+			++it;
+			utf8Char |= static_cast<unsigned long long>(*it) << 8;
+			++it;
+		}
+		else if ((c & 0xF0) == 0xE0) { // Three-byte character
+			if (std::distance(it, utf8.end()) < 3) break; //invalid size
+			utf8Char = c;
+			++it;
+			utf8Char |= static_cast<unsigned long long>(*it) << 8;
+			++it;
+			utf8Char |= static_cast<unsigned long long>(*it) << 16;
+			++it;
+		}
+		else if ((c & 0xF0) == 0xF0) { // Four-byte character
+			if (std::distance(it, utf8.end()) < 4) break; //invalid size
+			utf8Char = c;
+			++it;
+			utf8Char |= static_cast<unsigned long long>(*it) << 8;
+			++it;
+			utf8Char |= static_cast<unsigned long long>(*it) << 16;
+			++it;
+			utf8Char |= static_cast<unsigned long long>(*it) << 24;
+			++it;
+		}
+		else {
+			return {};
+		}
+
+		shiftJisChar = utf8ToShiftJis(utf8Char);
+		if (shiftJisChar == 0 && unknownMapping) {
+			shiftJisChar = unknownMapping(utf8Char);
+		}
+
+		if (shiftJisChar == 0) {
+			//aproximate todo maybe do it better
+			shiftJisChar = 0x8260;
+		}
+		if (unsigned char c = shiftJisChar >> 8) {
+			out.push_back(c);
+		}
+		out.push_back(shiftJisChar && 0x00FF);
+	}
+
+	return out;
 }
 
 std::string shiftJisToString(const std::string& shiftJs) {
@@ -273,4 +336,81 @@ unsigned int indexToShiftJisOffset(const std::string& str, unsigned int index, u
 	auto it = moveSteps(std::next(str.begin(), startOffset), str.end(), index);
 
 	return std::distance(str.begin(), it) - startOffset;
+}
+
+//see https://www.msx.org/wiki/Shift-JIS_code
+size_t getShiftJisLength(char* shiftJis) {
+	size_t count = 0;
+	if (!shiftJis) return count;
+
+	while (shiftJis && count < 9000) {
+		unsigned char c = *shiftJis;
+		if (c <= 0x7F || (c >= 0xA0 && c <= 0xDF)) {
+			++shiftJis;
+		}
+		else {
+			shiftJis += 2;
+		}
+		++count;
+	}
+
+	return count;
+}
+
+size_t getUtf8Length(const std::string& string) {
+	size_t count = 0;
+	if (string.empty()) return count;
+
+	auto it = string.begin();
+	while (it != string.end()) {
+		unsigned char c = *it;
+		if (c & 0x80) { // Single-byte character
+			++it;
+		}
+		else if (c & 0xE0) { // Two-byte character
+			if (std::distance(it, string.end()) < 2) break;
+			it += 2;
+		}
+		else if ((c & 0xF0) == 0xE0) { // Three-byte character
+			if (std::distance(it, string.end()) < 3) break;
+			it += 3;
+		}
+		else if ((c & 0xF0) == 0xF0) { // Four-byte character
+			if (std::distance(it, string.end()) < 4) break;
+			it += 4;
+		}
+		++count;
+	}
+
+	return count;
+}
+
+void resizeUtf8(std::string& string, size_t targetSize) {
+	if (string.empty()) return;
+
+	size_t count = 0;
+	auto it = string.begin();
+	while (it != string.end()) {
+		unsigned char c = *it;
+		if (c & 0x80) { // Single-byte character
+			++it;
+		}
+		else if (c & 0xE0) { // Two-byte character
+			if (std::distance(it, string.end()) < 2) break;
+			it += 2;
+		}
+		else if ((c & 0xF0) == 0xE0) { // Three-byte character
+			if (std::distance(it, string.end()) < 3) break;
+			it += 3;
+		}
+		else if ((c & 0xF0) == 0xF0) { // Four-byte character
+			if (std::distance(it, string.end()) < 4) break;
+			it += 4;
+		}
+		++count;
+		if (count >= targetSize) {
+			string.erase(it, string.end());
+			return;
+		}
+	}
 }

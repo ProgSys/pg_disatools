@@ -382,6 +382,10 @@ bool processSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, cons
 */
 void renderSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, const std::string& text, bool isHover, DisaSettings::KeyAssigned = DisaSettings::KeyAssigned::Invalid, unsigned int width = 0);
 
+
+void __fastcall FUN_RederTextNew(int x, int y, int param_3, int* param_4, unsigned short* jis_string, float param_6, float param_7, int param_8, int param_9, int param_10);
+
+void __fastcall FUN_0050c210_toUtf8(char* str, char* outStr, size_t* outLength);
 //======== FUNCTIONS ========
 
 /**
@@ -483,4 +487,8 @@ struct DisaObjectRenderContext {
     glm::vec2 m_uvScrollSpeed; //0x190 copy from  m_uvScrollObject
 
     void __thiscall FUN_004e2180(glm::mat4* param1, glm::frgba* colorMultiplier, uint32_t param_3, float param_4);
+};
+
+struct DisaMemeoryManager {
+    unsigned char* __thiscall FUN_00425bb0( int requestedMemorySize);
 };

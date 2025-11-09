@@ -865,7 +865,7 @@ struct GLTFToGEOParser {
 
 			const tinygltf::Node& node = modelGLTF.nodes[nodeIndex];
 			//node.mesh
-			geoNodes.emplace_back(parentIndex, geoTransformation.size(), 1, 0, 0, 0, 0);
+			geoNodes.emplace_back(parentIndex, static_cast<short>(geoTransformation.size()), 1, 0, 0, 0, 0);
 			geoTransformation.emplace_back(toGeofileTransformation(node));
 
 			if (node.mesh >= 0) {

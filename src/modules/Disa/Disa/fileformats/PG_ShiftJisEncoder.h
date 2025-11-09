@@ -19,10 +19,16 @@
 
 #include <string>
 #include <vector>
+#include <functional>
 /**
 * @brief Will convert a Shift Jis string to an utf-8 string
 */
 std::string shiftJisToUtf8(const std::string& shiftJs);
+/**
+* @brief Will convert a utf-8 string to Shift Jis string
+* @param unknownMapping is called when there is no mapping to shift jis
+*/
+std::string utf8ToShiftJis(const std::string& utf8, const std::function<unsigned short(uint32_t)>& unknownMapping = {});
 /**
 * @brief Will convert a Shift Jis string to an std::string
 * Some chars may get lost
@@ -54,6 +60,19 @@ std::string splitShiftJisClampToSize(const std::string& str, unsigned int size);
 * @param startOffset starting byte offset form where to start the search from (should be used with care)
 */
 unsigned int indexToShiftJisOffset(const std::string& str, unsigned int index, unsigned int startOffset = 0);
+/**
+* @brief Finds the length of the given zero terminated shift jis string
+*/
+size_t getShiftJisLength(char* shiftJis);
+/**
+* @brief Finds the length of the given uft8 string
+*/
+size_t getUtf8Length(const std::string& string);
+/**
+* @brief Resize the Utf8 string to given size
+* Will only apply if string is bigger then targetSize
+*/
+void resizeUtf8(std::string& string, size_t targetSize);
 /**
 * @brief Helper function to copy an array into a string
 * Simmilar to strncpy 
