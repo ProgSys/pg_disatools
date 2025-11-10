@@ -147,6 +147,9 @@ void PG_CustomCharacterModel::createNew(std::string name) {
 void PG_CustomCharacterModel::afterOpen(zipUPtr& zip) {
 	auto campaignInfo = find(PG_File("character.json"));
 	if (!campaignInfo) {
+		campaignInfo = find(PG_File("mod.json"));
+	}
+	if (!campaignInfo) {
 		clear();
 		return;
 	}

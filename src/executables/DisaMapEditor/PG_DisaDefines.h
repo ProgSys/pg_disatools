@@ -28,5 +28,5 @@
 
 #pragma once
 
-#define APP_VERSION "0.3.8"
+#define APP_VERSION "0.3.9"
 #define APP_NAME "Disa Map Viewer v" APP_VERSION

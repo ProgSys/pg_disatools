@@ -15,6 +15,7 @@ public:
 	PG_Dir getCustomCharactersDir() const;
 	PG_Dir getCustomScripsDir() const;
 	PG_Dir getCustomTalkScripsDir() const;
+	PG_Dir getCustomTranslationDir() const;
 
 
 	static PG_DisaMainBaseModel* get();

@@ -23401,6 +23401,7 @@ const static std::map<uint32_t, unsigned short> utf8ToMapshiftJis = {
 };
 
 unsigned short utf8ToShiftJis(uint32_t v){
+    if (v >= 0x20 && v < 0x7F) return v; //same as utf8
 	auto findIt = utf8ToMapshiftJis.find(v);
 	if(findIt == utf8ToMapshiftJis.end()) return 0;
 	return findIt->second;

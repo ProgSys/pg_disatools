@@ -13,5 +13,6 @@ namespace PG_DisaTalkScript {
 
 	std::string decompile(const std::vector<unsigned char>& code) throw(PG_CompileException);
 	std::string decompile(PG::STREAM::In* codeStream) throw(PG_CompileException);
+	std::vector<std::string> findStrings(PG::STREAM::In* codeStream) throw(PG_CompileException);
 };
 

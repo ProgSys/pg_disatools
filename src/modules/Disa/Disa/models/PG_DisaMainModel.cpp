@@ -40,6 +40,11 @@ PG_Dir PG_DisaMainBaseModel::getCustomTalkScripsDir() const {
 	return exePath.getDir() + "/mod/CustomTalkScript";
 }
 
+PG_Dir PG_DisaMainBaseModel::getCustomTranslationDir() const {
+	auto exePath = getExePath();
+	return exePath.getDir() + "/mod/CustomTranslation";
+}
+
 PG_File PG_DisaMainModel::getExePath() const {
 	return m_config.getDisaExePath();
 }

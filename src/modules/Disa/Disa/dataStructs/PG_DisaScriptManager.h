@@ -87,7 +87,7 @@ struct PG_DisaScriptManager {
 	unsigned short field_0x58;                  // 0x58
 	short field5_0x58;                  // 0x58   - 0x5a
 	short field5_0x5a;                  // 0x5a   - 0x5c
-	unsigned char* scriptsData;                  // 0x5c   - 0x60
+	unsigned char* scriptsData;                  // 0x5c   - 0x60 talk scripts
 	unsigned char* scriptPointer;              // 0x60   - 0x64
 	unsigned char waitUserImputMode;			// 0x64   //like waiting for user to press confirm or make amenu selection // 0x64   - 0x68
 	unsigned char field8_0x65;          // 0x65   

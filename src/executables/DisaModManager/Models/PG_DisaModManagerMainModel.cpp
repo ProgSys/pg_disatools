@@ -46,6 +46,7 @@ std::string PG_DisaModManagerMainModel::importZip(const PG_File& zipFile) {
 		}
 
 		auto findCharIt = zip.find(PG_File("character.json"));
+		if (!findCharIt) findCharIt = zip.find(PG_File("mod.json"));
 		auto findCampIt = zip.find(PG_File("campaign.json"));
 
 		if (!findCampIt && !findCharIt) {

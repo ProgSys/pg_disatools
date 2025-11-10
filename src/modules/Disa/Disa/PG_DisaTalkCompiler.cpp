@@ -63,6 +63,9 @@ const std::unordered_map<std::string, std::pair<unsigned char, glm::ivec2>> gFun
 	{"clear", {0x0A, glm::ivec2(2) }},
 	{"script", {0x0B, glm::ivec2(1) }},
 	{"call", {0x0C, glm::ivec2(1) }},
+	{"menustart", {0x14, glm::ivec2(2) }},
+	{"menuentry", {0x14, glm::ivec2(2) }},
+	{"menuend", {0xFD, glm::ivec2(0) }},
 	{"scriptcustom", {0x0D, glm::ivec2(1) }},
 	{"callcustom", {0x0F, glm::ivec2(1) }},
 	{"charmid", {0x0E, glm::ivec2(4) }},
@@ -87,6 +90,8 @@ const std::unordered_map<unsigned char, std::pair<std::string, glm::ivec2>> gOpC
 	{0x0A, { "clear", glm::ivec2(2) }},
 	{0x0B, { "script", glm::ivec2(1) }},
 	{0x0C, { "call", glm::ivec2(1) }},
+	{0x14, { "menuEntry", glm::ivec2(1) }},
+	{0xFD, { "menuEnd", glm::ivec2(0) }},
 	{0x0D, { "scriptCustom", glm::ivec2(1) }},
 	{0x0F, { "callCustom", glm::ivec2(1) }},
 	{0x0E, { "charMid", glm::ivec2(4) }},
@@ -416,6 +421,14 @@ std::vector<unsigned char> PG_DisaTalkScript::compile(PG::STREAM::In* codeStream
 			out.push_back(param3);
 
 		}break;
+		case 0x14: {
+			const unsigned char param1 = getInt(*args[0], vars);
+			const std::string converted = stringToShiftJis(args[1]->str);
+			out.push_back(param1);
+			out.insert(out.end(), converted.begin(), converted.end());
+			out.push_back(0);
+		} break;
+		case 0xFD: break; // "menuend",
 		case 0xFF: break; // "return",
 		case 0xFE: break; // "Restart",
 		default:
@@ -526,11 +539,25 @@ std::string PG_DisaTalkScript::decompile(PG::STREAM::In* codeStream) {
 			const unsigned int id = toUInt(0, codeStream->readChar(), codeStream->readChar(), codeStream->readChar());
 			ss << findIt->second.first << "(" << (id / 10000) << ", " << (id % 10000) << ");\n";
 		} break;
+		case 0x0C: //"call",
 		case 0x0B: {
 			const unsigned int id = toUInt(0, codeStream->readChar(), codeStream->readChar(), codeStream->readChar());
 			ss << findIt->second.first << "(" << id << ");\n";
 		}break; //"script",
-		case 0x0C: break; //"call",
+		case 0x14: {
+			const unsigned char entries = codeStream->readChar();
+			std::string shiftJis;
+			while (char c = codeStream->readChar()) {
+				shiftJis.push_back(c);
+			}
+			const std::string converted = shiftJisToString(shiftJis);
+			ss << (entries == 1? findIt->second.first: "menuStart");
+			ss << "(" << (int)entries <<", \"" << converted << "\");\n";
+		}break; //"menuEntry",
+
+		case 0xFD: {
+			ss << findIt->second.first << "(" << ");\n\n";
+		} break;//"menuEND",
 		case 0x04: //"charleft",
 		case 0x0E:  //"charmid",
 		case 0x18: {
@@ -557,4 +584,90 @@ std::string PG_DisaTalkScript::decompile(PG::STREAM::In* codeStream) {
 	
 
 	return ss.str();
+}
+
+std::vector<std::string> PG_DisaTalkScript::findStrings(PG::STREAM::In* codeStream) throw(PG_CompileException) {
+	std::vector<std::string> out;
+	char opCode;
+
+	while (*(*codeStream >> opCode)) {
+		auto findIt = gOpCodeToFunction.find(opCode);
+		if (findIt == gOpCodeToFunction.end()) {
+			throwError(0, "Unknown op code " + std::to_string(opCode) + "!");
+			return {};
+		}
+
+		switch (opCode)
+		{
+		case (char)0x01: {
+
+			std::string shiftJis;
+			while (char c = codeStream->readChar()) {
+				shiftJis.push_back(c);
+			}
+			out.push_back(std::move(shiftJis));
+		} break; //"dialog",
+		case (char)0x02: //"confirm2",
+		case (char)0x03:
+		{
+		}break; //"confirm",
+		case (char)0x05: {
+			const short id = toShort(codeStream->readChar(), codeStream->readChar());
+		}break;//"portrait",
+		case (char)0x06: {
+			const unsigned short id = toShort(codeStream->readChar(), codeStream->readChar());
+		}break;//"voice",
+		case (char)0x07: //"speechbubble",
+		{
+			const char boxType = codeStream->readChar();
+			const char arrowPosition = codeStream->readChar();
+		}break;
+		case (char)0x08: //"name", 
+		{
+			short id = toShort(codeStream->readChar(), codeStream->readChar());
+			const char position = codeStream->readChar();
+		} break;
+		case (char)0x09: //"set", 
+		case (char)0x0A: {
+			DisaGameStateFilterExport ex{ 0, 0 };
+			unsigned short& data = *(unsigned short*)&ex;
+			data = toUShort(codeStream->readChar(), codeStream->readChar());
+		}break; //"clear", 
+		case (char)0x64: { //"loadImg", 
+			const unsigned int id = toUInt(0, codeStream->readChar(), codeStream->readChar(), codeStream->readChar());
+		} break;
+		case (char)0x0C: //"call",
+		case (char)0x0B: {
+			const unsigned int id = toUInt(0, codeStream->readChar(), codeStream->readChar(), codeStream->readChar());
+		}break; //"script",
+		case (char)0x14: {
+			const unsigned char entries = codeStream->readChar();
+			std::string shiftJis;
+			while (char c = codeStream->readChar()) {
+				shiftJis.push_back(c);
+			}
+			out.push_back(std::move(shiftJis));
+		}break; //"menuEntry",
+		case (char)0xFD: break; //"menuEnd",
+		case (char)0x04: //"charleft",
+		case (char)0x0E:  //"charmid",
+		case (char)0x18: {
+			const short slot = toShort(codeStream->readChar(), codeStream->readChar());
+			const unsigned short combined = toShort(codeStream->readChar(), codeStream->readChar());
+			const unsigned int modefier = codeStream->readChar();
+		} break; //"charright",
+		case (char)0xC9: {
+			const bool b = codeStream->readChar() > 0;
+
+		}break; // "showbox", 
+		case (char)0xFF: // "return",
+		case (char)0xFE: return out; // "return",
+		default:
+			auto i = 0;
+			break;
+		};
+	}
+
+
+	return out;
 }

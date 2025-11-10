@@ -106,6 +106,13 @@ unsigned int FunctionPatcher::replaceFunctionIndirectCall(unsigned int originalF
     return originalFuncTargetAddress;
 }
 
+void FunctionPatcher::removeProtect(unsigned int address) {
+    DWORD oldProtect;
+    if (!VirtualProtect(reinterpret_cast<LPVOID>(address), 32, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+        std::cerr << "Failed to change memory protection." << std::endl;
+    }
+}
+
 void FunctionPatcher::callFar(unsigned int funcAddress) {
     funcAddress -= usedBase;
     funcAddress += FunctionPatcher::get()->getBaseAdress();

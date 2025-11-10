@@ -54,4 +54,8 @@ namespace PG_ZIPUtil{
 	inline std::string readString(const zipUPtr& archive, const std::string& fileInZip) throw(PG_RuntimeError) {
 		return readString(archive.get(), fileInZip);
 	}
+	/**
+	* @brief Will call string for each new line in text
+	*/
+    void readStringLines(zip* archive, const std::string& fileInZip, const std::function<void(const std::string&)>& callback)  throw(PG_RuntimeError);
 }

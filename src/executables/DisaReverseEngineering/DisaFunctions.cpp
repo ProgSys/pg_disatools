@@ -14,6 +14,7 @@
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
 #include <Disa/fileformats/PG_MPD.h>
+#include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Stream/PG_StreamInByteArray.h>
 #include <ranges>
 
@@ -428,9 +429,22 @@ void renderSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, const
     }
 }
 
+static char* g_translationStr = nullptr;
+static std::array<char, 512> g_translateBuffer = { 0 };
+
 void __fastcall translateMarkString(char*& jis_string, int& mode) {
-    if (DisaCustomTranslationManager::get()->translateMark(jis_string)) {
-        //mode *= 10;
+    g_translationStr = DisaCustomTranslationManager::get()->translate(jis_string);
+
+    if (!g_translationStr && DisaCustomTranslationManager::get()->hasMarkes(jis_string)) {
+        g_translationStr = jis_string;
+        if (mode == 1) {
+            for (int i = 0; i < g_translateBuffer.size() - 1; ++i) {
+                g_translateBuffer[i] = g_translationStr[i];
+                if (g_translationStr[i] == 0) break;
+            }
+            g_translationStr = g_translateBuffer.data();
+            shiftJisToHalf((unsigned char*)g_translationStr);
+        }
     }
 }
 
@@ -452,44 +466,9 @@ void __declspec(naked) __fastcall FUN_RederTextNew(int x, int y, int param_3, in
     }
 }
 
-constexpr std::array<std::uint8_t, 50> accented_utf8 = {
-    0x41, 0x52,
-    0xC3,0x81, // Á
-    0xC3,0xA1, // á
-    0xC3,0x80, // À
-    0xC3,0xA0, // à
-    0xC3,0x83, // Ã
-    0xC3,0xA3, // ã
-    0xC3,0x82, // Â
-    0xC3,0xA2, // â
-    0xC3,0x89, // É
-    0xC3,0xA9, // é
-    0xC3,0x8A, // Ê
-    0xC3,0xAA, // ê
-    0xC3,0x8D, // Í
-    0xC3,0xAD, // í
-    0xC3,0x93, // Ó
-    0xC3,0xB3, // ó
-    0xC3,0x95, // Õ
-    0xC3,0xB5, // õ
-    0xC3,0x94, // Ô
-    0xC3,0xB4, // ô
-    0xC3,0x9A, // Ú
-    0xC3,0xBA, // ú
-    0xC3,0x87, // Ç
-    0xC3,0xA7  // ç
-};
-
 bool __fastcall translateString(char* str, char* outStr, size_t* outLength) {
-    //*outLength = accented_utf8.size();
-    //memcpy(outStr, accented_utf8.data(), accented_utf8.size());
-    //return true;
-    if(!str) return false;
-    auto uft8Str = DisaCustomTranslationManager::get()->getUtf8FromMark(str);
-    if (uft8Str.empty()) return false;
-    *outLength = std::min<size_t>(uft8Str.size(), 254);
-    memcpy(outStr, uft8Str.c_str(), *outLength + 1);
-    return true;
+    if (!g_translationStr) return false;
+    return DisaCustomTranslationManager::get()->toUtf8(g_translationStr, outStr, outLength);
 }
 
 constexpr unsigned int fToUtf8 = 0x0050c210; //func
@@ -501,13 +480,13 @@ void __declspec(naked) __fastcall FUN_0050c210_toUtf8(char* str, char* outStr, s
         push[esp + 8 + 4] //out length
         call translateString
 
-        test    eax, eax
+        test    al, al
         jnz     short _return_ok
 
         mov     ecx, [esp + 4]            // restore str
         mov     edx, [esp]                // restore outStr
         push    [esp + 12] //out length
-        call fToUtf8
+        call fToUtf8 //original
         add     esp, 4
 
     _return_ok:
@@ -515,6 +494,31 @@ void __declspec(naked) __fastcall FUN_0050c210_toUtf8(char* str, char* outStr, s
         ret
     }
     
+}
+
+void __fastcall translateReplace(char*& jis_string) {
+    auto* translator = DisaCustomTranslationManager::get();
+    auto str = translator->translate(jis_string);
+    if (str) {
+        translator->replaceSpecial(str);
+        jis_string = str;
+    }
+}
+
+int __declspec(naked) __fastcall FUN_GetWidthOfString(char* str, int param_2, int param_3, int* param_4, int param_5) {
+    __asm {
+        // Save fastcall registers (x in ECX, y in EDX)
+        push ecx
+        push edx
+
+        lea  ecx, [esp + 4]
+        call translateReplace
+        // Restore x,y for the final target
+        pop edx
+        pop ecx
+
+        jmp fGetWidthOfString
+    }
 }
 
 void FUN_RenderDungeonScreeen(void) { //00471240

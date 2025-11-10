@@ -20,10 +20,12 @@ class PG_DisaObjectViewNode : public PG_ActorNode {
 	PG_PROPERTY(glm::vec3 translationUser GET getTranslationUser SET setTranslationUser CHANGED translationUserChanged);
 	PG_PROPERTY(glm::quat rotationUser GET getRotationUser SET setRotationUser CHANGED rotationUserChanged);
 	PG_PROPERTY(glm::vec3 scaleUser GET getScaleUser SET setScaleUser CHANGED scaleUserChanged);
+	//PG_PROPERTY(glm::ivec2 uvScrollUser GET getUvScrollUser SET setUvScrollUser CHANGED uvScrollUserChanged);
 signals:
 	void translationUserChanged();
 	void rotationUserChanged();
 	void scaleUserChanged();
+	//void uvScrollUserChanged();
 public:
 	using PG_ActorNode::PG_ActorNode;
 

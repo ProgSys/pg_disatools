@@ -386,6 +386,9 @@ void renderSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, const
 void __fastcall FUN_RederTextNew(int x, int y, int param_3, int* param_4, unsigned short* jis_string, float param_6, float param_7, int param_8, int param_9, int param_10);
 
 void __fastcall FUN_0050c210_toUtf8(char* str, char* outStr, size_t* outLength);
+
+int __fastcall FUN_GetWidthOfString(char* str, int param_2, int param_3, int* param_4, int param_5);
+
 //======== FUNCTIONS ========
 
 /**

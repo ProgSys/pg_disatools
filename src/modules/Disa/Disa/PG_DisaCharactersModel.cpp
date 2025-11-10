@@ -8,6 +8,7 @@
 #include <Disa/utils/PG_DisaModLoadInfo.h>
 #include <Disa/models/PG_DisaModLoadOrderListModel.h>
 #include <Disa/PG_DisaScriptsModel.h>
+#include <Disa/PG_DisaTranslationModel.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Util/PG_StringUtil.h>
 #include <Stream/PG_StreamInOutByteVector.h>
@@ -31,8 +32,8 @@ static PG_DisaCharacterModel g_emptyCharacterModel = {
 PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel():
 	m_scriptsModel(new PG_DisaScriptsModel()) {}
 
-PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel(PG_DisaScriptsModel* scriptsModel):
-	m_scriptsModel(scriptsModel) {
+PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel(PG_DisaScriptsModel* scriptsModel, PG_DisaTranslationModel* translationModel):
+	m_scriptsModel(scriptsModel), m_translationModel(translationModel) {
 	assert(scriptsModel);
 }
 
@@ -61,8 +62,11 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 		try {
 			info.json = PG_ZIPUtil::readJson(archive, "character.json");
 			if (info.json.empty()) {
-				OUT_ERROR("Failed to parse 'character.json' inside zip '" << zipFile << "'!");
-				continue;
+				info.json = PG_ZIPUtil::readJson(archive, "mod.json");
+				if (info.json.empty()) {
+					OUT_ERROR("Failed to parse 'mod.json' or 'character.json' inside zip '" << zipFile << "'!");
+					continue;
+				}
 			}
 
 			if (!readFromJsonMandatory(info.json, "id", info.id)) {
@@ -107,7 +111,8 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 		m_mods.push_back({});
 		try {
 			loadCharacters(m_mods.back(), metaCharInfo);
-			m_scriptsModel->loadScripts(&m_mods.back(), metaCharInfo);
+			if (m_scriptsModel) m_scriptsModel->loadScripts(&m_mods.back(), metaCharInfo);
+			if (m_translationModel) m_translationModel->loadTranslation(&m_mods.back(), metaCharInfo);
 		}
 		catch (const std::exception& ex) {
 			m_mods.pop_back();

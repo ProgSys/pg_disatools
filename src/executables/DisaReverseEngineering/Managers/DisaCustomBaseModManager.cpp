@@ -17,9 +17,7 @@
 #include <Managers/DisaCustomTranslationManager.h>
 
 DisaCustomBaseModManager::DisaCustomBaseModManager():
-    PG_DisaMainBaseModel(), m_scriptsModel(new DisaCustomScriptManager()), m_translationModel(new DisaCustomTranslationManager()){
-    m_translationModel->test();
-}
+    PG_DisaMainBaseModel(), m_scriptsModel(new DisaCustomScriptManager()), m_translationModel(new DisaCustomTranslationManager()){}
 
 static inline std::string getExecutablePath() {
     char path[MAX_PATH];

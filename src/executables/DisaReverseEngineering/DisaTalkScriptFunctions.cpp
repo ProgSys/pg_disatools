@@ -5,6 +5,8 @@
 #include <Managers/DisaCustomBaseModManager.h>
 #include <iostream>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Disa/fileformats/PG_ShiftJisEncoder.h>
+#include <Managers/DisaCustomTranslationManager.h>
 
 using byte = unsigned char;
 using ushort = unsigned short;
@@ -265,10 +267,15 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
                // std::cout << "Dialog(" << ");" << std::endl;
             //}
 
+            static char* dialogOrgStr = nullptr;
+            static char* dialogStr = nullptr;
+
             if (disaTScriptManager->field16_0x16f2 != 0) {
                 disaTScriptManager->field16_0x16f2 = 0;
                 disaTScriptManager->dialogStringLength = 0;
                 disaTScriptManager->dialogStringCurrentRow = 0;
+                dialogOrgStr = nullptr;
+                dialogStr = nullptr;
             }
 
             if (disaTScriptManager->speechBubbleAnimationFrame == 0) {
@@ -281,13 +288,26 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
                 disaTScriptManager->dialogStringLength = 0;
                 disaTScriptManager->dialogStringCurrentRow = 0;
                 disaTScriptManager->field14_0x16ec = 0;
+                dialogOrgStr = nullptr;
+                dialogStr = nullptr;
             }
 
             if ((*(int*)(FP::getData<uint>(0x005d7c40) + 0x30) == 1) || (*(int*)(FP::getData<uint>(0x005d7c40) + 0x30) == 0)) { //settings
 
-                bVar17 = *disaTScriptManager->scriptPointer;
-                byte lowerByte = *disaTScriptManager->scriptPointer;
-                disaTScriptManager->scriptPointer++;
+                //read shiftJis string
+                //START CUSTOM CODE to support translation
+                if (!dialogOrgStr) {
+                    dialogOrgStr = (char*)disaTScriptManager->scriptPointer;
+                    dialogStr = nullptr;
+                    while (*disaTScriptManager->scriptPointer) ++disaTScriptManager->scriptPointer;
+                }
+                if (!dialogStr) dialogStr = DisaCustomTranslationManager::get()->translate(dialogOrgStr, true);
+                if (!dialogStr) dialogStr = dialogOrgStr;
+                //END CUSTOM CODE to support translation
+
+                bVar17 = *dialogStr;
+                byte lowerByte = *dialogStr;
+                dialogStr++;
                 /*
                 bVar17 = *disaTScriptManager->scriptPointer;
                 iVar18 = (int)(char)bVar17;
@@ -298,13 +318,13 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
                     if (disaTScriptManager->field14_0x16ec < disaTScriptManager->dialogStringCurrentRow) {
                         disaTScriptManager->field14_0x16ec = disaTScriptManager->field14_0x16ec + 1;
                     }
-                    unsigned char* pbVar13 = disaTScriptManager->scriptPointer;
-                    byte upperByte = *disaTScriptManager->scriptPointer;
-                    disaTScriptManager->scriptPointer++;
+                    char* pbVar13 = dialogStr;
+                    byte upperByte = *dialogStr;
+                    dialogStr++;
 
 
                     if (0x60 < lowerByte && lowerByte < 0x7b || 0x40 < lowerByte && lowerByte < 0x5b) {
-                        disaTScriptManager->scriptPointer = pbVar13; //rewind?
+                        dialogStr = pbVar13; //rewind?
                         iVar16 = lowerByte;
                         upperByte = lowerByte;
                     }
@@ -319,27 +339,27 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
                             puVar15 = (undefined4*)((int)puVar15 + 1);
                         } while (cVar1 != '\0');
 
-                        pbVar13 = disaTScriptManager->field17_0x16f4 +
+                        unsigned char* pbVar14 = disaTScriptManager->field17_0x16f4 +
                             disaTScriptManager->dialogStringLength * 2 +
                             disaTScriptManager->dialogStringCurrentRow * 0x81 + 5;
 
                         do {
-                            pbVar21 = pbVar13 + 1;
-                            pbVar13 = pbVar13 + 1;
+                            pbVar21 = pbVar14 + 1;
+                            pbVar14 = pbVar14 + 1;
                         } while (*pbVar21 != 0);
 
                         undefined4* puVar20 = puVar19;
 
                         for (uVar9 = (uint)((int)puVar15 - (int)puVar19) >> 2; uVar9 != 0; --uVar9) {
-                            *(undefined4*)pbVar13 = *puVar20;
+                            *(undefined4*)pbVar14 = *puVar20;
                             puVar20 = puVar20 + 1;
-                            pbVar13 = pbVar13 + 4;
+                            pbVar14 = pbVar14 + 4;
                         }
 
                         for (uVar9 = (int)puVar15 - (int)puVar19 & 3; uVar9 != 0; --uVar9) {
-                            *pbVar13 = *(byte*)puVar20;
+                            *pbVar14 = *(byte*)puVar20;
                             puVar20 = (undefined4*)((int)puVar20 + 1);
-                            pbVar13 = pbVar13 + 1;
+                            pbVar14 = pbVar14 + 1;
                         }
 
                         do {
@@ -432,6 +452,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
             }
             disaTScriptManager->dialogStringCurrentRow = disaTScriptManager->dialogStringCurrentRow + 1;
             disaTScriptManager->dialogStringLength = 0;
+            dialogOrgStr = 0;
             return;
         }
         case 2:

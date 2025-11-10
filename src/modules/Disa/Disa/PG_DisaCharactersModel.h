@@ -42,6 +42,7 @@ class PG_PSPFS;
 class PG_DisaFileContainer;
 class PG_DisaModLoadInfo;
 class PG_DisaScriptsModel;
+class PG_DisaTranslationModel;
 
 struct PG_DisaCharacterModel {
 	enum EPDisaCharacterModelIdentity : Identity {
@@ -128,7 +129,7 @@ public:
 	};
 
 	PG_DisaCustomCharactersModel();
-	PG_DisaCustomCharactersModel(PG_DisaScriptsModel* scriptsModel);
+	PG_DisaCustomCharactersModel(PG_DisaScriptsModel* scriptsModel, PG_DisaTranslationModel* translationModel);
 
 	std::pair<PG::STREAM::In*, const Info&> createSpriteReader(const std::string& baseDir, unsigned int spriteId);
 	std::pair<PG::STREAM::In*, const Info&> createFaceReader(const std::string& baseDir, unsigned int faceId, bool isHD);
@@ -184,6 +185,7 @@ public:
 	DisplayInfo getDisplayInfo(const CharacterInfo& c) const;
 
 	PG_DisaScriptsModel* getDisaScriptsModel() const { return m_scriptsModel; }
+	PG_DisaTranslationModel* getDisaTranslationModel() const { return m_translationModel; }
 
 protected:
 	/**
@@ -216,6 +218,7 @@ protected:
 	std::map<std::string, unsigned int> m_magicMapper;
 
 	PG_DisaScriptsModel* m_scriptsModel = nullptr;
+	PG_DisaTranslationModel* m_translationModel = nullptr;
 };
 
 

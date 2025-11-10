@@ -102,3 +102,47 @@ std::string PG_ZIPUtil::readString(zip* archive, const std::string& fileInZip) {
 
     return content;
 }
+
+void PG_ZIPUtil::readStringLines(zip* archive, const std::string& fileInZip, const std::function<void(const std::string&)>& callback) {
+    if (!callback || !archive) return;
+
+    zip_file* zf = zip_fopen(archive, fileInZip.c_str(), 0);
+    if (!zf) {
+        throw_RuntimeError("Failed to find '" << fileInZip << "' in zip!");
+    }
+
+
+    std::string line;
+    std::vector<char> buffer(1024);
+    zip_int64_t bytesRead;
+    int killCount = 2000000;
+
+    while ((bytesRead = zip_fread(zf, buffer.data(), buffer.size())) > 0) {
+        auto rng = std::ranges::subrange(buffer.begin(), buffer.begin() + bytesRead);
+        auto begin = rng.begin();
+
+        while (true) {
+            auto findIt = std::ranges::find(begin, rng.end(), '\n');
+            line.insert(line.end(), begin, findIt);
+            if (findIt != rng.end()) {
+                callback(line);
+                line.clear();
+                begin = std::next(findIt);
+                if (begin == rng.end()) break;
+                if (*begin == '\r') ++begin;
+                if (begin == rng.end()) break;
+            }
+            else break;
+        }
+
+        if (line.size() > 1000000) {
+            throw_RuntimeError("Zip file is bigger then " << 1000000 << "!");
+        }
+        --killCount;
+        if (killCount < 0) {
+            throw_RuntimeError("Zip file is too big!");
+        }
+    }
+
+    if(!line.empty()) callback(line);
+}

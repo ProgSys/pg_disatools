@@ -49,6 +49,7 @@ public:
 		return replaceFunctionIndirectCall(originalFuncAddress, reinterpret_cast<unsigned int>(std::addressof(replacementPointerAddress)));
 	}
 
+	static void removeProtect(unsigned int address);
 	template<typename T>
 	static T& getData(unsigned int address) {
 		address -= usedBase;

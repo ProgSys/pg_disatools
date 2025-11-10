@@ -23,17 +23,21 @@
 /**
 * @brief Will convert a Shift Jis string to an utf-8 string
 */
-std::string shiftJisToUtf8(const std::string& shiftJs);
+std::string shiftJisToUtf8(const std::string& shiftJs, const std::function<uint32_t(unsigned short)>& remap = {});
 /**
 * @brief Will convert a utf-8 string to Shift Jis string
 * @param unknownMapping is called when there is no mapping to shift jis
 */
-std::string utf8ToShiftJis(const std::string& utf8, const std::function<unsigned short(uint32_t)>& unknownMapping = {});
+std::string utf8ToShiftJis(const std::string& utf8, bool fullSize, const std::function<unsigned short(uint32_t)>& unknownMapping = {});
 /**
 * @brief Will convert a Shift Jis string to an std::string
 * Some chars may get lost
 */
 std::string shiftJisToString(const std::string& shiftJs);
+/**
+* @brief Will convert FULL Shift Jis to HALF shift jis
+*/
+void shiftJisToHalf(unsigned char* shiftJs);
 /**
 * @brief Will convert a std string to an Shift Jis string 
 * This will try to use FULLWIDTH LATIN 
@@ -87,3 +91,8 @@ std::string toShiftJisString(const std::array<char, Size>& data) {
     }
     return str;
 }
+
+/**
+* @brief Will split given utf8 string by given simple 1 byte character
+*/
+std::vector<std::string> splitUtf8Simple(const std::string& string, const char splitter);

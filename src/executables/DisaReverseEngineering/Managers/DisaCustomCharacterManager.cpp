@@ -352,6 +352,6 @@ void DisaCustomCharacterManager::loadCharactersIntoMememory() {
 
 
 DisaCustomCharacterManager* DisaCustomCharacterManager::get() {
-	static DisaCustomCharacterManager manager(DisaCustomBaseModManager::get()->getScriptsModel());
+	static DisaCustomCharacterManager manager(DisaCustomBaseModManager::get()->getScriptsModel(), DisaCustomBaseModManager::get()->getTranslationModel());
 	return &manager;
 }
