@@ -94,7 +94,7 @@ This tool allows you to open, view, convert and export TX2 images.
 
 ![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/TX2%20Editor%20v0.0.1%20alpha_preview.png)
 ### Pre release versions:
-* [Version v1.0.9 alpha](https://www.dropbox.com/scl/fi/uipzx2w36hg75eqaj5bfs/Disgaea-Tools-v1.0.9-alpha-prerelese.zip)
+* [Version v1.0.9 alpha](https://www.dropbox.com/scl/fi/uipzx2w36hg75eqaj5bfs/Disgaea-Tools-v1.0.9-alpha-prerelese.zip?rlkey=yyy0wuqfz3lmsyex039sx7amv&dl=0)
 
 ### Older versions:
 * [Version v0.3.0 alpha](https://www.dropbox.com/s/yraau190k8xia0i/Disgaea%20Tools%20v0.3%20alpha.zip?dl=0)
