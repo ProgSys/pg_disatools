@@ -59,27 +59,33 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 		if (!archive) continue;
 		PG_DisaModLoadInfo info;
 		info.file = zipFile;
+
+		std::string targetFile = "character.json";
+
+		if (!PG_ZIPUtil::hasFile(archive, targetFile)) {
+			targetFile = "mod.json";
+		}
+
 		try {
-			info.json = PG_ZIPUtil::readJson(archive, "character.json");
+			info.json = PG_ZIPUtil::readJson(archive, targetFile);
 			if (info.json.empty()) {
-				info.json = PG_ZIPUtil::readJson(archive, "mod.json");
 				if (info.json.empty()) {
-					OUT_ERROR("Failed to parse 'mod.json' or 'character.json' inside zip '" << zipFile << "'!");
+					OUT_ERROR("Failed to parse 'mod.json' or '"<< targetFile <<"' inside zip '" << zipFile << "'!");
 					continue;
 				}
 			}
 
 			if (!readFromJsonMandatory(info.json, "id", info.id)) {
-				OUT_ERROR("'character.json' has no 'id' inside zip '" << zipFile << "'!");
+				OUT_ERROR("'" << targetFile << "' has no 'id' inside zip '" << zipFile << "'!");
 				continue;
 			}
 		}
 		catch (const std::exception& ex) {
-			OUT_ERROR("Failed to parse 'character.json' inside zip '" << zipFile << "'! Reason: " << ex.what());
+			OUT_ERROR("Failed to parse '" << targetFile << "' inside zip '" << zipFile << "'! Reason: " << ex.what());
 			continue;
 		}
 		catch (...) {
-			OUT_ERROR("Failed to parse 'character.json' inside zip '" << zipFile << "'!");
+			OUT_ERROR("Failed to parse '" << targetFile << "' inside zip '" << zipFile << "'!");
 			continue;
 		}
 		metaCharInfos.push_back(std::move(info));

@@ -432,7 +432,9 @@ void renderSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, const
 static char* g_translationStr = nullptr;
 static std::array<char, 512> g_translateBuffer = { 0 };
 
-void __fastcall translateMarkString(char*& jis_string, int& mode) {
+#include <Util/PG_ImageLoad.h>
+
+bool __fastcall renderTranslatedString(char*& jis_string, int& mode) {
     g_translationStr = DisaCustomTranslationManager::get()->translate(jis_string);
 
     if (!g_translationStr && DisaCustomTranslationManager::get()->hasMarkes(jis_string)) {
@@ -446,6 +448,17 @@ void __fastcall translateMarkString(char*& jis_string, int& mode) {
             shiftJisToHalf((unsigned char*)g_translationStr);
         }
     }
+
+
+    auto* m = DisaCustomRenderManager::get();
+    if (!m->findRenderTask(DisaCustomRenderManager::Inbetween, "Text")) {
+        PG_RGBAImage img;
+        PG_ImageLoad::load("F:/ProgSys/pg_engine_v2/resources/materials/nsfw/pg_handle_sideA.png", img);
+        m->addRenderTask<DisaCustomRenderManager::RenderScreenImg>(DisaCustomRenderManager::Inbetween, "Text", std::move(img), glm::vec2(40.f), glm::vec2(40.f));
+    }
+    m->renderInbetween();
+
+    return false;
 }
 
 void __declspec(naked) __fastcall FUN_RederTextNew(int x, int y, int param_3, int* param_4, unsigned short* jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
@@ -456,13 +469,30 @@ void __declspec(naked) __fastcall FUN_RederTextNew(int x, int y, int param_3, in
 
         lea  ecx, [esp + 12 + 8]
         lea  edx, [esp + 32 + 8]
-        call translateMarkString
+        call renderTranslatedString
+
+        test    al, al
+        jnz     short _return_ok
 
         // Restore x,y for the final target
-        pop edx
-        pop ecx
+        mov     ecx, [esp + 4]            // restore str
+        mov     edx, [esp]
 
-        jmp fRenderTextNew
+        push[esp + 12 + 28] //mode
+        push[esp + 12 + 24 + 4] //height
+        push[esp + 12 + 20 + 8] //stringWidth
+        push[esp + 12 + 16 + 12] //scaleY
+        push[esp + 12 + 12 + 16] //scaleX
+        push[esp + 12 + 8 + 20] //jis_string
+        push[esp + 12 + 4 + 24] //param
+        push[esp + 12 + 0 + 28] //param
+
+        call fRenderTextNew
+        add     esp, 32
+
+     _return_ok :
+        add     esp, 8                    // drop saved edx, ecx
+        ret
     }
 }
 

@@ -61,6 +61,11 @@ nlohmann::json PG_ZIPUtil::readJson(zip* archive, const std::string& fileInZip) 
     return nlohmann::json::parse(content);
 }
 
+bool PG_ZIPUtil::hasFile(zip* archive, const std::string& fileInZip) {
+    zip_int64_t idx = zip_name_locate(archive, fileInZip.c_str(), 0);
+    return idx >= 0;
+}
+
 PG_RGBAImage PG_ZIPUtil::readPNGImage(zip* archive, const std::string& fileInZip) {
 
     zip_file* zf = zip_fopen(archive, fileInZip.c_str(), 0);

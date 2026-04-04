@@ -11,6 +11,7 @@
 #include <DisaCharacterFunctions.h>
 #include <DisaDataFunctions.h>
 #include <DisaScriptManager.h>
+#include <DisaRendering.h>
 #include <Windows.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
@@ -217,7 +218,7 @@ struct HockManager {
 
 
     void hook(const std::string& name = "") {
-
+        bool replaced = false;
         for (auto& entry : entries) {
             if (entry.replaced) continue;
             if (!name.empty() && !PG_StringUtil::isEqualCaseless(entry.name, name)) continue;
@@ -226,19 +227,22 @@ struct HockManager {
             {
             case Entry::Replace: {
                 entry.originalFunctionAdress = FP::replaceFunction(entry.originalCallAdress, entry.overrideFunctionAdress);
+                replaced = true;
             }break;
             case Entry::ReplaceFunctionIndirectCall: {
                 entry.originalFunctionAdress = FP::replaceFunctionIndirectCall(entry.originalCallAdress, entry.overrideFunctionAdress);
+                replaced = true;
             }break;
             default:
                 break;
             }
             entry.replaced = true;
         }
-        OUT_INFO("Successfully injected custom code!");
+        if(replaced) OUT_INFO("Successfully injected custom code!");
     }
 
     void unhook(const std::string& name = "") {
+        bool replaced = false;
         for (auto& entry : entries) {
             if (!entry.replaced) continue;
             if (!name.empty() && !PG_StringUtil::isEqualCaseless(entry.name, name)) continue;
@@ -247,16 +251,18 @@ struct HockManager {
             {
             case Entry::Replace: {
                 FP::replaceFunction(entry.originalCallAdress, entry.originalFunctionAdress);
+                replaced = true;
             }break;
             case Entry::ReplaceFunctionIndirectCall: {
                FP::replaceFunctionIndirectCall(entry.originalCallAdress, entry.originalFunctionAdress);
+               replaced = true;
             }break;
             default:
                 break;
             }
             entry.replaced = false;
         }
-        OUT_INFO("Successfully unloaded custom code!");
+        if(replaced) OUT_INFO("Successfully unloaded custom code!");
     }
 
     void info() {
@@ -523,6 +529,7 @@ static DisaCustomBaseModManager g_baseManger;
 * Build Events -> Post-Build Events -> copy /Y "$(TargetDir)$(ProjectName).dll" "D:\Steam\SteamApps\common\Disgaea PC\j.dll"
 * (Only Debug) C++ -> Code Generation -> Basic Runtime Check -> /RTCu
 * Debugging -> Command -> D:/Steam/SteamApps/common/Disgaea PC/dis1_st.exe
+* Linker must have glu32.lib (todo Cmake)
 */
 DWORD WINAPI startMain() {
 #ifdef _DEBUG

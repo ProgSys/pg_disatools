@@ -34,6 +34,13 @@ namespace PG_ZIPUtil{
 		return readJson(archive.get(), fileInZip);
 	}
 	/**
+	* @brief Returns true when file is present
+	*/
+	bool hasFile(zip* archive, const std::string& fileInZip);
+	inline bool hasFile(const zipUPtr& archive, const std::string& fileInZip) {
+		return hasFile(archive.get(), fileInZip);
+	}
+	/**
 	* @brief Read a given png image from zip.
 	*/
     PG_RGBAImage readPNGImage(zip* archive, const std::string& fileInZip)  throw(PG_RuntimeError);
