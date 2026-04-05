@@ -267,18 +267,19 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     int stencilModeValue = 0;
     int stencilRefValue = -1;
 
-    if (depthTestEnabled == 0) {
-        glDisable(0xb71);
+    if (depthTestEnabled) {
+        glEnable(GL_DEPTH_TEST);
     }
     else {
-        glEnable(0xb71);
+        glDisable(GL_DEPTH_TEST);
     }
+
     bool depthMaskEnabled = depthTestEnabled;
     glDepthMask(depthTestEnabled);
     float polygonOffsetValue = 1.192093e-07f;
 
-    glEnable(0xbc0);
-    glAlphaFunc(0x204, 0.01f);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.01f);
     FP::callStdFarA(0x00421a30, 10, 17); //glUseAndInitProgram; will call glUseProgram and then setup needed uniforms
     
     struct UnknownObject3 {
