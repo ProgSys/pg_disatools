@@ -436,10 +436,10 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             glPolygonOffset(0.0, polygonOffsetScale * polygonOffsetValue);
         }
 
-        FP::callThisFarA(0x00426fb0, object, '\0', param_1); //render object
+        FP::callThisFarA(0x00426fb0, object, false, param_1); //render object
         glPopMatrix();
     }
-
+    unknownObject->field0x14 = 0;
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
