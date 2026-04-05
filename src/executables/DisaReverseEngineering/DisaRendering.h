@@ -34,5 +34,5 @@ void __fastcall FUN_00427da0_insertionSort(DisaRenderObject** param_1, DisaRende
 void __fastcall FUN_00427ff0_pushHeap(DisaRenderObject** begin, int index, int param_3, DisaRenderObject** insertValue);
 void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject** end);
 
-void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char depthMask);
+void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled);
 void _stdcall FUN_00426770_Dummy(int param_1, unsigned int param_2, unsigned char depthMask);

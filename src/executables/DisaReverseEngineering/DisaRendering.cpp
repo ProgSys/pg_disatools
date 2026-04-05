@@ -185,7 +185,7 @@ static inline uint32_t CONCAT31(uint32_t x, uint32_t y) {
 #include <gl/glew.h>
 #include <GL/glu.h>
 
-void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char depthTestEnabled) {
+void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled) {
     static bool openGLInit = false;
     if (!openGLInit) {
         glewExperimental = GL_TRUE; // recommended
@@ -195,14 +195,11 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
         openGLInit = true;
     }
     byte bVar1;
-    unsigned int uVar3;
     bool bVar4;
     float* pfVar5;
-    int iVar6;
     float* pfVar8;
     float* pfVar10;
     char* pcVar11;
-    unsigned int func;
     unsigned long long uVar12;
     float local_64[3];
     float local_58[3];
@@ -212,12 +209,10 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
     float local_40;
     float local_3c;
     int local_38;
-    int local_34;
     float local_30;
     float local_2c;
     float local_28;
     float* local_20;
-    unsigned int local_1c;
     byte local_11;
     float depth = 0.f;
 
@@ -247,8 +242,10 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
     FP::getData<int>(0x005ac928) = -1;
     FP::getData<int>(0x005ac92c) = -1;
     FP::getData<int>(0x005ac920) = -1;
-    local_34 = 0;
-    local_1c = 0xffffffff;
+
+    int stencilModeValue = 0;
+    int stencilRefValue = -1;
+
     if (depthTestEnabled == 0) {
         glDisable(0xb71);
     }
@@ -257,6 +254,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
     }
     bool depthMaskEnabled = depthTestEnabled;
     glDepthMask(depthTestEnabled);
+
     local_20 = (float*)0x34000000;
     glEnable(0xbc0);
     glAlphaFunc(0x204, 0.01f);
@@ -393,36 +391,32 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
             object->m_field0x34 = *object->m_field0x20 * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
         }
 
-        uVar3 = object->m_field0xc;
-        iVar6 = (int)(uVar3 << 0x15) >> 0x1d;
-        if (!((local_34 == iVar6) && (local_1c == (uVar3 & 0xff)))) {
-            local_1c = uVar3 & 0xff;
-            local_34 = iVar6;
-            switch (iVar6) {
+        const int stencilRefTemp = int(object->m_field0xc & 0xff);
+        const int stencilModeTemp = (int)(object->m_field0xc << 0x15) >> 0x1d;
+        if (stencilModeValue != stencilModeTemp || stencilRefValue != stencilRefTemp) {
+            stencilRefValue = stencilRefTemp;
+            stencilModeValue = stencilModeTemp;
+            switch (stencilModeValue) {
             case 0:
                 glDisable(GL_STENCIL_TEST);
-                glStencilFunc(0x207, 0, 0);
+                glStencilFunc(GL_ALWAYS, 0, 0);
                 FP::callCdeclFarA(0x00420e50, 0); //calls glStencilOp(0x1e00,0x1e00,*(undefined4 *)(&DAT_00596e0c + param_1 * 4));
                 break;
             case 1:
                 glEnable(GL_STENCIL_TEST);
-                func = 0x207;
-                goto LAB_00426de9;
+                glStencilFunc(GL_ALWAYS, stencilRefValue, 0xff);
+                FP::callCdeclFarA(0x00420e50, 2); //glStencilOp
+                break;
             case 2:
                 glEnable(GL_STENCIL_TEST);
-                uVar12 = CONCAT44(0xff, uVar3) & 0xffffffff000000ff;
-                glStencilFunc(0x205, (int)uVar12, (unsigned int)(uVar12 >> 0x20));
-                iVar6 = 0;
-                goto LAB_00426df1;
+                glStencilFunc(GL_NOTEQUAL, stencilRefValue, 0xff);
+                FP::callCdeclFarA(0x00420e50, 0); //glStencilOp
+                break;
             case 3:
                 glEnable(GL_STENCIL_TEST);
-                func = 0x205;
-            LAB_00426de9:
-                uVar12 = CONCAT44(0xff, uVar3) & 0xffffffff000000ff;
-                glStencilFunc(func, (int)uVar12, (unsigned int)(uVar12 >> 0x20));
-                iVar6 = 2;
-            LAB_00426df1:
-                FP::callCdeclFarA(0x00420e50, iVar6);
+                glStencilFunc(GL_NOTEQUAL, stencilRefValue, 0xff);
+                FP::callCdeclFarA(0x00420e50, 2); //glStencilOp
+                break;
             }
         }
 
