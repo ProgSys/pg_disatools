@@ -8,13 +8,13 @@ struct DisaRenderObject {
     uint8_t m_field0x3; //0x3
     float m_depth; //0x4 or type 
     float m_field0x8; //0x8
-    uint32_t m_field0xc; //0xc
+    uint32_t m_stencilSetting; //0xc
     int32_t m_field0x10; //0x10
     int32_t* m_field0x14; //0x14
     int32_t m_field0x18; //0x18
     glm::mat4* m_field0x1c; //0x1c
     glm::mat4* m_field0x20; //0x20
-    glm::mat4* m_field0x24; //0x24
+    glm::mat4* m_projectionMatrix; //0x24
     bool m_field0x28; //0x28
     bool m_field0x29; //0x29
     bool m_depthTestEnabled; //0x2a

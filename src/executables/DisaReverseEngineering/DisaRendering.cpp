@@ -1,6 +1,7 @@
 #include "DisaRendering.h"
 #include <algorithm>
 #include <bit>
+#include <glm/gtc/matrix_transform.hpp>
 
 bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObject* param_2) {
     assert(param_1 && param_2);
@@ -184,59 +185,79 @@ static inline uint32_t CONCAT31(uint32_t x, uint32_t y) {
 #include <FunctionPatcher.h>
 #include <gl/glew.h>
 #include <GL/glu.h>
+#include <iostream>
+#include <array>
 
-void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled) {
+static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t type, int32_t* field0x14, float depth, int32_t field0x10, bool field0x28) {
+    if (bool(visibleBitMask & 4) != (field0x14 && field0x14[6] == 3))
+        return false;
+    if ((param_1 == 1) && ((type & 1) == 0))
+        return false;
+    if ((visibleBitMask & 0x40) && depth == 100.0f)
+        return true;
+    if ((visibleBitMask & 0x100) && depth == 40005.0f)
+        return true;
+    if ((visibleBitMask & 0x400) && depth == 45000.0f)
+        return true;
+    if ((visibleBitMask & 0x800) && depth == 45000.0f)
+        return false;
+    if ((visibleBitMask & 0x1000) && depth == 41000.0f && (type & 0x10))
+        return true;
+    if ((visibleBitMask & 0x2000) && depth == 41000.0f && (type & 0x10))
+        return false;
+    if ((visibleBitMask & 0x20) && depth == 50000.0f)
+        return true;
+    if ((visibleBitMask & 0x2000) && depth == 50000.0f)
+        return false;
+    if (!(visibleBitMask & 0x8) && (field0x10 != 0))
+        return false;
+    if (!(visibleBitMask & 0x10) && (field0x10 == 0))
+        return false;
+    if (!(visibleBitMask & 0x1) && (field0x28 != 0))
+        return false;
+    if (!(visibleBitMask & 0x2) && (field0x28 == 0) && (param_1 != 2 || depth != 100.0))
+        return false;
+    if (visibleBitMask & 0x20 && depth == 100.0)
+        return false;
+    if (-1 >= (int)visibleBitMask && depth == 40005.0)
+        return false;
+    return true;
+}
+
+void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
+    //@todo move this to main
     static bool openGLInit = false;
     if (!openGLInit) {
         glewExperimental = GL_TRUE; // recommended
         if (glewInit() != GLEW_OK) {
-            auto i = 0;
+            std::cout << "Failed to init GLEW!" << std::endl;
         }
         openGLInit = true;
     }
-    byte bVar1;
-    bool bVar4;
-    float* pfVar5;
-    float* pfVar8;
-    float* pfVar10;
-    char* pcVar11;
-    unsigned long long uVar12;
-    float local_64[3];
-    float local_58[3];
-    unsigned int local_4c;
-    unsigned int local_48;
-    float local_44;
-    float local_40;
-    float local_3c;
-    int local_38;
-    float local_30;
-    float local_2c;
-    float local_28;
-    float* local_20;
-    byte local_11;
-    float depth = 0.f;
 
-    int* renderWorld = FP::getData<int*>(0x005bb02c); //piVar9
-    float polygonOffsetValue = 1.192093e-07f;
-
+    int* renderWorld = FP::getData<int*>(0x005bb02c); //piVar9 DisaMemeoryManager?
+    
     const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
     if ( !*(bool*)(someObjPtr + 0x19) || *(bool*)(someObjPtr + 0x59) || *(bool*)(someObjPtr + 0x60))
         return;
 
-    unsigned int sizeCurr = FP::getData<unsigned int*>(0x005bb02c)[0x1d009];
-    unsigned int& sizeOld = FP::getData<unsigned int*>(0x005bb02c)[8];
+    int sizeCurr = renderWorld[0x1d009];
+    int& sizeOld = renderWorld[8];
     DisaRenderObject** begin = (DisaRenderObject**)(renderWorld + 0x1d00a);
     DisaRenderObject** end = begin + sizeCurr;
     assert(begin <= end);
+    const auto range = std::ranges::subrange(begin, end);
 
+    //sort if number of item has changed
     if (sizeCurr != sizeOld) {
-        std::sort(begin, end, &FUN_004280a0_sortFunc);
+        std::ranges::sort(range, &FUN_004280a0_sortFunc);
         //original function of a custom build sorting algorithm, however std sort does not only the same is even faster
         //unsigned int centerIndex = (FP::getData<unsigned int>(0x005bb02c) + FP::getData<unsigned int*>(0x005bb02c)[0x1d009] + 0x1d00a) - (int)(FP::getData<unsigned int>(0x005bb02c) + 0x1d00a) >> 2;
         //FUN_004275f0_sort(begin, end, centerIndex);
         sizeOld = sizeCurr;
     }
 
+    //int staring values
     FP::getData<int>(0x005bb020) = 0;
     FP::getData<int>(0x005bb024) = 0;
     FP::getData<int>(0x005ac928) = -1;
@@ -254,135 +275,104 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnab
     }
     bool depthMaskEnabled = depthTestEnabled;
     glDepthMask(depthTestEnabled);
+    float polygonOffsetValue = 1.192093e-07f;
 
-    local_20 = (float*)0x34000000;
     glEnable(0xbc0);
     glAlphaFunc(0x204, 0.01f);
     FP::callStdFarA(0x00421a30, 10, 17); //glUseAndInitProgram; will call glUseProgram and then setup needed uniforms
-    *(unsigned short*)(FP::getData<unsigned int>(0x005cbbc0) + 0x10) = 257;
+    
+    struct UnknownObject3 {
+        std::array<float, 14> field0x0;
+        glm::mat4 projectionMatrix; //0x38
+    };
 
+    struct UnknownObject {
+        uint32_t field0x0; //0x0
+        UnknownObject3** field0x4[2];//0x4 - 0x8
+        uint32_t field0x10; //0x12
+        unsigned short field0x14; //0x14
+        unsigned short field0x16; //0x16
+    };
 
+    UnknownObject* unknownObject = FP::getData<UnknownObject*>(0x005cbbc0);
+    unknownObject->field0x14 = 257;
 
-    for (DisaRenderObject* object : std::ranges::subrange(begin, end)) {
-        const float depth = object->m_depth; //or type
+    for (DisaRenderObject* object : range) {
 
-        bVar4 = object->m_field0x14 && object->m_field0x14[6] == 3;
-        if (bool(param_2 & 4) != bVar4) continue;
-
-        if ((param_1 == 1) && ((object->m_type & 1) == 0))
+        if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_field0x28))
             continue;
-        if ((param_2 & 0x40) && depth == 100.0f)
-            goto pathYes; //yes
-        if ((param_2 & 0x100) && depth == 40005.0f)
-            goto pathYes; //yes  
-        if ((param_2 & 0x400) && depth == 45000.0f)
-            goto pathYes; //yes  
-        if ((param_2 & 0x800) && depth == 45000.0f)
-            continue; //no  
-        if ((param_2 & 0x1000) && depth == 41000.0f && (object->m_type & 0x10))
-            goto pathYes; //yes  
-        if ((param_2 & 0x2000) && depth == 41000.0f && (object->m_type & 0x10))
-            continue; //no  
-        if ((param_2 & 0x20) && depth == 50000.0f)
-            goto pathYes; //yes  
-        if ((param_2 & 0x2000) && depth == 50000.0f)
-            continue; //no 
-        if (!(param_2 & 0x8) && (object->m_field0x10 != 0))
-            continue; // no
-        if (!(param_2 & 0x10) && (object->m_field0x10 == 0))
-            continue; // no
-        if (!(param_2 & 0x1) && (object->m_field0x28 != 0))
-            continue; // no
 
+        bool stencilBitSet = object->m_stencilSetting >> 0xb & 1;
+        FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
 
-        if (!(param_2 & 0x2)) {
-            bool local_xx = object->m_field0x28;
-            if (local_xx == 0 && param_1 == 2 && depth == 100.0) {
-                bVar4 = true;
-            }
-            else {
-                bVar4 = false;
-            }
-            if ((local_xx == 0) && (!bVar4)) continue;//continue; 
-        }
-
-        if (param_2 & 0x20 && depth == 100.0)
-            continue; //no 
-        if (-1 >= (int)param_2 && depth == 40005.0)
-            continue; //no 
-    pathYes:
-        FP::callStdFarA(0x00432f50, object->m_field0xc >> 0xb & 1); // somekind of matrix setup
-
-        glMatrixMode(0x1701);
-        glm::mat4* targetMat = object->m_field0x24; // pfVar8
-        if (object->m_field0x24 == nullptr) {
+        //projection matrix
+        glMatrixMode(GL_PROJECTION); 
+        glm::mat4* projectionMat = object->m_projectionMatrix; // pfVar8
+        if (projectionMat == nullptr) {
             if (object->m_field0x28 == false) {
                 if (param_1 == 1) continue;
-                targetMat = (glm::mat4*)(*(int*)(*(int*)(FP::getData<unsigned int>(0x005cbbc0) + 4) + (object->m_field0xc >> 0xb & 1) * 4) + 0x38);
+                projectionMat = &(*unknownObject->field0x4[stencilBitSet])->projectionMatrix;
             }
             else if (param_1 == 1) {
                 glLoadIdentity();
-                targetMat = &FP::getData<glm::mat4>(0x008191c0);
+                projectionMat = &FP::getData<glm::mat4>(0x008191c0);
 
                 glm::mat4* currMat = (glm::mat4*)(renderWorld + 0x1d837);
-                *currMat = *targetMat;
+                *currMat = *projectionMat;
                 FP::callThisFarA(0x0042d3e0, currMat, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
             }
             else {
-                targetMat = (glm::mat4*)renderWorld[0x1d816];
+                projectionMat = (glm::mat4*)renderWorld[0x1d816];
             }
         }
-        glLoadMatrixf((GLfloat*)targetMat);
-        glMatrixMode(0x1700);
+        glLoadMatrixf((GLfloat*)projectionMat);
+
+        //modelview matrix
+        glMatrixMode(GL_MODELVIEW);  
         if (object->m_field0x28 == false) {
             glLoadIdentity();
         }
         else {
-            if (((*renderWorld == 0) || (renderWorld[1] == 0)) || (renderWorld[2] == 0)) {
-                bVar4 = false;
-            }
-            else {
-                bVar4 = true;
-            }
-            if ((param_1 == 1) && (bVar4)) {
-                glLoadIdentity();
-                local_44 = (float)(renderWorld[4] ^ 0x80000000);
-                local_40 = (float)(renderWorld[5] ^ 0x80000000);
-                local_3c = (float)(renderWorld[6] ^ 0x80000000);
-                // is same as "glm::vec3 local_64 = local_44 * 2000.0", returns first float (x) address of local_64
-                // means pfVar5 is same as &local_64 afterwards
-                pfVar5 = FP::callThisFarA<float*>(0x004281b0, &local_44, local_64, 2000.0);
+            struct MemoryManagerTemp {
+                glm::vec3* m_field0x0;
+                glm::vec3* m_field0x4;
+                glm::vec3* m_field0x8;
+                glm::vec3* m_field0xc;
+                glm::vec3 m_field0x10;
+            };
+            MemoryManagerTemp* temp = (MemoryManagerTemp*)renderWorld;
 
-                pfVar8 = (float*)renderWorld[1];
-                local_44 = *pfVar5;
-                local_40 = pfVar5[1];
-                local_3c = pfVar5[2];
-                local_30 = *pfVar8;
-                local_2c = pfVar8[1];
-                local_28 = pfVar8[2];
-                // is same as "glm::vec3 local_58 = local_30 + local_44" (component addition), returns first float (x) address of local_58
-                // means pfVar5 is same as &local_58 afterwards
-                pfVar5 = FP::callThisFarA<float*>(0x00428170, &local_30, local_58, &local_44);
-                local_30 = *pfVar5;
-                local_2c = pfVar5[1];
-                local_28 = pfVar5[2];
-                gluLookAt((double)local_30, (double)local_2c, (double)local_28, (double)*pfVar8, (double)pfVar8[1], (double)pfVar8[2], 0, 0xbff0000000000000, 0);
-                glGetFloatv(0xba6, (float*)(renderWorld + 0x1d827));
+            if (param_1 == 1 && temp->m_field0x0 && temp->m_field0x4 && temp->m_field0x8) {
+                glLoadIdentity();
+                assert(false);
+
+                //why is it not the same as DisaCameraInfo?
+                const glm::vec3 center = *temp->m_field0x4;
+                const glm::vec3 dir = temp->m_field0x10 * -2000.0f;
+                const glm::vec3 eye = center + dir;
+
+                // pfVar5 = FP::callThisFarA<float*>(0x004281b0, &local_44, local_64, 2000.0); //local_64 = local_44 * 2000.0 -> address of local_64
+                // pfVar5 = FP::callThisFarA<float*>(0x00428170, &local_30, local_58, &local_44); //local_58 = local_30 + local_44 -> address of local_58
+
+                gluLookAt((double)eye.x, (double)eye.y, (double)eye.z, (double)center.x, (double)center.y, (double)center.z, 0.0, -1.0, 0.0);
+                glGetFloatv(GL_MODELVIEW_MATRIX, (float*)(renderWorld + 0x1d827));
                 glLoadIdentity();
                 glLoadMatrixf((float*)(renderWorld + 0x1d827));
-                glMatrixMode(0x1701);
-                glGetFloatv(0xba7, (float*)(renderWorld + 0x1d837));
-                glMatrixMode(0x1700);
+                glMatrixMode(GL_PROJECTION);
+                glGetFloatv(GL_PROJECTION_MATRIX, (float*)(renderWorld + 0x1d837));
+                glMatrixMode(GL_MODELVIEW);
             }
             else {
                 glLoadMatrixf((float*)(renderWorld + 0x1d817));
             }
         }
+
         glPushMatrix();
         if (object->m_field0x20 != nullptr) {
             glMultMatrixf((GLfloat*)object->m_field0x20);
         }
 
+        //update some object matrix, maybe modelMatrix
         if (object->m_field0x28 == false || object->m_field0x20 == nullptr) {
             object->m_field0x34 = FP::getData<glm::mat4>(0x005b2670);
         }
@@ -391,8 +381,9 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnab
             object->m_field0x34 = *object->m_field0x20 * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
         }
 
-        const int stencilRefTemp = int(object->m_field0xc & 0xff);
-        const int stencilModeTemp = (int)(object->m_field0xc << 0x15) >> 0x1d;
+        //update stencil
+        const int stencilRefTemp = int(object->m_stencilSetting & 0xff);
+        const int stencilModeTemp = (int)(object->m_stencilSetting << 0x15) >> 0x1d;
         if (stencilModeValue != stencilModeTemp || stencilRefValue != stencilRefTemp) {
             stencilRefValue = stencilRefTemp;
             stencilModeValue = stencilModeTemp;
@@ -420,6 +411,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnab
             }
         }
 
+        //update depth test
         if (depthTestEnabled != object->m_depthTestEnabled) {
             depthTestEnabled = object->m_depthTestEnabled;
             if (depthTestEnabled) {
@@ -430,11 +422,13 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnab
             }
         }
 
+        //update depth mask
         if (depthMaskEnabled != object->m_depthMaskEnabled) {
             depthMaskEnabled = object->m_depthMaskEnabled;
             glDepthMask(depthMaskEnabled);
         }
 
+        //update Polygon Offset
         if (!glm::isnan(object->m_polygonOffset) && object->m_polygonOffset != polygonOffsetValue) {
             polygonOffsetValue = object->m_polygonOffset;
             const float polygonOffsetScale = FP::getData<float>(0x005ac924);
@@ -443,240 +437,9 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnab
 
         FP::callThisFarA(0x00426fb0, object, '\0', param_1); //render object
         glPopMatrix();
-
     }
 
-    /*
-    if ((0 < piVar9[piVar9[0x1d810] + 0x1d80a]) && (ppbVar7 = (byte**)(piVar9 + 0x1d00a), local_18 = ppbVar7, ppbVar7 != (byte**)(piVar9 + piVar9[0x1d009] + 0x1d00a))) {
-        local_4c = param_2 & 4;
-
-        do {
-            pbVar2 = *ppbVar7;
-            depth = *(float*)(pbVar2 + 4);
-            bVar4 = (*(int*)(pbVar2 + 0x14) != 0) && (*(int*)(*(int*)(pbVar2 + 0x14) + 0x18) == 3);
-            if ((local_4c != 0) != bVar4) goto LAB_00426eba;
-
-
-            if ((param_2 & 0x40) && depth == 100.0f) 
-                goto LAB_00426a74; //yes
-            if ((param_2 & 0x100) && depth == 40005.0f)
-                goto LAB_00426a74; //yes  
-            if ((param_2 & 0x400) && depth == 45000.0f)
-                goto LAB_00426a74; //yes  
-            if ((param_2 & 0x800) && depth == 45000.0f)
-                goto LAB_00426eba; //no  
-            if ((param_2 & 0x1000) && depth == 41000.0f && (*pbVar2 & 0x10))
-                goto LAB_00426a74; //yes  
-            if ((param_2 & 0x2000) && depth == 41000.0f && (*pbVar2 & 0x10))
-               goto LAB_00426eba; //no  
-            if ((param_2 & 0x20) && depth == 50000.0f)
-                goto LAB_00426a74; //yes  
-            if ((param_2 & 0x2000) && depth == 50000.0f) 
-                goto LAB_00426eba; //no 
-            if (!(param_2 & 0x8) && (*(int*)(pbVar2 + 0x10) != 0)) 
-                goto LAB_00426eba; // no
-            if (!(param_2 & 0x10) && (*(int*)(pbVar2 + 0x10) == 0)) 
-                goto LAB_00426eba; // no
-            if (!(param_2 & 0x1) && (pbVar2[0x28] != 0)) 
-                goto LAB_00426eba; // no
-            
-
-            if (!(param_2 & 0x2)) {
-                local_11 = pbVar2[0x28];
-                if (local_11 == 0 && param_1 == 2 && depth == 100.0) {
-                    bVar4 = true;
-                }
-                else {
-                    bVar4 = false;
-                }
-                if ((local_11 == 0) && (!bVar4)) goto LAB_00426eba;//continue; 
-            }
-
-            if (param_2 & 0x20 && depth == 100.0) 
-                goto LAB_00426eba; //no 
-            if (-1 >= (int)param_2 && depth == 40005.0)
-                goto LAB_00426eba; //no 
- 
-        LAB_00426a74:
-            if ((param_1 == 1) && ((*pbVar2 & 1) == 0)) goto LAB_00426eba; //continue; 
-            local_18 = ppbVar7;
-            FP::callStdFarA(0x00432f50, (*(unsigned int*)(pbVar2 + 0xc) >> 0xb & 1)); // somekind of matrix setup
-            glMatrixMode(0x1701);
-            pbVar2 = *ppbVar7;
-            pfVar8 = *(float**)(pbVar2 + 0x24);
-            if (*(float**)(pbVar2 + 0x24) == (float*)0x0) {
-                if (pbVar2[0x28] == 0) {
-                    if (param_1 == 1) goto LAB_00426eba;
-                    pfVar8 = (float*)(*(int*)(*(int*)(FP::getData<unsigned int>(0x005cbbc0) + 4) + (*(unsigned int*)(pbVar2 + 0xc) >> 0xb & 1) * 4) + 0x38);
-                }
-                else if (param_1 == 1) {
-                    glLoadIdentity();
-                    pfVar10 = (float*)(local_24 + 0x1d837);
-                    local_10 = pfVar10;
-                    pfVar8 = (float*)&FP::getData<unsigned int>(0x008191c0);
-                    pfVar5 = local_e4;
-                    //memcpy 4x4 matrix 
-                    for (iVar6 = 0x10; iVar6 != 0; iVar6 = iVar6 + -1) {
-                        *pfVar5 = *pfVar8;
-                        pfVar8 = pfVar8 + 1;
-                        pfVar5 = pfVar5 + 1;
-                    }
-                    pfVar8 = local_e4;
-                    pfVar5 = pfVar10;
-                    // memcpy 4x4 matrix
-                    for (iVar6 = 0x10; iVar6 != 0; iVar6 = iVar6 + -1) {
-                        *pfVar5 = *pfVar8;
-                        pfVar8 = pfVar8 + 1;
-                        pfVar5 = pfVar5 + 1;
-                    }
-                    FP::callThisFarA(0x0042d3e0, pfVar10, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
-                    pfVar8 = local_10;
-                    ppbVar7 = local_18;
-                    piVar9 = local_24;
-                }
-                else {
-                    pfVar8 = (float*)piVar9[0x1d816];
-                }
-            }
-            glLoadMatrixf(pfVar8);
-            glMatrixMode(0x1700);
-            if ((*ppbVar7)[0x28] == 0) {
-                glLoadIdentity();
-            }
-            else {
-                if (((*piVar9 == 0) || (piVar9[1] == 0)) || (piVar9[2] == 0)) {
-                    bVar4 = false;
-                }
-                else {
-                    bVar4 = true;
-                }
-                if ((param_1 == 1) && (bVar4)) {
-                    glLoadIdentity();
-                    local_44 = (float)(piVar9[4] ^ 0x80000000);
-                    local_40 = (float)(piVar9[5] ^ 0x80000000);
-                    local_3c = (float)(piVar9[6] ^ 0x80000000);
-                    // is same as "glm::vec3 local_64 = local_44 * 2000.0", returns first float (x) address of local_64
-                    // means pfVar5 is same as &local_64 afterwards
-                    pfVar5 = FP::callThisFarA<float*>(0x004281b0, &local_44, local_64, 2000.0); 
-                    pfVar8 = (float*)piVar9[1];
-                    local_44 = *pfVar5;
-                    local_40 = pfVar5[1];
-                    local_3c = pfVar5[2];
-                    local_30 = *pfVar8;
-                    local_2c = pfVar8[1];
-                    local_28 = pfVar8[2];
-                    // is same as "glm::vec3 local_58 = local_30 + local_44" (component addition), returns first float (x) address of local_58
-                    // means pfVar5 is same as &local_58 afterwards
-                    pfVar5 = FP::callThisFarA<float*>(0x00428170, &local_30, local_58, &local_44);
-                    local_30 = *pfVar5;
-                    local_2c = pfVar5[1];
-                    local_28 = pfVar5[2];
-                    gluLookAt((double)local_30, (double)local_2c, (double)local_28, (double)*pfVar8, (double)pfVar8[1], (double)pfVar8[2], 0, 0xbff0000000000000, 0);
-                    glGetFloatv(0xba6, (float*)(piVar9 + 0x1d827));
-                    glLoadIdentity();
-                    glLoadMatrixf((float*)(piVar9 + 0x1d827));
-                    glMatrixMode(0x1701);
-                    glGetFloatv(0xba7, (float*)(piVar9 + 0x1d837));
-                    glMatrixMode(0x1700);
-                    ppbVar7 = local_18;
-                }
-                else {
-                    glLoadMatrixf((float*)(piVar9 + 0x1d817));
-                }
-            }
-            glPushMatrix();
-            if (*(float**)(*ppbVar7 + 0x20) != (float*)0x0) {
-                glMultMatrixf(*(float**)(*ppbVar7 + 0x20));
-            }
-            local_10 = (float*)*ppbVar7;
-            if ((*(byte*)((int)local_10 + 0x28) == 0) || (pfVar8 = *(float**)((int)local_10 + 0x20), pfVar8 == (float*)0x0)) {
-                pfVar8 = (float*)&FP::getData<unsigned int>(0x005b2670);
-            }
-            else {
-                pfVar5 = (float*)(piVar9 + 0x1d817);
-                pfVar10 = local_a4;
-                for (iVar6 = 0x10; iVar6 != 0; iVar6 = iVar6 + -1) {
-                    *pfVar10 = *pfVar5;
-                    pfVar5 = pfVar5 + 1;
-                    pfVar10 = pfVar10 + 1;
-                }
-                FP::callFastFarA(0x0042ced0, local_a4, pfVar8, local_a4);
-                pfVar8 = local_a4;
-            }
-            ppbVar7 = local_18;
-            pfVar5 = (float*)((int)local_10 + 0x34);
-            for (iVar6 = 0x10; iVar6 != 0; iVar6 = iVar6 + -1) {
-                *pfVar5 = *pfVar8;
-                pfVar8 = pfVar8 + 1;
-                pfVar5 = pfVar5 + 1;
-            }
-            uVar3 = *(unsigned int*)(*local_18 + 0xc);
-            iVar6 = (int)(uVar3 << 0x15) >> 0x1d;
-            if ((local_34 == iVar6) && (local_1c == (uVar3 & 0xff))) goto switchD_00426d6c_caseD_4;
-            local_1c = uVar3 & 0xff;
-            local_34 = iVar6;
-            switch (iVar6) {
-            case 0:
-                glDisable(GL_STENCIL_TEST);
-                glStencilFunc(0x207, 0, 0);
-                FP::callCdeclFarA(0x00420e50, 0); //calls glStencilOp(0x1e00,0x1e00,*(undefined4 *)(&DAT_00596e0c + param_1 * 4));
-                break;
-            case 1:
-                glEnable(GL_STENCIL_TEST);
-                func = 0x207;
-                goto LAB_00426de9;
-            case 2:
-                glEnable(GL_STENCIL_TEST);
-                uVar12 = CONCAT44(0xff, uVar3) & 0xffffffff000000ff;
-                glStencilFunc(0x205, (int)uVar12, (unsigned int)(uVar12 >> 0x20));
-                iVar6 = 0;
-                goto LAB_00426df1;
-            case 3:
-                glEnable(GL_STENCIL_TEST);
-                func = 0x205;
-            LAB_00426de9:
-                uVar12 = CONCAT44(0xff, uVar3) & 0xffffffff000000ff;
-                glStencilFunc(func, (int)uVar12, (unsigned int)(uVar12 >> 0x20));
-                iVar6 = 2;
-            LAB_00426df1:
-                FP::callCdeclFarA(0x00420e50, iVar6);
-            }
-        switchD_00426d6c_caseD_4:
-            bVar1 = (*ppbVar7)[0x2a];
-            if (depthTestEnabled != bVar1) {
-                depthTestEnabled = bVar1;
-                if (bVar1 == 0) {
-                    glDisable(GL_DEPTH_TEST);
-                }
-                else {
-                    glEnable(GL_DEPTH_TEST);
-                }
-            }
-            bVar1 = (*ppbVar7)[0x2b];
-            if (local_9 != bVar1) {
-                //local_38 = CONCAT31(local_38 << 8, bVar1); // why is it here its never used?!
-                local_9 = bVar1;
-                glDepthMask(bVar1);
-            }
-            pfVar8 = *(float**)(*ppbVar7 + 0x2c);
-            local_10 = pfVar8;
-            if ((glm::isnan(std::bit_cast<float>(local_20)) || glm::isnan((std::bit_cast<float>(pfVar8))) == (std::bit_cast<float>(local_20) == std::bit_cast<float>(pfVar8)))) {
-                local_10 = std::bit_cast<float*>(FP::getData<int>(0x005ac924) * std::bit_cast<float>(pfVar8));
-                local_20 = pfVar8;
-                float f = std::bit_cast<float>(local_10);
-                glPolygonOffset(0.0, f);
-            }
-            FP::callThisFarA(0x00426fb0, *ppbVar7, '\0', param_1); //render object
-            glPopMatrix();
-            piVar9 = local_24;
-        LAB_00426eba:
-            ++ppbVar7;
-            local_18 = ppbVar7;
-        } while (ppbVar7 != (byte**)(piVar9 + piVar9[0x1d009] + 0x1d00a));
-    }
-    *(std::uint8_t*)(FP::getData<unsigned int>(0x005cbbc0) + 0x10) = 0;
-    */
-    glMatrixMode(0x1700);
+    glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
 
