@@ -219,7 +219,7 @@ static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t t
         return false;
     if (visibleBitMask & 0x20 && depth == 100.0)
         return false;
-    if (-1 >= (int)visibleBitMask && depth == 40005.0)
+    if (-1 < (int)visibleBitMask && depth == 40005.0)
         return false;
     return true;
 }
@@ -235,26 +235,44 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         openGLInit = true;
     }
 
-    int* renderWorld = FP::getData<int*>(0x005bb02c); //piVar9 DisaMemeoryManager?
-    
+    struct DisaRenderObjectManagerTemp {
+        glm::vec3* m_field0x0; //0x0
+        glm::vec3* m_center; //0x4 //camera center
+        glm::vec3* m_field0x8; //0x8
+        glm::vec3* m_field0xc; //0xc
+        glm::vec3 m_lookDir; //0x10
+        uint32_t m_field0x14; //0x14
+        uint32_t m_prevRenderSize; //0x18 stores the last m_renderSize
+        std::array<DisaRenderObject, 4096> m_renderObjects; //0x24
+        uint32_t m_renderSize; //0x74024
+        std::array<DisaRenderObject*, 2048> m_renderObjectList; //0x74028
+        std::array<int, 6> m_field0x76028; //0x76028
+        uint32_t m_field0x76040; //0x76040
+        std::array<int, 5> m_field0x76044; //0x76044
+        glm::mat4* m_field0x76058; //0x76058
+        glm::mat4 m_field0x7605c; //0x7605c
+        glm::mat4 m_field0x7609c; //0x7609c
+        glm::mat4 m_field0x760dc; //0x760dc
+
+        inline auto getRenderObjectList() {
+            return std::ranges::subrange(m_renderObjectList.begin(), std::next(m_renderObjectList.begin(), m_renderSize));
+        }
+    };
+
+    DisaRenderObjectManagerTemp* memoryRenderManager = FP::getData<DisaRenderObjectManagerTemp*>(0x005bb02c);
+
     const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
     if ( !*(bool*)(someObjPtr + 0x19) || *(bool*)(someObjPtr + 0x59) || *(bool*)(someObjPtr + 0x60))
         return;
 
-    int sizeCurr = renderWorld[0x1d009];
-    int& sizeOld = renderWorld[8];
-    DisaRenderObject** begin = (DisaRenderObject**)(renderWorld + 0x1d00a);
-    DisaRenderObject** end = begin + sizeCurr;
-    assert(begin <= end);
-    const auto range = std::ranges::subrange(begin, end);
-
+    auto range = memoryRenderManager->getRenderObjectList();
     //sort if number of item has changed
-    if (sizeCurr != sizeOld) {
+    if (memoryRenderManager->m_renderSize != memoryRenderManager->m_prevRenderSize) {
         std::ranges::sort(range, &FUN_004280a0_sortFunc);
         //original function of a custom build sorting algorithm, however std sort does not only the same is even faster
         //unsigned int centerIndex = (FP::getData<unsigned int>(0x005bb02c) + FP::getData<unsigned int*>(0x005bb02c)[0x1d009] + 0x1d00a) - (int)(FP::getData<unsigned int>(0x005bb02c) + 0x1d00a) >> 2;
         //FUN_004275f0_sort(begin, end, centerIndex);
-        sizeOld = sizeCurr;
+        memoryRenderManager->m_prevRenderSize = memoryRenderManager->m_renderSize;
     }
 
     //int staring values
@@ -297,9 +315,13 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
 
     UnknownObject* unknownObject = FP::getData<UnknownObject*>(0x005cbbc0);
     unknownObject->field0x14 = 257;
+    
+    if (memoryRenderManager->m_field0x76028[memoryRenderManager->m_field0x76040] <= 0) {
+        //invalidate list
+        range = std::ranges::subrange(memoryRenderManager->m_renderObjectList.begin(), memoryRenderManager->m_renderObjectList.begin());
+    }
 
     for (DisaRenderObject* object : range) {
-
         if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_field0x28))
             continue;
 
@@ -318,12 +340,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
                 glLoadIdentity();
                 projectionMat = &FP::getData<glm::mat4>(0x008191c0);
 
-                glm::mat4* currMat = (glm::mat4*)(renderWorld + 0x1d837);
+                glm::mat4* currMat = &memoryRenderManager->m_field0x760dc;
                 *currMat = *projectionMat;
                 FP::callThisFarA(0x0042d3e0, currMat, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
             }
             else {
-                projectionMat = (glm::mat4*)renderWorld[0x1d816];
+                projectionMat = memoryRenderManager->m_field0x76058;// (glm::mat4*)renderWorld[0x1d816];
             }
         }
         glLoadMatrixf((GLfloat*)projectionMat);
@@ -334,37 +356,28 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             glLoadIdentity();
         }
         else {
-            struct MemoryManagerTemp {
-                glm::vec3* m_field0x0;
-                glm::vec3* m_field0x4;
-                glm::vec3* m_field0x8;
-                glm::vec3* m_field0xc;
-                glm::vec3 m_field0x10;
-            };
-            MemoryManagerTemp* temp = (MemoryManagerTemp*)renderWorld;
-
-            if (param_1 == 1 && temp->m_field0x0 && temp->m_field0x4 && temp->m_field0x8) {
+            if (param_1 == 1 && memoryRenderManager->m_field0x0 && memoryRenderManager->m_center && memoryRenderManager->m_field0x8) {
                 glLoadIdentity();
                 assert(false);
 
                 //why is it not the same as DisaCameraInfo?
-                const glm::vec3 center = *temp->m_field0x4;
-                const glm::vec3 dir = temp->m_field0x10 * -2000.0f;
+                const glm::vec3 center = *memoryRenderManager->m_center;
+                const glm::vec3 dir = memoryRenderManager->m_lookDir * -2000.0f;
                 const glm::vec3 eye = center + dir;
 
                 // pfVar5 = FP::callThisFarA<float*>(0x004281b0, &local_44, local_64, 2000.0); //local_64 = local_44 * 2000.0 -> address of local_64
                 // pfVar5 = FP::callThisFarA<float*>(0x00428170, &local_30, local_58, &local_44); //local_58 = local_30 + local_44 -> address of local_58
 
                 gluLookAt((double)eye.x, (double)eye.y, (double)eye.z, (double)center.x, (double)center.y, (double)center.z, 0.0, -1.0, 0.0);
-                glGetFloatv(GL_MODELVIEW_MATRIX, (float*)(renderWorld + 0x1d827));
+                glGetFloatv(GL_MODELVIEW_MATRIX, (float*)&memoryRenderManager->m_field0x7609c);
                 glLoadIdentity();
-                glLoadMatrixf((float*)(renderWorld + 0x1d827));
+                glLoadMatrixf((float*)&memoryRenderManager->m_field0x7609c);
                 glMatrixMode(GL_PROJECTION);
-                glGetFloatv(GL_PROJECTION_MATRIX, (float*)(renderWorld + 0x1d837));
+                glGetFloatv(GL_PROJECTION_MATRIX, (float*)&memoryRenderManager->m_field0x760dc);
                 glMatrixMode(GL_MODELVIEW);
             }
             else {
-                glLoadMatrixf((float*)(renderWorld + 0x1d817));
+                glLoadMatrixf((float*)&memoryRenderManager->m_field0x7605c);//(float*)(renderWorld + 0x1d817)
             }
         }
 
@@ -378,7 +391,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             object->m_field0x34 = FP::getData<glm::mat4>(0x005b2670);
         }
         else {
-            glm::mat4 temp = *(glm::mat4*)(renderWorld + 0x1d817);
+            const glm::mat4 temp = memoryRenderManager->m_field0x7605c; //renderWorld + 0x1d817
             object->m_field0x34 = *object->m_field0x20 * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
         }
 
@@ -439,6 +452,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         FP::callThisFarA(0x00426fb0, object, false, param_1); //render object
         glPopMatrix();
     }
+
     unknownObject->field0x14 = 0;
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
