@@ -303,17 +303,17 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
                 goto LAB_00426a74; //yes  
             if ((param_2 & 0x400) && depth == 45000.0f)
                 goto LAB_00426a74; //yes  
-            if ((param_2 & 0x400) && depth == 45000.0f)
+            if ((param_2 & 0x800) && depth == 45000.0f)
                 goto LAB_00426eba; //no  
-            if ((param_2 & 0x1000) && depth == 41000.0f && !(*pbVar2 & 0x10))
+            if ((param_2 & 0x1000) && depth == 41000.0f && (*pbVar2 & 0x10))
                 goto LAB_00426a74; //yes  
             if ((param_2 & 0x2000) && depth == 41000.0f && (*pbVar2 & 0x10))
                goto LAB_00426eba; //no  
             if ((param_2 & 0x20) && depth == 50000.0f)
                 goto LAB_00426a74; //yes  
-            if (param_2 & 0x2000 && depth == 50000.0) 
+            if ((param_2 & 0x2000) && depth == 50000.0f) 
                 goto LAB_00426eba; //no 
-            if (!(param_2 & 0x8) && (*(int*)(pbVar2 + 0x10) == 0 || *(int*)(pbVar2 + 0x10) > 0)) 
+            if (!(param_2 & 0x8) && (*(int*)(pbVar2 + 0x10) != 0)) 
                 goto LAB_00426eba; // no
             if (!(param_2 & 0x10) && (*(int*)(pbVar2 + 0x10) == 0)) 
                 goto LAB_00426eba; // no
@@ -333,14 +333,11 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
             }
 
             if (param_2 & 0x20 && depth == 100.0) 
-                goto LAB_00426a74; //yes 
-            if (-1 < (char)param_2 || depth == 40005.0)
-                goto LAB_00426a74; //yes 
-            //all checks failed
-            goto LAB_00426eba; // no
+                goto LAB_00426eba; //no 
+            if (-1 >= (int)param_2 && depth == 40005.0)
+                goto LAB_00426eba; //no 
+ 
             /*
-
-
             if (((((param_2 & 0x40) == 0) || (glm::isnan(depth) == (depth == 100.0))) &&
                 (((param_2 & 0x100) == 0 || (glm::isnan(depth) == (depth == 40005.0))))) &&
                 (((param_2 & 0x400) == 0 || (glm::isnan(depth) == (depth == 45000.0))))) {
@@ -355,8 +352,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
                         local_10 = (float*)(param_2 & 0x20);
                         if ((local_10 != (float*)0x0) && (glm::isnan(depth) != (depth == 50000.0))) goto LAB_00426a74;
 
-                        if ((((local_48 == 0) || (glm::isnan(depth) == (depth == 50000.0))) && (((param_2 & 8) != 0 || (*(int*)(pbVar2 + 0x10) == 0)))) &&
-                            ((((param_2 & 0x10) != 0 || (*(int*)(pbVar2 + 0x10) != 0)) && (((param_2 & 1) != 0 || (pbVar2[0x28] == 0)))))) {
+                        if (
+                        (((local_48 == 0) || (glm::isnan(depth) == (depth == 50000.0))) && 
+                        (((param_2 & 8) != 0 || (*(int*)(pbVar2 + 0x10) == 0)))) &&
+                            ((((param_2 & 0x10) != 0 || (*(int*)(pbVar2 + 0x10) != 0)) && 
+                            (((param_2 & 1) != 0 || (pbVar2[0x28] == 0)))))
+                            ) {
                             
                             if ((param_2 & 2) == 0) {
                                 local_11 = pbVar2[0x28];
@@ -543,7 +544,8 @@ void _stdcall FUN_00426770(int param_1, unsigned int param_2, unsigned char dept
             if ((glm::isnan(std::bit_cast<float>(local_20)) || glm::isnan((std::bit_cast<float>(pfVar8))) == (std::bit_cast<float>(local_20) == std::bit_cast<float>(pfVar8)))) {
                 local_10 = std::bit_cast<float*>(FP::getData<int>(0x005ac924) * std::bit_cast<float>(pfVar8));
                 local_20 = pfVar8;
-                glPolygonOffset(0.0, std::bit_cast<float>(local_10));
+                float f = std::bit_cast<float>(local_10);
+                glPolygonOffset(0.0, f);
             }
             FP::callThisFarA(0x00426fb0, *ppbVar7, '\0', param_1); //render object
             glPopMatrix();
