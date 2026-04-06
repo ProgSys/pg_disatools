@@ -26,6 +26,10 @@ struct DisaRenderObject {
     glm::mat4 m_field0x34; //0x34
 };
 
+/**
+*
+* Created at 00507fc1 with total size of 0x76120, init function is FUN_00425970.
+*/
 struct DisaRenderObjectManager {
     glm::vec3* m_field0x0; //0x0
     glm::vec3* m_center; //0x4 //camera center

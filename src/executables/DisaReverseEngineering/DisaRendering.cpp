@@ -78,108 +78,14 @@ void __fastcall FUN_00427ff0_pushHeap(DisaRenderObject** begin, int index, int s
     }
 
     begin[index] = *insertValue;
-    
-    /*
-    int iVar1;
-    float fVar2;
-    float fVar3;
-    glm::vec3* pVVar4;
-    glm::vec3* pVVar5;
-    int iVar6;
-
-    iVar1 = index + -1;
-    if (start < index) {
-        do {
-            iVar6 = iVar1 / 2;
-            pVVar4 = begin[iVar6];
-            pVVar5 = *insertValue;
-            fVar2 = pVVar4->y;
-            fVar3 = pVVar5->y;
-            if ((glm::isnan(fVar2) || glm::isnan(fVar3)) == (fVar2 == fVar3)) {
-            LAB_0042806f:
-                if (fVar3 <= fVar2) break;
-            }
-            else {
-                fVar2 = pVVar4->z;
-                fVar3 = pVVar5->z;
-                if ((glm::isnan(fVar2) || glm::isnan(fVar3)) == (fVar2 == fVar3)) goto LAB_0042806f;
-                if (pVVar5 <= pVVar4) break;
-            }
-            iVar1 = iVar6 + -1;
-            begin[index] = pVVar4;
-            index = iVar6;
-        } while (start < iVar6);
-    }
-    begin[index] = *insertValue;
-    */
-
+   
 }
 
 void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject** end) {
     std::make_heap(begin, end, &FUN_004280a0_sortFunc); //create max-heap
-    /*
-    glm::vec3* pVVar1;
-    glm::vec3* pVVar2;
-    int iVar3;
-    int iVar4;
-    int iVar5;
-    int iVar6;
-    glm::vec3* local_1c;
-    int local_18;
-    int local_14;
-    int local_10;
-    float local_c;
-    float local_8;
-
-    iVar6 = (int)end - (int)begin >> 2;
-    local_14 = iVar6 - ((int)end - (int)begin >> 0x1f) >> 1;
-   if (0 < local_14) {
-        local_10 = local_14 * 2 + 2;
-        local_18 = iVar6;
-        do {
-            local_1c = begin[local_14 + -1];
-            local_14 = local_14 + -1;
-            local_10 = local_10 + -2;
-            iVar3 = local_10;
-            iVar5 = local_14;
-            iVar4 = local_14;
-            if (local_10 < iVar6) {
-                do {
-                    pVVar1 = begin[iVar3];
-                    pVVar2 = begin[iVar3 + -1];
-                    iVar4 = iVar3;
-                    if (FUN_004280a0(pVVar1, pVVar2)) {
-                        iVar4 = iVar3 - 1;
-                    }
-    
-                    begin[iVar5] = begin[iVar4];
-                    iVar3 = iVar4 * 2 + 2;
-                    iVar5 = iVar4;
-                    iVar6 = local_18;
-                } while (iVar3 < local_18);
-            }
-            if (iVar3 == iVar6) {
-                begin[iVar4] = begin[iVar6 + -1];
-                iVar4 = iVar6 + -1;
-            }
-            FUN_00427ff0(begin, iVar4, local_14, &local_1c);
-        } while (0 < local_14);
-    }
-   */
-
 }
 
 using byte = std::uint8_t;
-
-// CONCAT44 is a concatenation operation for two 32-bit integers
-static inline uint64_t CONCAT44(uint32_t x, uint32_t y) {
-    return (static_cast<uint64_t>(x) << 32) | static_cast<uint64_t>(y);
-}
-
-// CONCAT31 is a concatenation operation for two 32-bit integers
-static inline uint32_t CONCAT31(uint32_t x, uint32_t y) {
-    return (x << 16) | (y & 0xFF);
-}
 
 
 #include <FunctionPatcher.h>
@@ -230,6 +136,8 @@ void FUN_00421a30_glUseAndInitProgram(int param_1, int param_2) {
     }
 }
 void FUN_00432f50_ProjectionUpdate(uint32_t param_1){
+    //not sure jet what they are cooking here
+    //this seems to be a very complex way to manage multiple projection matrices
     DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
     if (!unknownObject->field0x10_isEnabled) return;
 
@@ -243,6 +151,22 @@ void FUN_00432f50_ProjectionUpdate(uint32_t param_1){
     unknownObject->field0x11 = false;
     unknownObject->selectedProjectionObjectIndex = param_1;
     unknownObject->selectedProjectionObject = selected;
+}
+
+void FUN_0042d3e0_SetProjectionMatrix(glm::mat4& thisMatrix, float fovDegrees, float width, float height, float nearVal, float farVal) {
+    //glMatrixMode(GL_PROJECTION);
+    //glLoadIdentity();
+
+    // tan(fov / 2)
+    const float tanHalfFov = std::tan(fovDegrees * 0.5f * (glm::pi<float>() / 180.0f));
+
+    // Match exact original math
+    const float leftRight = (nearVal * tanHalfFov * width * 1.764706f) / 480.0f;
+    const float topBottom = (nearVal * tanHalfFov * height) / 272.0f;
+    //we can just use glm function instead of using a open gl call :P
+    thisMatrix = glm::frustum(-leftRight, leftRight, -topBottom, topBottom, nearVal, farVal);
+    //glFrustum(-leftRight, leftRight, -topBottom, topBottom, nearVal, farVal);
+    //glGetFloatv(GL_PROJECTION_MATRIX, (float*)&thisMatrix);
 }
 
 
@@ -361,13 +285,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
                 if (param_1 == 1) continue;
                 projectionMat = &unknownObject->field0x4->field0x0[stencilBitSet]->projectionMatrix;
             }
-            else if (param_1 == 1) {
-                glLoadIdentity();
-                projectionMat = &FP::getData<glm::mat4>(0x008191c0);
-
-                glm::mat4* currMat = &memoryRenderManager->m_field0x760dc;
-                *currMat = *projectionMat;
-                FP::callThisFarA(0x0042d3e0, currMat, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
+            else if (true || param_1 == 1) {
+                //glLoadIdentity(); //is not needed at all but present in original
+                projectionMat = &memoryRenderManager->m_field0x760dc;
+                const glm::mat4& staticMat = FP::getData<glm::mat4>(0x008191c0);
+                *projectionMat = staticMat; //I am not sure what the point of this is, as SetProjectionMatrix will override it?!
+                FUN_0042d3e0_SetProjectionMatrix(*projectionMat, 6.8f, 256.0f, 256.0f, 320.0f, 11600.0f); //FP::callThisFarA(0x0042d3e0, currMat, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
             }
             else {
                 projectionMat = memoryRenderManager->m_field0x76058;// (glm::mat4*)renderWorld[0x1d816];
