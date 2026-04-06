@@ -285,7 +285,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
                 if (param_1 == 1) continue;
                 projectionMat = &unknownObject->field0x4->field0x0[stencilBitSet]->projectionMatrix;
             }
-            else if (true || param_1 == 1) {
+            else if (param_1 == 1) {
                 //glLoadIdentity(); //is not needed at all but present in original
                 projectionMat = &memoryRenderManager->m_field0x760dc;
                 const glm::mat4& staticMat = FP::getData<glm::mat4>(0x008191c0);
