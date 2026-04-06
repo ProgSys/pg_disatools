@@ -188,6 +188,64 @@ static inline uint32_t CONCAT31(uint32_t x, uint32_t y) {
 #include <iostream>
 #include <array>
 
+struct DisaProjectionObject {
+    std::array<float, 13> field0x0;
+    bool field0x34; //0x34 isInit?
+    bool field0x35;
+    bool field0x36;
+    bool field0x37;
+    glm::mat4 projectionMatrix; //0x38
+};
+
+struct DisaUnknownObject3 {
+    DisaProjectionObject* field0x0[2];
+    unsigned int field0x8;
+    unsigned int field0xc;
+};
+
+struct DisaUnknownObject2 {
+    uint32_t field0x0; //0x0
+    DisaUnknownObject3* field0x4; //0x4 option
+    DisaProjectionObject* selectedProjectionObject; //0x8 selected option by param_1
+    uint32_t selectedProjectionObjectIndex; //0xc is set by param_1 is 0 or 1
+    bool field0x10_isEnabled; //0x10 isEnabled
+    bool field0x11; //0x11
+    unsigned short field0x12; //0x12
+};
+
+void FUN_00421a30_glUseAndInitProgram(int param_1, int param_2) {
+    if (FP::getData<bool>(0x006e8cfc)) return;
+    const int shaderIndex = param_1 + param_2 * 16;
+    if (FP::getData<int>(0x006e8cf8) == shaderIndex) return;
+    FP::getData<int>(0x006e8cf8) = shaderIndex; //lastShaderIndex
+    GLuint programId = (&FP::getData<GLuint>(0x006e8878))[shaderIndex];
+    if (programId == 0) return; //in the original this check is missing
+    glUseProgram(programId);
+    
+    int i = 0;
+    for (const auto& name : { "tex0", "tex1", "tex2", "tex3", "tex4", "tex5", "tex6" }) {
+        if (auto loc = glGetUniformLocation(programId, "tex0"); loc >= 0)
+            glUniform1i(loc, i);
+        ++i;
+    }
+}
+void FUN_00432f50_ProjectionUpdate(uint32_t param_1){
+    DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
+    if (!unknownObject->field0x10_isEnabled) return;
+
+    DisaProjectionObject* selected = unknownObject->field0x4->field0x0[param_1];
+    if (selected != unknownObject->selectedProjectionObject || unknownObject->field0x11 || selected->field0x34 ) {
+        glMatrixMode(GL_PROJECTION);
+        glLoadMatrixf((float*)&selected->projectionMatrix);
+    }
+
+    selected->field0x34 = false;
+    unknownObject->field0x11 = false;
+    unknownObject->selectedProjectionObjectIndex = param_1;
+    unknownObject->selectedProjectionObject = selected;
+}
+
+
 static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t type, int32_t* field0x14, float depth, int32_t field0x10, bool field0x28) {
     if (bool(visibleBitMask & 4) != (field0x14 && field0x14[6] == 3))
         return false;
@@ -224,6 +282,8 @@ static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t t
     return true;
 }
 
+
+
 void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
     //@todo move this to main
     static bool openGLInit = false;
@@ -235,31 +295,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         openGLInit = true;
     }
 
-    struct DisaRenderObjectManagerTemp {
-        glm::vec3* m_field0x0; //0x0
-        glm::vec3* m_center; //0x4 //camera center
-        glm::vec3* m_field0x8; //0x8
-        glm::vec3* m_field0xc; //0xc
-        glm::vec3 m_lookDir; //0x10
-        uint32_t m_field0x14; //0x14
-        uint32_t m_prevRenderSize; //0x18 stores the last m_renderSize
-        std::array<DisaRenderObject, 4096> m_renderObjects; //0x24
-        uint32_t m_renderSize; //0x74024
-        std::array<DisaRenderObject*, 2048> m_renderObjectList; //0x74028
-        std::array<int, 6> m_field0x76028; //0x76028
-        uint32_t m_field0x76040; //0x76040
-        std::array<int, 5> m_field0x76044; //0x76044
-        glm::mat4* m_field0x76058; //0x76058
-        glm::mat4 m_field0x7605c; //0x7605c
-        glm::mat4 m_field0x7609c; //0x7609c
-        glm::mat4 m_field0x760dc; //0x760dc
-
-        inline auto getRenderObjectList() {
-            return std::ranges::subrange(m_renderObjectList.begin(), std::next(m_renderObjectList.begin(), m_renderSize));
-        }
-    };
-
-    DisaRenderObjectManagerTemp* memoryRenderManager = FP::getData<DisaRenderObjectManagerTemp*>(0x005bb02c);
+    DisaRenderObjectManager* memoryRenderManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 
     const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
     if ( !*(bool*)(someObjPtr + 0x19) || *(bool*)(someObjPtr + 0x59) || *(bool*)(someObjPtr + 0x60))
@@ -298,23 +334,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
 
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.01f);
-    FP::callStdFarA(0x00421a30, 10, 17); //glUseAndInitProgram; will call glUseProgram and then setup needed uniforms
-    
-    struct UnknownObject3 {
-        std::array<float, 14> field0x0;
-        glm::mat4 projectionMatrix; //0x38
-    };
+    FUN_00421a30_glUseAndInitProgram(10, 17); //FP::callStdFarA(0x00421a30, 10, 17); //glUseAndInitProgram; will call glUseProgram and then setup needed uniforms
+   
 
-    struct UnknownObject {
-        uint32_t field0x0; //0x0
-        UnknownObject3** field0x4[2];//0x4 - 0x8
-        uint32_t field0x10; //0x12
-        unsigned short field0x14; //0x14
-        unsigned short field0x16; //0x16
-    };
-
-    UnknownObject* unknownObject = FP::getData<UnknownObject*>(0x005cbbc0);
-    unknownObject->field0x14 = 257;
+    DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
+    unknownObject->field0x10_isEnabled = true;
+    unknownObject->field0x11 = true;
     
     if (memoryRenderManager->m_field0x76028[memoryRenderManager->m_field0x76040] <= 0) {
         //invalidate list
@@ -326,7 +351,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             continue;
 
         bool stencilBitSet = object->m_stencilSetting >> 0xb & 1;
-        FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
+        FUN_00432f50_ProjectionUpdate(stencilBitSet); //FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
 
         //projection matrix
         glMatrixMode(GL_PROJECTION); 
@@ -334,7 +359,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         if (projectionMat == nullptr) {
             if (object->m_field0x28 == false) {
                 if (param_1 == 1) continue;
-                projectionMat = &(*unknownObject->field0x4[stencilBitSet])->projectionMatrix;
+                projectionMat = &unknownObject->field0x4->field0x0[stencilBitSet]->projectionMatrix;
             }
             else if (param_1 == 1) {
                 glLoadIdentity();
@@ -453,7 +478,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         glPopMatrix();
     }
 
-    unknownObject->field0x14 = 0;
+    unknownObject->field0x10_isEnabled = 0;
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }

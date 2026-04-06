@@ -1,5 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <ranges>
+#include <array>
 
 struct DisaRenderObject {
     uint8_t m_type; //0x0
@@ -9,10 +11,10 @@ struct DisaRenderObject {
     float m_depth; //0x4 or type 
     float m_field0x8; //0x8
     uint32_t m_stencilSetting; //0xc
-    int32_t m_field0x10; //0x10
-    int32_t* m_field0x14; //0x14
-    int32_t m_field0x18; //0x18
-    glm::mat4* m_field0x1c; //0x1c
+    int32_t m_field0x10; //0x10 vertexCount
+    int32_t* m_field0x14; //0x14 texture
+    int32_t m_field0x18; //0x18 texture
+    float* m_meshData; //0x1c
     glm::mat4* m_field0x20; //0x20
     glm::mat4* m_projectionMatrix; //0x24
     bool m_field0x28; //0x28
@@ -20,8 +22,33 @@ struct DisaRenderObject {
     bool m_depthTestEnabled; //0x2a
     bool m_depthMaskEnabled; //0x2b
     float m_polygonOffset; //0x2c
-    int32_t m_field0x30; //0x30
+    int32_t* m_field0x30; //0x30 
     glm::mat4 m_field0x34; //0x34
+};
+
+struct DisaRenderObjectManager {
+    glm::vec3* m_field0x0; //0x0
+    glm::vec3* m_center; //0x4 //camera center
+    glm::vec3* m_field0x8; //0x8
+    glm::vec3* m_field0xc; //0xc
+    glm::vec3 m_lookDir; //0x10
+    uint32_t m_field0x14; //0x14
+    uint32_t m_prevRenderSize; //0x18 stores the last m_renderSize
+    std::array<DisaRenderObject, 4096> m_renderObjects; //0x24
+    uint32_t m_renderSize; //0x74024
+    std::array<DisaRenderObject*, 2048> m_renderObjectList; //0x74028
+    std::array<int, 6> m_field0x76028; //0x76028
+    uint32_t m_field0x76040; //0x76040
+    std::array<int, 5> m_field0x76044; //0x76044
+    glm::mat4* m_field0x76058; //0x76058
+    glm::mat4 m_field0x7605c; //0x7605c
+    glm::mat4 m_field0x7609c; //0x7609c
+    glm::mat4 m_field0x760dc; //0x760dc
+    uint32_t m_field0x760e0; //0x760e0
+
+    inline auto getRenderObjectList() {
+        return std::ranges::subrange(m_renderObjectList.begin(), std::next(m_renderObjectList.begin(), m_renderSize));
+    }
 };
 
 /**
