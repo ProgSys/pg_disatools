@@ -170,7 +170,7 @@ void FUN_0042d3e0_SetProjectionMatrix(glm::mat4& thisMatrix, float fovDegrees, f
 }
 
 
-static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t type, int32_t* field0x14, float depth, int32_t field0x10, bool field0x28) {
+static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t type, int32_t* field0x14, float depth, int32_t field0x10, bool isPerspective) {
     if (bool(visibleBitMask & 4) != (field0x14 && field0x14[6] == 3))
         return false;
     if ((param_1 == 1) && ((type & 1) == 0))
@@ -195,9 +195,9 @@ static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t t
         return false;
     if (!(visibleBitMask & 0x10) && (field0x10 == 0))
         return false;
-    if (!(visibleBitMask & 0x1) && (field0x28 != 0))
+    if (!(visibleBitMask & 0x1) && (isPerspective != 0))
         return false;
-    if (!(visibleBitMask & 0x2) && (field0x28 == 0) && (param_1 != 2 || depth != 100.0))
+    if (!(visibleBitMask & 0x2) && (isPerspective == 0) && (param_1 != 2 || depth != 100.0))
         return false;
     if (visibleBitMask & 0x20 && depth == 100.0)
         return false;
@@ -271,18 +271,19 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     }
 
     for (DisaRenderObject* object : range) {
-        if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_field0x28))
+        if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_isPerspective))
             continue;
 
-        bool stencilBitSet = object->m_stencilSetting >> 0xb & 1;
+        const bool stencilBitSet = object->m_stencilSetting >> 0xb & 1; //seams never to be true
         FUN_00432f50_ProjectionUpdate(stencilBitSet); //FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
 
         //projection matrix
         glMatrixMode(GL_PROJECTION); 
         glm::mat4* projectionMat = object->m_projectionMatrix; // pfVar8
         if (projectionMat == nullptr) {
-            if (object->m_field0x28 == false) {
+            if (object->m_isPerspective == false) {
                 if (param_1 == 1) continue;
+                //ui orthogonal matrix
                 projectionMat = &unknownObject->field0x4->field0x0[stencilBitSet]->projectionMatrix;
             }
             else if (param_1 == 1) {
@@ -293,14 +294,14 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
                 FUN_0042d3e0_SetProjectionMatrix(*projectionMat, 6.8f, 256.0f, 256.0f, 320.0f, 11600.0f); //FP::callThisFarA(0x0042d3e0, currMat, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
             }
             else {
-                projectionMat = memoryRenderManager->m_field0x76058;// (glm::mat4*)renderWorld[0x1d816];
+                projectionMat = memoryRenderManager->m_perspectiveMatrix;// (glm::mat4*)renderWorld[0x1d816];
             }
         }
         glLoadMatrixf((GLfloat*)projectionMat);
 
         //modelview matrix
         glMatrixMode(GL_MODELVIEW);  
-        if (object->m_field0x28 == false) {
+        if (object->m_isPerspective == false) {
             glLoadIdentity();
         }
         else {
@@ -334,11 +335,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             glMultMatrixf((GLfloat*)object->m_field0x20);
         }
 
-        //update some object matrix, maybe modelMatrix
-        if (object->m_field0x28 == false || object->m_field0x20 == nullptr) {
+        //update some matrix? maybe modelMatrix, maybe multiply with parent?
+        if (object->m_isPerspective == false || object->m_field0x20 == nullptr) {
             object->m_field0x34 = FP::getData<glm::mat4>(0x005b2670);
         }
         else {
+            //mutiply view matrix with model matrix
             const glm::mat4 temp = memoryRenderManager->m_field0x7605c; //renderWorld + 0x1d817
             object->m_field0x34 = *object->m_field0x20 * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
         }

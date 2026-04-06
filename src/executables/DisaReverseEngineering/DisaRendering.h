@@ -15,9 +15,9 @@ struct DisaRenderObject {
     int32_t* m_field0x14; //0x14 texture
     int32_t m_field0x18; //0x18 texture
     float* m_meshData; //0x1c
-    glm::mat4* m_field0x20; //0x20
-    glm::mat4* m_projectionMatrix; //0x24
-    bool m_field0x28; //0x28
+    glm::mat4* m_field0x20; //0x20 modelMatrix?
+    glm::mat4* m_projectionMatrix; //0x24 optional custom projection matrix (is mostly null)
+    bool m_isPerspective; //0x28 world object or Ui (orthogonal matrix)
     bool m_field0x29; //0x29
     bool m_depthTestEnabled; //0x2a
     bool m_depthMaskEnabled; //0x2b
@@ -44,8 +44,8 @@ struct DisaRenderObjectManager {
     std::array<int, 6> m_field0x76028; //0x76028
     uint32_t m_field0x76040; //0x76040
     std::array<int, 5> m_field0x76044; //0x76044
-    glm::mat4* m_field0x76058; //0x76058
-    glm::mat4 m_field0x7605c; //0x7605c
+    glm::mat4* m_perspectiveMatrix; //0x76058 used to render the world
+    glm::mat4 m_field0x7605c; //0x7605c viewMatrix?
     glm::mat4 m_field0x7609c; //0x7609c
     glm::mat4 m_field0x760dc; //0x760dc
     uint32_t m_field0x760e0; //0x760e0
