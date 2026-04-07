@@ -17,7 +17,8 @@ class DisaCustomRenderManager {
 public:
 	enum ELayer {
 		Front,
-		Back
+		Back,
+		Inbetween
 	};
 	struct RenderTask {
 		RenderTask(const std::string& _identifier) : identifier(_identifier) {}
@@ -85,6 +86,11 @@ public:
 	* @brief Render last
 	*/
 	void lastReplace();
+	/**
+	* @brief Render trigger inbeween layers
+	*/
+	void renderInbetween();
+	void clearInbetween();
 
 	template<typename TTask, typename... Args>
 	TTask* addRenderTask(ELayer layer, std::string identifier, Args&&... args) {
@@ -93,6 +99,7 @@ public:
 		{
 		case DisaCustomRenderManager::Front: target = &m_frontLayer; break;
 		case DisaCustomRenderManager::Back: target = &m_backLayer; break;
+		case DisaCustomRenderManager::Inbetween: target = &m_inbetweenLayer; break;
 		default: return nullptr;
 		}
 
@@ -131,5 +138,6 @@ private:
 
 	std::vector<RenderTask*> m_frontLayer;
 	std::vector<RenderTask*> m_backLayer;
+	std::vector<RenderTask*> m_inbetweenLayer;
 	bool m_fullClean = false;
 };

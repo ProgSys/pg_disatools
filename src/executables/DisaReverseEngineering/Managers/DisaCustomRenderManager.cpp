@@ -166,12 +166,11 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
 
     cleanTasks(m_backLayer);
     cleanTasks(m_frontLayer);
+    cleanTasks(m_inbetweenLayer);
     if (m_fullClean) {
         m_backLayer.shrink_to_fit();
         m_frontLayer.shrink_to_fit();
     }
-
-    if (!m_enabled) return;
 
     bool needsRefresh = false;
     auto refreshTasks = [&needsRefresh](std::vector<RenderTask*>& v) {
@@ -184,10 +183,12 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
                 t->create();
             }
         }
-     };
+        };
 
     refreshTasks(m_backLayer);
     refreshTasks(m_frontLayer);
+    refreshTasks(m_inbetweenLayer);
+
 
     if (needsRefresh) {
         glPopAttrib(); //reset to original disa state
@@ -217,21 +218,43 @@ void DisaCustomRenderManager::glDrawArraysReplace(unsigned int mode, int first, 
 }
 
 void DisaCustomRenderManager::lastReplace() {
-    if (!m_enabled) return;
-    if (!m_frontLayer.empty()) {
-        resetDisaOpenGLStates();
+    if (!m_enabled || m_frontLayer.empty()) return;
 
-        glEnable(GL_TEXTURE_2D);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    resetDisaOpenGLStates();
 
-        checkGLError();
-        for (RenderTask* t : m_frontLayer) {
-            t->render();
-            //t->removeRequested = true;
-        }
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glPopAttrib();
+    checkGLError();
+    for (RenderTask* t : m_frontLayer) {
+        t->render();
+        //t->removeRequested = true;
+    }
+
+    glPopAttrib();
+}
+
+void DisaCustomRenderManager::renderInbetween() {
+    if (m_inbetweenLayer.empty()) return;
+
+    resetDisaOpenGLStates();
+
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    checkGLError();
+    for (RenderTask* t : m_inbetweenLayer) {
+        t->render();
+    }
+
+    glPopAttrib();
+}
+
+void DisaCustomRenderManager::clearInbetween() {
+    for (RenderTask* t : m_inbetweenLayer) {
+        t->removeRequested = true;
     }
 }
 
@@ -241,6 +264,7 @@ DisaCustomRenderManager::RenderTask* DisaCustomRenderManager::findRenderTask(ELa
     {
     case DisaCustomRenderManager::Front: target = &m_frontLayer; break;
     case DisaCustomRenderManager::Back: target = &m_backLayer; break;
+    case DisaCustomRenderManager::Inbetween: target = &m_inbetweenLayer; break;
     default: return nullptr;
     }
 

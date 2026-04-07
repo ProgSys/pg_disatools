@@ -589,8 +589,7 @@ void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::st
         return;
     }
 
-    task = DisaCustomRenderManager::get()->addRenderTask<DisaCustomRenderManager::RenderScreenImg>(layer, id,
-        std::move(img), pos, size);
+    task = DisaCustomRenderManager::get()->addRenderTask<DisaCustomRenderManager::RenderScreenImg>(layer, id, std::move(img), pos, size);
     task->path = std::move(fullPath);
 }
 

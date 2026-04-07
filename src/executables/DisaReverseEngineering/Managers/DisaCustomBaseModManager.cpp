@@ -34,7 +34,7 @@ PG_File DisaCustomBaseModManager::getExePath() const {
     static PG_File filePath;
     if (filePath.isEmpty()) {
         filePath = PG_File(getExecutablePath()).getDir();
-        if (filePath.isEmpty() || filePath.size() < 4 || filePath.size() > 3400) exit(1);
+        if (filePath.isEmpty() || filePath.getPath().size() < 4 || filePath.getPath().size() > 3400) exit(1);
         if (filePath.getPath().back() != '\\') filePath.getPath().push_back('\\');
         OUT_INFO("Found path: " << filePath);
     }

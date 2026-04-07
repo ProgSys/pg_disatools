@@ -169,7 +169,9 @@ void FUN_0042d3e0_SetProjectionMatrix(glm::mat4& thisMatrix, float fovDegrees, f
     //glGetFloatv(GL_PROJECTION_MATRIX, (float*)&thisMatrix);
 }
 
-
+/**
+* Needs validation
+*/
 static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t type, int32_t* field0x14, float depth, int32_t field0x10, bool isPerspective) {
     if (bool(visibleBitMask & 4) != (field0x14 && field0x14[6] == 3))
         return false;
@@ -206,6 +208,11 @@ static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t t
     return true;
 }
 
+static inline void FUN_00420e50_glStencilOp(int dppassTypeIndex) {
+    //INT_ARRAY_00596e0c
+    static const std::array<GLenum, 8> dppassTypes = { GL_KEEP , GL_ZERO, GL_REPLACE, GL_INVERT, GL_INCR, GL_INCR_WRAP, GL_DECR, GL_DECR_WRAP };
+    glStencilOp(GL_KEEP, GL_KEEP, dppassTypes[dppassTypeIndex]);
+}
 
 
 void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
@@ -355,22 +362,22 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             case 0:
                 glDisable(GL_STENCIL_TEST);
                 glStencilFunc(GL_ALWAYS, 0, 0);
-                FP::callCdeclFarA(0x00420e50, 0); //calls glStencilOp(0x1e00,0x1e00,*(undefined4 *)(&DAT_00596e0c + param_1 * 4));
+                FUN_00420e50_glStencilOp(0); //0x00420e50 calls glStencilOp(0x1e00,0x1e00,*(undefined4 *)(&DAT_00596e0c + param_1 * 4));
                 break;
             case 1:
                 glEnable(GL_STENCIL_TEST);
                 glStencilFunc(GL_ALWAYS, stencilRefValue, 0xff);
-                FP::callCdeclFarA(0x00420e50, 2); //glStencilOp
+                FUN_00420e50_glStencilOp(2); //glStencilOp
                 break;
             case 2:
                 glEnable(GL_STENCIL_TEST);
                 glStencilFunc(GL_NOTEQUAL, stencilRefValue, 0xff);
-                FP::callCdeclFarA(0x00420e50, 0); //glStencilOp
+                FUN_00420e50_glStencilOp(0); //glStencilOp
                 break;
             case 3:
                 glEnable(GL_STENCIL_TEST);
                 glStencilFunc(GL_NOTEQUAL, stencilRefValue, 0xff);
-                FP::callCdeclFarA(0x00420e50, 2); //glStencilOp
+                FUN_00420e50_glStencilOp(2); //glStencilOp
                 break;
             }
         }
