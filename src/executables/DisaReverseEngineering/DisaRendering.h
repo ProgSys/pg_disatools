@@ -102,7 +102,7 @@ struct DisaRenderObjectManager {
     std::array<float*, 2> m_field0x76030; // 0x76030 - mesh memory cash begin pointer for each block
     std::array<int, 2> m_field0x76038; // 0x76038 
     uint32_t m_renderBlockIndex; // 0x76040 - 0 or 1
-    float m_depthOffset;        // 0x76044
+    float m_basePolygonOffset;  // 0x76044 - additional offset added to each object when submitted
     float m_field0x76048;       // 0x76048
     bool m_skipGlSetup;         // 0x7604c - When bulk rendered its is set to true as openGL setup is done beforehand
     bool m_field0x7604d;        // 0x7604d

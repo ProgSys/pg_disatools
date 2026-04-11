@@ -469,7 +469,7 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
         if (m_renderBlockSize[m_renderBlockIndex] < 2048) {
             renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
 
-            renderObject->m_depth = m_depthOffset + depth;
+            renderObject->m_depth = m_basePolygonOffset + depth;
             renderObject->m_field0x8 = m_field0x76048;
 
             FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
@@ -567,7 +567,7 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
         if (roManager->m_renderBlockSize[roManager->m_renderBlockIndex] < 2048) {
             renderObject = &roManager->m_renderObjects[roManager->m_renderBlockIndex * 2048 + roManager->m_renderBlockSize[roManager->m_renderBlockIndex]];
 
-            renderObject->m_depth = roManager->m_depthOffset + depth;
+            renderObject->m_depth = roManager->m_basePolygonOffset + depth;
             renderObject->m_field0x8 = roManager->m_field0x76048;
 
             FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
