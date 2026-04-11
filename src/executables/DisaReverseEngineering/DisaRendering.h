@@ -3,6 +3,27 @@
 #include <ranges>
 #include <array>
 
+
+struct VertexSolidColor {
+    uint32_t  color;   //  4
+    glm::vec3 pos;     // 12
+}; // 16 bytes
+
+struct VertexBasic {
+    glm::vec2 uv;      //  8
+    uint32_t  color;   //  4
+    glm::vec3 pos;     // 12
+}; // 24 bytes
+
+struct VertexWithNormal {
+    glm::vec2 uv;        // +0
+    uint32_t  color;     // +8
+    glm::vec3 pos;       // +12
+    glm::vec3 tangent;  // +24 
+    glm::vec3 bitangent; // +36 
+}; // 48 bytes
+
+
 struct DisaRenderObject {
     uint32_t m_type; //0x0
     float m_depth; //0x4 or type 
@@ -59,6 +80,16 @@ struct DisaRenderObjectManager {
     inline auto getRenderObjectList() {
         return std::ranges::subrange(m_renderObjectList.begin(), std::next(m_renderObjectList.begin(), m_renderObjectListSize));
     }
+
+    static DisaRenderObjectManager* get();
+
+    /**
+    * @brief Will add a new render object that used VertexBasic as its mesh type
+    * Original function: FUN_00425df0
+    * @param customData If set to true then the mesh data will directly be send to renderer wihtout checking if it needs to be moved into game buffer 
+    */
+    void submitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
+        float poligonOffset, int param_11, bool param_12, bool param_13, bool customData);
 };
 
 /**
@@ -74,4 +105,4 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled);
 
 void __stdcall FUN_00425df0_SubmitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-    float poligonOffset, int param_11, bool param_12, bool param_13, bool customData);
+    float poligonOffset, int param_11, bool param_12, bool param_13);

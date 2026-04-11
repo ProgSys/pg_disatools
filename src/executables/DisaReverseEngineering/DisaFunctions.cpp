@@ -9,6 +9,7 @@
 #undef min
 
 #include "FunctionPatcher.h"
+#include <DisaRendering.h>
 
 #include <Util/Color/RGBA.h>
 #include <Util/Debug/PG_DebugOut.h>
@@ -17,7 +18,6 @@
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Stream/PG_StreamInByteArray.h>
 #include <ranges>
-
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/constants.hpp> 
 
@@ -1843,27 +1843,6 @@ void __fastcall FUN_RenderEnd(int param_1) {
     DisaCustomRenderManager::get()->lastReplace();
 }
 
-
-struct VertexSolidColor {
-    uint32_t  color;   //  4
-    glm::vec3 pos;     // 12
-}; // 16 bytes
-
-struct VertexBasic {
-    glm::vec2 uv;      //  8
-    uint32_t  color;   //  4
-    glm::vec3 pos;     // 12
-}; // 24 bytes
-
-struct VertexWithNormal {
-    glm::vec2 uv;        // +0
-    uint32_t  color;     // +8
-    glm::vec3 pos;       // +12
-    glm::vec3 tangent;  // +24 
-    glm::vec3 bitangent; // +36 
-}; // 48 bytes
-
-
 static inline void copyIntoMemory(DisaObjectModel* context, byte* memory, const size_t stride, const GeometryBatchKey key) {
 
     uint32_t dataStart = 0;
@@ -1976,7 +1955,6 @@ byte* DisaMemeoryManager::FUN_00425bb0(int requestedMemorySize) {
     return FP::callThisFarA<byte*>(0x00425bb0, this, requestedMemorySize);
 }
 
-#include <DisaRendering.h>
 
 void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
     if (context->m_numberOfSurfaces == 0) return;
@@ -2080,8 +2058,7 @@ void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
             } break;
             case sizeof(VertexBasic) : {
                 auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
-
-                FUN_00425df0_SubmitVertexBasic(depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0, custom);
+                DisaRenderObjectManager::get()->submitVertexBasic(depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0, custom);
                 //FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
             } break;
             case sizeof(VertexWithNormal) : {

@@ -416,8 +416,107 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     glLoadIdentity();
 }
 
+DisaRenderObjectManager* DisaRenderObjectManager::get() {
+    return FP::getData<DisaRenderObjectManager*>(0x005bb02c);
+}
+
+void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
+    float poligonOffset, int param_11, bool param_12, bool param_13, bool customData) {
+
+    DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
+
+    //char* puStack_c;
+    //void* local_10;
+    //puStack_c = &LAB_00524f48;
+    //local_10 = ExceptionList;
+    //ExceptionList = &local_10;
+
+    const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
+    const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
+
+
+    DisaRenderObject* renderObject;
+    if ((*(bool*)&m_field0xc == false) && isEnabled) {
+
+        if (m_renderBlockSize[m_renderBlockIndex] < 2048) {
+            renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
+
+            renderObject->m_depth = m_depthOffset + depth;
+            renderObject->m_field0x8 = m_field0x76048;
+            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (disaUnknownObject->selectedProjectionObjectIndex << 0xb ^ renderObject->m_stencilSetting) & 0x800;
+
+            FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
+            FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
+
+            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (blendMode << 0xc ^ renderObject->m_stencilSetting) & 0xf000;
+            *(short*)((int)&renderObject->m_stencilSetting + 2) = sizeUniforms;
+            renderObject->m_modelMatrix = modelMatrix;
+            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (param_11 << 8 ^ renderObject->m_stencilSetting) & 0x700;
+            *(bool*)&renderObject->m_stencilSetting = param_12;
+            renderObject->m_isPerspective = isPerspective;
+            renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
+            renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
+            renderObject->m_field0x29 = (bool)param_13;
+            renderObject->m_field0x10 = triangleCount;
+            renderObject->m_polygonOffset = poligonOffset;
+
+            const int typeIndex = FP::getData<int>(0x005bb030);
+            renderObject->m_type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
+
+            if (m_modelMatrix) {
+                renderObject->m_modelMatrix = m_modelMatrix;
+            }
+            if (m_projectionMatrix) {
+                renderObject->m_projectionMatrix = m_projectionMatrix;
+            }
+
+            void* _Src = geometryData;
+            //CUSTOM memory assignment to support big geometry 
+            if (customData) {
+                renderObject->m_meshData = (float*)_Src;
+            }
+            else {
+                if ((_Src < m_field0x76030[m_renderBlockIndex]) || (m_field0x76030[m_renderBlockIndex] + 0x40000 <= _Src)) {
+                    size_t _Size = triangleCount * 24;
+                    float* _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, this, _Size);
+                    memcpy(_Dst, _Src, _Size);
+                    renderObject->m_meshData = _Dst;
+                }
+                else {
+                    renderObject->m_meshData = (float*)_Src;
+                }
+            }
+
+            if (!m_skipGlSetup) {
+                if (m_renderObjectListSize < 2048) {
+                    if (m_renderObjectList[m_renderObjectListSize] != nullptr) {
+                        m_renderObjectList[m_renderObjectListSize] = renderObject;
+                    }
+                    ++m_renderObjectListSize;
+                }
+                ++m_renderBlockSize[m_renderBlockIndex];
+            }
+            else {
+                if (blendMode + 1U < 4) {
+                    FP::callFastFarA(0x00426f10, blendMode + 1U); //setup of glBlendFunc
+                }
+                FP::callThisFarA(0x00426fb0, renderObject, m_skipGlSetup, 0); //render
+            }
+        }
+    }
+
+    int iVar3;
+    int* ptr = textureDataPtr;
+    if (((textureDataPtr != (int*)0x0) && ((int)textureDataPtr - 0x10001U < 0xeffeffff)) && ((*textureDataPtr != 0 && (iVar3 = *textureDataPtr - 1, *textureDataPtr = iVar3, iVar3 == 0)))) {
+        FP::callFastFarA(0x004243e0, (int)textureDataPtr);
+        FP::callFastFarA(0x00433380, (byte*)ptr);
+    }
+    //ExceptionList = local_10;
+    return;
+}
+
 void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-    float poligonOffset, int param_11, bool param_12, bool param_13, bool customData){
+    float poligonOffset, int param_11, bool param_12, bool param_13){
 
     DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
     DisaRenderObjectManager* roManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
@@ -468,20 +567,14 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
             }
 
             void* _Src = geometryData;
-            //CUSTOM memory assignment to support big geometry 
-            if (customData) {
-                renderObject->m_meshData = (float*)_Src;
+            if ((_Src < roManager->m_field0x76030[roManager->m_renderBlockIndex]) || (roManager->m_field0x76030[roManager->m_renderBlockIndex] + 0x40000 <= _Src)) {
+                size_t _Size = triangleCount * 24;
+                float* _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, roManager, _Size);
+                memcpy(_Dst, _Src, _Size);
+                renderObject->m_meshData = _Dst;
             }
             else {
-                if ((_Src < roManager->m_field0x76030[roManager->m_renderBlockIndex]) || (roManager->m_field0x76030[roManager->m_renderBlockIndex] + 0x40000 <= _Src)) {
-                    size_t _Size = triangleCount * 24;
-                    float* _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, roManager, _Size);
-                    memcpy(_Dst, _Src, _Size);
-                    renderObject->m_meshData = _Dst;
-                }
-                else {
-                    renderObject->m_meshData = (float*)_Src;
-                }
+                renderObject->m_meshData = (float*)_Src;
             }
 
             if (!roManager->m_skipGlSetup) {
