@@ -23,15 +23,32 @@ struct VertexWithNormal {
     glm::vec3 bitangent; // +36 
 }; // 48 bytes
 
+struct DisaRenderObjectTexParameter {
+    uint16_t m_field0x0; //0x0
+    uint8_t m_magFilter; //0x2 GL_NEAREST or GL_LINEAR (could be bool)
+    uint8_t m_warpMode; //0x3 GL_CLAMP or GL_REPEAT == 2
+};
 
+struct DisaRenderObjectSettings {
+    uint16_t stencilRef : 8; // param_12
+    uint16_t stencilMode : 3; // bits 8-10
+    uint16_t projIndex : 1; // bit 11
+    uint16_t blendMode : 4; // bits 12-15
+};
+
+/**
+* @brief A singular object to be rendered
+* Is managed by DisaRenderObjectManager.
+*/
 struct DisaRenderObject {
     uint32_t m_type; //0x0
     float m_depth; //0x4 or type 
     float m_field0x8; //0x8
-    uint32_t m_stencilSetting; //0xc
+    DisaRenderObjectSettings m_renderSettingsBitMask; //0xc
+    uint16_t m_uniformSize; //0xe
     int32_t m_field0x10; //0x10 vertexCount
     int32_t* m_field0x14; //0x14 texture
-    int32_t m_field0x18; //0x18 texture
+    DisaRenderObjectTexParameter m_textureInfo; //0x18 texture
     float* m_meshData; //0x1c
     glm::mat4* m_modelMatrix; //0x20 modelMatrix?
     glm::mat4* m_projectionMatrix; //0x24 optional custom projection matrix (is mostly null)
@@ -45,7 +62,6 @@ struct DisaRenderObject {
 };
 
 /**
-*
 * Created at 00507fc1 with total size of 0x76120, init function is FUN_00425970.
 */
 struct DisaRenderObjectManager {
@@ -89,7 +105,7 @@ struct DisaRenderObjectManager {
     * @param customData If set to true then the mesh data will directly be send to renderer wihtout checking if it needs to be moved into game buffer 
     */
     void submitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-        float poligonOffset, int param_11, bool param_12, bool param_13, bool customData);
+        float poligonOffset, int param_11, unsigned char param_12, bool param_13, bool customData);
 };
 
 /**

@@ -11,6 +11,8 @@
 
 bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObject* param_2) {
     assert(param_1 && param_2);
+    if(!param_1 || !param_2) return param_1 > param_2;
+
     if (!glm::isnan(param_1->m_depth) && !glm::isnan(param_1->m_depth) && param_1->m_depth != param_2->m_depth)
         return  param_1->m_depth < param_2->m_depth;
     if (!glm::isnan(param_1->m_field0x8) && !glm::isnan(param_1->m_field0x8) && param_1->m_field0x8 != param_2->m_field0x8)
@@ -218,7 +220,7 @@ static inline void FUN_00420e50_glStencilOp(int dppassTypeIndex) {
 
 void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
     //@todo move this to main
-    static bool openGLInit = false;
+    static bool openGLInit = false; 
     if (!openGLInit) {
         glewExperimental = GL_TRUE; // recommended
         if (glewInit() != GLEW_OK) {
@@ -279,11 +281,14 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     }
 
     for (DisaRenderObject* object : range) {
+        assert(object);
+        if (!object) return;
+
         if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_isPerspective))
             continue;
 
-        const bool stencilBitSet = object->m_stencilSetting >> 0xb & 1; //seams never to be true
-        FUN_00432f50_ProjectionUpdate(stencilBitSet); //FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
+        const bool projectionIndex = object->m_renderSettingsBitMask.projIndex; //seams never to be true
+        FUN_00432f50_ProjectionUpdate(projectionIndex); //FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
 
         //projection matrix
         glMatrixMode(GL_PROJECTION); 
@@ -292,7 +297,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             if (object->m_isPerspective == false) {
                 if (param_1 == 1) continue;
                 //ui orthogonal matrix
-                projectionMat = &unknownObject->field0x4->field0x0[stencilBitSet]->projectionMatrix;
+                projectionMat = &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
             }
             else if (param_1 == 1) {
                 //glLoadIdentity(); //is not needed at all but present in original
@@ -354,8 +359,8 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         }
 
         //update stencil
-        const int stencilRefTemp = int(object->m_stencilSetting & 0xff);
-        const int stencilModeTemp = (int)(object->m_stencilSetting << 0x15) >> 0x1d;
+        const int stencilRefTemp = object->m_renderSettingsBitMask.stencilRef;
+        const int stencilModeTemp = object->m_renderSettingsBitMask.stencilMode;
         if (stencilModeValue != stencilModeTemp || stencilRefValue != stencilRefTemp) {
             stencilRefValue = stencilRefTemp;
             stencilModeValue = stencilModeTemp;
@@ -420,8 +425,31 @@ DisaRenderObjectManager* DisaRenderObjectManager::get() {
     return FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 }
 
+struct DisaTextureSPtr {
+    uint32_t m_useCount; //0x0
+    uint32_t* m_field0x4; //0x4
+    uint32_t* m_field0x8; //0x8
+    uint16_t m_field0xc; //0xc
+
+    /**
+    * Will extract settings for that will be used for glTexParameteri
+    * @see FUN_004245e0
+    */
+    void FUN_004281f0(DisaRenderObjectTexParameter* texParamters) const {
+        texParamters->m_field0x0 = m_field0xc;
+        if (m_field0x4) {
+            texParamters->m_magFilter = (byte)m_field0x4[0xe];
+            texParamters->m_warpMode = (byte)m_field0x4[0xd];
+        }
+        else {
+            texParamters->m_magFilter = 0;
+            texParamters->m_warpMode = 1; //1 is never used and will be GL_CLAMP
+        }
+    }
+};
+
 void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-    float poligonOffset, int param_11, bool param_12, bool param_13, bool customData) {
+    float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13, bool customData) {
 
     DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
 
@@ -443,16 +471,18 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
 
             renderObject->m_depth = m_depthOffset + depth;
             renderObject->m_field0x8 = m_field0x76048;
-            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (disaUnknownObject->selectedProjectionObjectIndex << 0xb ^ renderObject->m_stencilSetting) & 0x800;
 
             FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
-            FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
+            ((DisaTextureSPtr*)textureDataPtr)->FUN_004281f0(&renderObject->m_textureInfo);
+            //FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
 
-            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (blendMode << 0xc ^ renderObject->m_stencilSetting) & 0xf000;
-            *(short*)((int)&renderObject->m_stencilSetting + 2) = sizeUniforms;
+            renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
+            renderObject->m_renderSettingsBitMask.blendMode = blendMode;
+            renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
+            renderObject->m_renderSettingsBitMask.stencilRef = stencilRef;
+
+            renderObject->m_uniformSize = sizeUniforms;
             renderObject->m_modelMatrix = modelMatrix;
-            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (param_11 << 8 ^ renderObject->m_stencilSetting) & 0x700;
-            *(bool*)&renderObject->m_stencilSetting = param_12;
             renderObject->m_isPerspective = isPerspective;
             renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
             renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
@@ -539,16 +569,18 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
 
             renderObject->m_depth = roManager->m_depthOffset + depth;
             renderObject->m_field0x8 = roManager->m_field0x76048;
-            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (disaUnknownObject->selectedProjectionObjectIndex << 0xb ^ renderObject->m_stencilSetting) & 0x800;
 
             FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
-            FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
+            FP::callThisFarA<void>(0x004281f0, textureDataPtr, &renderObject->m_textureInfo);
 
-            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (blendMode << 0xc ^ renderObject->m_stencilSetting) & 0xf000;
-            *(short*)((int)&renderObject->m_stencilSetting + 2) = sizeUniforms;
+            renderObject->m_uniformSize  = sizeUniforms;
             renderObject->m_modelMatrix = modelMatrix;
-            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (param_11 << 8 ^ renderObject->m_stencilSetting) & 0x700;
-            *(bool*)&renderObject->m_stencilSetting = param_12;
+            int& mask = *((int*)&renderObject->m_renderSettingsBitMask);
+            mask = mask ^ (disaUnknownObject->selectedProjectionObjectIndex << 0xb ^ mask) & 0x800;
+            mask = mask ^ (blendMode << 0xc ^ mask) & 0xf000;
+            mask = mask ^ (param_11 << 8 ^ mask) & 0x700;
+            *(bool*)&renderObject->m_renderSettingsBitMask = param_12;
+
             renderObject->m_isPerspective = isPerspective;
             renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
             renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
