@@ -459,11 +459,11 @@ struct DisaObjectScrollInfo {
 /*!
 * @brief Points to the loaded geometry file and contains the curret state how the geomery should be rendered
 */
-struct DisaObjectRenderContext {
+struct DisaObjectModel {
     glm::frgba* m_colorMultiplier; //0x0 per-item color multipliers (r,g,b,a)
     uint32_t m_field0x4; //0x4 Decompiler never reads?
-    DisaObjectRenderContext* m_self; //0x8 pointer to self for some reason
-    float m_field0xC; //0xC 
+    DisaObjectModel* m_self; //0x8 pointer to self for some reason
+    float m_poligonOffset; //0xC 
     uint32_t m_field0x10; //0x10 
     uint32_t m_field0x14; //0x14 
     uint32_t m_field0x18; //0x18 

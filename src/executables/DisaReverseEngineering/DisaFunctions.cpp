@@ -1864,7 +1864,7 @@ struct VertexWithNormal {
 }; // 48 bytes
 
 
-static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory, const size_t stride, const GeometryBatchKey key) {
+static inline void copyIntoMemory(DisaObjectModel* context, byte* memory, const size_t stride, const GeometryBatchKey key) {
 
     uint32_t dataStart = 0;
     uint32_t dataNextLength = 0;
@@ -1933,9 +1933,6 @@ static inline void copyIntoMemory(DisaObjectRenderContext* context, byte* memory
             */
         }
 
-
-        
-
         if (stride == sizeof(VertexBasic)) {
             VertexBasic* outIt = (VertexBasic*)memory;
             for (int i = 0; i < surface.length; ++i) {
@@ -1986,13 +1983,14 @@ byte* DisaMemeoryManager::FUN_00425bb0(int requestedMemorySize) {
     return FP::callThisFarA<byte*>(0x00425bb0, this, requestedMemorySize);
 }
 
-void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelMatrix) {
+#include <DisaRendering.h>
+
+void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
     if (context->m_numberOfSurfaces == 0) return;
 
     // Compute batches. i.e. merge all surfaces into on
     std::map<GeometryBatchKey, uint32_t> batches; //texture index, addative
     for (const geofileSurface& surface : std::ranges::subrange(context->m_geofileSurfaces, context->m_geofileSurfaces + context->m_numberOfSurfaces)) {
-
         batches[{surface.index, surface.additive}] += surface.length;
     }
 
@@ -2043,10 +2041,9 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
        
             } else if (arrayRoot + arraySize == 0) {
                 memory = FP::callStdFarA<byte*>(0x00425c10, 0x20, bytes);
-                if (!memory) return; //CSUTOM out of memory check
+                if (!memory) return; //CUSTOM out of memory check
             }
             else {
-                //rewrite and explain this part
                 auto uVar18 = *(uint*)((uint)memoryPtr + 0x20) >> 0x1d & 1;
                 if (*(int*)((uint)memoryPtr + 8 + uVar18 * 4) == 0) {
                     memory = nullptr;
@@ -2076,32 +2073,33 @@ void __fastcall FUN_004ef8a0(DisaObjectRenderContext* context, glm::mat4* modelM
         const float depth = static_cast<float>(key.textureAdditive != 0 ? 45000 : 41000);
         switch (stride) {
             case sizeof(VertexSolidColor) : {
-                FP::callStdFarA(0x00426040, depth, memory, totalLength, 3, -1, modelMatrix, 1, 0, 0);
+                FP::callStdFarA(0x00426040, depth, memory, totalLength, 3, -1, modelMatrix, true, 0, 0);
             } break;
             case sizeof(VertexBasic) : {
                 auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
 
-                FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, 1, key.textureAdditive, context->m_field0xC, 0, 0, 0);
+                FUN_00425df0_SubmitVertexBasic(depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
+                //FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
             } break;
             case sizeof(VertexWithNormal) : {
                 auto textureHDSptr = lockSptr(context->m_textureHDDatas[key.textureIndex - 1]);
                 auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
 
-                FP::callStdFarA(0x004f3450, depth, textureSDSptr, textureHDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, 1, key.textureAdditive, context->m_field0xC, 0, 0, 0);
+                FP::callStdFarA(0x004f3450, depth, textureSDSptr, textureHDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
             } break;
         }
          
     }
 }
 
-void __thiscall DisaObjectRenderContext::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba* colorMultiplier, uint32_t param_3, float param_4) {
+void __thiscall DisaObjectModel::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba* colorMultiplier, uint32_t param_3, float poligonOffset) {
     //no need to render geometry if its alpha is zero
     if (glm::isnan(colorMultiplier->a) || colorMultiplier->a == 0.f) return;
 
     m_colorMultiplier = colorMultiplier;
     m_field0x4 = param_3;
     m_self = this;
-    m_field0xC = param_4;
+    m_poligonOffset = poligonOffset;
     static bool flikker = false;
     static bool switchFun = true;
     static int swi = 0;

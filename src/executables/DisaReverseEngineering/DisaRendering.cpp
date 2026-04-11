@@ -1,7 +1,13 @@
 #include "DisaRendering.h"
+#include <gl/glew.h>
+#include <GL/glu.h>
 #include <algorithm>
-#include <bit>
 #include <glm/gtc/matrix_transform.hpp>
+#include <iostream>
+#include <array>
+
+#include <FunctionPatcher.h>
+
 
 bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObject* param_2) {
     assert(param_1 && param_2);
@@ -88,11 +94,6 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 using byte = std::uint8_t;
 
 
-#include <FunctionPatcher.h>
-#include <gl/glew.h>
-#include <GL/glu.h>
-#include <iostream>
-#include <array>
 
 struct DisaProjectionObject {
     std::array<float, 13> field0x0;
@@ -234,12 +235,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
 
     auto range = memoryRenderManager->getRenderObjectList();
     //sort if number of item has changed
-    if (memoryRenderManager->m_renderSize != memoryRenderManager->m_prevRenderSize) {
+    if (memoryRenderManager->m_renderObjectListSize != memoryRenderManager->m_prevRenderObjectListSize) {
         std::ranges::sort(range, &FUN_004280a0_sortFunc);
         //original function of a custom build sorting algorithm, however std sort does not only the same is even faster
         //unsigned int centerIndex = (FP::getData<unsigned int>(0x005bb02c) + FP::getData<unsigned int*>(0x005bb02c)[0x1d009] + 0x1d00a) - (int)(FP::getData<unsigned int>(0x005bb02c) + 0x1d00a) >> 2;
         //FUN_004275f0_sort(begin, end, centerIndex);
-        memoryRenderManager->m_prevRenderSize = memoryRenderManager->m_renderSize;
+        memoryRenderManager->m_prevRenderObjectListSize = memoryRenderManager->m_renderObjectListSize;
     }
 
     //int staring values
@@ -272,7 +273,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     unknownObject->field0x10_isEnabled = true;
     unknownObject->field0x11 = true;
     
-    if (memoryRenderManager->m_field0x76028[memoryRenderManager->m_field0x76040] <= 0) {
+    if (memoryRenderManager->m_renderBlockSize[memoryRenderManager->m_renderBlockIndex] <= 0) {
         //invalidate list
         range = std::ranges::subrange(memoryRenderManager->m_renderObjectList.begin(), memoryRenderManager->m_renderObjectList.begin());
     }
@@ -338,18 +339,18 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         }
 
         glPushMatrix();
-        if (object->m_field0x20 != nullptr) {
-            glMultMatrixf((GLfloat*)object->m_field0x20);
+        if (object->m_modelMatrix != nullptr) {
+            glMultMatrixf((GLfloat*)object->m_modelMatrix);
         }
 
         //update some matrix? maybe modelMatrix, maybe multiply with parent?
-        if (object->m_isPerspective == false || object->m_field0x20 == nullptr) {
+        if (object->m_isPerspective == false || object->m_modelMatrix == nullptr) {
             object->m_field0x34 = FP::getData<glm::mat4>(0x005b2670);
         }
         else {
             //mutiply view matrix with model matrix
             const glm::mat4 temp = memoryRenderManager->m_field0x7605c; //renderWorld + 0x1d817
-            object->m_field0x34 = *object->m_field0x20 * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
+            object->m_field0x34 = *object->m_modelMatrix * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
         }
 
         //update stencil
@@ -415,7 +416,100 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     glLoadIdentity();
 }
 
+void __stdcall FUN_00425df0_SubmitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
+    float poligonOffset, int param_11, bool param_12, bool param_13){
+    DisaRenderObjectManager* _this;
+    DisaUnknownObject2* pDVar2;
+    int* ptr;
+    void* _Src;
+    float* _Dst;
+    int iVar3;
+    DisaRenderObject* renderObject;
+    size_t _Size;
+    void* local_10;
+    char* puStack_c;
+    int local_8;
 
-void _stdcall FUN_00426770_Dummy(int param_1, unsigned int param_2, unsigned char depthTestEnabled) {
-    int i = 0;
+    iVar3 = triangleCount;
+    _Src = geometryData;
+    pDVar2 = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
+    _this = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
+    //puStack_c = &LAB_00524f48;
+    //local_10 = ExceptionList;
+    //ExceptionList = &local_10;
+    local_8 = 0;
+
+    const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
+    const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
+
+
+    if ((*(bool*)&_this->m_field0xc == false) && isEnabled) {
+
+        if (_this->m_renderBlockSize[_this->m_renderBlockIndex] < 2048) {
+            renderObject = &_this->m_renderObjects[_this->m_renderBlockIndex * 2048 + _this->m_renderBlockSize[_this->m_renderBlockIndex]];
+
+            renderObject->m_depth = _this->m_depthOffset + param_1;
+            renderObject->m_field0x8 = _this->m_field0x76048;
+            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (pDVar2->selectedProjectionObjectIndex << 0xb ^ renderObject->m_stencilSetting) & 0x800;
+
+            FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
+            FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
+
+            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (param_6 << 0xc ^ renderObject->m_stencilSetting) & 0xf000;
+            *(short*)((int)&renderObject->m_stencilSetting + 2) = sizeUniforms;
+            renderObject->m_modelMatrix = modelMatrix;
+            renderObject->m_stencilSetting = renderObject->m_stencilSetting ^ (param_11 << 8 ^ renderObject->m_stencilSetting) & 0x700;
+            *(bool*)&renderObject->m_stencilSetting = param_12;
+            renderObject->m_isPerspective = isPerspective;
+            renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
+            renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
+            renderObject->m_field0x29 = (bool)param_13;
+            renderObject->m_field0x10 = iVar3;
+            renderObject->m_polygonOffset = poligonOffset;
+
+            const int typeIndex = FP::getData<int>(0x005bb030);
+            renderObject->m_type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
+
+            if (_this->m_modelMatrix) {
+                renderObject->m_modelMatrix = (glm::mat4*)_this->m_modelMatrix;
+            }
+            if (_this->m_projectionMatrix) {
+                renderObject->m_projectionMatrix = _this->m_projectionMatrix;
+            }
+
+            if ((_Src < _this->m_field0x76030[_this->m_renderBlockIndex]) || (_this->m_field0x76030[_this->m_renderBlockIndex] + 0x40000 <= _Src)) {
+                _Size = iVar3 * 24;
+                _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, _this, _Size);
+                memcpy(_Dst, _Src, _Size);
+                renderObject->m_meshData = _Dst;
+            }
+            else {
+                renderObject->m_meshData = (float*)_Src;
+            }
+
+            if (!_this->m_skipGlSetup) {
+                if (_this->m_renderObjectListSize < 2048) {
+                    if (_this->m_renderObjectList[_this->m_renderObjectListSize] != nullptr) {
+                        _this->m_renderObjectList[_this->m_renderObjectListSize] = renderObject;
+                    }
+                    ++_this->m_renderObjectListSize;
+                }
+                ++_this->m_renderBlockSize[_this->m_renderBlockIndex];
+            }
+            else {
+                if (param_6 + 1U < 4) {
+                    FP::callFastFarA(0x00426f10, param_6 + 1U); 
+                }
+                FP::callThisFarA(0x00426fb0, renderObject, _this->m_skipGlSetup, 0); //render
+            }
+        }
+    }
+
+    ptr = textureDataPtr;
+    if (((textureDataPtr != (int*)0x0) && ((int)textureDataPtr - 0x10001U < 0xeffeffff)) && ((*textureDataPtr != 0 && (iVar3 = *textureDataPtr + -1, *textureDataPtr = iVar3, iVar3 == 0)))) {
+        FP::callFastFarA(0x004243e0, (int)textureDataPtr);
+        FP::callFastFarA(0x00433380, (byte*)ptr);
+    }
+    //ExceptionList = local_10;
+    return;
 }

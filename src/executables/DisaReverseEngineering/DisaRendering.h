@@ -4,10 +4,7 @@
 #include <array>
 
 struct DisaRenderObject {
-    uint8_t m_type; //0x0
-    uint8_t m_field0x1; //0x1
-    uint8_t m_field0x2; //0x2
-    uint8_t m_field0x3; //0x3
+    uint32_t m_type; //0x0
     float m_depth; //0x4 or type 
     float m_field0x8; //0x8
     uint32_t m_stencilSetting; //0xc
@@ -15,7 +12,7 @@ struct DisaRenderObject {
     int32_t* m_field0x14; //0x14 texture
     int32_t m_field0x18; //0x18 texture
     float* m_meshData; //0x1c
-    glm::mat4* m_field0x20; //0x20 modelMatrix?
+    glm::mat4* m_modelMatrix; //0x20 modelMatrix?
     glm::mat4* m_projectionMatrix; //0x24 optional custom projection matrix (is mostly null)
     bool m_isPerspective; //0x28 world object or Ui (orthogonal matrix)
     bool m_field0x29; //0x29
@@ -37,13 +34,22 @@ struct DisaRenderObjectManager {
     glm::vec3* m_field0xc; //0xc
     glm::vec3 m_lookDir; //0x10
     uint32_t m_field0x14; //0x14
-    uint32_t m_prevRenderSize; //0x18 stores the last m_renderSize
-    std::array<DisaRenderObject, 4096> m_renderObjects; //0x24
-    uint32_t m_renderSize; //0x74024
-    std::array<DisaRenderObject*, 2048> m_renderObjectList; //0x74028
-    std::array<int, 6> m_field0x76028; //0x76028
-    uint32_t m_field0x76040; //0x76040
-    std::array<int, 5> m_field0x76044; //0x76044
+    uint32_t m_prevRenderObjectListSize; //0x18 stores the last m_renderObjectListSize
+    std::array<DisaRenderObject, 4096> m_renderObjects; //0x24 Two blocks each max 2048 items, split at middle
+    uint32_t m_renderObjectListSize; //0x74024
+    std::array<DisaRenderObject*, 2048> m_renderObjectList; //0x74028 pointers to objects in renderObjects
+    std::array<int, 2> m_renderBlockSize; //0x76028 number of items inside each block
+    std::array<float*, 2> m_field0x76030; //0x76030 mesh memory cash begin pointer for each block
+    std::array<int, 2> m_field0x76038; //0x76038 
+    uint32_t m_renderBlockIndex; //0x76040 0 or 1
+    float m_depthOffset; //0x76044
+    float m_field0x76048; //0x76048
+    bool m_skipGlSetup; //0x7604c
+    bool m_field0x7604d; //0x7604d
+    bool m_field0x7604e; //0x7604e
+    bool m_field0x7604f; //0x7604f
+    glm::mat4* m_modelMatrix; //0x76050
+    glm::mat4* m_projectionMatrix; //0x76054
     glm::mat4* m_perspectiveMatrix; //0x76058 used to render the world
     glm::mat4 m_field0x7605c; //0x7605c viewMatrix?
     glm::mat4 m_field0x7609c; //0x7609c
@@ -51,7 +57,7 @@ struct DisaRenderObjectManager {
     uint32_t m_field0x760e0; //0x760e0
 
     inline auto getRenderObjectList() {
-        return std::ranges::subrange(m_renderObjectList.begin(), std::next(m_renderObjectList.begin(), m_renderSize));
+        return std::ranges::subrange(m_renderObjectList.begin(), std::next(m_renderObjectList.begin(), m_renderObjectListSize));
     }
 };
 
@@ -66,4 +72,6 @@ void __fastcall FUN_00427ff0_pushHeap(DisaRenderObject** begin, int index, int p
 void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject** end);
 
 void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled);
-void _stdcall FUN_00426770_Dummy(int param_1, unsigned int param_2, unsigned char depthMask);
+
+void __stdcall FUN_00425df0_SubmitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
+    float poligonOffset, int param_11, bool param_12, bool param_13);
