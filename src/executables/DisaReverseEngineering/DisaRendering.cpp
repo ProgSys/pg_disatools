@@ -417,10 +417,8 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
 }
 
 void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-    float poligonOffset, int param_11, bool param_12, bool param_13){
+    float poligonOffset, int param_11, bool param_12, bool param_13, bool customData){
 
-
-   
     DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
     DisaRenderObjectManager* roManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 
@@ -470,14 +468,20 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
             }
 
             void* _Src = geometryData;
-            if ((_Src < roManager->m_field0x76030[roManager->m_renderBlockIndex]) || (roManager->m_field0x76030[roManager->m_renderBlockIndex] + 0x40000 <= _Src)) {
-                size_t _Size = triangleCount * 24;
-                float* _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, roManager, _Size);
-                memcpy(_Dst, _Src, _Size);
-                renderObject->m_meshData = _Dst;
+            //CUSTOM memory assignment to support big geometry 
+            if (customData) {
+                renderObject->m_meshData = (float*)_Src;
             }
             else {
-                renderObject->m_meshData = (float*)_Src;
+                if ((_Src < roManager->m_field0x76030[roManager->m_renderBlockIndex]) || (roManager->m_field0x76030[roManager->m_renderBlockIndex] + 0x40000 <= _Src)) {
+                    size_t _Size = triangleCount * 24;
+                    float* _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, roManager, _Size);
+                    memcpy(_Dst, _Src, _Size);
+                    renderObject->m_meshData = _Dst;
+                }
+                else {
+                    renderObject->m_meshData = (float*)_Src;
+                }
             }
 
             if (!roManager->m_skipGlSetup) {

@@ -1814,21 +1814,21 @@ struct GeometryBatchKey {
 };
 
 static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<byte*, bool>> g_geometryMemoryBuffer;
-static std::vector<byte> g_geometryMemory;
-static uint32_t g_geometryMemoryAt = 0;
-static uint32_t g_geometryMemoryTotal = 0;
-static uint32_t g_geometryMemorySize = 500000;
+static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<int, std::vector<byte>>> g_geometryMemoryMeshData; //key - used count, mesh data
 
 void _stdcall FUN_004201d0_RenderClearBegin() {
     FP::callStdFarA(0x004201d0);
     g_geometryMemoryBuffer.clear();
-    g_geometryMemoryAt = 0;
-    g_geometryMemoryTotal = 0;
-    if (g_geometryMemoryTotal > g_geometryMemorySize) {
-        g_geometryMemorySize = g_geometryMemoryTotal;
-        g_geometryMemory.clear();
+    for (auto it = g_geometryMemoryMeshData.begin(); it != g_geometryMemoryMeshData.end();) {
+        --it->second.first; //deplete use counter
+        if (it->second.first <= 0) {
+            //memory is no longer in use
+            it = g_geometryMemoryMeshData.erase(it);
+        }
+        else {
+            ++it;
+        }
     }
-    g_geometryMemory.resize(g_geometryMemorySize);
 }
 
 void _stdcall FUN_glViewport(int x, int y, int width, int height) {
@@ -1972,14 +1972,7 @@ static inline void copyIntoMemory(DisaObjectModel* context, byte* memory, const 
 
 }
 
-static byte* g_customMemory = nullptr;
-
 byte* DisaMemeoryManager::FUN_00425bb0(int requestedMemorySize) {
-    if (g_customMemory) {
-        auto out = g_customMemory;
-        g_customMemory = nullptr;
-        return out;
-    }
     return FP::callThisFarA<byte*>(0x00425bb0, this, requestedMemorySize);
 }
 
@@ -2028,6 +2021,21 @@ void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
         if (!memory) {
             //perform custom render
             if (totalLength > 1024) {
+                if (stride != sizeof(VertexBasic)) 
+                    continue;  //other mesh types are not supported
+                
+                auto& [usage, mashData] = g_geometryMemoryMeshData[{context->m_geofileHeader, key}];
+                if (usage == 0) {
+                    mashData.resize(bytes + 32); //the size plus a buffer
+                    memory = mashData.data();
+                    copyIntoMemory(context, memory, stride, key);
+                }
+                else {
+                    memory = mashData.data();
+                }
+                usage = 3;
+                custom = true;
+                /*
                 auto sum = bytes + 32;
                 g_geometryMemoryTotal += sum;
                 if (g_geometryMemoryTotal >= g_geometryMemorySize) {
@@ -2037,11 +2045,11 @@ void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
                 memset(dump, 0xFF, 0x20);
                 memory = g_geometryMemory.data() + g_geometryMemoryAt;
                 g_geometryMemoryAt += sum;
-                custom = true;
-       
+                */
             } else if (arrayRoot + arraySize == 0) {
                 memory = FP::callStdFarA<byte*>(0x00425c10, 0x20, bytes);
                 if (!memory) return; //CUSTOM out of memory check
+                copyIntoMemory(context, memory, stride, key);
             }
             else {
                 auto uVar18 = *(uint*)((uint)memoryPtr + 0x20) >> 0x1d & 1;
@@ -2053,13 +2061,8 @@ void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
                     *(uint*)((uint)memoryPtr + uVar18 * 4) = uVar13 + bytes;
                     memory = (byte*)(*(int*)((uint)memoryPtr + 0x10 + (*(uint*)((uint)memoryPtr + 0x20) >> 0x1d & 1) * 4) + uVar13);
                 }
+                copyIntoMemory(context, memory, stride, key);
             }
-
-            copyIntoMemory(context, memory, stride, key);
-        }
-       
-        if (custom) {
-            g_customMemory = memory;
         }
 
         constexpr auto lockSptr = [](int* sptr) -> int* {
@@ -2078,7 +2081,7 @@ void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
             case sizeof(VertexBasic) : {
                 auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
 
-                FUN_00425df0_SubmitVertexBasic(depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
+                FUN_00425df0_SubmitVertexBasic(depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0, custom);
                 //FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
             } break;
             case sizeof(VertexWithNormal) : {

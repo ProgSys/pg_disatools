@@ -74,4 +74,4 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled);
 
 void __stdcall FUN_00425df0_SubmitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-    float poligonOffset, int param_11, bool param_12, bool param_13);
+    float poligonOffset, int param_11, bool param_12, bool param_13, bool customData);
