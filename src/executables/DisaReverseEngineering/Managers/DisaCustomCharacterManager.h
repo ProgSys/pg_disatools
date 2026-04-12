@@ -6,7 +6,8 @@
 #include <Util/PG_File.h>
 #include <Disa/PG_DisaIdentifier.h>
 #include <Disa/PG_DisaCharactersModel.h>
-
+#include <mutex>
+#include <condition_variable>
 
 class DisaCustomCharacterManager: public PG_DisaCustomCharactersModel {
 public:
@@ -41,10 +42,16 @@ public:
 		return v;
 	}
 
+	void wakeUp();
+
 	static DisaCustomCharacterManager* get();
 private:
 	std::unordered_map<unsigned int, std::vector<char>> m_spriteData; //loaded sprite files
 	std::unordered_map<unsigned int, std::vector<char>> m_faceData; //loaded face files
 	bool m_isHistoryChanged = true;
 	std::unordered_map<PG_DisaIdentifier, DisaAssemblyUnitInfo> m_assemblyHistory;
+
+	std::mutex m_mtx;
+	std::condition_variable m_cv;
+	bool m_paused = true;
 };

@@ -7,7 +7,22 @@
 #include <array>
 
 #include <FunctionPatcher.h>
+#include <Renderer/Command/PG_AddCommands.h>
+#include <Rendering/Shader.h> //debug
 
+
+constexpr uint16_t g_customModelMarker = 9001;
+struct CustomRenderManager {
+    std::vector<PG_Model> models;
+
+    size_t addModel(const PG_Model& model) {
+        auto i = models.size();
+        models.emplace_back(model);
+        return i;
+    }
+};
+
+static CustomRenderManager g_customRenderManager;
 
 bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObject* param_2) {
     assert(param_1 && param_2);
@@ -217,9 +232,94 @@ static inline void FUN_00420e50_glStencilOp(int dppassTypeIndex) {
     glStencilOp(GL_KEEP, GL_KEEP, dppassTypes[dppassTypeIndex]);
 }
 
+static PG_Object g_dummy;
+static PG_CommandRendererJob g_job;
+static PG_CommandRenderPass g_pass;
+
+static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRenderManager, DisaRenderObject* object, DisaUnknownObject2* unknownObject, int param_1) {
+    const bool projectionIndex = object->m_renderSettingsBitMask.projIndex; //seams never to be true
+    FUN_00432f50_ProjectionUpdate(projectionIndex); //FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
+
+    glm::mat4* projectionMat = object->m_projectionMatrix; // pfVar8
+    if (!projectionMat) {
+        if (object->m_isPerspective == false) {
+            if (param_1 == 1) return nullptr;
+            //ui orthogonal matrix
+            projectionMat = &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
+        }
+        else if (param_1 == 1) {
+            //glLoadIdentity(); //is not needed at all but present in original
+            projectionMat = &memoryRenderManager->m_field0x760dc;
+            const glm::mat4& staticMat = FP::getData<glm::mat4>(0x008191c0);
+            *projectionMat = staticMat; //I am not sure what the point of this is, as SetProjectionMatrix will override it?!
+            FUN_0042d3e0_SetProjectionMatrix(*projectionMat, 6.8f, 256.0f, 256.0f, 320.0f, 11600.0f); //FP::callThisFarA(0x0042d3e0, currMat, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
+        }
+        else {
+            projectionMat = memoryRenderManager->m_perspectiveMatrix;// (glm::mat4*)renderWorld[0x1d816];
+        }
+    }
+    return projectionMat;
+}
+
+static inline void resetDisaOpenGLStatesTemp() {
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    // Reset depth testing
+    glDisable(GL_DEPTH_TEST);
+    //glDepthFunc(GL_LESS);
+
+    // Reset depth mask
+    glDepthMask(GL_TRUE);
+
+    // Reset stencil testing
+    glDisable(GL_STENCIL_TEST);
+
+    // Reset blending
+    glDisable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ZERO);
+    glBlendEquation(GL_FUNC_ADD);
+
+    // Reset face culling
+    glDisable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+    // Reset lighting
+    glDisable(GL_LIGHTING);
+
+    // Reset alpha testing
+    glDisable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_ALWAYS, 0);
+
+    // Reset scissor test
+    glDisable(GL_SCISSOR_TEST);
+
+    // Reset shading model
+    glShadeModel(GL_SMOOTH);
+
+    // Reset matrix modes
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+    glMatrixMode(GL_TEXTURE);
+    glLoadIdentity();
+    glMatrixMode(GL_COLOR);
+    glLoadIdentity();
+
+    // Reset polygon mode
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+    // Reset color mask
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+    // Reset texture upload
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelTransferi(GL_MAP_COLOR, 0);
+    glPixelTransferi(GL_MAP_STENCIL, 0);
+}
 
 void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
     //@todo move this to main
+    /*
     static bool openGLInit = false; 
     if (!openGLInit) {
         glewExperimental = GL_TRUE; // recommended
@@ -228,6 +328,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         }
         openGLInit = true;
     }
+    */
 
     DisaRenderObjectManager* memoryRenderManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 
@@ -265,11 +366,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     bool depthMaskEnabled = depthTestEnabled;
     glDepthMask(depthTestEnabled);
     float polygonOffsetValue = 1.192093e-07f;
-
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_GREATER, 0.01f);
     FUN_00421a30_glUseAndInitProgram(10, 17); //FP::callStdFarA(0x00421a30, 10, 17); //glUseAndInitProgram; will call glUseProgram and then setup needed uniforms
    
+    g_pass.renderData.size = glm::ivec2(512);
+    g_pass.renderData.cameraPos = memoryRenderManager->m_center ? *memoryRenderManager->m_center : glm::vec3(0.0F);
 
     DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
     unknownObject->field0x10_isEnabled = true;
@@ -287,29 +389,32 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_isPerspective))
             continue;
 
-        const bool projectionIndex = object->m_renderSettingsBitMask.projIndex; //seams never to be true
-        FUN_00432f50_ProjectionUpdate(projectionIndex); //FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
+        glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, unknownObject, param_1);
+
+        if (object->m_uniformSize == g_customModelMarker) {
+            if (object->m_field0x10 >= g_customRenderManager.models.size()) continue;
+            const PG_Model& model = g_customRenderManager.models[object->m_field0x10];
+            if (!model.isLoaded()) continue;
+            if (!model.getMaterial(0).getShader().isLoaded()) continue;
+            
+            g_pass.renderData.projectionMatrix = *projectionMat;
+            g_pass.renderData.viewMatrix = glm::mat4(1.0F);
+
+            const glm::mat4 modelMatrix = object->m_modelMatrix ? *object->m_modelMatrix : glm::mat4(1.0F);
+            addResModel(model, &g_dummy, modelMatrix, g_job, g_pass);
+
+            resetDisaOpenGLStatesTemp();
+
+            glEnable(GL_TEXTURE_2D);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            g_pass.runCurrentAndClearAll();
+            glPopAttrib();
+            continue;
+        }
 
         //projection matrix
         glMatrixMode(GL_PROJECTION); 
-        glm::mat4* projectionMat = object->m_projectionMatrix; // pfVar8
-        if (projectionMat == nullptr) {
-            if (object->m_isPerspective == false) {
-                if (param_1 == 1) continue;
-                //ui orthogonal matrix
-                projectionMat = &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
-            }
-            else if (param_1 == 1) {
-                //glLoadIdentity(); //is not needed at all but present in original
-                projectionMat = &memoryRenderManager->m_field0x760dc;
-                const glm::mat4& staticMat = FP::getData<glm::mat4>(0x008191c0);
-                *projectionMat = staticMat; //I am not sure what the point of this is, as SetProjectionMatrix will override it?!
-                FUN_0042d3e0_SetProjectionMatrix(*projectionMat, 6.8f, 256.0f, 256.0f, 320.0f, 11600.0f); //FP::callThisFarA(0x0042d3e0, currMat, 0x40d9999a, 256.0, 256.0, 320.0, 11600.0);
-            }
-            else {
-                projectionMat = memoryRenderManager->m_perspectiveMatrix;// (glm::mat4*)renderWorld[0x1d816];
-            }
-        }
         glLoadMatrixf((GLfloat*)projectionMat);
 
         //modelview matrix
@@ -425,6 +530,10 @@ DisaRenderObjectManager* DisaRenderObjectManager::get() {
     return FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 }
 
+void DisaRenderObjectManager::clearCustom() {
+    g_customRenderManager.models.clear();
+}
+
 struct DisaTextureSPtr {
     uint32_t m_useCount; //0x0
     uint32_t* m_field0x4; //0x4
@@ -451,8 +560,6 @@ struct DisaTextureSPtr {
 void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
     float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13, bool customData) {
 
-    DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
-
     //char* puStack_c;
     //void* local_10;
     //puStack_c = &LAB_00524f48;
@@ -463,11 +570,10 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
     const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
 
 
-    DisaRenderObject* renderObject;
     if ((*(bool*)&m_field0xc == false) && isEnabled) {
 
         if (m_renderBlockSize[m_renderBlockIndex] < 2048) {
-            renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
+            DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
 
             renderObject->m_depth = m_basePolygonOffset + depth;
             renderObject->m_field0x8 = m_field0x76048;
@@ -476,6 +582,7 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
             ((DisaTextureSPtr*)textureDataPtr)->FUN_004281f0(&renderObject->m_textureInfo);
             //FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
 
+            DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
             renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
             renderObject->m_renderSettingsBitMask.blendMode = blendMode;
             renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
@@ -543,6 +650,57 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
     }
     //ExceptionList = local_10;
     return;
+}
+
+void DisaRenderObjectManager::submitCustomModel(float depth, const PG_Model& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13) {
+    const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
+    const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
+    if (!(*(bool*)&m_field0xc == false) || !isEnabled) return;
+
+    if (m_renderBlockSize[m_renderBlockIndex] >= 2048) return; //render queue full
+    DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
+
+    renderObject->m_depth = m_basePolygonOffset + depth;
+    renderObject->m_field0x8 = m_field0x76048;
+    renderObject->m_field0x14 = nullptr; //no texture
+    //mark as special
+    renderObject->m_uniformSize = g_customModelMarker;
+    renderObject->m_field0x10 = g_customRenderManager.addModel(model); //vertexCount
+
+    DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
+    renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
+    renderObject->m_renderSettingsBitMask.blendMode = blendMode;
+    renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
+    renderObject->m_renderSettingsBitMask.stencilRef = stencilRef;
+
+    renderObject->m_modelMatrix = modelMatrix;
+    renderObject->m_isPerspective = isPerspective;
+    renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
+    renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
+    renderObject->m_field0x29 = (bool)param_13;;
+    renderObject->m_polygonOffset = poligonOffset;
+
+    const int typeIndex = FP::getData<int>(0x005bb030);
+    renderObject->m_type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
+
+    if (m_modelMatrix) {
+        renderObject->m_modelMatrix = m_modelMatrix;
+    }
+    if (m_projectionMatrix) {
+        renderObject->m_projectionMatrix = m_projectionMatrix;
+    }
+
+    renderObject->m_meshData = nullptr;
+
+    if (m_skipGlSetup) return;
+
+    if (m_renderObjectListSize < 2048) {
+       // if (m_renderObjectList[m_renderObjectListSize] != nullptr) {
+            m_renderObjectList[m_renderObjectListSize] = renderObject;
+        //}
+        ++m_renderObjectListSize;
+    }
+    ++m_renderBlockSize[m_renderBlockIndex];
 }
 
 void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,

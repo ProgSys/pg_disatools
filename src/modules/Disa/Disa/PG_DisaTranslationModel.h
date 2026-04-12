@@ -2,6 +2,7 @@
 
 #include <Base/PG_Object.h>
 #include <Disa/PG_DisaIdentifier.h>
+#include <Resources/PG_Font.h>
 
 struct PG_DisaModLoadInfo;
 struct PG_DisaModInfo;
@@ -107,8 +108,15 @@ public:
     * utf8 chars that can't be translated to shiftJis will be marked.
     */
 	char* translate(char* shiftJis, bool fullSize = false);
+    /**
+    * @brief Fully translated utf8 string for given shiftJis string.
+    * @returns pair of hash and translated string. Is empty if no translation found.
+    */
+    std::pair<std::string, std::string> tranlatedUtf8(char* shiftJis);
 
 	bool hasMarkes(char* shiftJis) const;
+
+    inline const PG_Font& getFont() const { return m_font; }
 
 protected:
     bool m_enabled = true;
@@ -125,4 +133,6 @@ protected:
 	unsigned short m_currSwiftJis = 0x8500;
 	std::unordered_map<uint32_t, unsigned short> m_utf8ToSwiftJis;
 	std::unordered_map<unsigned short, uint32_t> m_swiftJisToUtf8;
+
+    PG_Font m_font; //optional font file
 };

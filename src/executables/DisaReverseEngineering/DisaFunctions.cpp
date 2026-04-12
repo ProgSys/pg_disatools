@@ -20,6 +20,7 @@
 #include <ranges>
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/constants.hpp> 
+#include <glm/gtc/matrix_transform.hpp>
 
 void DisaCameraInfo::move(glm::vec3 targetPosition, float speed) {
     eyeOffsetSpeed = speed;
@@ -432,12 +433,12 @@ void renderSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, const
 static char* g_translationStr = nullptr;
 static std::array<char, 512> g_translateBuffer = { 0 };
 
-#include <Util/PG_ImageLoad.h>
-
 bool __fastcall renderTranslatedString(char*& jis_string, int& mode) {
-    g_translationStr = DisaCustomTranslationManager::get()->translate(jis_string);
+    auto manager = DisaCustomTranslationManager::get();
 
-    if (!g_translationStr && DisaCustomTranslationManager::get()->hasMarkes(jis_string)) {
+    g_translationStr = manager->translate(jis_string);
+
+    if (!g_translationStr && manager->hasMarkes(jis_string)) {
         g_translationStr = jis_string;
         if (mode == 1) {
             for (int i = 0; i < g_translateBuffer.size() - 1; ++i) {
@@ -449,14 +450,111 @@ bool __fastcall renderTranslatedString(char*& jis_string, int& mode) {
         }
     }
 
+    return false;
+}
 
-    auto* m = DisaCustomRenderManager::get();
-    if (!m->findRenderTask(DisaCustomRenderManager::Inbetween, "Text")) {
-        PG_RGBAImage img;
-        PG_ImageLoad::load("F:/ProgSys/pg_engine_v2/resources/materials/nsfw/pg_handle_sideA.png", img);
-        m->addRenderTask<DisaCustomRenderManager::RenderScreenImg>(DisaCustomRenderManager::Inbetween, "Text", std::move(img), glm::vec2(40.f), glm::vec2(40.f));
+#include <Scene/Gui/PG_GuiText.h>
+
+static std::map<std::string, PG_Model> g_fontGeometry;
+
+void createFontGeometry(PG_Model& model, const std::string& str) {
+    auto* manager = DisaCustomTranslationManager::get();
+    auto chars = manager->getFont().toCharInfosUtf8(str);
+
+    struct GeoData {
+        std::vector<glm::vec3> position;
+        std::vector<glm::vec2> uv;
+        std::vector<unsigned int> indices;
+    };
+    std::map<uint32_t, GeoData> datas;
+
+    auto baselines = PG_GuiText::createBaseLine(chars, manager->getFont(), 24.f, glm::vec2(0));
+    const glm::vec2 padding = manager->getFont().getAtlasPadding();
+    for (const PG_GuiText::Baseline& baseline : baselines) {
+        for (const PG_GuiText::Char& c : baseline.chars) {
+            if (c.textureIndex < 0) continue;
+
+            auto& [position, uv, indices] = datas[c.textureIndex];
+            const glm::vec3 basePos((baseline.start.x + c.offset.x), (baseline.start.y - c.offset.y + baseline.size.y/2.f), 0.0f);
+            const unsigned int i = position.size();
+            /*
+            *  1-----2
+            *  |     |
+            *  |     |
+            *  |     |
+            *  0-----3
+            */
+            position.insert(position.end(), {
+                basePos - glm::vec3(padding, 0.f),
+                basePos + glm::vec3(0.f, -c.size.y, 0.f) - glm::vec3(padding, 0.f),
+                basePos + glm::vec3(c.size.x , -c.size.y , 0.f) - glm::vec3(padding, 0.f),
+                basePos + glm::vec3(c.size.x, 0.f, 0.f) - glm::vec3(padding, 0.f),
+                });
+            uv.insert(uv.end(), {
+                c.texOffset + glm::uvec2(0, c.texSize.y), c.texOffset ,  c.texOffset + glm::uvec2(c.texSize.x, 0) , c.texOffset + c.texSize
+                });
+            indices.insert(indices.end(), { i, i + 3, i + 1,   i + 1, i + 3, i + 2 });
+        }
     }
-    m->renderInbetween();
+
+    for (auto& dat : datas) {
+        GL::Geometry geo(
+            {
+                GL::DataWrapper("position", std::move(dat.second.position)),
+                GL::DataWrapper("uv", std::move(dat.second.uv)),
+                GL::DataWrapper("indices",std::move(dat.second.indices), GL::ELEMENT_ARRAY_BUFFER),
+            }
+            );
+
+        auto mat = PG_Material("M_DisaFontTest");
+        mat.makeInstance();
+        mat.set("tex", manager->getFont().getTexture(dat.first));
+        model.load(PG_UNIQUE_RES("D_Test"), { {mat, PG_Geometry(PG_UNIQUE_RES("D_TextGeo"), std::move(geo)) } });
+        break;
+    }
+}
+
+bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, int* param_4, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
+    auto* manager = DisaCustomTranslationManager::get();
+
+    if (manager->getFont().isLoaded()) {
+        constexpr float scaleFactor = 71.f;
+        const float scale = 24.f / scaleFactor;
+        float baselineHeight = ((manager->getFont().getScaledHeight() * 0.69f + 12.f) * scale);
+
+        const auto [hash, translation] = manager->tranlatedUtf8(jis_string);
+        if (translation.empty()) return false;
+
+        PG_Model& model = g_fontGeometry[hash];
+        if (!model.isValid()) {
+            createFontGeometry(model, translation);
+        }
+
+        auto& mat = model.getMaterial(0);
+        if (!mat.isValid()) return true;
+
+        mat.set("guiTransProjection", glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
+        mat.set("guiScaleProjection", glm::scale(glm::mat4(1.f), glm::vec3(scaleX * 2.0, scaleY * 2.0, 1.f)));
+
+        DisaRenderObjectManager::get()->submitCustomModel(49999.0f, model, -1, nullptr, false, false, 0, 0, '\0', false);
+
+        //FUN_00425df0_SubmitVertexBasic(49999.0,piVar2,geometryData,triangleCount,3,-1,(Mat4 *)0x0,false,false,0,0,'\0',false);
+        return true;
+    }
+
+    g_translationStr = manager->translate(jis_string);
+
+    if (!g_translationStr && manager->hasMarkes(jis_string)) {
+        g_translationStr = jis_string;
+        if (mode == 1) {
+            for (int i = 0; i < g_translateBuffer.size() - 1; ++i) {
+                g_translateBuffer[i] = g_translationStr[i];
+                if (g_translationStr[i] == 0) break;
+            }
+            g_translationStr = g_translateBuffer.data();
+            shiftJisToHalf((unsigned char*)g_translationStr);
+        }
+    }
 
     return false;
 }
@@ -464,34 +562,66 @@ bool __fastcall renderTranslatedString(char*& jis_string, int& mode) {
 void __declspec(naked) __fastcall FUN_RederTextNew(int x, int y, int param_3, int* param_4, unsigned short* jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     __asm {
         // Save fastcall registers (x in ECX, y in EDX)
-        push ecx
-        push edx
+        push ebp
+        mov  ebp, esp
+        sub  esp, 12                 // locals:
+        // [ebp-4]  = saved x
+        // [ebp-8]  = saved y
+        // [ebp-12] = temp char* for char*&
 
-        lea  ecx, [esp + 12 + 8]
-        lea  edx, [esp + 32 + 8]
-        call renderTranslatedString
+        // save fastcall registers
+        mov[ebp - 4], ecx            // x
+        mov[ebp - 8], edx            // y
 
-        test    al, al
-        jnz     short _return_ok
+        // temp = (char*)jis_string;
+        mov  eax, [ebp + 16]           // incoming jis_string
+        mov[ebp - 12], eax
 
-        // Restore x,y for the final target
-        mov     ecx, [esp + 4]            // restore str
-        mov     edx, [esp]
+        // call:
+        // bool __fastcall renderTranslatedStringOverride(
+        //     ecx=x, edx=y,
+        //     param_3, param_4, char*& temp, scaleX, scaleY, stringWidth, height, mode)
 
-        push[esp + 12 + 28] //mode
-        push[esp + 12 + 24 + 4] //height
-        push[esp + 12 + 20 + 8] //stringWidth
-        push[esp + 12 + 16 + 12] //scaleY
-        push[esp + 12 + 12 + 16] //scaleX
-        push[esp + 12 + 8 + 20] //jis_string
-        push[esp + 12 + 4 + 24] //param
-        push[esp + 12 + 0 + 28] //param
+        push dword ptr[ebp + 36]      // mode
+        push dword ptr[ebp + 32]      // height
+        push dword ptr[ebp + 28]      // stringWidth
+        push dword ptr[ebp + 24]      // scaleY
+        push dword ptr[ebp + 20]      // scaleX
+        lea  eax, [ebp - 12]
+        push eax                     // char*& jis_string  -> pass &temp
+        push dword ptr[ebp + 12]      // param_4
+        push dword ptr[ebp + 8]       // param_3
+        call renderTranslatedStringOverride
+        // __fastcall callee cleans these 8 stack args
+
+        test al, al
+        jnz  _return_ok
+
+        // restore fastcall regs for original render
+        mov  ecx, [ebp - 4]            // x
+        mov  edx, [ebp - 8]            // y
+
+        // optional:
+        // if you want fallback to use a possibly modified string from override,
+        // write temp back into the stack argument slot:
+        // mov  eax, [ebp-12]
+        // mov  [ebp+16], eax
+
+        push dword ptr[ebp + 36]      // mode
+        push dword ptr[ebp + 32]      // height
+        push dword ptr[ebp + 28]      // stringWidth
+        push dword ptr[ebp + 24]      // scaleY
+        push dword ptr[ebp + 20]      // scaleX
+        push dword ptr[ebp + 16]      // jis_string
+        push dword ptr[ebp + 12]      // param_4
+        push dword ptr[ebp + 8]       // param_3
 
         call fRenderTextNew
         add     esp, 32
 
      _return_ok :
-        add     esp, 8                    // drop saved edx, ecx
+        mov  esp, ebp
+        pop  ebp
         ret
     }
 }
@@ -1815,9 +1945,11 @@ struct GeometryBatchKey {
 
 static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<byte*, bool>> g_geometryMemoryBuffer;
 static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<int, std::vector<byte>>> g_geometryMemoryMeshData; //key - used count, mesh data
+#include <Resources/PG_Context.h>
 
 void _stdcall FUN_004201d0_RenderClearBegin() {
     FP::callStdFarA(0x004201d0);
+    DisaRenderObjectManager::clearCustom();
     g_geometryMemoryBuffer.clear();
     for (auto it = g_geometryMemoryMeshData.begin(); it != g_geometryMemoryMeshData.end();) {
         --it->second.first; //deplete use counter
@@ -1829,6 +1961,9 @@ void _stdcall FUN_004201d0_RenderClearBegin() {
             ++it;
         }
     }
+    auto context = PG_Context::get();
+    context->runCreate();
+    context->destroyGarbage();
 }
 
 void _stdcall FUN_glViewport(int x, int y, int width, int height) {

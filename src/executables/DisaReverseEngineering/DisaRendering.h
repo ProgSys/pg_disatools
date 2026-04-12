@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <ranges>
 #include <array>
+#include <Resources/PG_Model.h>
 
 /**
  * @brief Vertex containing only position and packed color.
@@ -122,6 +123,10 @@ struct DisaRenderObjectManager {
     */
     static DisaRenderObjectManager* get();
     /**
+    * @brief Clear all cashed custom data between render loops
+    */
+    static void clearCustom();
+    /**
     * @brief Returns the active render object list as a range.
     */
     inline auto getRenderObjectList() {
@@ -132,8 +137,10 @@ struct DisaRenderObjectManager {
     * Original function: FUN_00425df0
     * @param customData If set to true then the mesh data will directly be send to renderer wihtout checking if it needs to be moved into game buffer 
     */
-    void submitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
+    void submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
         float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13, bool customData);
+
+    void submitCustomModel(float depth, const PG_Model& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13);
 };
 
 /**

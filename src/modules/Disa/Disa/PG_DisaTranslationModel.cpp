@@ -22,7 +22,7 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 			jTranslations.get_to(fileName);
 			PG_ZIPUtil::readStringLines(modInfo->archive.get(), "translation/" + fileName, [this](const std::string& line) {
 				auto splits = splitUtf8Simple(line, ';');
-				if (splits.empty())return;
+				if (splits.empty()) return;
 				if (splits.back() == "\r") splits.pop_back();
 				if (splits.size() < 2) return;
 				if(splits[0].empty() || splits[1].empty())  return;
@@ -30,6 +30,17 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 			});
 		}
 
+	}
+
+	if (auto findIt = j.find("font"); findIt != j.end()) {
+		std::string fontPath;
+		findIt->get_to(fontPath);
+		auto fontData = PG_ZIPUtil::readData(modInfo->archive.get(), "fonts/" + fontPath);
+		if (fontData.empty()) {
+			OUT_ERROR("Failed to find font: 'fonts/" << fontPath << "'!");
+			return;
+		}
+		m_font.load(fontPath, std::move(fontData));
 	}
 }
 
@@ -65,6 +76,17 @@ char* PG_DisaTranslationModel::translate(char* shiftJis, bool fullSize) {
 	mem.newLength = getShiftJisLength(mem.copy.data());
 
 	return mem.copy.data();
+}
+
+std::pair<std::string, std::string> PG_DisaTranslationModel::tranlatedUtf8(char* shiftJis) {
+	if (!shiftJis) return {};
+	emit stringIn(shiftJis);
+	if (!m_enabled) return {};
+	auto hash = PG_MD5::getZeroTerminated(shiftJis);
+
+	auto findIt = m_translations.find(hash);
+	if (findIt == m_translations.end() || findIt->second.empty()) return {};
+	return { std::move(hash), findIt->second };
 }
 
 bool PG_DisaTranslationModel::hasMarkes(char* shiftJis) const {

@@ -245,9 +245,18 @@ void DisaCustomCharacterManager::recordEnemyKilled(DisaPartyCharacterInfo* chara
 }
 
 void DisaCustomCharacterManager::loadCharacters() {
+	std::unique_lock<std::mutex> lock(m_mtx);
+	m_cv.wait(lock, [this] { return !m_paused; });
+
 	loadCustomCharacters(DisaCustomBaseModManager::exePath());
 	loadCharactersIntoMememory();
 	m_isHistoryChanged = true;
+}
+
+void DisaCustomCharacterManager::wakeUp() {
+	std::unique_lock<std::mutex> lock(m_mtx);
+	m_paused = false;
+	m_cv.notify_all();
 }
 
 void DisaCustomCharacterManager::loadCharactersIntoMememory() {

@@ -18,6 +18,7 @@
 #include <OS/Functions/Clipboard.h>
 #include <Base/PG_Clipboard.h>
 #include <Resources/PG_ResourceManager.h>
+#include <Resources/PG_Shader.h>
 #undef max
 #undef min
 
@@ -29,6 +30,9 @@
 #include <ranges>
 #include <mutex>
 
+
+#include <Resources/PG_Font.h>
+#include <Base/PG_EventLoop.h>
 using FUN_glViewportF = void(_stdcall*)(int, int, int, int);
 static FUN_glViewportF FUN_glViewportPointer;
 
@@ -61,7 +65,23 @@ struct HockManager {
     std::vector<Entry> entries;
 
     void init() {
+        //must be first
         replaceFunction("afterCharDataLoad", "Used to init custom characters", 0x0048AFC7, FUN_004cf3c0); //will load character (mod) data
+
+        replaceFunction("renderObjects", "The main render layer function", 0x00508ead, FUN_00426770);
+        replaceFunction("renderObjects", "The main render layer function", 0x00509d1f, FUN_00426770);
+        replaceFunction("renderObjects", "The main render layer function", 0x005099e2, FUN_00426770);
+        replaceFunction("renderObjects", "The main render layer function", 0x00509bd8, FUN_00426770);
+        replaceFunction("renderObjects", "The main render layer function", 0x00509d2a, FUN_00426770);
+        replaceFunction("renderObjects", "The main render layer function", 0x00509c0c, FUN_00426770);
+        replaceFunction("renderObjects", "The main render layer function", 0x00509c57, FUN_00426770);
+
+        {
+            auto f = &DisaObjectModel::FUN_004e2180;
+            unsigned int i = *((unsigned int*)&f);
+            replaceFunction("TEST", "", 0x004E1E08, i);
+            replaceFunction("TEST", "", 0x00508ba5, FUN_004201d0_RenderClearBegin);
+        }
 
         replaceFunction("LoadDungeonsCategories", "", 0x0047108a, FUN_LoadDungeonsCategories);
         replaceFunction("LoadDungeonsCategories", "", 0x004710f6, FUN_LoadDungeonsCategories);
@@ -173,7 +193,7 @@ struct HockManager {
 
        
         {
-            auto f = &DisaObjectRenderContext::FUN_004e2180; 
+            auto f = &DisaObjectModel::FUN_004e2180; 
             unsigned int i = *((unsigned int*)&f);
             replaceFunction("TEST", "", 0x004E1E08, i);
             replaceFunction("TEST", "", 0x00508ba5, FUN_004201d0_RenderClearBegin);
@@ -337,7 +357,12 @@ struct CommandTerminal {
         isConsoleOpen = !isConsoleOpen;
     }
 
+    void toggleReloadShaders() {
+        isReloadShaders = true;
+    }
+
     void sendMsg(std::string msg) {
+        if (msg.empty()) return;
         auto split = PG_StringUtil::splitOnce(msg, ':');
         if (split.empty()) return;
         msg = std::move(split.front());
@@ -454,7 +479,10 @@ struct CommandTerminal {
         }
         else if (msg == "tr" || msg == "translationRecord") {
             DisaCustomTranslationManager::get()->toggleTranslationRecording();
-            }
+         }
+        else if (msg == "resh" || msg == "reloadShader") {
+            PG_Shader::reloadAll();
+         }
         else if (msg == "help") {
             std::cout << "* hook:name (h:name) - Inject custom code. Optional second argument is a target name." << std::endl;
             std::cout << "* unhook:name (u:name) - Remove injected custom code. Optional second argument is a target name." << std::endl;
@@ -469,6 +497,7 @@ struct CommandTerminal {
             std::cout << "* runScript:identifier (rs:id) - Will execute the script with given identifier." << std::endl;
             std::cout << "* translationBase (tb) - Will create a basic translation csv file. Note, this dosn't contain all strings!" << std::endl;
             std::cout << "* translationRecord (tr) - Will toggle translation string recording. Strings visible on screen will be written to csv file." << std::endl;
+            std::cout << "* reloadShader (resh) - Will reload all custom shaders." << std::endl;
             std::cout << "* exit (e) - Close injection thread" << std::endl;
         }
         else {
@@ -478,11 +507,17 @@ struct CommandTerminal {
 
     void run() {
         while (isRunning) {
+            PG_EventLoop::doRun();
+
             if (isConsoleOpen) {
                 openConsole();
             }
             else {
                 closeConsole();
+            }
+
+            if (isReloadShaders.exchange(false)) {
+                PG_Shader::reloadAll();
             }
 
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -496,6 +531,7 @@ struct CommandTerminal {
 
     bool isRunning = true;
     std::atomic_bool isConsoleOpen = false;
+    std::atomic_bool isReloadShaders = false;
     std::streambuf* coutBuffOld = nullptr;
     std::mutex mutex;
 };
@@ -515,6 +551,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     if (uMsg == WM_KEYDOWN && wParam == VK_F2) {
         commandTerminal.toggleConsole();
     }
+    if (uMsg == WM_KEYDOWN && wParam == VK_F5) {
+        commandTerminal.toggleReloadShaders();
+    }
 
     if (g_originalWndProc) {
         return CallWindowProc(g_originalWndProc, hwnd, uMsg, wParam, lParam);
@@ -532,19 +571,19 @@ static DisaCustomBaseModManager g_baseManger;
 * Linker must have glu32.lib (todo Cmake)
 */
 DWORD WINAPI startMain() {
-#ifdef _DEBUG
-    commandTerminal.openConsole();
-#endif // _DEBUG
-
     FP::init();
     if (!FP::get()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         commandTerminal.closeConsole();
         return 0;
     }
-
     PG_ResourceManager::create();
     gHockManager.init();
+    hook(); //must be done as fast as possible
+
+#ifdef _DEBUG
+    commandTerminal.openConsole();
+#endif // _DEBUG
 
     g_playTestMessage = RegisterWindowMessage(TEXT("START_PLAY_TEST"));
     if (g_playTestMessage == 0) {
@@ -560,8 +599,10 @@ DWORD WINAPI startMain() {
         }
     }
 
-    hook();
+    PG_EventLoop::start();
+    
     DisaCustomCampaignManager::get()->loadCampaigns();
+    DisaCustomCharacterManager::get()->wakeUp();
 
 
     commandTerminal.run();
