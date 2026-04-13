@@ -15,6 +15,7 @@ public:
 
 	using PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel;
 
+
 	void loadCharacters();
 	void loadCharactersIntoMememory();
 
@@ -41,7 +42,11 @@ public:
 		m_isHistoryChanged = false;
 		return v;
 	}
-
+	/**
+	* @brief Is called by main thread to wait for the modding thread to fully load
+	* @see wakeUp
+	*/
+	void waitForModThread();
 	void wakeUp();
 
 	static DisaCustomCharacterManager* get();

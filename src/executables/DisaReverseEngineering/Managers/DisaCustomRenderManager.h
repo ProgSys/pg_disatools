@@ -74,6 +74,7 @@ public:
 	bool isEnabled() const{ return m_enabled; }
 	void setEnabled(bool value) { m_enabled = value; }
 
+	void init();
 	/**
 	* @brief Injection of the very first glViewport command
 	*/

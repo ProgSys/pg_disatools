@@ -318,17 +318,6 @@ static inline void resetDisaOpenGLStatesTemp() {
 }
 
 void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
-    //@todo move this to main
-    /*
-    static bool openGLInit = false; 
-    if (!openGLInit) {
-        glewExperimental = GL_TRUE; // recommended
-        if (glewInit() != GLEW_OK) {
-            std::cout << "Failed to init GLEW!" << std::endl;
-        }
-        openGLInit = true;
-    }
-    */
 
     DisaRenderObjectManager* memoryRenderManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 

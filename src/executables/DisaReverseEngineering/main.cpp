@@ -17,7 +17,6 @@
 #include <Util/PG_StringUtil.h>
 #include <OS/Functions/Clipboard.h>
 #include <Base/PG_Clipboard.h>
-#include <Resources/PG_ResourceManager.h>
 #include <Resources/PG_Shader.h>
 #undef max
 #undef min
@@ -578,7 +577,7 @@ DWORD WINAPI startMain() {
         commandTerminal.closeConsole();
         return 0;
     }
-    PG_ResourceManager::create();
+    
     gHockManager.init();
     hook(); //must be done as fast as possible
 

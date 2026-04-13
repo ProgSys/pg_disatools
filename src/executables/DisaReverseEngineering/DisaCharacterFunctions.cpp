@@ -11,6 +11,7 @@
 #include <DisaDataFunctions.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Managers/DisaCustomCharacterManager.h>
+#include <Resources/PG_ResourceManager.h>
 
 using namespace PG_JsonUtil;
 
@@ -908,6 +909,7 @@ __declspec(naked) void FUN_004b5490_NoneStd(int param_3, int param_4, int param_
 
 void __stdcall FUN_004cf3c0() {
     FP::callStdFarA<void>(0x004cf3c0); //builds face index list
-
-    DisaCustomCharacterManager::get()->loadCharacters();
+    auto* manager = DisaCustomCharacterManager::get();
+    manager->waitForModThread();
+    manager->loadCharacters();
 }

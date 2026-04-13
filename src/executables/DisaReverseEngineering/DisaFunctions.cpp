@@ -2228,18 +2228,9 @@ void __thiscall DisaObjectModel::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba
     m_field0x4 = param_3;
     m_self = this;
     m_poligonOffset = poligonOffset;
-    static bool flikker = false;
-    static bool switchFun = true;
-    static int swi = 0;
-    if (flikker) {
-        ++swi;
-        if (swi == 600) {
-            swi = 0;
-            switchFun = !switchFun;
-        }
-    }
 
-    if (switchFun) {
+    static bool customFunction = true;
+    if (customFunction) {
         FUN_004ef8a0(this, modelMatrix);
     }
     else {

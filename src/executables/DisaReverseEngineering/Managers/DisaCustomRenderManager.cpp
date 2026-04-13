@@ -139,18 +139,27 @@ void DisaCustomRenderManager::RenderScreenImg::update(PG_RGBAImage&& img, glm::v
     refreshRequested = true;
 }
 
+void DisaCustomRenderManager::init() {
+    m_isInit = true;
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        OUT_ERROR("glewInit failed, something is seriously wrong: " << glewGetErrorString(err));
+        return;
+    }
+    PG_EventLoop::start();
+    PG_ResourceManager::create();
+}
+
 void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int height) {
-    glViewport(x, y, width, height);
     m_viewportPos = glm::ivec2(x, y);
     m_viewportSize = glm::ivec2(width, height);
     m_drawArraysCount = 0;
-    if (!m_isInit) {
-        GLenum err = glewInit();
-        if (err != GLEW_OK) {
-            OUT_ERROR("glewInit failed, something is seriously wrong: " << glewGetErrorString(err));
-            return;
-        }
-    }
+
+    if (!m_isInit) init();
+    PG_EventLoop::doRun();
+
+    glViewport(x, y, width, height);
+
 
     auto cleanTasks = [](std::vector<RenderTask*>& v) {
         auto it = v.begin();
