@@ -21,6 +21,7 @@
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/constants.hpp> 
 #include <glm/gtc/matrix_transform.hpp>
+#include <Scene/Gui/PG_GuiText.h>
 
 void DisaCameraInfo::move(glm::vec3 targetPosition, float speed) {
     eyeOffsetSpeed = speed;
@@ -453,9 +454,9 @@ bool __fastcall renderTranslatedString(char*& jis_string, int& mode) {
     return false;
 }
 
-#include <Scene/Gui/PG_GuiText.h>
 
-static std::map<std::string, PG_Model> g_fontGeometry;
+
+static std::map<std::string, std::pair<int, PG_Model>> g_fontGeometry;
 
 void createFontGeometry(PG_Model& model, const std::string& str) {
     auto* manager = DisaCustomTranslationManager::get();
@@ -509,12 +510,12 @@ void createFontGeometry(PG_Model& model, const std::string& str) {
         auto mat = PG_Material("M_DisaFontTest");
         mat.makeInstance();
         mat.set("tex", manager->getFont().getTexture(dat.first));
-        model.load(PG_UNIQUE_RES("D_Test"), { {mat, PG_Geometry(PG_UNIQUE_RES("D_TextGeo"), std::move(geo)) } });
+        model.load(PG_UNIQUE_RES("D_DisaText"), { {mat, PG_Geometry(PG_UNIQUE_RES("D_TextGeo"), std::move(geo)) } });
         break;
     }
 }
 
-bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, int* param_4, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
+bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::rgba* color, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     auto* manager = DisaCustomTranslationManager::get();
 
     if (manager->getFont().isLoaded()) {
@@ -525,16 +526,18 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, int* p
         const auto [hash, translation] = manager->tranlatedUtf8(jis_string);
         if (translation.empty()) return false;
 
-        PG_Model& model = g_fontGeometry[hash];
+        auto& [usage, model] = g_fontGeometry[hash];
+        usage = 3;
         if (!model.isValid()) {
             createFontGeometry(model, translation);
         }
-
+        if (!model.isValid()) return true;
         auto& mat = model.getMaterial(0);
         if (!mat.isValid()) return true;
 
         mat.set("guiTransProjection", glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
-        mat.set("guiScaleProjection", glm::scale(glm::mat4(1.f), glm::vec3(scaleX * 2.0, scaleY * 2.0, 1.f)));
+        mat.set("guiScaleProjection", glm::scale(glm::mat4(1.f), glm::vec3(scaleX * 1.8, scaleY * 1.8, 1.f)));
+        mat.set("color", glm::vec4(*color)/255.0F);
 
         DisaRenderObjectManager::get()->submitCustomModel(49999.0f, model, -1, nullptr, false, false, 0, 0, '\0', false);
 
@@ -1956,6 +1959,16 @@ void _stdcall FUN_004201d0_RenderClearBegin() {
         if (it->second.first <= 0) {
             //memory is no longer in use
             it = g_geometryMemoryMeshData.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+    for (auto it = g_fontGeometry.begin(); it != g_fontGeometry.end();) {
+        --it->second.first; //deplete use counter
+        if (it->second.first <= 0) {
+            //memory is no longer in use
+            it = g_fontGeometry.erase(it);
         }
         else {
             ++it;

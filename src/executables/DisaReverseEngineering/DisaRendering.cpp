@@ -404,7 +404,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             addResModel(model, &g_dummy, modelMatrix, g_job, g_pass);
 
             resetDisaOpenGLStatesTemp();
-
+            glDisable(GL_DEPTH_TEST);
             glEnable(GL_TEXTURE_2D);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -626,9 +626,11 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
 
             if (!m_skipGlSetup) {
                 if (m_renderObjectListSize < 2048) {
-                    if (m_renderObjectList[m_renderObjectListSize] != nullptr) {
+                    // The original only sets the value if the slot is full
+                    // But then we would leave null slots (nullptr in redering)
+                    // so I don't get the point of this
+                    //if (m_renderObjectList[m_renderObjectListSize]) 
                         m_renderObjectList[m_renderObjectListSize] = renderObject;
-                    }
                     ++m_renderObjectListSize;
                 }
                 ++m_renderBlockSize[m_renderBlockIndex];
