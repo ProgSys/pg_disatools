@@ -535,11 +535,12 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
         auto& mat = model.getMaterial(0);
         if (!mat.isValid()) return true;
 
-        mat.set("guiTransProjection", glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
-        mat.set("guiScaleProjection", glm::scale(glm::mat4(1.f), glm::vec3(scaleX * 1.8, scaleY * 1.8, 1.f)));
-        mat.set("color", glm::vec4(*color)/255.0F);
+        PG_DisaModel disaModel(model);
+        disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
+        disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(scaleX * 1.8, scaleY * 1.8, 1.f)));
+        disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.0F);
 
-        DisaRenderObjectManager::get()->submitCustomModel(49999.0f, model, -1, nullptr, false, false, 0, 0, '\0', false);
+        DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
 
         //FUN_00425df0_SubmitVertexBasic(49999.0,piVar2,geometryData,triangleCount,3,-1,(Mat4 *)0x0,false,false,0,0,'\0',false);
         return true;

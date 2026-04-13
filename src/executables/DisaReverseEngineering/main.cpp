@@ -568,7 +568,6 @@ static DisaCustomBaseModManager g_baseManger;
 * Build Events -> Post-Build Events -> copy /Y "$(TargetDir)$(ProjectName).dll" "D:\Steam\SteamApps\common\Disgaea PC\j.dll"
 * (Only Debug) C++ -> Code Generation -> Basic Runtime Check -> /RTCu
 * Debugging -> Command -> D:/Steam/SteamApps/common/Disgaea PC/dis1_st.exe
-* Linker must have glu32.lib (todo Cmake)
 */
 DWORD WINAPI startMain() {
     FP::init();

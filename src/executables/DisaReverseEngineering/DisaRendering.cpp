@@ -13,11 +13,11 @@
 
 constexpr uint16_t g_customModelMarker = 9001;
 struct CustomRenderManager {
-    std::vector<PG_Model> models;
+    std::vector<PG_DisaModel> models;
 
-    size_t addModel(const PG_Model& model) {
+    size_t addModel(PG_DisaModel&& model) {
         auto i = models.size();
-        models.emplace_back(model);
+        models.emplace_back(std::move(model));
         return i;
     }
 };
@@ -382,7 +382,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
 
         if (object->m_uniformSize == g_customModelMarker) {
             if (object->m_field0x10 >= g_customRenderManager.models.size()) continue;
-            const PG_Model& model = g_customRenderManager.models[object->m_field0x10];
+            PG_DisaModel& model = g_customRenderManager.models[object->m_field0x10];
             if (!model.isLoaded()) continue;
             if (!model.getMaterial(0).getShader().isLoaded()) continue;
             
@@ -390,7 +390,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             g_pass.renderData.viewMatrix = glm::mat4(1.0F);
 
             const glm::mat4 modelMatrix = object->m_modelMatrix ? *object->m_modelMatrix : glm::mat4(1.0F);
-            addResModel(model, &g_dummy, modelMatrix, g_job, g_pass);
+            addResModel(model, &g_dummy, modelMatrix, g_job, g_pass, model.additionalProperties);
 
             resetDisaOpenGLStatesTemp();
             glDisable(GL_DEPTH_TEST);
@@ -643,7 +643,7 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
     return;
 }
 
-void DisaRenderObjectManager::submitCustomModel(float depth, const PG_Model& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13) {
+void DisaRenderObjectManager::submitCustomModel(float depth, PG_DisaModel&& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13) {
     const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
     const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
     if (!(*(bool*)&m_field0xc == false) || !isEnabled) return;
@@ -656,7 +656,7 @@ void DisaRenderObjectManager::submitCustomModel(float depth, const PG_Model& mod
     renderObject->m_field0x14 = nullptr; //no texture
     //mark as special
     renderObject->m_uniformSize = g_customModelMarker;
-    renderObject->m_field0x10 = g_customRenderManager.addModel(model); //vertexCount
+    renderObject->m_field0x10 = g_customRenderManager.addModel(std::move(model)); //vertexCount
 
     DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
     renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
