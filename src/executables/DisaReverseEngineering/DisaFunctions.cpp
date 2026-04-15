@@ -460,7 +460,8 @@ static std::map<std::string, std::pair<int, PG_Model>> g_fontGeometry;
 
 void createFontGeometry(PG_Model& model, const std::string& str) {
     auto* manager = DisaCustomTranslationManager::get();
-    auto chars = manager->getFont().toCharInfosUtf8(str);
+    //auto chars = manager->getFont().toCharInfosUtf8(str);
+    auto chars = manager->getFont().toCharInfos(str);
 
     struct GeoData {
         std::vector<glm::vec3> position;
@@ -499,18 +500,19 @@ void createFontGeometry(PG_Model& model, const std::string& str) {
     }
 
     for (auto& dat : datas) {
-        GL::Geometry geo(
+        GL::Geometry geoInfo(
             {
                 GL::DataWrapper("position", std::move(dat.second.position)),
                 GL::DataWrapper("uv", std::move(dat.second.uv)),
                 GL::DataWrapper("indices",std::move(dat.second.indices), GL::ELEMENT_ARRAY_BUFFER),
             }
             );
-
+        auto geo = PG_Geometry(PG_UNIQUE_RES("D_TextGeo"), std::move(geoInfo));
+        geo.expedite();
         auto mat = PG_Material("M_DisaFontTest");
         mat.makeInstance();
         mat.set("tex", manager->getFont().getTexture(dat.first));
-        model.load(PG_UNIQUE_RES("D_DisaText"), { {mat, PG_Geometry(PG_UNIQUE_RES("D_TextGeo"), std::move(geo)) } });
+        model.load(PG_UNIQUE_RES("D_DisaText"), { {std::move(mat), std::move(geo)}});
         break;
     }
 }
@@ -1949,7 +1951,6 @@ struct GeometryBatchKey {
 
 static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<byte*, bool>> g_geometryMemoryBuffer;
 static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<int, std::vector<byte>>> g_geometryMemoryMeshData; //key - used count, mesh data
-#include <Resources/PG_Context.h>
 
 void _stdcall FUN_004201d0_RenderClearBegin() {
     FP::callStdFarA(0x004201d0);
@@ -1975,9 +1976,6 @@ void _stdcall FUN_004201d0_RenderClearBegin() {
             ++it;
         }
     }
-    auto context = PG_Context::get();
-    context->runCreate();
-    context->destroyGarbage();
 }
 
 void _stdcall FUN_glViewport(int x, int y, int width, int height) {

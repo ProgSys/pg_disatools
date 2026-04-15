@@ -5,6 +5,7 @@
 #include <Rendering/Texture.h>
 #include <Rendering/Shader.h>
 #include <Rendering/Mesh.h>
+#include <Resources/PG_Material.h>
 #include <Resources/PG_ResourceManager.h>
 
 static inline void resetDisaOpenGLStates() {
@@ -139,6 +140,7 @@ void DisaCustomRenderManager::RenderScreenImg::update(PG_RGBAImage&& img, glm::v
     refreshRequested = true;
 }
 
+
 void DisaCustomRenderManager::init() {
     m_isInit = true;
     GLenum err = glewInit();
@@ -148,6 +150,8 @@ void DisaCustomRenderManager::init() {
     }
     PG_EventLoop::start();
     PG_ResourceManager::create();
+    PG_Context::create();
+    m_cachedResources.push_back(PG_Any::from(PG_Material("M_DisaFontTest")));
 }
 
 void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int height) {
@@ -157,6 +161,11 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
 
     if (!m_isInit) init();
     PG_EventLoop::doRun();
+    {
+        auto context = PG_Context::get();
+        context->runCreate();
+        context->destroyGarbage();
+    }
 
     glViewport(x, y, width, height);
 
@@ -206,6 +215,7 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
 }
 
 void DisaCustomRenderManager::glDrawArraysReplace(unsigned int mode, int first, int count) {
+    PG_Context::get()->runCreate();
     glDrawArrays(mode, first, count);
     if (!m_enabled) return;
     if (m_drawArraysCount == 0 && !m_backLayer.empty() ) {

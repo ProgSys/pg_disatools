@@ -5,6 +5,7 @@
 #include <vector>
 #include <ranges>
 #include <Util/PG_Image.h>
+#include <Util/PG_Any.h>
 
 namespace GL {
 	class Texture;
@@ -141,4 +142,5 @@ private:
 	std::vector<RenderTask*> m_backLayer;
 	std::vector<RenderTask*> m_inbetweenLayer;
 	bool m_fullClean = false;
+	std::vector<PG_Any> m_cachedResources;
 };
