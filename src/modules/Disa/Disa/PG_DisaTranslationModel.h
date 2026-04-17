@@ -118,6 +118,8 @@ public:
 
     inline const PG_Font& getFont() const { return m_font; }
 
+    bool isEnabled() const { return m_enabled; }
+
 protected:
     bool m_enabled = true;
 	std::unordered_map<std::string, std::string> m_translations; //MD5 hash, translation utf8
