@@ -23,6 +23,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <Scene/Gui/PG_GuiText.h>
 
+DisaKeyToAtlasMapping* DisaKeyToAtlasMapping::get() {
+    return &FP::getData<DisaKeyToAtlasMapping>(0x005973f0);
+}
+
 void DisaCameraInfo::move(glm::vec3 targetPosition, float speed) {
     eyeOffsetSpeed = speed;
     eyeOffsetTarget = targetPosition;
@@ -454,14 +458,34 @@ bool __fastcall renderTranslatedString(char*& jis_string, int& mode) {
     return false;
 }
 
+struct DisaTextIcon {
+    unsigned int* texture;
+    Cutout cutout;
+    glm::vec2 offset;
+};
 
+struct DisaText {
+    int usage;
+    PG_Model model;
+    bool isController;
+    std::vector<DisaTextIcon> icons;
+};
 
-static std::map<std::string, std::pair<int, PG_Model>> g_fontGeometry;
+static std::map<std::string, DisaText> g_fontGeometry;
 
-void createFontGeometry(PG_Model& model, const std::string& str) {
+static std::map<size_t, int> g_charcodeToKeyboardSetting = {
+    {9633, 3},//White Square
+    {9651, 0},//White Up-Pointing Triangle
+    {215, 1},//Multiplication Sign
+    {9675, 2},//White Circle
+    {76, 4},//Latin Capital Letter L
+    {82, 5},//Latin Capital Letter R
+};
+
+void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaSettings* settings, const std::string& str) {
+    icons.clear();
     auto* manager = DisaCustomTranslationManager::get();
-    //auto chars = manager->getFont().toCharInfosUtf8(str);
-    auto chars = manager->getFont().toCharInfos(str);
+    auto chars = manager->getFont().toCharInfosUtf8(str);
 
     struct GeoData {
         std::vector<glm::vec3> position;
@@ -472,12 +496,86 @@ void createFontGeometry(PG_Model& model, const std::string& str) {
 
     auto baselines = PG_GuiText::createBaseLine(chars, manager->getFont(), 24.f, glm::vec2(0));
     const glm::vec2 padding = manager->getFont().getAtlasPadding();
-    for (const PG_GuiText::Baseline& baseline : baselines) {
-        for (const PG_GuiText::Char& c : baseline.chars) {
-            if (c.textureIndex < 0) continue;
-
+    for (PG_GuiText::Baseline& baseline : baselines) {
+        for (auto it = baseline.chars.begin(); it != baseline.chars.end(); ++it) {
+            PG_GuiText::Char& c = *it;
             auto& [position, uv, indices] = datas[c.textureIndex];
-            const glm::vec3 basePos((baseline.start.x + c.offset.x), (baseline.start.y - c.offset.y + baseline.size.y/2.f), 0.0f);
+            const glm::vec3 basePos((baseline.start.x + c.offset.x), (baseline.start.y - c.offset.y + baseline.size.y / 2.f), 0.0f);
+
+            //White Square && White Up-Pointing Triangle
+            if (auto findIt = g_charcodeToKeyboardSetting.find(c.charcode); findIt != g_charcodeToKeyboardSetting.end()) {
+                //special case for L1 and R1
+                if ((findIt->second == 4 || findIt->second == 5)) {
+                    auto next = std::next(it);
+                    if (next != baseline.chars.end() && next->charcode == 49) {
+                        //is L1 or R2
+                        next->textureIndex = -1;
+                        baseline.start.x -= next->size.x;
+                    }
+                    else {
+                        //normal L or R
+                        findIt = g_charcodeToKeyboardSetting.end();
+                    }
+                }
+
+                if (findIt != g_charcodeToKeyboardSetting.end()) {
+                    if (settings->isController()) {
+                        int index = settings->assignedControllerKeys[findIt->second]; 
+                        if (index > 27) index -= 12;
+                        index = 19;
+                        Cutout * item = &FP::getData<Cutout>(0x005972b0); //total 20
+                        icons.emplace_back(
+                            &FP::getData<unsigned int>(0x0074c8d8),
+                            item[index],
+                            glm::vec2(basePos.x, 2.f)
+                        );
+                        baseline.start.x += 30.f - c.size.x;
+                    }else {
+                        DisaKeyToAtlasMapping* item = DisaKeyToAtlasMapping::get();
+                        while (true) {
+                            if (item->key == -1 || item->key == 0) break;
+                            if (item->key == settings->assignedKeys[findIt->second]) {
+                                icons.emplace_back(
+                                    &FP::getData<unsigned int>(0x0074c8d8),
+                                    *(Cutout*)(&item->x),
+                                    glm::vec2(basePos.x, 2.f)
+                                );
+                                baseline.start.x += 30.f - c.size.x;
+                                break;
+                            }
+                            ++item;
+                        }
+                    }
+                    continue;
+                }
+            }
+
+            //handle special icons Circled Digit 1 to 12
+            //mapping to items
+            if (c.charcode >= 9312 && c.charcode <= 9331) {
+                constexpr static std::array<Cutout, 20> locations = {
+                    Cutout(0, 0, 32, 32), Cutout(32, 0, 32, 32), Cutout(32 * 2, 0, 32, 32),  Cutout(32 * 3, 0, 32, 32),
+                    Cutout(32 * 4, 0, 32, 32), Cutout(32 * 5, 0, 32, 32), Cutout(32 * 6, 0, 32, 32),  Cutout(128, 255, 32, 32),
+                    Cutout(160, 160, 32, 32), Cutout(192, 160, 32, 32), Cutout(224, 160, 32, 32),  Cutout(256, 160, 32, 32),
+                    Cutout(288, 160, 32, 32), 
+                    //geo symbols
+                    Cutout(424, 264, 24, 24), Cutout(376, 240, 24, 24), Cutout(400, 240, 24, 24),
+                    Cutout(424, 240, 24, 24), Cutout(448, 240, 24, 24), Cutout(376, 264, 24, 24),  Cutout(400, 264, 24, 24)
+                };
+                constexpr static std::array<float, 20> yOffset = {
+                    3.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 3.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f
+                };
+                int index = c.charcode - 9312;
+                icons.emplace_back(
+                    &FP::getData<unsigned int>(0x0074cc08),
+                    locations[index],
+                    glm::vec2(basePos.x, yOffset[index])
+                );
+                baseline.start.x += 30.f - c.size.x;
+                continue;
+            }
+
+            if (c.textureIndex < 0) continue;
             const unsigned int i = position.size();
             /*
             *  1-----2
@@ -519,6 +617,10 @@ void createFontGeometry(PG_Model& model, const std::string& str) {
 
 bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::rgba* color, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     auto* manager = DisaCustomTranslationManager::get();
+    //jis_string = ((char*)&repString2);
+
+    DisaSettings* settings = (DisaSettings*)(FP::getData<unsigned int>(0x005d7c40));
+    const bool isController = settings->isController();
 
     if (manager->getFont().isLoaded()) {
         constexpr float scaleFactor = 71.f;
@@ -526,23 +628,31 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
         float baselineHeight = ((manager->getFont().getScaledHeight() * 0.69f + 12.f) * scale);
 
         const auto [hash, translation] = manager->tranlatedUtf8(jis_string);
-        if (translation.empty()) return false;
+        auto cc = translation.data();
 
-        auto& [usage, model] = g_fontGeometry[hash];
-        usage = 3;
-        if (!model.isValid()) {
-            createFontGeometry(model, translation);
+        auto& [usage, model, isIconsController, icons] = g_fontGeometry[hash];
+        if (!model.isValid() || (!icons.empty() && isIconsController != isController)) {
+            createFontGeometry(model, icons, settings, translation);
         }
+        usage = 3;
+        isIconsController = isController;
+
         if (!model.isValid()) return true;
         auto& mat = model.getMaterial(0);
         if (!mat.isValid()) return true;
 
+        constexpr float scaleX = 0.3f * 1.8f;
         PG_DisaModel disaModel(model);
         disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
-        disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(0.3 * 1.8, scaleY * 1.8, 1.f)));
-        disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.0F);
+        disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(scaleX, scaleY * 1.8f, 1.f)));
+        disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.f);
 
         DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+
+        for (const auto& [tex, cutout, offset] : icons) {
+            FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)x + scaleX * offset.x, ((float)y - offset.y), param_3, 15, 15,
+                cutout.y, cutout.x, cutout.width, cutout.height);
+        }
 
         //FUN_00425df0_SubmitVertexBasic(49999.0,piVar2,geometryData,triangleCount,3,-1,(Mat4 *)0x0,false,false,0,0,'\0',false);
         return true;
@@ -610,8 +720,8 @@ void __declspec(naked) __fastcall FUN_RederTextNew(int x, int y, int param_3, in
         // optional:
         // if you want fallback to use a possibly modified string from override,
         // write temp back into the stack argument slot:
-        // mov  eax, [ebp-12]
-        // mov  [ebp+16], eax
+        mov  eax, [ebp-12]
+        mov  [ebp+16], eax
 
         push dword ptr[ebp + 36]      // mode
         push dword ptr[ebp + 32]      // height
@@ -1967,8 +2077,8 @@ void _stdcall FUN_004201d0_RenderClearBegin() {
         }
     }
     for (auto it = g_fontGeometry.begin(); it != g_fontGeometry.end();) {
-        --it->second.first; //deplete use counter
-        if (it->second.first <= 0) {
+        --it->second.usage; //deplete use counter
+        if (it->second.usage <= 0) {
             //memory is no longer in use
             it = g_fontGeometry.erase(it);
         }

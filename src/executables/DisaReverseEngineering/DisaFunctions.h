@@ -118,6 +118,13 @@ struct DisaSettings {
     std::array<unsigned char, 31> assignedControllerKeys; //0x9fList of assigned keys by user (navigate UI, gameplay and so on), see KeyAssigned
     std::array<unsigned char, 1135> field_0xbe; //unknown
 
+    /**
+    * @returns true if a controler is used
+    */
+    bool isController() const {
+        return static_cast<bool>(field_0xbe[0x46e]);
+    }
+
     inline DisaKeyStates::Key getAssignedKey(KeyAssigned key) const{
         return (DisaKeyStates::Key)assignedKeys[key];
     }
@@ -135,6 +142,15 @@ struct DisaSettings {
 
 };
 
+struct DisaKeyToAtlasMapping {
+    int key;
+    int x;
+    int y;
+    int width;
+    int height;
+
+    static DisaKeyToAtlasMapping* get();
+};
 
 
 /**

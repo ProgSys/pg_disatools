@@ -23405,3 +23405,24 @@ unsigned long long shiftJisToUtf8(unsigned short v){
 	if(findIt == shiftJisToUtf8Map.end()) return 0;
 	return findIt->second;
 }
+
+unsigned long long utf8FullwidthToHalfwidth(unsigned long long c) {
+    // Special case: U+3000 IDEOGRAPHIC SPACE -> ASCII space
+    if (c == 0xE38080ULL)
+        return 0x20ULL;
+
+    // Fullwidth ASCII punctuation / digits / upper letters / some symbols
+    if ((c & 0xFFFFFFULL) >= 0xEFBC81ULL && (c & 0xFFFFFFULL) <= 0xEFBCBFULL){
+        unsigned int third = static_cast<unsigned int>(c & 0xFFULL);
+        return static_cast<unsigned long long>(third - 0x60); // maps to 0x21..0x5F
+    }
+
+    // Fullwidth lower letters / remaining symbols
+    if ((c & 0xFFFFFFULL) >= 0xEFBD80ULL && (c & 0xFFFFFFULL) <= 0xEFBD9EULL){
+        unsigned int third = static_cast<unsigned int>(c & 0xFFULL);
+        return static_cast<unsigned long long>(third - 0x20); // maps to 0x60..0x7E
+    }
+
+    // Not a supported fullwidth ASCII character; return unchanged
+    return c;
+}

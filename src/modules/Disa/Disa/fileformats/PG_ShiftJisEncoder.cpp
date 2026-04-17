@@ -255,7 +255,7 @@ std::string shiftJisToUtf8(const std::string& shiftJs, const std::function<uint3
 			}
 		}
 
-		value = shiftJisToUtf8(doubleByte);
+		value = utf8FullwidthToHalfwidth(shiftJisToUtf8(doubleByte));
 		for (int i = 0; i < sizeof(uint32_t) / sizeof(char); ++i) {
             char v  = static_cast<char>(value);
 			if (v == 0) break;

@@ -18,3 +18,4 @@
 #pragma once
 
 unsigned long long shiftJisToUtf8(unsigned short);
+unsigned long long utf8FullwidthToHalfwidth(unsigned long long);
