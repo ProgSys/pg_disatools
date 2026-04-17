@@ -492,14 +492,13 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
         std::vector<glm::vec2> uv;
         std::vector<unsigned int> indices;
     };
-    std::map<uint32_t, GeoData> datas;
+    std::map<int32_t, GeoData> datas;
 
     auto baselines = PG_GuiText::createBaseLine(chars, manager->getFont(), 24.f, glm::vec2(0));
     const glm::vec2 padding = manager->getFont().getAtlasPadding();
     for (PG_GuiText::Baseline& baseline : baselines) {
         for (auto it = baseline.chars.begin(); it != baseline.chars.end(); ++it) {
             PG_GuiText::Char& c = *it;
-            auto& [position, uv, indices] = datas[c.textureIndex];
             const glm::vec3 basePos((baseline.start.x + c.offset.x), (baseline.start.y - c.offset.y + baseline.size.y / 2.f), 0.0f);
 
             //White Square && White Up-Pointing Triangle
@@ -576,6 +575,8 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
             }
 
             if (c.textureIndex < 0) continue;
+
+            auto& [position, uv, indices] = datas[c.textureIndex];
             const unsigned int i = position.size();
             /*
             *  1-----2
