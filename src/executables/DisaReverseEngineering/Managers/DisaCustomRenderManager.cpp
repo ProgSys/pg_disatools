@@ -7,6 +7,7 @@
 #include <Rendering/Mesh.h>
 #include <Resources/PG_Material.h>
 #include <Resources/PG_ResourceManager.h>
+#include <DisaRendering.h>
 
 static inline void resetDisaOpenGLStates() {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -160,6 +161,10 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
     m_drawArraysCount = 0;
 
     if (!m_isInit) init();
+
+    m_modelsOld = std::move(m_models);
+    m_models.reserve(std::max(m_modelsOld.size(), 32u));
+
     PG_EventLoop::doRun();
     {
         auto context = PG_Context::get();
@@ -169,7 +174,7 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
 
     glViewport(x, y, width, height);
 
-
+    //depricated
     auto cleanTasks = [](std::vector<RenderTask*>& v) {
         auto it = v.begin();
         while (it != v.end()) {
@@ -292,6 +297,14 @@ DisaCustomRenderManager::RenderTask* DisaCustomRenderManager::findRenderTask(ELa
         return (*findIt);
     }
     return nullptr;
+}
+
+void DisaCustomRenderManager::submit(float depth, PG_DisaModel&& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13) {
+    assert(model.isValid());
+    if (!model.isValid()) return;
+
+    size_t index = addModel(std::move(model));
+    DisaRenderObjectManager::get()->submitCustomModel(depth, index, blendMode, modelMatrix, isPerspective, depthMaskEnabled, poligonOffset, stencilMode, stencilRef, param_13);
 }
 
 void DisaCustomRenderManager::eraseRenderTask(ELayer layer, const std::string& identifier) {

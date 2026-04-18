@@ -123,10 +123,6 @@ struct DisaRenderObjectManager {
     */
     static DisaRenderObjectManager* get();
     /**
-    * @brief Clear all cashed custom data between render loops
-    */
-    static void clearCustom();
-    /**
     * @brief Returns the active render object list as a range.
     */
     inline auto getRenderObjectList() {
@@ -141,6 +137,7 @@ struct DisaRenderObjectManager {
         float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13, bool customData);
 
     void submitCustomModel(float depth, PG_DisaModel&& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13);
+    void submitCustomModel(float depth, int modelIndex, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13);
 };
 
 /**

@@ -600,14 +600,14 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
             );
         auto geo = PG_Geometry(PG_UNIQUE_RES("D_TextGeo"), std::move(geoInfo));
         geo.expedite();
-        auto mat = PG_Material("M_DisaFontTest");
+        auto mat = PG_Material("M_DisaFont");
         mat.makeInstance();
         mat.set("tex", manager->getFont().getTexture(dat.first));
         model.load(PG_UNIQUE_RES("D_DisaText"), { {std::move(mat), std::move(geo)}});
         break;
     }
 }
-
+/*
 static std::array<char, 21 * 2> repString = {
     0x87, 0x3f + 1, 0x87, 0x3f + 2, 0x87, 0x3f + 3, 0x87, 0x3f + 4, 0x87, 0x3f + 5,
      0x87, 0x3f + 6, 0x87, 0x3f + 7, 0x87, 0x3f + 8, 0x87, 0x3f + 9, 0x87, 0x3f + 10,
@@ -637,7 +637,7 @@ static std::array<char, 18 * 2> repString2 = {
     0x82, 0x4f + 1,
      0x0, 0x0, 
 };
-
+*/
 
 bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::rgba* color, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     auto* manager = DisaCustomTranslationManager::get();
@@ -667,13 +667,12 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
             auto& mat = model.getMaterial(0);
             if (!mat.isValid()) return true;
 
-            
             PG_DisaModel disaModel(model);
             disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
             disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(staticScaleX, scaleY * 1.8f, 1.f)));
             disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.f);
-
-            DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+            DisaCustomRenderManager::get()->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+            //DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
         }
 
         for (const auto& [tex, cutout, offset, size] : icons) {
@@ -2091,7 +2090,6 @@ static std::map<std::pair<geofileMeshHeader*, GeometryBatchKey>, std::pair<int, 
 
 void _stdcall FUN_004201d0_RenderClearBegin() {
     FP::callStdFarA(0x004201d0);
-    DisaRenderObjectManager::clearCustom();
     g_geometryMemoryBuffer.clear();
     for (auto it = g_geometryMemoryMeshData.begin(); it != g_geometryMemoryMeshData.end();) {
         --it->second.first; //deplete use counter

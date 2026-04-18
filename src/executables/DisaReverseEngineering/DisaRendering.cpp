@@ -8,21 +8,10 @@
 
 #include <FunctionPatcher.h>
 #include <Renderer/Command/PG_AddCommands.h>
-#include <Rendering/Shader.h> //debug
+#include <Managers/DisaCustomRenderManager.h> 
 
 
 constexpr uint16_t g_customModelMarker = 9001;
-struct CustomRenderManager {
-    std::vector<PG_DisaModel> models;
-
-    size_t addModel(PG_DisaModel&& model) {
-        auto i = models.size();
-        models.emplace_back(std::move(model));
-        return i;
-    }
-};
-
-static CustomRenderManager g_customRenderManager;
 
 bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObject* param_2) {
     assert(param_1 && param_2);
@@ -381,11 +370,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, unknownObject, param_1);
 
         if (object->m_uniformSize == g_customModelMarker) {
-            if (object->m_field0x10 >= g_customRenderManager.models.size()) continue;
-            PG_DisaModel& model = g_customRenderManager.models[object->m_field0x10];
+            const auto& models = DisaCustomRenderManager::get()->getModels();
+            if (object->m_field0x10 >= models.size()) continue;
+            const PG_DisaModel& model = models[object->m_field0x10];
             if (!model.isLoaded()) continue;
             if (!model.getMaterial(0).getShader().isLoaded()) continue;
-            
+
             g_pass.renderData.projectionMatrix = *projectionMat;
             g_pass.renderData.viewMatrix = glm::mat4(1.0F);
 
@@ -517,10 +507,6 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
 
 DisaRenderObjectManager* DisaRenderObjectManager::get() {
     return FP::getData<DisaRenderObjectManager*>(0x005bb02c);
-}
-
-void DisaRenderObjectManager::clearCustom() {
-    g_customRenderManager.models.clear();
 }
 
 struct DisaTextureSPtr {
@@ -656,7 +642,7 @@ void DisaRenderObjectManager::submitCustomModel(float depth, PG_DisaModel&& mode
     renderObject->m_field0x14 = nullptr; //no texture
     //mark as special
     renderObject->m_uniformSize = g_customModelMarker;
-    renderObject->m_field0x10 = g_customRenderManager.addModel(std::move(model)); //vertexCount
+    renderObject->m_field0x10 = DisaCustomRenderManager::get()->addModel(std::move(model)); //vertexCount
 
     DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
     renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
@@ -688,6 +674,57 @@ void DisaRenderObjectManager::submitCustomModel(float depth, PG_DisaModel&& mode
     if (m_renderObjectListSize < 2048) {
        // if (m_renderObjectList[m_renderObjectListSize] != nullptr) {
             m_renderObjectList[m_renderObjectListSize] = renderObject;
+        //}
+        ++m_renderObjectListSize;
+    }
+    ++m_renderBlockSize[m_renderBlockIndex];
+}
+
+void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13) {
+    const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
+    const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
+    if (!(*(bool*)&m_field0xc == false) || !isEnabled) return;
+
+    if (m_renderBlockSize[m_renderBlockIndex] >= 2048) return; //render queue full
+    DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
+
+    renderObject->m_depth = m_basePolygonOffset + depth;
+    renderObject->m_field0x8 = m_field0x76048;
+    renderObject->m_field0x14 = nullptr; //no texture
+    //mark as special
+    renderObject->m_uniformSize = g_customModelMarker;
+    renderObject->m_field0x10 = modelIndex; //vertexCount
+
+    DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
+    renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
+    renderObject->m_renderSettingsBitMask.blendMode = blendMode;
+    renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
+    renderObject->m_renderSettingsBitMask.stencilRef = stencilRef;
+
+    renderObject->m_modelMatrix = modelMatrix;
+    renderObject->m_isPerspective = isPerspective;
+    renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
+    renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
+    renderObject->m_field0x29 = (bool)param_13;;
+    renderObject->m_polygonOffset = poligonOffset;
+
+    const int typeIndex = FP::getData<int>(0x005bb030);
+    renderObject->m_type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
+
+    if (m_modelMatrix) {
+        renderObject->m_modelMatrix = m_modelMatrix;
+    }
+    if (m_projectionMatrix) {
+        renderObject->m_projectionMatrix = m_projectionMatrix;
+    }
+
+    renderObject->m_meshData = nullptr;
+
+    if (m_skipGlSetup) return;
+
+    if (m_renderObjectListSize < 2048) {
+        // if (m_renderObjectList[m_renderObjectListSize] != nullptr) {
+        m_renderObjectList[m_renderObjectListSize] = renderObject;
         //}
         ++m_renderObjectListSize;
     }

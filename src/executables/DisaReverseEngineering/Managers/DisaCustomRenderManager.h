@@ -6,6 +6,7 @@
 #include <ranges>
 #include <Util/PG_Image.h>
 #include <Util/PG_Any.h>
+#include <Resources/PG_DisaModel.h>
 
 namespace GL {
 	class Texture;
@@ -15,6 +16,7 @@ namespace GL {
 struct RenderObject;
 
 class DisaCustomRenderManager {
+	friend struct DisaRenderObjectManager;
 public:
 	enum ELayer {
 		Front,
@@ -127,10 +129,23 @@ public:
 	void clear();
 
 	/**
+	* @brief Will add a new render object to render queue
+	* Original function: FUN_00425df0
+	* @param depth Used for layering
+	*/
+	void submit(float depth, PG_DisaModel&& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13);
+
+	const std::vector<PG_DisaModel>& getModels() const { return m_models; };
+	/**
 	* @returns Singelton
 	*/
 	static DisaCustomRenderManager* get();
-
+protected:
+	size_t addModel(PG_DisaModel&& model) {
+		auto i = m_models.size();
+		m_models.emplace_back(std::move(model));
+		return i;
+	}
 private:
 	bool m_isInit = false;
 	bool m_enabled = false;
@@ -143,4 +158,7 @@ private:
 	std::vector<RenderTask*> m_inbetweenLayer;
 	bool m_fullClean = false;
 	std::vector<PG_Any> m_cachedResources;
+
+	std::vector<PG_DisaModel> m_models;
+	std::vector<PG_DisaModel> m_modelsOld;
 };

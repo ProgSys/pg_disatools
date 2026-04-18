@@ -512,6 +512,33 @@ static inline void renderTextInBox(DisaSettings* settings, const std::string& te
 void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::string& id, const std::string& path) {
     if (id.empty()) return;
 
+    auto* renderManager = DisaCustomRenderManager::get();
+   
+    PG_DisaModel disaModel(PG_Model("T_DisaFullScreenImg", { { PG_Material("M_DisaFullScreenImg"), PG_Geometry::sfqUVyFlipped()  } }));
+    disaModel.additionalProperties["disaImage"] = PG_Any::from(
+        PG_Texture("T_DisaImg" + path, [path, archive = m_activeCampaign->archive.get()]() -> PG_Texture::ImageFormats {
+            auto fullPath = "img/" + path;
+            PG_StringUtil::removeAll(fullPath, "..");
+
+            PG_RGBAImage img;
+            try {
+                img = PG_ZIPUtil::readPNGImage(archive, fullPath);
+            }
+            catch (const PG_RuntimeError& e) {
+                OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
+            }
+            catch (...) {
+                OUT_ERROR("Failed to read png from zip '" << fullPath << "'!");
+            }
+
+            if (img.empty()) return {};
+            return img;
+        }));
+
+    renderManager->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+
+    /*
+    
     auto layer = foreground ? DisaCustomRenderManager::Front : DisaCustomRenderManager::Back;
     if (!m_activeCampaign || !m_activeCampaign->archive || path.empty()) {
         DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
@@ -548,12 +575,12 @@ void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::st
     task = DisaCustomRenderManager::get()->addRenderTask<DisaCustomRenderManager::RenderFullScreenImg>(layer, id,
         std::move(img));
     task->path = std::move(fullPath);
-
+    */
 }
 
 void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::string& id, const std::string& path, const glm::vec2& pos, const glm::vec2& size) {
     if (id.empty()) return;
-
+    return;
     auto layer = foreground ? DisaCustomRenderManager::Front : DisaCustomRenderManager::Back;
     if (!m_activeCampaign || !m_activeCampaign->archive || path.empty()) {
         DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
@@ -598,6 +625,7 @@ void DisaCustomCampaignManager::processUserRender() {
     DisaCustomRenderManager::get()->clear();
     EntriesState& entriesBox = m_entriesState.back();
 
+    //FP::callVariadicThisFarA(fRenderImg, &FP::getData<int>(0x007495d8), 0, 0, 0xbaa1, 0x1e0, 0x110, 2, 2, FP::getData<int>(0x00749626), FP::getData<int>(0x00749628));
     if (entriesBox.isCustomBackground) {
         renderCustomImage(false, "backgroundImg", entriesBox.getBackgroundImagePath());
     }else{
