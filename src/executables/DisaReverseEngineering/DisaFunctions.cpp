@@ -462,6 +462,7 @@ struct DisaTextIcon {
     unsigned int* texture;
     Cutout cutout;
     glm::vec2 offset;
+    int size;
 };
 
 struct DisaText {
@@ -504,12 +505,12 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
             //White Square && White Up-Pointing Triangle
             if (auto findIt = g_charcodeToKeyboardSetting.find(c.charcode); findIt != g_charcodeToKeyboardSetting.end()) {
                 //special case for L1 and R1
+                auto nextIt = std::next(it);
                 if ((findIt->second == 4 || findIt->second == 5)) {
-                    auto next = std::next(it);
-                    if (next != baseline.chars.end() && next->charcode == 49) {
+                    if (nextIt != baseline.chars.end() && nextIt->charcode == 49) {
                         //is L1 or R2
-                        next->textureIndex = -1;
-                        baseline.start.x -= next->size.x;
+                        nextIt->textureIndex = -1;
+                        baseline.start.x -= nextIt->size.x;
                     }
                     else {
                         //normal L or R
@@ -521,14 +522,16 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                     if (settings->isController()) {
                         int index = settings->assignedControllerKeys[findIt->second]; 
                         if (index > 27) index -= 12;
-                        index = 19;
-                        Cutout * item = &FP::getData<Cutout>(0x005972b0); //total 20
+                        //Cutout * item = &FP::getData<Cutout>(0x005972b0); //total 20
+                        Cutout * item = &FP::getData<Cutout>(0x00597b98); //total 20
                         icons.emplace_back(
                             &FP::getData<unsigned int>(0x0074c8d8),
                             item[index],
-                            glm::vec2(basePos.x, 2.f)
+                            glm::vec2(basePos.x, 2.f), 14
                         );
-                        baseline.start.x += 30.f - c.size.x;
+                        constexpr float iconsDist = 27.f;
+                        float nextCharDist = nextIt != baseline.chars.end()? nextIt->offset.x - c.offset.x: c.size.x;
+                        baseline.start.x += iconsDist - nextCharDist;
                     }else {
                         DisaKeyToAtlasMapping* item = DisaKeyToAtlasMapping::get();
                         while (true) {
@@ -537,9 +540,11 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                                 icons.emplace_back(
                                     &FP::getData<unsigned int>(0x0074c8d8),
                                     *(Cutout*)(&item->x),
-                                    glm::vec2(basePos.x, 2.f)
+                                    glm::vec2(basePos.x, 2.f), 15
                                 );
-                                baseline.start.x += 30.f - c.size.x;
+                                constexpr float iconsDist = 50.f;
+                                float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
+                                baseline.start.x += iconsDist - nextCharDist;
                                 break;
                             }
                             ++item;
@@ -568,12 +573,15 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                 icons.emplace_back(
                     &FP::getData<unsigned int>(0x0074cc08),
                     locations[index],
-                    glm::vec2(basePos.x, yOffset[index])
+                    glm::vec2(basePos.x, yOffset[index]), index >= 13? 14: 15
                 );
-                baseline.start.x += 30.f - c.size.x;
+                constexpr float iconsDist = 50.f;
+                constexpr float iconsSmallDist = 44.f;
+                auto nextIt = std::next(it);
+                float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
+                baseline.start.x += (index >= 13 ? iconsSmallDist : iconsDist) - nextCharDist;
                 continue;
             }
-
             if (c.textureIndex < 0) continue;
 
             auto& [position, uv, indices] = datas[c.textureIndex];
@@ -616,9 +624,36 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
     }
 }
 
+static std::array<char, 21 * 2> repString = {
+    0x87, 0x3f + 1, 0x87, 0x3f + 2, 0x87, 0x3f + 3, 0x87, 0x3f + 4, 0x87, 0x3f + 5,
+     0x87, 0x3f + 6, 0x87, 0x3f + 7, 0x87, 0x3f + 8, 0x87, 0x3f + 9, 0x87, 0x3f + 10,
+      0x87, 0x3f + 12, 0x87, 0x3f + 12, 0x87, 0x3f + 13, 0x87, 0x3f + 14, 0x87, 0x3f + 15,
+       0x87, 0x3f + 16, 0x87, 0x3f + 17, 0x87, 0x3f + 18, 0x87, 0x3f + 19, 0x87, 0x3f + 20, 
+       0x0,0x0
+};
+
+static std::array<char, 14 * 2> repString2 = {
+    0x81, 0x9e + 2,
+    0x81, 0x9e + 4, 
+    0x81, 0x6f + 15, 
+    0x81, 0x90 + 11, 
+    0x87, 0x4f + 5, //I
+    0x87, 0x4f + 6, //II
+    0x87, 0x4f + 7,
+    0x87, 0x4f + 8, //IV
+    0x90, 0xbe + 4,
+
+    0x82, 0x5f + 12,
+    0x82, 0x4f + 1,
+    0x82, 0x6f + 2,
+    0x82, 0x4f + 1,
+     0x0, 0x0, 
+};
+
+
 bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::rgba* color, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     auto* manager = DisaCustomTranslationManager::get();
-    //jis_string = ((char*)&repString2);
+    jis_string = ((char*)&repString2);
 
     DisaSettings* settings = (DisaSettings*)(FP::getData<unsigned int>(0x005d7c40));
     const bool isController = settings->isController();
@@ -630,28 +665,30 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
 
         const auto [hash, translation] = manager->tranlatedUtf8(jis_string);
         auto cc = translation.data();
+        if (translation.empty() || !manager->isEnabled()) return false;
 
         auto& [usage, model, isIconsController, icons] = g_fontGeometry[hash];
-        if (!model.isValid() || (!icons.empty() && isIconsController != isController)) {
+        if ((!model.isValid() && usage == 0) || (!icons.empty() && isIconsController != isController)) {
             createFontGeometry(model, icons, settings, translation);
         }
         usage = 3;
         isIconsController = isController;
 
-        if (!model.isValid()) return true;
-        auto& mat = model.getMaterial(0);
-        if (!mat.isValid()) return true;
+        if (model.isValid()) {
+            auto& mat = model.getMaterial(0);
+            if (!mat.isValid()) return true;
 
-        constexpr float scaleX = 0.3f * 1.8f;
-        PG_DisaModel disaModel(model);
-        disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
-        disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(scaleX, scaleY * 1.8f, 1.f)));
-        disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.f);
+            constexpr float scaleX = 0.3f * 1.8f;
+            PG_DisaModel disaModel(model);
+            disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
+            disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(scaleX, scaleY * 1.8f, 1.f)));
+            disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.f);
 
-        DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+            DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+        }
 
-        for (const auto& [tex, cutout, offset] : icons) {
-            FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)x + scaleX * offset.x, ((float)y - offset.y), param_3, 15, 15,
+        for (const auto& [tex, cutout, offset, size] : icons) {
+            FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)x + scaleX * offset.x, ((float)y - offset.y), param_3, size, size,
                 cutout.y, cutout.x, cutout.width, cutout.height);
         }
 

@@ -551,6 +551,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
     if (uMsg == WM_KEYDOWN && wParam == VK_F2) {
         commandTerminal.toggleConsole();
     }
+    if (uMsg == WM_KEYDOWN && wParam == VK_F3) {
+        DisaCustomTranslationManager::get()->setEnabled(!DisaCustomTranslationManager::get()->isEnabled());
+    }
     if (uMsg == WM_KEYDOWN && wParam == VK_F5) {
         commandTerminal.toggleReloadShaders();
     }

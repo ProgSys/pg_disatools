@@ -101,6 +101,9 @@ signals:
 public:
 	using PG_Object::PG_Object;
 
+    bool isEnabled() const { return m_enabled; }
+    void setEnabled(bool value) { m_enabled = value; }
+
     void loadTranslation(PG_DisaModInfo* modInfo, const PG_DisaModLoadInfo& info);
 
     /**
@@ -117,8 +120,6 @@ public:
 	bool hasMarkes(char* shiftJis) const;
 
     inline const PG_Font& getFont() const { return m_font; }
-
-    bool isEnabled() const { return m_enabled; }
 
 protected:
     bool m_enabled = true;
