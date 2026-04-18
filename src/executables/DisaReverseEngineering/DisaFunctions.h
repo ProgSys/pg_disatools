@@ -142,15 +142,21 @@ struct DisaSettings {
 
 };
 
+struct DisaCutout {
+    unsigned int y = 0, x = 0, width = 0, height = 0;
+
+    static DisaCutout* getXBoxController();
+    static DisaCutout* getPlayController();
+};
+
 struct DisaKeyToAtlasMapping {
     int key;
-    int x;
-    int y;
-    int width;
-    int height;
+    DisaCutout cutout;
 
-    static DisaKeyToAtlasMapping* get();
+    static DisaKeyToAtlasMapping* getKeyboard();
 };
+
+
 
 
 /**

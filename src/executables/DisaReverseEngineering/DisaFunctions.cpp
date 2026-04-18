@@ -23,8 +23,17 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <Scene/Gui/PG_GuiText.h>
 
-DisaKeyToAtlasMapping* DisaKeyToAtlasMapping::get() {
+
+DisaKeyToAtlasMapping* DisaKeyToAtlasMapping::getKeyboard() {
     return &FP::getData<DisaKeyToAtlasMapping>(0x005973f0);
+}
+
+DisaCutout* DisaCutout::getXBoxController() {
+    return &FP::getData<DisaCutout>(0x00597b98);
+}
+
+DisaCutout* DisaCutout::getPlayController() {
+    return &FP::getData<DisaCutout>(0x00597b98);
 }
 
 void DisaCameraInfo::move(glm::vec3 targetPosition, float speed) {
@@ -137,14 +146,11 @@ void _cdecl renderSimpleBgBox(unsigned int x, unsigned int y, int width, int hei
     FP::callFastFarA(fRenderBgBox, x, y, renderFlag, width, height, -1);
 }
 
-struct Cutout {
-    unsigned int y = 0, x = 0, width = 0, height = 0;
-};
 
 struct MenuOptionStyle {
     unsigned int keyIndex;
     unsigned int stringIndex;
-    Cutout textCutout;
+    DisaCutout textCutout;
     bool hover = false;
 };
 
@@ -152,22 +158,22 @@ static std::array<MenuOptionStyle, 4> gMenuOptionStyles{
     MenuOptionStyle{ //exit
         DisaSettings::KeyAssigned::Cancel,
         8,
-        Cutout{0, 0, 0x30, 0x18}
+        DisaCutout{0, 0, 0x30, 0x18}
     },
     MenuOptionStyle{ //skipStory
         DisaSettings::KeyAssigned::Menu,
         10,
-        Cutout{108, 0, 104, 0x18}
+        DisaCutout{108, 0, 104, 0x18}
     },
     MenuOptionStyle{ //select
         DisaSettings::KeyAssigned::Select,
         9,
-        Cutout{48, 0, 60, 0x18}
+        DisaCutout{48, 0, 60, 0x18}
     },  
     MenuOptionStyle{ //select
         DisaSettings::KeyAssigned::Select,
         0,
-        Cutout{0, 0, 0, 0}
+        DisaCutout{0, 0, 0, 0}
     }
 };
 
@@ -239,47 +245,37 @@ EMenuOption processMenuBox(DisaSettings* settings, const std::vector<EMenuOption
     return selectedOption;
 }
 
-static inline Cutout getCutout(const DisaSettings* settings, unsigned int key) {
-    Cutout cutout;
-    int mode = 2;
-    if (*(((char*)settings) + 0x52c) == '\0') {
-        mode = 1;
+static inline DisaCutout getKeyMapCutout(const DisaSettings* settings, unsigned int key) {
+    DisaCutout cutout{-1, -1, -1, -1};
+    int mode = 1;
+    if (!settings->isController()) {
+        mode = 2;
     }
     if ((FP::getData<char>(0x00778d5b) != '\0') && (mode == 2)) {
         mode = 0;
     }
 
-    if (mode == 0) {   //controller 
-        unsigned int choosenSymbol = settings->assignedControllerKeys[key];
-        if (choosenSymbol > 0x1b) {
-            choosenSymbol -= 0xc;
-        }
-        cutout = (&FP::getData<Cutout>(0x00597b98))[choosenSymbol];
-    }
-    else if (mode == 1) {  //keyboard
-
+    if (mode == 2) {  //keyboard
         //find letter to display to exit screen
         unsigned int choosenLetter = settings->assignedKeys[key]; //[0x005d7c40]+  + 0x81;
-        unsigned int letterIndex = 0;
-        unsigned int* lettersIt = &FP::getData<unsigned int>(0x005973f0);
-
-        while (!((*lettersIt == 0xffff) && (*(int*)(lettersIt + 1) == -1))) {
-
-            if (*lettersIt == choosenLetter) {//found
-                cutout = *(Cutout*)&((&FP::getData<unsigned int>(0x005973f4))[letterIndex]);
+        DisaKeyToAtlasMapping* keysIt = DisaKeyToAtlasMapping::getKeyboard();
+        while (keysIt->key != -1 && keysIt->cutout.x != -1) {
+            if (keysIt->key == choosenLetter) {
+                cutout = keysIt->cutout;
                 break;
             }
-
-            ++letterIndex;
-            ++lettersIt;
+            ++keysIt;
         }
+        return cutout;
     }
-    else if (mode == 2) { //number?
-        unsigned int choosenSymbol = settings->assignedControllerKeys[key];
-        if (choosenSymbol > 0x1b) {
-            choosenSymbol -= 0xc;
-        }
-        cutout = (&FP::getData<Cutout>(0x005972bc))[choosenSymbol];
+
+    unsigned int choosenSymbol = settings->assignedControllerKeys[key];
+    if (choosenSymbol > 27) choosenSymbol -= 0xc;
+    if (mode == 1) {
+        cutout = (&FP::getData<DisaCutout>(0x00597b98))[choosenSymbol]; //controller 
+    }
+    else {
+        cutout = (&FP::getData<DisaCutout>(0x005972b0))[choosenSymbol]; //0x005972bc
     }
 
     return cutout;
@@ -340,7 +336,7 @@ void renderMenuBox(DisaSettings* settings, const std::vector<EMenuOption>& optio
             FP::callFastFarA(fRenderCutout, &FP::getData<float>(0x0074c850), &FP::getData<glm::rgba>(0x005ad534), (float)(xPos + 473), (float)(textY), 0xbef8, style.textCutout.width/2, textHeight,
                 style.textCutout.y, style.textCutout.x, style.textCutout.width, style.textCutout.height);
 
-            Cutout cutout = getCutout(settings, style.keyIndex);
+            DisaCutout cutout = getKeyMapCutout(settings, style.keyIndex);
 
             if (cutout.width > 0 && cutout.height > 0) {
                 glm::rgba colloring = glm::rgba(255, 255, 255, 255);// 0xffffffff;
@@ -363,7 +359,7 @@ bool processSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, cons
     constexpr unsigned int margin = 4;
 
     if (key != DisaKeyStates::Key::Invalid) {
-        Cutout cutout = getCutout(settings, key);
+        DisaCutout cutout = getKeyMapCutout(settings, key);
         if (cutout.width > 0 && cutout.height > 0) {
             if (width == 0) boxWidth += 14 + margin;
         }
@@ -396,10 +392,10 @@ void renderSingleLineTextBox(const DisaSettings* settings, glm::ivec2 pos, const
 
 
     unsigned int iconDisplayOffset = 0;
-    Cutout cutout;
+    DisaCutout cutout;
 
     if (key != DisaSettings::KeyAssigned::Invalid) {
-        cutout = getCutout(settings, key);
+        cutout = getKeyMapCutout(settings, key);
         if (cutout.width > 0 && cutout.height > 0) {
             iconDisplayOffset = 14 + margin;
             if (width != 0) boxWidth += iconDisplayOffset;
@@ -460,7 +456,7 @@ bool __fastcall renderTranslatedString(char*& jis_string, int& mode) {
 
 struct DisaTextIcon {
     unsigned int* texture;
-    Cutout cutout;
+    DisaCutout cutout;
     glm::vec2 offset;
     int size;
 };
@@ -474,13 +470,13 @@ struct DisaText {
 
 static std::map<std::string, DisaText> g_fontGeometry;
 
-static std::map<size_t, int> g_charcodeToKeyboardSetting = {
-    {9633, 3},//White Square
-    {9651, 0},//White Up-Pointing Triangle
-    {215, 1},//Multiplication Sign
-    {9675, 2},//White Circle
-    {76, 4},//Latin Capital Letter L
-    {82, 5},//Latin Capital Letter R
+static const std::map<size_t, std::pair<uint8_t, uint8_t>> g_charcodeToKeyboardSetting = {
+    {9633, {3, 1}},//White Square
+    {9651, {0, 1}},//White Up-Pointing Triangle
+    {215,  {1, 1}},//Multiplication Sign
+    {9675, {2, 1}},//White Circle
+    {76,   {4, 2}},//Latin Capital Letter L
+    {82,   {5, 2}},//Latin Capital Letter R
 };
 
 void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaSettings* settings, const std::string& str) {
@@ -506,7 +502,7 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
             if (auto findIt = g_charcodeToKeyboardSetting.find(c.charcode); findIt != g_charcodeToKeyboardSetting.end()) {
                 //special case for L1 and R1
                 auto nextIt = std::next(it);
-                if ((findIt->second == 4 || findIt->second == 5)) {
+                if ((findIt->second.second == 2)) {
                     if (nextIt != baseline.chars.end() && nextIt->charcode == 49) {
                         //is L1 or R2
                         nextIt->textureIndex = -1;
@@ -519,52 +515,39 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                 }
 
                 if (findIt != g_charcodeToKeyboardSetting.end()) {
-                    if (settings->isController()) {
-                        int index = settings->assignedControllerKeys[findIt->second]; 
-                        if (index > 27) index -= 12;
-                        //Cutout * item = &FP::getData<Cutout>(0x005972b0); //total 20
-                        Cutout * item = &FP::getData<Cutout>(0x00597b98); //total 20
+
+                    auto cutout = getKeyMapCutout(settings, findIt->second.first);
+                    if (cutout.x > 0) {
+                        constexpr std::array<std::pair<int, float>, 3> styles = { 
+                            std::pair<int, float>{15, 28.f}, //size, offset
+                            std::pair<int, float>{14, 26.f},
+                            std::pair<int, float>{14, 27.f}, //L1 R1
+                        };
+                        const auto& style = styles[settings->isController()? findIt->second.second : 0];
+
                         icons.emplace_back(
                             &FP::getData<unsigned int>(0x0074c8d8),
-                            item[index],
-                            glm::vec2(basePos.x, 2.f), 14
+                            cutout,
+                            glm::vec2(basePos.x, 2.f), style.first
                         );
-                        constexpr float iconsDist = 27.f;
-                        float nextCharDist = nextIt != baseline.chars.end()? nextIt->offset.x - c.offset.x: c.size.x;
-                        baseline.start.x += iconsDist - nextCharDist;
-                    }else {
-                        DisaKeyToAtlasMapping* item = DisaKeyToAtlasMapping::get();
-                        while (true) {
-                            if (item->key == -1 || item->key == 0) break;
-                            if (item->key == settings->assignedKeys[findIt->second]) {
-                                icons.emplace_back(
-                                    &FP::getData<unsigned int>(0x0074c8d8),
-                                    *(Cutout*)(&item->x),
-                                    glm::vec2(basePos.x, 2.f), 15
-                                );
-                                constexpr float iconsDist = 50.f;
-                                float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
-                                baseline.start.x += iconsDist - nextCharDist;
-                                break;
-                            }
-                            ++item;
-                        }
+                        float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
+                        baseline.start.x += style.second - nextCharDist;
+                        continue;
                     }
-                    continue;
                 }
             }
 
             //handle special icons Circled Digit 1 to 12
             //mapping to items
             if (c.charcode >= 9312 && c.charcode <= 9331) {
-                constexpr static std::array<Cutout, 20> locations = {
-                    Cutout(0, 0, 32, 32), Cutout(32, 0, 32, 32), Cutout(32 * 2, 0, 32, 32),  Cutout(32 * 3, 0, 32, 32),
-                    Cutout(32 * 4, 0, 32, 32), Cutout(32 * 5, 0, 32, 32), Cutout(32 * 6, 0, 32, 32),  Cutout(128, 255, 32, 32),
-                    Cutout(160, 160, 32, 32), Cutout(192, 160, 32, 32), Cutout(224, 160, 32, 32),  Cutout(256, 160, 32, 32),
-                    Cutout(288, 160, 32, 32), 
+                constexpr static std::array<DisaCutout, 20> locations = {
+                    DisaCutout(0, 0, 32, 32), DisaCutout(32, 0, 32, 32), DisaCutout(32 * 2, 0, 32, 32),  DisaCutout(32 * 3, 0, 32, 32),
+                    DisaCutout(32 * 4, 0, 32, 32), DisaCutout(32 * 5, 0, 32, 32), DisaCutout(32 * 6, 0, 32, 32),  DisaCutout(128, 255, 32, 32),
+                    DisaCutout(160, 160, 32, 32), DisaCutout(192, 160, 32, 32), DisaCutout(224, 160, 32, 32),  DisaCutout(256, 160, 32, 32),
+                    DisaCutout(288, 160, 32, 32), 
                     //geo symbols
-                    Cutout(424, 264, 24, 24), Cutout(376, 240, 24, 24), Cutout(400, 240, 24, 24),
-                    Cutout(424, 240, 24, 24), Cutout(448, 240, 24, 24), Cutout(376, 264, 24, 24),  Cutout(400, 264, 24, 24)
+                    DisaCutout(424, 264, 24, 24), DisaCutout(376, 240, 24, 24), DisaCutout(400, 240, 24, 24),
+                    DisaCutout(424, 240, 24, 24), DisaCutout(448, 240, 24, 24), DisaCutout(376, 264, 24, 24),  DisaCutout(400, 264, 24, 24)
                 };
                 constexpr static std::array<float, 20> yOffset = {
                     3.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 3.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f
@@ -575,8 +558,8 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                     locations[index],
                     glm::vec2(basePos.x, yOffset[index]), index >= 13? 14: 15
                 );
-                constexpr float iconsDist = 50.f;
-                constexpr float iconsSmallDist = 44.f;
+                constexpr float iconsDist = 30.f;
+                constexpr float iconsSmallDist = 24.f;
                 auto nextIt = std::next(it);
                 float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
                 baseline.start.x += (index >= 13 ? iconsSmallDist : iconsDist) - nextCharDist;
@@ -653,7 +636,7 @@ static std::array<char, 14 * 2> repString2 = {
 
 bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::rgba* color, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     auto* manager = DisaCustomTranslationManager::get();
-    jis_string = ((char*)&repString2);
+    //jis_string = ((char*)&repString);
 
     DisaSettings* settings = (DisaSettings*)(FP::getData<unsigned int>(0x005d7c40));
     const bool isController = settings->isController();
@@ -674,21 +657,22 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
         usage = 3;
         isIconsController = isController;
 
+        constexpr float staticScaleX = 0.3f * 1.8f;
         if (model.isValid()) {
             auto& mat = model.getMaterial(0);
             if (!mat.isValid()) return true;
 
-            constexpr float scaleX = 0.3f * 1.8f;
+            
             PG_DisaModel disaModel(model);
             disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
-            disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(scaleX, scaleY * 1.8f, 1.f)));
+            disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(staticScaleX, scaleY * 1.8f, 1.f)));
             disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.f);
 
             DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
         }
 
         for (const auto& [tex, cutout, offset, size] : icons) {
-            FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)x + scaleX * offset.x, ((float)y - offset.y), param_3, size, size,
+            FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)x + staticScaleX * offset.x, ((float)y - offset.y), param_3, size, size,
                 cutout.y, cutout.x, cutout.width, cutout.height);
         }
 
