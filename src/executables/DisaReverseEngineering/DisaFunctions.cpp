@@ -528,9 +528,10 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                         icons.emplace_back(
                             &FP::getData<unsigned int>(0x0074c8d8),
                             cutout,
-                            glm::vec2(basePos.x, 2.f), style.first
+                            glm::vec2(basePos.x - 3.f, 2.f), style.first
                         );
                         float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
+                        //float nextCharDist = c.size.x;
                         baseline.start.x += style.second - nextCharDist;
                         continue;
                     }
@@ -541,13 +542,13 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
             //mapping to items
             if (c.charcode >= 9312 && c.charcode <= 9331) {
                 constexpr static std::array<DisaCutout, 20> locations = {
-                    DisaCutout(0, 0, 32, 32), DisaCutout(32, 0, 32, 32), DisaCutout(32 * 2, 0, 32, 32),  DisaCutout(32 * 3, 0, 32, 32),
-                    DisaCutout(32 * 4, 0, 32, 32), DisaCutout(32 * 5, 0, 32, 32), DisaCutout(32 * 6, 0, 32, 32),  DisaCutout(128, 255, 32, 32),
-                    DisaCutout(160, 160, 32, 32), DisaCutout(192, 160, 32, 32), DisaCutout(224, 160, 32, 32),  DisaCutout(256, 160, 32, 32),
+                    DisaCutout(0, 0, 32, 32), DisaCutout(32, 0, 32, 32), DisaCutout(32 * 2, 0, 32, 32), DisaCutout(32 * 3, 0, 32, 32),
+                    DisaCutout(32 * 4, 0, 32, 32), DisaCutout(32 * 5, 0, 32, 32), DisaCutout(32 * 6, 0, 32, 32), DisaCutout(128, 255, 32, 32),
+                    DisaCutout(160, 160, 32, 32), DisaCutout(192, 160, 32, 32), DisaCutout(224, 160, 32, 32), DisaCutout(256, 160, 32, 32),
                     DisaCutout(288, 160, 32, 32), 
                     //geo symbols
                     DisaCutout(424, 264, 24, 24), DisaCutout(376, 240, 24, 24), DisaCutout(400, 240, 24, 24),
-                    DisaCutout(424, 240, 24, 24), DisaCutout(448, 240, 24, 24), DisaCutout(376, 264, 24, 24),  DisaCutout(400, 264, 24, 24)
+                    DisaCutout(424, 240, 24, 24), DisaCutout(448, 240, 24, 24), DisaCutout(376, 264, 24, 24), DisaCutout(400, 264, 24, 24)
                 };
                 constexpr static std::array<float, 20> yOffset = {
                     3.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 3.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f, 2.f
@@ -556,7 +557,7 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                 icons.emplace_back(
                     &FP::getData<unsigned int>(0x0074cc08),
                     locations[index],
-                    glm::vec2(basePos.x, yOffset[index]), index >= 13? 14: 15
+                    glm::vec2(basePos.x, yOffset[index]), index >= 13 ? 14: 15
                 );
                 constexpr float iconsDist = 30.f;
                 constexpr float iconsSmallDist = 24.f;
@@ -615,9 +616,13 @@ static std::array<char, 21 * 2> repString = {
        0x0,0x0
 };
 
-static std::array<char, 14 * 2> repString2 = {
+static std::array<char, 18 * 2> repString2 = {
+    0x81, 0x5f + 10,
     0x81, 0x9e + 2,
+    0x81, 0x5f + 11,
+    0x81, 0x5f + 10,
     0x81, 0x9e + 4, 
+    0x81, 0x5f + 11,
     0x81, 0x6f + 15, 
     0x81, 0x90 + 11, 
     0x87, 0x4f + 5, //I
@@ -636,7 +641,7 @@ static std::array<char, 14 * 2> repString2 = {
 
 bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::rgba* color, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     auto* manager = DisaCustomTranslationManager::get();
-    //jis_string = ((char*)&repString);
+    //jis_string = ((char*)&repString2);
 
     DisaSettings* settings = (DisaSettings*)(FP::getData<unsigned int>(0x005d7c40));
     const bool isController = settings->isController();
