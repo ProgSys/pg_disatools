@@ -12,24 +12,40 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 
 	auto& j = metaInfo.json;
 
+	std::string specialChars;
 	if (auto findIt = j.find("translations"); findIt != j.end()) {
 		if (!modInfo->archive) {
 			modInfo->archive = PG_ZIPUtil::openZip(modInfo->zipFile);
 		}
-
 		for (auto& jTranslations: *findIt) {
 			std::string fileName;
 			jTranslations.get_to(fileName);
-			PG_ZIPUtil::readStringLines(modInfo->archive.get(), "translation/" + fileName, [this](const std::string& line) {
+			PG_ZIPUtil::readStringLines(modInfo->archive.get(), "translation/" + fileName, [this, &specialChars](const std::string& line) {
 				auto splits = splitUtf8Simple(line, ';');
 				if (splits.empty()) return;
 				if (splits.back() == "\r") splits.pop_back();
 				if (splits.size() < 2) return;
-				if(splits[0].empty() || splits[1].empty())  return;
+				if (splits[0].empty() || splits[1].empty()) return;
+				if (splits[0] == "0") {
+					specialChars.append(splits[1]);
+				}
 				m_translations[std::move(splits[0])] = std::move(splits[1]);
 			});
 		}
+	}
 
+	if (auto findIt = j.find("fontOffsetX"); findIt != j.end()) {
+		findIt->get_to(m_fontOffset.x);
+	}
+	if (auto findIt = j.find("fontOffsetY"); findIt != j.end()) {
+		findIt->get_to(m_fontOffset.y);
+	}
+
+	if (auto findIt = j.find("fontScaleX"); findIt != j.end()) {
+		findIt->get_to(m_fontScale.x);
+	}
+	if (auto findIt = j.find("fontScaleY"); findIt != j.end()) {
+		findIt->get_to(m_fontScale.y);
 	}
 
 	if (auto findIt = j.find("font"); findIt != j.end()) {
@@ -41,6 +57,7 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 			return;
 		}
 		m_font.load(fontPath, std::move(fontData));
+		m_font.requestCharsUtf8(specialChars);
 	}
 }
 
@@ -85,7 +102,11 @@ std::pair<std::string, std::string> PG_DisaTranslationModel::tranlatedUtf8(char*
 	auto hash = PG_MD5::getZeroTerminated(shiftJis);
 
 	auto findIt = m_translations.find(hash);
-	if (findIt == m_translations.end() || findIt->second.empty()) return {};
+	if (findIt == m_translations.end() || findIt->second.empty()) 
+		return { std::move(hash), shiftJisToUtf8(shiftJis, [this](unsigned short shiftJisChar) -> uint32_t {
+				auto findIt = m_swiftJisToUtf8.find(shiftJisChar);
+				return findIt == m_swiftJisToUtf8.end()? 0 : findIt->second;
+				}) };
 	return { std::move(hash), findIt->second };
 }
 
