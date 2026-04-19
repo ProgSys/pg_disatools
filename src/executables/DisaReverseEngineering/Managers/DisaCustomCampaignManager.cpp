@@ -277,19 +277,15 @@ void DisaCustomCampaignManager::activate() {
     state.infoText = stringToShiftJis("Select the custom campaign you want to go to");
     m_entriesState.push_back(std::move(state));
     m_selectEntry = m_entriesState.back().createChildEntry(m_entriesState.back().getIndex());
-    DisaCustomRenderManager::get()->setEnabled(true);
-
 }
 
 void DisaCustomCampaignManager::reactivate() {
-    DisaCustomRenderManager::get()->setEnabled(true);
+    //empty
 }
 
 void DisaCustomCampaignManager::diactivate() {
     m_entriesState.clear();
     if (m_activeCampaign) m_activeCampaign->archive.reset();
-    DisaCustomRenderManager::get()->clear();
-    DisaCustomRenderManager::get()->setEnabled(false);
 }
 
 static inline void startCutomMap() {
@@ -300,8 +296,6 @@ static inline void startCutomMap() {
     dungeon.bonusRank = 15;
     dungeon.active = true;
 
-    DisaCustomRenderManager::get()->clear();
-    DisaCustomRenderManager::get()->setEnabled(false);
     auto retUnused = FP::callFastFarA<int*>(0x004bd930, (int*)0xb, (int*)0x0);
 }
 
@@ -508,126 +502,60 @@ static inline void renderTextInBox(DisaSettings* settings, const std::string& te
 
 }
 
+static inline PG_Texture getImageTexture(const std::string& id, const std::string& path, zip* archive) {
+    PG_Texture tex;
+    tex.loadImmediate("T_DisaImg_" + id + "_" + path, [path, archive]() -> PG_Texture::ImageFormats {
+        auto fullPath = "img/" + path;
+        PG_StringUtil::removeAll(fullPath, "..");
 
-void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::string& id, const std::string& path) {
+        PG_RGBAImage img;
+        try {
+            img = PG_ZIPUtil::readPNGImage(archive, fullPath);
+        }
+        catch (const PG_RuntimeError& e) {
+            OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
+        }
+        catch (...) {
+            OUT_ERROR("Failed to read png from zip '" << fullPath << "'!");
+        }
+
+        if (img.empty()) return {};
+        return img;
+        });
+    return tex;
+}
+
+void DisaCustomCampaignManager::renderCustomImage(const std::string& id, const std::string& path) {
     if (id.empty()) return;
 
     auto* renderManager = DisaCustomRenderManager::get();
    
-    PG_DisaModel disaModel(PG_Model("T_DisaFullScreenImg", { { PG_Material("M_DisaFullScreenImg"), PG_Geometry::sfqUVyFlipped()  } }));
-    disaModel.additionalProperties["disaImage"] = PG_Any::from(
-        PG_Texture("T_DisaImg" + path, [path, archive = m_activeCampaign->archive.get()]() -> PG_Texture::ImageFormats {
-            auto fullPath = "img/" + path;
-            PG_StringUtil::removeAll(fullPath, "..");
-
-            PG_RGBAImage img;
-            try {
-                img = PG_ZIPUtil::readPNGImage(archive, fullPath);
-            }
-            catch (const PG_RuntimeError& e) {
-                OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
-            }
-            catch (...) {
-                OUT_ERROR("Failed to read png from zip '" << fullPath << "'!");
-            }
-
-            if (img.empty()) return {};
-            return img;
-        }));
+    PG_DisaModel disaModel(renderManager->getFullImageScreenModel());
+    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->archive.get()));
 
     renderManager->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
-
-    /*
-    
-    auto layer = foreground ? DisaCustomRenderManager::Front : DisaCustomRenderManager::Back;
-    if (!m_activeCampaign || !m_activeCampaign->archive || path.empty()) {
-        DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
-        return;
-    }
-
-    auto fullPath = "img/" + path;
-    PG_StringUtil::removeAll(fullPath, "..");
-
-    auto* task = dynamic_cast<DisaCustomRenderManager::RenderFullScreenImg*>(DisaCustomRenderManager::get()->findRenderTask(layer, id));
-
-    if (task && task->path == fullPath) {
-        task->removeRequested = false;
-        return;
-    }
-
-    PG_RGBAImage img;
-    
-    try {
-        img = PG_ZIPUtil::readPNGImage(m_activeCampaign->archive.get(), fullPath);
-    }
-    catch (const PG_RuntimeError& e) {
-        OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
-    }
-    catch (...) {
-        OUT_ERROR("Failed to read png from zip '" << fullPath << "'!");
-    }
-
-    if (img.empty()) {
-        DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
-        return;
-    }
-
-    task = DisaCustomRenderManager::get()->addRenderTask<DisaCustomRenderManager::RenderFullScreenImg>(layer, id,
-        std::move(img));
-    task->path = std::move(fullPath);
-    */
 }
 
-void DisaCustomCampaignManager::renderCustomImage(bool foreground, const std::string& id, const std::string& path, const glm::vec2& pos, const glm::vec2& size) {
+void DisaCustomCampaignManager::renderCustomImage(const std::string& id, const std::string& path, const glm::vec2& pos, const glm::vec2& size) {
     if (id.empty()) return;
-    return;
-    auto layer = foreground ? DisaCustomRenderManager::Front : DisaCustomRenderManager::Back;
-    if (!m_activeCampaign || !m_activeCampaign->archive || path.empty()) {
-        DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
-        return;
-    }
 
-    auto fullPath = "img/" + path;
-    PG_StringUtil::removeAll(fullPath, "..");
+    auto* renderManager = DisaCustomRenderManager::get();
 
-    auto* task = dynamic_cast<DisaCustomRenderManager::RenderScreenImg*>(DisaCustomRenderManager::get()->findRenderTask(layer, id));
+    PG_DisaModel disaModel(renderManager->getImageScreenModel());
+    disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(pos, 0.f)));
+    disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(size, 1.f)));
+    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->archive.get()));
 
-    if (task && task->path == fullPath) {
-        task->removeRequested = false;
-        task->pos = pos;
-        task->size = size;
-        return;
-    }
-
-    PG_RGBAImage img;
-    
-    try {
-        img = PG_ZIPUtil::readPNGImage(m_activeCampaign->archive.get(), fullPath);
-    }
-    catch (const PG_RuntimeError& e) {
-        OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
-    }
-    catch (...) {
-        OUT_ERROR("Failed to read png from zip '" << fullPath << "'!");
-    }
-
-    if (img.empty()) {
-        DisaCustomRenderManager::get()->eraseRenderTask(layer, id);
-        return;
-    }
-
-    task = DisaCustomRenderManager::get()->addRenderTask<DisaCustomRenderManager::RenderScreenImg>(layer, id, std::move(img), pos, size);
-    task->path = std::move(fullPath);
+    renderManager->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
 }
 
 
 void DisaCustomCampaignManager::processUserRender() {
-    DisaCustomRenderManager::get()->clear();
     EntriesState& entriesBox = m_entriesState.back();
 
     //FP::callVariadicThisFarA(fRenderImg, &FP::getData<int>(0x007495d8), 0, 0, 0xbaa1, 0x1e0, 0x110, 2, 2, FP::getData<int>(0x00749626), FP::getData<int>(0x00749628));
     if (entriesBox.isCustomBackground) {
-        renderCustomImage(false, "backgroundImg", entriesBox.getBackgroundImagePath());
+        renderCustomImage(m_activeCampaign->id, entriesBox.getBackgroundImagePath());
     }else{
         FP::callVariadicThisFarA(fRenderImg, &FP::getData<int>(0x007495d8), 0, 0, 0xbaa1, 0x1e0, 0x110, 2, 2, FP::getData<int>(0x00749626), FP::getData<int>(0x00749628));
     }
@@ -670,7 +598,7 @@ void DisaCustomCampaignManager::processUserRender() {
         constexpr glm::ivec2 imageBoxSize = glm::ivec2(124, 70);
         constexpr glm::ivec2 imageBoxMargin = glm::ivec2(4);
         renderSimpleBgBox(imageBoxPos.x, imageBoxPos.y, imageBoxSize.x, imageBoxSize.y); //img bg
-        renderCustomImage(true, "previewImg", m_selectEntry.getPreviewImagePath(), 
+        renderCustomImage(m_activeCampaign->id, m_selectEntry.getPreviewImagePath(),
             glm::vec2(imageBoxPos) + glm::vec2(imageBoxMargin),
             glm::vec2(imageBoxSize) - glm::vec2(imageBoxMargin) * 2.f);
     }
@@ -873,7 +801,6 @@ void DisaCustomCampaignManager::runTestMap() {
     dungeon.bonusRank = 15;
     dungeon.active = true;
 
-    DisaCustomRenderManager::get()->clear();
     auto retUnused = FP::callFastFarA<int*>(0x004bd930, (int*)0xb, (int*)0x0);
 }
 

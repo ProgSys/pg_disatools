@@ -469,8 +469,6 @@ void _stdcall FUN_glViewport(int x, int y, int width, int height); //render Begi
 
 void _stdcall FUN_glDrawArrays(unsigned int mode, int first, int count); //render inbetween
 
-void __fastcall FUN_RenderEnd(int param_1); //render End
-
 #include <Disa/fileformats/PG_GEO.h>
 struct DisaObjectScrollInfo {
     float* uvScrollX;

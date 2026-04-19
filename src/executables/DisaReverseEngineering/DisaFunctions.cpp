@@ -246,7 +246,7 @@ EMenuOption processMenuBox(DisaSettings* settings, const std::vector<EMenuOption
 }
 
 static inline DisaCutout getKeyMapCutout(const DisaSettings* settings, unsigned int key) {
-    DisaCutout cutout{-1, -1, -1, -1};
+    DisaCutout cutout{0, 0, 0, 0};
     int mode = 1;
     if (!settings->isController()) {
         mode = 2;
@@ -2119,10 +2119,6 @@ void _stdcall FUN_glViewport(int x, int y, int width, int height) {
 
 void _stdcall FUN_glDrawArrays(unsigned int mode, int first, int count) {
     DisaCustomRenderManager::get()->glDrawArraysReplace(mode, first, count);
-}
-
-void __fastcall FUN_RenderEnd(int param_1) {
-    DisaCustomRenderManager::get()->lastReplace();
 }
 
 static inline void copyIntoMemory(DisaObjectModel* context, byte* memory, const size_t stride, const GeometryBatchKey key) {

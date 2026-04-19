@@ -115,8 +115,8 @@ private:
 	void processUserEvents();
 	void processUserRender();
 
-	void renderCustomImage(bool foreground, const std::string& id, const std::string& path);
-	void renderCustomImage(bool foreground, const std::string& id, const std::string& path, const glm::vec2& pos, const glm::vec2& size);
+	void renderCustomImage(const std::string& id, const std::string& path);
+	void renderCustomImage(const std::string& id, const std::string& path, const glm::vec2& pos, const glm::vec2& size);
 
 	std::vector<Campaign> m_campaigns;
 
