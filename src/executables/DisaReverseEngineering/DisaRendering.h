@@ -149,7 +149,12 @@ void __fastcall FUN_00427da0_insertionSort(DisaRenderObject** param_1, DisaRende
 void __fastcall FUN_00427ff0_pushHeap(DisaRenderObject** begin, int index, int param_3, DisaRenderObject** insertValue);
 void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject** end);
 
+/**
+* @brief Render objects
+*/
 void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled);
-
+/**
+* @brief Submit render data to render queue
+*/
 void __stdcall FUN_00425df0_SubmitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
     float poligonOffset, int param_11, bool param_12, bool param_13);

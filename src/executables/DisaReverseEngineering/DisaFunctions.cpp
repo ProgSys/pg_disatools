@@ -663,20 +663,21 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
         isIconsController = isController;
 
         constexpr float staticScaleX = 0.3f * 1.8f;
+        const glm::vec2 fontScale = manager->getFontScale() * glm::vec2(staticScaleX, 1.8f);
+        const glm::vec2 fontPos = glm::vec2(x, y) + manager->getFontOffset();
         if (model.isValid()) {
             auto& mat = model.getMaterial(0);
             if (!mat.isValid()) return true;
 
             PG_DisaModel disaModel(model);
-            disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f)));
-            disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(staticScaleX, scaleY * 1.8f, 1.f)));
+            disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(fontPos.x, fontPos.y, 0.f)));
+            disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(fontScale.x, scaleY * fontScale.y, 1.f)));
             disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.f);
             DisaCustomRenderManager::get()->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
-            //DisaRenderObjectManager::get()->submitCustomModel(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
         }
 
         for (const auto& [tex, cutout, offset, size] : icons) {
-            FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)x + staticScaleX * offset.x, ((float)y - offset.y), param_3, size, size,
+            FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)fontPos.x + fontScale.x * offset.x, ((float)fontPos.y - offset.y), param_3, size, size,
                 cutout.y, cutout.x, cutout.width, cutout.height);
         }
 
