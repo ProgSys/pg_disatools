@@ -503,8 +503,9 @@ static inline void renderTextInBox(DisaSettings* settings, const std::string& te
 }
 
 static inline PG_Texture getImageTexture(const std::string& id, const std::string& path, zip* archive) {
+    if (path.empty()) return DisaCustomRenderManager::get()->getErrorTexture();
     PG_Texture tex;
-    tex.loadImmediate("T_DisaImg_" + id + "_" + path, [path, archive]() -> PG_Texture::ImageFormats {
+    tex.load("T_DisaImg_" + id + "_" + path, [path, archive]() -> PG_Texture::ImageFormats {
         auto fullPath = "img/" + path;
         PG_StringUtil::removeAll(fullPath, "..");
 

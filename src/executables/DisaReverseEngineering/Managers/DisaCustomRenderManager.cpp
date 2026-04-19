@@ -5,7 +5,7 @@
 #include <Resources/PG_ResourceManager.h>
 #include <DisaRendering.h>
 
-static inline void resetDisaOpenGLStates() {
+void DisaCustomRenderManager::resetDisaOpenGLStates() {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     // Reset depth testing
     glDisable(GL_DEPTH_TEST);
@@ -74,10 +74,12 @@ void DisaCustomRenderManager::init() {
     PG_Context::create();
     m_cachedResources.push_back(PG_Any::from(PG_Material("M_DisaFontTest")));
 #ifdef _DEBUG
-    m_errorTexure.load("nsfw/face.png");
+    m_errorTexure.load("nsfw/face - Kopie.png");
+    //m_errorTexure.load("gui/disa/pg_img_missing_thumbnail.png");
 #else
     m_errorTexure.load("gui/disa/pg_img_missing_thumbnail.png");
 #endif // _DEBUG
+    m_loadTexture.load("gui/disa/disaMissingno.png");
     m_fullImageScreenModel.load("T_DisaFullScreenImg", { { PG_Material("M_DisaFullScreenImg"), PG_Geometry::sfqUVyFlipped()  } });
     m_imageScreenModel.load("T_DisaScreenImg", { { PG_Material("M_DisaScreenImg"), PG_Geometry::sfq()  } });
 }
@@ -93,9 +95,8 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
 
     PG_EventLoop::doRun();
     {
-        auto context = PG_Context::get();
-        context->runCreate();
-        context->destroyGarbage();
+        PG_Context::runCreate();
+        PG_Context::destroyGarbage();
     }
 
     glViewport(x, y, width, height);
@@ -103,7 +104,6 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
 }
 
 void DisaCustomRenderManager::glDrawArraysReplace(unsigned int mode, int first, int count) {
-    PG_Context::get()->runCreate();
     glDrawArrays(mode, first, count);
 }
 

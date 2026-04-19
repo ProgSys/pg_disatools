@@ -250,62 +250,6 @@ static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRend
     return projectionMat;
 }
 
-static inline void resetDisaOpenGLStatesTemp() {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    // Reset depth testing
-    glDisable(GL_DEPTH_TEST);
-    //glDepthFunc(GL_LESS);
-
-    // Reset depth mask
-    glDepthMask(GL_TRUE);
-
-    // Reset stencil testing
-    glDisable(GL_STENCIL_TEST);
-
-    // Reset blending
-    glDisable(GL_BLEND);
-    glBlendFunc(GL_ONE, GL_ZERO);
-    glBlendEquation(GL_FUNC_ADD);
-
-    // Reset face culling
-    glDisable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
-    glFrontFace(GL_CCW);
-    // Reset lighting
-    glDisable(GL_LIGHTING);
-
-    // Reset alpha testing
-    glDisable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_ALWAYS, 0);
-
-    // Reset scissor test
-    glDisable(GL_SCISSOR_TEST);
-
-    // Reset shading model
-    glShadeModel(GL_SMOOTH);
-
-    // Reset matrix modes
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glMatrixMode(GL_TEXTURE);
-    glLoadIdentity();
-    glMatrixMode(GL_COLOR);
-    glLoadIdentity();
-
-    // Reset polygon mode
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-    // Reset color mask
-    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-    // Reset texture upload
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glPixelTransferi(GL_MAP_COLOR, 0);
-    glPixelTransferi(GL_MAP_STENCIL, 0);
-}
-
 void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
 
     DisaRenderObjectManager* memoryRenderManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
@@ -353,6 +297,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     g_pass.renderData.size = glm::ivec2(512);
     g_pass.renderData.cameraPos = memoryRenderManager->m_center ? *memoryRenderManager->m_center : glm::vec3(0.0F);
     g_job.errorTexture = customDisaRenderManger->getErrorTexture();
+    g_job.loadTexture = customDisaRenderManger->getLoadTexture();
     DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
     unknownObject->field0x10_isEnabled = true;
     unknownObject->field0x11 = true;
@@ -383,13 +328,15 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             g_pass.renderData.projectionMatrix = *projectionMat;
             g_pass.renderData.viewMatrix = glm::mat4(1.0F);
 
+            if (!isInCustomState) {
+                DisaCustomRenderManager::resetDisaOpenGLStates();
+                PG_Context::runCreate();
+                isInCustomState = true;
+            }
+
             const glm::mat4 modelMatrix = object->m_modelMatrix ? *object->m_modelMatrix : glm::mat4(1.0F);
             addResModel(model, &g_dummy, modelMatrix, g_job, g_pass, model.additionalProperties);
 
-            if (!isInCustomState) {
-                resetDisaOpenGLStatesTemp();
-                isInCustomState = true;
-            }
             glDisable(GL_DEPTH_TEST);
             glEnable(GL_TEXTURE_2D);
             glEnable(GL_BLEND);

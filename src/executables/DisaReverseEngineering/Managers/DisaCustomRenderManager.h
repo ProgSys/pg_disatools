@@ -33,12 +33,15 @@ public:
 	const std::vector<PG_DisaModel>& getModels() const { return m_models; };
 
 	const PG_Texture& getErrorTexture() const { return m_errorTexure; }
+	const PG_Texture& getLoadTexture() const { return m_loadTexture; }
 	const PG_Model& getFullImageScreenModel() const { return m_fullImageScreenModel; }
 	const PG_Model& getImageScreenModel() const { return m_imageScreenModel; }
 	/**
 	* @returns Singelton
 	*/
 	static DisaCustomRenderManager* get();
+
+	static void resetDisaOpenGLStates();
 protected:
 	size_t addModel(PG_DisaModel&& model) {
 		auto i = m_models.size();
@@ -52,6 +55,7 @@ private:
 	glm::ivec2 m_viewportSize;
 
 	PG_Texture m_errorTexure;
+	PG_Texture m_loadTexture;
 	PG_Model m_fullImageScreenModel;
 	PG_Model m_imageScreenModel;
 	std::vector<PG_Any> m_cachedResources;
