@@ -902,7 +902,8 @@ void FUN_RenderDungeonScreeen(void) { //00471240
 
             if (settings->field_0x21 != '\0') {
                 //Render text new: x, y, strange bit mask??, ?, pointer to string , ?, ?, ?, ?, spacing (bool)
-                FP::callFastFarA(fRenderTextNew, 0x26, yPos + 2, 0xc7a7, &FP::getData<int>(0x005ad538), stringPtr, 0.3f, 0.3f, dungeonsBgBoxWidth, dungeonsBgBoxHeight, settingVar);
+                FUN_RederTextNew(0x26, yPos + 2, 0xc7a7, &FP::getData<int>(0x005ad538), stringPtr, 0.3f, 0.3f, dungeonsBgBoxWidth, dungeonsBgBoxHeight, settingVar);
+                //FP::callFastFarA(fRenderTextNew, 0x26, yPos + 2, 0xc7a7, &FP::getData<int>(0x005ad538), stringPtr, 0.3f, 0.3f, dungeonsBgBoxWidth, dungeonsBgBoxHeight, settingVar);
             }
             else {
                 //render text old

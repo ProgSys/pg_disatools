@@ -417,7 +417,8 @@ static inline void renderInfoTextBox(const std::string& str) {
 static inline void renderString(DisaSettings* settings, const std::string& str, unsigned int x, unsigned int y, int availableWidth = -1, int availableHeight = -1) {
     if (settings->field_0x21 != '\0') {
         //Render text new: x, y, strange bit mask??, ?, pointer to string , ?, ?, ?, ?, spacing (bool)
-        FP::callFastFarA(fRenderTextNew, x, y, 0xc7a7, &FP::getData<int>(0x005ad538), str.data(), 0.3f, 0.3f, availableWidth, availableHeight, settings->field_0x30);
+        //FP::callFastFarA(fRenderTextNew, x, y, 0xc7a7, &FP::getData<int>(0x005ad538), str.data(), 0.3f, 0.3f, availableWidth, availableHeight, settings->field_0x30);
+        FUN_RederTextNew(x, y, 0xc7a7, &FP::getData<int>(0x005ad538), (unsigned short*)str.data(), 0.3f, 0.3f, availableWidth, availableHeight, settings->field_0x30);
     }
     else {
         //render text old
