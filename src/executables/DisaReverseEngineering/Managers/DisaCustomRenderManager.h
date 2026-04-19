@@ -5,6 +5,7 @@
 #include <vector>
 #include <ranges>
 #include <Util/PG_Any.h>
+#include <Util/PG_DeltaTimer.h>
 #include <Resources/PG_DisaModel.h>
 
 class DisaCustomRenderManager {
@@ -36,6 +37,8 @@ public:
 	const PG_Texture& getLoadTexture() const { return m_loadTexture; }
 	const PG_Model& getFullImageScreenModel() const { return m_fullImageScreenModel; }
 	const PG_Model& getImageScreenModel() const { return m_imageScreenModel; }
+
+	const PG_DeltaTimer& getDeltaTimer() const { return m_deltaTimer; }
 	/**
 	* @returns Singelton
 	*/
@@ -53,6 +56,7 @@ private:
 	bool m_enabled = true;
 	glm::ivec2 m_viewportPos;
 	glm::ivec2 m_viewportSize;
+	PG_DeltaTimer m_deltaTimer;
 
 	PG_Texture m_errorTexure;
 	PG_Texture m_loadTexture;

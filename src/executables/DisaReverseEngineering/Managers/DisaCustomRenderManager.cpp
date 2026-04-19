@@ -67,6 +67,7 @@ void DisaCustomRenderManager::init() {
     GLenum err = glewInit();
     if (err != GLEW_OK) {
         OUT_ERROR("glewInit failed, something is seriously wrong: " << glewGetErrorString(err));
+        exit(1);
         return;
     }
     PG_EventLoop::start();
@@ -74,8 +75,7 @@ void DisaCustomRenderManager::init() {
     PG_Context::create();
     m_cachedResources.push_back(PG_Any::from(PG_Material("M_DisaFontTest")));
 #ifdef _DEBUG
-    m_errorTexure.load("nsfw/face - Kopie.png");
-    //m_errorTexure.load("gui/disa/pg_img_missing_thumbnail.png");
+    m_errorTexure.load("nsfw/face.png");
 #else
     m_errorTexure.load("gui/disa/pg_img_missing_thumbnail.png");
 #endif // _DEBUG
@@ -87,6 +87,7 @@ void DisaCustomRenderManager::init() {
 void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int height) {
     m_viewportPos = glm::ivec2(x, y);
     m_viewportSize = glm::ivec2(width, height);
+    m_deltaTimer.tick();
 
     if (!m_isInit) init();
 

@@ -296,6 +296,8 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     bool isInCustomState = false;
     g_pass.renderData.size = glm::ivec2(512);
     g_pass.renderData.cameraPos = memoryRenderManager->m_center ? *memoryRenderManager->m_center : glm::vec3(0.0F);
+    g_pass.renderData.deltaTime = customDisaRenderManger->getDeltaTimer().getDeltaTime();
+    g_pass.renderData.ticks = customDisaRenderManger->getDeltaTimer().getTotalTime();
     g_job.errorTexture = customDisaRenderManger->getErrorTexture();
     g_job.loadTexture = customDisaRenderManger->getLoadTexture();
     DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
