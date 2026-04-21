@@ -519,7 +519,7 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                     auto cutout = getKeyMapCutout(settings, findIt->second.first);
                     if (cutout.x > 0) {
                         constexpr std::array<std::pair<int, float>, 3> styles = { 
-                            std::pair<int, float>{15, 28.f}, //size, offset
+                            std::pair<int, float>{14, 25.f}, //size, offset
                             std::pair<int, float>{14, 26.f},
                             std::pair<int, float>{14, 27.f}, //L1 R1
                         };
@@ -528,7 +528,7 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                         icons.emplace_back(
                             &FP::getData<unsigned int>(0x0074c8d8),
                             cutout,
-                            glm::vec2(basePos.x - 3.f, 2.f), style.first
+                            glm::vec2(basePos.x - 2.f, 2.f), style.first
                         );
                         float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
                         //float nextCharDist = c.size.x;
@@ -607,7 +607,8 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
         break;
     }
 }
-/*
+
+/*☺
 static std::array<char, 21 * 2> repString = {
     0x87, 0x3f + 1, 0x87, 0x3f + 2, 0x87, 0x3f + 3, 0x87, 0x3f + 4, 0x87, 0x3f + 5,
      0x87, 0x3f + 6, 0x87, 0x3f + 7, 0x87, 0x3f + 8, 0x87, 0x3f + 9, 0x87, 0x3f + 10,
@@ -615,7 +616,6 @@ static std::array<char, 21 * 2> repString = {
        0x87, 0x3f + 16, 0x87, 0x3f + 17, 0x87, 0x3f + 18, 0x87, 0x3f + 19, 0x87, 0x3f + 20, 
        0x0,0x0
 };
-
 static std::array<char, 18 * 2> repString2 = {
     0x81, 0x5f + 10,
     0x81, 0x9e + 2,
@@ -641,7 +641,6 @@ static std::array<char, 18 * 2> repString2 = {
 
 bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::rgba* color, char*& jis_string, float scaleX, float scaleY, int stringWidth, int height, int mode) {
     auto* manager = DisaCustomTranslationManager::get();
-    //jis_string = ((char*)&repString2);
 
     DisaSettings* settings = (DisaSettings*)(FP::getData<unsigned int>(0x005d7c40));
     const bool isController = settings->isController();
@@ -664,11 +663,8 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
 
         constexpr float staticScaleX = 0.3f * 1.8f;
         const glm::vec2 fontScale = manager->getFontScale() * glm::vec2(staticScaleX, 1.8f);
-        const glm::vec2 fontPos = glm::vec2(x, y) + manager->getFontOffset();
-        if (model.isValid()) {
-            auto& mat = model.getMaterial(0);
-            if (!mat.isValid()) return true;
-
+        glm::vec2 fontPos = glm::vec2(x, y) + manager->getFontOffset();
+        if (model.isValid() && model.getMaterial(0).isValid()) {
             PG_DisaModel disaModel(model);
             disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(fontPos.x, fontPos.y, 0.f)));
             disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(fontScale.x, scaleY * fontScale.y, 1.f)));
@@ -676,6 +672,7 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
             DisaCustomRenderManager::get()->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
         }
 
+        fontPos += manager->getIconOffset();
         for (const auto& [tex, cutout, offset, size] : icons) {
             FP::callFastFarA(fRenderCutout, tex, &FP::getData<glm::rgba>(0x005ad534), (float)fontPos.x + fontScale.x * offset.x, ((float)fontPos.y - offset.y), param_3, size, size,
                 cutout.y, cutout.x, cutout.width, cutout.height);
@@ -2361,7 +2358,9 @@ void __thiscall DisaObjectModel::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba
     m_self = this;
     m_poligonOffset = poligonOffset;
 
-    static bool customFunction = true;
+    //create problems with particle systems
+    //@todo better to switch to custom models
+    static bool customFunction = false;
     if (customFunction) {
         FUN_004ef8a0(this, modelMatrix);
     }

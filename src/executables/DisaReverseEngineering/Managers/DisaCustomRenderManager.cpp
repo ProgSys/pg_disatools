@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <Resources/PG_Material.h>
 #include <Resources/PG_ResourceManager.h>
+#include <Managers/DisaCustomBaseModManager.h>
 #include <DisaRendering.h>
 
 void DisaCustomRenderManager::resetDisaOpenGLStates() {
@@ -71,7 +72,7 @@ void DisaCustomRenderManager::init() {
         return;
     }
     PG_EventLoop::start();
-    PG_ResourceManager::create();
+    PG_ResourceManager::create(DisaCustomBaseModManager::get()->exePath().getPath() + "/resources");
     PG_Context::create();
     m_cachedResources.push_back(PG_Any::from(PG_Material("M_DisaFontTest")));
 #ifdef _DEBUG

@@ -122,6 +122,7 @@ public:
     inline const PG_Font& getFont() const { return m_font; }
     inline const glm::vec2& getFontOffset() const { return m_fontOffset; }
     inline const glm::vec2& getFontScale() const { return m_fontScale; }
+    inline const glm::vec2& getIconOffset() const { return m_iconOffset; }
 
 protected:
     bool m_enabled = true;
@@ -142,4 +143,5 @@ protected:
     PG_Font m_font; //optional font file
     glm::vec2 m_fontOffset = glm::vec2(0.f);
     glm::vec2 m_fontScale = glm::vec2(1.f);
+    glm::vec2 m_iconOffset = glm::vec2(0.f);
 };

@@ -48,6 +48,13 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 		findIt->get_to(m_fontScale.y);
 	}
 
+	if (auto findIt = j.find("iconOffsetX"); findIt != j.end()) {
+		findIt->get_to(m_iconOffset.x);
+	}
+	if (auto findIt = j.find("iconOffsetY"); findIt != j.end()) {
+		findIt->get_to(m_iconOffset.y);
+	}
+
 	if (auto findIt = j.find("font"); findIt != j.end()) {
 		std::string fontPath;
 		findIt->get_to(fontPath);
@@ -98,7 +105,7 @@ char* PG_DisaTranslationModel::translate(char* shiftJis, bool fullSize) {
 std::pair<std::string, std::string> PG_DisaTranslationModel::tranlatedUtf8(char* shiftJis) {
 	if (!shiftJis) return {};
 	emit stringIn(shiftJis);
-	if (!m_enabled) return {};
+	//if (!m_enabled) return {};
 	auto hash = PG_MD5::getZeroTerminated(shiftJis);
 
 	auto findIt = m_translations.find(hash);

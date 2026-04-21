@@ -78,8 +78,14 @@ struct HockManager {
         {
             auto f = &DisaObjectModel::FUN_004e2180;
             unsigned int i = *((unsigned int*)&f);
-            replaceFunction("TEST", "", 0x004E1E08, i);
-            replaceFunction("TEST", "", 0x00508ba5, FUN_004201d0_RenderClearBegin);
+            replaceFunction("geoLoad", "", 0x004E1E08, i);
+            replaceFunction("RenderClearBegin", "", 0x00508ba5, FUN_004201d0_RenderClearBegin);
+
+            /*
+            auto f2 = &DisaMemeoryManager::FUN_00425bb0;
+            unsigned int i2 = *((unsigned int*)&f2);
+            replaceFunction("TEST", "", 0x00425f82, i2);
+            */
         }
 
         replaceFunction("LoadDungeonsCategories", "", 0x0047108a, FUN_LoadDungeonsCategories);
@@ -141,6 +147,7 @@ struct HockManager {
             unsigned int i = *((unsigned int*)&f);
             replaceFunction("RunTalkScript", "", 0x004b6b93, i);
             replaceFunction("RunTalkScript", "", 0x00463f7a, i);
+
         }
 
         replaceFunction("RunScript", "", 0x004c0286, FUN_004bd930_RunScript);
@@ -189,18 +196,6 @@ struct HockManager {
         replaceFunctionIndirectCall("glViewportPointer", "", 0x00420396, FUN_glViewportPointer); //render begin
         replaceFunctionIndirectCall("glDrawArraysPointer", "", 0x0042111c, FUN_glDrawArraysPointer); //render begin
         //replaceFunction("RenderEnd", "", 0x00509d44, FUN_RenderEnd); //render begin
-
-       
-        {
-            auto f = &DisaObjectModel::FUN_004e2180; 
-            unsigned int i = *((unsigned int*)&f);
-            replaceFunction("TEST", "", 0x004E1E08, i);
-            replaceFunction("TEST", "", 0x00508ba5, FUN_004201d0_RenderClearBegin);
-
-            auto f2 = &DisaMemeoryManager::FUN_00425bb0;
-            unsigned int i2 = *((unsigned int*)&f2);
-            replaceFunction("TEST", "", 0x00425f82, i2);
-        }
         
         replaceDefaultCase();
     }

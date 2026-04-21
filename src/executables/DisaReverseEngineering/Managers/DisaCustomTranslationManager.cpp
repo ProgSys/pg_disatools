@@ -55,7 +55,7 @@ bool DisaCustomTranslationManager::toUtf8(const char* shiftJis, char* dest, size
 
 void DisaCustomTranslationManager::createBaseTranslation() {
 	PG::STREAM::OutByteFile writer(DisaCustomBaseModManager::get()->getCustomTranslationDir().toFilePath("baseTranslation.csv"));
-	writer << "0;;Character cashe;Add your special characters here;\n";
+	writer << "0;;Character cache;Add your special characters here;\n";
 	writer << "39a7768ec09c7bf1d2197d8296678dee;;Start;Main menu;\n";
 	writer << "5e422c271d6d1e950e5b6b0f4bd57b97;;Continue;Main menu;\n";
 	writer << "52e0c986db07c4936675a2f80915afe7;;Settings;Main menu;\n";

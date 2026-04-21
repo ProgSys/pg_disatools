@@ -4,6 +4,22 @@
 const static std::map<unsigned short, unsigned long long> shiftJisToUtf8Map = {
     { 0x80, 0xC280},
     { 0x8140, 0xE38080}, //Ideographic Space
+    { 0x8141, 0xE38081}, // U+3001 
+    { 0x8142, 0xE38082}, // U+3002
+    { 0x8143, 0xEFBC8C}, // U+FF0C (fullwidth comma)
+    { 0x8144, 0xEFBC8E}, // U+FF0E (fullwidth period)
+    { 0x8145, 0xE383BB}, // U+30FB
+    { 0x8146, 0xEFBC9A}, // U+FF1A :
+    { 0x8147, 0xEFBC9B}, // U+FF1B ;
+    { 0x8148, 0xEFBC9F}, // U+FF1F ?
+    { 0x8149, 0xEFBC81}, // U+FF01 !
+    { 0x814A, 0xE3829B}, // U+309B 
+    { 0x814B, 0xE3829C}, // U+309C 
+    { 0x814C, 0xC2B4  }, // U+00B4 
+    { 0x814D, 0xEFBD80}, // U+FF40 (fullwidth grave accent)
+    { 0x814E, 0xC2A8  }, // U+00A8 
+    { 0x814F, 0xEFBCBE}, // U+FF3E 
+    { 0x8143, 0xE38080}, 
     { 0x8150, 0xEFBFA3}, //FULLWIDTH MACRON
     { 0x8151, 0xEFBCBF},
     { 0x8152, 0xE383BD},
