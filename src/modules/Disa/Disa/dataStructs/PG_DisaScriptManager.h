@@ -42,30 +42,30 @@ struct PG_DisaScriptMemory {
 	unsigned int ux8; //2
 	unsigned int uxC; //3
 	unsigned int* codePointer; //ux10; //4
-	unsigned int ux20; //5
-	unsigned int ux24; //6
-	unsigned int scriptId; //ux28; //7
-	unsigned int ux32; //8 sleepTimer?
+	unsigned int field0x14; //0x14
+	unsigned int field0x18; ///0x18
+	unsigned int scriptId; //ux1c; //7
+	unsigned int field0x20; //0x20 sleepTimer?
 	unsigned int index; //ux36; //9
-	unsigned int ux40; //0x28
-	unsigned int ux44; //0x2c
-	unsigned int ux48; //0x30
-	unsigned int ux52; //0x34
+	unsigned int field0x28; //0x28
+	unsigned int field0x2c; //0x2c
+	unsigned int field0x30; //0x30
+	unsigned int field0x34; //0x34
 	unsigned int scriptInfoSlotIndex; //0x38 DisaTScriptManager_0071b510.scriptInfosSlots
-	unsigned int ux60; //0x3c
-	unsigned int ux64; //0x40
-	unsigned int ux68; //0x44
+	unsigned int field0x3c; //0x3c
+	unsigned int field0x40; //0x40
+	unsigned int field0x44; //0x44
 	unsigned int ux72; //0x48
-	unsigned int ux76; //0x4c
-	short* field_0x50; //0x50
-	std::array<uint8_t, 32> memorybank0x54; //0x54 Sets values in DAT_007200eb
-	std::array<uint8_t, 12> memorybank0x74; //0x74 Numbers smaller 32. Sets values in DAT_006192c0
+	float field0x4c; //0x4c
+	short* field_0x50; //0x50 world context
+	std::array<int32_t, 8> memorybank0x54; //0x54 Sets values in DAT_007200eb
+	std::array<int32_t, 3> memorybank0x74; //0x74 Numbers smaller 32. Sets values in DAT_006192c0
 	unsigned short repeatLoopCounter; //0x80
 	unsigned short repeatLoopMax; //0x82
 	int repeatLoopStartCodePointer; //0x84
 };
 
-struct PG_DisaScriptManager {
+struct PG_DisaTScriptManager {
 	int field0_0x0[4];               // 0x0    - 0xc
 	int portraitIndex;				// 0x10
 	int portraitColor;				// 0x14
@@ -128,7 +128,9 @@ struct PG_DisaScriptManager {
 	unsigned char field_0x4806[14];          //0x4806
 	int field_0x4814;          //0x4814
 	int field_0x4818;          //0x4818
-	unsigned char field_0x481c[12];          //0x481c
+	int field_0x481c;          //0x481c
+	int field_0x4820;          //0x4820
+	int field_0x4824;          //0x4824
 	int bgBoxLocation;          //0x4828
 	int bgBoxSpeed;          //0x482c
 

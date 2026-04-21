@@ -3,7 +3,7 @@
 #include <Disa/dataStructs/PG_DisaScriptManager.h>
 
 
-struct DisaScriptManager: public PG_DisaScriptManager {
+struct DisaScriptManager: public PG_DisaTScriptManager {
 
 	/// run talk script
 	int __thiscall FUN_004bf7e0_RunTalkScript(unsigned int scriptId, unsigned int dungeonId, unsigned int unknownFlag, unsigned int param_4);

@@ -70,15 +70,13 @@ int DisaScriptManager::readDisaScript(unsigned int*& dataLocation, uint32_t scri
     uint32_t scriptIndex = <find scriptId in scriptsIdList>
     bate* scriptCode = scriptsOriginAdress + scriptsCodeAdresses[scriptIndex]
     */
-    DisaScriptManager& manager = FP::getData<DisaScriptManager>(0x0071b510);
-    if (manager.sizeScripts == 0) return -1;
-    auto rng = std::ranges::subrange(manager.scriptsIdList, manager.scriptsIdList + manager.sizeScripts);
+    if (sizeScripts == 0) return -1;
+    auto rng = std::ranges::subrange(scriptsIdList, scriptsIdList + sizeScripts);
     auto findIt = std::ranges::find(rng, scriptId);
     if (findIt == rng.end()) return -1;
 
     const int index = std::distance(rng.begin(), findIt);
-    OUT_INFO("Found disa script at index " << std::dec << index << " id: " << scriptId);
-    dataLocation = (unsigned int*)(manager.scriptsOriginAdress + scriptsCodeAdresses[index]);
+    dataLocation = (unsigned int*)(scriptsOriginAdress + scriptsCodeAdresses[index]);
     return index;
 }
 
