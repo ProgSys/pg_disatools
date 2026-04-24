@@ -76,6 +76,7 @@ int DisaScriptManager::readDisaScript(unsigned int*& dataLocation, uint32_t scri
     if (findIt == rng.end()) return -1;
 
     const int index = std::distance(rng.begin(), findIt);
+    //OUT_INFO("Found disa script at index " << std::dec << index << " id: " << scriptId);
     dataLocation = (unsigned int*)(scriptsOriginAdress + scriptsCodeAdresses[index]);
     return index;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Disa/dataStructs/PG_DisaStats.h>
+#include <FunctionPatcher.h>
 
 //the first 3 bits is the mask the others are the index
 struct PG_DisaGameStateFilter {
@@ -35,6 +36,26 @@ struct PG_DisaTalkDatScriptEntry {
 	std::array<PG_DisaGameStateFilter, 4> gameStateFilterNegative;// 24-26-28-30-32
 };
 
+struct PG_DisaScriptMemory;
+
+struct DisaScriptInfo
+{
+	FP::FarCdeclFunction<void, DisaScriptInfo*> function; //0x0
+	PG_DisaScriptMemory* scriptMemory; //0x4
+	DisaScriptInfo* nextScript;//0x8
+	short functionSlot; //0xc
+	short field0xe;//0xe
+	short field0x10;//0x10
+	short field0x12;//0x12
+};
+
+struct DisaWorldContext {
+	FP::FarCdeclFunction<void, DisaScriptInfo*>* callbackFunctionPtr; // 0x0;
+	std::uint16_t field_0x4[134]; // 0x4
+	std::uint8_t field_0x110[86]; // 0x110
+	std::int16_t field_0x166; // 0x166
+};
+
 
 struct PG_DisaScriptMemory {
 	unsigned int ux0; //0
@@ -57,7 +78,7 @@ struct PG_DisaScriptMemory {
 	unsigned int field0x44; //0x44
 	unsigned int ux72; //0x48
 	float field0x4c; //0x4c
-	short* field_0x50; //0x50 world context
+	DisaWorldContext* field_0x50; //0x50 world context
 	std::array<int32_t, 8> memorybank0x54; //0x54 Sets values in DAT_007200eb
 	std::array<int32_t, 3> memorybank0x74; //0x74 Numbers smaller 32. Sets values in DAT_006192c0
 	unsigned short repeatLoopCounter; //0x80

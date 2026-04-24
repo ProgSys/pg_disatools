@@ -223,19 +223,8 @@ void replaceDefaultCase() {
 }
 
 
-struct DisaScriptInfo
-{
-    FP::FarCdeclFunction<void, DisaScriptInfo*> function; //0x0
-    PG_DisaScriptMemory* scriptMemory; //0x4
-    DisaScriptInfo* nextScript;//0x8
-    short functionSlot; //0xc
-    short field0xe;//0xe
-    short field0x10;//0x10
-    short field0x12;//0x12
-};
 
-
-int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, short* param_2) {
+int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, DisaWorldContext* world) {
     //find free fucntion slot 2
     std::array<DisaScriptInfo, 1024>& scriptInfos = FP::getData<std::array<DisaScriptInfo, 1024>>(0x006cfa70);
     //search untill we find a free (null) spot
@@ -272,19 +261,19 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     scriptMemoryPtr->field0x14 = 0;
     scriptMemoryPtr->field0x18 = 0;
     scriptMemoryPtr->field0x2c = 0;
-    scriptMemoryPtr->field_0x50 = param_2; //used in FUN_004b5600 world context
+    scriptMemoryPtr->field_0x50 = world; //used in FUN_004b5600 world context
 
     FP::getData<PG_DisaScriptMemory*>(0x008aaa00) = scriptMemoryPtr;
     scriptMemoryPtr->field0x4c = FP::getData<float>(0x00730a20);
 
-    if (param_2 == 0) {
+    if (world == 0) {
         scriptMemoryPtr->field0x30 = 0;
     }
     else {
-        if (*(int*)param_2 == 0) {
-            *(FP::FarCdeclFunction<void, DisaScriptInfo*>**)param_2 = callbackFunc;
+        if (!world->callbackFunctionPtr) {
+            world->callbackFunctionPtr = callbackFunc;
         }
-        scriptMemoryPtr->field0x30 = (int)*(short*)(param_2 + 0x166);
+        scriptMemoryPtr->field0x30 = world->field_0x166;
     }
 
     scriptMemoryPtr->codePointer = code;
@@ -295,34 +284,36 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     scriptMemoryPtr->memorybank0x54.fill(-1);
     scriptMemoryPtr->memorybank0x74.fill(-1);
     //are not reset
-    //scriptMemoryPtr->repeatLoopCounter = 0;
-    //scriptMemoryPtr->repeatLoopMax = 0;
-   // scriptMemoryPtr->repeatLoopStartCodePointer = -1;
+    /*
+    scriptMemoryPtr->repeatLoopCounter = 0;
+    scriptMemoryPtr->repeatLoopMax = 0;
+    scriptMemoryPtr->repeatLoopStartCodePointer = 0;
+    */
 
 
-    if ((FP::getData<char>(0x0065db3a) == '\x05') && (param_2 != 0)) {
+    if ((FP::getData<char>(0x0065db3a) == '\x05') && (world != 0)) {
         int iVar4 = 0;
-        if (0 < *(short*)(param_2 + 0x154)) {
-            short* psVar5 = (short*)(param_2 + 0x84);
+        if (0 < *(short*)(world + 0x154)) {
+            short* psVar5 = (short*)(world + 0x84);
             do {
                 if ((unsigned int)(int)*psVar5 < 0x40) {
                     (&FP::getData<bool>(0x005d7c90))[*psVar5] = true;
                 }
                 iVar4 = iVar4 + 1;
                 psVar5 = psVar5 + 1;
-            } while (iVar4 < *(short*)(param_2 + 0x154));
+            } while (iVar4 < *(short*)(world + 0x154));
         }
 
         iVar4 = 0;
-        if (0 < *(short*)(param_2 + 0x156)) {
-            short* psVar5 = (short*)(param_2 + 0x94);
+        if (0 < *(short*)(world + 0x156)) {
+            short* psVar5 = (short*)(world + 0x94);
             do {
                 if ((unsigned int)(int)*psVar5 < 0x40) {
                     (&FP::getData<bool>(0x005d7c90))[*psVar5] = true;
                 }
                 iVar4 = iVar4 + 1;
                 psVar5 = psVar5 + 1;
-            } while (iVar4 < *(short*)(param_2 + 0x156));
+            } while (iVar4 < *(short*)(world + 0x156));
         }
     }
 
@@ -333,10 +324,26 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     return scriptIndex;
 }
 
-
-
 //call SCRIPT
-int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
+int __fastcall FUN_004bd930_RunScript(int scriptId, DisaWorldContext* param_2) {
+    static bool active = false;
+    PG_DisaScriptMemory* mem;
+    if(active){
+        std::array<DisaScriptInfo, 1024>& scriptInfos = FP::getData<std::array<DisaScriptInfo, 1024>>(0x006cfa70);
+        auto findScriptSlotIt = std::ranges::find(scriptInfos | std::views::reverse, nullptr, &DisaScriptInfo::function);  //stack? We go backwards
+        if (findScriptSlotIt == scriptInfos.rend()) return -1;
+
+        auto& functionSlotsArray = FP::getData<std::array<FP::FarCdeclFunction<void, DisaScriptInfo*>*, 0x100>>(0x0071b5bc);
+        auto findSlotIt = std::ranges::find(functionSlotsArray, nullptr);
+        if (findSlotIt == functionSlotsArray.end()) return -1;
+
+        int ret = FP::callFastFarA<int>(0x004bd930, scriptId, param_2);
+        mem = findScriptSlotIt->scriptMemory;
+        return ret;
+        findScriptSlotIt->function = nullptr;
+        *findSlotIt = nullptr;
+    }
+
     unsigned int* codeLocation = nullptr;
     //BEGIN custom code
     int index = DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);
@@ -351,11 +358,13 @@ int __fastcall FUN_004bd930_RunScript(int scriptId, short* param_2) {
     if (index > manager.sizeScripts) index = 0; //TODO
     manager.scriptActiveList[index] = true;
 
+
+
     return runScriptIntern(scriptId, index, codeLocation, param_2);
 }
 
 
-int runCustomScript(const PG_DisaIdentifier& id, short* param_2) {
+int runCustomScript(const PG_DisaIdentifier& id, DisaWorldContext* param_2) {
     if (!id.isValid()) return -1;
 
     unsigned int* codeLocation = nullptr;
@@ -369,8 +378,7 @@ int runCustomScript(const PG_DisaIdentifier& id, short* param_2) {
 }
 
 int runCustomScript(const PG_DisaIdentifier& scriptName) {
-    short v = 0;
-    return runCustomScript(scriptName, &v);
+    return runCustomScript(scriptName, nullptr);
 }
 
 
