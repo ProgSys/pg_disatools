@@ -266,6 +266,7 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     FP::getData<PG_DisaScriptMemory*>(0x008aaa00) = scriptMemoryPtr;
     scriptMemoryPtr->field0x4c = FP::getData<float>(0x00730a20);
 
+    //set character rotation
     if (world == 0) {
         scriptMemoryPtr->field0x30 = 0;
     }
@@ -291,29 +292,20 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
     */
 
 
-    if ((FP::getData<char>(0x0065db3a) == '\x05') && (world != 0)) {
-        int iVar4 = 0;
-        if (0 < *(short*)(world + 0x154)) {
-            short* psVar5 = (short*)(world + 0x84);
-            do {
-                if ((unsigned int)(int)*psVar5 < 0x40) {
-                    (&FP::getData<bool>(0x005d7c90))[*psVar5] = true;
-                }
-                iVar4 = iVar4 + 1;
-                psVar5 = psVar5 + 1;
-            } while (iVar4 < *(short*)(world + 0x154));
+    if (world && (FP::getData<char>(0x0065db3a) == '\x05')) {
+
+        for (int i = 0; i < world->field_0x154; ++i) {
+            uint16_t value = world->field_0x84[i];
+            if (value < 64) {
+                (&FP::getData<bool>(0x005d7c90))[value] = true;
+            }
         }
 
-        iVar4 = 0;
-        if (0 < *(short*)(world + 0x156)) {
-            short* psVar5 = (short*)(world + 0x94);
-            do {
-                if ((unsigned int)(int)*psVar5 < 0x40) {
-                    (&FP::getData<bool>(0x005d7c90))[*psVar5] = true;
-                }
-                iVar4 = iVar4 + 1;
-                psVar5 = psVar5 + 1;
-            } while (iVar4 < *(short*)(world + 0x156));
+        for (int i = 0; i < world->field_0x156; ++i) {
+            uint16_t value = world->field_0x84[i + 8];
+            if (value < 64) {
+                (&FP::getData<bool>(0x005d7c90))[value] = true;
+            }
         }
     }
 
@@ -326,24 +318,6 @@ int runScriptIntern(int scriptId, unsigned int scriptIndex, unsigned int* code, 
 
 //call SCRIPT
 int __fastcall FUN_004bd930_RunScript(int scriptId, DisaWorldContext* param_2) {
-    static bool active = false;
-    PG_DisaScriptMemory* mem;
-    if(active){
-        std::array<DisaScriptInfo, 1024>& scriptInfos = FP::getData<std::array<DisaScriptInfo, 1024>>(0x006cfa70);
-        auto findScriptSlotIt = std::ranges::find(scriptInfos | std::views::reverse, nullptr, &DisaScriptInfo::function);  //stack? We go backwards
-        if (findScriptSlotIt == scriptInfos.rend()) return -1;
-
-        auto& functionSlotsArray = FP::getData<std::array<FP::FarCdeclFunction<void, DisaScriptInfo*>*, 0x100>>(0x0071b5bc);
-        auto findSlotIt = std::ranges::find(functionSlotsArray, nullptr);
-        if (findSlotIt == functionSlotsArray.end()) return -1;
-
-        int ret = FP::callFastFarA<int>(0x004bd930, scriptId, param_2);
-        mem = findScriptSlotIt->scriptMemory;
-        return ret;
-        findScriptSlotIt->function = nullptr;
-        *findSlotIt = nullptr;
-    }
-
     unsigned int* codeLocation = nullptr;
     //BEGIN custom code
     int index = DisaCustomScriptManager::get()->readScript(codeLocation, scriptId);

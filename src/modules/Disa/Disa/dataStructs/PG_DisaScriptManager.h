@@ -51,9 +51,13 @@ struct DisaScriptInfo
 
 struct DisaWorldContext {
 	FP::FarCdeclFunction<void, DisaScriptInfo*>* callbackFunctionPtr; // 0x0;
-	std::uint16_t field_0x4[134]; // 0x4
-	std::uint8_t field_0x110[86]; // 0x110
-	std::int16_t field_0x166; // 0x166
+	std::uint16_t field_0x4[64]; // 0x4
+	std::uint16_t field_0x84[70]; // 0x84
+	std::uint16_t field_0x110[34]; // 0x110
+	std::uint16_t field_0x154; // 0x154
+	std::uint16_t field_0x156; // 0x156
+	std::uint16_t field_0x158[7]; // 0x158
+	std::int16_t field_0x166; // 0x166 character rotation
 };
 
 
