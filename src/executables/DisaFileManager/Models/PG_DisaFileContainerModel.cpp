@@ -174,7 +174,7 @@ void PG_DisaFileContainerModel::exportToFile(const PG_File& file) {
 		}
 	}
 
-	if (!saveFile.rename(file)) {
+	if (!saveFile.move(file)) {
 		saveFile.remove();
 		return;
 	}

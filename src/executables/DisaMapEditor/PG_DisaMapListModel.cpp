@@ -164,7 +164,7 @@ void PG_DisaMapListModel::save(const PG_File& file) {
 				return;
 			}
 
-			if (!tempFile.rename(file.getPath())) {
+			if (!tempFile.move(file.getPath())) {
 				OUT_ERROR("Failed to rename temp file: " << tempFile << " to " << file << "! I guess you will need to do it by hand.");
 			}
 		}

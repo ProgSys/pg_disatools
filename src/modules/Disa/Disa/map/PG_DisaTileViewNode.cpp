@@ -5,6 +5,7 @@
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Disa/PG_DisaAssetsModel.h>
 #include <Resources/PG_MaterialBinding.h>
+#include <memory>
 
 template<int SW, int SE, int NW, int NE, int Size>
 inline void buildFace(const std::array<glm::vec3, Size>& corners,
@@ -305,6 +306,7 @@ float PG_DisaTileViewNode::getTopHeight() const {
 	if (!m_location) return 0.f;
 	return m_location.getDataT<float>(PG_DisaMapTileModel::Identity_TopHeight);
 }
+
 
 void PG_DisaTileViewNode::updateGeometry() {
 	if (!m_location) return;

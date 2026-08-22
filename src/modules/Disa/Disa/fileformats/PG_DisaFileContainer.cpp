@@ -401,7 +401,7 @@ bool PG_DisaFileContainer::save() {
 		saveFile.remove();
 		return FAILURE;
 	}
-	if (!saveFile.rename(getFile())) {
+	if (!saveFile.move(getFile())) {
 		return FAILURE;
 	}
 	if (!refresh()) {

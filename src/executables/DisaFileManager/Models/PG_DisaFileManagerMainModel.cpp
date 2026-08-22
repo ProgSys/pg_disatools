@@ -117,7 +117,7 @@ void PG_DisaFileManagerMainModel::saveAs(const PG_File& file) {
 		}
 	}
 
-	if (!saveFile.rename(file)) {
+	if (!saveFile.move(file)) {
 		saveFile.remove();
 		return;
 	}

@@ -344,8 +344,8 @@ void RootScene::setupCenter() {
 
 					if (PG_File result = PG_PopUpDialog::saveAs(loc.getDataT<std::string>(EIdentity::Identity_Text))) {
 						funcExportSingle.callArgs(asObject, result);
-						return;
 					}
+					return;
 				}
 
 				//more then one file is selected -> select folder

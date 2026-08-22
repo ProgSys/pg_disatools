@@ -80,10 +80,10 @@ void PG_DisaMapViewNode::setMode(EMode mode) {
 
 	switch (m_mode)
 	{
-	case PG_DisaMapViewNode::Mode_Terrain:
+	case PG_DisaMapViewNode::Mode_Terrain: {
 		clearChildren(PG_Search::byType<PG_DisaMapSelectionHandlerNode>());
 
-		auto func = [](PG_Object* obj) {
+		const auto func = [](PG_Object* obj) {
 			if (auto model = dynamic_cast<PG_DisaModelNode*>(obj)) {
 				model->reverseTransparent();
 			}
@@ -92,8 +92,7 @@ void PG_DisaMapViewNode::setMode(EMode mode) {
 		getObjectsView()->traverseTestWithoutRoot(func);
 		func(getTeleporterView());
 
-
-		break;
+	}break;
 	case PG_DisaMapViewNode::Mode_Material:
 		clearChildren(PG_Search::byType<PG_DisaMaterialEditSelectionHandlerNode>());
 		break;
@@ -108,6 +107,7 @@ void PG_DisaMapViewNode::setMode(EMode mode) {
 	case PG_DisaMapViewNode::Mode_Actor:
 		clearChildren(PG_Search::byType<PG_DisaActorEditSelectionHandlerNode>());
 		break;
+	default:break;
 	}
 
 	m_mode = mode;
