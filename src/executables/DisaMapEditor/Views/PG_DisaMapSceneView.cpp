@@ -176,26 +176,26 @@ bool PG_DisaMapSceneView::event(PG_Event* e) {
 	if (m_previewMode) {
 		switch (e->getType())
 		{
-		case Event_Tick: {
+		case PG_Event_Tick: {
 			auto tick = static_cast<PG_TickEvent*>(e);
 			orbitCamera(0.0001 * tick->getDeltaTime());
 			return PG_Scene::event(e);
 		}
-		case Event_MouseMotion: {
+		case PG_Event_MouseMotion: {
 			auto mouse = static_cast<PG_MouseMotionEvent*>(e);
 			if (mouse->getButton() & PG_BUTTON_MMASK) {
 				orbitCamera(-mouse->getPositionRelative().x / 100.0f);
 			}
 			return true;
 		}
-		case Event_Key:
-		case Event_MouseButton:
-		case Event_MouseWheel:
+		case PG_Event_Key:
+		case PG_Event_MouseButton:
+		case PG_Event_MouseWheel:
 			return true;
 		}
 	}
 
-	if (e->getType() == EEventTypes::Event_Render) {
+	if (e->getType() == EEventTypes::PG_Event_Render) {
 		return false;
 	}
 

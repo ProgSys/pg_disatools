@@ -19,7 +19,7 @@ void PG_DisaGeoPanelViewNode::setModel(PG_DisaMapTileListModel* model) {
 		connect(m_model, &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex , const PG_IdentitySet& identities) {
 			if (!m_model->empty() && contains<
 				PG_DisaMapTileModel::Identity_GeoColor, PG_DisaMapTileModel::Identity_Geometry,
-				PG_DisaMapTileModel::Identity_Translation, Identity_Location, Identity_Item>(identities)) {
+				PG_DisaMapTileModel::Identity_Translation, PG_Identity_Location, PG_Identity_Item>(identities)) {
 				if (std::ranges::any_of(std::next(m_model->begin(), startIndex), std::next(m_model->begin(), endIndex + 1), &PG_DisaMapTileModel::hasGeoColor)) {
 					update();
 				}
@@ -35,7 +35,7 @@ void PG_DisaGeoPanelViewNode::setModel(PG_DisaMapTileListModel* model) {
 }
 
 void PG_DisaGeoPanelViewNode::update() {
-	postCallEvent(EventBehaviour_Singleton, &PG_DisaGeoPanelViewNode::doUpdate);
+	postCallEvent(PG_Event_Behaviour_Singleton, &PG_DisaGeoPanelViewNode::doUpdate);
 }
 
 void PG_DisaGeoPanelViewNode::doUpdate() {

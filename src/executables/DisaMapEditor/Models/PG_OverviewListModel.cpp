@@ -108,7 +108,7 @@ void PG_OverviewListModel::addCustomCampaigns(std::vector<PG_OverviewListModelIt
 
 PG_Variety PG_OverviewListModel::getData(PG_Index index, Identity identity) const {
 	switch (identity) {
-	case Identity_PreviewImage: return m_items[index].previewImage();
+	case PG_Identity_PreviewImage: return m_items[index].previewImage();
 	case Identity_Description: return m_items[index].description();
 	case Identity_OpenModel: return std::dynamic_pointer_cast<PG_UiStateBaseModel>(m_items[index].model);
 	}

@@ -48,14 +48,14 @@ struct DungeonStyleEntry {
 	PG_Variety getData(const PG_ListModelBase* self, Identity identity) const {
 		switch (identity)
 		{
-		case Identity_Text:
+		case PG_Identity_Text:
 			return displayName;
-		case Identity_Edit: {
+		case PG_Identity_Edit: {
 			return orgaFileEntry;
 		}
-		case Identity_PreviewImage: 
+		case PG_Identity_PreviewImage:
 			return PG_DisaMPPPack{ self->getLocation(index) };
-		case Identity_Custom:
+		case PG_Identity_Custom:
 			return style;
 		default: break;
 		}
@@ -196,7 +196,7 @@ static inline void createWindow(PG_GuiPopupInstance* parent, PG_Object* model) {
 
 			targetFunc.callArgs(targetModel, name, selectedItem.orgaFileEntry, newFile, selectedItem.style.topIndex, selectedItem.style.sideIndex, selectedItem.style.decalIndex);
 		});
-		PG_GuiItem::connect(confirm, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close, ConnectionType_Event);
+		PG_GuiItem::connect(confirm, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close, PG_ConnectionType_Event);
 	}
 
 	PG_GuiButton* cancel = PG_new<PG_GuiButton>("N_CancelButton", glm::vec2(0.f), glm::vec2(180.f, 42.f), bar);

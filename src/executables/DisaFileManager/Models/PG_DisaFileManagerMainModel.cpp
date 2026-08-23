@@ -47,6 +47,13 @@ bool PG_DisaFileManagerMainModel::isModified() const {
 	return false;
 }
 
+PG_File PG_DisaFileManagerMainModel::getOriginFile() const {
+	if (m_modelStack.empty()) return {};
+	auto* fileContainer = dynamic_cast<PG_DisaFileContainerModel*>(m_modelStack.front());
+	if (!fileContainer) return {};
+	return fileContainer->getOriginFile();
+}
+
 bool PG_DisaFileManagerMainModel::open(const PG_File& file) {
 	close(); //could be optimized, as centerModelChanged is emited twice
 	if (file.isEmpty()) return false;
@@ -122,8 +129,11 @@ void PG_DisaFileManagerMainModel::saveAs(const PG_File& file) {
 		return;
 	}
 
-	if (file == fileContainer->getOriginFile()) {
-		m_changedFiles.clear();
-	}
+	//the saved file is the one we work on from now on, so a save will not touch the original file anymore
+	const bool fileChanged = file != fileContainer->getOriginFile();
+	fileContainer->getDisaFileContainer()->setFile(file);
+	m_changedFiles.clear();
 	fileContainer->getDisaFileContainer()->refresh();
+
+	if (fileChanged) emit centerModelChanged(getCenterModel(), getCenterModel()); //the name of the open file changed
 }

@@ -128,7 +128,7 @@ void PG_DisaEditorMaterialController::onHoverChanged(const std::set<PG_EditorAct
 }
 
 void PG_DisaEditorMaterialController::key(PG_EditorCameraComponent* comp, PG_KeyEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam) {
-	if (e->getKey() == PG_DELETE) {
+	if (e->getKey() == PG_Key_Delete) {
 		if (e->isUp()) {
 			const auto& selection = editorModule->getSelection();
 			std::unordered_map<PG_DisaMapTileModel*, FaceMap> faceHovers; //tile, hovered, hit
@@ -191,7 +191,7 @@ void PG_DisaEditorMaterialController::key(PG_EditorCameraComponent* comp, PG_Key
 void PG_DisaEditorMaterialController::clicked(PG_EditorCameraComponent* comp, PG_MouseButtonEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam, const PG_Ray& ray) {}
 
 bool PG_DisaEditorMaterialController::overrideSelection(PG_EditorModule* editorModule, const PG_EditorActorInfo& toSelect, PG_MouseButtonEvent* e) const {
-	if (e->getButton() == PG_BUTTON_LEFT && e->getKeyMod() & PG_KMOD_LALT && !editorModule->getSelection().empty()) {
+	if (e->getButton() == PG_BUTTON_LEFT && e->getKeyMod() & PG_KMod_LAlt && !editorModule->getSelection().empty()) {
 
 		auto hitEnd = toSelect.additionalData.get<PG_DisaFaceHit>();
 		auto startIt = std::ranges::max_element(editorModule->getSelection(), {}, &PG_EditorActorInfo::index);

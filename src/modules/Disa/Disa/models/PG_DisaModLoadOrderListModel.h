@@ -20,7 +20,7 @@ class PG_DisaModLoadOrderListModel : public PG_ListModel<PG_DisaModLoadOrderList
 
 public:
 	enum ECustomIdentity : Identity {
-		Identity_Id = EIdentity::Identity_Custom,
+		Identity_Id = EIdentity::PG_Identity_Custom,
 		Identity_Disabled,
 	};
 	using PG_ListModel<PG_DisaModLoadOrderListModelItem>::PG_ListModel;

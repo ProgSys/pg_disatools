@@ -22,7 +22,7 @@ void PG_DisaModListModel::reload() {
 
 PG_Variety PG_DisaModListModel::getData(PG_Index index, Identity identity) const {
 	switch (identity) {
-	case Identity_PreviewImage: return m_items[index].previewImage();
+	case PG_Identity_PreviewImage: return m_items[index].previewImage();
 	case Identity_Description: return m_items[index].description();
 	case Identity_Author: return m_items[index].author();
 	case Identity_Disabled: return m_items[index].disabled;

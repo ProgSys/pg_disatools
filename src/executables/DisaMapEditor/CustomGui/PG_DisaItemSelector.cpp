@@ -47,8 +47,8 @@ void PG_DisaItemSelector::setModel(PG_ListModelBase* model) {
 	m_model = model;
 
 	if (m_model) {
-		connect(m_model, &PG_ListModelBase::itemsAdded, this, &PG_DisaItemSelector::findSelection, ConnectionType_EventSingelton);
-		connect(m_model, &PG_ListModelBase::itemsRemoved, this, &PG_DisaItemSelector::findSelection, ConnectionType_EventSingelton);
+		connect(m_model, &PG_ListModelBase::itemsAdded, this, &PG_DisaItemSelector::findSelection, PG_ConnectionType_EventSingelton);
+		connect(m_model, &PG_ListModelBase::itemsRemoved, this, &PG_DisaItemSelector::findSelection, PG_ConnectionType_EventSingelton);
 	}
 }
 
@@ -139,7 +139,7 @@ void PG_DisaItemSelector::selected(PG_ListModelLocation loc) {
 	close();
 	if (m_tile->getLocation() == loc) return;
 
-	m_selectedName = loc? loc.getDataT<std::string>(Identity_Edit): std::string();
+	m_selectedName = loc? loc.getDataT<std::string>(PG_Identity_Edit): std::string();
 	m_tile->setLocation(loc);
 	emit selectedChanged();
 }
@@ -158,7 +158,7 @@ void PG_DisaItemSelector::setSelectedName(const std::string& name) {
 void PG_DisaItemSelector::findSelection() {
 	if (!m_model || m_selectedName.empty()) return;
 	for (int i = 0; i < m_model->size(); ++i) {
-		if (auto item = m_model->getData(i, Identity_Edit); item && item.get<std::string>() == m_selectedName) {
+		if (auto item = m_model->getData(i, PG_Identity_Edit); item && item.get<std::string>() == m_selectedName) {
 			if (m_tile->getLocation().getIndex() != i) {
 				m_tile->setLocation(m_model->getLocation(i));
 				emit selectedChanged();

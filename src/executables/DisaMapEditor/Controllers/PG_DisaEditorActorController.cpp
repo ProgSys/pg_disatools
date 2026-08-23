@@ -181,7 +181,7 @@ void PG_DisaEditorActorController::release(PG_EditorCameraComponent* comp, PG_Mo
 }
 
 void PG_DisaEditorActorController::key(PG_EditorCameraComponent* comp, PG_KeyEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam) {
-	if (e->getKey() == PG_DELETE) {
+	if (e->getKey() == PG_Key_Delete) {
 		if(e->isUp()){
 			auto selection = editorModule->getSelection();
 			editorModule->clearHovered();

@@ -62,7 +62,7 @@ void PG_DisaMapViewNode::setModel(const std::shared_ptr<PG_DisaMPDContainer>& co
 				selectionHandler->update(tiles->get(i)->getTilePosition());
 			}
 		});
-		connect(model, &PG_DisaMapModel::mapChanged, this, &PG_DisaMapViewNode::contentChanged, ConnectionType_Event);
+		connect(model, &PG_DisaMapModel::mapChanged, this, &PG_DisaMapViewNode::contentChanged, PG_ConnectionType_Event);
 	}
 	
 	reload();
@@ -264,6 +264,6 @@ void PG_DisaMapViewNode::contentChanged() {
 	}
 
 	connect(sync, &PG_ResourceSynchronisator::loaded, this, &PG_DisaMapViewNode::updateTree);
-	connect(sync, &PG_ResourceSynchronisator::loaded, this, &PG_DisaMapViewNode::loaded, ConnectionType_Event);
+	connect(sync, &PG_ResourceSynchronisator::loaded, this, &PG_DisaMapViewNode::loaded, PG_ConnectionType_Event);
 	sync->start();
 }

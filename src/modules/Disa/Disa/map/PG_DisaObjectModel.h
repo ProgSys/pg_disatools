@@ -31,7 +31,7 @@ signals:
 	void objectUVScrollChanged();
 public:
 	enum ECustomIdentity : Identity {
-		Identity_Translation = Identity_Custom,
+		Identity_Translation = PG_Identity_Custom,
 		Identity_Rotation,
 		Identity_Scale,
 		Identity_UVScroll,

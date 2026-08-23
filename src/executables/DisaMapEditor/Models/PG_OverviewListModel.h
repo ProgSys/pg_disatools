@@ -26,7 +26,7 @@ signals:
 	void enabledChanged();
 public:
 	enum ECustomIdentity : Identity {
-		Identity_Description = EIdentity::Identity_Custom,
+		Identity_Description = EIdentity::PG_Identity_Custom,
 		Identity_OpenModel,
 	};
 	using PG_ListModel<PG_OverviewListModelItem>::PG_ListModel;

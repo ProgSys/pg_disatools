@@ -27,6 +27,10 @@ public:
 
 	bool isModified() const;
 	std::string getNavText() const;
+	/**
+	* @returns The file which is edited, is empty when no file is open
+	*/
+	PG_File getOriginFile() const;
 
 	void addChangedFile(std::shared_ptr<PG_DisaContainerInterface>&& file) {
 		assert(file);

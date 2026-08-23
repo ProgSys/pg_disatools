@@ -165,7 +165,7 @@ public:
 	friend PG_DisaMapTileMaterialModel;
 
 	enum ECustomIdentity : Identity {
-		Identity_Geometry = EIdentity::Identity_Custom, //returns m_data
+		Identity_Geometry = EIdentity::PG_Identity_Custom, //returns m_data
 		Identity_Translation,
 		Identity_GeoColor,
 		Identity_TopHeight, //avarage height

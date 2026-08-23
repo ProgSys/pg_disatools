@@ -259,9 +259,9 @@ void RootScene::reset() {
 bool RootScene::event(PG_Event* e) {
 	switch (e->getType())
 	{
-		case Event_Key: {
+		case PG_Event_Key: {
 			auto key = static_cast<PG_KeyEvent*>(e);
-			if (key->getKey() == PG_F5 && !key->isRepeat() && key->isUp()) {
+			if (key->getKey() == PG_Key_F5 && !key->isRepeat() && key->isUp()) {
 				PG_Shader::reloadAll();
 				key->accept();
 				return true;
@@ -501,7 +501,7 @@ void RootScene::setupCustomCampaignSettingView() {
 		float scale = std::min(size.x, size.y) / 800.f;
 		scale = glm::clamp(scale, 1.f, 2.f);
 		column->setScale(glm::vec3(scale));
-		}, ConnectionType_Event);
+		}, PG_ConnectionType_Event);
 
 	m_center = column;
 
@@ -591,7 +591,7 @@ void RootScene::setupCustomCampaignPlanView() {
 		float scale = std::min(size.x, size.y) / 800.f;
 		scale = glm::clamp(scale, 1.f, 2.f);
 		column->setScale(glm::vec3(scale));
-		}, ConnectionType_Event);
+		}, PG_ConnectionType_Event);
 
 	m_center = column;
 
@@ -697,7 +697,7 @@ void RootScene::setupToolbarGeneric() {
 	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 	backButton->setVisible(m_mainModel->getUiStackSize() > 1);
 
-	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMapEditorMainModel::back, ConnectionType_Event);
+	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMapEditorMainModel::back, PG_ConnectionType_Event);
 
 	auto currObject = m_mainModel->getCurrentObject();
 	if (!currObject) return;
@@ -824,7 +824,7 @@ void RootScene::setupToolbarMapView() {
 	backButton->setTooltipText("Back");
 	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 
-	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMapEditorMainModel::back, ConnectionType_Event);
+	connect(backButton, &PG_GuiButton::clicked, m_mainModel, &PG_DisaMapEditorMainModel::back, PG_ConnectionType_Event);
 
 
 	auto saveButton = PG_new<PG_GuiButton>("SaveButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);

@@ -256,7 +256,7 @@ void PG_DisaFileEntry::triggerFileChanged() {
 PG_Variety PG_DisaFileEntry::getData(std::size_t column, Identity identity) const {
 	switch (identity)
 	{
-	case Identity_Text: {
+	case PG_Identity_Text: {
 		switch (column) {
 			default:
 			case 0: return getName();
@@ -265,13 +265,13 @@ PG_Variety PG_DisaFileEntry::getData(std::size_t column, Identity identity) cons
 			case 3: return std::to_string(getLocation());
 		}
 	}
-	case Identity_Edit:
+	case PG_Identity_Edit:
 		return m_info.getName().getPath();
 	case Identity_Modified:
 		return isModified();
 	case Identity_Container:
 		return m_container;
-	case Identity_PreviewImage:
+	case PG_Identity_PreviewImage:
 		return getPreviewImage();
 	}
 	return PG_Variety();
@@ -476,7 +476,7 @@ bool PG_DisaFileContainer::isModified() const {
 }
 
 void PG_DisaFileContainer::fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {
-	emit itemsChanged(entry.getLocation(), entry.getLocation(), { Identity_Item, PG_DisaFileEntry::Identity_Modified });
+	emit itemsChanged(entry.getLocation(), entry.getLocation(), { PG_Identity_Item, PG_DisaFileEntry::Identity_Modified });
 	emit isModifiedChanged();
 	auto parent = m_disaFileParent.lock();
 	while (parent) {

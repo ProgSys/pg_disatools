@@ -216,9 +216,9 @@ void RootScene::setupCenter() {
 bool RootScene::event(PG_Event* e) {
 	switch (e->getType())
 	{
-		case Event_Key: {
+		case PG_Event_Key: {
 			auto key = static_cast<PG_KeyEvent*>(e);
-			if (key->getKey() == PG_F5 && !key->isRepeat() && key->isUp()) {
+			if (key->getKey() == PG_Key_F5 && !key->isRepeat() && key->isUp()) {
 				PG_Shader::reloadAll();
 				key->accept();
 				return true;

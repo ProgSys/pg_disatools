@@ -32,7 +32,7 @@ PG_DisaEditTerrainOperation* PG_DisaEditTerrainOperation::start(PG_Object* paren
 	//calc offset
 
 	if (auto location = model->getTiles()->getTileLocation(originTilePosition)) {
-		auto tileModel = location.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+		auto tileModel = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 		op->originalTopOffsets = tileModel->getTopValues();
 		for (float& y : op->originalTopOffsets) y -= op->dragStartPos.y;
 	}
@@ -345,7 +345,7 @@ static inline void editTile(float height, const glm::ivec2 tilePos, PG_DisaMapTi
 		assert(location);
 	}
 
-	auto tileModel = location.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+	auto tileModel = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 	auto values = tileModel->getTopValues();
 
 	std::vector<int> moveTargets;
@@ -460,7 +460,7 @@ static inline void editTile(float height, const glm::ivec2 tilePos, PG_DisaMapTi
 	
 	for (const auto& [offset, targets] : mergeTargets) {
 		if (auto neighborTileLocation = model->getTileLocation(tilePos + offset)) {
-			auto neighborTileModel = neighborTileLocation.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+			auto neighborTileModel = neighborTileLocation.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 			auto neighborValues = neighborTileModel->getTopValues();
 
 			switch (merge)
@@ -504,10 +504,10 @@ void PG_DisaEditTerrainOperation::drag(PG_Object* parent, PG_MouseMotionEvent* e
 	float newHeight = std::max(0.f, ray.getPointOnRay(*intersection).y);
 	//std::cout << newHeight <<" start: " << op->dragStartPos << std::endl;
 	EMergeMode mergeModeNew = EMergeMode::MergeMode_None;
-	if (e->getKeyMod() & PG_KMOD_LSHIFT) {
+	if (e->getKeyMod() & PG_KMod_LShift) {
 		mergeModeNew = EMergeMode::MergeMode_Move;
 	}
-	else if (e->getKeyMod() & PG_KMOD_LALT) {
+	else if (e->getKeyMod() & PG_KMod_LAlt) {
 		mergeModeNew = EMergeMode::MergeMode_Merge;
 	}
 

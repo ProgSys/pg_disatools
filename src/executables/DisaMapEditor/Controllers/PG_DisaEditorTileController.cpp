@@ -214,7 +214,7 @@ void PG_DisaEditorTileController::release(PG_EditorCameraComponent*, PG_MouseBut
 }
 
 void PG_DisaEditorTileController::key(PG_EditorCameraComponent* comp, PG_KeyEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam) {
-	if (e->getKey() == PG_DELETE) {
+	if (e->getKey() == PG_Key_Delete) {
 		if (e->isUp()) {
 
 			struct TileInfo{

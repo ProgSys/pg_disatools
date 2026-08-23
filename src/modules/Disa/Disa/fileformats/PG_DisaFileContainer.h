@@ -73,7 +73,7 @@ public:
 class PG_DisaFileEntry : public PG_DisaFileInterface {
 public:
     enum EDisaFileEntryIdentity : Identity {
-        Identity_Modified = EIdentity::Identity_Custom,
+        Identity_Modified = EIdentity::PG_Identity_Custom,
         Identity_Container,
     };
 

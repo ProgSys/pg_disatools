@@ -43,7 +43,7 @@ PG_Variety PG_DisaAssetsTextureItem::getData(Identity identity) const {
 static inline const PG_Texture& textureUpdate(std::string&& name, PG_Texture& tex, const PG_ListModelLocation& loc, bool& changed) {
 	if (changed && loc) {
 		PG_TX2 tx2;
-		auto item = loc.getDataT<PG_DisaFileEntry>(Identity_Item);
+		auto item = loc.getDataT<PG_DisaFileEntry>(PG_Identity_Item);
 		if (item.getInfo().getSize() == 0 && !item.getContainer()) {
 			tex.reset();
 			return tex;
@@ -84,7 +84,7 @@ PG_Variety PG_DisaAssetsGeometryItem::getData(Identity identity) const {
 static inline const PG_Model& modelUpdate(std::string&& name, PG_Model& model, const PG_ListModelLocation& loc, bool& changed) {
 	if (changed && loc) {
 		PG_GEO geo;
-		auto item = loc.getDataT<PG_DisaFileEntry>(Identity_Item);
+		auto item = loc.getDataT<PG_DisaFileEntry>(PG_Identity_Item);
 		geo.open(item.createReader().get());
 		name += std::to_string(loc.getIndex());
 		reinterpret_cast<PG_DisaModel*>(&model)->load(name, geo);
@@ -114,8 +114,8 @@ PG_Variety PG_DisaAssetsFilterModel<T>::getData(PG_Index index, Identity identit
 	if (index >= m_items.size()) return PG_Variety();
 	switch (identity)
 	{
-	case Identity_Item: return m_items[index];
-	case Identity_Location: return getLocation(index);
+	case PG_Identity_Item: return m_items[index];
+	case PG_Identity_Location: return getLocation(index);
 	default:
 		break;
 	}
@@ -158,7 +158,7 @@ void PG_DisaAssetsFilterModel<T>::setModels(const std::shared_ptr<PG_MPPContaine
 			connect(m_modelSD.get(), &PG_ListModelBase::sizeChanged, this, &PG_DisaAssetsFilterModel<T>::invalidate);
 			connect(m_modelSD.get(), &PG_ListModelBase::itemsChanged, this,
 				[this](unsigned int startIndex, unsigned int endIndex, const std::set<Identity>& identities) {
-					const bool itemChange = identities.contains(Identity_Item) || identities.contains(Identity_Location);
+					const bool itemChange = identities.contains(PG_Identity_Item) || identities.contains(PG_Identity_Location);
 					const bool modifiedChange = identities.contains(PG_DisaFileEntry::Identity_Modified) || identities.contains(PG_DisaFileEntry::Identity_Container);
 					if (!itemChange && !modifiedChange) return;
 
@@ -202,7 +202,7 @@ void PG_DisaAssetsFilterModel<T>::setModels(const std::shared_ptr<PG_MPPContaine
 			connect(m_modelHD.get(), &PG_ListModelBase::sizeChanged, this, &PG_DisaAssetsFilterModel<T>::invalidate);
 			connect(m_modelHD.get(), &PG_ListModelBase::itemsChanged, this,
 				[this](unsigned int startIndex, unsigned int endIndex, const std::set<Identity>& identities) {
-					const bool itemChange = identities.contains(Identity_Item) || identities.contains(Identity_Location);
+					const bool itemChange = identities.contains(PG_Identity_Item) || identities.contains(PG_Identity_Location);
 					const bool modifiedChange = identities.contains(PG_DisaFileEntry::Identity_Modified) || identities.contains(PG_DisaFileEntry::Identity_Container);
 					if (!itemChange && !modifiedChange) return;
 					
@@ -273,7 +273,7 @@ void PG_DisaAssetsFilterModel<T>::resetHD() {
 
 template<PG_IsDisaAsset T>
 void PG_DisaAssetsFilterModel<T>::invalidate() {
-	postCallEvent(EventBehaviour_Singleton, &PG_DisaAssetsFilterModel<T>::initialize);
+	postCallEvent(PG_Event_Behaviour_Singleton, &PG_DisaAssetsFilterModel<T>::initialize);
 }
 
 template<PG_IsDisaAsset T>
@@ -293,7 +293,7 @@ void PG_DisaAssetsFilterModel<T>::initializeSD() {
 	//peform emits
 	if (originalSize > m_items.size()) emit itemsRemoved(m_items.size(), originalSize - 1);
 	else if (originalSize < m_items.size()) emit itemsAdded(originalSize, m_items.size() - 1);
-	if (!m_items.empty()) emit itemsChanged(0, m_items.size() - 1, { Identity_Item });
+	if (!m_items.empty()) emit itemsChanged(0, m_items.size() - 1, { PG_Identity_Item });
 	if (originalSize != m_items.size()) emit sizeChanged();
 }
 
@@ -318,7 +318,7 @@ void PG_DisaAssetsFilterModel<T>::initializeHD() {
 					item.hdNormalChanged = true;
 				}
 			}
-			emit itemsChanged(0, originalSize - 1, { Identity_Item });
+			emit itemsChanged(0, originalSize - 1, { PG_Identity_Item });
 		}
 		return;
 	}
@@ -457,7 +457,7 @@ void PG_DisaAssetsModel::exportTexture(const PG_File& file, PG_ListModelLocation
 		return;
 	}
 
-	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(Identity_Item);
+	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(PG_Identity_Item);
 	if (!fileEntry) {
 		OUT_ERROR("Failed to get file entry!");
 		return;
@@ -503,7 +503,7 @@ void PG_DisaAssetsModel::importTexture(PG_TX2&& tx2, PG_ListModelLocation locati
 		return;
 	}
 
-	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(Identity_Item);
+	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(PG_Identity_Item);
 	if (!fileEntry) {
 		OUT_ERROR("Failed to get file entry!");
 		return;
@@ -573,7 +573,7 @@ void PG_DisaAssetsModel::exportGeometry(const PG_File& file, PG_ListModelLocatio
 		return;
 	}
 
-	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(Identity_Item);
+	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(PG_Identity_Item);
 	if (!fileEntry) {
 		OUT_ERROR("Failed to get file entry!");
 		return;
@@ -609,7 +609,7 @@ void PG_DisaAssetsModel::importGeometry(const PG_GEO& geo, PG_ListModelLocation 
 		return;
 	}
 
-	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(Identity_Item);
+	auto fileEntry = loc.getDataT<PG_DisaFileEntry>(PG_Identity_Item);
 	if (!fileEntry) {
 		OUT_ERROR("Failed to get file entry!");
 		return;

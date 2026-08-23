@@ -41,8 +41,8 @@ void PG_DisaEventTileListItem::setLocation(const PG_ListModelLocation& location)
 }
 
 void PG_DisaEventTileListItem::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.count(Identity_Item) != 0 || m_location != location;
-	if (hasItem || identities.count(Identity_Location)) {
+	const bool hasItem = identities.count(PG_Identity_Item) != 0 || m_location != location;
+	if (hasItem || identities.count(PG_Identity_Location)) {
 		m_location = location;
 	}
 

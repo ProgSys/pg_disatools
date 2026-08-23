@@ -17,7 +17,7 @@ signals:
 	void enabledChanged();
 public:
 	enum ECustomIdentity : Identity {
-		Identity_CanGLTFExport = EIdentity::Identity_Custom,
+		Identity_CanGLTFExport = EIdentity::PG_Identity_Custom,
 		Identity_CanJSONExport,
 		Identity_HasChanges,
 		Identity_File,

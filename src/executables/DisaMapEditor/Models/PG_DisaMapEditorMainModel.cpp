@@ -134,7 +134,7 @@ void PG_DisaMapEditorMainModel::openExe() {
 
 		connect(decompressClass->startDat.get(), &PG_OLA::decompresProgress, this, [this](float progress) {
 			emit displayProgress("Update", progress);
-			}, ConnectionType_Event);
+			}, PG_ConnectionType_Event);
 		connect(decompressThread, &PG_Thread::done, this, [this, decompressThread, file]() {
 			emit displayProgress("", -1.f);
 
@@ -149,7 +149,7 @@ void PG_DisaMapEditorMainModel::openExe() {
 			model->reload();
 			pushStateStack(std::shared_ptr<PG_UiStateBaseModel>(model, [](PG_UiStateBaseModel*) {}));
 			decompressThread->deleteLater();
-			}, ConnectionType_Event);
+			}, PG_ConnectionType_Event);
 		
 		decompressThread->start();
 		decompressClass->postCallEvent(&DecompressClass::run);
@@ -224,7 +224,7 @@ void PG_DisaMapEditorMainModel::pushStateStack(std::shared_ptr<PG_UiStateBaseMod
 		if (auto func = obj->getFunction(uiStateChnagedStr)) {
 			connect(obj.get(), func, this, [this] {
 				emit uiStateChanged(getUiState());
-				}, ConnectionType_Event);
+				}, PG_ConnectionType_Event);
 		}
 	}
 }
@@ -248,7 +248,7 @@ void PG_DisaMapEditorMainModel::popStateStack() {
 		if (auto func = obj->getFunction(uiStateChnagedStr)) {
 			connect(obj.get(), func, this, [this] {
 				emit uiStateChanged(getUiState());
-				}, ConnectionType_Event);
+				}, PG_ConnectionType_Event);
 		}
 	}
 }

@@ -19,9 +19,9 @@ PG_Variety PG_DisaMagicModel::getData(Identity identity) const {
 	{
 	case Identity_Id: return id;
 	case Identity_Name: return nameNormelized;
-	case Identity_Tooltip:
+	case PG_Identity_Tooltip:
 	case Identity_Description: return descriptionNormelized;
-	case Identity_PreviewImage: return PG_DisaUiTextursModel::getIconLocation(iconIndex, 0);
+	case PG_Identity_PreviewImage: return PG_DisaUiTextursModel::getIconLocation(iconIndex, 0);
 	}
 	return PG_Variety();
 }

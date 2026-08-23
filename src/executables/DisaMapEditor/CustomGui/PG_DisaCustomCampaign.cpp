@@ -50,8 +50,8 @@ void PG_DisaCustomCampaignBase::setLocation(const PG_ListModelLocation& location
 }
 
 void PG_DisaCustomCampaignBase::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.contains(Identity_Item) || m_location != location;
-	if (hasItem || identities.contains(Identity_Location)) {
+	const bool hasItem = identities.contains(PG_Identity_Item) || m_location != location;
+	if (hasItem || identities.contains(PG_Identity_Location)) {
 		m_location = location;
 		updateModel();
 	}
@@ -72,7 +72,7 @@ void PG_DisaCustomCampaignBase::updateModel() {
 		return;
 	}
 
-	auto item = m_location.getData(Identity_Item).convert<PG_Object*>();
+	auto item = m_location.getData(PG_Identity_Item).convert<PG_Object*>();
 	if (!item) {
 		m_model->clearSelectionItems();
 		return;
@@ -268,7 +268,7 @@ void PG_DisaCustomCampaignDungeon::init() {
 			button->setIcon("gui/icon_delete.png");
 			button->setTooltipText("Delete");
 
-			connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void remove()"); }, ConnectionType_Event);
+			connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void remove()"); }, PG_ConnectionType_Event);
 
 			button = PG_new<PG_GuiButton>("Up", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column);
 			button->setIcon("gui/disa/icon_up.png");
@@ -438,7 +438,7 @@ void PG_DisaCustomCampaignArea::init() {
 		button->setIcon("gui/icon_delete.png");
 		button->setTooltipText("Delete");
 
-		connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void remove()"); }, ConnectionType_Event);
+		connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void remove()"); }, PG_ConnectionType_Event);
 
 		button = PG_new<PG_GuiButton>("Up", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column13);
 		button->setIcon("gui/disa/icon_up.png");

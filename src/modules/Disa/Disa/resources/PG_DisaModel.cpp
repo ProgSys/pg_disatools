@@ -161,9 +161,9 @@ PG_Model::BasicDynamicModel PG_DisaModel::parse(const std::string& modelName, co
 	Animation animation;
 	animation.name = "idle";
 	animation.isLoop = true;
-	animation.properties.emplace_back(EModelKeyframeType::KeyframeType_Transformation, "transformation");
-	animation.properties.emplace_back(EModelKeyframeType::KeyframeType_Float, "animationAlpha");
-	animation.properties.emplace_back(EModelKeyframeType::KeyframeType_Vec3EulerAngles, "eulerAngels");
+	animation.properties.emplace_back(PG_KeyframeType_Transformation, "transformation");
+	animation.properties.emplace_back(PG_KeyframeType_Float, "animationAlpha");
+	animation.properties.emplace_back(PG_KeyframeType_Vec3EulerAngles, "eulerAngels");
 
 
 	//load geometry

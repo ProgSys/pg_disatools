@@ -26,7 +26,7 @@ class PG_DisaModListModel : public PG_ListModel<PG_DisaModListModelItem> {
 
 public:
 	enum ECustomIdentity : Identity {
-		Identity_Description = EIdentity::Identity_Custom,
+		Identity_Description = EIdentity::PG_Identity_Custom,
 		Identity_Author,
 		Identity_Disabled,
 	};

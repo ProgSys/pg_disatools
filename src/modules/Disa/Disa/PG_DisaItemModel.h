@@ -33,7 +33,7 @@ class PG_OLA;
 
 struct PG_DisaItemModel {
 	enum EPDisaCharacterModelIdentity : Identity {
-		Identity_Id = EIdentity::Identity_Custom,
+		Identity_Id = EIdentity::PG_Identity_Custom,
 		Identity_Name,
 		Identity_Description,
 	};

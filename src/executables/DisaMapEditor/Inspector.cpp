@@ -1643,7 +1643,7 @@ void Inspector::createFunctionBar() {
 	btn->setSize(glm::vec2(42));
 	btn->setIcon("gui/icon_smallTiles.png");
 	btn->setTooltipText("Terrain edit");
-	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setBackground("M_GuiRoundedRectangleTop5");
 	btn->setAutoToggle(false);
 	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Terrain);
@@ -1659,7 +1659,7 @@ void Inspector::createFunctionBar() {
 	btn->setSize(glm::vec2(42));
 	btn->setIcon("gui/icon_texture.png");
 	btn->setTooltipText("Material edit");
-	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setAutoToggle(false);
 	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Material);
 
@@ -1674,7 +1674,7 @@ void Inspector::createFunctionBar() {
 	btn->setSize(glm::vec2(42));
 	btn->setIcon("gui/icon_model.png");
 	btn->setTooltipText("Object edit");
-	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setTooltipPositionHint(PG_TooltipPositionHint_Right);
 	btn->setAutoToggle(false);
 	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Object);
 
@@ -1689,7 +1689,7 @@ void Inspector::createFunctionBar() {
 	btn->setSize(glm::vec2(42));
 	btn->setIcon("gui/disa/icon_eventTile.png");
 	btn->setTooltipText("Event edit");
-	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setAutoToggle(false);
 	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_EventTile);
 
@@ -1704,7 +1704,7 @@ void Inspector::createFunctionBar() {
 	btn->setSize(glm::vec2(42));
 	btn->setIcon("gui/icon_actor.png");
 	btn->setTooltipText("Actor edit");
-	btn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setBackground("M_GuiRoundedRectangleBottom5");
 	btn->setAutoToggle(false);
 	btn->setToggled(mod->getMode() == PG_DisaEditorModule::Mode_Actor);
@@ -1730,7 +1730,7 @@ void Inspector::createFunctionBar() {
 			});
 
 		auto modeBtn = PG_new<PG_GuiToggleButton>("SelectMode", editModeColumn);
-		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
 		modeBtn->setIcon("gui/icon_cursor.png");
 		modeBtn->setTooltipText("Select mode");
@@ -1745,7 +1745,7 @@ void Inspector::createFunctionBar() {
 			});
 
 		modeBtn = PG_new<PG_GuiToggleButton>("TranslateMode", editModeColumn);
-		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
 		modeBtn->setIcon("gui/icon_axis.png");
 		modeBtn->setTooltipText("Translate mode");
@@ -1759,7 +1759,7 @@ void Inspector::createFunctionBar() {
 			});
 
 		modeBtn = PG_new<PG_GuiToggleButton>("RotateMode", editModeColumn);
-		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
 		modeBtn->setIcon("gui/icon_rotate.png");
 		modeBtn->setTooltipText("Rotate mode");
@@ -1773,7 +1773,7 @@ void Inspector::createFunctionBar() {
 			});
 
 		modeBtn = PG_new<PG_GuiToggleButton>("ScaleMode", editModeColumn);
-		modeBtn->setTooltipPositionHint(ETooltipPositionHint::TooltipPositionHint_Right);
+		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
 		modeBtn->setIcon("gui/icon_scale.png");
 		modeBtn->setTooltipText("Scale mode");

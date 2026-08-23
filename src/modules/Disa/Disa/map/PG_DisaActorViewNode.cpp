@@ -13,7 +13,7 @@
 
 PG_Object* PG_DisaActorViewNode::getObjectModel() const {
 	if (!m_location) return nullptr;
-	return m_location.getDataT<PG_DisaActorModel*>(Identity_Item);
+	return m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
 }
 
 void PG_DisaActorViewNode::setLocation(PG_ListModelLocation loc) {
@@ -27,9 +27,9 @@ void PG_DisaActorViewNode::setLocation(PG_ListModelLocation loc) {
 }
 
 void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.contains(Identity_Item) || m_location != location;
+	const bool hasItem = identities.contains(PG_Identity_Item) || m_location != location;
 
-	if (hasItem || identities.contains(Identity_Location)) {
+	if (hasItem || identities.contains(PG_Identity_Location)) {
 		m_location = location;
 		loadSprite();
 		updateTransformation();
@@ -121,7 +121,7 @@ glm::vec3 PG_DisaActorViewNode::getRotationDir(PG_Scene* scene, const glm::vec3&
 }
 
 bool PG_DisaActorViewNode::event(PG_Event* e) {
-	if (e->getType() == Event_Tick && isVisible()) {
+	if (e->getType() == PG_Event_Tick && isVisible()) {
 		auto* et = static_cast<PG_TickEvent*>(e);
 		m_spring.update(0.1f * et->getDeltaTime());
 

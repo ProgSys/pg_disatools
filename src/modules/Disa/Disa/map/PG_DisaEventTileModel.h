@@ -17,7 +17,7 @@ public:
 	using PG_Object::PG_Object;
 
 	enum ECustomIdentity : Identity {
-		Identity_Value = EIdentity::Identity_Custom,
+		Identity_Value = EIdentity::PG_Identity_Custom,
 		Identity_TilePosition,
 	};
 

@@ -17,7 +17,7 @@ void PG_DisaEventTileModel::setTilePosition(glm::ivec2 pos) {
 PG_Variety PG_DisaEventTileModel::getData(Identity identity) const {
 	switch (identity)
 	{
-	case Identity_Text: return std::to_string(getValue());
+	case PG_Identity_Text: return std::to_string(getValue());
 	case Identity_Value: return getValue();
 	case Identity_TilePosition: return getTilePosition();
 	}

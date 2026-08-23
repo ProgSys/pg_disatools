@@ -6,7 +6,7 @@
 
 PG_DisaFaceHit::Intersection PG_DisaFaceHit::intersection(PG_DisaTileViewNode* tile, const PG_Ray& ray, bool includeSides, bool includeEdges) {
 	//find the exact tile hit
-	PG_DisaMapTileModel* model = tile->getLocation().getDataT<PG_DisaMapTileModel*>(Identity_Item);
+	PG_DisaMapTileModel* model = tile->getLocation().getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 	assert(model);
 
 

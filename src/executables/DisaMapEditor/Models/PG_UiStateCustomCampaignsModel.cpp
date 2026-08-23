@@ -161,7 +161,7 @@ void PG_UiStateCustomCampaignsModel::closeUi() {
 }
 
 void PG_UiStateCustomCampaignsModel::tileClicked(PG_ListModelLocation location) {
-	auto var = location.getData(Identity_PreviewImage);
+	auto var = location.getData(PG_Identity_PreviewImage);
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
 		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
@@ -171,7 +171,7 @@ void PG_UiStateCustomCampaignsModel::tileClicked(PG_ListModelLocation location) 
 }
 
 void PG_UiStateCustomCampaignsModel::tileClicked(PG_ListModelLocation location, PG_CameraNode* camera) {
-	auto var = location.getData(Identity_PreviewImage);
+	auto var = location.getData(PG_Identity_PreviewImage);
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
 		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();

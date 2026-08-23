@@ -16,7 +16,7 @@ void PG_CategoryFilterModel::setFilterCategory(ECategory category) {
 
 bool PG_CategoryFilterModel::filter(const PG_ListModelLocation& loc) const {
 	if (m_filterCategory) {
-		auto item = loc.getData(Identity_Item);
+		auto item = loc.getData(PG_Identity_Item);
 		if (item.is<PG_DisaFileEntry>()) {
 			auto type = item.get<PG_DisaFileEntry>().getInfo().getType();
 			switch (m_filterCategory)
@@ -40,7 +40,7 @@ bool PG_CategoryFilterModel::filter(const PG_ListModelLocation& loc) const {
 	}
 
 	if(!m_searchText.empty()){
-		auto name = loc.getDataT<std::string>(Identity_Text);
+		auto name = loc.getDataT<std::string>(PG_Identity_Text);
 		if (!PG_StringUtil::contains(name, m_searchText, false)) {
 			return true;
 		}

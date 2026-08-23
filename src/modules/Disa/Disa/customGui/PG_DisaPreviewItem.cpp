@@ -66,7 +66,7 @@ void PG_DisaPreviewItem::exportImage() {
 	//let the render thread read the image back while the user picks the target file
 	std::future<PG_Texture::ImageFormats> imageFuture = texture.exportImage();
 
-	const PG_File previewFile(m_location.getDataT<std::string>(EIdentity::Identity_Text));
+	const PG_File previewFile(m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
 	PG_File targetFile = PG_PopUpDialog::saveAs(previewFile ? previewFile.replaceFileExtension("png") : PG_File("preview.png"));
 	if (!targetFile) return;
 	if (targetFile.getFileExtensionFormated() != "png") targetFile.replaceFileExtension("png");
@@ -96,7 +96,7 @@ void PG_DisaPreviewItem::setPreviewEnabled(bool enabled) {
 		return;
 	}
 
-	if (m_location) openPreview(m_location.getData(Identity_PreviewImage));
+	if (m_location) openPreview(m_location.getData(PG_Identity_PreviewImage));
 }
 
 void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
@@ -233,26 +233,26 @@ void PG_DisaPreviewItem::setLocation(const PG_ListModelLocation& location) {
 		return;
 	}
 
-	if (m_text) m_text->setText(location.getDataT<std::string>(Identity_Text));
+	if (m_text) m_text->setText(location.getDataT<std::string>(PG_Identity_Text));
 
-	if (m_previewEnabled) openPreview(location.getData(Identity_PreviewImage));
+	if (m_previewEnabled) openPreview(location.getData(PG_Identity_PreviewImage));
 	else clearImage();
 	emit locationChanged();
 }
 
 void PG_DisaPreviewItem::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.count(Identity_Item) != 0 || m_location != location;
-	if (hasItem || identities.count(Identity_Location)) {
+	const bool hasItem = identities.count(PG_Identity_Item) != 0 || m_location != location;
+	if (hasItem || identities.count(PG_Identity_Location)) {
 		m_location = location;
 	}
 
 	if (!location) return;
-	if (hasItem || identities.count(Identity_Text)) {
-		if (m_text) m_text->setText(location.getDataT<std::string>(Identity_Text));
+	if (hasItem || identities.count(PG_Identity_Text)) {
+		if (m_text) m_text->setText(location.getDataT<std::string>(PG_Identity_Text));
 	}
 
-	if (hasItem || identities.count(Identity_PreviewImage)) {
-		if (m_previewEnabled) openPreview(location.getData(Identity_PreviewImage));
+	if (hasItem || identities.count(PG_Identity_PreviewImage)) {
+		if (m_previewEnabled) openPreview(location.getData(PG_Identity_PreviewImage));
 		else clearImage();
 	}
 }

@@ -510,7 +510,7 @@ void PG_DisaMapTileModel::clearTexture(int slotIndex) {
 
 class ItemChangedEvent : public PG_CallEvent {
 	public:
-		ItemChangedEvent(PG_ListModelBase* toIn, Identity ident, unsigned int loc) : PG_CallEvent(EventBehaviour_Singleton | EventBehaviour_Merge), 
+		ItemChangedEvent(PG_ListModelBase* toIn, Identity ident, unsigned int loc) : PG_CallEvent(PG_Event_Behaviour_Singleton | PG_Event_Behaviour_Merge), 
 			to(toIn), identity(ident), locations({loc}) {}
 
 		void call() override {
@@ -640,7 +640,7 @@ void PG_DisaMapTileListModel::updateTileMap() {
 
 class TileChangedEvent : public PG_Event {
 public:
-	TileChangedEvent() : PG_Event(Event_User + 100, EventBehaviour_Singleton | EventBehaviour_Merge) {}
+	TileChangedEvent() : PG_Event(PG_Event_User + 100, PG_Event_Behaviour_Singleton | PG_Event_Behaviour_Merge) {}
 
 	void merge(PG_Event* other) override {
 		auto* e = dynamic_cast<TileChangedEvent*>(other);
@@ -657,7 +657,7 @@ void PG_DisaMapTileListModel::init() {
 	connect(this, &PG_ListModelBase::itemsRemoved, this, &PG_DisaMapTileListModel::updateTileMap);
 
 	connect(this, &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex, const PG_IdentitySet& identities) {
-		const bool changedA = contains<Identity_Location, Identity_Item, PG_DisaMapTileModel::Identity_Translation>(identities);
+		const bool changedA = contains<PG_Identity_Location, PG_Identity_Item, PG_DisaMapTileModel::Identity_Translation>(identities);
 		const bool changedB = contains<PG_DisaMapTileModel::Identity_Geometry>(identities);
 		if (!changedA && !changedB || startIndex >= m_items.size()) return;
 		assert(endIndex < m_items.size());
@@ -705,7 +705,7 @@ void PG_DisaMapModel::init() {
 
 	auto itemsChangedTest = [this](unsigned int, unsigned int, const PG_IdentitySet& identities) {
 		for (auto i : identities) {
-			if (i >= Identity_Custom) {
+			if (i >= PG_Identity_Custom) {
 				markModified();
 				return;
 			}

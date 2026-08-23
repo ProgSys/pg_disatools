@@ -53,7 +53,7 @@ static inline bool isVersionStringValid(const std::string& version) {
 
 void PG_DisaInstaller::runInstall(std::string currentVersion, PG_File exePath) {
 	if (isDeleteLater()) return;
-	connect(this, &PG_DisaInstaller::done, this, &PG_ActorNode::deleteLater, ConnectionType_Event);
+	connect(this, &PG_DisaInstaller::done, this, &PG_ActorNode::deleteLater, PG_ConnectionType_Event);
 
 	if (exePath.isEmpty() || !exePath.exists()) {
 		runFreshInstall();
@@ -87,7 +87,7 @@ void PG_DisaInstaller::runInstall(std::string currentVersion, PG_File exePath) {
 		);
 		errorPopup->open();
 		connect(errorPopup, &PG_PopUpDialog::confirmClicked, errorPopup, [] {
-			PG_EventLoop::postEvent(new PG_Event(Event_Quit), PG_Application::get());
+			PG_EventLoop::postEvent(new PG_Event(PG_Event_Quit), PG_Application::get());
 			});
 		return;
 	}
@@ -117,7 +117,7 @@ void PG_DisaInstaller::runFreshInstall() {
 	);
 
 	connect(installPopup, &PG_PopUpDialog::cancelClicked, installPopup, [] {
-		PG_EventLoop::postEvent(new PG_Event(Event_Quit), PG_Application::get());
+		PG_EventLoop::postEvent(new PG_Event(PG_Event_Quit), PG_Application::get());
 		});
 
 	connect(installPopup, &PG_PopUpDialog::confirmClickedPath, this, [this, installPopup](PG_File inputFile) {
@@ -133,7 +133,7 @@ void PG_DisaInstaller::runFreshInstall() {
 			);
 			errorPopup->open();
 			connect(errorPopup, &PG_PopUpDialog::confirmClicked, errorPopup, [] {
-				PG_EventLoop::postEvent(new PG_Event(Event_Quit), PG_Application::get());
+				PG_EventLoop::postEvent(new PG_Event(PG_Event_Quit), PG_Application::get());
 				});
 
 			return;

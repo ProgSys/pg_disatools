@@ -85,8 +85,8 @@ void PG_DisaAssetsListItem::setLocation(const PG_ListModelLocation& location) {
 }
 
 void PG_DisaAssetsListItem::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.count(Identity_Item) != 0 || m_location != location;
-	if (hasItem || identities.count(Identity_Location)) {
+	const bool hasItem = identities.count(PG_Identity_Item) != 0 || m_location != location;
+	if (hasItem || identities.count(PG_Identity_Location)) {
 		m_location = location;
 		m_topBtn->setText(std::to_string(location.getIndex()));
 	}
@@ -271,7 +271,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 	constexpr float tileSize = 125.f;
 	constexpr float tileBgSize = tileSize + 8.f;
 
-	auto dataItem = m_location.getData(Identity_Item);
+	auto dataItem = m_location.getData(PG_Identity_Item);
 
 	if (dataItem.is<PG_DisaAssetsTextureItem>()) {
 		if (!m_isTexture) m_rightItem->clearGuiChildren();
@@ -499,7 +499,7 @@ void PG_DisaAssetsWindow::init() {
 			toggleTexture->setToggled(isTexturesMode);
 			});
 		connect(toggleTexture, &PG_GuiToggleButton::toggleChanged, this, [this](bool toggle) {
-			if (toggle) postCallEvent(EventBehaviour_Replace, &PG_DisaAssetsWindow::setShowTextures, true);
+			if (toggle) postCallEvent(PG_Event_Behaviour_Replace, &PG_DisaAssetsWindow::setShowTextures, true);
 			});
 
 		auto toggleGeometry = PG_new<PG_GuiToggleButton>("toggleGeometry", glm::vec2(10.f, 10.f), glm::vec2(120.f, 30.f), toolbar);
@@ -511,7 +511,7 @@ void PG_DisaAssetsWindow::init() {
 			toggleGeometry->setToggled(!isTexturesMode);
 			});
 		connect(toggleGeometry, &PG_GuiToggleButton::toggleChanged, this, [this](bool toggle) {
-			if(toggle) postCallEvent(EventBehaviour_Replace, &PG_DisaAssetsWindow::setShowTextures, false);
+			if(toggle) postCallEvent(PG_Event_Behaviour_Replace, &PG_DisaAssetsWindow::setShowTextures, false);
 			});
 	}
 

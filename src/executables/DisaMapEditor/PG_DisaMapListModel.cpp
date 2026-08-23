@@ -68,7 +68,7 @@ void PG_DisaMapListModel::save(const PG_File& file) {
 	const auto progressFunc = [progress](int curr, int total) {
 		if (curr % 1000 == 0) OUT_INFO("Saving: " << curr << "/" << total);
 		if (curr % 100 == 0) {
-			progress->postCallEvent(EventBehaviour_Replace, &PG_GuiProgressDialog::setProgress, float(curr) / float(total));
+			progress->postCallEvent(PG_Event_Behaviour_Replace, &PG_GuiProgressDialog::setProgress, float(curr) / float(total));
 		}
 		};
 
@@ -185,11 +185,11 @@ void PG_DisaMapListModel::save(const PG_File& file) {
 
 PG_Variety PG_DisaMapListModel::getData(PG_Index index, Identity identity) const {
 	switch (identity) 	{
-		case Identity_Text: {
+		case PG_Identity_Text: {
 			std::string name = m_items[index].getMPD().getInfo().getName().getName();
 			return name;
 		}
-		case Identity_Item: {
+		case PG_Identity_Item: {
 			auto item = m_items[index];
 			return item;
 		}
@@ -209,7 +209,7 @@ PG_Variety PG_DisaMapListModel::getData(PG_Index index, Identity identity) const
 
 void PG_DisaMapListModel::exportData(PG_ListModelLocation location) {
 	if (!location.isValid() || location.getModelRoot() != this) return;
-	auto data = location.getDataT<PG_DisaMPDPack>(Identity_Item);
+	auto data = location.getDataT<PG_DisaMPDPack>(PG_Identity_Item);
 	PG_File file = PG_FileDialog::save(this, "MPD", data.getMPD().getInfo().getName().getFile());
 	if (file.isEmpty()) return;
 	auto reader = m_items[location.getIndex()].getMPD().createReader();
@@ -229,7 +229,7 @@ void PG_DisaMapListModel::importData(PG_ListModelLocation location) {
 	fileInfo.setIndex(get(location.getIndex()).mpd.getIndex());
 	fileInfo.setType(PG_DisaFileInfo::MPD);
 	m_changes[location.getIndex()] = std::move(fileInfo);
-	emit itemsChanged(location.getIndex(), location.getIndex(), { Identity_Item });
+	emit itemsChanged(location.getIndex(), location.getIndex(), { PG_Identity_Item });
 	emit hasChangesChanged();
 	*/
 }
@@ -237,7 +237,7 @@ void PG_DisaMapListModel::importData(PG_ListModelLocation location) {
 void PG_DisaMapListModel::exportJSON(PG_ListModelLocation location) const{
 	/*
 	if (!location.isValid() || location.getModelRoot() != this) return;
-	auto data = location.getDataT<PG_DisaMPDPack>(Identity_Item);
+	auto data = location.getDataT<PG_DisaMPDPack>(PG_Identity_Item);
 	std::string fileName = data.mpd.getName().getName() + ".json";
 	PG_File file = saveDialog(this, "json", fileName);
 	if (file.isEmpty()) return;
@@ -267,7 +267,7 @@ void PG_DisaMapListModel::importJSON(PG_ListModelLocation location) {
 	fileInfo.setIndex(get(location.getIndex()).mpd.getIndex());
 	fileInfo.setType(PG_DisaFileInfo::MPD_JSON);
 	m_changes[location.getIndex()] = std::move(fileInfo);
-	emit itemsChanged(location.getIndex(), location.getIndex(), { Identity_Item });
+	emit itemsChanged(location.getIndex(), location.getIndex(), { PG_Identity_Item });
 	emit hasChangesChanged();
 	*/
 }

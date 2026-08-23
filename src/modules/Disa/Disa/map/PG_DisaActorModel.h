@@ -58,7 +58,7 @@ public:
 	using PG_Object::PG_Object;
 
 	enum ECustomIdentity : Identity {
-		Identity_Translation = Identity_Custom,
+		Identity_Translation = PG_Identity_Custom,
 		Identity_TileGround,
 		Identity_Id,
 		Identity_Rotation,

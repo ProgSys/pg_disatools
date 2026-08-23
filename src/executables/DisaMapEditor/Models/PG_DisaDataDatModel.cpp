@@ -36,7 +36,7 @@ void PG_DisaDataDatModel::closeUi() {
 }
 
 void PG_DisaDataDatModel::tileClicked(PG_ListModelLocation location) {
-	auto var = location.getData(Identity_PreviewImage);
+	auto var = location.getData(PG_Identity_PreviewImage);
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
 		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
@@ -46,7 +46,7 @@ void PG_DisaDataDatModel::tileClicked(PG_ListModelLocation location) {
 }
 
 void PG_DisaDataDatModel::tileClicked(PG_ListModelLocation location, PG_CameraNode* camera) {
-	auto var = location.getData(Identity_PreviewImage);
+	auto var = location.getData(PG_Identity_PreviewImage);
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
 		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();

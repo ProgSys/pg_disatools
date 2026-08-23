@@ -89,7 +89,7 @@ void PG_DisaModListItem::init() {
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
 
 		connect(btn, &PG_GuiButton::clicked, this, [this] {
-			auto* popup = PG_PopUpDialog::createConfirm(this, "Delete mod?", "Do you really want to delete the mod \"" + m_location.getDataT<std::string>(Identity_Text) + "\"? ");
+			auto* popup = PG_PopUpDialog::createConfirm(this, "Delete mod?", "Do you really want to delete the mod \"" + m_location.getDataT<std::string>(PG_Identity_Text) + "\"? ");
 			connect(popup, &PG_PopUpDialog::confirmClicked, this, [this] {
 				callFunc(m_location, "void deleteMod(PG_ListModelLocation)");
 				});
@@ -142,23 +142,23 @@ void PG_DisaModListItem::setLocation(const PG_ListModelLocation& location) {
 	
 	setColor((location.getIndex() % 2 == 0? 0.9f: 1.0f) * PG_Color::blackGrayFrgb);
 	updateImage();
-	m_title->setText(location.getDataT<std::string>(Identity_Text));
+	m_title->setText(location.getDataT<std::string>(PG_Identity_Text));
 	updateAutor();
 	m_decription->setText(location.getDataT<std::string>(PG_DisaModListModel::Identity_Description));
 	m_disableBtn->setToggled(location.getDataT<bool>(PG_DisaModListModel::Identity_Disabled));
 }
 
 void PG_DisaModListItem::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.count(Identity_Item) != 0 || m_location != location;
-	if (hasItem || identities.count(Identity_Location)) {
+	const bool hasItem = identities.count(PG_Identity_Item) != 0 || m_location != location;
+	if (hasItem || identities.count(PG_Identity_Location)) {
 		m_location = location;
 		setColor((location.getIndex() % 2 == 0 ? 0.8f : 1.0f) * PG_Color::blackGrayFrgb);
 	}
-	if (hasItem || identities.count(Identity_PreviewImage)) {
+	if (hasItem || identities.count(PG_Identity_PreviewImage)) {
 		updateImage();
 	}
-	if (hasItem || identities.count(Identity_Text)) {
-		m_title->setText(location.getDataT<std::string>(Identity_Text));
+	if (hasItem || identities.count(PG_Identity_Text)) {
+		m_title->setText(location.getDataT<std::string>(PG_Identity_Text));
 	}
 	if (hasItem || identities.count(PG_DisaModListModel::Identity_Author)) {
 		updateAutor();
@@ -189,7 +189,7 @@ void PG_DisaModListItem::updateImage() {
 		m_img->setImage(missingImg);
 		return;
 	}
-	auto img = m_location.getDataT<PG_Texture>(Identity_PreviewImage);
+	auto img = m_location.getDataT<PG_Texture>(PG_Identity_PreviewImage);
 	if (!img.isValid()) {
 		m_img->setImage(missingImg);
 		return;

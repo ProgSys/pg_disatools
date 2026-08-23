@@ -530,8 +530,8 @@ PG_PopUpDialog* PG_PopUpDialog::selectCompression(PG_GuiItem* parentItem) {
 			emit dialog->confirmClickedIndex(dropDown->getIndex());
 			});
 
-		connect(cancel, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close, ConnectionType_Event);
-		connect(confirm, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close, ConnectionType_Event);
+		connect(cancel, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close, PG_ConnectionType_Event);
+		connect(confirm, &PG_GuiButton::clicked, parent, &PG_GuiPopupInstance::close, PG_ConnectionType_Event);
 
 		});
 	connect(popup, &PG_PopUpDialog::activeChanged, popup, [popup](bool active) {

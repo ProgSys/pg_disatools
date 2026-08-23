@@ -139,7 +139,7 @@ void PG_DisaTileViewNode::updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMa
 	auto location = model->getTiles()->getTileLocation(pos);
 	PG_DisaTileTopGeometry geo;
 	if (location) {
-		auto* tileModel = location.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+		auto* tileModel = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 		const auto top = tileModel->getTop(glm::vec3(0.f));
 		buildFace<0, 1, 2, 3>(top, 0, geo); //Top
 	}
@@ -165,7 +165,7 @@ void PG_DisaTileViewNode::updateFaceLineSelectionGeometry(glm::ivec2 pos, PG_Dis
 	if (!location) {
 		points = PG_DisaMapTileModel::getTopCustom(glm::vec3(0.f), { 0,0,0,0 });
 	}else{
-		const auto* tileModel = location.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+		const auto* tileModel = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 
 		switch (face)
 		{
@@ -231,7 +231,7 @@ void PG_DisaTileViewNode::updateFloorEventGeometry(PG_DisaMapTileListModel* mode
 		std::array<glm::vec3, 4> top;
 		auto tile = model->getTileLocation(position);
 		if (tile) {
-			auto* item = tile.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+			auto* item = tile.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 			top = item->getTop(item->getTranslation());
 		}
 		else {
@@ -277,7 +277,7 @@ void PG_DisaTileViewNode::updateFloorShadowGeometry(const std::array<glm::vec3, 
 
 PG_Object* PG_DisaTileViewNode::getTileModel() const {
 	if (!m_location) return nullptr;
-	return m_location.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+	return m_location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 }
 
 void PG_DisaTileViewNode::setLocation(PG_ListModelLocation loc) {
@@ -288,9 +288,9 @@ void PG_DisaTileViewNode::setLocation(PG_ListModelLocation loc) {
 }
 
 void PG_DisaTileViewNode::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.contains(Identity_Item) || m_location != location;
+	const bool hasItem = identities.contains(PG_Identity_Item) || m_location != location;
 
-	if (hasItem || identities.contains(Identity_Location)) {
+	if (hasItem || identities.contains(PG_Identity_Location)) {
 		m_location = location;
 	}
 
@@ -313,7 +313,7 @@ void PG_DisaTileViewNode::updateGeometry() {
 	auto modelRoot = m_location.getModel()->getParent<PG_DisaMapModel>();
 	auto parent = getParent()->getParent<PG_DisaMapViewNode>();
 	if (!modelRoot || !parent) return;
-	auto* tileModel = m_location.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+	auto* tileModel = m_location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 
 	PG_DisaTileGeometry geo;
 	const auto& tileData = tileModel->getData();

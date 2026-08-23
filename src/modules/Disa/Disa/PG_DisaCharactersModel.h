@@ -46,7 +46,7 @@ class PG_DisaTranslationModel;
 
 struct PG_DisaCharacterModel {
 	enum EPDisaCharacterModelIdentity : Identity {
-		Identity_Id = EIdentity::Identity_Custom,
+		Identity_Id = EIdentity::PG_Identity_Custom,
 		Identity_Name,
 		Identity_Title,
 		Identity_Portrait,

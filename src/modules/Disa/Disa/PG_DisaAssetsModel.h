@@ -15,7 +15,7 @@ class PG_TX2;
 */
 struct PG_DisaAssetsTextureItem {
 	enum EDisaAssetsTextureItemIdentity : Identity {
-		Identity_SD = EIdentity::Identity_Custom,
+		Identity_SD = EIdentity::PG_Identity_Custom,
 		Identity_SDModified,
 		Identity_HD,
 		Identity_HDModified,
@@ -67,7 +67,7 @@ struct PG_DisaAssetsTextureItem {
 */
 struct PG_DisaAssetsGeometryItem {
 	enum EDisaAssetsTextureItemIdentity : Identity {
-		Identity_SD = EIdentity::Identity_Custom,
+		Identity_SD = EIdentity::PG_Identity_Custom,
 		Identity_SDModified,
 		Identity_HD,
 		Identity_HDModified

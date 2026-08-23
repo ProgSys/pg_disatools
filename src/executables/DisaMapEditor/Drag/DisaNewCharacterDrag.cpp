@@ -102,7 +102,7 @@ void DisaNewCharacterDrag::start(unsigned short characterId) {
 bool DisaNewCharacterDrag::event(PG_Event* e) {
 	if (m_dragging) {
 		switch (e->getType()) {
-		case Event_MouseMotion:
+		case PG_Event_MouseMotion:
 		{
 			auto me = (PG_MouseMotionEvent*)e;
 			//if (me->getButton() == SDL_BUTTON_LEFT) 
@@ -110,7 +110,7 @@ bool DisaNewCharacterDrag::event(PG_Event* e) {
 			e->accept();
 			return true;
 		}break;
-		case Event_MouseButton:
+		case PG_Event_MouseButton:
 		{
 			auto key = (PG_MouseButtonEvent*)e;
 			if (key->getButton() == PG_BUTTON_LEFT) {
@@ -125,7 +125,7 @@ bool DisaNewCharacterDrag::event(PG_Event* e) {
 			e->accept();
 			return true;
 		}break;
-		case Event_Key: {
+		case PG_Event_Key: {
 			auto key = (PG_KeyEvent*)e;
 			e->accept();
 			return true;

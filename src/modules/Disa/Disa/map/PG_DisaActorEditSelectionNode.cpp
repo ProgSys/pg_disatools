@@ -16,7 +16,7 @@ static inline PG_DisaActorEditSelectionNode* createNode(PG_DisaActorEditSelectio
 
 	PG_Object::connect(model, &PG_DisaActorModel::translationChanged, node, [node, model]() {
 		node->setTranslation(model->getObjectTranslation());
-		}, ConnectionType_Event);
+		}, PG_ConnectionType_Event);
 
 	return node;
 }
@@ -142,7 +142,7 @@ void PG_DisaActorEditSelectionNode::init() {
 constexpr glm::vec3 baseUp = glm::vec3(0.f, 1.f, 0.f);
 
 bool PG_DisaActorEditSelectionNode::event(PG_Event* e) {
-	if (e->getType() == Event_Tick && isVisible()) {
+	if (e->getType() == PG_Event_Tick && isVisible()) {
 		PG_TickEvent* t = static_cast<PG_TickEvent*>(e);
 		rotateTowardsCamera(0.1f * t->getDeltaTime());
 	}

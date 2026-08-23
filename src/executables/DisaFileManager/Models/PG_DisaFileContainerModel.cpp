@@ -191,7 +191,7 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 	if (!index.isValid()) return;
 
 	std::shared_ptr<PG_DisaFileContainer> containerSptr;
-	PG_DisaFileEntry fileEntry = m_filterModel->getData(index, Identity_Item).get<PG_DisaFileEntry>();
+	PG_DisaFileEntry fileEntry = m_filterModel->getData(index, PG_Identity_Item).get<PG_DisaFileEntry>();
 
 	//check if filecontaner is allready present
 	std::shared_ptr<PG_DisaFileContainer> container = fileEntry.getContainer<PG_DisaFileContainer>();
@@ -228,7 +228,7 @@ void PG_DisaFileContainerModel::exportSelected(const PG_Dir& targetDir) {
 
 	std::vector<char> data(1024 * 1024);
 	for (const auto& index : m_selectionModel->getSelection()) {
-		auto var = m_selectionModel->getData(index, EIdentity::Identity_Item);
+		auto var = m_selectionModel->getData(index, EIdentity::PG_Identity_Item);
 		if (!var) continue;
 		auto entry = var.cast<PG_DisaFileEntry>();
 		copyFile(*entry, targetDir.toFilePath(entry->getName()), data);
@@ -237,7 +237,7 @@ void PG_DisaFileContainerModel::exportSelected(const PG_Dir& targetDir) {
 
 void PG_DisaFileContainerModel::exportLastSelected(const PG_File& targetFile) {
 	if (targetFile.isEmpty() || !m_selectionModel->hasSelection()) return;
-	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::Identity_Item);
+	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::PG_Identity_Item);
 	if (!var) return;
 	auto entry = var.cast<PG_DisaFileEntry>();
 	std::vector<char> data(1024 * 1024);
@@ -251,7 +251,7 @@ void PG_DisaFileContainerModel::replaceLastSelected(const PG_File& targetFile, b
 	}
 	if (!m_selectionModel->hasSelection()) return;
 
-	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::Identity_Item);
+	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::PG_Identity_Item);
 	if (!var) return;
 	PG_DisaFileEntry& entry = var.get<PG_DisaFileEntry>();
 
@@ -272,7 +272,7 @@ void PG_DisaFileContainerModel::replaceLastSelected(const PG_File& targetFile, b
 		PG_DisaFileManagerMainModel::get()->eraseChangedFile(oldContainer);
 	}
 	entry.setContainer(container);
-	m_fileContainer->setData(entry.getLocation(), entry, EIdentity::Identity_Item);
+	m_fileContainer->setData(entry.getLocation(), entry, EIdentity::PG_Identity_Item);
 	PG_DisaFileManagerMainModel::get()->addChangedFile(std::move(container));
 }
 
@@ -282,7 +282,7 @@ void PG_DisaFileContainerModel::importFiles(const std::vector<PG_File>& files) {
 	//insert below the last selected file, if nothing is selected then at the very end
 	int insertAt = (int)m_fileContainer->size();
 	if (m_selectionModel && m_selectionModel->hasSelection()) {
-		auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::Identity_Item);
+		auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::PG_Identity_Item);
 		if (var) {
 			const PG_DisaFileEntry& selected = var.get<PG_DisaFileEntry>();
 			if (selected.getLocation() >= 0) insertAt = selected.getLocation() + 1;

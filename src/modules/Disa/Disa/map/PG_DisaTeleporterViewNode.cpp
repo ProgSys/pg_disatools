@@ -21,7 +21,7 @@ void PG_DisaTeleporterViewNode::setModel(PG_DisaEventTileListModel* model) {
 		connect(m_model, &PG_ListModelBase::itemsRemoved, this, &PG_DisaTeleporterViewNode::update);
 		connect(m_model, &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex, const PG_IdentitySet& identities) {
 			if (!m_model->empty() && contains<
-				PG_DisaEventTileModel::Identity_Value, PG_DisaEventTileModel::Identity_TilePosition, Identity_Location, Identity_Item>(identities)) {
+				PG_DisaEventTileModel::Identity_Value, PG_DisaEventTileModel::Identity_TilePosition, PG_Identity_Location, PG_Identity_Item>(identities)) {
 				update();
 			}
 			});
@@ -30,7 +30,7 @@ void PG_DisaTeleporterViewNode::setModel(PG_DisaEventTileListModel* model) {
 		auto* mapModel = m_model->findParent<PG_DisaMapModel>(7);
 		assert(mapModel);
 
-		connect(mapModel->getTiles(), &PG_DisaMapTileListModel::tilesGeometryChanged, this, &PG_DisaTeleporterViewNode::tileChanged, ConnectionType_Single);
+		connect(mapModel->getTiles(), &PG_DisaMapTileListModel::tilesGeometryChanged, this, &PG_DisaTeleporterViewNode::tileChanged, PG_ConnectionType_Single);
 
 		connect(mapModel->getTiles(), &PG_DisaMapTileListModel::onDeleted, this, [this]() {
 			auto i = 0;
@@ -44,7 +44,7 @@ void PG_DisaTeleporterViewNode::setModel(PG_DisaEventTileListModel* model) {
 }
 
 void PG_DisaTeleporterViewNode::update() {
-	postCallEvent(EventBehaviour_Singleton, &PG_DisaTeleporterViewNode::doUpdate);
+	postCallEvent(PG_Event_Behaviour_Singleton, &PG_DisaTeleporterViewNode::doUpdate);
 }
 
 void PG_DisaTeleporterViewNode::tileChanged(const std::unordered_set<glm::ivec2, PG_iVec2Hasher>& tiles) {

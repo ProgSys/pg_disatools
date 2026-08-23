@@ -68,7 +68,7 @@ void PG_DisaModelNode::reverseTransparent() {
 }
 
 bool PG_DisaModelNode::event(PG_Event* e) {
-	if (e->getType() == EEventTypes::Event_Tick) {
+	if (e->getType() == EEventTypes::PG_Event_Tick) {
 		PG_TickEvent* tEvent = static_cast<PG_TickEvent*>(e);
 		m_animationScroll = glm::mod(m_animationScroll + m_textureScroll * 0.5f * (float)tEvent->getDeltaTime(), 1.0f);
 

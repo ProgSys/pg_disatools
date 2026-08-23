@@ -10,7 +10,7 @@ void PG_DisaActorModel::init() {
 				if (tiles.contains(glm::ivec2(-m_data.x, m_data.z))) {
 					updateHeight();
 				}
-			}, ConnectionType_Single);
+			}, PG_ConnectionType_Single);
 			updateHeight();
 		}
 	});
@@ -268,7 +268,7 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 	case Identity_TileGround: {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
 			if (auto location = model->getTiles()->getTileLocation(glm::ivec2(-m_data.x, m_data.z))) {
-				auto* item = location.getDataT<PG_DisaMapTileModel*>(Identity_Item);
+				auto* item = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 				auto top = item->getTop(glm::vec3(0.f, item->getTranslation().y, 0.f));
 				for (glm::vec3& v: top) v.y -= m_height;
 				return top;

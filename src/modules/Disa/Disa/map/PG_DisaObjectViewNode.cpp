@@ -8,7 +8,7 @@ constexpr float g_disassemblyScrollSpeed = 0.000073260075f;
 
 PG_Object* PG_DisaObjectViewNode::getObjectModel() const {
 	if (!m_location) return nullptr;
-	return m_location.getDataT<PG_DisaObjectModel*>(Identity_Item);
+	return m_location.getDataT<PG_DisaObjectModel*>(PG_Identity_Item);
 }
 
 void PG_DisaObjectViewNode::setLocation(PG_ListModelLocation loc) {
@@ -17,9 +17,9 @@ void PG_DisaObjectViewNode::setLocation(PG_ListModelLocation loc) {
 }
 
 void PG_DisaObjectViewNode::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.contains(Identity_Item) || m_location != location;
+	const bool hasItem = identities.contains(PG_Identity_Item) || m_location != location;
 
-	if (hasItem || identities.contains(Identity_Location)) {
+	if (hasItem || identities.contains(PG_Identity_Location)) {
 		m_location = location;
 		loadGeometry();
 		emit translationUserChanged();
@@ -56,7 +56,7 @@ void PG_DisaObjectViewNode::loadGeometry() {
 		return;
 	}
 
-	auto model = m_location.getDataT<PG_DisaObjectModel*>(Identity_Item);
+	auto model = m_location.getDataT<PG_DisaObjectModel*>(PG_Identity_Item);
 	const auto& object = model->getData();
 	auto mapModel = model->findParent<PG_DisaMapModel>(3);
 
@@ -103,7 +103,7 @@ void PG_DisaObjectViewNode::loadGeometry() {
 
 void PG_DisaObjectViewNode::updateTransformation() {
 	if (!m_location) return;
-	auto model = m_location.getDataT<PG_DisaObjectModel*>(Identity_Item);
+	auto model = m_location.getDataT<PG_DisaObjectModel*>(PG_Identity_Item);
 
 	PG_DisaModelNode* disaModel = findFirstChild<PG_DisaModelNode>("PG_DisaModelNode");
 	if (!disaModel) return;
@@ -120,7 +120,7 @@ void PG_DisaObjectViewNode::updateTransformation() {
 
 void PG_DisaObjectViewNode::updateUVScroll() {
 	if (!m_location) return;
-	auto model = m_location.getDataT<PG_DisaObjectModel*>(Identity_Item);
+	auto model = m_location.getDataT<PG_DisaObjectModel*>(PG_Identity_Item);
 
 	PG_DisaModelNode* disaModel = findFirstChild<PG_DisaModelNode>("PG_DisaModelNode");
 	if (!disaModel) return;

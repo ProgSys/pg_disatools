@@ -211,45 +211,45 @@ void PG_DisaGridTile::setLocation(const PG_ListModelLocation& location) {
 		return;
 	}
 
-	if (m_text) m_text->setText(location.getDataT<std::string>(Identity_Text));
+	if (m_text) m_text->setText(location.getDataT<std::string>(PG_Identity_Text));
 
 	auto area = findFirstChild<PG_GuiMouseArea>("DisaGridTileArea");
-	if (m_location.getData(Identity_Selected)) {
+	if (m_location.getData(PG_Identity_Selected)) {
 		connect(area, &PG_GuiMouseArea::hoveredChanged, this, &PG_DisaGridTile::updateBorder);
 		connect(this, &PG_DisaGridTile::selectionChanged, this, &PG_DisaGridTile::updateBorder);
 		connect(area, &PG_GuiMouseArea::clicked, this, [this]() {
-			m_location.setData(true, Identity_Selected);
+			m_location.setData(true, PG_Identity_Selected);
 			});
 	}
 	else {
 		connect(area, &PG_GuiMouseArea::hoveredChanged, m_border, &PG_GuiRectangle::setVisible);
 	}
 
-	openPreview(location.getData(Identity_PreviewImage));
+	openPreview(location.getData(PG_Identity_PreviewImage));
 }
 
 void PG_DisaGridTile::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
-	const bool hasItem = identities.count(Identity_Item) != 0 || m_location != location;
-	if (hasItem || identities.count(Identity_Location)) {
+	const bool hasItem = identities.count(PG_Identity_Item) != 0 || m_location != location;
+	if (hasItem || identities.count(PG_Identity_Location)) {
 		m_location = location;
 	}
 
 	if (!location) return;
-	if (hasItem || identities.count(Identity_Text)) {
-		if (m_text) m_text->setText(location.getDataT<std::string>(Identity_Text));
+	if (hasItem || identities.count(PG_Identity_Text)) {
+		if (m_text) m_text->setText(location.getDataT<std::string>(PG_Identity_Text));
 	}
 
-	if (hasItem || identities.count(Identity_PreviewImage)) {
-		openPreview(location.getData(Identity_PreviewImage));
+	if (hasItem || identities.count(PG_Identity_PreviewImage)) {
+		openPreview(location.getData(PG_Identity_PreviewImage));
 	}
 
-	if (hasItem || identities.count(Identity_Selected)) {
+	if (hasItem || identities.count(PG_Identity_Selected)) {
 		emit selectionChanged();
 	}
 }
 
 void PG_DisaGridTile::updateBorder() {
 	auto area = findFirstChild<PG_GuiMouseArea>("DisaGridTileArea");
-	const bool display = area->isHovered() || m_location.getDataT<bool>(Identity_Selected);
+	const bool display = area->isHovered() || m_location.getDataT<bool>(PG_Identity_Selected);
 	m_border->setVisible(display);
 }

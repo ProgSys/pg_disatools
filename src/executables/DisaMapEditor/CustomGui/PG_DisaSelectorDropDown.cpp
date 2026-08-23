@@ -35,7 +35,7 @@ void PG_DisaSelectorDropDown::init() {
 			if (!getModel() || getIndex() < 0 || getIndex() >= getModel()->size()) return;
 
 			if (auto textEdit = dynamic_cast<PG_GuiTextEdit*>(m_display)) {
-				if (PG_Variety var = getModel()->getData(getIndex(), Identity_Text)) {
+				if (PG_Variety var = getModel()->getData(getIndex(), PG_Identity_Text)) {
 					PG_File file(var.get<std::string>());
 					textEdit->setText(file.getName());
 					textEdit->setScroll(glm::vec2(0.f));
@@ -51,7 +51,7 @@ void PG_DisaSelectorDropDown::init() {
 			}
 
 			for (int i = 0; i < getModel()->size(); ++i) {
-				if (PG_Variety var = getModel()->getData(i, Identity_Text)) {
+				if (PG_Variety var = getModel()->getData(i, PG_Identity_Text)) {
 					PG_File file(var.get<std::string>());
 
 					if (PG_StringUtil::isEqualCaseless(file.getName(), textEdit->getText())) {
@@ -78,7 +78,7 @@ void PG_DisaSelectorDropDown::init() {
 bool PG_DisaSelectorDropDown::event(PG_Event* e) {
 	if (isEnabled() && m_display) {
 		switch (e->getType()) {
-		case Event_MouseButton:
+		case PG_Event_MouseButton:
 		{
 			auto button = static_cast<PG_MouseButtonEvent*>(e);
 			if (button->getButton() == PG_BUTTON_RIGHT) {
@@ -92,7 +92,7 @@ bool PG_DisaSelectorDropDown::event(PG_Event* e) {
 				return PG_Object::event(e); //skip mause area
 			}
 		}break;
-		case Event_MouseMotion:
+		case PG_Event_MouseMotion:
 		{
 			auto button = static_cast<PG_MouseMotionEvent*>(e);
 			if (m_display->isInside(button->getPosition())) {

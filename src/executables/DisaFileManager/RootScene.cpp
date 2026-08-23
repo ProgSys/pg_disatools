@@ -134,7 +134,7 @@ void RootScene::setupToolbar() {
 		openButton->setIcon("gui/icon_folder.png");
 		openButton->setBackground("M_GuiRoundedRectangleAll5");
 		openButton->setTooltipText("Open file");
-		openButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+		openButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 
 		connect(openButton, &PG_GuiButton::clicked, this, [this] {
 			PG_File file = PG_FileDialog::open(this, "dat");
@@ -152,9 +152,30 @@ void RootScene::setupToolbar() {
 		saveButton->setBackground("M_GuiRoundedRectangleAll5");
 		saveButton->setTooltipText("Save file");
 		saveButton->setEnabled(false);
-		saveButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
+		saveButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 		connect(m_mainModel, m_mainModel->getProperty("isModified"), saveButton, saveButton->getProperty("enabled"));
 		connect(saveButton, &PG_GuiButton::clicked, m_mainModel, m_mainModel->getFunction("void save()"));
+	}
+
+	{
+		auto saveAsButton = PG_new<PG_GuiButton>("saveAsButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
+		saveAsButton->setIcon("gui/icon_saveAs.png");
+		saveAsButton->setBackground("M_GuiRoundedRectangleAll5");
+		saveAsButton->setTooltipText("Save as");
+		saveAsButton->setEnabled(false);
+
+		connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, saveAsButton, [saveAsButton](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
+			saveAsButton->setEnabled(newModel != nullptr);
+			});
+
+		connect(saveAsButton, &PG_GuiButton::clicked, this, [this] {
+			const PG_File originFile = m_mainModel->getOriginFile();
+			if (originFile.isEmpty()) return;
+
+			PG_File file = PG_FileDialog::save(this, originFile.getFileExtensionFormated(), originFile.getFile());
+			if (file.isEmpty()) return;
+			m_mainModel->saveAs(file);
+			});
 	}
 
 
@@ -342,7 +363,7 @@ void RootScene::setupCenter() {
 					PG_ListModelLocation loc = asObject->getPropertyValue("lastSelected").get<PG_ListModelLocation>();
 					if (!loc) return;
 
-					if (PG_File result = PG_PopUpDialog::saveAs(loc.getDataT<std::string>(EIdentity::Identity_Text))) {
+					if (PG_File result = PG_PopUpDialog::saveAs(loc.getDataT<std::string>(EIdentity::PG_Identity_Text))) {
 						funcExportSingle.callArgs(asObject, result);
 					}
 					return;
@@ -419,9 +440,9 @@ void RootScene::setupCenter() {
 bool RootScene::event(PG_Event* e) {
 	switch (e->getType())
 	{
-		case Event_Key: {
+		case PG_Event_Key: {
 			auto key = static_cast<PG_KeyEvent*>(e);
-			if (key->getKey() == PG_F5 && !key->isRepeat() && key->isUp()) {
+			if (key->getKey() == PG_Key_F5 && !key->isRepeat() && key->isUp()) {
 				PG_Shader::reloadAll();
 				key->accept();
 				return true;

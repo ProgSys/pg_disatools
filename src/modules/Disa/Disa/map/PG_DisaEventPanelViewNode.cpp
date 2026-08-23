@@ -19,7 +19,7 @@ void PG_DisaEventPanelViewNode::setModel(PG_DisaEventTileListModel* model) {
 		connect(m_model, &PG_ListModelBase::itemsAdded, this, &PG_DisaEventPanelViewNode::update);
 		connect(m_model, &PG_ListModelBase::itemsRemoved, this, &PG_DisaEventPanelViewNode::update);
 		connect(m_model, &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex , const PG_IdentitySet& identities) {
-			if (!m_model->empty() && contains<Identity_Location, Identity_Item>(identities)) {
+			if (!m_model->empty() && contains<PG_Identity_Location, PG_Identity_Item>(identities)) {
 				update(); 
 			}
 		});
@@ -30,7 +30,7 @@ void PG_DisaEventPanelViewNode::setModel(PG_DisaEventTileListModel* model) {
 }
 
 void PG_DisaEventPanelViewNode::update() {
-	postCallEvent(EventBehaviour_Singleton, &PG_DisaEventPanelViewNode::doUpdate);
+	postCallEvent(PG_Event_Behaviour_Singleton, &PG_DisaEventPanelViewNode::doUpdate);
 }
 
 void PG_DisaEventPanelViewNode::doUpdate() {
