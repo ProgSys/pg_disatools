@@ -7,7 +7,9 @@
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Renderer/PG_SceneRenderer.h>
 #include <Util/Color/ColorConverters.h>
+#include <Util/PG_ImageLoad.h>
 #include <Disa/PG_DisaMapViewNode.h>
+#include <Disa/customGui/PG_PupUpDialog.h>
 #include <Disa/fileformats/PG_PSPFS.h>
 
 void PG_DisaPreviewItem::init() {
@@ -33,9 +35,76 @@ void PG_DisaPreviewItem::init() {
 	m_border->setBorderColor(PG_Color::hexToFloatColor(0xFF85D0FF));
 	m_border->setBorderWidth(2.f);
 	m_border->setVisible(false);
+
+	PG_GuiMouseArea* area = PG_new<PG_GuiMouseArea>("PreviewArea", this);
+	area->setConferEnabled(true);
+	area->setAcceptedButtons(PG_GuiMouseArea::Right);
+	area->fill(this);
+	connect(area, &PG_GuiMouseArea::rightClicked, this, [this] {
+		auto popup = PG_new<PG_GuiMenuPopup>("previewPopup", this);
+		popup->addOption("Export Image", hasPreview(), this, [this] { exportImage(); });
+		popup->addOption(m_previewEnabled ? "Disable Preview" : "Enable Preview", true, this, [this] { setPreviewEnabled(!m_previewEnabled); });
+		popup->openAndDestroyOnClose();
+		});
+}
+
+void PG_DisaPreviewItem::exportImage() {
+	if (!hasPreview()) return;
+
+	//find the component the preview is displayed with
+	PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>();
+	if (!imgItem) {
+		OUT_ERROR("This kind of preview can't be exported as a image!");
+		return;
+	}
+
+	const PG_Texture& texture = imgItem->getImage();
+	if (!texture.isValid()) {
+		OUT_ERROR("There is no image to export!");
+		return;
+	}
+	//let the render thread read the image back while the user picks the target file
+	std::future<PG_Texture::ImageFormats> imageFuture = texture.exportImage();
+
+	const PG_File previewFile(m_location.getDataT<std::string>(EIdentity::Identity_Text));
+	PG_File targetFile = PG_PopUpDialog::saveAs(previewFile ? previewFile.replaceFileExtension("png") : PG_File("preview.png"));
+	if (!targetFile) return;
+	if (targetFile.getFileExtensionFormated() != "png") targetFile.replaceFileExtension("png");
+
+	std::visit([&targetFile](const auto& img) {
+		using T = std::decay_t<decltype(img)>;
+		if constexpr (std::is_same_v<T, PG_RGBAImage> || std::is_same_v<T, PG_RGBImage>) {
+			if (img.empty()) {
+				OUT_ERROR("The preview has no image data to export!");
+				return;
+			}
+			if (!PG_ImageLoad::save(targetFile, img)) {
+				OUT_ERROR("Failed to save image as: " << targetFile << "!");
+			}
+		} else {
+			OUT_ERROR("The image format of the preview can't be saved as png!");
+		}
+		}, imageFuture.get());
+}
+
+void PG_DisaPreviewItem::setPreviewEnabled(bool enabled) {
+	if (m_previewEnabled == enabled) return;
+	m_previewEnabled = enabled;
+
+	if (!m_previewEnabled) {
+		clearImage();
+		return;
+	}
+
+	if (m_location) openPreview(m_location.getData(Identity_PreviewImage));
 }
 
 void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
+	if (!m_previewEnabled) {
+		clearImage();
+		return;
+	}
+
 	if (var.is<PG_DisaMPDPack>()) {
 		open(var.get<PG_DisaMPDPack>());
 		return;
@@ -77,8 +146,12 @@ void PG_DisaPreviewItem::open(const std::string& imgPath) {
 	imgItem->setImage(imgPath);
 }
 
-void PG_DisaPreviewItem::clear() {
+void PG_DisaPreviewItem::clearImage() {
 	m_container->clearGuiChildren();
+}
+
+void PG_DisaPreviewItem::clear() {
+	clearImage();
 	if (m_text) m_text->setText({});
 }
 
@@ -162,7 +235,8 @@ void PG_DisaPreviewItem::setLocation(const PG_ListModelLocation& location) {
 
 	if (m_text) m_text->setText(location.getDataT<std::string>(Identity_Text));
 
-	openPreview(location.getData(Identity_PreviewImage));
+	if (m_previewEnabled) openPreview(location.getData(Identity_PreviewImage));
+	else clearImage();
 	emit locationChanged();
 }
 
@@ -178,6 +252,7 @@ void PG_DisaPreviewItem::update(const PG_ListModelLocation& location, const PG_I
 	}
 
 	if (hasItem || identities.count(Identity_PreviewImage)) {
-		openPreview(location.getData(Identity_PreviewImage));
+		if (m_previewEnabled) openPreview(location.getData(Identity_PreviewImage));
+		else clearImage();
 	}
 }

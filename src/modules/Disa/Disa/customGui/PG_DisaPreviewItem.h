@@ -29,7 +29,22 @@ public:
 	void setLocation(const PG_ListModelLocation& location);
 	void update(const PG_ListModelLocation& location, const PG_IdentitySet& identities);
 
+	/**
+	* @brief If disabled then no preview will be loaded at all
+	*/
+	inline bool isPreviewEnabled() const { return m_previewEnabled; }
+	void setPreviewEnabled(bool enabled);
+	/**
+	* @returns true if any kind of preview is open
+	*/
+	inline bool hasPreview() const { return m_container && m_container->hasGuiChildren(); }
+	/**
+	* @brief Asks the user for a target file and saves the currently open preview as png
+	*/
+	void exportImage();
+
 private:
+	void clearImage();
 	void clear();
 	void createGameScene();
 	void updateBorder();
@@ -38,4 +53,5 @@ private:
 	PG_GuiText* m_text = nullptr;
 	PG_GuiRectangle* m_border = nullptr;
 	PG_GuiItem* m_container = nullptr;
+	bool m_previewEnabled = true;
 };
