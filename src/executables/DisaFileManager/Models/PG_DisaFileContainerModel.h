@@ -74,6 +74,11 @@ receivers:
 	* @param replaceName If true then the name will be changed to the target file name
 	*/
 	void replaceLastSelected(const PG_File& targetFile, bool replaceName);
+	/**
+	* @brief Will insert the given files below the last selected item
+	* @details If there is no selection then the files are added at the very end
+	*/
+	void importFiles(const std::vector<PG_File>& files);
 private:
 	void setContainer(PG_DisaFileContainer* fileContainer);
 	void setOwningContainer(std::shared_ptr<PG_DisaFileContainer>&& container);

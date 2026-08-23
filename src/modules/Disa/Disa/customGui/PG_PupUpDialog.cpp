@@ -47,6 +47,28 @@ PG_File PG_PopUpDialog::selectFile(const std::string& fileExtensions) {
 	return toFile(result, outPath);
 }
 
+std::vector<PG_File> PG_PopUpDialog::selectFiles(const std::string& fileExtensions) {
+	nfdpathset_t outPaths = {};
+	nfdresult_t result = NFD_OpenDialogMultiple(fileExtensions.c_str(), nullptr, &outPaths);
+
+	PG_EventLoop::doRun();
+	PG_Application::grabMouse(nullptr);
+
+	std::vector<PG_File> files;
+	if (result != NFD_OKAY) return files;
+
+	const std::size_t count = NFD_PathSet_GetCount(&outPaths);
+	files.reserve(count);
+	for (std::size_t i = 0; i < count; ++i) {
+		if (const nfdchar_t* path = NFD_PathSet_GetPath(&outPaths, i)) {
+			files.emplace_back(std::string(path));
+		}
+	}
+	NFD_PathSet_Free(&outPaths);
+
+	return files;
+}
+
 PG_File PG_PopUpDialog::saveAs(const std::string& fileName) {
 	PG_File orgFile(fileName);
 	nfdchar_t* outPath = nullptr;

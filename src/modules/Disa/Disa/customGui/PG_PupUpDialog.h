@@ -34,6 +34,11 @@ public:
 	static PG_PopUpDialog* selectCompression(PG_GuiItem* parentItem);
 
 	static PG_File selectFile(const std::string& fileExtensions);
+	/**
+	* @brief Like selectFile, but the user can select multiple files
+	* @returns The selected files, is empty when canceled
+	*/
+	static std::vector<PG_File> selectFiles(const std::string& fileExtensions);
 	static PG_File saveAs(const std::string& fileName);
 	static PG_Dir selectDir();
 };

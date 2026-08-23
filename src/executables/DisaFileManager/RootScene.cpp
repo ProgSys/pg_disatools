@@ -358,6 +358,34 @@ void RootScene::setupCenter() {
 	}
 
 	{
+		PG_GuiButton* btn = PG_new<PG_GuiButton>("PG_GuiButton_Import", glm::vec2(0.0f), glm::vec2(39.f, 30.f), previewColumn);
+		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
+		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
+
+		btn->setText("Import");
+		btn->setTooltipText("Import one or more files below the selected file");
+		btn->setIcon("gui/icon_add.png");
+		btn->setEnabled(false);
+
+		connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, btn, [btn](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
+			if (oldModel) disconnect(btn, nullptr, dynamic_cast<PG_Object*>(oldModel), nullptr);
+			btn->setEnabled(false); //there is no open file
+
+			if (!newModel) return;
+			auto* asObject = dynamic_cast<PG_Object*>(newModel);
+			if (!asObject) return;
+			auto funcImport = asObject->getFunction("void importFiles(const std::vector<PG_File>&)");
+			if (!funcImport) return;
+			btn->setEnabled(true);
+			connect(btn, &PG_GuiButton::clicked, asObject, [asObject, funcImport] {
+				std::vector<PG_File> results = PG_PopUpDialog::selectFiles({});
+				if (results.empty()) return;
+				funcImport.callArgs(asObject, results);
+				});
+			});
+	}
+
+	{
 		PG_GuiButton* btn = PG_new<PG_GuiButton>("PG_GuiButton_Replace", glm::vec2(0.0f), glm::vec2(39.f, 30.f), previewColumn);
 		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
 		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);

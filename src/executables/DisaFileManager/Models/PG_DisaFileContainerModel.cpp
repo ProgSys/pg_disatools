@@ -275,3 +275,42 @@ void PG_DisaFileContainerModel::replaceLastSelected(const PG_File& targetFile, b
 	m_fileContainer->setData(entry.getLocation(), entry, EIdentity::Identity_Item);
 	PG_DisaFileManagerMainModel::get()->addChangedFile(std::move(container));
 }
+
+void PG_DisaFileContainerModel::importFiles(const std::vector<PG_File>& files) {
+	if (files.empty() || !m_fileContainer) return;
+
+	//insert below the last selected file, if nothing is selected then at the very end
+	int insertAt = (int)m_fileContainer->size();
+	if (m_selectionModel && m_selectionModel->hasSelection()) {
+		auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::Identity_Item);
+		if (var) {
+			const PG_DisaFileEntry& selected = var.get<PG_DisaFileEntry>();
+			if (selected.getLocation() >= 0) insertAt = selected.getLocation() + 1;
+		}
+	}
+
+	for (const PG_File& file : files) {
+		if (file.isEmpty() || !file.exists()) {
+			OUT_ERROR("The file " << file << " dosn't exist!");
+			continue;
+		}
+
+		auto container = std::make_shared<PG_DisaChangedFileContainer>(file);
+		PG_DisaFileInfo info(file);
+		if (auto reader = container->createReader(); reader && reader->isOpen()) {
+			info.setName(file.getFile());
+			info.setSize(reader->size());
+			info.determinTypeFromFileFormat(reader.get());
+		}
+		else {
+			OUT_ERROR("Failed to open file " << file << "!");
+			continue;
+		}
+
+		auto& items = m_fileContainer->getItems();
+		m_fileContainer->insert(std::next(items.begin(), insertAt), PG_DisaFileEntry(std::move(info), m_fileContainer));
+		items[insertAt].setContainer(container);
+		PG_DisaFileManagerMainModel::get()->addChangedFile(std::move(container));
+		++insertAt;
+	}
+}
