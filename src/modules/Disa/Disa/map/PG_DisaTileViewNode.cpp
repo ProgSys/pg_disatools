@@ -307,36 +307,40 @@ float PG_DisaTileViewNode::getTopHeight() const {
 	return m_location.getDataT<float>(PG_DisaMapTileModel::Identity_TopHeight);
 }
 
-
 void PG_DisaTileViewNode::updateGeometry() {
 	if (!m_location) return;
-	auto modelRoot = m_location.getModel()->getParent<PG_DisaMapModel>();
+	auto modelRoot = m_location.getModel()->findParent<PG_DisaMapModel>(3);
 	auto parent = getParent()->getParent<PG_DisaMapViewNode>();
 	if (!modelRoot || !parent) return;
 	auto* tileModel = m_location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
-
-	PG_DisaTileGeometry geo;
 	const auto& tileData = tileModel->getData();
 
+	PG_DisaTileGeometry geo;
+
 	const glm::vec3 offset(0.f);
-	if (const int i = tileModel->getTopTextureIndex(); i >= 0) {
-		const auto top = tileModel->getTop(offset);
+
+	if (const int i = PG_DisaMapTileModel::getTopTextureIndex(tileData); i >= 0) {
+		const auto top = PG_DisaMapTileModel::getTopData(tileData, offset);
 		buildFace<0, 1, 2, 3>(top, tileData.textures[4], tileData.textures[9], tileData.textures[10], glm::vec3(0.0f, 1.0f, 0.0f), geo); //Top
 	}
 
 	//other then top texture index must be bigger 0, for some reason...
-	if (const int i = tileModel->getSideNTextureIndex(); i > 0)
-		buildFace<0, 1, 2, 3>(tileModel->getSideN(offset), tileData.textures[0], tileData.textures[5], {}, glm::vec3(0.0f, 0.0f, -1.0f), geo); //Z-
-	if (const int i = tileModel->getSideWTextureIndex(); i > 0)
-		buildFace<0, 1, 2, 3>(tileModel->getSideW(offset), tileData.textures[3], tileData.textures[8], {}, glm::vec3(1.0f, 0.0f, 0.0f), geo); //X+
-	if (const int i = tileModel->getSideSTextureIndex(); i > 0)
-		buildFace<0, 1, 2, 3>(tileModel->getSideS(offset), tileData.textures[2], tileData.textures[7], {}, glm::vec3(0.0f, 0.0f, 1.0f), geo); //Z+
-	if (const int i = tileModel->getSideETextureIndex(); i > 0)
-		buildFace<0, 1, 2, 3>(tileModel->getSideE(offset), tileData.textures[1], tileData.textures[6], {}, glm::vec3(0.0f, 0.0f, -1.0f), geo); //X-
+	if (const int i = PG_DisaMapTileModel::getSideNTextureIndex(tileData); i > 0)
+		buildFace<0, 1, 2, 3>(PG_DisaMapTileModel::getSideNData(tileData, offset), tileData.textures[0], tileData.textures[5], {}, glm::vec3(0.0f, 0.0f, -1.0f), geo); //Z-
+	if (const int i = PG_DisaMapTileModel::getSideWTextureIndex(tileData); i > 0)
+		buildFace<0, 1, 2, 3>(PG_DisaMapTileModel::getSideWData(tileData, offset), tileData.textures[3], tileData.textures[8], {}, glm::vec3(1.0f, 0.0f, 0.0f), geo); //X+
+	if (const int i = PG_DisaMapTileModel::getSideSTextureIndex(tileData); i > 0)
+		buildFace<0, 1, 2, 3>(PG_DisaMapTileModel::getSideSData(tileData, offset), tileData.textures[2], tileData.textures[7], {}, glm::vec3(0.0f, 0.0f, 1.0f), geo); //Z+
+	if (const int i = PG_DisaMapTileModel::getSideETextureIndex(tileData); i > 0)
+		buildFace<0, 1, 2, 3>(PG_DisaMapTileModel::getSideEData(tileData, offset), tileData.textures[1], tileData.textures[6], {}, glm::vec3(0.0f, 0.0f, -1.0f), geo); //X-
 
+	glm::vec2 pos((int)tileModel->getData().x, (int)tileModel->getData().z);
 
-	std::vector<PG_Texture> textures;
+	if (geo.surfaces.size() > 90000) return;
+
 	const bool isHdMode = modelRoot->getAssets()->isHDViewEnabled();
+	modelRoot->getAssets()->getTextures()->getItems();
+	std::vector<PG_Texture> textures;
 	if (isHdMode) {
 		for (const auto& texAsset : modelRoot->getAssets()->getTextures()->getItems()) {
 			textures.push_back(texAsset.getHDTexture());
@@ -347,10 +351,11 @@ void PG_DisaTileViewNode::updateGeometry() {
 			textures.push_back(texAsset.getSDTexture());
 		}
 	}
+
 	PG_Material tileMat(isHdMode ? "M_MapTileHD" : "M_MapTile");
 
 	std::function<std::vector<PG_Model::Surface>()> mapModelLoadFunc =
-		[geoSurfaces = std::move(geo.surfaces), textures = std::move(textures), tileMat]() -> std::vector<PG_Model::Surface> {
+		[geoSurfaces = geo.surfaces, textures = std::move(textures), tileMat]() -> std::vector<PG_Model::Surface> {
 		//mpp data
 		std::vector<PG_Model::Surface> surfaces;
 		for (auto& [matIds, surface] : geoSurfaces) {
@@ -365,9 +370,9 @@ void PG_DisaTileViewNode::updateGeometry() {
 					GL::DataWrapper("uvShadowMap", std::move(surface.uvsShadowMap)),
 					GL::DataWrapper("indices",std::move(surface.indices), GL::ELEMENT_ARRAY_BUFFER),
 				}
-			);
+				);
 
-			
+
 
 			PG_Material mat = tileMat;
 			if (!textures.empty()) {
@@ -381,7 +386,7 @@ void PG_DisaTileViewNode::updateGeometry() {
 					if (id < textures.size() && textures[id].isValid()) {
 						mat.setBinding(name, textures[id]);
 					}
-				};
+					};
 
 				addTexture(matIds.x, "textureSlot0");
 				addTexture(matIds.y, "textureSlot1");
@@ -400,17 +405,21 @@ void PG_DisaTileViewNode::updateGeometry() {
 
 	getModel().load(PG_UNIQUE_RES("M_DisaTile"), std::move(mapModelLoadFunc));
 
-
-	if (!geo.aabb.isValid() && geo.aabb.max.y == geo.aabb.min.y) {
-		geo.aabb.min.y -= 0.2;
+	auto gAABB = geo.aabb;
+	if (!gAABB.isValid() && gAABB.max.y == gAABB.min.y) {
+		gAABB.min.y -= 0.2;
 	}
-	if (!geo.aabb.isValid()) {
-		OUT_WARNING("Tile at (" << (int)tileModel->getData().x << ", " << (int)tileModel->getData().z << ") has invalid aabb!");
+	if (!gAABB.isValid()) {
+		OUT_WARNING("Tile at (" << pos.x << ", " << pos.y << ") has invalid aabb!");
+		getVolumeCollision().reset();
+		getVolumeVisibility().reset();
+		return;
 	}
-	setVolumeCollision(PG_Volume::fromAABB(geo.aabb));
+	setVolumeCollision(PG_Volume::fromAABB(gAABB));
 	getVolumeCollision().transform(getModelMatrix());
-	setVolumeVisibility(PG_Volume::fromAABB(geo.aabb));
+	setVolumeVisibility(PG_Volume::fromAABB(gAABB));
 	getVolumeVisibility().transform(getModelMatrix());
+
 }
 
 void PG_DisaTileViewNode::updateTranslation() {

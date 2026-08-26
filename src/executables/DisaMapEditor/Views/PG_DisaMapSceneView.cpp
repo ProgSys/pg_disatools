@@ -123,10 +123,6 @@ void PG_DisaMapSceneView::init() {
 
 		{
 			m_mapNodeV2 = PG_new<PG_DisaMapViewNode>("PG_DisaMapViewNode", getRoot());
-
-			connect(m_mapNodeV2, &PG_DisaMapViewNode::loaded, this, [this] {
-				orbitCamera(0.f);
-				});
 		}
 
 	}
@@ -147,27 +143,31 @@ void PG_DisaMapSceneView::orbitCamera(float value) {
 		if (m_mapNodeV2->getTileView()) bv = m_mapNodeV2->getTileView()->getVolumeVisibilityHierarchy();
 		if (!bv) bv = m_mapNodeV2->getVolumeVisibilityHierarchy();
 		if (!bv) bv = getRoot()->getVolumeVisibilityHierarchy();
-		if (!bv) return;
+		glm::vec3 bvCenter{ 0.f };
+		glm::vec3 bvPoint{ 6.f };
+		if (bv) {
+			bvCenter = bv.getCenter();
+			bvPoint = bv.getPoint(4);
+		}
 
 		glm::vec3 baseDir = glm::normalize(glm::vec3(1.f));
 		float distance = 6.f;
 
-		const glm::vec3 center = bv.getCenter();
-		distance = glm::clamp(glm::distance(center, bv.getPoint(4)) * 2.f, 1.f, 6.f);
+		distance = glm::clamp(glm::distance(bvCenter, bvPoint) * 2.f, 1.f, 6.f);
 
 		const glm::vec3 dir = glm::rotateY(
-			cam->getTranslation() - center,
+			cam->getTranslation() - bvCenter,
 			float(value) //angle (rad)
 		);
 			
 		if (std::abs(glm::length(dir) - distance) > 0.001F) {
-			cam->setTranslation(center + baseDir * distance);
+			cam->setTranslation(bvCenter + baseDir * distance);
 		}
 		else {
-			cam->setTranslation(center + dir);
+			cam->setTranslation(bvCenter + dir);
 		}
 	
-		cam->lookAt(center);
+		cam->lookAt(bvCenter);
 		cam->updateModelMatrix();
 	}
 }
@@ -200,6 +200,19 @@ bool PG_DisaMapSceneView::event(PG_Event* e) {
 	}
 
 	return PG_Scene::event(e);
+}
+
+void PG_DisaMapSceneView::setPreviewMode(bool isPreviewMode) {
+	if (m_previewMode == isPreviewMode) return;
+	m_previewMode = isPreviewMode;
+	if (m_previewMode) {
+		connect(m_mapNodeV2, &PG_DisaMapViewNode::loaded, this, [this] {
+			orbitCamera(0.f);
+			});
+	}
+	else {
+		disconnect(m_mapNodeV2, &PG_DisaMapViewNode::loaded, this, nullptr);
+	}
 }
 
 void PG_DisaMapSceneView::setAxisVisible(bool visible) {

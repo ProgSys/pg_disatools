@@ -23,7 +23,7 @@ public:
 	bool event(PG_Event* e) override;
 
 	inline bool getPreviewMode() const { return m_previewMode; }
-	inline void setPreviewMode(bool v) { m_previewMode = v; }
+	void setPreviewMode(bool isPreviewMode);
 	void setAxisVisible(bool visible);
 	void setShowHiddenModel(bool visible);
 

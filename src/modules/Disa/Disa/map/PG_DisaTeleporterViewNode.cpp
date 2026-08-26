@@ -76,12 +76,12 @@ void PG_DisaTeleporterViewNode::doUpdate() {
 	const glm::ivec2 pos = (*findIt)->getTilePosition();
 	auto tileLoc = mapModel->getTiles()->getTileLocation(pos);
 
-	float height = 0.0F;
+	float height = 0.f;
 	if (tileLoc) {
 		height = tileLoc.getDataT<float>(PG_DisaMapTileModel::Identity_RefHeight);
 	}
 	
-	setTranslation(glm::vec3(pos.x + 1, height, pos.y));
+	setTranslation(glm::vec3(pos.x + 0.5f, height, pos.y + 0.5f));
 	setVisible(true);
 
 }

@@ -6,7 +6,7 @@
     },
     "configurePresets": [
         {
-            "binaryDir": "${sourceDir}/../build/winVS/Debug",
+            "binaryDir": "${sourceDir}/../build/x64-Debug",
             "description": "Default build using Ninja generator",
             "displayName": "Default Config",
             "environment": {
@@ -26,6 +26,7 @@
             "name": "debug_preset"
         },
         {
+			"binaryDir": "${sourceDir}/../build/x64-Release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "RelWithDebInfo"
             },

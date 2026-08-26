@@ -23,6 +23,24 @@ struct TextureLoader {
 	PG_TX2 tx2;
 };
 
+struct TextureLoader2 {
+
+	PG_Texture::ImageFormats operator()() const {
+		PG_TX2 tx2;
+		tx2.open(reader.get());
+
+		PG_RGBAImage image;
+		if (!decompressTX2(tx2, image)) {
+			return image;
+		}
+		else {
+			OUT_ERROR("Failed to decompress 'tx2'!");
+		}
+		return image;
+	}
+	std::shared_ptr<PG::STREAM::In> reader;
+};
+
 /*
 * ============= PG_DisaAssetsTextureItem =============
 */
@@ -42,15 +60,13 @@ PG_Variety PG_DisaAssetsTextureItem::getData(Identity identity) const {
 
 static inline const PG_Texture& textureUpdate(std::string&& name, PG_Texture& tex, const PG_ListModelLocation& loc, bool& changed) {
 	if (changed && loc) {
-		PG_TX2 tx2;
 		auto item = loc.getDataT<PG_DisaFileEntry>(PG_Identity_Item);
 		if (item.getInfo().getSize() == 0 && !item.getContainer()) {
 			tex.reset();
 			return tex;
 		}
-		tx2.open(item.createReader().get());
 		name += std::to_string(loc.getIndex());
-		tex.load(name, TextureLoader{ std::move(tx2) });
+		tex.load(name, TextureLoader2{ item.createReader() });
 		changed = false;
 	}
 	return tex;

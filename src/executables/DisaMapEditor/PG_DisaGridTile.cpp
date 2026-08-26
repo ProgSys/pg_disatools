@@ -13,6 +13,7 @@
 #include <Views/PG_DisaMapSceneView.h>
 #include <PG_DisaMapListModel.h>
 #include <RootScene.h>
+#include <Disa/utils/PG_SaveTexture.h>
 
 #include <Disa/fileformats/PG_PSPFS.h>
 
@@ -69,9 +70,11 @@ void PG_DisaGridTile::init(){
 		if (!func) return;
 		func.callArgs(model, getLocation());
 		});
+
 	connect(this, &PG_DisaGridTile::rightClicked, this, [this] {
 		auto rootModel = m_location.getModelRoot();
 		if (auto mapsModel = dynamic_cast<PG_DisaMapListModel*>(rootModel); mapsModel && m_location) {
+			//TODO depricated/dosn't work
 			auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", this);
 			popup->addOption("Export MPD", this, [this, mapsModel] { mapsModel->exportData(m_location); });
 			popup->addOption("Export Json", true, this, [this, mapsModel] { mapsModel->exportJSON(m_location); });
@@ -90,6 +93,14 @@ void PG_DisaGridTile::init(){
 				}
 				model->remove(i); 
 				});
+			popup->openAndDestroyOnClose();
+		}
+		else if (PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>()) {
+			if (!imgItem->getImage()) return;
+			auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", this);
+			popup->addOption("Export Image", this, [this, imgItem] { 
+				PG_FileDialog::save(imgItem->getImage(), m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
+			});
 			popup->openAndDestroyOnClose();
 		}
 	});

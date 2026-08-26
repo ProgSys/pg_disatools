@@ -224,11 +224,17 @@ public:
 	void setSideVisibility(glm::bvec4 value);
 
 
-	int getTopTextureIndex() const;
-	int getSideNTextureIndex() const;
-	int getSideETextureIndex() const;
-	int getSideSTextureIndex() const;
-	int getSideWTextureIndex() const;
+	static int getTopTextureIndex(const mpdfileTile& data);
+	static int getSideNTextureIndex(const mpdfileTile& data);
+	static int getSideETextureIndex(const mpdfileTile& data);
+	static int getSideSTextureIndex(const mpdfileTile& data);
+	static int getSideWTextureIndex(const mpdfileTile& data);
+
+	inline int getTopTextureIndex() const { return getTopTextureIndex(m_data); }
+	inline int getSideNTextureIndex() const { return getSideNTextureIndex(m_data); }
+	inline int getSideETextureIndex() const { return getSideETextureIndex(m_data); }
+	inline int getSideSTextureIndex() const { return getSideSTextureIndex(m_data); }
+	inline int getSideWTextureIndex() const { return getSideWTextureIndex(m_data); }
 	/**
 	* @returns the top 4 points
 	* Order:
@@ -240,11 +246,17 @@ public:
 	* |     N
 	*  -> x
 	*/
-	std::array<glm::vec3, 4> getTop(const glm::vec3& offset) const;
-	std::array<glm::vec3, 4> getSideN(const glm::vec3& offset) const;
-	std::array<glm::vec3, 4> getSideE(const glm::vec3& offset) const;
-	std::array<glm::vec3, 4> getSideS(const glm::vec3& offset) const;
-	std::array<glm::vec3, 4> getSideW(const glm::vec3& offset) const;
+	static std::array<glm::vec3, 4> getTopData(const mpdfileTile& data, const glm::vec3& offset);
+	static std::array<glm::vec3, 4> getSideNData(const mpdfileTile& data, const glm::vec3& offset);
+	static std::array<glm::vec3, 4> getSideEData(const mpdfileTile& data, const glm::vec3& offset);
+	static std::array<glm::vec3, 4> getSideSData(const mpdfileTile& data, const glm::vec3& offset);
+	static std::array<glm::vec3, 4> getSideWData(const mpdfileTile& data, const glm::vec3& offset);
+
+	inline std::array<glm::vec3, 4> getTop(const glm::vec3& offset) const { return getTopData(m_data, offset); }
+	inline std::array<glm::vec3, 4> getSideN(const glm::vec3& offset) const { return getSideNData(m_data, offset); }
+	inline std::array<glm::vec3, 4> getSideE(const glm::vec3& offset) const { return getSideEData(m_data, offset); }
+	inline std::array<glm::vec3, 4> getSideS(const glm::vec3& offset) const { return getSideSData(m_data, offset); }
+	inline std::array<glm::vec3, 4> getSideW(const glm::vec3& offset) const { return getSideWData(m_data, offset); }
 
 	static std::array<glm::vec3, 4> getTopCustom(const glm::vec3& offset, std::array<char, 4> cornersTop);
 

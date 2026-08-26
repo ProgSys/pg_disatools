@@ -11,6 +11,7 @@
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <resources/PG_ResourceSynchronisator.h>
 #include <Stream/PG_StreamInOutByteVector.h>
+#include <Base/Thread/PG_Async.h>
 
 constexpr float g_tileDim = 1.0f;
 
@@ -282,12 +283,12 @@ void PG_DisaMapTileModel::setTopValues(const std::array<float, 4>& values) {
 	}
 }
 
-std::array<glm::vec3, 4> PG_DisaMapTileModel::getTop(const glm::vec3& offset) const {
+std::array<glm::vec3, 4> PG_DisaMapTileModel::getTopData(const mpdfileTile& data, const glm::vec3& offset) {
 	return std::array<glm::vec3, 4>{
-			(offset + glm::vec3(0.0f, ecn(m_data.cornersTop[1]), 0.0f)), // 0
-			(offset + glm::vec3(g_tileDim, ecn(m_data.cornersTop[0]), 0.0f)), // 1
-			(offset + glm::vec3(0.0f, ecn(m_data.cornersTop[3]), g_tileDim)), // 2
-			(offset + glm::vec3(g_tileDim, ecn(m_data.cornersTop[2]), g_tileDim)), //3
+			(offset + glm::vec3(0.0f, ecn(data.cornersTop[1]), 0.0f)), // 0
+			(offset + glm::vec3(g_tileDim, ecn(data.cornersTop[0]), 0.0f)), // 1
+			(offset + glm::vec3(0.0f, ecn(data.cornersTop[3]), g_tileDim)), // 2
+			(offset + glm::vec3(g_tileDim, ecn(data.cornersTop[2]), g_tileDim)), //3
 	};
 }
 
@@ -351,54 +352,54 @@ void PG_DisaMapTileModel::setSideIVisible(int index, bool value) {
 	emit sideVisibilityChanged();
 }
 
-int PG_DisaMapTileModel::getTopTextureIndex() const {
-	return getTextureIndex(m_data.textures[4]);
+int PG_DisaMapTileModel::getTopTextureIndex(const mpdfileTile& data) {
+	return getTextureIndex(data.textures[4]);
 }
-int PG_DisaMapTileModel::getSideNTextureIndex() const {
-	return getTextureIndex(m_data.textures[0]);
+int PG_DisaMapTileModel::getSideNTextureIndex(const mpdfileTile& data) {
+	return getTextureIndex(data.textures[0]);
 }
-int PG_DisaMapTileModel::getSideETextureIndex() const {
-	return getTextureIndex(m_data.textures[1]);
+int PG_DisaMapTileModel::getSideETextureIndex(const mpdfileTile& data) {
+	return getTextureIndex(data.textures[1]);
 }
-int PG_DisaMapTileModel::getSideSTextureIndex() const {
-	return getTextureIndex(m_data.textures[2]);
+int PG_DisaMapTileModel::getSideSTextureIndex(const mpdfileTile& data) {
+	return getTextureIndex(data.textures[2]);
 }
-int PG_DisaMapTileModel::getSideWTextureIndex() const {
-	return getTextureIndex(m_data.textures[3]);
+int PG_DisaMapTileModel::getSideWTextureIndex(const mpdfileTile& data) {
+	return getTextureIndex(data.textures[3]);
 }
 
-std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideN(const glm::vec3& offset) const {
+std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideNData(const mpdfileTile& data, const glm::vec3& offset) {
 	return std::array<glm::vec3, 4>{
-		(offset + glm::vec3(0.0f, ecn(m_data.sideN[1]), 0.0f)), // 0
-			(offset + glm::vec3(g_tileDim, ecn(m_data.sideN[0]), 0.0f)), // 1
-			(offset + glm::vec3(0.0f, ecn(m_data.cornersTop[1]), 0.0f)), // 2
-			(offset + glm::vec3(g_tileDim, ecn(m_data.cornersTop[0]), 0.0f)), //3
+		(offset + glm::vec3(0.0f, ecn(data.sideN[1]), 0.0f)), // 0
+			(offset + glm::vec3(g_tileDim, ecn(data.sideN[0]), 0.0f)), // 1
+			(offset + glm::vec3(0.0f, ecn(data.cornersTop[1]), 0.0f)), // 2
+			(offset + glm::vec3(g_tileDim, ecn(data.cornersTop[0]), 0.0f)), //3
 	};
 }
 
-std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideW(const glm::vec3& offset) const {
+std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideWData(const mpdfileTile& data, const glm::vec3& offset) {
 	return std::array<glm::vec3, 4>{
-		(offset + glm::vec3(g_tileDim, ecn(m_data.sideW[0]), 0.0f)), // 0
-			(offset + glm::vec3(g_tileDim, ecn(m_data.sideW[1]), g_tileDim)), // 1
-			(offset + glm::vec3(g_tileDim, ecn(m_data.cornersTop[0]), 0.0f)), // 2
-			(offset + glm::vec3(g_tileDim, ecn(m_data.cornersTop[2]), g_tileDim)), //3
+		(offset + glm::vec3(g_tileDim, ecn(data.sideW[0]), 0.0f)), // 0
+			(offset + glm::vec3(g_tileDim, ecn(data.sideW[1]), g_tileDim)), // 1
+			(offset + glm::vec3(g_tileDim, ecn(data.cornersTop[0]), 0.0f)), // 2
+			(offset + glm::vec3(g_tileDim, ecn(data.cornersTop[2]), g_tileDim)), //3
 	};
 }
 
-std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideS(const glm::vec3& offset) const {
+std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideSData(const mpdfileTile& data, const glm::vec3& offset) {
 	return std::array<glm::vec3, 4>{
-		(offset + glm::vec3(g_tileDim, ecn(m_data.sideS[1]), g_tileDim)), // 0
-			(offset + glm::vec3(0.0f, ecn(m_data.sideS[0]), g_tileDim)), // 1
-			(offset + glm::vec3(g_tileDim, ecn(m_data.cornersTop[2]), g_tileDim)), // 2
-			(offset + glm::vec3(0.0f, ecn(m_data.cornersTop[3]), g_tileDim)), //3
+		(offset + glm::vec3(g_tileDim, ecn(data.sideS[1]), g_tileDim)), // 0
+			(offset + glm::vec3(0.0f, ecn(data.sideS[0]), g_tileDim)), // 1
+			(offset + glm::vec3(g_tileDim, ecn(data.cornersTop[2]), g_tileDim)), // 2
+			(offset + glm::vec3(0.0f, ecn(data.cornersTop[3]), g_tileDim)), //3
 	};
 }
-std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideE(const glm::vec3& offset) const {
+std::array<glm::vec3, 4> PG_DisaMapTileModel::getSideEData(const mpdfileTile& data, const glm::vec3& offset) {
 	return std::array<glm::vec3, 4>{
-		(offset + glm::vec3(0.0f, ecn(m_data.sideE[0]), g_tileDim)), // 0
-			(offset + glm::vec3(0.0f, ecn(m_data.sideE[1]), 0.0f)), // 1
-			(offset + glm::vec3(0.0f, ecn(m_data.cornersTop[3]), g_tileDim)), // 2
-			(offset + glm::vec3(0.0f, ecn(m_data.cornersTop[1]), 0.0f)), //3
+		(offset + glm::vec3(0.0f, ecn(data.sideE[0]), g_tileDim)), // 0
+			(offset + glm::vec3(0.0f, ecn(data.sideE[1]), 0.0f)), // 1
+			(offset + glm::vec3(0.0f, ecn(data.cornersTop[3]), g_tileDim)), // 2
+			(offset + glm::vec3(0.0f, ecn(data.cornersTop[1]), 0.0f)), //3
 	};
 }
 
@@ -782,66 +783,75 @@ struct PG_JobOpenMPD : public PG_Job {
 		}
 		
 		if (isCanceled()) return;
+
+		if (mpd.getChunks().empty()) {
+			owner.get()->postCallEvent([owner = dynamic_cast<PG_DisaMapModel*>(owner.get())]() {
+				owner->m_chunksModel->clear();
+				owner->m_tilesModel->clear();
+				owner->m_objectsModel->clear();
+				owner->m_eventsModel->clear();
+				owner->m_actorsModel->clear();
+			});
+			return;
+		}
+
+
+		struct LoadResult {
+			std::vector<PG_DisaMapChunkModel*> chunks;
+			std::vector<PG_DisaMapTileModel*> tiles;
+			std::vector<PG_DisaObjectModel*> objects;
+			std::vector<PG_DisaEventTileModel*> events;
+			std::vector<PG_DisaActorModel*> actors;
+		};
+		auto* map = dynamic_cast<PG_DisaMapModel*>(owner.get());
+		//load map
+		LoadResult result;
+		for (const mpdfileChunk& mpdChunk : mpd.getChunks()) {
+			result.chunks.push_back(PG_new<PG_DisaMapChunkModel>("PG_DisaMapChunkModel"));
+			result.chunks.back()->setData(mpdChunk.info.header);
+
+			//load tiles
+			for (mpdfileTile mpdTile : mpdChunk.tiles) {
+				result.tiles.push_back(PG_new<PG_DisaMapTileModel>("PG_DisaMapTileModel"));
+				if (mpdTile.x == mpdChunk.info.baseTile.x && mpdTile.z == mpdChunk.info.baseTile.z)
+					result.tiles.back()->markAsBaseTile();
+
+				result.tiles.back()->setChunk(result.chunks.back());
+				result.tiles.back()->setData(std::move(mpdTile));
+			}
+			//load objects
+			for (const mpdfileChunkObject& object : mpdChunk.info.objects) {
+				if (object.visible == 0 && object.x == 0 && object.y == 0 && object.z == 0) continue;
+				result.objects.push_back(PG_new<PG_DisaObjectModel>("PG_DisaObjectModel"));
+				result.objects.back()->setChunk(result.chunks.back());
+				result.objects.back()->setData(object);
+			}
+			//load event tiles
+			for (const mpdfileChunkEventTile& tile : mpdChunk.info.eventTiles) {
+				if (tile.index == 0) continue;
+				result.events.push_back(PG_new<PG_DisaEventTileModel>("PG_DisaEventTileModel"));
+				result.events.back()->setChunk(result.chunks.back());
+				result.events.back()->setData(tile);
+			}
+		}
+
+		
+		for (const mpdfileActor& actor : mpd.getActors()) {
+			result.actors.push_back(PG_new<PG_DisaActorModel>("PG_DisaActorModel"));
+			result.actors.back()->setData(actor);
+			result.actors.back()->fixStats();
+		}
+
+		PG_EventLoop::doRun();
+
 		owner.get()->postCallEvent(
-			[owner = dynamic_cast<PG_DisaMapModel*>(owner.get()), mpd = std::move(mpd)]() mutable {
-				if (mpd.getChunks().empty()) {
-					owner->m_chunksModel->clear();
-					owner->m_tilesModel->clear();
-					owner->m_objectsModel->clear();
-					owner->m_eventsModel->clear();
-					owner->m_actorsModel->clear();
-					return;
-				}
+			[owner = dynamic_cast<PG_DisaMapModel*>(owner.get()), result = std::move(result)]() mutable {
 
-				std::vector<PG_DisaMapChunkModel*> chunks;
-				std::vector<PG_DisaMapTileModel*> tiles;
-				std::vector<PG_DisaObjectModel*> objects;
-				std::vector<PG_DisaEventTileModel*> events;
-				//load map
-				for (const mpdfileChunk& mpdChunk : mpd.getChunks()) {
-					chunks.push_back(PG_new<PG_DisaMapChunkModel>("PG_DisaMapChunkModel", owner->m_chunksModel));
-					chunks.back()->setData(mpdChunk.info.header);
-
-					//load tiles
-					for (mpdfileTile mpdTile : mpdChunk.tiles) {
-						tiles.push_back(PG_new<PG_DisaMapTileModel>("PG_DisaMapTileModel", owner->m_tilesModel));
-						if(mpdTile.x == mpdChunk.info.baseTile.x && mpdTile.z == mpdChunk.info.baseTile.z)
-							tiles.back()->markAsBaseTile();
-
-						tiles.back()->setChunk(chunks.back());
-						tiles.back()->setData(std::move(mpdTile));
-					}
-					//load objects
-					for (const mpdfileChunkObject& object : mpdChunk.info.objects) {
-						if (object.visible == 0 && object.x == 0 && object.y == 0 && object.z == 0) continue;
-						objects.push_back(PG_new<PG_DisaObjectModel>("PG_DisaObjectModel", owner->m_objectsModel));
-						objects.back()->setChunk(chunks.back());
-						objects.back()->setData(object);
-					}
-					//load event tiles
-					for (const mpdfileChunkEventTile& tile : mpdChunk.info.eventTiles) {
-						if (tile.index == 0) continue;
-						events.push_back(PG_new<PG_DisaEventTileModel>("PG_DisaEventTileModel", owner->m_eventsModel));
-						events.back()->setChunk(chunks.back());
-						events.back()->setData(tile);
-					}
-				}
-
-
-				std::vector<PG_DisaActorModel*> actors;
-				for (const mpdfileActor& actor : mpd.getActors()) {
-					actors.push_back(PG_new<PG_DisaActorModel>("PG_DisaActorModel", owner->m_actorsModel));
-					actors.back()->setData(actor);
-					actors.back()->fixStats();
-				}
-
-				owner->m_chunksModel->set(std::move(chunks));
-				owner->m_tilesModel->set(std::move(tiles));
-				owner->m_objectsModel->set(std::move(objects));
-				owner->m_eventsModel->set(std::move(events));
-				owner->m_actorsModel->set(std::move(actors));
-
-
+				owner->m_chunksModel->set(std::move(result.chunks));
+				owner->m_tilesModel->set(std::move(result.tiles));
+				owner->m_objectsModel->set(std::move(result.objects));
+				owner->m_eventsModel->set(std::move(result.events));
+				owner->m_actorsModel->set(std::move(result.actors));
 
 				emit owner->mapChanged();
 			});

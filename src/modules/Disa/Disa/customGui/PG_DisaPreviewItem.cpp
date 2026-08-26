@@ -7,10 +7,9 @@
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Renderer/PG_SceneRenderer.h>
 #include <Util/Color/ColorConverters.h>
-#include <Util/PG_ImageLoad.h>
 #include <Disa/PG_DisaMapViewNode.h>
-#include <Disa/customGui/PG_PupUpDialog.h>
 #include <Disa/fileformats/PG_PSPFS.h>
+#include <Disa/utils/PG_SaveTexture.h>
 
 void PG_DisaPreviewItem::init() {
 	PG_GuiItem::init();
@@ -42,7 +41,7 @@ void PG_DisaPreviewItem::init() {
 	area->fill(this);
 	connect(area, &PG_GuiMouseArea::rightClicked, this, [this] {
 		auto popup = PG_new<PG_GuiMenuPopup>("previewPopup", this);
-		popup->addOption("Export Image", hasPreview(), this, [this] { exportImage(); });
+		popup->addOption("Export Image", hasPreview(), this, &PG_DisaPreviewItem::exportImage);
 		popup->addOption(m_previewEnabled ? "Disable Preview" : "Enable Preview", true, this, [this] { setPreviewEnabled(!m_previewEnabled); });
 		popup->openAndDestroyOnClose();
 		});
@@ -58,33 +57,7 @@ void PG_DisaPreviewItem::exportImage() {
 		return;
 	}
 
-	const PG_Texture& texture = imgItem->getImage();
-	if (!texture.isValid()) {
-		OUT_ERROR("There is no image to export!");
-		return;
-	}
-	//let the render thread read the image back while the user picks the target file
-	std::future<PG_Texture::ImageFormats> imageFuture = texture.exportImage();
-
-	const PG_File previewFile(m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
-	PG_File targetFile = PG_PopUpDialog::saveAs(previewFile ? previewFile.replaceFileExtension("png") : PG_File("preview.png"));
-	if (!targetFile) return;
-	if (targetFile.getFileExtensionFormated() != "png") targetFile.replaceFileExtension("png");
-
-	std::visit([&targetFile](const auto& img) {
-		using T = std::decay_t<decltype(img)>;
-		if constexpr (std::is_same_v<T, PG_RGBAImage> || std::is_same_v<T, PG_RGBImage>) {
-			if (img.empty()) {
-				OUT_ERROR("The preview has no image data to export!");
-				return;
-			}
-			if (!PG_ImageLoad::save(targetFile, img)) {
-				OUT_ERROR("Failed to save image as: " << targetFile << "!");
-			}
-		} else {
-			OUT_ERROR("The image format of the preview can't be saved as png!");
-		}
-		}, imageFuture.get());
+	PG_FileDialog::save(imgItem->getImage(), m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
 }
 
 void PG_DisaPreviewItem::setPreviewEnabled(bool enabled) {

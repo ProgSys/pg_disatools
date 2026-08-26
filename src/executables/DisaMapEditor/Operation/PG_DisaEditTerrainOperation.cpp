@@ -335,13 +335,11 @@ static inline void editTile(float height, const glm::ivec2 tilePos, PG_DisaMapTi
 	constexpr float heightStep = 1.f / 12.f;
 	//height = std::max(heightStep, height);
 
-
-	auto model = (PG_DisaMapTileListModel*)location.getModel();
-	assert(model);
+	assert(tiles);
 
 	if (!location) {
 		std::array<mpdfileTexdata, 12> textures = computeTextures(tiles, tilePos, originalData);
-		location = model->addNewTile(tilePos, textures);
+		location = tiles->addNewTile(tilePos, textures);
 		assert(location);
 	}
 
@@ -459,7 +457,7 @@ static inline void editTile(float height, const glm::ivec2 tilePos, PG_DisaMapTi
 	tileModel->setTopValues(values);
 	
 	for (const auto& [offset, targets] : mergeTargets) {
-		if (auto neighborTileLocation = model->getTileLocation(tilePos + offset)) {
+		if (auto neighborTileLocation = tiles->getTileLocation(tilePos + offset)) {
 			auto neighborTileModel = neighborTileLocation.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 			auto neighborValues = neighborTileModel->getTopValues();
 

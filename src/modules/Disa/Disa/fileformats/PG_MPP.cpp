@@ -203,7 +203,7 @@ void PG_MPP::dump(const std::string& file) const {
 
 
 bool PG_MPPContainer::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
-	if (!reader) return FAILURE;
+	if (!reader || !reader->isOpen()) return FAILURE;
 
 	const unsigned int file_size = reader->size();
 	if (file_size < sizeof(mppfileHeader) + 32) {

@@ -18,6 +18,9 @@
 
 #include <resources/PG_ResourceSynchronisator.h>
 #include <Util/PG_RangesTransform.h>
+#include <Scene/Model/PG_ListModelDelay.h>
+#include <Scene/Model/PG_DelayPool.h>
+#include <Base/PG_Application.h>
 
 void PG_DisaMapViewNode::init() {
 	PG_ActorNode::init();
@@ -62,7 +65,6 @@ void PG_DisaMapViewNode::setModel(const std::shared_ptr<PG_DisaMPDContainer>& co
 				selectionHandler->update(tiles->get(i)->getTilePosition());
 			}
 		});
-		connect(model, &PG_DisaMapModel::mapChanged, this, &PG_DisaMapViewNode::contentChanged, PG_ConnectionType_Event);
 	}
 	
 	reload();
@@ -211,6 +213,8 @@ void PG_DisaMapViewNode::createActorView() {
 	m_actorView->setItemUpdate(PG_FootlooseViewNode::getDefaultUpdateFunc<PG_DisaActorViewNode>());
 }
 
+static inline PG_DelayPool* g_delayPool = nullptr;
+
 void PG_DisaMapViewNode::reload() {
 	auto* model = getMapModel();
 	if (!model) {
@@ -218,6 +222,7 @@ void PG_DisaMapViewNode::reload() {
 		m_tilesView = nullptr;
 		m_objectsView = nullptr;
 		m_actorView = nullptr;
+		m_teleporterView = nullptr;
 		return;
 	}
 
@@ -239,12 +244,33 @@ void PG_DisaMapViewNode::reload() {
 		m_teleporterView = PG_new<PG_DisaTeleporterViewNode>("PG_DisaTeleporterViewNode", this);
 	}
 
-	m_tilesView->setModel(model->getTiles());
-	m_objectsView->setModel(model->getObjects());
-	m_teleporterView->setModel(model->getEvents());
-	if(m_actorView) m_actorView->setModel(model->getActors());
+	if (!g_delayPool) {
+		g_delayPool = PG_new<PG_DelayPool>(PG_Application::get());
+		g_delayPool->setGuaranteedSteps(2);
+		g_delayPool->setBudget({ std::chrono::microseconds{1000}, 0 });
+	}
 
-	
+	const auto setDelayModel = [this](PG_FootlooseViewNode* parent, PG_ListModelBase* model) {
+		auto* dModel = dynamic_cast<PG_ListModelDelay*>(parent->getModel());
+		if (!dModel) {
+			dModel = PG_new<PG_ListModelDelay>(model);
+			dModel->setPool(g_delayPool);
+			parent->setModel(dModel);
+			connect(dModel, &PG_ListModelDelay::settled, this, [this] {
+				if ((m_tilesView->getModel() && ((PG_ListModelDelay*)m_tilesView->getModel())->getPendingCount() == 0) &&
+					(m_objectsView->getModel() && ((PG_ListModelDelay*)m_objectsView->getModel())->getPendingCount() == 0) &&
+					(!m_actorView || (m_actorView->getModel() && ((PG_ListModelDelay*)m_actorView->getModel())->getPendingCount() == 0))
+					)
+					contentChanged();
+				});
+		}
+		dModel->setModel(model);
+	};
+	setDelayModel(m_tilesView, model->getTiles());
+	setDelayModel(m_objectsView, model->getObjects());
+	m_teleporterView->setModel(model->getEvents());
+	if (m_actorView) setDelayModel(m_actorView, model->getActors());
+
 	if (auto geoPanelView = findFirstChild<PG_DisaGeoPanelViewNode>("PG_DisaGeoPanelViewNode")) {
 		geoPanelView->setModel(model->getTiles());
 	}
