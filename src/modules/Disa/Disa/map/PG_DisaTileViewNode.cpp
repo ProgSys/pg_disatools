@@ -152,9 +152,10 @@ void PG_DisaTileViewNode::updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMa
 		return;
 	}
 
-	PG_Material mat("M_DisaTileEditSelection");
 	GL::Geometry glGeo = GL::Geometry::basic(std::move(geo.surfaces.front().indices), std::move(geo.surfaces.front().vertices), std::move(geo.surfaces.front().uv));
-	modelNode->getModel().load(PG_UNIQUE_RES("M_TileHover"), { { mat, PG_Geometry(PG_UNIQUE_RES("TileHoverGeometry"), std::move(glGeo)) } });
+	modelNode->getModel().load(PG_UNIQUE_RES("M_TileHover"), [glGeo = std::move(glGeo)]() -> std::vector<PG_Model::Surface> {
+		return { { PG_Material("M_DisaTileEditSelection"), PG_Geometry(PG_UNIQUE_RES("TileHoverGeometry"), std::move(glGeo)) } };
+		});
 }
 
 void PG_DisaTileViewNode::updateFaceLineSelectionGeometry(glm::ivec2 pos, PG_DisaFaceHit::Face face, PG_DisaMapModel* model, PG_ModelNode* modelNode) {
