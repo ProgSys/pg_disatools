@@ -356,7 +356,7 @@ void PG_DisaTileViewNode::updateGeometry() {
 	PG_Material tileMat(isHdMode ? "M_MapTileHD" : "M_MapTile");
 
 	std::function<std::vector<PG_Model::Surface>()> mapModelLoadFunc =
-		[geoSurfaces = geo.surfaces, textures = std::move(textures), tileMat]() -> std::vector<PG_Model::Surface> {
+		[geoSurfaces = std::move(geo.surfaces), textures = std::move(textures), tileMat]() mutable -> std::vector<PG_Model::Surface>  {
 		//mpp data
 		std::vector<PG_Model::Surface> surfaces;
 		for (auto& [matIds, surface] : geoSurfaces) {
