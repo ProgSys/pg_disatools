@@ -523,6 +523,7 @@ void PG_DisaEditTerrainOperation::drag(PG_Object* parent, PG_MouseMotionEvent* e
 		if (auto tile = dynamic_cast<PG_DisaTileViewNode*>(actor.get())) {
 			auto location = tile->getLocation();
 			editTile(newHeight, tile->getTilePosition(), model->getTiles(), op->originalTopOffsets,  op->originalData, location, op->mergeMode, additionalData.get<PG_DisaFaceHit>());
+			location.getModel()->flush();
 			if (location) {
 				hovered.emplace_back(actor.get(), additionalData);
 			}
