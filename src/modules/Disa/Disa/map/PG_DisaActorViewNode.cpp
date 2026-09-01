@@ -131,9 +131,6 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 		//set animation
 		if (PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite"); node && node->getSprite().isValid()) {
 			node->setTranslationY(0.1f + m_spring.getPosition().y);
-			node->updateModelMatrix();
-			node->updateModelMatrixWorld();
-
 			//face sprite towards camera
 			{
 				glm::mat3 m;
@@ -143,7 +140,9 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 
 				node->setRotation(glm::normalize(glm::quat_cast(m)));
 			}
-			
+			node->updateModelMatrix();
+			node->updateModelMatrixWorld();
+
 			//choose animation
 			glm::vec2 baseRotation = glm::vec2(1.f, 0.f);
 			if (m_location) {
@@ -178,6 +177,13 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 
 
 	return PG_ActorNode::event(e);
+}
+
+void PG_DisaActorViewNode::updateActor() {
+	updateModelMatrix();
+	updateModelMatrixWorld();
+	PG_TickEvent e(0.f);
+	event(&e);
 }
 
 void PG_DisaActorViewNode::updateTransformation() {

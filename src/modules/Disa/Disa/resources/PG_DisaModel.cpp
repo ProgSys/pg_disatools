@@ -117,11 +117,11 @@ static inline std::vector<PG_Model::Surface> loadSurfaces(const geofileMesh& geo
 
 	for (GeoData& data : geoDatas) {
 		if (!data.vert.empty()) {
-			GL::Geometry geometry(
+			PG_Mesh geometry(
 				{
-					GL::DataWrapper("position", std::move(data.vert)),
-					GL::DataWrapper("normal", std::move(data.normals)),
-					GL::DataWrapper("uv", std::move(data.uvs)),
+					PG_Mesh::DataWrapper("position", std::move(data.vert)),
+					PG_Mesh::DataWrapper("normal", std::move(data.normals)),
+					PG_Mesh::DataWrapper("uv", std::move(data.uvs)),
 				}
 			);
 

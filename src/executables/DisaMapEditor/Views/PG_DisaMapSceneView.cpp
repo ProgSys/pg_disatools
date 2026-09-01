@@ -94,7 +94,7 @@ void PG_DisaMapSceneView::init() {
 		{
 
 			auto model = PG_new<PG_ModelNode>("N_Floor", "MD_MapFloor", std::vector<PG_Model::Surface>{
-				{PG_Material("M_MapGrid"), PG_Geometry("G_MapFloor", GL::Geometry::planeUVScaled(1000.f, 1000.f))}
+				{PG_Material("M_MapGrid"), PG_Geometry("G_MapFloor", PG_Mesh::planeUVScaled(1000.f, 1000.f))}
 				}, getRoot());
 		}
 		{
@@ -102,12 +102,12 @@ void PG_DisaMapSceneView::init() {
 						PG_Material("M_SimpleColor"),
 						PG_Geometry("G_Coords",
 							{{
-								GL::DataWrapper("position", std::vector<glm::vec3>{
+								PG_Mesh::DataWrapper("position", std::vector<glm::vec3>{
 								glm::vec3(0.0f), glm::vec3(10.0f, 0.0f, 0.0f),
 								glm::vec3(0.0f), glm::vec3(0.0f, 10.0f, 0.0f),
 								glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 10.0f)}),
 
-								GL::DataWrapper("color", std::vector<glm::vec3>{
+								PG_Mesh::DataWrapper("color", std::vector<glm::vec3>{
 								glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f),
 								glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f),
 								glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 1.0f)}),

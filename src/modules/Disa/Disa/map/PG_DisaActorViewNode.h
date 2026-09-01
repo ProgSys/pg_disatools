@@ -31,6 +31,7 @@ public:
 	}
 
     void update(float deltaTime) {
+		if (deltaTime <= 0.f) return;
 		glm::vec3 displacement = targetPosition - position;
 		glm::vec3 springForce = springConstant * displacement;
 		glm::vec3 dampingForce = dampingFactor * velocity;
@@ -89,6 +90,8 @@ public:
 
 	const SwaySpring& getSpring() const { return m_spring; }
 	void setSpring(const SwaySpring& value) { m_spring.copy(value); }
+
+	void updateActor();
 
 	static glm::vec3 getRotationDir(PG_Scene* scene, const glm::vec3& originWorld);
 

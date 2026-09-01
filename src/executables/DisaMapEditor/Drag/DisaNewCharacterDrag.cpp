@@ -240,6 +240,7 @@ void DisaNewCharacterDrag::released() {
 		actors->push_back(model);
 
 		auto* view = scene->getMapNode()->getActorView();
+		view->flush();
 		if (view->getItems().size() == actors->size()) {
 			auto item = dynamic_cast<PG_DisaActorViewNode*>(view->getItems().back());
 			item->setSpring(m_indicator->getSpring());
@@ -250,8 +251,7 @@ void DisaNewCharacterDrag::released() {
 					delete found;
 				}
 			}
-			item->updateModelMatrix();
-			item->updateModelMatrixWorld();
+			item->updateActor(); //make transition smooth
 		}
 	}
 

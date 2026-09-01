@@ -20,7 +20,7 @@ void PG_DisaActorNode::init() {
 	auto model = PG_new<PG_ModelNode>("N_ActorBillboard", "G_ActorBillboard", std::vector<PG_Model::Surface>{
 					{
 						PG_Material("M_DisaActorBillboard"),
-						PG_Geometry("Geo_ActorBillboard", GL::Geometry::planeXY(1.f, 1.0))
+						PG_Geometry("Geo_ActorBillboard", PG_Mesh::planeXY(1.f, 1.0))
 					}
 		}, this);
 	model->setTranslationY(1.f);
@@ -71,7 +71,7 @@ void PG_DisaActorNode::onParentChanged(PG_Object* oldManager, PG_Object* newMana
 			{
 				PG_Material("M_DisaActorGround"),
 				PG_Geometry("Geo_" + name, 
-				GL::Geometry::basic(std::move(geo.surfaces.front().indices), std::move(geo.surfaces.front().vertices), std::move(normals), std::move(geo.surfaces.front().uv))
+				PG_Mesh::basic(std::move(geo.surfaces.front().indices), std::move(geo.surfaces.front().vertices), std::move(normals), std::move(geo.surfaces.front().uv))
 				)
 			}
 				}, this);

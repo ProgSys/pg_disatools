@@ -152,7 +152,7 @@ void PG_DisaTileViewNode::updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMa
 		return;
 	}
 
-	GL::Geometry glGeo = GL::Geometry::basic(std::move(geo.surfaces.front().indices), std::move(geo.surfaces.front().vertices), std::move(geo.surfaces.front().uv));
+	PG_Mesh glGeo = PG_Mesh::basic(std::move(geo.surfaces.front().indices), std::move(geo.surfaces.front().vertices), std::move(geo.surfaces.front().uv));
 	modelNode->getModel().load(PG_UNIQUE_RES("M_TileHover"), [glGeo = std::move(glGeo)]() -> std::vector<PG_Model::Surface> {
 		return { { PG_Material("M_DisaTileEditSelection"), PG_Geometry(PG_UNIQUE_RES("TileHoverGeometry"), std::move(glGeo)) } };
 		});
@@ -180,10 +180,10 @@ void PG_DisaTileViewNode::updateFaceLineSelectionGeometry(glm::ivec2 pos, PG_Dis
 	}
 
 	PG_Material mat("M_DisaTileMaterialEditSelection");
-	GL::Geometry glGeo(
+	PG_Mesh glGeo(
 		{
-			GL::DataWrapper("position", std::vector<glm::vec3>(points.begin(), points.end())),
-			GL::DataWrapper("indices", std::vector<unsigned int>{0, 1, 3, 2, 0}, GL::ELEMENT_ARRAY_BUFFER),
+			PG_Mesh::DataWrapper("position", std::vector<glm::vec3>(points.begin(), points.end())),
+			PG_Mesh::DataWrapper("indices", std::vector<unsigned int>{0, 1, 3, 2, 0}, PG_Mesh::Index),
 		}
 	);
 	//, GL_LINE_STRIP
@@ -208,10 +208,10 @@ void PG_DisaTileViewNode::updateFloorGeoGeometry(PG_DisaMapTileListModel* model,
 	}
 
 	PG_Material mat("M_MapGeoPanelTile");
-	GL::Geometry glGeo(
+	PG_Mesh glGeo(
 		{
-			GL::DataWrapper("position", std::move(geo.surfaces.front().vertices)),
-			GL::DataWrapper("indices",std::move(geo.surfaces.front().indices), GL::ELEMENT_ARRAY_BUFFER),
+			PG_Mesh::DataWrapper("position", std::move(geo.surfaces.front().vertices)),
+			PG_Mesh::DataWrapper("indices",std::move(geo.surfaces.front().indices), PG_Mesh::Index),
 		}
 	);
 
@@ -247,10 +247,10 @@ void PG_DisaTileViewNode::updateFloorEventGeometry(PG_DisaMapTileListModel* mode
 	}
 
 	PG_Material mat("M_MapGeoPanelTile");
-	GL::Geometry glGeo(
+	PG_Mesh glGeo(
 		{
-			GL::DataWrapper("position", std::move(geo.surfaces.front().vertices)),
-			GL::DataWrapper("indices",std::move(geo.surfaces.front().indices), GL::ELEMENT_ARRAY_BUFFER),
+			PG_Mesh::DataWrapper("position", std::move(geo.surfaces.front().vertices)),
+			PG_Mesh::DataWrapper("indices",std::move(geo.surfaces.front().indices), PG_Mesh::Index),
 		}
 	);
 
@@ -264,11 +264,11 @@ void PG_DisaTileViewNode::updateFloorShadowGeometry(const std::array<glm::vec3, 
 	buildFace<0, 1, 2, 3>(points, 0, geo); //Top
 
 	PG_Material mat("M_MapShadowTile");
-	GL::Geometry glGeo(
+	PG_Mesh glGeo(
 		{
-			GL::DataWrapper("position", std::move(geo.surfaces.front().vertices)),
-			GL::DataWrapper("uv", std::move(geo.surfaces.front().uv)),
-			GL::DataWrapper("indices",std::move(geo.surfaces.front().indices), GL::ELEMENT_ARRAY_BUFFER),
+			PG_Mesh::DataWrapper("position", std::move(geo.surfaces.front().vertices)),
+			PG_Mesh::DataWrapper("uv", std::move(geo.surfaces.front().uv)),
+			PG_Mesh::DataWrapper("indices",std::move(geo.surfaces.front().indices), PG_Mesh::Index),
 		}
 	);
 
@@ -362,14 +362,14 @@ void PG_DisaTileViewNode::updateGeometry() {
 		for (auto& [matIds, surface] : geoSurfaces) {
 			if (surface.indices.empty()) continue;
 
-			GL::Geometry geometry(
+			PG_Mesh geometry(
 				{
-					GL::DataWrapper("position", std::move(surface.vertices)),
-					GL::DataWrapper("normal", std::move(surface.normals)),
-					GL::DataWrapper("uv", std::move(surface.uvs)),
-					GL::DataWrapper("uvDecal", std::move(surface.uvsDecal)),
-					GL::DataWrapper("uvShadowMap", std::move(surface.uvsShadowMap)),
-					GL::DataWrapper("indices",std::move(surface.indices), GL::ELEMENT_ARRAY_BUFFER),
+					PG_Mesh::DataWrapper("position", std::move(surface.vertices)),
+					PG_Mesh::DataWrapper("normal", std::move(surface.normals)),
+					PG_Mesh::DataWrapper("uv", std::move(surface.uvs)),
+					PG_Mesh::DataWrapper("uvDecal", std::move(surface.uvsDecal)),
+					PG_Mesh::DataWrapper("uvShadowMap", std::move(surface.uvsShadowMap)),
+					PG_Mesh::DataWrapper("indices",std::move(surface.indices), PG_Mesh::Index),
 				}
 				);
 

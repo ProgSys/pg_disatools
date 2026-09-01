@@ -591,11 +591,11 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
     }
 
     for (auto& dat : datas) {
-        GL::Geometry geoInfo(
+        PG_Mesh geoInfo(
             {
-                GL::DataWrapper("position", std::move(dat.second.position)),
-                GL::DataWrapper("uv", std::move(dat.second.uv)),
-                GL::DataWrapper("indices",std::move(dat.second.indices), GL::ELEMENT_ARRAY_BUFFER),
+                PG_Mesh::DataWrapper("position", std::move(dat.second.position)),
+                PG_Mesh::DataWrapper("uv", std::move(dat.second.uv)),
+                PG_Mesh::DataWrapper("indices",std::move(dat.second.indices), PG_Mesh::Index),
             }
             );
         auto geo = PG_Geometry(PG_UNIQUE_RES("D_TextGeo"), std::move(geoInfo));

@@ -245,7 +245,7 @@ void PG_DisaEditorObjectController::updateHoverBox() {
 	if (!m_hoverBox)
 		m_hoverBox = PG_new<PG_ModelNode>("N_HoverLine", this);
 
-	m_hoverBox->setModel(PG_Model(PG_UNIQUE_RES("D_HoverLine"), { {PG_Material("M_HoverLine"), PG_Geometry(PG_UNIQUE_RES("G_HoverLine"), GL::Geometry::lines(std::move(vertices)), GL::LINES)} }));
+	m_hoverBox->setModel(PG_Model(PG_UNIQUE_RES("D_HoverLine"), { {PG_Material("M_HoverLine"), PG_Geometry(PG_UNIQUE_RES("G_HoverLine"), PG_Mesh::lines(std::move(vertices)), GL::LINES)} }));
 	m_hoverBox->setVisible(true);
 }
 
@@ -271,7 +271,7 @@ void PG_DisaEditorObjectController::updateSelectionBox() {
 			std::vector<glm::vec4> vertices;
 			getLines(vertices, actor, true);
 
-			selection->setModel(PG_Model(PG_UNIQUE_RES("D_SelectionLine"), { {PG_Material("M_SelectionLine"), PG_Geometry(PG_UNIQUE_RES("G_SelectionLine"), GL::Geometry::lines(std::move(vertices)), GL::LINES)} }));
+			selection->setModel(PG_Model(PG_UNIQUE_RES("D_SelectionLine"), { {PG_Material("M_SelectionLine"), PG_Geometry(PG_UNIQUE_RES("G_SelectionLine"), PG_Mesh::lines(std::move(vertices)), GL::LINES)} }));
 		}
 		else {
 			auto findIt = std::ranges::find(m_selectedBoxs, selection);
