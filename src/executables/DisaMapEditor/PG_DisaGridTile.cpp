@@ -96,10 +96,11 @@ void PG_DisaGridTile::init(){
 			popup->openAndDestroyOnClose();
 		}
 		else if (PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>()) {
-			if (!imgItem->getImage()) return;
+			const PG_Texture* tex = std::get_if<PG_Texture>(&imgItem->getSourceData());
+			if (!tex) return;
 			auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", this);
-			popup->addOption("Export Image", this, [this, imgItem] { 
-				PG_FileDialog::save(imgItem->getImage(), m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
+			popup->addOption("Export Image", this, [this, imgItem, tex] {
+				PG_FileDialog::save(tex, m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
 			});
 			popup->openAndDestroyOnClose();
 		}
@@ -133,8 +134,8 @@ void PG_DisaGridTile::open(const PG_Texture& img) {
 		imgItem = PG_new<PG_GuiImage>("PreviewImage", m_container);
 		imgItem->fill(m_container);
 	}
-	imgItem->setImage(img);
-	imgItem->setFitType(PG_GuiImage::MentainAspect);
+	imgItem->setSourceData(img);
+	imgItem->setFitType(PG_GuiImage::MaintainAspect);
 }
 
 void PG_DisaGridTile::open(const std::string& imgPath) {
@@ -144,8 +145,8 @@ void PG_DisaGridTile::open(const std::string& imgPath) {
 		imgItem = PG_new<PG_GuiImage>("PreviewImage", m_container);
 		imgItem->fill(m_container);
 	}
-	imgItem->setImage(imgPath);
-	imgItem->setFitType(PG_GuiImage::MentainAspectFit);
+	imgItem->setSource(imgPath);
+	imgItem->setFitType(PG_GuiImage::MaintainAspectFit);
 }
 
 void PG_DisaGridTile::createGameScene() {
@@ -166,7 +167,7 @@ void PG_DisaGridTile::createGameScene() {
 
 	sceneRenderer = renderItem->findFirstChild<PG_SceneRenderer>();
 	if (!sceneRenderer) {
-		sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, renderItem);
+		sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, 2, renderItem);
 	}
 
 	if (!m_gameScene) {

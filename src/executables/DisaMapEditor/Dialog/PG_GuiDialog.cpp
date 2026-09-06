@@ -19,7 +19,7 @@ void PG_GuiDialog::init() {
 
 	auto sprite = PG_new<PG_GuiSprite>("N_Anna", glm::vec2(0.0f), glm::vec2(400.0f, 200.0f), PG_Sprite("f_char_anna_idle01.pgsp"), this);
 	sprite->setModelAnchor(PG_GuiSprite::BottomCenter);
-	sprite->setFitType(PG_GuiSprite::MentainAspectHorizontal);
+	sprite->setFitType(PG_GuiSprite::MaintainAspectHorizontal);
 	sprite->setFlipHorizontal(true);
 	sprite->setFlipVertical(true);
 	sprite->getOffsetTransformation().setTranslation(glm::vec3(-0.18f, 0.17f, 0.0f));
@@ -29,8 +29,8 @@ void PG_GuiDialog::init() {
 	m_character = sprite;
 
 	m_speechBubble = PG_new<PG_GuiImage>("SpeechBubble", glm::vec2(0.0f), glm::vec2(1100.0f, 300.0f), this);
-	m_speechBubble->setImage("dialog/speech_bubble.png");
-	m_speechBubble->setFitType(PG_GuiImage::Strech);
+	m_speechBubble->setSource("dialog/speech_bubble.png");
+	m_speechBubble->setFitType(PG_GuiImage::Stretch);
 	anchor(m_speechBubble, PG_Anchor::HorizontalCenter, this, PG_Anchor::HorizontalCenter);
 	anchor(m_speechBubble, PG_Anchor::Bottom, this, PG_Anchor::Bottom);
 
@@ -69,7 +69,7 @@ void PG_GuiDialog::init() {
 
 
 		assert(m_speechBubble);
-		const glm::vec2 sizeImageBubble = m_speechBubble->getImageSize();
+		const glm::vec2 sizeImageBubble = m_speechBubble->getSourceSize();
 		float scaleBubble = glm::clamp(600.0f / size->x, 0.4f, 1.0f);
 
 		if(size->x/ size->y < sizeImageBubble.x/ sizeImageBubble.y)

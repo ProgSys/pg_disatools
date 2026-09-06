@@ -12,7 +12,7 @@
 
 void PG_DisaCharacterPortraitGridTile::init() {
 	PG_GuiItem::init();
-	m_image = PG_new<PG_GuiImageCropped>("PG_GuiImageCropped", this);
+	m_image = PG_new<PG_GuiImage>("PG_GuiImageCropped", this);
 	m_image->fill(this);
 	m_image->setCropSize(glm::vec2(160.f));
 
@@ -76,10 +76,10 @@ void PG_DisaCharacterPortraitGridTile::reload() {
 	if (!m_location) return;
 	auto img = m_location.getDataT<PG_Texture>(PG_DisaCharacterModel::Identity_Portrait);
 	if (img.isValid()) {
-		m_image->setImage(img);
+		m_image->setSourceData(img);
 	}
 	else {
-		m_image->setImage("gui/disa/disaMissingno.png");
+		m_image->setSource("gui/disa/disaMissingno.png");
 	}
 
 	m_text->setText(std::to_string(m_location.getDataT<unsigned short>(PG_DisaCharacterModel::Identity_Id)));

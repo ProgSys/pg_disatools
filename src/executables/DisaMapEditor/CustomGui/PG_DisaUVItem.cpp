@@ -37,11 +37,11 @@ glm::vec2 PG_DisaUVItem::toImagePos(glm::vec2 value) const {
 }
 
 PG_Texture PG_DisaUVItem::getImage() const {
-	return m_image->getImage();
+	return std::get<PG_Texture>(m_image->getSourceData());
 }
 
 void PG_DisaUVItem::setImage(const PG_Texture& img) {
-	m_image->setImage(img);
+	m_image->setSourceData(img);
 	emit imageChanged();
 }
 

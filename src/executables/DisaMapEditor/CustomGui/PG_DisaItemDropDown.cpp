@@ -9,10 +9,10 @@
 PG_GuiItem* PG_DisaItemDropDown::createDisplayElement(PG_GuiItem* parent) const {
 	auto container = PG_new<PG_GuiItem>("Container", glm::vec2(0.f), glm::vec2(30.f), parent);
 
-	auto icon = PG_new<PG_GuiImageCropped>("Icon", glm::vec2(0.f), glm::vec2(30.f), container);
+	auto icon = PG_new<PG_GuiImage>("Icon", glm::vec2(0.f), glm::vec2(30.f), container);
 	PG_GuiItem::anchor(icon, PG_Anchor::Top, container, PG_Anchor::Top);
 	PG_GuiItem::anchor(icon, PG_Anchor::Left, container, PG_Anchor::Left);
-	icon->setImage(PG_DisaMapEditorMainModel::get()->getUiTextursModel()->getIconsTexture());
+	icon->setSourceData(PG_DisaMapEditorMainModel::get()->getUiTextursModel()->getIconsTexture());
 	
 	auto text = PG_new<PG_GuiText>("DropText", glm::vec2(0.f), glm::vec2(30.f), container);
 	PG_GuiItem::anchor(text, PG_Anchor::Top, container, PG_Anchor::Top);
@@ -43,19 +43,19 @@ void PG_DisaItemDropDown::updateDisplayElement(PG_GuiItem* element, const std::s
 }
 
 void PG_DisaItemDropDown::updatePreviewElement(PG_GuiItem* element, const PG_Variety& var) const {
-	auto icon = element->findFirstChild<PG_GuiImageCropped>();
+	auto icon = element->findFirstChild<PG_GuiImage>();
 	if (!icon) return;
 
 	if (var.is<glm::vec4>()) {
 		auto value = var.get<glm::vec4>();
-		icon->setCropPosition(glm::vec2(value.x, value.y));
-		icon->setCropSize(glm::vec2(value.z, value.w));
+		icon->setCrop({ { glm::vec2(value.x, value.y), glm::vec2(value.z, value.w) } });
 		icon->setVisible(true);
 		return;
 	}
 	
 	if (var.is<glm::vec2>()) {
-		icon->setCropPosition(var.get<glm::vec2>());
+		auto value = var.get<glm::vec2>();
+		icon->setCrop({ { glm::vec2(value.x, value.y), icon->getSize() }});
 		icon->setVisible(true);
 		return;
 	}

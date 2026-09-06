@@ -1365,16 +1365,15 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 	PG_GuiItem::anchor(frame, PG_Anchor::Left, column, PG_Anchor::Left);
 
 	{
-		PG_GuiImageCropped* img = PG_new<PG_GuiImageCropped>("face", frame);
+		PG_GuiImage* img = PG_new<PG_GuiImage>("face", frame);
 		img->setCropSize(glm::vec2(160.f));
 		PG_GuiItem::anchor(img, PG_Anchor::Top, frame, PG_Anchor::Top);
 		PG_GuiItem::anchor(img, PG_Anchor::Left, frame, PG_Anchor::Left);
 		img->setPosition(glm::vec2(15.f));
 		img->setSize(glm::vec2(160.f));
 
-		PG_Gui::connectChanged(img,
-			wrapper, "characterPortrait", [](PG_GuiImageCropped* item, const PG_Any& value) {
-				item->setImage(value.get<PG_Texture>());
+		PG_Gui::connectChanged(img, wrapper, "characterPortrait", [](PG_GuiImage* item, const PG_Any& value) {
+				item->setSourceData(value.get<PG_Texture>());
 			});
 			
 		PG_GuiText* label = PG_new<PG_GuiText>("ClassLabel", frame);

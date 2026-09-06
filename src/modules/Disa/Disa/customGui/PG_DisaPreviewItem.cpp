@@ -57,7 +57,7 @@ void PG_DisaPreviewItem::exportImage() {
 		return;
 	}
 
-	PG_FileDialog::save(imgItem->getImage(), m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
+	PG_FileDialog::save(std::get<PG_Texture>(imgItem->getSourceData()), m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
 }
 
 void PG_DisaPreviewItem::setPreviewEnabled(bool enabled) {
@@ -102,10 +102,10 @@ void PG_DisaPreviewItem::open(const PG_Texture& img) {
 	if (!imgItem) {
 		m_container->clearGuiChildren();
 		imgItem = PG_new<PG_GuiImage>("PreviewImage", m_container);
-		imgItem->setFitType(PG_GuiImage::MentainAspectFit);
+		imgItem->setFitType(PG_GuiImage::MaintainAspectFit);
 		imgItem->fill(m_container);
 	}
-	imgItem->setImage(img);
+	imgItem->setSourceData(img);
 }
 
 void PG_DisaPreviewItem::open(const std::string& imgPath) {
@@ -113,10 +113,10 @@ void PG_DisaPreviewItem::open(const std::string& imgPath) {
 	if (!imgItem) {
 		m_container->clearGuiChildren();
 		imgItem = PG_new<PG_GuiImage>("PreviewImage", m_container);
-		imgItem->setFitType(PG_GuiImage::MentainAspectFit);
+		imgItem->setFitType(PG_GuiImage::MaintainAspectFit);
 		imgItem->fill(m_container);
 	}
-	imgItem->setImage(imgPath);
+	imgItem->setSource(imgPath);
 }
 
 void PG_DisaPreviewItem::clearImage() {

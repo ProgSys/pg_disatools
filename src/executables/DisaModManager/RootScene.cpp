@@ -186,7 +186,7 @@ void RootScene::setupCenter() {
 	auto* tutorialArrow = PG_new<PG_GuiImage>("tutorialArrow", glm::vec2(25.f, 0.f), glm::vec2(120.f, 84.f), center);
 	PG_GuiItem::anchor(tutorialArrow, PG_Anchor::Top, center, PG_Anchor::Top);
 	PG_GuiItem::anchor(tutorialArrow, PG_Anchor::Left, center, PG_Anchor::Left);
-	tutorialArrow->setImage("gui/disa/pg_tutorial_arrow.png");
+	tutorialArrow->setSource("gui/disa/pg_tutorial_arrow.png");
 
 	auto* tutorialText = PG_new<PG_GuiText>("tutorialText", center);
 	PG_GuiItem::anchor(tutorialText, PG_Anchor::Bottom, tutorialArrow, PG_Anchor::Bottom);

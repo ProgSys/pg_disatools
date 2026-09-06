@@ -121,7 +121,7 @@ static inline void setImage(PG_GuiImage* guiImage, const PG_DisaFileEntry& entry
 		
 		return PG_RGBAImage();
 		};
-	guiImage->setImage(PG_Texture(PG_UNIQUE_RES("DisaResource"), loadFunc));
+	guiImage->setSourceData(PG_Texture(PG_UNIQUE_RES("DisaResource"), loadFunc));
 }
 
 static inline std::pair<PG_GuiRenderItem*, PG_DisaMapSceneView*> createMapScene(PG_GuiItem* parent) {
@@ -358,9 +358,9 @@ void PG_DisaAssetsListItem::updateCenter() {
 		}
 
 		//read images
-		imageSD->setImage(m_location.getDataT<PG_Texture>(PG_DisaAssetsTextureItem::Identity_SD));
-		imageHQ->setImage(m_location.getDataT<PG_Texture>(PG_DisaAssetsTextureItem::Identity_HD));
-		imageNormal->setImage(m_location.getDataT<PG_Texture>(PG_DisaAssetsTextureItem::Identity_HDNormal));
+		imageSD->setSourceData(m_location.getDataT<PG_Texture>(PG_DisaAssetsTextureItem::Identity_SD));
+		imageHQ->setSourceData(m_location.getDataT<PG_Texture>(PG_DisaAssetsTextureItem::Identity_HD));
+		imageNormal->setSourceData(m_location.getDataT<PG_Texture>(PG_DisaAssetsTextureItem::Identity_HDNormal));
 
 		imageSDModified->setVisible(m_location.getDataT<bool>(PG_DisaAssetsTextureItem::Identity_SDModified));
 		imageHQModified->setVisible(m_location.getDataT<bool>(PG_DisaAssetsTextureItem::Identity_HDModified));

@@ -5,7 +5,7 @@
 
 
 class PG_GuiText;
-class PG_GuiImageCropped;
+class PG_GuiImage;
 class PG_GuiMouseArea;
 
 class PG_DisaCharacterPortraitGridTile : public PG_GuiItem
@@ -22,6 +22,6 @@ private:
 
 	PG_ListModelLocation m_location;
 	PG_GuiText* m_text = nullptr;
-	PG_GuiImageCropped* m_image = nullptr;
+	PG_GuiImage* m_image = nullptr;
 	PG_GuiMouseArea* m_area = nullptr;
 };

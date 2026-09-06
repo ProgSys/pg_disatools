@@ -245,7 +245,7 @@ void RootScene::openInit(std::string version, PG_File exePath) {
 
 static inline std::pair<PG_GuiRenderItem*, PG_DisaMapSceneView*> createMapScene(PG_GuiItem* parent) {
 	auto renderWindow = PG_new<PG_GuiRenderItem>("GridRenderItem", parent);
-	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, renderWindow);
+	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, 2, renderWindow);
 	auto gameScene = PG_new<PG_DisaMapSceneView>("GameScene", sceneRenderer);
 	return { renderWindow, gameScene };
 }
@@ -368,7 +368,7 @@ void RootScene::setupMapView() {
 
 	auto item = PG_new<PG_GuiRenderItem>("GridRenderItem", rootItem);
 	m_center = item;
-	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, item);
+	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, 2, item);
 	auto gameScene = PG_new<PG_DisaMapSceneView>("GameScene", sceneRenderer);
 
 	gameScene->setModel(m_mainModel->getCurrent());

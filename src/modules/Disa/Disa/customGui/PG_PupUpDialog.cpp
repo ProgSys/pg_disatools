@@ -241,7 +241,7 @@ PG_PopUpDialog* PG_PopUpDialog::createOk(PG_GuiItem* parentItem, int type, const
 			img = PG_new<PG_GuiImage>("N_Img", window);
 			img->setSize(glm::vec2(127.f));
 			img->setPosition(glm::vec2(60.f, -20.f));
-			img->setImage(type == 1? "gui/icon_success_127.png": "gui/icon_error_127.png");
+			img->setSource(type == 1? "gui/icon_success_127.png": "gui/icon_error_127.png");
 			PG_GuiItem::anchor(img, PG_Anchor::Left, window, PG_Anchor::Left);
 			PG_GuiItem::anchor(img, PG_Anchor::VerticalCenter, window, PG_Anchor::VerticalCenter);
 		}
@@ -313,7 +313,7 @@ PG_PopUpDialog* PG_PopUpDialog::createConfirm(PG_GuiItem* parentItem, const std:
 		PG_GuiImage* img = PG_new<PG_GuiImage>("N_Img", window);
 		img->setSize(glm::vec2(127.f));
 		img->setPosition(glm::vec2(60.f, -20.f));
-		img->setImage("gui/icon_question_127.png");
+		img->setSource("gui/icon_question_127.png");
 		PG_GuiItem::anchor(img, PG_Anchor::Left, window, PG_Anchor::Left);
 		PG_GuiItem::anchor(img, PG_Anchor::VerticalCenter, window, PG_Anchor::VerticalCenter);
 

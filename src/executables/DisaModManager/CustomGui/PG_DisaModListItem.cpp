@@ -186,24 +186,24 @@ void PG_DisaModListItem::updateAutor() {
 void PG_DisaModListItem::updateImage() {
 	constexpr auto missingImg = "gui/disa/pg_img_missing_thumbnail.png";
 	if (!m_location) {
-		m_img->setImage(missingImg);
+		m_img->setSource(missingImg);
 		return;
 	}
 	auto img = m_location.getDataT<PG_Texture>(PG_Identity_PreviewImage);
 	if (!img.isValid()) {
-		m_img->setImage(missingImg);
+		m_img->setSource(missingImg);
 		return;
 	}
 
 	if (img.isLoaded()) {
-		m_img->setImage(img);
+		m_img->setSourceData(img);
 		return;
 	}
-	m_img->setImage(missingImg);
+	m_img->setSource(missingImg);
 	auto* fence = PG_new<PG_ResourceSynchronisator>("PG_ResourceSynchronisator", this);
 	fence->add(img);
 	connect(fence, &PG_ResourceSynchronisator::loaded, this, [this, image = std::move(img)] {
-		m_img->setImage(image);
+		m_img->setSourceData(image);
 		});
 	fence->start();
 }
