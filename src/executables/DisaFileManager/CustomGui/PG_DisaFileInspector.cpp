@@ -24,9 +24,10 @@
 #include <algorithm>
 #include <vector>
 
-constexpr float g_narrowWidth = 100.f; //below this the panel drops to the icon column
+constexpr float g_narrowWidth = 150.f; //below this the panel drops to the icon column
 constexpr float g_buttonSize = 54.f;
-constexpr float g_buttonMinSize = 26.f;
+constexpr float g_buttonCount = 4.f;
+constexpr float g_buttonGapRatio = 0.2f; //the gap between two buttons, as a share of their size
 constexpr float g_iconRatio = 32.f / g_buttonSize;
 constexpr float g_margin = 12.f;
 constexpr float g_narrowMargin = 6.f;
@@ -55,6 +56,18 @@ static void makeSquare(PG_GuiItem* item) {
 		size->y = size->x;
 		item->setHeight(size->x); //a column reserves the original height, not the one resolved here
 		});
+}
+
+/// The file icon on the same rounded plate the action buttons sit on, for the narrow layout
+static PG_GuiRectangle* addIconChip(PG_GuiItem* parent, float side) {
+	auto* chip = PG_new<PG_GuiRectangle>("iconChip", glm::vec2(0.f), glm::vec2(side), parent);
+	chip->setMaterial("M_GuiRoundedRectangleAll5");
+	chip->setColor(PG_Color::darkerGrayFrgb);
+
+	auto* icon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(side * g_iconRatio), std::string("gui/icon_script.svg"), chip);
+	PG_GuiItem::anchor(icon, PG_Anchor::HorizontalCenter, chip, PG_Anchor::HorizontalCenter);
+	PG_GuiItem::anchor(icon, PG_Anchor::VerticalCenter, chip, PG_Anchor::VerticalCenter);
+	return chip;
 }
 
 static void addSeparator(PG_GuiItem* column) {
@@ -127,7 +140,7 @@ void PG_DisaFileInspector::buildWide() {
 	m_root->setMargin(PG_Anchor::Right, g_margin);
 	m_root->setMargin(PG_Anchor::Top, g_margin);
 
-	auto* column = PG_new<PG_GuiColumn>("column", m_root);
+	auto* column = PG_new<PG_GuiColumn>("disaFileInspectorColumn", m_root);
 	column->fill(m_root);
 	column->setSpacing(g_spacing);
 
@@ -152,15 +165,11 @@ void PG_DisaFileInspector::buildWide() {
 
 	addSeparator(column);
 
-	{ //preview, on a checkerboard so the user can tell transparency from black
+	{ //preview, framed. The checkerboard behind an image comes from PG_DisaPreviewItem itself
 		auto* frame = PG_new<PG_GuiItem>("previewFrame", glm::vec2(0.f), glm::vec2(0.f, 220.f), column);
 		anchor(frame, PG_Anchor::Left, column, PG_Anchor::Left);
 		anchor(frame, PG_Anchor::Right, column, PG_Anchor::Right);
 		makeSquare(frame);
-
-		auto* checker = PG_new<PG_GuiImage>("checker", glm::vec2(0.f), glm::vec2(100.f), std::string("gui/pattern.png"), frame);
-		checker->setFitType(PG_GuiImage::Repeat);
-		checker->fill(frame);
 
 		m_preview = PG_new<PG_DisaPreviewItem>("PG_DisaPreviewItem", frame);
 		m_preview->fill(frame);
@@ -179,16 +188,27 @@ void PG_DisaFileInspector::buildWide() {
 		auto* row = PG_new<PG_GuiRow>("buttonRow", glm::vec2(0.f), glm::vec2(0.f, g_buttonSize), column);
 		anchor(row, PG_Anchor::Left, column, PG_Anchor::Left);
 		anchor(row, PG_Anchor::Right, column, PG_Anchor::Right);
-		row->setSpacing(8.f);
 
 		buildButtons(row);
 
 		for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
 			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
 			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
-			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(g_buttonSize));
-			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MinSize, glm::vec2(g_buttonMinSize));
 		}
+
+		/* A row charges its spacing on both sides of every item and never scales it, so the button
+		 * side and the spacing are both worked out from the width here. A row emits midGuiUpdate
+		 * before it lays its children out, so this still lands in the same frame. */
+		connect(row, &PG_GuiItem::midGuiUpdate, row, [this, row](glm::vec2*, glm::vec2* size) {
+			const float side = std::min(g_buttonSize, size->x / (g_buttonCount * (1.f + g_buttonGapRatio)));
+			row->setSpacing(side * g_buttonGapRatio * 0.5f); //half of it, a gap is charged twice
+			for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
+				btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MinSize, glm::vec2(side));
+				btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(side));
+			}
+			size->y = side;
+			row->setHeight(side); //or the column keeps reserving the height the row was built with
+			});
 	}
 
 	addSeparator(column);
@@ -219,18 +239,21 @@ void PG_DisaFileInspector::buildNarrow() {
 
 	auto* column = PG_new<PG_GuiColumn>("column", m_root);
 	column->fill(m_root);
-	column->setSpacing(g_narrowMargin);
 
-	{ //the file icon carries what the wide layout spells out, as a tooltip
-		m_iconArea = PG_new<PG_GuiTooltipArea>("iconArea", glm::vec2(0.f), glm::vec2(0.f, 32.f), column);
-		anchor(m_iconArea, PG_Anchor::Left, column, PG_Anchor::Left);
-		anchor(m_iconArea, PG_Anchor::Right, column, PG_Anchor::Right);
-		m_iconArea->setUseParent(false);
+	m_iconArea = PG_new<PG_GuiTooltipArea>("iconArea", glm::vec2(0.f), glm::vec2(0.f, g_buttonSize), column);
+	anchor(m_iconArea, PG_Anchor::Left, column, PG_Anchor::Left);
+	anchor(m_iconArea, PG_Anchor::Right, column, PG_Anchor::Right);
+	m_iconArea->setUseParent(false);
 
-		auto* icon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(32.f), std::string("gui/icon_script.svg"), m_iconArea);
-		anchor(icon, PG_Anchor::HorizontalCenter, m_iconArea, PG_Anchor::HorizontalCenter);
-		anchor(icon, PG_Anchor::VerticalCenter, m_iconArea, PG_Anchor::VerticalCenter);
-	}
+	/* The panel is against the right edge of the window, so beside means left, every time. There is
+	 * no hint that says so outright. */
+	m_iconArea->setTooltipPositionHint(PG_TooltipPositionHint_Right);
+
+	//the file icon carries what the wide layout spells out, as a tooltip
+	auto* chip = addIconChip(m_iconArea, g_buttonSize);
+	anchor(chip, PG_Anchor::HorizontalCenter, m_iconArea, PG_Anchor::HorizontalCenter);
+	anchor(chip, PG_Anchor::VerticalCenter, m_iconArea, PG_Anchor::VerticalCenter);
+	auto* chipIcon = chip->findFirstChild<PG_GuiImage>();
 
 	buildButtons(column);
 
@@ -238,12 +261,16 @@ void PG_DisaFileInspector::buildNarrow() {
 		anchor(btn, PG_Anchor::HorizontalCenter, column, PG_Anchor::HorizontalCenter);
 	}
 
-	/* A column hands out no width, so the buttons are sized from it here rather than clamped in
-	 * their own midGuiUpdate, which runs after the anchor has already centered them. */
-	connect(column, &PG_GuiItem::midGuiUpdate, column, [this](glm::vec2*, glm::vec2* size) {
-		const glm::vec2 side(std::min(g_buttonSize, size->x));
+	/* A column hands out no width, so everything in it is sized from the column here rather than
+	 * clamped in its own midGuiUpdate, which runs after the anchor has already centered it. */
+	connect(column, &PG_GuiItem::midGuiUpdate, column, [this, column, chip, chipIcon](glm::vec2*, glm::vec2* size) {
+		const float side = std::min(g_buttonSize, size->x);
+		column->setSpacing(side * g_buttonGapRatio);
+		m_iconArea->setHeight(side);
+		chip->setSize(glm::vec2(side));
+		if (chipIcon) chipIcon->setSize(glm::vec2(side * g_iconRatio));
 		for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
-			btn->setSize(side);
+			btn->setSize(glm::vec2(side));
 		}
 		});
 }
@@ -298,6 +325,12 @@ void PG_DisaFileInspector::bindModel() {
 			});
 	}
 
+	if (auto prop = m_model->getProperty("hasSelection")) {
+		//nothing removes entries yet, the button only tracks whether there would be something to remove
+		connect(m_model, prop, m_deleteButton, m_deleteButton->getProperty("enabled"));
+		m_deleteButton->setEnabled(m_model->getPropertyValue(prop).toBool());
+	}
+
 	auto funcExport = m_model->getFunction("void exportSelected(const PG_Dir&)");
 	auto funcExportSingle = m_model->getFunction("void exportLastSelected(const PG_File&)");
 	if (funcExport) {
@@ -324,8 +357,6 @@ void PG_DisaFileInspector::bindModel() {
 			}
 			});
 	}
-
-	//nothing removes entries yet, so the delete button stays disabled
 }
 
 void PG_DisaFileInspector::updateSelection() {

@@ -14,6 +14,14 @@
 void PG_DisaPreviewItem::init() {
 	PG_GuiItem::init();
 	setName("PG_DisaPreviewItem");
+
+	/* Created first so it sits behind everything else. Only an image preview shows it, a scene has
+	 * nothing transparent to tell apart from black. */
+	m_checker = PG_new<PG_GuiImage>("Checker", this);
+	m_checker->fill(this);
+	m_checker->setFitType(PG_GuiImage::Repeat);
+	m_checker->setSource("gui/pattern.png");
+
 	m_container = PG_new<PG_GuiItem>("Container", this);
 	m_container->fill(this);
 
@@ -114,6 +122,7 @@ void PG_DisaPreviewItem::open(const PG_Texture& img) {
 		imgItem->fill(m_container);
 	}
 	imgItem->setSourceData(img);
+	if (m_checker) m_checker->setVisible(true);
 }
 
 void PG_DisaPreviewItem::open(const std::string& imgPath) {
@@ -125,6 +134,7 @@ void PG_DisaPreviewItem::open(const std::string& imgPath) {
 		imgItem->fill(m_container);
 	}
 	imgItem->setSource(imgPath);
+	if (m_checker) m_checker->setVisible(true);
 }
 
 void PG_DisaPreviewItem::clearImage() {

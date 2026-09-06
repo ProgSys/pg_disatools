@@ -8,6 +8,7 @@
 class PG_GuiRenderItem;
 class PG_GuiText;
 class PG_DisaMapModel;
+class PG_GuiImage;
 class PG_GuiRectangle;
 
 class PG_DisaPreviewItem : public PG_GuiItem
@@ -57,6 +58,7 @@ private:
 
 	PG_ListModelLocation m_location;
 	PG_GuiText* m_text = nullptr;
+	PG_GuiImage* m_checker = nullptr;
 	PG_GuiRectangle* m_border = nullptr;
 	PG_GuiItem* m_container = nullptr;
 	bool m_previewEnabled = true;
