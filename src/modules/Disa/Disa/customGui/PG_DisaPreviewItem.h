@@ -35,6 +35,12 @@ public:
 	inline bool isPreviewEnabled() const { return m_previewEnabled; }
 	void setPreviewEnabled(bool enabled);
 	/**
+	* @brief The file name drawn along the bottom edge
+	* @details Turn it off where the surrounding gui already names the file.
+	*/
+	bool isNameVisible() const;
+	void setNameVisible(bool visible);
+	/**
 	* @returns true if any kind of preview is open
 	*/
 	inline bool hasPreview() const { return m_container && m_container->hasGuiChildren(); }

@@ -22,6 +22,7 @@ class PG_DisaFileContainerModel : public PG_Object, public PG_UiStateBaseModel {
 	PG_PROPERTY(bool hasSelection GET hasSelection CHANGED lastSelectedChanged)
 	PG_PROPERTY(bool hasSingleSelection GET hasSingleSelection CHANGED lastSelectedChanged)
 	PG_PROPERTY(int selectionSize GET getSelectionSize CHANGED lastSelectedChanged)
+	PG_PROPERTY(int selectionByteSize GET getSelectionByteSize CHANGED lastSelectedChanged)
 	PG_PROPERTY(PG_ListModelLocation lastSelected GET getLastSelected CHANGED lastSelectedChanged)
 
 signals:
@@ -44,6 +45,8 @@ public:
 	bool hasSelection() const;
 	bool hasSingleSelection() const;
 	int getSelectionSize() const;
+	/// The summed up size of every selected file, in bytes
+	int getSelectionByteSize() const;
 	PG_ListModelLocation getLastSelected() const;
 	PG_DisaFileContainer* getDisaFileContainer() const { return m_fileContainer; }
 

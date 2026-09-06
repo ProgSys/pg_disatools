@@ -1,0 +1,387 @@
+#include "PG_DisaFileInspector.h"
+
+#include <Base/PG_Event.h>
+#include <Base/PG_Index.h>
+#include <Base/PG_Object.h>
+#include <Util/PG_Any.h>
+#include <Scene/Gui/PG_GuiButton.h>
+#include <Scene/Gui/PG_GuiColumn.h>
+#include <Scene/Gui/PG_GuiImage.h>
+#include <Scene/Gui/PG_GuiLines.h>
+#include <Scene/Gui/PG_GuiRow.h>
+#include <Scene/Gui/PG_GuiText.h>
+#include <Scene/Gui/PG_GuiTooltipArea.h>
+#include <Scene/Model/PG_ListModelLocation.h>
+#include <Util/PG_Dir.h>
+#include <Util/PG_File.h>
+
+#include <Disa/PG_DisaColorDefines.h>
+#include <Disa/customGui/PG_DisaPreviewItem.h>
+#include <Disa/customGui/PG_PupUpDialog.h>
+
+#include <Models/PG_UiStateBaseModel.h>
+
+#include <algorithm>
+#include <vector>
+
+constexpr float g_narrowWidth = 100.f; //below this the panel drops to the icon column
+constexpr float g_buttonSize = 54.f;
+constexpr float g_buttonMinSize = 26.f;
+constexpr float g_iconRatio = 32.f / g_buttonSize;
+constexpr float g_margin = 12.f;
+constexpr float g_narrowMargin = 6.f;
+constexpr float g_spacing = 10.f;
+constexpr float g_headerHeight = 28.f;
+
+/// U+2022, swap it for a plain '-' should the font turn out to have no glyph for it
+constexpr const char* g_bullet = "\xE2\x80\xA2 ";
+constexpr unsigned char g_rebuildEvent = PG_Event_Behaviour_Singleton | PG_Event_Behaviour_Later;
+
+/// Empty when the model has no selection, or is not the kind of model that tracks one
+static PG_ListModelLocation lastSelectedOf(PG_Object* model) {
+	if (!model) return {};
+	PG_Any value = model->getPropertyValue("lastSelected");
+	if (!value.is<PG_ListModelLocation>()) return {}; //get would throw on anything else
+	return value.get<PG_ListModelLocation>();
+}
+
+static int selectionCountOf(PG_Object* model) {
+	return model ? std::max(0, model->getPropertyValue("selectionSize").toInt(0)) : 0;
+}
+
+/// The item keeps whatever width it is given and matches its height to it
+static void makeSquare(PG_GuiItem* item) {
+	PG_Object::connect(item, &PG_GuiItem::midGuiUpdate, item, [item](glm::vec2*, glm::vec2* size) {
+		size->y = size->x;
+		item->setHeight(size->x); //a column reserves the original height, not the one resolved here
+		});
+}
+
+static void addSeparator(PG_GuiItem* column) {
+	auto* line = PG_new<PG_GuiLines>("separator", glm::vec2(0.f), glm::vec2(0.f, 1.f), column);
+	line->makeLineX();
+	line->setColor(PG_Color::darkerGrayFrgb);
+	PG_GuiItem::anchor(line, PG_Anchor::Left, column, PG_Anchor::Left);
+	PG_GuiItem::anchor(line, PG_Anchor::Right, column, PG_Anchor::Right);
+}
+
+void PG_DisaFileInspector::init() {
+	PG_GuiRectangle::init();
+	setColor(PG_Color::blackGrayFrgb);
+
+	/* PG_GuiCell resizes a panel by moving its divider, the width then falls out of the anchors
+	 * inside doUpdate and no size signal is emitted. midGuiUpdate is the one that carries it. */
+	connect(this, &PG_GuiItem::midGuiUpdate, this, [this](glm::vec2*, glm::vec2* size) {
+		updateMode(size->x);
+		});
+	connect(this, &PG_GuiItem::sizeChanged, this, [this] { updateMode(getSize().x); });
+
+	rebuild();
+}
+
+void PG_DisaFileInspector::setModel(PG_UiStateBaseModel* model) {
+	if (m_model) disconnect(m_model, nullptr, this, nullptr);
+
+	m_stateModel = model;
+	m_model = dynamic_cast<PG_Object*>(model);
+
+	//a fresh tree comes up without any connection to the model that just went away
+	rebuild();
+}
+
+void PG_DisaFileInspector::updateMode(float width) {
+	if (width <= 1.f) return; //the panel has not been laid out yet
+
+	const EMode mode = width < g_narrowWidth ? Narrow : Wide;
+	if (mode == m_mode) return;
+	m_mode = mode;
+
+	/* Never tear the tree down inside a layout pass, and while the divider sits on the threshold
+	 * this fires every frame, so the singleton collapses them into one rebuild. */
+	postCallEvent(g_rebuildEvent, &PG_DisaFileInspector::rebuild);
+}
+
+void PG_DisaFileInspector::rebuild() {
+	if (m_root) delete m_root;
+	m_root = nullptr;
+	m_name = nullptr;
+	m_infoBody = nullptr;
+	m_preview = nullptr;
+	m_iconArea = nullptr;
+	m_addButton = nullptr;
+	m_replaceButton = nullptr;
+	m_exportButton = nullptr;
+	m_deleteButton = nullptr;
+
+	if (m_mode == Narrow) buildNarrow();
+	else buildWide();
+
+	bindModel();
+	updateSelection();
+}
+
+void PG_DisaFileInspector::buildWide() {
+	m_root = PG_new<PG_GuiItem>("wide", this);
+	m_root->fill(this);
+	m_root->setMargin(PG_Anchor::Left, g_margin);
+	m_root->setMargin(PG_Anchor::Right, g_margin);
+	m_root->setMargin(PG_Anchor::Top, g_margin);
+
+	auto* column = PG_new<PG_GuiColumn>("column", m_root);
+	column->fill(m_root);
+	column->setSpacing(g_spacing);
+
+	{ //header, the file icon followed by the file name
+		auto* header = PG_new<PG_GuiItem>("header", glm::vec2(0.f), glm::vec2(0.f, g_headerHeight), column);
+		anchor(header, PG_Anchor::Left, column, PG_Anchor::Left);
+		anchor(header, PG_Anchor::Right, column, PG_Anchor::Right);
+
+		auto* icon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(20.f), std::string("gui/icon_script.svg"), header);
+		anchor(icon, PG_Anchor::Left, header, PG_Anchor::Left);
+		anchor(icon, PG_Anchor::VerticalCenter, header, PG_Anchor::VerticalCenter);
+
+		m_name = PG_new<PG_GuiText>("name", glm::vec2(0.f), glm::vec2(0.f, g_headerHeight), header);
+		anchor(m_name, PG_Anchor::Left, icon, PG_Anchor::Right);
+		anchor(m_name, PG_Anchor::Right, header, PG_Anchor::Right);
+		m_name->setMargin(PG_Anchor::Left, 8.f);
+		m_name->setFontSize(21.f);
+		m_name->setColor(PG_Color::hentaiBlueFrgb);
+		m_name->setWrapMode(PG_GuiText::Elide);
+		m_name->setVerticalAlignment(PG_Anchor::VerticalCenter);
+	}
+
+	addSeparator(column);
+
+	{ //preview, on a checkerboard so the user can tell transparency from black
+		auto* frame = PG_new<PG_GuiItem>("previewFrame", glm::vec2(0.f), glm::vec2(0.f, 220.f), column);
+		anchor(frame, PG_Anchor::Left, column, PG_Anchor::Left);
+		anchor(frame, PG_Anchor::Right, column, PG_Anchor::Right);
+		makeSquare(frame);
+
+		auto* checker = PG_new<PG_GuiImage>("checker", glm::vec2(0.f), glm::vec2(100.f), std::string("gui/pattern.png"), frame);
+		checker->setFitType(PG_GuiImage::Repeat);
+		checker->fill(frame);
+
+		m_preview = PG_new<PG_DisaPreviewItem>("PG_DisaPreviewItem", frame);
+		m_preview->fill(frame);
+		m_preview->setNameVisible(false);
+
+		auto* border = PG_new<PG_GuiRectangle>("previewBorder", frame);
+		border->fill(frame);
+		border->setAlpha(0.f);
+		border->setBorderColor(PG_Color::darkerGrayFrgb);
+		border->setBorderWidth(1.f);
+	}
+
+	addSeparator(column);
+
+	{ //the four file actions, centered and never wider than g_buttonSize
+		auto* row = PG_new<PG_GuiRow>("buttonRow", glm::vec2(0.f), glm::vec2(0.f, g_buttonSize), column);
+		anchor(row, PG_Anchor::Left, column, PG_Anchor::Left);
+		anchor(row, PG_Anchor::Right, column, PG_Anchor::Right);
+		row->setSpacing(8.f);
+
+		buildButtons(row);
+
+		for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
+			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(g_buttonSize));
+			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MinSize, glm::vec2(g_buttonMinSize));
+		}
+	}
+
+	addSeparator(column);
+
+	{ //file info
+		auto* title = PG_new<PG_GuiText>("infoTitle", glm::vec2(0.f), glm::vec2(0.f, 30.f), std::string("File Info"), column);
+		anchor(title, PG_Anchor::Left, column, PG_Anchor::Left);
+		anchor(title, PG_Anchor::Right, column, PG_Anchor::Right);
+		title->setFontSize(24.f);
+		title->setColor(PG_DisaColor::textFrgb);
+		title->setWrapMode(PG_GuiText::None);
+
+		m_infoBody = PG_new<PG_GuiText>("infoBody", glm::vec2(0.f), glm::vec2(0.f, 78.f), column);
+		anchor(m_infoBody, PG_Anchor::Left, column, PG_Anchor::Left);
+		anchor(m_infoBody, PG_Anchor::Right, column, PG_Anchor::Right);
+		m_infoBody->setFontSize(20.f);
+		m_infoBody->setColor(PG_DisaColor::textFrgb);
+		m_infoBody->setWrapMode(PG_GuiText::None);
+	}
+}
+
+void PG_DisaFileInspector::buildNarrow() {
+	m_root = PG_new<PG_GuiItem>("narrow", this);
+	m_root->fill(this);
+	m_root->setMargin(PG_Anchor::Left, g_narrowMargin);
+	m_root->setMargin(PG_Anchor::Right, g_narrowMargin);
+	m_root->setMargin(PG_Anchor::Top, g_narrowMargin);
+
+	auto* column = PG_new<PG_GuiColumn>("column", m_root);
+	column->fill(m_root);
+	column->setSpacing(g_narrowMargin);
+
+	{ //the file icon carries what the wide layout spells out, as a tooltip
+		m_iconArea = PG_new<PG_GuiTooltipArea>("iconArea", glm::vec2(0.f), glm::vec2(0.f, 32.f), column);
+		anchor(m_iconArea, PG_Anchor::Left, column, PG_Anchor::Left);
+		anchor(m_iconArea, PG_Anchor::Right, column, PG_Anchor::Right);
+		m_iconArea->setUseParent(false);
+
+		auto* icon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(32.f), std::string("gui/icon_script.svg"), m_iconArea);
+		anchor(icon, PG_Anchor::HorizontalCenter, m_iconArea, PG_Anchor::HorizontalCenter);
+		anchor(icon, PG_Anchor::VerticalCenter, m_iconArea, PG_Anchor::VerticalCenter);
+	}
+
+	buildButtons(column);
+
+	for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
+		anchor(btn, PG_Anchor::HorizontalCenter, column, PG_Anchor::HorizontalCenter);
+	}
+
+	/* A column hands out no width, so the buttons are sized from it here rather than clamped in
+	 * their own midGuiUpdate, which runs after the anchor has already centered them. */
+	connect(column, &PG_GuiItem::midGuiUpdate, column, [this](glm::vec2*, glm::vec2* size) {
+		const glm::vec2 side(std::min(g_buttonSize, size->x));
+		for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
+			btn->setSize(side);
+		}
+		});
+}
+
+void PG_DisaFileInspector::buildButtons(PG_GuiItem* parent) {
+	const auto make = [parent](const std::string& name, const std::string& iconPath, const std::string& tooltip) {
+		auto* btn = PG_new<PG_GuiButton>(name, glm::vec2(0.f), glm::vec2(g_buttonSize), parent);
+		btn->setIcon(iconPath, glm::vec2(g_buttonSize * g_iconRatio));
+		btn->setBackground("M_GuiRoundedRectangleAll5");
+		btn->setTooltipText(tooltip);
+		btn->setEnabled(false);
+
+		PG_Object::connect(btn, &PG_GuiItem::midGuiUpdate, btn, [btn](glm::vec2*, glm::vec2* size) {
+			size->y = size->x;
+			if (auto* icon = btn->getIcon()) icon->setSize(glm::vec2(size->x * g_iconRatio));
+			});
+		return btn;
+		};
+
+	m_addButton = make("addButton", "gui/icon_add.svg", "Import one or more files below the selected file");
+	m_replaceButton = make("replaceButton", "gui/icon_repeat.svg", "Replace selected file keeping its name");
+	m_exportButton = make("exportButton", "gui/icon_file_export.svg", "Extract selected file or files");
+	m_deleteButton = make("deleteButton", "gui/icon_delete.svg", "Delete selected file or files");
+
+	m_deleteButton->setBackgroundColor({ PG_Color::hentaiRedFrgb * 0.38f,
+		PG_Color::hentaiRedFrgb * 0.55f, PG_Color::hentaiRedFrgb * 0.30f });
+}
+
+void PG_DisaFileInspector::bindModel() {
+	if (!m_model) return;
+
+	connect(m_model, m_model->getProperty("lastSelected"), this, &PG_DisaFileInspector::updateSelection);
+
+	if (auto func = m_model->getFunction("void importFiles(const std::vector<PG_File>&)")) {
+		m_addButton->setEnabled(true);
+		connect(m_addButton, &PG_GuiButton::clicked, m_model, [model = m_model, func] {
+			std::vector<PG_File> results = PG_PopUpDialog::selectFiles({});
+			if (results.empty()) return;
+			func.callArgs(model, results);
+			});
+	}
+
+	if (auto func = m_model->getFunction("void replaceLastSelected(const PG_File&,bool)")) {
+		if (auto prop = m_model->getProperty("hasSingleSelection")) {
+			connect(m_model, prop, m_replaceButton, m_replaceButton->getProperty("enabled"));
+			m_replaceButton->setEnabled(m_model->getPropertyValue(prop).toBool());
+		}
+		connect(m_replaceButton, &PG_GuiButton::clicked, m_model, [model = m_model, func] {
+			PG_File result = PG_PopUpDialog::selectFile({});
+			if (!result) return;
+			func.callArgs(model, result, false);
+			});
+	}
+
+	auto funcExport = m_model->getFunction("void exportSelected(const PG_Dir&)");
+	auto funcExportSingle = m_model->getFunction("void exportLastSelected(const PG_File&)");
+	if (funcExport) {
+		if (auto prop = m_model->getProperty("hasSelection")) {
+			connect(m_model, prop, m_exportButton, m_exportButton->getProperty("enabled"));
+			m_exportButton->setEnabled(m_model->getPropertyValue(prop).toBool());
+		}
+		connect(m_exportButton, &PG_GuiButton::clicked, m_model, [model = m_model, funcExport, funcExportSingle] {
+			//only a single file is selected -> file name can be changed
+			if (auto selectionSize = model->getPropertyValue("selectionSize");
+				funcExportSingle && selectionSize && selectionSize.toInt() == 1) {
+				PG_ListModelLocation loc = model->getPropertyValue("lastSelected").get<PG_ListModelLocation>();
+				if (!loc) return;
+
+				if (PG_File result = PG_PopUpDialog::saveAs(loc.getData(EIdentity::PG_Identity_Text).convert<std::string>())) {
+					funcExportSingle.callArgs(model, result);
+				}
+				return;
+			}
+
+			//more then one file is selected -> select folder
+			if (PG_Dir result = PG_PopUpDialog::selectDir(); !result.isEmpty()) {
+				funcExport.callArgs(model, result);
+			}
+			});
+	}
+
+	//nothing removes entries yet, so the delete button stays disabled
+}
+
+void PG_DisaFileInspector::updateSelection() {
+	const int count = selectionCountOf(m_model);
+
+	std::string title;
+	if (count > 1) title = std::to_string(count) + " files selected";
+	else if (count == 1) title = columnText(0);
+	else if (m_stateModel) title = m_stateModel->getFileName();
+	if (title.empty()) title = "No selection";
+	if (m_name) m_name->setText(title);
+	if (m_infoBody) m_infoBody->setText(buildInfoText());
+
+	if (m_iconArea) {
+		if (std::string info = buildInfoText(); !info.empty()) title += "\n" + info;
+		m_iconArea->setTooltipText(title);
+	}
+
+	if (m_preview) {
+		if (count > 1) {
+			//drop the location first, so reselecting that same single file refreshes the preview again
+			m_preview->setLocation({});
+			m_preview->open(std::string("gui/skip.png"));
+		}
+		else if (count == 1) {
+			m_preview->setLocation(lastSelectedOf(m_model));
+		}
+		else {
+			m_preview->setLocation({});
+		}
+	}
+}
+
+std::string PG_DisaFileInspector::buildInfoText() const {
+	if (!m_model) return {};
+
+	const int count = selectionCountOf(m_model);
+	if (count > 1) {
+		return g_bullet + std::string("Files: ") + std::to_string(count) +
+			"\n" + g_bullet + "Total size: " + std::to_string(m_model->getPropertyValue("selectionByteSize").toInt(0));
+	}
+	if (count != 1) return {};
+
+	return g_bullet + std::string("Type: ") + columnText(1) +
+		"\n" + g_bullet + "Size: " + columnText(2) +
+		"\n" + g_bullet + "Index: " + columnText(3);
+}
+
+std::string PG_DisaFileInspector::columnText(int column) const {
+	PG_ListModelLocation loc = lastSelectedOf(m_model);
+	if (!loc) return {};
+
+	PG_Index index = loc.getIndex();
+	if (index.size() < 2) return {}; //the table hands out a row and a column, anything flatter is not ours
+	index.set(1, column);
+	loc.setIndex(std::move(index));
+
+	return loc.getData(EIdentity::PG_Identity_Text).convert<std::string>();
+}

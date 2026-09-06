@@ -46,7 +46,6 @@
 #include <Scene/Gui/PG_GuiTableHeaderView.h>
 #include <Scene/Gui/PG_GuiFootlooseView.h>
 #include <Scene/Gui/PG_GuiCell.h>
-#include <Scene/Gui/PG_GuiColumn.h>
 #include <Scene/Model/PG_ListSelectionWrapperModel.h>
 
 
@@ -54,19 +53,11 @@
 #include <Disa/utils/PG_FileDialog.h>
 #include <Disa/customGui/PG_PupUpDialog.h>
 #include <Disa/CustomGui/PG_DisaSearchField.h>
-#include <Disa/CustomGui/PG_DisaPreviewItem.h>
-#include <Util/Color/ColorDefined.h>
+#include <Disa/PG_DisaColorDefines.h>
 
 #include <Models/PG_DisaFileManagerMainModel.h>
+#include <CustomGui/PG_DisaFileInspector.h>
 #include <CustomGui/PG_DisaFileTableItem.h>
-
-constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
-constexpr glm::vec3 backgroundDecoColor = glm::vec3(45.f / 255.f);
-constexpr glm::vec3 backgroundDeco2Color = glm::vec3(30.f / 255.f);
-constexpr glm::vec3 backgroundDarkColor = glm::vec3(20.f / 255.f);
-constexpr glm::vec3 offWeightColor = glm::vec3(200.f / 255.f);
-constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
-constexpr glm::vec3 bobbleTextColor = glm::vec3(76.f, 111.f, 199.f) / 255.f;
 
 void RootScene::init() {
 	PG_Scene::init();
@@ -79,7 +70,7 @@ void RootScene::init() {
 	{//map editor toolbar
 
 		toolbar = PG_new<PG_GuiRectangle>("toolbar", glm::vec2(0.f), glm::vec2(10.f, 50.f), rootItem);
-		toolbar->setColor(backgroundColor);
+		toolbar->setColor(PG_Color::blackGrayFrgb);
 		toolbar->getAnchor(PG_Anchor::Top)->setAnchor(rootItem->getAnchor(PG_Anchor::Top));
 		toolbar->getAnchor(PG_Anchor::Left)->setAnchor(rootItem->getAnchor(PG_Anchor::Left));
 		toolbar->getAnchor(PG_Anchor::Right)->setAnchor(rootItem->getAnchor(PG_Anchor::Right));
@@ -93,7 +84,7 @@ void RootScene::init() {
 
 	{
 		navbar = PG_new<PG_GuiRectangle>("navbar", glm::vec2(0.f), glm::vec2(0.f, 30.f), rootItem);
-		navbar->setColor(backgroundColor * 1.3f);
+		navbar->setColor(PG_Color::blackGrayFrgb * 1.3f);
 		PG_GuiItem::anchor(navbar, PG_Anchor::Top, toolbar, PG_Anchor::Bottom);
 		PG_GuiItem::anchor(navbar, PG_Anchor::Left, rootItem, PG_Anchor::Left);
 		PG_GuiItem::anchor(navbar, PG_Anchor::Right, rootItem, PG_Anchor::Right);
@@ -304,137 +295,11 @@ void RootScene::setupCenter() {
 		});
 
 	// ========= RIGHT SIDE =========
-	auto* previewContent = PG_new<PG_GuiRectangle>("preview", cell);
-	previewContent->setColor(backgroundDarkColor);
+	auto* inspector = PG_new<PG_DisaFileInspector>("inspector", cell);
+	cell->addRight(inspector, 250.f);
 
-	cell->addRight(previewContent, 250.f);
-
-	PG_GuiColumn* previewColumn = PG_new<PG_GuiColumn>("PG_GuiColumn", previewContent);
-	previewColumn->fill(previewContent);
-
-	PG_DisaPreviewItem* preview = PG_new<PG_DisaPreviewItem>("PG_DisaPreviewItem", previewColumn);
-	preview->setHeight(250.f);
-	connect(preview, &PG_DisaPreviewItem::midGuiUpdate, preview, [](glm::vec2* pos, glm::vec2* size) {
-		size->y = size->x;
-		});
-
-	PG_GuiItem::anchor(preview, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
-	PG_GuiItem::anchor(preview, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
-
-	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, preview, [preview](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
-		if(oldModel) disconnect(dynamic_cast<PG_Object*>(oldModel), nullptr, preview, nullptr);
-
-		if (!newModel) return;
-		auto* asObject = dynamic_cast<PG_Object*>(newModel);
-		if (!asObject) return;
-		auto prop = asObject->getProperty("lastSelected");
-		if (!prop) return;
-		preview->openPreview(asObject->getPropertyValue(prop));
-		connect(asObject, prop, preview, preview->getProperty("location"));
-	});
-
-	{
-		PG_GuiButton* btn = PG_new<PG_GuiButton>("PG_GuiButton_Export", glm::vec2(0.0f), glm::vec2(39.f, 30.f), previewColumn);
-		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
-		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
-
-		btn->setText("Extract");
-		btn->setTooltipText("Extract selected file or files");
-		btn->setIcon("gui/icon_export.png");
-		btn->setEnabled(false);
-
-		connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, btn, [btn](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
-			if (oldModel) disconnect(btn, nullptr, dynamic_cast<PG_Object*>(oldModel), nullptr);
-
-			if (!newModel) return;
-			auto* asObject = dynamic_cast<PG_Object*>(newModel);
-			if (!asObject) return;
-			auto funcExport = asObject->getFunction("void exportSelected(const PG_Dir&)");
-			auto funcExportSingle = asObject->getFunction("void exportLastSelected(const PG_File&)");
-			if (!funcExport) return;
-			auto prop = asObject->getProperty("hasSelection");
-			if (!prop) return;
-			connect(asObject, prop, btn, btn->getProperty("enabled"));
-			btn->setEnabled(asObject->getPropertyValue(prop).toBool());
-			connect(btn, &PG_GuiButton::clicked, asObject, [asObject, funcExport, funcExportSingle] {
-				//only a single file is selected -> file name can be changed 
-				if (auto selectionSize = asObject->getPropertyValue("selectionSize"); 
-					funcExportSingle && selectionSize && selectionSize.toInt() == 1) {
-					PG_ListModelLocation loc = asObject->getPropertyValue("lastSelected").get<PG_ListModelLocation>();
-					if (!loc) return;
-
-					if (PG_File result = PG_PopUpDialog::saveAs(loc.getDataT<std::string>(EIdentity::PG_Identity_Text))) {
-						funcExportSingle.callArgs(asObject, result);
-					}
-					return;
-				}
-
-				//more then one file is selected -> select folder
-				if (PG_Dir result = PG_PopUpDialog::selectDir(); !result.isEmpty()) {
-					funcExport.callArgs(asObject, result);
-				}
-			});
-		});
-
-	}
-
-	{
-		PG_GuiButton* btn = PG_new<PG_GuiButton>("PG_GuiButton_Import", glm::vec2(0.0f), glm::vec2(39.f, 30.f), previewColumn);
-		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
-		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
-
-		btn->setText("Import");
-		btn->setTooltipText("Import one or more files below the selected file");
-		btn->setIcon("gui/icon_add.png");
-		btn->setEnabled(false);
-
-		connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, btn, [btn](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
-			if (oldModel) disconnect(btn, nullptr, dynamic_cast<PG_Object*>(oldModel), nullptr);
-			btn->setEnabled(false); //there is no open file
-
-			if (!newModel) return;
-			auto* asObject = dynamic_cast<PG_Object*>(newModel);
-			if (!asObject) return;
-			auto funcImport = asObject->getFunction("void importFiles(const std::vector<PG_File>&)");
-			if (!funcImport) return;
-			btn->setEnabled(true);
-			connect(btn, &PG_GuiButton::clicked, asObject, [asObject, funcImport] {
-				std::vector<PG_File> results = PG_PopUpDialog::selectFiles({});
-				if (results.empty()) return;
-				funcImport.callArgs(asObject, results);
-				});
-			});
-	}
-
-	{
-		PG_GuiButton* btn = PG_new<PG_GuiButton>("PG_GuiButton_Replace", glm::vec2(0.0f), glm::vec2(39.f, 30.f), previewColumn);
-		PG_GuiItem::anchor(btn, PG_Anchor::Left, previewColumn, PG_Anchor::Left);
-		PG_GuiItem::anchor(btn, PG_Anchor::Right, previewColumn, PG_Anchor::Right);
-
-		btn->setText("Replace");
-		btn->setTooltipText("Replace selected file keeping its name");
-		btn->setIcon("gui/icon_folder.png");
-		btn->setEnabled(false);
-
-		connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, btn, [btn](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
-			if (oldModel) disconnect(btn, nullptr, dynamic_cast<PG_Object*>(oldModel), nullptr);
-
-			if (!newModel) return;
-			auto* asObject = dynamic_cast<PG_Object*>(newModel);
-			if (!asObject) return;
-			auto funcSingle = asObject->getFunction("void replaceLastSelected(const PG_File&,bool)");
-			if (!funcSingle) return;
-			auto prop = asObject->getProperty("hasSingleSelection");
-			if (!prop) return;
-			connect(asObject, prop, btn, btn->getProperty("enabled"));
-			btn->setEnabled(asObject->getPropertyValue(prop).toBool());
-			connect(btn, &PG_GuiButton::clicked, asObject, [asObject, funcSingle] {
-				PG_File result = PG_PopUpDialog::selectFile({});
-				if (!result) return;
-				funcSingle.callArgs(asObject, result, false);
-				});
-			});
-	}
+	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, inspector,
+		[inspector](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) { inspector->setModel(newModel); });
 }
 
 bool RootScene::event(PG_Event* e) {

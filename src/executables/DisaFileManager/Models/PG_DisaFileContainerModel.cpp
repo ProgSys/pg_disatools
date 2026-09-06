@@ -54,6 +54,20 @@ int PG_DisaFileContainerModel::getSelectionSize() const {
 	return m_selectionModel->getSelection().size();
 }
 
+int PG_DisaFileContainerModel::getSelectionByteSize() const {
+	if (!m_selectionModel || !m_selectionModel->hasSelection()) return 0;
+
+	int total = 0;
+	for (const auto& index : m_selectionModel->getSelection()) {
+		auto var = m_selectionModel->getData(index, EIdentity::PG_Identity_Item);
+		if (!var) continue;
+		auto entry = var.cast<PG_DisaFileEntry>();
+		if (!entry) continue;
+		total += (int)entry->getInfo().getSize();
+	}
+	return total;
+}
+
 PG_ListModelLocation PG_DisaFileContainerModel::getLastSelected() const {
 	if (!m_selectionModel || !m_selectionModel->hasSelection()) return {};
 	return m_selectionModel->getLocation(*std::prev(m_selectionModel->getSelection().end()));

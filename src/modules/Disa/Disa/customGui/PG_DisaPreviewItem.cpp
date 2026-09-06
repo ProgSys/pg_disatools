@@ -60,6 +60,14 @@ void PG_DisaPreviewItem::exportImage() {
 	PG_FileDialog::save(std::get<PG_Texture>(imgItem->getSourceData()), m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
 }
 
+bool PG_DisaPreviewItem::isNameVisible() const {
+	return m_text && m_text->isVisible();
+}
+
+void PG_DisaPreviewItem::setNameVisible(bool visible) {
+	if (m_text) m_text->setVisible(visible);
+}
+
 void PG_DisaPreviewItem::setPreviewEnabled(bool enabled) {
 	if (m_previewEnabled == enabled) return;
 	m_previewEnabled = enabled;
