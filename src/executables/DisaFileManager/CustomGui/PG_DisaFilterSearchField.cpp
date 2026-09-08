@@ -19,10 +19,10 @@
 using FileType = std::pair<const char*, const char*>; //extension, icon
 
 constexpr std::array<FileType, 11> g_fileTypes = { {
-	{ "TX2", "gui/icon_script.svg" }, { "DAT", "gui/icon_script.svg" }, { "GEO", "gui/icon_script.svg" },
-	{ "MPD", "gui/icon_script.svg" }, { "MPP", "gui/icon_script.svg" }, { "OGG", "gui/icon_script.svg" },
-	{ "PBD", "gui/icon_script.svg" }, { "FFM", "gui/icon_script.svg" }, { "PNG", "gui/icon_script.svg" },
-	{ "FAD", "gui/icon_script.svg" }, { "PHD", "gui/icon_script.svg" },
+	{ "TX2", "gui/disa/icon_file_tx2.svg" }, { "PNG", "gui/disa/icon_file_img.svg" }, { "DAT", "gui/disa/icon_file_archive.svg" }, 
+	{ "MPD", "gui/disa/icon_file_terrain.svg" }, { "MPP", "gui/disa/icon_file_terrain_texture.svg" },{ "GEO", "gui/icon_model.svg" }, 
+	{ "OGG", "gui/disa/icon_file_ogg.svg" }, { "PBD", "gui/disa/icon_file_generic.svg" }, { "FFM", "gui/disa/icon_file_generic.svg" },
+	{ "FAD", "gui/disa/icon_file_generic.svg" }, { "PHD", "gui/disa/icon_file_generic.svg" },
 } };
 
 constexpr glm::vec2 g_cellSize = glm::vec2(90.f, 30.f);
