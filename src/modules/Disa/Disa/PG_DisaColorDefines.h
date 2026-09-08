@@ -33,12 +33,17 @@
 /**
 * @brief The colors the Disa tools paint their gui with, on top of the engine defined ones.
 * @details Only what PG_Color has no equivalent for lives here. The panel background is
-* PG_Color::blackGray, a separator is PG_Color::darkerGray, a highlight is PG_Color::hentaiBlue and
-* a destructive action is PG_Color::hentaiRed. Reach for those before adding anything below.
+* PG_Color::blackGray, a separator is PG_Color::darkerGray and a highlight is PG_Color::hentaiBlue.
+* Reach for those before adding anything below.
 */
 namespace PG_DisaColor {
 	D_COLOR(backgroundDeco, glm::rgba(45, 45, 45, 255));
 	D_COLOR(backgroundDeco2, glm::rgba(30, 30, 30, 255));
 	D_COLOR(backgroundDark, glm::rgba(20, 20, 20, 255));
 	D_COLOR(text, glm::rgba(200, 200, 200, 255));
+
+	/// The three states a button gets when pressing it throws something away. PG_Color::hentaiRed, dimmed.
+	D_COLOR(destructive, glm::rgba(87, 36, 42, 255));
+	D_COLOR(destructiveHover, glm::rgba(127, 52, 61, 255));
+	D_COLOR(destructivePressed, glm::rgba(69, 28, 33, 255));
 }

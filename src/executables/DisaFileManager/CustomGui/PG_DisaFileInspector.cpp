@@ -278,8 +278,8 @@ void PG_DisaFileInspector::buildButtons(PG_GuiItem* parent) {
 	m_exportButton = make("exportButton", "gui/icon_file_export.svg", "Extract selected file or files");
 	m_deleteButton = make("deleteButton", "gui/icon_delete.svg", "Delete selected file or files");
 
-	m_deleteButton->setBackgroundColor({ PG_Color::hentaiRedFrgb * 0.38f,
-		PG_Color::hentaiRedFrgb * 0.55f, PG_Color::hentaiRedFrgb * 0.30f });
+	m_deleteButton->setBackgroundColor({ PG_DisaColor::destructiveFrgb,
+		PG_DisaColor::destructiveHoverFrgb, PG_DisaColor::destructivePressedFrgb });
 }
 
 void PG_DisaFileInspector::setButtonSide(float side) {

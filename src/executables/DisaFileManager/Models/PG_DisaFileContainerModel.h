@@ -8,6 +8,8 @@
 #include <Base/PG_Index.h>
 #include <Stream/PG_StreamIn.h>
 #include <set>
+#include <string>
+#include <vector>
 
 class PG_DisaFileContainer;
 class PG_ListSelectionWrapperModel;
@@ -19,6 +21,7 @@ class PG_DisaFileContainerModel : public PG_Object, public PG_UiStateBaseModel {
 
 	PG_PROPERTY(bool isModified GET isModified CHANGED isModifiedChanged) //is any file modfied
 	PG_PROPERTY(std::string searchText GET getSearchText SET setSearchText CHANGED searchStringChanged)
+	PG_PROPERTY(std::vector<std::string> fileTypes GET getFileTypes SET setFileTypes CHANGED fileTypesChanged)
 	PG_PROPERTY(bool hasSelection GET hasSelection CHANGED lastSelectedChanged)
 	PG_PROPERTY(bool hasSingleSelection GET hasSingleSelection CHANGED lastSelectedChanged)
 	PG_PROPERTY(int selectionSize GET getSelectionSize CHANGED lastSelectedChanged)
@@ -28,6 +31,7 @@ class PG_DisaFileContainerModel : public PG_Object, public PG_UiStateBaseModel {
 signals:
 	void isModifiedChanged();
 	void searchStringChanged();
+	void fileTypesChanged();
 	void lastSelectedChanged();
 public:
 	using PG_Object::PG_Object;
@@ -41,6 +45,10 @@ public:
 
 	const std::string& getSearchText() const;
 	void setSearchText(const std::string& str);
+
+	/// The file extensions the table is narrowed to, empty for all of them
+	const std::vector<std::string>& getFileTypes() const;
+	void setFileTypes(std::vector<std::string> types);
 
 	bool hasSelection() const;
 	bool hasSingleSelection() const;

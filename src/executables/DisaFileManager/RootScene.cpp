@@ -52,7 +52,7 @@
 #include <Disa/utils/PG_DisaInstaller.h>
 #include <Disa/utils/PG_FileDialog.h>
 #include <Disa/customGui/PG_PupUpDialog.h>
-#include <Disa/CustomGui/PG_DisaSearchField.h>
+#include <CustomGui/PG_DisaFilterSearchField.h>
 #include <Disa/PG_DisaColorDefines.h>
 
 #include <Models/PG_DisaFileManagerMainModel.h>
@@ -171,14 +171,15 @@ void RootScene::setupToolbar() {
 
 
 	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, toolbarRow, [this](PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel) {
-		PG_DisaSearchField* searchField = toolbarRow->findFirstChild<PG_DisaSearchField>("searchField");
+		PG_DisaFilterSearchField* searchField = toolbarRow->findFirstChild<PG_DisaFilterSearchField>("searchField");
 		if (searchField) delete searchField;
 		auto* asObject = dynamic_cast<PG_Object*>(newModel);
 		if (!asObject) return;
 		auto prop = asObject->getProperty("searchText");
-		if (!prop) return;
+		auto typesProp = asObject->getProperty("fileTypes");
+		if (!prop || !typesProp) return;
 
-		searchField = PG_new<PG_DisaSearchField>("searchField", glm::vec2(0.f), glm::vec2(300.f, 30.f), toolbarRow);
+		searchField = PG_new<PG_DisaFilterSearchField>("searchField", glm::vec2(0.f), glm::vec2(300.f, 30.f), toolbarRow);
 		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::VerticalCenter);
 		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
 		searchField->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
@@ -187,6 +188,7 @@ void RootScene::setupToolbar() {
 		searchField->setText(asObject->getPropertyValue(prop).toString());
 
 		connect(searchField, searchField->getProperty("text"), asObject, prop);
+		connect(searchField, searchField->getProperty("fileTypes"), asObject, typesProp);
 	});
 }
 

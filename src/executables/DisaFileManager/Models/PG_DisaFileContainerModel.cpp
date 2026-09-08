@@ -41,6 +41,14 @@ void PG_DisaFileContainerModel::setSearchText(const std::string& str) {
 	if(m_filterModel) m_filterModel->setSearchText(str);
 }
 
+const std::vector<std::string>& PG_DisaFileContainerModel::getFileTypes() const {
+	static const std::vector<std::string> empty;
+	return m_filterModel ? m_filterModel->getFileTypes() : empty;
+}
+void PG_DisaFileContainerModel::setFileTypes(std::vector<std::string> types) {
+	if (m_filterModel) m_filterModel->setFileTypes(std::move(types));
+}
+
 bool PG_DisaFileContainerModel::hasSelection() const {
 	return m_selectionModel && m_selectionModel->hasSelection();
 }
@@ -83,6 +91,7 @@ void PG_DisaFileContainerModel::setContainer(PG_DisaFileContainer* fileContainer
 	if (!m_filterModel) {
 		m_filterModel = PG_new<PG_DisaFileFilterModel>("PG_DisaFileFilterModel", this);
 		connect(m_filterModel, &PG_DisaFileFilterModel::searchStringChanged, this, &PG_DisaFileContainerModel::searchStringChanged);
+		connect(m_filterModel, &PG_DisaFileFilterModel::fileTypesChanged, this, &PG_DisaFileContainerModel::fileTypesChanged);
 	}
 	if (!m_selectionModel) {
 		m_selectionModel = PG_new<PG_ListSelectionWrapperModel>("PG_ListSelectionWrapperModel", this);
