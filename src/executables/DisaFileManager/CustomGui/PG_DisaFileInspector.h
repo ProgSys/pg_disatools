@@ -67,6 +67,8 @@ private:
 	void buildWide();
 	void buildNarrow();
 	void buildButtons(PG_GuiItem* parent);
+	/// Squares every action button to the given side and scales the icons along with them
+	void setButtonSide(float side);
 	void bindModel();
 	void updateSelection();
 

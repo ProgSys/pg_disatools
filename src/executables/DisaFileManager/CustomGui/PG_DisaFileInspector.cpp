@@ -50,14 +50,6 @@ static int selectionCountOf(PG_Object* model) {
 	return model ? std::max(0, model->getPropertyValue("selectionSize").toInt(0)) : 0;
 }
 
-/// The item keeps whatever width it is given and matches its height to it
-static void makeSquare(PG_GuiItem* item) {
-	PG_Object::connect(item, &PG_GuiItem::midGuiUpdate, item, [item](glm::vec2*, glm::vec2* size) {
-		size->y = size->x;
-		item->setHeight(size->x); //a column reserves the original height, not the one resolved here
-		});
-}
-
 /// The file icon on the same rounded plate the action buttons sit on, for the narrow layout
 static PG_GuiRectangle* addIconChip(PG_GuiItem* parent, float side) {
 	auto* chip = PG_new<PG_GuiRectangle>("iconChip", glm::vec2(0.f), glm::vec2(side), parent);
@@ -169,7 +161,8 @@ void PG_DisaFileInspector::buildWide() {
 		auto* frame = PG_new<PG_GuiItem>("previewFrame", glm::vec2(0.f), glm::vec2(0.f, 220.f), column);
 		anchor(frame, PG_Anchor::Left, column, PG_Anchor::Left);
 		anchor(frame, PG_Anchor::Right, column, PG_Anchor::Right);
-		makeSquare(frame);
+		//both x anchors settle the width, so the ratio has the height follow it and the column reserves that
+		frame->setLayoutProperty(PG_GuiItem::LayoutProperty_AspectRatio, glm::vec2(1.f));
 
 		m_preview = PG_new<PG_DisaPreviewItem>("PG_DisaPreviewItem", frame);
 		m_preview->fill(frame);
@@ -193,19 +186,16 @@ void PG_DisaFileInspector::buildWide() {
 
 		for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
 			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
-			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
 		}
 
-		/* A row charges its spacing on both sides of every item and never scales it, so the button
-		 * side and the spacing are both worked out from the width here. A row emits midGuiUpdate
-		 * before it lays its children out, so this still lands in the same frame. */
+		/* A row scales neither its spacing nor its own height, so both are worked out from the width
+		 * here. midGuiUpdate runs before the row lays its children out, so this lands in the same
+		 * frame; the buttons then measure to the side they were just given. */
 		connect(row, &PG_GuiItem::midGuiUpdate, row, [this, row](glm::vec2*, glm::vec2* size) {
-			const float side = std::min(g_buttonSize, size->x / (g_buttonCount * (1.f + g_buttonGapRatio)));
-			row->setSpacing(side * g_buttonGapRatio * 0.5f); //half of it, a gap is charged twice
-			for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
-				btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MinSize, glm::vec2(side));
-				btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(side));
-			}
+			//four buttons and the three gaps between them fill the row exactly
+			const float side = std::min(g_buttonSize, size->x / (g_buttonCount + (g_buttonCount - 1.f) * g_buttonGapRatio));
+			row->setSpacing(side * g_buttonGapRatio);
+			setButtonSide(side);
 			size->y = side;
 			row->setHeight(side); //or the column keeps reserving the height the row was built with
 			});
@@ -261,17 +251,15 @@ void PG_DisaFileInspector::buildNarrow() {
 		anchor(btn, PG_Anchor::HorizontalCenter, column, PG_Anchor::HorizontalCenter);
 	}
 
-	/* A column hands out no width, so everything in it is sized from the column here rather than
-	 * clamped in its own midGuiUpdate, which runs after the anchor has already centered it. */
+	/* A column owns no width, and a centre anchor places an item from a size it therefore never gets
+	 * told, so everything in here is sized from the column instead. */
 	connect(column, &PG_GuiItem::midGuiUpdate, column, [this, column, chip, chipIcon](glm::vec2*, glm::vec2* size) {
 		const float side = std::min(g_buttonSize, size->x);
 		column->setSpacing(side * g_buttonGapRatio);
 		m_iconArea->setHeight(side);
 		chip->setSize(glm::vec2(side));
 		if (chipIcon) chipIcon->setSize(glm::vec2(side * g_iconRatio));
-		for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
-			btn->setSize(glm::vec2(side));
-		}
+		setButtonSide(side);
 		});
 }
 
@@ -282,11 +270,6 @@ void PG_DisaFileInspector::buildButtons(PG_GuiItem* parent) {
 		btn->setBackground("M_GuiRoundedRectangleAll5");
 		btn->setTooltipText(tooltip);
 		btn->setEnabled(false);
-
-		PG_Object::connect(btn, &PG_GuiItem::midGuiUpdate, btn, [btn](glm::vec2*, glm::vec2* size) {
-			size->y = size->x;
-			if (auto* icon = btn->getIcon()) icon->setSize(glm::vec2(size->x * g_iconRatio));
-			});
 		return btn;
 		};
 
@@ -297,6 +280,14 @@ void PG_DisaFileInspector::buildButtons(PG_GuiItem* parent) {
 
 	m_deleteButton->setBackgroundColor({ PG_Color::hentaiRedFrgb * 0.38f,
 		PG_Color::hentaiRedFrgb * 0.55f, PG_Color::hentaiRedFrgb * 0.30f });
+}
+
+void PG_DisaFileInspector::setButtonSide(float side) {
+	for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
+		btn->setSize(glm::vec2(side));
+		//a button places its icon but never sizes it, that stays with whoever sized the button
+		if (auto* icon = btn->getIcon()) icon->setSize(glm::vec2(side * g_iconRatio));
+	}
 }
 
 void PG_DisaFileInspector::bindModel() {
