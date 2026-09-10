@@ -10,6 +10,50 @@
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/utils/PG_SaveTexture.h>
+#include <Resources/PG_Audio.h>
+#include <Util/Color/ColorDefined.h>
+
+namespace {
+
+constexpr glm::uvec2 g_waveformSize(256);
+
+/**
+* @brief Holds what an audio preview loads, so that deleting it is what cancels the load.
+* @details The audio lives here and nowhere else until the samples are in, so a holder that goes away
+* takes the last handle with it and the decode has nobody left to decode for.
+*/
+class DisaAudioPreview : public PG_Object {
+public:
+	using PG_Object::PG_Object;
+
+	void open(const PG_Audio& audio, PG_GuiImage* target) {
+		m_audio = audio;
+
+		PG_Material material("M_GuiImageAudio");
+		material.set("color", PG_Color::hentaiBlueFrgb);
+		material.set("colorFade", PG_Color::hentaiDarkBlueFrgb);
+		target->setMaterial(material);
+
+		m_audio.connect(this, [this, target] {
+			if (!m_audio.isLoaded()) return;
+			//the samples are wanted for the one pass that measures them, so they go with it
+			m_texture.load(PG_UNIQUE_RES("DisaAudioPreview"), [audio = std::move(m_audio)]()->PG_Texture::ImageFormats {
+				PG_RGBImage preview;
+				preview.resize(g_waveformSize);
+				preview.fill(glm::rgb(255)); //white is what the shader discards
+				audio.createPreview(preview);
+				return { std::move(preview) };
+				});
+			target->setSourceData(m_texture);
+			});
+	}
+
+private:
+	PG_Audio m_audio;
+	PG_Texture m_texture;
+};
+
+}
 
 void PG_DisaPreviewItem::init() {
 	PG_GuiItem::init();
@@ -60,12 +104,15 @@ void PG_DisaPreviewItem::exportImage() {
 
 	//find the component the preview is displayed with
 	PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>();
-	if (!imgItem) {
+	/* An audio preview has its image before it has anything in it, and a vector source is triangles
+	 * rather than a texture, so neither is a picture this can hand over. */
+	const PG_Texture* texture = imgItem ? std::get_if<PG_Texture>(&imgItem->getSourceData()) : nullptr;
+	if (!texture) {
 		OUT_ERROR("This kind of preview can't be exported as a image!");
 		return;
 	}
 
-	PG_FileDialog::save(std::get<PG_Texture>(imgItem->getSourceData()), m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
+	PG_FileDialog::save(*texture, m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
 }
 
 bool PG_DisaPreviewItem::isNameVisible() const {
@@ -102,6 +149,10 @@ void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
 		open(var.get<PG_Texture>());
 		return;
 	}
+	if (var.is<PG_Audio>()) {
+		open(var.get<PG_Audio>());
+		return;
+	}
 	if (var.is<PG_DisaMPPPack>()) {
 		open(var.get<PG_DisaMPPPack>());
 		return;
@@ -113,7 +164,7 @@ void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
 	clear();
 }
 
-void PG_DisaPreviewItem::open(const PG_Texture& img) {
+PG_GuiImage* PG_DisaPreviewItem::getOrCreateImage() {
 	PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>();
 	if (!imgItem) {
 		m_container->clearGuiChildren();
@@ -121,19 +172,26 @@ void PG_DisaPreviewItem::open(const PG_Texture& img) {
 		imgItem->setFitType(PG_GuiImage::MaintainAspectFit);
 		imgItem->fill(m_container);
 	}
-	imgItem->setSourceData(img);
+	imgItem->resetMaterial();
+	/* Whatever the last preview was is over. The holder going away cancels a decode still running and
+	 * stops a waveform that is already on its way from landing on top of the next preview. */
+	if (auto* previous = imgItem->findFirstChild<DisaAudioPreview>()) delete previous;
+	return imgItem;
+}
+
+void PG_DisaPreviewItem::open(const PG_Texture& img) {
+	getOrCreateImage()->setSourceData(img);
 	if (m_checker) m_checker->setVisible(true);
 }
 
 void PG_DisaPreviewItem::open(const std::string& imgPath) {
-	PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>();
-	if (!imgItem) {
-		m_container->clearGuiChildren();
-		imgItem = PG_new<PG_GuiImage>("PreviewImage", m_container);
-		imgItem->setFitType(PG_GuiImage::MaintainAspectFit);
-		imgItem->fill(m_container);
-	}
-	imgItem->setSource(imgPath);
+	getOrCreateImage()->setSource(imgPath);
+	if (m_checker) m_checker->setVisible(true);
+}
+
+void PG_DisaPreviewItem::open(const PG_Audio& audio) {
+	PG_GuiImage* imgItem = getOrCreateImage();
+	PG_new<DisaAudioPreview>("audioPreview", imgItem)->open(audio, imgItem);
 	if (m_checker) m_checker->setVisible(true);
 }
 

@@ -5,6 +5,7 @@
 #include <Resources/PG_Texture.h>
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 
+class PG_Audio;
 class PG_GuiRenderItem;
 class PG_GuiText;
 class PG_DisaMapModel;
@@ -23,6 +24,8 @@ public:
 	void openPreview(const PG_Variety& var);
 	void open(const PG_Texture& img);
 	void open(const std::string& imgPath);
+	/// Draws the audio as a waveform, once the samples are in
+	void open(const PG_Audio& audio);
 	void open(const PG_DisaMPDPack& mapFiles);
 	void open(const PG_DisaMPPPack& mppPack);
 
@@ -51,6 +54,12 @@ public:
 	void exportImage();
 
 private:
+	/**
+	* @brief The image the preview draws into, built on the first call.
+	* @details Also puts the item back on the material its source picks for itself, so a preview never
+	* inherits the shader the one before it needed.
+	*/
+	PG_GuiImage* getOrCreateImage();
 	void clearImage();
 	void clear();
 	void createGameScene();

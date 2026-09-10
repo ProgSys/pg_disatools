@@ -28,6 +28,7 @@
 #include <Stream/PG_StreamInByteWindow.h>
 #include <Stream/PG_StreamInOutByteVector.h>
 #include <Stream/PG_StreamInByteArray.h>
+#include <Resources/PG_Audio.h>
 #include <Resources/PG_Texture.h>
 
 #include <Util/Debug/PG_DebugOut.h>
@@ -117,6 +118,13 @@ PG_Variety PG_DisaFileEntry::getPreviewImage() const {
 			});
 		return texture;
 
+	} break;
+	case PG_DisaFileInfo::OGG: {
+		auto reader = createReader();
+		if (!reader) return PG_Variety();
+		PG_Audio audio;
+		audio.load(m_info.getName().getPath() + "_" + std::to_string((size_t)m_parent), reader, PG_Audio::OGG);
+		return PG_Variety(std::move(audio));
 	} break;
 	case PG_DisaFileInfo::TALK_SCRIPT: {
 		return std::string("gui/disa/icon_talk_script.png");
