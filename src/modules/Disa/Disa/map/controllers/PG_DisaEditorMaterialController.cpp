@@ -9,8 +9,8 @@
 #include <Disa/map/PG_DisaIntersection.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/PG_DisaMapModel.h>
-#include <Operation/PG_DisaEditMaterialOperation.h>
-#include <Controllers/PG_DisaEditorModule.h>
+#include <Disa/map/operations/PG_DisaEditMaterialOperation.h>
+#include <Disa/map/PG_DisaEditorModule.h>
 #include <unordered_map>
 
 PG_DisaEditorMaterialController::PG_DisaEditorMaterialController() {

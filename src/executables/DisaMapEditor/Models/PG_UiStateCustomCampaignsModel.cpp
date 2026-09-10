@@ -12,6 +12,7 @@
 #include <Stream/PG_StreamInOutByteVector.h>
 #include <Scene/PG_CameraNode.h>
 #include <Util/PG_ImageLoad.h>
+#include <cassert>
 
 NLOHMANN_JSON_SERIALIZE_ENUM(EDisaUnlockCriteria, {
 	{DisaUnlockCriteria_None, "NONE"},
@@ -165,7 +166,13 @@ void PG_UiStateCustomCampaignsModel::tileClicked(PG_ListModelLocation location) 
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
 		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
-		mainModel->pushStateStack(PG_DisaMapContainerModel::open(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD()));
+		auto model = PG_DisaMPDContainer::createFromMPD<PG_DisaMapContainerModel>(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD());
+		assert(model); //most likely the entry is already open as another container type
+		if (!model) {
+			OUT_ERROR("Failed to open \"" << pack.getMPD().getName() << "\" as a map!");
+			return;
+		}
+		mainModel->pushStateStack(model);
 		return;
 	}
 }
@@ -175,7 +182,12 @@ void PG_UiStateCustomCampaignsModel::tileClicked(PG_ListModelLocation location, 
 	if (var.is<PG_DisaMPDPack>()) {
 		auto pack = var.get<PG_DisaMPDPack>();
 		PG_DisaMapEditorMainModel* mainModel = PG_DisaMapEditorMainModel::get();
-		auto model = PG_DisaMapContainerModel::open(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD());
+		auto model = PG_DisaMPDContainer::createFromMPD<PG_DisaMapContainerModel>(pack.getMPD(), pack.getMPPSD(), pack.getMPPHD());
+		assert(model); //most likely the entry is already open as another container type
+		if (!model) {
+			OUT_ERROR("Failed to open \"" << pack.getMPD().getName() << "\" as a map!");
+			return;
+		}
 		if(camera) model->setCameraStartTransformation(camera->getTransformation());
 		mainModel->pushStateStack(model);
 		return;

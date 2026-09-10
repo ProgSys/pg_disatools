@@ -7,7 +7,7 @@
 
 class PG_GuiRenderItem;
 class PG_GuiText;
-class PG_DisaMapSceneView;
+class PG_DisaMapScene;
 class PG_DisaMapModel;
 class PG_GuiRectangle;
 
@@ -32,7 +32,7 @@ public:
 	void setLocation(const PG_ListModelLocation& location);
 	void update(const PG_ListModelLocation& location, const PG_IdentitySet& identities);
 
-	inline PG_DisaMapSceneView* getGameScene() const { return m_gameScene; }
+	inline PG_DisaMapScene* getGameScene() const { return m_gameScene; }
 
 private:
 	void createGameScene();
@@ -42,5 +42,5 @@ private:
 	PG_GuiText* m_text = nullptr;
 	PG_GuiRectangle* m_border = nullptr;
 	PG_GuiItem* m_container = nullptr;
-	PG_DisaMapSceneView* m_gameScene = nullptr;
+	PG_DisaMapScene* m_gameScene = nullptr;
 };

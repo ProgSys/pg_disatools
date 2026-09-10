@@ -9,6 +9,8 @@
 #include <resources/PG_Texture.h>
 
 #include <Util/PG_iVec2Hasher.h>
+#include <Util/PG_Transformation.h>
+#include <optional>
 #include <unordered_set>
 
 #include <Base/Thread/PG_Worker.h>
@@ -475,9 +477,45 @@ public:
 		}
 		return m_model;
 	}
+
+	/**
+	* @brief Where the camera should stand when a scene opens this map
+	* @returns Empty when nobody picked a spot, the scene then keeps the camera it has
+	*/
+	const std::optional<PG_Transformation>& getCameraStartTransformation() const { return m_cameraStartTransform; }
+	void setCameraStartTransformation(const PG_Transformation& transform) { m_cameraStartTransform = transform; }
+
+	/**
+	* @brief Opens a map, its geometry out of the mpd and its textures out of the mpp files
+	* @param mppSD May be invalid, the map then renders on the fallback tile material
+	* @param mppHD May be invalid, HD mode then has nothing to show
+	* @tparam T The container to create, so an owner can keep its own derived type. An entry can only be
+	* open as one type at a time, so everybody opening the same mpd has to name the same one.
+	* @returns Null when the mpd has no parent, or is already open as a container that is not a T
+	*/
+	template<typename T = PG_DisaMPDContainer>
+	static std::shared_ptr<T> createFromMPD(PG_DisaFileEntry mpd, PG_DisaFileEntry mppSD, PG_DisaFileEntry mppHD) {
+		static_assert(std::is_base_of_v<PG_DisaMPDContainer, T>, "T must derived from PG_DisaMPDContainer!");
+		auto container = mpd.open<T>();
+		if (!container) return nullptr;
+		container->createModel()->openMapAssets(mppSD, mppHD);
+		return container;
+	}
+	/**
+	* @brief Opens only the textures of an mpp and puts them on a few sample tiles
+	* @details There is no mpd here, so the tiles come from PG_DisaMapModel::createBaseMap.
+	*/
+	template<typename T = PG_DisaMPDContainer>
+	static std::shared_ptr<T> createFromMPP(PG_DisaFileEntry mpp, int topIndex = 1, int sideIndex = 2, int decalIndex = 0) {
+		static_assert(std::is_base_of_v<PG_DisaMPDContainer, T>, "T must derived from PG_DisaMPDContainer!");
+		auto container = std::shared_ptr<T>(PG_new<T>());
+		container->createModel()->openAsset(mpp, topIndex, sideIndex, decalIndex);
+		return container;
+	}
 receivers:
 	//a bit ugly
 	bool saveFile();
 private:
 	PG_DisaMapModel* m_model = nullptr;
+	std::optional<PG_Transformation> m_cameraStartTransform;
 };

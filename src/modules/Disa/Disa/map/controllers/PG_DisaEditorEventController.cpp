@@ -9,7 +9,7 @@
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/PG_DisaMapViewNode.h>
 
-#include <Operation/PG_DisaEditMaterialOperation.h>
+#include <Disa/map/operations/PG_DisaEditMaterialOperation.h>
 #include <unordered_map>
 
 constexpr glm::vec3 g_floorNormal = glm::vec3(0.f, 1.f, 0.f);

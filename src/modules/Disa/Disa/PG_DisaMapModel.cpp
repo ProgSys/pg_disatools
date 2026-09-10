@@ -902,6 +902,15 @@ static inline mpdfileTile createTile(unsigned char x, unsigned char z, char heig
 void PG_DisaMapModel::openAsset(PG_DisaFileEntry mpp, int topIndex, int sideIndex, int decalIndex) {
 	getAssets()->open(mpp, {});
 
+	/* The indices are the callers idea of a nice looking sample, an mpp holding fewer textures than
+	 * that would show the fallback material instead of what it actually has. Texture slots count from
+	 * one, zero is the empty slot the decal is allowed to keep. */
+	if (const int textureCount = static_cast<int>(getAssets()->getTextures()->size()); textureCount > 0) {
+		topIndex = glm::clamp(topIndex, 1, textureCount);
+		sideIndex = glm::clamp(sideIndex, 1, textureCount);
+		decalIndex = glm::clamp(decalIndex, 0, textureCount);
+	}
+
 	createBaseMap(topIndex, sideIndex, decalIndex);
 }
 

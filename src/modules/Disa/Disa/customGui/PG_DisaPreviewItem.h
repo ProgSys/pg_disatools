@@ -8,7 +8,7 @@
 class PG_Audio;
 class PG_GuiRenderItem;
 class PG_GuiText;
-class PG_DisaMapModel;
+class PG_DisaMapScene;
 class PG_GuiImage;
 class PG_GuiRectangle;
 
@@ -52,6 +52,12 @@ public:
 	* @brief Asks the user for a target file and saves the currently open preview as png
 	*/
 	void exportImage();
+	/**
+	* @returns The picture the open preview is made of, null when it is not made of one
+	* @details A map preview is a rendered scene and an audio preview has its image before it has
+	* anything in it, so neither has a texture to hand over.
+	*/
+	const PG_Texture* getPreviewTexture() const;
 
 private:
 	/**
@@ -60,9 +66,13 @@ private:
 	* inherits the shader the one before it needed.
 	*/
 	PG_GuiImage* getOrCreateImage();
+	/**
+	* @brief The scene a map preview is drawn in, built on the first call
+	* @details Comes up in preview mode, so it turns the map in front of the camera and takes no input.
+	*/
+	PG_DisaMapScene* getOrCreateGameScene();
 	void clearImage();
 	void clear();
-	void createGameScene();
 	void updateBorder();
 
 	PG_ListModelLocation m_location;
@@ -70,5 +80,6 @@ private:
 	PG_GuiImage* m_checker = nullptr;
 	PG_GuiRectangle* m_border = nullptr;
 	PG_GuiItem* m_container = nullptr;
+	PG_DisaMapScene* m_gameScene = nullptr;
 	bool m_previewEnabled = true;
 };

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <Base/PG_Object.h>
-#include <Controllers/PG_DisaEditorModule.h>
+#include <Disa/map/PG_DisaEditorModule.h>
 
 class PG_GuiItem;
-class PG_DisaMapSceneView;
+class PG_DisaMapScene;
 
 class Inspector : public PG_Object {
 	PG_OBJECT(Inspector)
@@ -15,7 +15,7 @@ public:
 	PG_DisaEditorModule* mod;
 	PG_GuiItem* root;
 
-	static void setup(PG_DisaMapSceneView* scene, PG_GuiItem* root);
+	static void setup(PG_DisaMapScene* scene, PG_GuiItem* root);
 	PG_DisaEditorModule::EMaterialInspectorMode getMaterialInspectorMode() const { return mod->getMaterialInspectorMode(); }
 	void setMaterialInspectorMode(PG_DisaEditorModule::EMaterialInspectorMode mode) { mod->setMaterialInspectorMode(mode); }
 

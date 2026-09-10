@@ -13,9 +13,7 @@
 #include <Scene/Editor/Handles/PG_HandleAxis.h>
 #include <Scene/Editor/Handles/PG_HandleGizmo.h>
 
-#include <Models/PG_DisaMapEditorMainModel.h>
-#include <Views/PG_DisaMapSceneView.h>
-#include <Controllers/PG_DisaEditorTileController.h>
+#include <Disa/PG_DisaMapScene.h>
 
 PG_DisaEditorObjectController::PG_DisaEditorObjectController() {
 
@@ -32,20 +30,6 @@ PG_DisaEditorObjectController::PG_DisaEditorObjectController() {
 				connect(moduleNew, &PG_EditorModule::selectionChanged, this, &PG_DisaEditorObjectController::onSelectionChanged);
 			}
 
-		});
-
-	connect(PG_DisaMapEditorMainModel::get(), &PG_DisaMapEditorMainModel::addModelPressed, this, [this](int index) {
-		if (auto scene = dynamic_cast<PG_DisaMapSceneView*>(getEditor()->getScene())) {
-			auto ray = getEditor()->getScene()->getActiveCamera()->getRayViewDir();
-			const glm::vec3 point = PG_DisaEditorTileController::findCollisionPoint(ray, getEditor()->getScene()->getRoot());
-			scene->addModelClicked(index, point);
-		}
-	});
-
-	connect(PG_DisaMapEditorMainModel::get(), &PG_DisaMapEditorMainModel::dublicateModelPressed, this, [this](int modelIndex) {
-		if (auto scene = dynamic_cast<PG_DisaMapSceneView*>(getEditor()->getScene())) {
-			scene->addDublicateClicked(modelIndex);
-		}
 		});
 }
 

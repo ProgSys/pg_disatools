@@ -9,7 +9,9 @@
 #include <Scene/Gui/PG_GuiMenuPopup.h>
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Renderer/PG_SceneRenderer.h>
+#include <Disa/PG_DisaMapScene.h>
 #include <Disa/PG_DisaMapViewNode.h>
+#include <Disa/PG_DisaMapModel.h>
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/utils/PG_SaveTexture.h>
 #include <Resources/PG_Audio.h>
@@ -153,25 +155,25 @@ void PG_DisaPreviewItem::init() {
 	m_border->setVisible(false);
 
 	PG_GuiMouseArea* area = PG_new<PG_GuiMouseArea>("PreviewArea", this);
+	area->setHoverEnabled(true); //the map preview freezes its renderer while nobody looks at it
 	area->setConferEnabled(true);
 	area->setAcceptedButtons(PG_GuiMouseArea::Right);
 	area->fill(this);
 	connect(area, &PG_GuiMouseArea::rightClicked, this, [this] {
 		auto popup = PG_new<PG_GuiMenuPopup>("previewPopup", this);
-		popup->addOption("Export Image", hasPreview(), this, &PG_DisaPreviewItem::exportImage);
+		popup->addOption("Export Image", getPreviewTexture() != nullptr, this, &PG_DisaPreviewItem::exportImage);
 		popup->addOption(m_previewEnabled ? "Disable Preview" : "Enable Preview", true, this, [this] { setPreviewEnabled(!m_previewEnabled); });
 		popup->openAndDestroyOnClose();
 		});
 }
 
-void PG_DisaPreviewItem::exportImage() {
-	if (!hasPreview()) return;
+const PG_Texture* PG_DisaPreviewItem::getPreviewTexture() const {
+	PG_GuiImage* imgItem = m_container ? m_container->findFirstChild<PG_GuiImage>() : nullptr;
+	return imgItem ? std::get_if<PG_Texture>(&imgItem->getSourceData()) : nullptr;
+}
 
-	//find the component the preview is displayed with
-	PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>();
-	/* An audio preview has its image before it has anything in it, and a vector source is triangles
-	 * rather than a texture, so neither is a picture this can hand over. */
-	const PG_Texture* texture = imgItem ? std::get_if<PG_Texture>(&imgItem->getSourceData()) : nullptr;
+void PG_DisaPreviewItem::exportImage() {
+	const PG_Texture* texture = getPreviewTexture();
 	if (!texture) {
 		OUT_ERROR("This kind of preview can't be exported as a image!");
 		return;
@@ -269,74 +271,71 @@ void PG_DisaPreviewItem::clear() {
 	if (m_text) m_text->setText({});
 }
 
-void PG_DisaPreviewItem::createGameScene() {
-	clear();
-	return;
-	/*
+PG_DisaMapScene* PG_DisaPreviewItem::getOrCreateGameScene() {
 	PG_GuiRenderItem* renderItem = m_container->findFirstChild<PG_GuiRenderItem>();
-	PG_SceneRenderer* sceneRenderer = nullptr;
 	if (!renderItem) {
 		m_container->clearGuiChildren();
-		renderItem = PG_new<PG_GuiRenderItem>("GridRenderItem", m_container);
+		renderItem = PG_new<PG_GuiRenderItem>("MapRenderItem", m_container);
 		renderItem->fill(m_container);
+		//a map that nobody looks at costs a draw per frame, so it only turns while the mouse is on it
 		renderItem->setFreez(true);
-
-		auto area = findFirstChild<PG_GuiMouseArea>();
-		connect(area, &PG_GuiMouseArea::hoveredChanged, renderItem, [renderItem](bool hover) {
-			renderItem->setFreez(!hover);
-			});
-
+		connect(findFirstChild<PG_GuiMouseArea>("PreviewArea"), &PG_GuiMouseArea::hoveredChanged,
+			renderItem, [renderItem](bool hover) { renderItem->setFreez(!hover); });
 	}
 
-	sceneRenderer = renderItem->findFirstChild<PG_SceneRenderer>();
-	if (!sceneRenderer) {
-		sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, renderItem);
-	}
+	PG_SceneRenderer* sceneRenderer = renderItem->findFirstChild<PG_SceneRenderer>();
+	if (!sceneRenderer) sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, 2, renderItem);
 
 	if (!m_gameScene) {
-		m_gameScene = PG_new<PG_DisaMapSceneView>("GameScene", sceneRenderer);
+		m_gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 		m_gameScene->setPreviewMode(true);
 		m_gameScene->setActorsVisible(false);
 		m_gameScene->setGeoPanelsVisible(false);
 
-		connect(m_gameScene, &PG_DisaMapViewNode::onDeleted, this, [this] {
-			m_gameScene = nullptr;
-			});
+		connect(m_gameScene, &PG_Object::onDeleted, this, [this] { m_gameScene = nullptr; });
 		connect(m_gameScene->getMapNode(), &PG_DisaMapViewNode::loaded, renderItem, &PG_GuiRenderItem::forceRenderNext);
 	}
+
+	//the checkerboard tells a transparent image from the background, a scene has nothing to tell apart
+	if (m_checker) m_checker->setVisible(false);
 	renderItem->forceRenderNext();
-	assert(m_gameScene);
-	*/
+	return m_gameScene;
 }
 
 void PG_DisaPreviewItem::open(const PG_DisaMPDPack& mapFiles) {
-
 	auto mpd = mapFiles.getMPD();
-	auto mppSD = mapFiles.getMPPSD();
-
-	if (!(mpd && (mpd.getInfo().getType() == PG_DisaFileInfo::MPD) && mppSD)) {
-		OUT_ERROR("Failed to find MPD or MPP!");
+	if (!(mpd && mpd.getInfo().getType() == PG_DisaFileInfo::MPD)) {
+		OUT_ERROR("Failed to find MPD!");
+		clear();
 		return;
 	}
 
-	createGameScene();
+	auto mppSD = mapFiles.getMPPSD();
+	/* No mpp is not a reason to show nothing. The assets stay empty, and the tiles come out on
+	 * M_MapDefaultTile, so the map is still there to look at, just without its textures. */
+	if (!mppSD) OUT_WARNING("Failed to find the mpp of \"" << mpd.getName() << "\", the map stays untextured!");
 
-	//m_gameScene->setModel(PG_DisaMapContainerModel::open(mpd, mppSD, mapFiles.getMPPHD()));
+	auto container = PG_DisaMPDContainer::createFromMPD(mpd, mppSD, mapFiles.getMPPHD());
+	assert(container); //most likely the entry is already open as another container type
+	if (!container) {
+		OUT_ERROR("Failed to open \"" << mpd.getName() << "\" as a map!");
+		clear();
+		return;
+	}
+	getOrCreateGameScene()->setModel(container);
 }
-
 
 void PG_DisaPreviewItem::open(const PG_DisaMPPPack& mppPack) {
 	auto mpp = mppPack.getMPP();
-
-	if (!(mpp && (mpp.getInfo().getType() == PG_DisaFileInfo::MPP))) {
+	if (!(mpp && mpp.getInfo().getType() == PG_DisaFileInfo::MPP)) {
 		OUT_ERROR("Failed to find MPP!");
+		clear();
 		return;
 	}
 
-	createGameScene();
-	auto style = mppPack.getStyle();
-
-	//m_gameScene->setModel(PG_DisaMapContainerModel::open(mppPack.getMPP(), style.topIndex, style.sideIndex, style.decalIndex));
+	const auto style = mppPack.getStyle();
+	getOrCreateGameScene()->setModel(
+		PG_DisaMPDContainer::createFromMPP(mpp, style.topIndex, style.sideIndex, style.decalIndex));
 }
 
 void PG_DisaPreviewItem::setLocation(const PG_ListModelLocation& location) {

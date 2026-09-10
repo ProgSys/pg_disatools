@@ -10,7 +10,7 @@
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Models/PG_DisaMapContainerModel.h>
 #include <Models/PG_UiStateCustomCampaignsModel.h>
-#include <Views/PG_DisaMapSceneView.h>
+#include <Disa/PG_DisaMapScene.h>
 #include <PG_DisaMapListModel.h>
 #include <RootScene.h>
 #include <Disa/utils/PG_SaveTexture.h>
@@ -171,7 +171,7 @@ void PG_DisaGridTile::createGameScene() {
 	}
 
 	if (!m_gameScene) {
-		m_gameScene = PG_new<PG_DisaMapSceneView>("GameScene", sceneRenderer);
+		m_gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 		m_gameScene->setPreviewMode(true);
 		m_gameScene->setActorsVisible(false);
 		m_gameScene->setGeoPanelsVisible(false);
@@ -197,7 +197,13 @@ void PG_DisaGridTile::open(const PG_DisaMPDPack& mapFiles) {
 
 	createGameScene();
 
-	m_gameScene->setModel(PG_DisaMapContainerModel::open(mpd, mppSD, mapFiles.getMPPHD()));
+	auto container = PG_DisaMPDContainer::createFromMPD<PG_DisaMapContainerModel>(mpd, mppSD, mapFiles.getMPPHD());
+	assert(container); //most likely the entry is already open as another container type
+	if (!container) {
+		OUT_ERROR("Failed to open \"" << mpd.getName() << "\" as a map!");
+		return;
+	}
+	m_gameScene->setModel(container);
 }
 
 
@@ -212,7 +218,7 @@ void PG_DisaGridTile::open(const PG_DisaMPPPack& mppPack) {
 	createGameScene();
 	auto style = mppPack.getStyle();
 
-	m_gameScene->setModel(PG_DisaMapContainerModel::open(mppPack.getMPP(), style.topIndex, style.sideIndex, style.decalIndex));
+	m_gameScene->setModel(PG_DisaMPDContainer::createFromMPP<PG_DisaMapContainerModel>(mppPack.getMPP(), style.topIndex, style.sideIndex, style.decalIndex));
 }
 
 void PG_DisaGridTile::setLocation(const PG_ListModelLocation& location) {

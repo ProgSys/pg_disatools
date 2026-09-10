@@ -84,7 +84,8 @@
 #include <Util/Color/ColorDefined.h>
 #include <Util/Debug/PG_DebugOut.h>
 
-#include <Views/PG_DisaMapSceneView.h>
+#include <Disa/PG_DisaMapScene.h>
+#include <Disa/map/PG_DisaEditorModule.h>
 #include <SDLApp/PG_SDLWindow.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Inspector.h>
@@ -98,9 +99,9 @@ constexpr glm::vec3 offWeightColor = glm::vec3(200.f / 255.f);
 constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
 constexpr glm::vec3 bobbleTextColor = glm::vec3(76.f, 111.f, 199.f) / 255.f;
 
-static inline PG_DisaMapSceneView* getGameScene(PG_GuiItem* center) {
+static inline PG_DisaMapScene* getGameScene(PG_GuiItem* center) {
 	if (auto item = dynamic_cast<PG_GuiRenderItem*>(center)) {
-		return dynamic_cast<PG_DisaMapSceneView*>(item->findFirstInTree(PG_Search::byName("GameScene")));
+		return dynamic_cast<PG_DisaMapScene*>(item->findFirstInTree(PG_Search::byName("GameScene")));
 	}
 	return nullptr;
 }
@@ -243,10 +244,10 @@ void RootScene::openInit(std::string version, PG_File exePath) {
 }
 
 
-static inline std::pair<PG_GuiRenderItem*, PG_DisaMapSceneView*> createMapScene(PG_GuiItem* parent) {
+static inline std::pair<PG_GuiRenderItem*, PG_DisaMapScene*> createMapScene(PG_GuiItem* parent) {
 	auto renderWindow = PG_new<PG_GuiRenderItem>("GridRenderItem", parent);
 	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, 2, renderWindow);
-	auto gameScene = PG_new<PG_DisaMapSceneView>("GameScene", sceneRenderer);
+	auto gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 	return { renderWindow, gameScene };
 }
 
@@ -369,11 +370,24 @@ void RootScene::setupMapView() {
 	auto item = PG_new<PG_GuiRenderItem>("GridRenderItem", rootItem);
 	m_center = item;
 	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, 2, item);
-	auto gameScene = PG_new<PG_DisaMapSceneView>("GameScene", sceneRenderer);
+	auto gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 
-	gameScene->setModel(m_mainModel->getCurrent());
+	gameScene->setModel(std::dynamic_pointer_cast<PG_DisaMPDContainer>(m_mainModel->getCurrent()));
 	connect(this, &RootScene::cleanUp, gameScene, [gameScene] {
 		gameScene->setModel(nullptr);
+		});
+
+	/* The asset window and the inspector announce these to nobody in particular, the scene showing the
+	 * map is who they mean. Object mode is what used to own the two, so they stay off outside it. */
+	const auto inObjectMode = [gameScene] {
+		auto* editor = gameScene->getModule<PG_DisaEditorModule>();
+		return editor && editor->getMode() == PG_DisaEditorModule::Mode_Object;
+		};
+	connect(m_mainModel, &PG_DisaMapEditorMainModel::addModelPressed, gameScene, [gameScene, inObjectMode](int index) {
+		if (inObjectMode()) gameScene->addModelAtViewCenter(index);
+		});
+	connect(m_mainModel, &PG_DisaMapEditorMainModel::dublicateModelPressed, gameScene, [gameScene, inObjectMode](int index) {
+		if (inObjectMode()) gameScene->duplicateObject(index);
 		});
 
 	Inspector::setup(gameScene, item);
@@ -1023,7 +1037,7 @@ void RootScene::setupToolbarMapView() {
 
 	connect(assetsButton, &PG_GuiToggleButton::toggleChanged, this, [this, assetsButton](bool toggled) {
 		if (toggled && m_center) {
-			PG_DisaMapSceneView* gameScene = m_center->findFirstChild<PG_SceneRenderer>("GameSceneRenderer")->findFirstChild<PG_DisaMapSceneView>("GameScene");
+			PG_DisaMapScene* gameScene = m_center->findFirstChild<PG_SceneRenderer>("GameSceneRenderer")->findFirstChild<PG_DisaMapScene>("GameScene");
 			if (!gameScene) return;
 			
 

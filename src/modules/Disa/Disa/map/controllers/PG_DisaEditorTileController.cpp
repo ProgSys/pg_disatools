@@ -11,7 +11,7 @@
 #include <Disa/map/PG_DisaTileEditSelectionNode.h>
 #include <Disa/map/PG_DisaIntersection.h>
 
-#include <Operation/PG_DisaEditTerrainOperation.h>
+#include <Disa/map/operations/PG_DisaEditTerrainOperation.h>
 #include <unordered_map>
 
 constexpr glm::vec3 g_floorNormal = glm::vec3(0.f, 1.f, 0.f);

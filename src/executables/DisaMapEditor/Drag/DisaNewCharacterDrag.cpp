@@ -6,7 +6,7 @@
 #include <Scene/PG_CameraNode.h>
 #include <Scene/Gui/PG_GuiItem.h>
 #include <Scene/PG_FootlooseViewNode.h>
-#include <Controllers/PG_DisaEditorActorController.h>
+#include <Disa/map/controllers/PG_DisaEditorActorController.h>
 
 
 #include <Disa/PG_DisaCharactersModel.h>
@@ -16,7 +16,7 @@
 #include <Disa/PG_DisaMapModel.h>
 #include <Disa/PG_DisaMapViewNode.h>
 #include <RootScene.h>
-#include <Views/PG_DisaMapSceneView.h>
+#include <Disa/PG_DisaMapScene.h>
 #include <Util/PG_Math.h>
 #include <Util/PG_RangesTransform.h>
 
@@ -79,7 +79,7 @@ void DisaNewCharacterDrag::start(unsigned short characterId) {
 	if (!root) return;
 	auto render = root->getRoot()->findFirstInTree(PG_Search::byName{ "GridRenderItem" });
 	if (!render) return;
-	PG_DisaMapSceneView* gameScene = render->findFirstInTree<PG_DisaMapSceneView>();
+	PG_DisaMapScene* gameScene = render->findFirstInTree<PG_DisaMapScene>();
 	if (!gameScene) return;
 
 	if (!m_indicator) m_indicator = PG_new<PG_DisaActorViewNode>("Indicator", gameScene->getRoot());
@@ -149,7 +149,7 @@ void DisaNewCharacterDrag::mouseMoved(PG_MouseMotionEvent* e) {
 	if (!root) return;
 	auto render = dynamic_cast<PG_GuiItem*>(root->getRoot()->findFirstInTree(PG_Search::byName{ "GridRenderItem" }));
 	if (!render) return;
-	PG_DisaMapSceneView* gameScene = render->findFirstInTree<PG_DisaMapSceneView>();
+	PG_DisaMapScene* gameScene = render->findFirstInTree<PG_DisaMapScene>();
 	if (!gameScene) return;
 	auto* cam = gameScene->getActiveCamera();
 
@@ -198,7 +198,7 @@ void DisaNewCharacterDrag::mouseMoved(PG_MouseMotionEvent* e) {
 
 void DisaNewCharacterDrag::released() {
 	if (m_indicator->isVisible()) {
-		auto* scene = dynamic_cast<PG_DisaMapSceneView*>(m_indicator->getScene());
+		auto* scene = dynamic_cast<PG_DisaMapScene*>(m_indicator->getScene());
 		auto actors = scene->getMapModel()->getActors();
 
 

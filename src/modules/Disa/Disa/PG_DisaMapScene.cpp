@@ -1,4 +1,4 @@
-#include "PG_DisaMapSceneView.h"
+#include "PG_DisaMapScene.h"
 
 
 #include <Base/PG_Application.h>
@@ -11,19 +11,17 @@
 
 #include <Scene/PG_ModelNode.h>
 #include <Scene/PG_FootlooseViewNode.h>
-#include <PG_DisaDefines.h>
-#include <Controllers/PG_DisaEditorTileController.h>
-#include <Controllers/PG_DisaEditorMaterialController.h>
-#include <Controllers/PG_DisaEditorObjectController.h>
-#include <Controllers/PG_DisaEditorActorController.h>
-#include <Controllers/PG_DisaEditorEventController.h>
-#include <Controllers/PG_DisaEditorModule.h>
+#include <Disa/map/controllers/PG_DisaEditorTileController.h>
+#include <Disa/map/controllers/PG_DisaEditorMaterialController.h>
+#include <Disa/map/controllers/PG_DisaEditorObjectController.h>
+#include <Disa/map/controllers/PG_DisaEditorActorController.h>
+#include <Disa/map/controllers/PG_DisaEditorEventController.h>
+#include <Disa/map/PG_DisaEditorModule.h>
 
 
 #include <Renderer/PG_SceneRenderer.h>
 #include <SDLApp/PG_SDLWindow.h>
 #include <Resources/PG_Shader.h>
-#include <nfd.h>
 #include <glm/gtx/rotate_vector.hpp>
 
 #include <Disa/PG_DisaModelNode.h>
@@ -31,10 +29,9 @@
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <Disa/PG_DisaAssetsModel.h>
-#include <Models/PG_DisaMapContainerModel.h>
 
 
-void PG_DisaMapSceneView::init() {
+void PG_DisaMapScene::init() {
 	PG_Scene::init();
 
 	auto editor = installModule<PG_DisaEditorModule>("PG_DisaEditorModule");
@@ -47,33 +44,33 @@ void PG_DisaMapSceneView::init() {
 		default:
 		case PG_DisaEditorModule::Mode_View: {
 			comp->setInteractionController(nullptr);
-			m_mapNodeV2->setMode(PG_DisaMapViewNode::Mode_View);
+			m_mapNode->setMode(PG_DisaMapViewNode::Mode_View);
 		}break;
 		case PG_DisaEditorModule::Mode_Terrain: {
 			comp->setInteractionController(PG_new<PG_DisaEditorTileController>());
-			m_mapNodeV2->setMode(PG_DisaMapViewNode::Mode_Terrain);
+			m_mapNode->setMode(PG_DisaMapViewNode::Mode_Terrain);
 		}break;
 		case PG_DisaEditorModule::Mode_Material: {
 			comp->setInteractionController(PG_new<PG_DisaEditorMaterialController>());
-			m_mapNodeV2->setMode(PG_DisaMapViewNode::Mode_Material);
+			m_mapNode->setMode(PG_DisaMapViewNode::Mode_Material);
 		}break;
 		case PG_DisaEditorModule::Mode_Object: {
 			comp->setInteractionController(PG_new<PG_DisaEditorObjectController>());
-			m_mapNodeV2->setMode(PG_DisaMapViewNode::Mode_Object);
+			m_mapNode->setMode(PG_DisaMapViewNode::Mode_Object);
 		}break;
 		case PG_DisaEditorModule::Mode_EventTile: {
 			comp->setInteractionController(PG_new<PG_DisaEditorEventController>());
-			m_mapNodeV2->setMode(PG_DisaMapViewNode::Mode_Event);
+			m_mapNode->setMode(PG_DisaMapViewNode::Mode_Event);
 		}break;
 		case PG_DisaEditorModule::Mode_Actor: {
-			connect(m_mapNodeV2, &PG_DisaMapViewNode::isActorsVisibleChanged, comp, [this] {
+			connect(m_mapNode, &PG_DisaMapViewNode::isActorsVisibleChanged, comp, [this] {
 				if (auto mod = getModule<PG_DisaEditorModule>()) {
 					mod->clearHovered();
 					mod->clearSelection();
 				}
 				});
 			comp->setInteractionController(PG_new<PG_DisaEditorActorController>());
-			m_mapNodeV2->setMode(PG_DisaMapViewNode::Mode_Actor);
+			m_mapNode->setMode(PG_DisaMapViewNode::Mode_Actor);
 		}break;
 		}
 	});
@@ -122,26 +119,26 @@ void PG_DisaMapSceneView::init() {
 		}
 
 		{
-			m_mapNodeV2 = PG_new<PG_DisaMapViewNode>("PG_DisaMapViewNode", getRoot());
+			m_mapNode = PG_new<PG_DisaMapViewNode>("PG_DisaMapViewNode", getRoot());
 		}
 
 	}
 }
 
-void PG_DisaMapSceneView::copy(PG_DisaMapSceneView* scene) {
+void PG_DisaMapScene::copy(PG_DisaMapScene* scene) {
 	assert(scene);
 	if (getActiveCamera() && scene->getActiveCamera())
 		getActiveCamera()->setTransformation(scene->getActiveCamera()->getTransformation());
-	if (auto model = scene->m_mapNodeV2->getModel()) {
-		m_mapNodeV2->setModel(model);
+	if (auto model = scene->m_mapNode->getModel()) {
+		m_mapNode->setModel(model);
 	}
 }
 
-void PG_DisaMapSceneView::orbitCamera(float value) {
+void PG_DisaMapScene::orbitCamera(float value) {
 	if (auto cam = getActiveCamera()) {
 		PG_Volume bv;
-		if (m_mapNodeV2->getTileView()) bv = m_mapNodeV2->getTileView()->getVolumeVisibilityHierarchy();
-		if (!bv) bv = m_mapNodeV2->getVolumeVisibilityHierarchy();
+		if (m_mapNode->getTileView()) bv = m_mapNode->getTileView()->getVolumeVisibilityHierarchy();
+		if (!bv) bv = m_mapNode->getVolumeVisibilityHierarchy();
 		if (!bv) bv = getRoot()->getVolumeVisibilityHierarchy();
 		glm::vec3 bvCenter{ 0.f };
 		glm::vec3 bvPoint{ 6.f };
@@ -172,7 +169,7 @@ void PG_DisaMapSceneView::orbitCamera(float value) {
 	}
 }
 
-bool PG_DisaMapSceneView::event(PG_Event* e) {
+bool PG_DisaMapScene::event(PG_Event* e) {
 	if (m_previewMode) {
 		switch (e->getType())
 		{
@@ -202,20 +199,20 @@ bool PG_DisaMapSceneView::event(PG_Event* e) {
 	return PG_Scene::event(e);
 }
 
-void PG_DisaMapSceneView::setPreviewMode(bool isPreviewMode) {
+void PG_DisaMapScene::setPreviewMode(bool isPreviewMode) {
 	if (m_previewMode == isPreviewMode) return;
 	m_previewMode = isPreviewMode;
 	if (m_previewMode) {
-		connect(m_mapNodeV2, &PG_DisaMapViewNode::loaded, this, [this] {
+		connect(m_mapNode, &PG_DisaMapViewNode::loaded, this, [this] {
 			orbitCamera(0.f);
 			});
 	}
 	else {
-		disconnect(m_mapNodeV2, &PG_DisaMapViewNode::loaded, this, nullptr);
+		disconnect(m_mapNode, &PG_DisaMapViewNode::loaded, this, nullptr);
 	}
 }
 
-void PG_DisaMapSceneView::setAxisVisible(bool visible) {
+void PG_DisaMapScene::setAxisVisible(bool visible) {
 	if (auto actor = getRoot()->findFirstChild<PG_ModelNode>("N_Coods")) {
 		actor->setVisible(visible);
 	}	
@@ -224,14 +221,7 @@ void PG_DisaMapSceneView::setAxisVisible(bool visible) {
 	}
 }
 
-bool hasEnding(const std::string& fullString, const std::string& ending) {
-	if (fullString.length() >= ending.length()) 
-		return (0 == fullString.compare(fullString.length() - ending.length(), ending.length(), ending));
-	else 
-		return false;
-}
-
-void PG_DisaMapSceneView::setShowHiddenModel(bool visible) {
+void PG_DisaMapScene::setShowHiddenModel(bool visible) {
 	/*
 	m_mapNode->traverseTestWithoutRoot([visible](PG_Object* obj) {
 		if (auto model = dynamic_cast<PG_DisaModelNode*>(obj)) {
@@ -243,62 +233,38 @@ void PG_DisaMapSceneView::setShowHiddenModel(bool visible) {
 		*/
 }
 
-bool PG_DisaMapSceneView::isActorsVisible() const {
-	return m_mapNodeV2->isActorsVisible();
+bool PG_DisaMapScene::isActorsVisible() const {
+	return m_mapNode->isActorsVisible();
 }
 
-void PG_DisaMapSceneView::setActorsVisible(bool visible) {
-	m_mapNodeV2->setActorsVisible(visible);
+void PG_DisaMapScene::setActorsVisible(bool visible) {
+	m_mapNode->setActorsVisible(visible);
 }
 
-bool PG_DisaMapSceneView::isGeoPanelsVisible() const {
-	return m_mapNodeV2->isGeoVisible();
+bool PG_DisaMapScene::isGeoPanelsVisible() const {
+	return m_mapNode->isGeoVisible();
 }
 
-void PG_DisaMapSceneView::setGeoPanelsVisible(bool visible) {
-	m_mapNodeV2->setGeoVisible(visible);
+void PG_DisaMapScene::setGeoPanelsVisible(bool visible) {
+	m_mapNode->setGeoVisible(visible);
 }
 
-void PG_DisaMapSceneView::setEnableEditing(bool enable) {
+void PG_DisaMapScene::setEnableEditing(bool enable) {
 	getModule<PG_DisaEditorModule>()->setMode(enable ? PG_DisaEditorModule::Mode_Terrain : PG_DisaEditorModule::Mode_View);
 }
 
-bool PG_DisaMapSceneView::isHDMode() const {
-	return m_mapNodeV2->isHDMode();
+bool PG_DisaMapScene::isHDMode() const {
+	return m_mapNode->isHDMode();
 }
 
-void PG_DisaMapSceneView::setHDMode(bool state) {
-	m_mapNodeV2->setHDMode(state);
+void PG_DisaMapScene::setHDMode(bool state) {
+	m_mapNode->setHDMode(state);
 }
 
-void PG_DisaMapSceneView::exportGLTFClicked() {
-	/*
-	PG_DisaMapNode* map = getMapNode();
-	if (!map || map->getCurretlyOpenedFile().isEmpty()) return;
-	std::string filename = map->getCurretlyOpenedFile().getName() + ".gltf";
-	nfdchar_t* outPath = nullptr;
-	nfdresult_t result = NFD_SaveDialog("gltf", nullptr, filename.c_str(), &outPath);
-	std::string path;
-	if (outPath) {
-		path = outPath;
-		delete[] outPath;
-	}
-	if (result == NFD_OKAY) {
-		PG_File file(path);
-		const std::string ext = file.getFileExtensionFormated();
-		if (ext.empty()) file += ".gltf";
-		map->exportGLTF(file);
-	}
-	else if (result != NFD_CANCEL) {
-		OUT_ERROR("SaveDialog error: " << NFD_GetError());
-	}
-	*/
-}
+void PG_DisaMapScene::addModel(int index, glm::vec3 pos) {
+	auto* model = getMapModel();
+	if (!model) return;
 
-void PG_DisaMapSceneView::addModelClicked(int index, glm::vec3 pos) {
-	if (!m_mapNodeV2) return;
-
-	auto model = m_mapNodeV2->getModel()->getModel();
 	auto objects = model->getObjects();
 	auto object = PG_new<PG_DisaObjectModel>("PG_DisaObjectModel", objects);
 	object->setChunk(model->getChunks()->back());
@@ -312,10 +278,16 @@ void PG_DisaMapSceneView::addModelClicked(int index, glm::vec3 pos) {
 	objects->push_back(object);
 }
 
-void PG_DisaMapSceneView::addDublicateClicked(int objectIndex) {
-	if (!m_mapNodeV2) return;
+void PG_DisaMapScene::addModelAtViewCenter(int index) {
+	if (!getActiveCamera()) return;
+	const PG_Ray ray = getActiveCamera()->getRayViewDir();
+	addModel(index, PG_DisaEditorTileController::findCollisionPoint(ray, getRoot()));
+}
 
-	auto model = m_mapNodeV2->getModel()->getModel();
+void PG_DisaMapScene::duplicateObject(int objectIndex) {
+	auto* model = getMapModel();
+	if (!model) return;
+
 	auto objects = model->getObjects();
 	if (objectIndex < 0 || objectIndex >= objects->size()) return;
 
@@ -334,18 +306,18 @@ void PG_DisaMapSceneView::addDublicateClicked(int objectIndex) {
 
 	auto object = PG_new<PG_DisaObjectModel>("PG_DisaObjectModel", objects);
 	object->setChunk(model->getChunks()->back());
-	mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
 	object->setData(dublicateData);
 	objects->push_back(object);
 }
 
-PG_DisaMapModel* PG_DisaMapSceneView::getMapModel() const {
-	return m_mapNodeV2->getMapModel();
+PG_DisaMapModel* PG_DisaMapScene::getMapModel() const {
+	return m_mapNode->getMapModel();
 }
 
-void PG_DisaMapSceneView::setModel(const std::shared_ptr<PG_UiStateBaseModel>& container) {
-	m_mapNodeV2->setModel(std::dynamic_pointer_cast<PG_DisaMPDContainer>(container));
-	if (auto mapModel = std::dynamic_pointer_cast<PG_DisaMapContainerModel>(container)) {
-		m_mapNodeV2->getScene()->getActiveCamera()->setTransformation(mapModel->getCameraStartTransformation());
+void PG_DisaMapScene::setModel(const std::shared_ptr<PG_DisaMPDContainer>& container) {
+	m_mapNode->setModel(container);
+	if (!container) return;
+	if (const auto& start = container->getCameraStartTransformation(); start && getActiveCamera()) {
+		getActiveCamera()->setTransformation(*start);
 	}
 }

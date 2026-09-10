@@ -13,7 +13,7 @@
 #include <Disa/map/PG_DisaActorEditSelectionNode.h>
 #include <Scene/Editor/PG_EditorModule.h>
 #include <Scene/Editor/PG_EditorCameraNode.h>
-#include <Views/PG_DisaMapSceneView.h>
+#include <Disa/PG_DisaMapScene.h>
 #include <Util/PG_RangesTransform.h>
 
 PG_DisaEditorActorController::PG_DisaEditorActorController() {
@@ -142,7 +142,7 @@ PG_DisaTileViewNode* PG_DisaEditorActorController::findMinTile(const PG_Scene* s
 	//find free intersection tile
 	PG_DisaTileViewNode* minTile = nullptr;
 	float minDist = std::numeric_limits<float>::max();
-	for (PG_DisaTileViewNode* tile : dynamic_cast<const PG_DisaMapSceneView*>(scene)->getMapNode()->getTileView()->getItems() | PG_CastTo<PG_DisaTileViewNode*>) {
+	for (PG_DisaTileViewNode* tile : dynamic_cast<const PG_DisaMapScene*>(scene)->getMapNode()->getTileView()->getItems() | PG_CastTo<PG_DisaTileViewNode*>) {
 		if (auto dist = PG_DisaFaceHit::intersection(tile, ray, includeSides); dist.first && dist.first.distance > 0.1f && minDist > dist.first.distance) {
 			minDist = dist.first.distance;
 			minTile = tile;

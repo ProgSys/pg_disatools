@@ -1,7 +1,7 @@
 #include "Inspector.h"
 
-#include <Views/PG_DisaMapSceneView.h>
-#include <Controllers/PG_DisaEditorModule.h>
+#include <Disa/PG_DisaMapScene.h>
+#include <Disa/map/PG_DisaEditorModule.h>
 #include <Scene/Editor/PG_EditorModule.h>
 #include <Scene/Gui/PG_GuiRectangle.h>
 #include <Scene/Gui/PG_GuiColumn.h>
@@ -190,7 +190,7 @@ PG_GuiRow* createRow(PG_GuiItem* parent, const std::string& textStr, float textW
 	return row;
 	};
 
-void Inspector::setup(PG_DisaMapSceneView* scene, PG_GuiItem* root) {
+void Inspector::setup(PG_DisaMapScene* scene, PG_GuiItem* root) {
 	auto mod = scene->getModule<PG_DisaEditorModule>();
 	assert(mod);
 	auto* inspector = PG_new<Inspector>(root);

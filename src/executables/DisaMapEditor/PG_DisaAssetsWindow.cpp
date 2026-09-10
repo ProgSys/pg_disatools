@@ -18,7 +18,7 @@
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <Disa/CustomGui/PG_PupUpDialog.h>
 #include <Disa/utils/PG_FileDialog.h>
-#include <Views/PG_DisaMapSceneView.h>
+#include <Disa/PG_DisaMapScene.h>
 #include <Models/PG_DisaMapEditorMainModel.h>
 
 constexpr glm::vec3 backgroundDarkColor = PG_Color::rgbToF({25,25,30});
@@ -124,11 +124,11 @@ static inline void setImage(PG_GuiImage* guiImage, const PG_DisaFileEntry& entry
 	guiImage->setSourceData(PG_Texture(PG_UNIQUE_RES("DisaResource"), loadFunc));
 }
 
-static inline std::pair<PG_GuiRenderItem*, PG_DisaMapSceneView*> createMapScene(PG_GuiItem* parent) {
+static inline std::pair<PG_GuiRenderItem*, PG_DisaMapScene*> createMapScene(PG_GuiItem* parent) {
 
 	auto renderWindow = PG_new<PG_GuiRenderItem>("GridRenderItem", parent);
 	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, renderWindow);
-	auto gameScene = PG_new<PG_DisaMapSceneView>("GameScene", sceneRenderer);
+	auto gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 
 	return { renderWindow, gameScene };
 }
@@ -370,8 +370,8 @@ void PG_DisaAssetsListItem::updateCenter() {
 		if (m_isTexture) m_rightItem->clearGuiChildren();
 		m_isTexture = false;
 
-		PG_DisaMapSceneView* sceneSD = nullptr;
-		PG_DisaMapSceneView* sceneHD = nullptr;
+		PG_DisaMapScene* sceneSD = nullptr;
+		PG_DisaMapScene* sceneHD = nullptr;
 		auto geoSDbg = m_rightItem->findFirstChild<PG_GuiRectangle>("geoSDbg");
 		if (!geoSDbg) {
 			geoSDbg = PG_new<PG_GuiRectangle>("geoSDbg", glm::vec2(11.f, 0.f), glm::vec2(tileBgSize), m_rightItem);
@@ -393,7 +393,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 			addSeperator(tileSize, geoSDbg, m_rightItem);
 		}
 		else {
-			sceneSD = dynamic_cast<PG_DisaMapSceneView*>(geoSDbg->findFirstInTree(PG_Search::byName("GameScene")));
+			sceneSD = dynamic_cast<PG_DisaMapScene*>(geoSDbg->findFirstInTree(PG_Search::byName("GameScene")));
 		}
 
 		auto imageSDModified = m_rightItem->findFirstChild<PG_GuiRectangle>("imageSDModified");
@@ -424,7 +424,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 			connect(area, &PG_GuiMouseArea::rightClicked, this, [this] { addGeometryOptions(this, m_location, true); });
 		}
 		else {
-			sceneHD = dynamic_cast<PG_DisaMapSceneView*>(geoHDbg->findFirstInTree(PG_Search::byName("GameScene")));
+			sceneHD = dynamic_cast<PG_DisaMapScene*>(geoHDbg->findFirstInTree(PG_Search::byName("GameScene")));
 		}
 		auto imageHQModified = m_rightItem->findFirstChild<PG_GuiRectangle>("imageHQModified");
 		if (!imageHQModified) {
