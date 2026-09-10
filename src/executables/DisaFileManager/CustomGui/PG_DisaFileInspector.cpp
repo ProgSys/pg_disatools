@@ -16,6 +16,7 @@
 #include <Util/PG_File.h>
 
 #include <Disa/PG_DisaColorDefines.h>
+#include <Disa/customGui/PG_DisaFileIcons.h>
 #include <Disa/customGui/PG_DisaPreviewItem.h>
 #include <Disa/customGui/PG_PupUpDialog.h>
 
@@ -56,7 +57,7 @@ static PG_GuiRectangle* addIconChip(PG_GuiItem* parent, float side) {
 	chip->setMaterial("M_GuiRoundedRectangleAll5");
 	chip->setColor(PG_Color::darkerGrayFrgb);
 
-	auto* icon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(side * g_iconRatio), std::string("gui/icon_script.svg"), chip);
+	auto* icon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(side * g_iconRatio), std::string(PG_DisaFileIcon::generic), chip);
 	PG_GuiItem::anchor(icon, PG_Anchor::HorizontalCenter, chip, PG_Anchor::HorizontalCenter);
 	PG_GuiItem::anchor(icon, PG_Anchor::VerticalCenter, chip, PG_Anchor::VerticalCenter);
 	return chip;
@@ -109,6 +110,7 @@ void PG_DisaFileInspector::updateMode(float width) {
 void PG_DisaFileInspector::rebuild() {
 	if (m_root) delete m_root;
 	m_root = nullptr;
+	m_fileIcon = nullptr;
 	m_name = nullptr;
 	m_infoBody = nullptr;
 	m_preview = nullptr;
@@ -141,12 +143,12 @@ void PG_DisaFileInspector::buildWide() {
 		anchor(header, PG_Anchor::Left, column, PG_Anchor::Left);
 		anchor(header, PG_Anchor::Right, column, PG_Anchor::Right);
 
-		auto* icon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(20.f), std::string("gui/icon_script.svg"), header);
-		anchor(icon, PG_Anchor::Left, header, PG_Anchor::Left);
-		anchor(icon, PG_Anchor::VerticalCenter, header, PG_Anchor::VerticalCenter);
+		m_fileIcon = PG_new<PG_GuiImage>("icon", glm::vec2(0.f), glm::vec2(20.f), std::string(PG_DisaFileIcon::generic), header);
+		anchor(m_fileIcon, PG_Anchor::Left, header, PG_Anchor::Left);
+		anchor(m_fileIcon, PG_Anchor::VerticalCenter, header, PG_Anchor::VerticalCenter);
 
 		m_name = PG_new<PG_GuiText>("name", glm::vec2(0.f), glm::vec2(0.f, g_headerHeight), header);
-		anchor(m_name, PG_Anchor::Left, icon, PG_Anchor::Right);
+		anchor(m_name, PG_Anchor::Left, m_fileIcon, PG_Anchor::Right);
 		anchor(m_name, PG_Anchor::Right, header, PG_Anchor::Right);
 		m_name->setMargin(PG_Anchor::Left, 8.f);
 		m_name->setFontSize(21.f);
@@ -248,7 +250,7 @@ void PG_DisaFileInspector::buildNarrow() {
 	auto* chip = addIconChip(m_iconArea, g_buttonSize);
 	anchor(chip, PG_Anchor::HorizontalCenter, m_iconArea, PG_Anchor::HorizontalCenter);
 	anchor(chip, PG_Anchor::VerticalCenter, m_iconArea, PG_Anchor::VerticalCenter);
-	auto* chipIcon = chip->findFirstChild<PG_GuiImage>();
+	m_fileIcon = chip->findFirstChild<PG_GuiImage>();
 
 	buildButtons(column);
 
@@ -258,12 +260,12 @@ void PG_DisaFileInspector::buildNarrow() {
 
 	/* A column owns no width, and a centre anchor places an item from a size it therefore never gets
 	 * told, so everything in here is sized from the column instead. */
-	connect(column, &PG_GuiItem::midGuiUpdate, column, [this, column, chip, chipIcon](glm::vec2*, glm::vec2* size) {
+	connect(column, &PG_GuiItem::midGuiUpdate, column, [this, column, chip](glm::vec2*, glm::vec2* size) {
 		const float side = std::min(g_buttonSize, size->x);
 		column->setSpacing(side * g_buttonGapRatio);
 		m_iconArea->setHeight(side);
 		chip->setSize(glm::vec2(side));
-		if (chipIcon) chipIcon->setSize(glm::vec2(side * g_iconRatio));
+		if (m_fileIcon) m_fileIcon->setSize(glm::vec2(side * g_iconRatio));
 		setButtonSide(side);
 		});
 }
@@ -367,6 +369,12 @@ void PG_DisaFileInspector::updateSelection() {
 	if (title.empty()) title = "No selection";
 	if (m_name) m_name->setText(title);
 	if (m_infoBody) m_infoBody->setText(buildInfoText());
+
+	//one file shows what its extension maps to, a pile of them has no one extension to show
+	if (m_fileIcon) {
+		if (count == 1) m_fileIcon->setSource(PG_DisaFileIcon::getFromName(columnText(0)));
+		else m_fileIcon->setSource(PG_DisaFileIcon::generic);
+	}
 
 	if (m_iconArea) {
 		if (std::string info = buildInfoText(); !info.empty()) title += "\n" + info;

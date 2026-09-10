@@ -10,20 +10,16 @@
 #include <Scene/Gui/PG_GuiToggleButton.h>
 
 #include <Disa/PG_DisaColorDefines.h>
+#include <Disa/customGui/PG_DisaFileIcons.h>
 #include <Disa/customGui/PG_DisaSearchField.h>
 
 #include <algorithm>
 #include <array>
-#include <utility>
 
-using FileType = std::pair<const char*, const char*>; //extension, icon
-
-constexpr std::array<FileType, 11> g_fileTypes = { {
-	{ "TX2", "gui/disa/icon_file_tx2.svg" }, { "PNG", "gui/disa/icon_file_img.svg" }, { "DAT", "gui/disa/icon_file_archive.svg" }, 
-	{ "MPD", "gui/disa/icon_file_terrain.svg" }, { "MPP", "gui/disa/icon_file_terrain_texture.svg" },{ "GEO", "gui/icon_model.svg" }, 
-	{ "OGG", "gui/disa/icon_file_ogg.svg" }, { "PBD", "gui/disa/icon_file_generic.svg" }, { "FFM", "gui/disa/icon_file_generic.svg" },
-	{ "FAD", "gui/disa/icon_file_generic.svg" }, { "PHD", "gui/disa/icon_file_generic.svg" },
-} };
+/// The types worth offering as a filter, which need not be every type PG_DisaFileIcon has an icon for
+constexpr std::array<const char*, 11> g_fileTypes = {
+	"TX2", "PNG", "DAT", "MPD", "MPP", "GEO", "OGG", "PBD", "FFM", "FAD", "PHD",
+};
 
 constexpr glm::vec2 g_cellSize = glm::vec2(90.f, 30.f);
 constexpr int g_columnCount = 3;
@@ -110,7 +106,7 @@ void PG_DisaFilterSearchField::buildPopup(PG_GuiPopupInstance* instance) {
 	grid->setCellHeight(g_cellSize.y);
 	grid->setSpacing(glm::vec2(g_cellSpacing));
 
-	const auto makeButton = [grid](const std::string& name, const char* icon, const char* text) {
+	const auto makeButton = [grid](const std::string& name, const std::string& icon, const char* text) {
 		auto* btn = PG_new<PG_GuiToggleButton>(name, glm::vec2(0.f), g_cellSize, grid);
 		btn->setIcon(icon); //sized off the button, the same 27 the toolbar buttons come out at
 		btn->setText(std::string(text));
@@ -122,8 +118,8 @@ void PG_DisaFilterSearchField::buildPopup(PG_GuiPopupInstance* instance) {
 
 	std::vector<PG_GuiToggleButton*> toggles;
 	toggles.reserve(g_fileTypes.size());
-	for (const auto& [name, icon] : g_fileTypes) {
-		auto* btn = makeButton(std::string("filter") + name, icon, name);
+	for (const char* name : g_fileTypes) {
+		auto* btn = makeButton(std::string("filter") + name, PG_DisaFileIcon::get(name), name);
 		btn->setToggled(std::ranges::find(m_fileTypes, name) != m_fileTypes.end());
 		connect(btn, &PG_GuiToggleButton::toggleChanged, this, [this, extension = std::string_view(name)](bool toggled) {
 			setTypeSelected(std::string(extension), toggled);

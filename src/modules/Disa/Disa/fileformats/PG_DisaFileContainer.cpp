@@ -565,7 +565,7 @@ void PG_DisaChangedReaderContainer::copyData(PG::STREAM::In& reader, PG::STREAM:
 		toCopy = std::min(remainingSize, targetBuffer.size());
 		reader.read(targetBuffer.data(), toCopy);
 		remainingSize -= toCopy;
-		writer.writeData(targetBuffer);
+		writer.write((char*)targetBuffer.data(), toCopy);
 	}
 }
 

@@ -1,12 +1,17 @@
 #include "PG_DisaFileTableItem.h"
 #include <Util/Color/ColorDefined.h>
+#include <Scene/Gui/PG_GuiImage.h>
 #include <Scene/Gui/PG_GuiText.h>
 #include <Scene/Gui/PG_GuiLines.h>
 #include <Scene/Gui/PG_GuiMouseArea.h>
 #include <Scene/Gui/PG_GuiRectangle.h>
 #include <Scene/Model/PG_ListModelBase.h>
-#include <Base/Events/PG_MouseButtonEvent.h> 
+#include <Base/Events/PG_MouseButtonEvent.h>
+#include <Disa/customGui/PG_DisaFileIcons.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
+
+constexpr float g_fileIconSize = 18.f; //against a row of 32, @see PG_GuiTableView
+constexpr float g_fileIconPadding = 5.f; //the same inset the text alone had
 
 
 
@@ -46,6 +51,37 @@ void PG_DisaFileTableItem::update(const PG_ListModelLocation& location, const PG
 		}
 		m_text->setText(str);
 	}
+}
+
+void PG_DisaFileTableFileItem::init() {
+	PG_DisaFileTableItem::init();
+
+	m_icon = PG_new<PG_GuiImage>("fileIcon", glm::vec2(0.f), glm::vec2(g_fileIconSize), this);
+	m_icon->setSource(PG_DisaFileIcon::generic);
+	anchor(m_icon, PG_Anchor::Left, this, PG_Anchor::Left);
+	anchor(m_icon, PG_Anchor::VerticalCenter, this, PG_Anchor::VerticalCenter);
+	m_icon->setMargin(PG_Anchor::Left, g_fileIconPadding);
+}
+
+void PG_DisaFileTableFileItem::setLocation(const PG_ListModelLocation& location) {
+	PG_DisaFileTableItem::setLocation(location);
+	updateIcon(location);
+}
+
+void PG_DisaFileTableFileItem::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
+	PG_DisaFileTableItem::update(location, identities);
+	updateIcon(location);
+}
+
+void PG_DisaFileTableFileItem::updateIcon(const PG_ListModelLocation& location) {
+	const bool isNameColumn = location && location.getIndex().size() >= 2 && location.getIndex().get(1) == 0;
+
+	m_icon->setVisible(isNameColumn);
+	//the name starts after the icon, or back at the cell edge in every other column
+	getTextItem()->setMargin(PG_Anchor::Left,
+		isNameColumn ? g_fileIconPadding * 2.f + g_fileIconSize : g_fileIconPadding);
+
+	if (isNameColumn) m_icon->setSource(PG_DisaFileIcon::getFromName(location.getDataT<std::string>(PG_Identity_Text)));
 }
 
 void PG_DisaFileTableHeaderItem::init() {
@@ -103,8 +139,9 @@ void PG_DisaFileTableRowItem::init() {
 			}
 			else if (e->isDoubleClick()) {
 				parent->setLayoutProperty(LayoutProperty_LastSelect, m_location.getIndex());
+				if (e->getKeyMod() & (PG_KMod_Shift | PG_KMod_Ctrl)) return;
 				m_location.setData( PG_ListSelectionData{ true, true }, PG_Identity_Selected );
-				auto mainModel = m_location.getModelRoot()->getParent();
+				auto mainModel = m_location.getModel()->getParent();
 				if (!mainModel) return;
 				auto func = mainModel->getFunction("void openEntry(const PG_Index&)");
 				if (!func) return;

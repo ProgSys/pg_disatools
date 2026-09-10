@@ -33,6 +33,7 @@
 
 class PG_DisaPreviewItem;
 class PG_GuiButton;
+class PG_GuiImage;
 class PG_GuiText;
 class PG_GuiTooltipArea;
 class PG_UiStateBaseModel;
@@ -81,6 +82,7 @@ private:
 	PG_Object* m_model = nullptr; /// the same model as m_stateModel, for property and function access
 
 	PG_GuiItem* m_root = nullptr;
+	PG_GuiImage* m_fileIcon = nullptr; /// follows the selected file's extension, both layouts have one
 	PG_GuiText* m_name = nullptr;
 	PG_GuiText* m_infoBody = nullptr;
 	PG_DisaPreviewItem* m_preview = nullptr;

@@ -232,11 +232,15 @@ void RootScene::setupCenter() {
 	tableHeader->setItem([](PG_GuiItem* parent, std::size_t columnIndex) {
 		auto h = PG_new<PG_DisaFileTableHeaderItem>("HeaderItem" + std::to_string(columnIndex), parent);
 		switch (columnIndex) {
-		case 0: h->getTextItem()->setText("File"); break;
+		case 0: 
+			h->getTextItem()->setText("File");
+			h->setWidth(200.f);
+			break;
 		case 1: h->getTextItem()->setText("Type"); break;
 		case 2: h->getTextItem()->setText("Size"); break;
 		case 3: h->getTextItem()->setText("Index"); break;
 		}
+		
 		return h;
 	});
 
@@ -265,8 +269,8 @@ void RootScene::setupCenter() {
 
 
 	tableView->setColumnWidthModel(tableHeader);
-	tableView->setItem(PG_GuiListView::getDefaultCreateFunc<PG_DisaFileTableItem>());
-	tableView->setItemUpdate(PG_GuiListView::getDefaultUpdateFunc<PG_DisaFileTableItem>());
+	tableView->setItem(PG_GuiListView::getDefaultCreateFunc<PG_DisaFileTableFileItem>());
+	tableView->setItemUpdate(PG_GuiListView::getDefaultUpdateFunc<PG_DisaFileTableFileItem>());
 	tableView->setClip(true);
 
 	PG_GuiScrollBar* scrollY = PG_new<PG_GuiScrollBar>("PG_GuiScrollBarY", content);
