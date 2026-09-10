@@ -68,9 +68,14 @@ private:
 	void buildWide();
 	void buildNarrow();
 	void buildButtons(PG_GuiItem* parent);
-	/// Squares every action button to the given side and scales the icons along with them
+	/// One of the group's buttons, styled and wired to rescale its icon with itself
+	PG_GuiButton* makeGroupButton(PG_GuiItem* parent, const std::string& name, const std::string& iconPath,
+		const std::string& tooltip);
+	/// Squares every item of the button group to the given side and scales the icons along with them
 	void setButtonSide(float side);
 	void bindModel();
+	/// Fills the action slot with what the selected file offers, or with the stand in
+	void updateAction();
 	void updateSelection();
 
 	std::string buildInfoText() const;
@@ -87,6 +92,8 @@ private:
 	PG_GuiText* m_infoBody = nullptr;
 	PG_DisaPreviewItem* m_preview = nullptr;
 	PG_GuiTooltipArea* m_iconArea = nullptr;
+	/// Heads the button group and holds either an action button or the stand in, @see updateAction
+	PG_GuiItem* m_actionSlot = nullptr;
 	PG_GuiButton* m_addButton = nullptr;
 	PG_GuiButton* m_replaceButton = nullptr;
 	PG_GuiButton* m_exportButton = nullptr;

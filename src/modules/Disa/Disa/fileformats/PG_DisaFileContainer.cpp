@@ -124,6 +124,8 @@ PG_Variety PG_DisaFileEntry::getPreviewImage() const {
 		if (!reader) return PG_Variety();
 		PG_Audio audio;
 		audio.load(m_info.getName().getPath() + "_" + std::to_string((size_t)m_parent), reader, PG_Audio::OGG);
+		//kept past the waveform, so pressing play on the same file does not decode it a second time
+		audio.setCached(true);
 		return PG_Variety(std::move(audio));
 	} break;
 	case PG_DisaFileInfo::TALK_SCRIPT: {

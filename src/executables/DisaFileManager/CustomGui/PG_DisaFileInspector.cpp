@@ -15,10 +15,13 @@
 #include <Util/PG_Dir.h>
 #include <Util/PG_File.h>
 
+#include <Resources/PG_Audio.h>
+
 #include <Disa/PG_DisaColorDefines.h>
 #include <Disa/customGui/PG_DisaFileIcons.h>
 #include <Disa/customGui/PG_DisaPreviewItem.h>
 #include <Disa/customGui/PG_PupUpDialog.h>
+#include <Disa/fileformats/PG_DisaFileContainer.h>
 
 #include <Models/PG_UiStateBaseModel.h>
 
@@ -27,7 +30,7 @@
 
 constexpr float g_narrowWidth = 150.f; //below this the panel drops to the icon column
 constexpr float g_buttonSize = 54.f;
-constexpr float g_buttonCount = 4.f;
+constexpr float g_buttonCount = 5.f; //the action slot heads the group
 constexpr float g_buttonGapRatio = 0.2f; //the gap between two buttons, as a share of their size
 constexpr float g_iconRatio = 32.f / g_buttonSize;
 constexpr float g_margin = 12.f;
@@ -37,6 +40,8 @@ constexpr float g_headerHeight = 28.f;
 
 /// U+2022, swap it for a plain '-' should the font turn out to have no glyph for it
 constexpr const char* g_bullet = "\xE2\x80\xA2 ";
+/// Keeps the head of the button group filled when the selected file has no action of its own
+constexpr const char* g_actionStandIn = "gui/disa/icon_standin.svg";
 constexpr unsigned char g_rebuildEvent = PG_Event_Behaviour_Singleton | PG_Event_Behaviour_Later;
 
 /// Empty when the model has no selection, or is not the kind of model that tracks one
@@ -61,6 +66,69 @@ static PG_GuiRectangle* addIconChip(PG_GuiItem* parent, float side) {
 	PG_GuiItem::anchor(icon, PG_Anchor::HorizontalCenter, chip, PG_Anchor::HorizontalCenter);
 	PG_GuiItem::anchor(icon, PG_Anchor::VerticalCenter, chip, PG_Anchor::VerticalCenter);
 	return chip;
+}
+
+namespace {
+
+/**
+* @brief Plays the selected ogg, and stops it again.
+* @details Hangs off the button it drives, which is set before PG_new calls init, so it reaches that
+* button itself and nothing outside has to hold it or talk to it. Nothing is read until it is pressed.
+*/
+class DisaPlayAudioAction : public PG_Object {
+public:
+	DisaPlayAudioAction(const std::string& name, const PG_ListModelLocation& location) :
+		PG_Object(name), m_location(location) {}
+	~DisaPlayAudioAction() override { m_audio.stop(); }
+
+	void init() {
+		auto* button = getParent<PG_GuiButton>();
+		if (!button) return;
+		button->setEnabled(true);
+		connect(button, &PG_GuiButton::clicked, this, &DisaPlayAudioAction::trigger);
+		updateButton();
+	}
+
+private:
+	void trigger() {
+		if (m_audio) {
+			m_audio.stop();
+			m_audio = PG_Audio(); //the samples go with it, nothing is held for a sound nobody is playing
+		}
+		else {
+			/* The same resource the waveform preview asks for, so the two are one audio without this
+			 * having to spell out the name PG_DisaFileEntry::getPreviewImage builds. */
+			PG_Variety preview = m_location.getData(PG_Identity_PreviewImage);
+			if (!preview.is<PG_Audio>()) return;
+			m_audio = preview.get<PG_Audio>();
+			m_audio.setCached(true);
+			m_audio.play(); //starts itself once the decode lands, there is nothing to wait for here
+		}
+		updateButton();
+	}
+
+	void updateButton() {
+		auto* button = getParent<PG_GuiButton>();
+		if (!button) return;
+		const bool playing = (bool)m_audio;
+		//setIcon builds a fresh item, so it gets the size the group is on rather than its own default
+		const float side = button->getSize().x > 0.f ? button->getSize().x : g_buttonSize;
+		button->setIcon(playing ? "gui/icon_pause.svg" : "gui/icon_play.svg", glm::vec2(side * g_iconRatio));
+		button->setTooltipText(playing ? "Stop playing" : "Play the audio");
+	}
+
+	PG_ListModelLocation m_location;
+	PG_Audio m_audio;
+};
+
+/// The file's type, or UNKNOWN when the location names no single file. Reads no file data.
+PG_DisaFileInfo::Type typeOf(const PG_ListModelLocation& location) {
+	if (!location) return PG_DisaFileInfo::UNKNOWN;
+	auto dat = location.getData(PG_Identity_Item);
+	auto entry = dat.cast<PG_DisaFileEntry>();
+	return entry ? entry->getInfo().getType() : PG_DisaFileInfo::UNKNOWN;
+}
+
 }
 
 static void addSeparator(PG_GuiItem* column) {
@@ -115,6 +183,7 @@ void PG_DisaFileInspector::rebuild() {
 	m_infoBody = nullptr;
 	m_preview = nullptr;
 	m_iconArea = nullptr;
+	m_actionSlot = nullptr;
 	m_addButton = nullptr;
 	m_replaceButton = nullptr;
 	m_exportButton = nullptr;
@@ -179,7 +248,7 @@ void PG_DisaFileInspector::buildWide() {
 
 	addSeparator(column);
 
-	{ //the four file actions, centered and never wider than g_buttonSize
+	{ //the file actions, centered and never wider than g_buttonSize
 		//a negative height is the row saying it works that out from its children, @see PG_GuiItem::setSize
 		auto* row = PG_new<PG_GuiRow>("buttonRow", glm::vec2(0.f), glm::vec2(0.f, -1.f), column);
 		anchor(row, PG_Anchor::Left, column, PG_Anchor::Left);
@@ -190,19 +259,20 @@ void PG_DisaFileInspector::buildWide() {
 
 		buildButtons(row);
 
-		for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
-			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+		for (PG_GuiItem* item : { m_actionSlot, (PG_GuiItem*)m_addButton, (PG_GuiItem*)m_replaceButton,
+			(PG_GuiItem*)m_exportButton, (PG_GuiItem*)m_deleteButton }) {
+			item->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
 			//fill is what lets them give way, the row only ever grows an item from its minimum
-			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
-			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(g_buttonSize));
-			btn->setLayoutProperty(PG_GuiItem::LayoutProperty_AspectRatio, glm::vec2(1.f));
+			item->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+			item->setLayoutProperty(PG_GuiItem::LayoutProperty_MaxSize, glm::vec2(g_buttonSize));
+			item->setLayoutProperty(PG_GuiItem::LayoutProperty_AspectRatio, glm::vec2(1.f));
 		}
 
 		/* A gap of a fifth of the button side is a length worked out from another length, which no property
 		 * spells. measureSize is the one place early enough: the row shares its width out right after it,
 		 * so a spacing set here is the spacing those buttons are measured against. */
 		connect(row, &PG_GuiItem::measureSize, row, [row](glm::vec2, glm::vec2* size) {
-			//four buttons and the three gaps between them fill the row exactly
+			//the five items and the four gaps between them fill the row exactly
 			const float side = std::min(g_buttonSize, size->x / (g_buttonCount + (g_buttonCount - 1.f) * g_buttonGapRatio));
 			row->setSpacing(side * g_buttonGapRatio);
 			});
@@ -254,8 +324,9 @@ void PG_DisaFileInspector::buildNarrow() {
 
 	buildButtons(column);
 
-	for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton }) {
-		anchor(btn, PG_Anchor::HorizontalCenter, column, PG_Anchor::HorizontalCenter);
+	for (PG_GuiItem* item : { m_actionSlot, (PG_GuiItem*)m_addButton, (PG_GuiItem*)m_replaceButton,
+		(PG_GuiItem*)m_exportButton, (PG_GuiItem*)m_deleteButton }) {
+		anchor(item, PG_Anchor::HorizontalCenter, column, PG_Anchor::HorizontalCenter);
 	}
 
 	/* A column owns no width, and a centre anchor places an item from a size it therefore never gets
@@ -270,33 +341,62 @@ void PG_DisaFileInspector::buildNarrow() {
 		});
 }
 
-void PG_DisaFileInspector::buildButtons(PG_GuiItem* parent) {
-	const auto make = [parent](const std::string& name, const std::string& iconPath, const std::string& tooltip) {
-		auto* btn = PG_new<PG_GuiButton>(name, glm::vec2(0.f), glm::vec2(g_buttonSize), parent);
-		btn->setIcon(iconPath, glm::vec2(g_buttonSize * g_iconRatio));
-		btn->setBackground("M_GuiRoundedRectangleAll5");
-		btn->setTooltipText(tooltip);
-		btn->setEnabled(false);
-		//a button places its icon but never sizes it, so it follows whatever side the button ends up with
-		PG_Object::connect(btn, &PG_GuiItem::resolvedSizeChanged, btn, [btn] {
-			if (auto* icon = btn->getIcon()) icon->setSize(glm::vec2(btn->getSize().x * g_iconRatio));
-			});
-		return btn;
-		};
+PG_GuiButton* PG_DisaFileInspector::makeGroupButton(PG_GuiItem* parent, const std::string& name,
+	const std::string& iconPath, const std::string& tooltip) {
+	auto* btn = PG_new<PG_GuiButton>(name, glm::vec2(0.f), glm::vec2(g_buttonSize), parent);
+	btn->setIcon(iconPath, glm::vec2(g_buttonSize * g_iconRatio));
+	btn->setBackground("M_GuiRoundedRectangleAll5");
+	btn->setTooltipText(tooltip);
+	btn->setEnabled(false);
+	//a button places its icon but never sizes it, so it follows whatever side the button ends up with
+	PG_Object::connect(btn, &PG_GuiItem::resolvedSizeChanged, btn, [btn] {
+		if (auto* icon = btn->getIcon()) icon->setSize(glm::vec2(btn->getSize().x * g_iconRatio));
+		});
+	return btn;
+}
 
-	m_addButton = make("addButton", "gui/icon_add.svg", "Import one or more files below the selected file");
-	m_replaceButton = make("replaceButton", "gui/icon_repeat.svg", "Replace selected file keeping its name");
-	m_exportButton = make("exportButton", "gui/icon_file_export.svg", "Extract selected file or files");
-	m_deleteButton = make("deleteButton", "gui/icon_delete.svg", "Delete selected file or files");
+void PG_DisaFileInspector::buildButtons(PG_GuiItem* parent) {
+	//first in the group, and the only one whose contents are thrown away as the selection moves
+	m_actionSlot = PG_new<PG_GuiItem>("actionSlot", glm::vec2(0.f), glm::vec2(g_buttonSize), parent);
+
+	m_addButton = makeGroupButton(parent, "addButton", "gui/icon_add.svg", "Import one or more files below the selected file");
+	m_replaceButton = makeGroupButton(parent, "replaceButton", "gui/icon_repeat.svg", "Replace selected file keeping its name");
+	m_exportButton = makeGroupButton(parent, "exportButton", "gui/icon_file_export.svg", "Extract selected file or files");
+	m_deleteButton = makeGroupButton(parent, "deleteButton", "gui/icon_delete.svg", "Delete selected file or files");
 
 	m_deleteButton->setBackgroundColor({ PG_DisaColor::destructiveFrgb,
 		PG_DisaColor::destructiveHoverFrgb, PG_DisaColor::destructivePressedFrgb });
 }
 
-/// Only the narrow column needs this, the wide row sizes its buttons through the layout properties
+void PG_DisaFileInspector::updateAction() {
+	if (!m_actionSlot) return;
+	m_actionSlot->clearGuiChildren();
+
+	//a multi selection is the no action case by definition, there is no one file to act on
+	const PG_ListModelLocation location = selectionCountOf(m_model) == 1 ? lastSelectedOf(m_model) : PG_ListModelLocation();
+
+	//one case per type that has something to offer, and the only place this grows
+	switch (typeOf(location)) {
+	case PG_DisaFileInfo::OGG: {
+		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_play.svg", "Play the audio");
+		button->fill(m_actionSlot);
+		PG_new<DisaPlayAudioAction>("playAudio", location, button);
+		return;
+	}
+	default: break;
+	}
+
+	auto* standIn = PG_new<PG_GuiImage>("actionStandIn", m_actionSlot);
+	standIn->setSource(std::string(g_actionStandIn));
+	standIn->setAlpha(0.5f);
+	standIn->fill(m_actionSlot);
+}
+
+/// Only the narrow column needs this, the wide row sizes the group through the layout properties
 void PG_DisaFileInspector::setButtonSide(float side) {
-	for (PG_GuiButton* btn : { m_addButton, m_replaceButton, m_exportButton, m_deleteButton })
-		btn->setSize(glm::vec2(side));
+	for (PG_GuiItem* item : { m_actionSlot, (PG_GuiItem*)m_addButton, (PG_GuiItem*)m_replaceButton,
+		(PG_GuiItem*)m_exportButton, (PG_GuiItem*)m_deleteButton })
+		item->setSize(glm::vec2(side));
 }
 
 void PG_DisaFileInspector::bindModel() {
@@ -369,6 +469,8 @@ void PG_DisaFileInspector::updateSelection() {
 	if (title.empty()) title = "No selection";
 	if (m_name) m_name->setText(title);
 	if (m_infoBody) m_infoBody->setText(buildInfoText());
+
+	updateAction();
 
 	//one file shows what its extension maps to, a pile of them has no one extension to show
 	if (m_fileIcon) {
