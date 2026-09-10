@@ -1,21 +1,79 @@
 #include "PG_DisaPreviewItem.h"
+#include <Base/PG_AudioDirector.h>
+#include <Base/Events/PG_MouseButtonEvent.h>
 #include <Scene/Gui/PG_GuiRenderItem.h>
 #include <Scene/Gui/PG_GuiRectangle.h>
 #include <Scene/Gui/PG_GuiMouseArea.h>
 #include <Scene/Gui/PG_GuiText.h>
+#include <Scene/Gui/PG_GuiLines.h>
 #include <Scene/Gui/PG_GuiMenuPopup.h>
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Renderer/PG_SceneRenderer.h>
-#include <Util/Color/ColorConverters.h>
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/utils/PG_SaveTexture.h>
 #include <Resources/PG_Audio.h>
+#include <Util/Color/ColorConverters.h>
 #include <Util/Color/ColorDefined.h>
 
 namespace {
 
 constexpr glm::uvec2 g_waveformSize(256);
+
+class DisaAudioTracking : public PG_GuiMouseArea {
+public:
+	DisaAudioTracking(const std::string& name, std::string audioName) :
+		PG_GuiMouseArea(name), m_audio(audioName) {};
+
+	void init() {
+		assert(m_audio);
+		PG_GuiImage* target = getParent<PG_GuiImage>();
+		assert(target);
+		fill(target);
+		auto tracker = PG_new<PG_GuiLines>("tracker", glm::vec2(0.f), glm::vec2(1.f, 0.f), this);
+		tracker->makeLineY();
+		tracker->setColor(PG_Color::hentaiRedFrgb);
+		tracker->anchor(tracker, PG_Anchor::Top, this, PG_Anchor::Top);
+		tracker->anchor(tracker, PG_Anchor::Bottom, this, PG_Anchor::Bottom);
+		tracker->setVisible(false);
+		tracker->setAlpha(0.f);
+		tracker->update();
+
+		m_audio.onProgress(tracker, [tracker](float v) {
+			if (v <= 0.001f || v >= 1.f) {
+				tracker->setVisible(false);
+				return;
+			}
+			tracker->setVisible(true);
+			const float width = tracker->getParent<PG_GuiItem>()->getSize().x;
+			const float at = width * v;
+			tracker->setPosition(glm::vec2(at, 0.f));
+			const float borderSize = std::min(width * 0.05f, 15.f);
+			if (at < borderSize) {
+				tracker->setAlpha(std::min(at / borderSize, 1.f));
+			}
+			else if (at > (width - borderSize)) {
+				tracker->setAlpha(std::min(-((at - width) / borderSize), 1.f));
+			}
+			else {
+				tracker->setAlpha(1.f);
+			}
+			
+			tracker->updateModelMatrixWorld();
+		});
+		m_audio.onFinished(this, &DisaAudioTracking::deleteLater);
+
+		connect(this, &PG_GuiMouseArea::mouseClicked, this, [this](PG_MouseButtonEvent* e) {
+			if (m_audio) {
+				const float clickAt = toLocalTranslation(e->getPosition()).x;
+				m_audio.setProgress(glm::clamp(clickAt / getSize().x, 0.0F, 1.0F));
+			}
+			
+		});
+	}
+
+	PG_Audio m_audio;
+};
 
 /**
 * @brief Holds what an audio preview loads, so that deleting it is what cancels the load.
@@ -27,6 +85,8 @@ public:
 	using PG_Object::PG_Object;
 
 	void open(const PG_Audio& audio, PG_GuiImage* target) {
+		auto name = audio.getName();
+		if (name.empty()) return;
 		m_audio = audio;
 
 		PG_Material material("M_GuiImageAudio");
@@ -40,14 +100,19 @@ public:
 			m_texture.load(PG_UNIQUE_RES("DisaAudioPreview"), [audio = std::move(m_audio)]()->PG_Texture::ImageFormats {
 				PG_RGBImage preview;
 				preview.resize(g_waveformSize);
-				preview.fill(glm::rgb(255)); //white is what the shader discards
+				preview.fill(glm::rgb(0)); //createPreview writes every pixel, this is only a safe start
 				audio.createPreview(preview);
 				return { std::move(preview) };
 				});
 			target->setSourceData(m_texture);
 			});
-	}
 
+		auto* audioDirector = PG_AudioDirector::get();
+		connect(audioDirector, &PG_AudioDirector::audioStartedPlaying, this, [this, name = std::move(name), target](const std::string& audioName) {
+			if (audioName != name) return;
+			PG_new<DisaAudioTracking>("DisaAudioTracking", audioName, target);
+		});
+	}
 private:
 	PG_Audio m_audio;
 	PG_Texture m_texture;

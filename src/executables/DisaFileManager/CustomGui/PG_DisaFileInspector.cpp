@@ -103,6 +103,7 @@ private:
 			m_audio = preview.get<PG_Audio>();
 			m_audio.setCached(true);
 			m_audio.play(); //starts itself once the decode lands, there is nothing to wait for here
+			m_audio.onFinished(this, &DisaPlayAudioAction::trigger);
 		}
 		updateButton();
 	}
@@ -129,7 +130,7 @@ PG_DisaFileInfo::Type typeOf(const PG_ListModelLocation& location) {
 	return entry ? entry->getInfo().getType() : PG_DisaFileInfo::UNKNOWN;
 }
 
-}
+} // namespace
 
 static void addSeparator(PG_GuiItem* column) {
 	auto* line = PG_new<PG_GuiLines>("separator", glm::vec2(0.f), glm::vec2(0.f, 1.f), column);

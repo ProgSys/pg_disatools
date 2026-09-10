@@ -17,7 +17,7 @@
 
 int main(int argc, char* args[]) {
 	PG_SDLApplication app;
-	PG_new<PG_SDLAudioDirector>();
+	PG_new<PG_SDLAudioDirector>()->setMasterVolume(0.7f);
 
 	app.setAlwaysRender(true);
 	PG_SDLWindow* window = PG_new<PG_SDLWindow>(APP_NAME, glm::ivec2(740, 900), &app);
