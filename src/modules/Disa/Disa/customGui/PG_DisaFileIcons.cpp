@@ -12,6 +12,7 @@ namespace {
 		{ "MPP", "gui/disa/icon_file_terrain_texture.svg" },
 		{ "GEO", "gui/icon_model.svg" },
 		{ "OGG", "gui/disa/icon_file_ogg.svg" },
+		{ "SH", "gui/disa/icon_file_sprite.svg" },
 	};
 
 	const std::string g_generic = PG_DisaFileIcon::generic;
