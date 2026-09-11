@@ -26,6 +26,7 @@
 #include <Stream/PG_StreamInByteFile.h>
 #include <Util/Typedefs.h>
 #include <Disa/fileformats/PG_TX2.h>
+#include <Disa/fileformats/PG_SH.h>
 
 template<typename T = bool>
 inline T openFile(const PG_File& file, T (*func)(PG::STREAM::In*)) {
@@ -335,7 +336,6 @@ std::string asString(tx2Type type) {
 	}
 }
 
-
 bool PG_Disa::isSpriteSheet(const PG_File& file) {
 	return openFile(file, isSpriteSheet);
 }
@@ -354,6 +354,34 @@ bool PG_Disa::isSpriteSheet(PG::STREAM::In* reader) {
 	return true;
 }
 */
+
+bool PG_Disa::isSH(const PG_File& file) {
+	return openFile(file, isSH);
+}
+bool PG_Disa::isSH(PG::STREAM::In* reader) {
+	const unsigned int startPos = reader->pos();
+	shfileHeader header;
+	if (reader->size() - startPos <= sizeof(shfileHeader) + sizeof(unsigned int) * 4) return false;
+	reader->read((char*)&header, sizeof(shfileHeader));
+	if (header.number_of_colortables == 0 || header.number_of_colortables > 255) return false;
+	if (header.number_of_animations > 90000) return false;
+	if (header.number_of_sheetInfos == 0 || header.number_of_sheetInfos > 512) return false;
+
+	std::vector<unsigned int> pointers(4);
+	reader->read((char*)&pointers[0], 4 * sizeof(unsigned int));
+
+	if (pointers[0] == 0 || pointers[1] == 0 || pointers[2] == 0 || pointers[3] == 0) return false;
+	if (pointers[3] + startPos >= reader->size()) return false;
+
+	/* looking onto m_sheetsInfos would be the best approch
+	reader->read((char*)m_animations.data(), m_animations.size() * sizeof(shfileAnimation));
+	reader->read((char*)m_layers.data(), m_layers.size() * sizeof(shfileLayers));
+	reader->read((char*)m_numberOfColortables.data(), m_numberOfColortables.size() * sizeof(unsigned int));
+	reader->read((char*)m_sheetsInfos.data(), m_sheetsInfos.size() * sizeof(shfileSheetInfo));
+	*/
+
+	return true;
+}
 
 bool PG_Disa::isPSPFS(const PG_File& file) {
 	return openFile(file, isPSPFS);

@@ -88,7 +88,8 @@ public:
     inline void determinTypeFromFileExtention() { setType(m_name.getFileExtensionFormated()); }
     void determinTypeFromFileFormat(PG::STREAM::In* reader);
     static Type typeFromFileFormat(PG::STREAM::In* reader);
-    static std::string toString(Type type);
+    static std::string_view toString(Type type);
+    static std::string_view toFileExtension(Type type);
 
 
     inline unsigned int getSize() const {return m_size;}

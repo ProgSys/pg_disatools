@@ -16,10 +16,27 @@
 #include <algorithm>
 #include <array>
 
-/// The types worth offering as a filter, which need not be every type PG_DisaFileIcon has an icon for
-constexpr std::array<const char*, 11> g_fileTypes = {
-	"TX2", "PNG", "DAT", "MPD", "MPP", "GEO", "OGG", "PBD", "FFM", "FAD", "PHD",
+namespace {
+
+/// A filter button and the type it stands for
+struct FilterType {
+	const char* label;
+	PG_DisaFileInfo::Type type;
 };
+
+/// The types worth offering as a filter, which need not be every type PG_DisaFileIcon draws
+constexpr std::array<FilterType, 8> g_fileTypes = {
+	FilterType{"TX2", PG_DisaFileInfo::TX2},
+	FilterType{"PNG", PG_DisaFileInfo::PNG},
+	FilterType{"DAT", PG_DisaFileInfo::PSPFS_V1},
+	FilterType{"MPD", PG_DisaFileInfo::MPD},
+	FilterType{"MPP", PG_DisaFileInfo::MPP},
+	FilterType{"GEO", PG_DisaFileInfo::GEO},
+	FilterType{"OGG", PG_DisaFileInfo::OGG},
+	FilterType{"SH", PG_DisaFileInfo::SH},
+};
+
+} // namespace
 
 constexpr glm::vec2 g_cellSize = glm::vec2(90.f, 30.f);
 constexpr int g_columnCount = 3;
@@ -28,7 +45,7 @@ constexpr float g_panelPadding = 6.f;
 constexpr float g_filterButtonWidth = 30.f;
 constexpr float g_filterIconSize = 20.f;
 
-/// Eleven types and the one that clears them, so the last row comes out full
+/// Eight types and the one that clears them, so the last row comes out full
 constexpr int g_cellCount = (int)g_fileTypes.size() + 1;
 constexpr int g_rowCount = (g_cellCount + g_columnCount - 1) / g_columnCount;
 /// What the cells need. The panel follows the field's width and only falls back on this when narrower.
@@ -118,11 +135,11 @@ void PG_DisaFilterSearchField::buildPopup(PG_GuiPopupInstance* instance) {
 
 	std::vector<PG_GuiToggleButton*> toggles;
 	toggles.reserve(g_fileTypes.size());
-	for (const char* name : g_fileTypes) {
-		auto* btn = makeButton(std::string("filter") + name, PG_DisaFileIcon::get(name), name);
-		btn->setToggled(std::ranges::find(m_fileTypes, name) != m_fileTypes.end());
-		connect(btn, &PG_GuiToggleButton::toggleChanged, this, [this, extension = std::string_view(name)](bool toggled) {
-			setTypeSelected(std::string(extension), toggled);
+	for (const FilterType& entry : g_fileTypes) {
+		auto* btn = makeButton(std::string("filter") + entry.label, std::string(PG_DisaFileIcon::get(entry.type)), entry.label);
+		btn->setToggled(std::ranges::find(m_fileTypes, entry.type) != m_fileTypes.end());
+		connect(btn, &PG_GuiToggleButton::toggleChanged, this, [this, type = entry.type](bool toggled) {
+			setTypeSelected(type, toggled);
 			});
 		toggles.push_back(btn);
 	}
@@ -160,14 +177,14 @@ void PG_DisaFilterSearchField::updateCorners(bool open) {
 	reshape(m_buttonBackground, "radiusBottomRight");
 }
 
-void PG_DisaFilterSearchField::setFileTypes(std::vector<std::string> types) {
+void PG_DisaFilterSearchField::setFileTypes(std::vector<PG_DisaFileInfo::Type> types) {
 	if (m_fileTypes == types) return;
 	m_fileTypes = std::move(types);
 	updateFilterIcon();
 	emit fileTypesChanged();
 }
 
-void PG_DisaFilterSearchField::setTypeSelected(const std::string& type, bool selected) {
+void PG_DisaFilterSearchField::setTypeSelected(PG_DisaFileInfo::Type type, bool selected) {
 	const auto findIt = std::ranges::find(m_fileTypes, type);
 	if (selected == (findIt != m_fileTypes.end())) return;
 

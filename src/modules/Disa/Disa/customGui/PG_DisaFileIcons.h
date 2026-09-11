@@ -28,19 +28,18 @@
 
 #pragma once
 
-#include <string>
+#include <Disa/fileformats/PG_DisaFileInfo.h>
+
+#include <string_view>
 
 /**
-* @brief The icon a file shows, worked out from its extension.
-* @details Only the extensions that have an icon of their own are listed, everything else lands on the
+* @brief The icon a file shows, worked out from its type.
+* @details Only the types that have an icon of their own are listed, everything else lands on the
 * generic one, so a new format costs one line and an unknown one still draws something.
 */
 namespace PG_DisaFileIcon {
-	/// What a file with no icon of its own shows
-	inline constexpr const char* generic = "gui/disa/icon_file_generic.svg";
+	/// What a type with no icon of its own shows
+	inline constexpr std::string_view generic = "gui/disa/icon_file_generic.svg";
 
-	/// @param extension Upper case without the dot, the shape PG_File::getFileExtensionFormated returns
-	const std::string& get(const std::string& extension);
-	/// @see get, but taking the whole file name and pulling the extension off it
-	const std::string& getFromName(const std::string& fileName);
+	std::string_view get(PG_DisaFileInfo::Type type);
 }

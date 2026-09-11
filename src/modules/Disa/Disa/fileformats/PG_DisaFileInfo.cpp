@@ -42,9 +42,11 @@ void PG_DisaFileInfo::setType(const std::string& extention) {
 	else if (extention == "ogg") setType(OGG);
 	else if (extention == "tscript") setType(TALK_SCRIPT);
 	else if (extention == "script") setType(SCRIPT);
+	else if (extention == "sh") setType(SH);
+	else if (extention == "zip") setType(ZIP);
 }
 
-std::string PG_DisaFileInfo::toString(Type type) {
+std::string_view PG_DisaFileInfo::toString(Type type) {
     switch (type) {
     case PSPFS_V1: return "PSPFS_V1";
     case OLA: return "OLA";
@@ -69,13 +71,38 @@ std::string PG_DisaFileInfo::toString(Type type) {
     }
 }
 
+std::string_view PG_DisaFileInfo::toFileExtension(Type type) {
+    switch (type) {
+        case OLA: return "OLA";
+        case COLA: return "COLA";
+        case SOLA: return "SOLA";
+        case TX2: return "TX2";
+        case IMY: return "IMY";
+        case MPD: return "MPD";
+        case MPP: return "MPP";
+        case SH: return "SH";
+        case SH2: return "SH2";
+        case GEO: return "GEO";
+        case LZS: return "LZS";
+        case PNG: return "PNG";
+        case JSON: return "JSON";
+        case TALK_SCRIPT: return "TALK_SCRIPT";
+        case SCRIPT: return "SCRIPT";
+        case ZIP: return "ZIP";
+        case OGG: return "OGG";
+        default:
+        case PSPFS_V1: 
+        case UNKNOWN: return {};
+    }
+}
+
 PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader) {
     if (!reader) return UNKNOWN;
     const unsigned int startPos = reader->pos();
 
     using TestFunc = bool(*)(PG::STREAM::In* reader);
     using PairType = std::pair<Type, TestFunc>;
-    constexpr static std::array<std::pair<Type, TestFunc>, 7> tests = {
+    constexpr static std::array<std::pair<Type, TestFunc>, 8> tests = {
         PairType{Type::PSPFS_V1, &PG_Disa::isPSPFS},
         PairType{Type::IMY, &PG_Disa::isIMY},
         PairType{Type::COLA, &PG_Disa::isIMYPackage},
@@ -83,6 +110,7 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
         PairType{Type::SCRIPT, &PG_Disa::isScript},
         PairType{Type::TX2, &PG_Disa::isTX2},
         PairType{Type::OLA, &PG_Disa::isOLA},
+        PairType{Type::SH, &PG_Disa::isSH},
     };
 
     for (const auto [type, testFunc] : tests) {

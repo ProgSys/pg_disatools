@@ -90,6 +90,12 @@ public:
     void setInfo(const PG_DisaFileInfo& info) { m_info = info; }
     void setInfo(PG_DisaFileInfo&& info) { m_info = std::move(info); }
 
+    /**
+    * @brief The entry's type, or UNKNOWN when the location names no entry
+    * @details Reads no file data, the type is whatever opening the container worked out.
+    */
+    static PG_DisaFileInfo::Type typeOf(const PG_ListModelLocation& location);
+
     const PG_Variety& getExtraData() const { return m_extraData; }
     void setExtraData(const PG_Variety& data)  { m_extraData = data; }
 
@@ -305,6 +311,12 @@ receivers:
     bool refresh() override;
 protected:
     void doneSaving() const { m_originalReader.reset(); }
+    /**
+    * @brief Emits isModifiedChanged on this container and every container above it
+    * @details A parent is modified as soon as one of its children is, so every
+    * level has to be told, not just the one that changed.
+    */
+    void notifyIsModifiedChanged();
     void fileEntryModefiedChanged(const PG_DisaFileEntry& entry) override;
     std::unordered_map<std::string, const PG_DisaFileEntry*> getEntiesWithContainer() const;
 

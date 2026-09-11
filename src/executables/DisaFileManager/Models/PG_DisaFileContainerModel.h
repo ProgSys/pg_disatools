@@ -21,7 +21,7 @@ class PG_DisaFileContainerModel : public PG_Object, public PG_UiStateBaseModel {
 
 	PG_PROPERTY(bool isModified GET isModified CHANGED isModifiedChanged) //is any file modfied
 	PG_PROPERTY(std::string searchText GET getSearchText SET setSearchText CHANGED searchStringChanged)
-	PG_PROPERTY(std::vector<std::string> fileTypes GET getFileTypes SET setFileTypes CHANGED fileTypesChanged)
+	PG_PROPERTY(std::vector<PG_DisaFileInfo::Type> fileTypes GET getFileTypes SET setFileTypes CHANGED fileTypesChanged)
 	PG_PROPERTY(bool hasSelection GET hasSelection CHANGED lastSelectedChanged)
 	PG_PROPERTY(bool hasSingleSelection GET hasSingleSelection CHANGED lastSelectedChanged)
 	PG_PROPERTY(int selectionSize GET getSelectionSize CHANGED lastSelectedChanged)
@@ -46,9 +46,9 @@ public:
 	const std::string& getSearchText() const;
 	void setSearchText(const std::string& str);
 
-	/// The file extensions the table is narrowed to, empty for all of them
-	const std::vector<std::string>& getFileTypes() const;
-	void setFileTypes(std::vector<std::string> types);
+	/// The file types the table is narrowed to, empty for all of them
+	const std::vector<PG_DisaFileInfo::Type>& getFileTypes() const;
+	void setFileTypes(std::vector<PG_DisaFileInfo::Type> types);
 
 	bool hasSelection() const;
 	bool hasSingleSelection() const;
@@ -99,6 +99,10 @@ receivers:
 	* we just decompress that file and leave it like that.
 	*/
 	void decompressAndReplaceLastSelected();
+	/**
+	* @brief Will delete all selected files
+	*/
+	void deleteSelected();
 private:
 	void setContainer(PG_DisaFileContainer* fileContainer);
 	void setOwningContainer(std::shared_ptr<PG_DisaFileContainer>&& container);

@@ -67,9 +67,8 @@ bool PG_DisaFileManagerMainModel::open(const PG_File& file) {
 	if (auto prop = asObject->getProperty("isModified")) {
 		connect(asObject, prop, this, &PG_DisaFileManagerMainModel::isModifiedChanged);
 	}
-	emit isModifiedChanged();
-
 	pushStack(newCenterModel);
+	emit isModifiedChanged(); //isModified() reads the stack, so the model must be on it
 	return true;
 }
 

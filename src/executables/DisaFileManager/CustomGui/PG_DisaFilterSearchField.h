@@ -29,6 +29,7 @@
 #pragma once
 
 #include <Scene/Gui/PG_GuiItem.h>
+#include <Disa/fileformats/PG_DisaFileInfo.h>
 #include <string>
 #include <vector>
 
@@ -49,7 +50,7 @@ class PG_DisaFilterSearchField : public PG_GuiItem {
 	PG_OBJECT(PG_DisaFilterSearchField);
 	PG_PARENT(PG_GuiItem);
 	PG_PROPERTY(std::string text GET getText SET setText CHANGED textChanged);
-	PG_PROPERTY(std::vector<std::string> fileTypes GET getFileTypes SET setFileTypes CHANGED fileTypesChanged);
+	PG_PROPERTY(std::vector<PG_DisaFileInfo::Type> fileTypes GET getFileTypes SET setFileTypes CHANGED fileTypesChanged);
 signals:
 	void textChanged();
 	void fileTypesChanged();
@@ -61,18 +62,18 @@ public:
 	const std::string& getText() const;
 	void setText(const std::string& text);
 
-	/// The extensions currently toggled on, upper case and without the dot
-	inline const std::vector<std::string>& getFileTypes() const { return m_fileTypes; }
-	void setFileTypes(std::vector<std::string> types);
+	/// The types currently toggled on, empty for no filter
+	inline const std::vector<PG_DisaFileInfo::Type>& getFileTypes() const { return m_fileTypes; }
+	void setFileTypes(std::vector<PG_DisaFileInfo::Type> types);
 
 private:
 	void buildPopup(PG_GuiPopupInstance* instance);
 	void updateFilterIcon();
 	/// Squares off the two bottom corners while the panel hangs underneath them
 	void updateCorners(bool open);
-	void setTypeSelected(const std::string& type, bool selected);
+	void setTypeSelected(PG_DisaFileInfo::Type type, bool selected);
 
-	std::vector<std::string> m_fileTypes;
+	std::vector<PG_DisaFileInfo::Type> m_fileTypes;
 	PG_DisaSearchField* m_searchField = nullptr;
 	PG_GuiButton* m_filterButton = nullptr;
 	PG_GuiRectangle* m_buttonBackground = nullptr;

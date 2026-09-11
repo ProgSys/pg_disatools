@@ -180,14 +180,6 @@ private:
 	PG_ListModelLocation m_location;
 };
 
-/// The file's type, or UNKNOWN when the location names no single file. Reads no file data.
-PG_DisaFileInfo::Type typeOf(const PG_ListModelLocation& location) {
-	if (!location) return PG_DisaFileInfo::UNKNOWN;
-	auto dat = location.getData(PG_Identity_Item);
-	auto entry = dat.cast<PG_DisaFileEntry>();
-	return entry ? entry->getInfo().getType() : PG_DisaFileInfo::UNKNOWN;
-}
-
 } // namespace
 
 static void addSeparator(PG_GuiItem* column) {
@@ -435,7 +427,7 @@ void PG_DisaFileInspector::updateAction() {
 	const PG_ListModelLocation location = selectionCountOf(m_model) == 1 ? lastSelectedOf(m_model) : PG_ListModelLocation();
 
 	//one case per type that has something to offer, and the only place this grows
-	switch (typeOf(location)) {
+	switch (PG_DisaFileEntry::typeOf(location)) {
 	case PG_DisaFileInfo::OGG: {
 		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_play.svg", "Play the audio");
 		button->fill(m_actionSlot);
@@ -498,10 +490,22 @@ void PG_DisaFileInspector::bindModel() {
 			});
 	}
 
-	if (auto prop = m_model->getProperty("hasSelection")) {
-		//nothing removes entries yet, the button only tracks whether there would be something to remove
-		connect(m_model, prop, m_deleteButton, m_deleteButton->getProperty("enabled"));
-		m_deleteButton->setEnabled(m_model->getPropertyValue(prop).toBool());
+	if (auto func = m_model->getFunction("void deleteSelected()")) {
+		if (auto prop = m_model->getProperty("hasSelection")) {
+			connect(m_model, prop, m_deleteButton, m_deleteButton->getProperty("enabled"));
+			m_deleteButton->setEnabled(m_model->getPropertyValue(prop).toBool());
+		}
+		connect(m_deleteButton, &PG_GuiButton::clicked, m_model, [this, model = m_model, func] {
+			const int count = selectionCountOf(model);
+			if (count <= 0) return;
+
+			const std::string what = count == 1 ? "\"" + columnText(0) + "\"" : std::to_string(count) + " files";
+			auto* popup = PG_PopUpDialog::createConfirm(this, count == 1 ? "Delete file?" : "Delete files?",
+				"Deleting " + what + ". Game often references files by index rather then name, "
+				"the file order matters. Continue?");
+			connect(popup, &PG_PopUpDialog::confirmClicked, model, [model, func] { func.callArgs(model); });
+			popup->open();
+			});
 	}
 
 	auto funcExport = m_model->getFunction("void exportSelected(const PG_Dir&)");
@@ -545,10 +549,10 @@ void PG_DisaFileInspector::updateSelection() {
 
 	updateAction();
 
-	//one file shows what its extension maps to, a pile of them has no one extension to show
+	//one file shows what its type maps to, a pile of them has no one type to show
 	if (m_fileIcon) {
-		if (count == 1) m_fileIcon->setSource(PG_DisaFileIcon::getFromName(columnText(0)));
-		else m_fileIcon->setSource(PG_DisaFileIcon::generic);
+		const auto type = count == 1 ? PG_DisaFileEntry::typeOf(lastSelectedOf(m_model)) : PG_DisaFileInfo::UNKNOWN;
+		m_fileIcon->setSource(std::string(PG_DisaFileIcon::get(type)));
 	}
 
 	if (m_iconArea) {

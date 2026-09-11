@@ -12,6 +12,7 @@
 #include <Disa/fileformats/PG_IMY.h>
 #include <Stream/PG_StreamOutByteFile.h>
 #include <Stream/PG_StreamInOutByteVector.h>
+#include <algorithm>
 
 
 bool PG_DisaFileContainerModel::isModified() const {
@@ -43,11 +44,11 @@ void PG_DisaFileContainerModel::setSearchText(const std::string& str) {
 	if(m_filterModel) m_filterModel->setSearchText(str);
 }
 
-const std::vector<std::string>& PG_DisaFileContainerModel::getFileTypes() const {
-	static const std::vector<std::string> empty;
+const std::vector<PG_DisaFileInfo::Type>& PG_DisaFileContainerModel::getFileTypes() const {
+	static const std::vector<PG_DisaFileInfo::Type> empty;
 	return m_filterModel ? m_filterModel->getFileTypes() : empty;
 }
-void PG_DisaFileContainerModel::setFileTypes(std::vector<std::string> types) {
+void PG_DisaFileContainerModel::setFileTypes(std::vector<PG_DisaFileInfo::Type> types) {
 	if (m_filterModel) m_filterModel->setFileTypes(std::move(types));
 }
 
@@ -379,7 +380,14 @@ void PG_DisaFileContainerModel::decompressAndReplaceLastSelected() {
 	auto container = std::make_shared<PG_DisaChangedDataContainer>(std::move(writer.getData()));
 	writer.close();
 	entry.setContainer(container);
+	entry.getInfo().setType(PG_DisaFileInfo::OLA);
 	m_fileContainer->setData(entry.getLocation(), entry, EIdentity::PG_Identity_Item);
 	PG_DisaFileManagerMainModel::get()->addChangedFile(std::move(container));
 }
 
+
+void PG_DisaFileContainerModel::deleteSelected() {
+	if (!m_fileContainer || !m_selectionModel || !m_selectionModel->hasSelection()) return;
+
+	m_selectionModel->removeSelection();
+}

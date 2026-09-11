@@ -59,8 +59,8 @@ namespace PG_Disa {
     bool isDSARC_FL(const PG_File& file);
     bool isDSARC_FL(PG::STREAM::In* reader);
 
-    //bool isSpriteSheet(const PG_File& file);
-    //bool isSpriteSheet(PG::STREAM::In* reader);
+    bool isSH(const PG_File& file);
+    bool isSH(PG::STREAM::In* reader);
 
     bool isPSPFS(const PG_File& file);
     bool isPSPFS(PG::STREAM::In* reader);

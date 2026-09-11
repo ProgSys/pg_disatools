@@ -271,6 +271,14 @@ void PG_DisaFileEntry::triggerFileChanged() {
 }
 
 
+PG_DisaFileInfo::Type PG_DisaFileEntry::typeOf(const PG_ListModelLocation& location) {
+	if (!location) return PG_DisaFileInfo::UNKNOWN;
+	const PG_Variety data = location.getData(PG_Identity_Item);
+	const PG_DisaFileEntry* entry = data.cast<PG_DisaFileEntry>();
+	return entry ? entry->getInfo().getType() : PG_DisaFileInfo::UNKNOWN;
+}
+
+
 PG_Variety PG_DisaFileEntry::getData(std::size_t column, Identity identity) const {
 	switch (identity)
 	{
@@ -278,7 +286,7 @@ PG_Variety PG_DisaFileEntry::getData(std::size_t column, Identity identity) cons
 		switch (column) {
 			default:
 			case 0: return getName();
-			case 1: return PG_DisaFileInfo::toString(m_info.getType());
+			case 1: return std::string(PG_DisaFileInfo::toString(m_info.getType()));
 			case 2: return std::to_string(m_info.getSize());
 			case 3: return std::to_string(getLocation());
 		}
@@ -314,9 +322,8 @@ bool PG_DisaFileEntry::setData(const PG_Variety& data, Identity identity) {
 
 void PG_DisaFileContainer::init() {
 	connect(this, &PG_DisaFileContainer::itemsRemoved, this, [this]() {
-		if (m_filesRemoved) return;
 		m_filesRemoved = true;
-		emit isModifiedChanged();
+		notifyIsModifiedChanged();
 		});
 }
 
@@ -390,13 +397,17 @@ bool PG_DisaFileContainer::open(const PG_File& file) {
 
 bool PG_DisaFileContainer::refresh(std::shared_ptr<PG::STREAM::In> reader) {
 	const auto lookUp = getEntiesWithContainer();
-	return open(reader, [&lookUp](PG_DisaFileEntry& entry) {
+	if (!open(reader, [&lookUp](PG_DisaFileEntry& entry) {
 		if (auto findIt = lookUp.find(entry.getName()); findIt != lookUp.end()) {
 			entry.setContainerRestore(findIt->second->getContainer());
 			entry.refresh(entry.createReader());
 		}
-		});
+		})) return FAILURE;
 
+	//the read data now holds the removals, so this container matches it again
+	m_filesRemoved = false;
+	notifyIsModifiedChanged();
+	return SUCCESS;
 }
 
 
@@ -445,8 +456,7 @@ bool PG_DisaFileContainer::refresh() {
 	}
 
 	m_originalReader.reset();
-	m_filesRemoved = false;
-	emit isModifiedChanged();
+	notifyIsModifiedChanged(); //the entries above refreshed after refresh(reader) reported the state
 
 	return SUCCESS;
 }
@@ -493,19 +503,20 @@ bool PG_DisaFileContainer::isModified() const {
 	return m_filesRemoved || std::ranges::any_of(*this, [](const PG_DisaFileEntry& entry) { return entry.isModified(); });
 }
 
-void PG_DisaFileContainer::fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {
-	emit itemsChanged(entry.getLocation(), entry.getLocation(), { PG_Identity_Item, PG_DisaFileEntry::Identity_Modified });
+void PG_DisaFileContainer::notifyIsModifiedChanged() {
 	emit isModifiedChanged();
 	auto parent = m_disaFileParent.lock();
 	while (parent) {
 		if (auto fileContainer = std::dynamic_pointer_cast<PG_DisaFileContainer>(parent)) {
 			emit fileContainer->isModifiedChanged();
 			parent = fileContainer->m_disaFileParent.lock();
-		}
-		else {
-			break;
-		}
+		} else break;
 	}
+}
+
+void PG_DisaFileContainer::fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {
+	emit itemsChanged(entry.getLocation(), entry.getLocation(), { PG_Identity_Item, PG_DisaFileEntry::Identity_Modified });
+	notifyIsModifiedChanged();
 }
 
 std::unordered_map<std::string, const PG_DisaFileEntry*> PG_DisaFileContainer::getEntiesWithContainer() const {

@@ -100,6 +100,13 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<v
 	contains.reserve(numberOfFiles);
 	unsigned int lastOffset = reader->readUnsignedInt();
 
+	//determin file type
+	auto lastLoc = reader->pos();
+	reader->seek(lastOffset);
+	const auto fileType = PG_DisaFileInfo::typeFromFileFormat(reader.get());
+	reader->seek(lastLoc);
+	const std::string_view fileExt = PG_DisaFileInfo::toFileExtension(fileType);
+
 	for (unsigned int i = 0; i < numberOfFiles; ++i) {
 		PG_DisaFileEntry entry = PG_DisaFileEntry(this);
 		PG_DisaFileInfo info;
@@ -117,7 +124,7 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<v
 
 		//try dertermin file type
 		const unsigned int currentPos = reader->pos();
-		info.setType(PG_DisaFileInfo::SH);
+		info.setType(fileType);
 
 		reader->seek(currentPos);
 		entry.setInfo(std::move(info));
@@ -141,7 +148,7 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<v
 			o << findIt->second;
 		}
 		else {
-			o << "FILE.SH";
+			o << "FILE." << fileExt;
 		}
 		entry.setExtraData(*it);
 		entry.getInfo().setName(o.str());

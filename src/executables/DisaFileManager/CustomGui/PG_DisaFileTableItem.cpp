@@ -57,7 +57,7 @@ void PG_DisaFileTableFileItem::init() {
 	PG_DisaFileTableItem::init();
 
 	m_icon = PG_new<PG_GuiImage>("fileIcon", glm::vec2(0.f), glm::vec2(g_fileIconSize), this);
-	m_icon->setSource(PG_DisaFileIcon::generic);
+	m_icon->setSource(std::string(PG_DisaFileIcon::generic));
 	anchor(m_icon, PG_Anchor::Left, this, PG_Anchor::Left);
 	anchor(m_icon, PG_Anchor::VerticalCenter, this, PG_Anchor::VerticalCenter);
 	m_icon->setMargin(PG_Anchor::Left, g_fileIconPadding);
@@ -81,7 +81,7 @@ void PG_DisaFileTableFileItem::updateIcon(const PG_ListModelLocation& location) 
 	getTextItem()->setMargin(PG_Anchor::Left,
 		isNameColumn ? g_fileIconPadding * 2.f + g_fileIconSize : g_fileIconPadding);
 
-	if (isNameColumn) m_icon->setSource(PG_DisaFileIcon::getFromName(location.getDataT<std::string>(PG_Identity_Text)));
+	if (isNameColumn) m_icon->setSource(std::string(PG_DisaFileIcon::get(PG_DisaFileEntry::typeOf(location))));
 }
 
 void PG_DisaFileTableHeaderItem::init() {

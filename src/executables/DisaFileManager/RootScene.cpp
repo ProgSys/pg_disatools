@@ -144,7 +144,10 @@ void RootScene::setupToolbar() {
 		saveButton->setTooltipText("Save file");
 		saveButton->setEnabled(false);
 		saveButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
-		connect(m_mainModel, m_mainModel->getProperty("isModified"), saveButton, saveButton->getProperty("enabled"));
+		if (auto prop = m_mainModel->getProperty("isModified")) {
+			connect(m_mainModel, prop, saveButton, saveButton->getProperty("enabled"));
+			saveButton->setEnabled(m_mainModel->getPropertyValue(prop).toBool());
+		}
 		connect(saveButton, &PG_GuiButton::clicked, m_mainModel, m_mainModel->getFunction("void save()"));
 	}
 
