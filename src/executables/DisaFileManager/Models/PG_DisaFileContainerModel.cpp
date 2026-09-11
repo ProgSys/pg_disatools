@@ -9,7 +9,9 @@
 #include <Disa/fileformats/PG_OLA.h>
 #include <Disa/fileformats/PG_SOLA.h>
 #include <Disa/fileformats/PG_PSPFS.h>
+#include <Disa/fileformats/PG_IMY.h>
 #include <Stream/PG_StreamOutByteFile.h>
+#include <Stream/PG_StreamInOutByteVector.h>
 
 
 bool PG_DisaFileContainerModel::isModified() const {
@@ -216,6 +218,8 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 	std::shared_ptr<PG_DisaFileContainer> containerSptr;
 	PG_DisaFileEntry fileEntry = m_filterModel->getData(index, PG_Identity_Item).get<PG_DisaFileEntry>();
 
+void PG_DisaFileContainerModel::openEntry(PG_DisaFileEntry& fileEntry) {
+	if (!fileEntry) return;
 	//check if filecontaner is allready present
 	std::shared_ptr<PG_DisaFileContainer> container = fileEntry.getContainer<PG_DisaFileContainer>();
 	if (!container) {
@@ -230,6 +234,21 @@ void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
 
 	containerModel->setOwningContainer(std::move(container));
 	PG_DisaFileManagerMainModel::get()->pushStack(containerModel);
+}
+
+void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
+	if (!index.isValid()) return;
+
+	PG_DisaFileEntry fileEntry = m_filterModel->getData(index, PG_Identity_Item).get<PG_DisaFileEntry>();
+	openEntry(fileEntry);
+}
+
+void PG_DisaFileContainerModel::openEntryLastSelected() {
+	if (!m_selectionModel->hasSelection()) return;
+	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::PG_Identity_Item);
+	if (!var) return;
+	PG_DisaFileEntry& entry = var.get<PG_DisaFileEntry>();
+	openEntry(entry);
 }
 
 static inline void copyFile(const PG_DisaFileEntry& entry, const PG_File& tagetFile, std::vector<char>& buffer) {
@@ -337,3 +356,36 @@ void PG_DisaFileContainerModel::importFiles(const std::vector<PG_File>& files) {
 		++insertAt;
 	}
 }
+
+void PG_DisaFileContainerModel::decompressAndReplaceLastSelected() {
+	if (!m_selectionModel->hasSelection()) return;
+
+	auto var = m_selectionModel->getData(*std::prev(m_selectionModel->getSelection().end()), EIdentity::PG_Identity_Item);
+	if (!var) return;
+	PG_DisaFileEntry& entry = var.get<PG_DisaFileEntry>();
+
+	if (entry.getInfo().getType() != PG_DisaFileInfo::COLA) {
+		OUT_ERROR("Only `Compressed offset list archive` (COLA) can be decompressed!");
+		return;
+	}
+
+	if (entry.isModified()) {
+		OUT_ERROR("File \""<< entry.getName() <<"\" already modified please save or reset!");
+		return;
+	}
+	PG::STREAM::InOutByteVector writer;
+	{
+		auto reader = entry.createReader();
+		if (!PG_Disa::decompressIMYPackage(reader.get(), &writer) || writer.size() == 0) {
+			OUT_ERROR("File \"" << entry.getName() << "\" failed to decompress!");
+			return;
+		}
+	}
+
+	auto container = std::make_shared<PG_DisaChangedDataContainer>(std::move(writer.getData()));
+	writer.close();
+	entry.setContainer(container);
+	m_fileContainer->setData(entry.getLocation(), entry, EIdentity::PG_Identity_Item);
+	PG_DisaFileManagerMainModel::get()->addChangedFile(std::move(container));
+}
+

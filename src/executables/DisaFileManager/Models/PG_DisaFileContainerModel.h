@@ -71,7 +71,9 @@ receivers:
 	/**
 	* @brief Will open given entry
 	*/
+	void openEntry(PG_DisaFileEntry& fileEntry);
 	void openEntry(const PG_Index& index);
+	void openEntryLastSelected();
 	/**
 	* @brief Will extract selected items into given target dir
 	*/
@@ -90,6 +92,13 @@ receivers:
 	* @details If there is no selection then the files are added at the very end
 	*/
 	void importFiles(const std::vector<PG_File>& files);
+	/**
+	* @brief Tries to decompress and replace (RAM) file
+	* @details Some files cannot be opened because they are compressed (like COLA/IMY)
+	* The disa game engine can on other hand support both times. So for modding purposes 
+	* we just decompress that file and leave it like that.
+	*/
+	void decompressAndReplaceLastSelected();
 private:
 	void setContainer(PG_DisaFileContainer* fileContainer);
 	void setOwningContainer(std::shared_ptr<PG_DisaFileContainer>&& container);

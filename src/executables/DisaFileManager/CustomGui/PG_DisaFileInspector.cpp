@@ -77,8 +77,7 @@ namespace {
 */
 class DisaPlayAudioAction : public PG_Object {
 public:
-	DisaPlayAudioAction(const std::string& name, const PG_ListModelLocation& location) :
-		PG_Object(name), m_location(location) {}
+	DisaPlayAudioAction(const std::string& name, const PG_ListModelLocation& location) : PG_Object(name), m_location(location) {}
 	~DisaPlayAudioAction() override { m_audio.stop(); }
 
 	void init() {
@@ -120,6 +119,65 @@ private:
 
 	PG_ListModelLocation m_location;
 	PG_Audio m_audio;
+};
+
+
+class DisaCOLAAction : public PG_Object {
+public:
+	DisaCOLAAction(const std::string& name, const PG_ListModelLocation& location) : PG_Object(name), m_location(location) {}
+
+	void init() {
+		auto* button = getParent<PG_GuiButton>();
+		if (!button) return;
+		button->setEnabled(true);
+		connect(button, &PG_GuiButton::clicked, this, &DisaCOLAAction::trigger);
+	}
+
+
+private:
+	void trigger() {
+		if (!m_location) return;
+		auto* button = getParent<PG_GuiButton>();
+		if (!m_location) return;
+		auto model = m_location.getModel()->getParent();
+		assert(model);
+		if (!model) return;
+		auto funcDecompress = model->getFunction("void decompressAndReplaceLastSelected()");
+		if (!funcDecompress) return;
+		button->setEnabled(false);
+		funcDecompress.callArgs(model);
+	}
+
+	PG_ListModelLocation m_location;
+};
+
+class DisaOpenFolderAction : public PG_Object {
+public:
+	DisaOpenFolderAction(const std::string& name, const PG_ListModelLocation& location) : PG_Object(name), m_location(location) {}
+
+	void init() {
+		auto* button = getParent<PG_GuiButton>();
+		if (!button) return;
+		button->setEnabled(true);
+		connect(button, &PG_GuiButton::clicked, this, &DisaOpenFolderAction::trigger);
+	}
+
+private:
+	void trigger() {
+		if (!m_location) return;
+		auto* button = getParent<PG_GuiButton>();
+		if (!m_location) return;
+		auto model = m_location.getModel()->getParent();
+		assert(model);
+		if (!model) return;
+		auto func = model->getFunction("void openEntryLastSelected()");
+		if (!func) return;
+		button->setEnabled(false);
+		//model->postCallEvent(func); //needed as it will self open will detroy inspector
+		model->postCallEvent([model, func] { func.callArgs(model); }); //needed as it will self open will detroy inspector
+	}
+
+	PG_ListModelLocation m_location;
 };
 
 /// The file's type, or UNKNOWN when the location names no single file. Reads no file data.
@@ -382,6 +440,20 @@ void PG_DisaFileInspector::updateAction() {
 		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_play.svg", "Play the audio");
 		button->fill(m_actionSlot);
 		PG_new<DisaPlayAudioAction>("playAudio", location, button);
+		return;
+	}
+	case PG_DisaFileInfo::COLA: {
+		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_folder.svg", "Decompress and replace");
+		button->fill(m_actionSlot);
+		PG_new<DisaCOLAAction>("decompress", location, button);
+		return;
+	}
+	case PG_DisaFileInfo::OLA: {
+	case PG_DisaFileInfo::SOLA: 
+	case PG_DisaFileInfo::MPP: 
+		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_folder.svg", "Open container");
+		button->fill(m_actionSlot);
+		PG_new<DisaOpenFolderAction>("openFolder", location, button);
 		return;
 	}
 	default: break;
