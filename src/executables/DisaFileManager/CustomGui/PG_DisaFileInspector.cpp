@@ -442,6 +442,7 @@ void PG_DisaFileInspector::updateAction() {
 	}
 	case PG_DisaFileInfo::OLA: {
 	case PG_DisaFileInfo::SOLA: 
+	case PG_DisaFileInfo::SCRIPT: 
 	case PG_DisaFileInfo::MPP: 
 		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_folder.svg", "Open container");
 		button->fill(m_actionSlot);

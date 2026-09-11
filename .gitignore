@@ -11,6 +11,7 @@
 CMakeSettings.json
 CMakeUserPresets.json
 .vs
+reverse
 src/out
 src/CMakeFiles/
 build_src/
