@@ -1,0 +1,121 @@
+/*
+ * GNU Lesser General Public License (LGPL-3.0)
+ *
+ * Copyright (c) 2026 ProgSys
+ *
+ * This code is part of a free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, version 3 of the License.
+ * This code is distributed in the hope that it will be useful, without any
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see http://www.gnu.org/licenses/
+ * or https://www.gnu.org/licenses/lgpl-3.0.md
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#include "RootScene.h"
+
+#include <Base/Events/PG_KeyEvent.h>
+#include <Renderer/PG_SceneRenderer.h>
+#include <Resources/PG_Shader.h>
+#include <Scene/Gui/PG_GuiItem.h>
+#include <Scene/Gui/PG_GuiMain.h>
+#include <Scene/Gui/PG_GuiRectangle.h>
+#include <Scene/Gui/PG_GuiRenderItem.h>
+#include <Scene/Gui/PG_GuiRow.h>
+#include <Scene/Gui/PG_GuiTooltip.h>
+#include <Scene/PG_CameraNode.h>
+#include <Scene/PG_DisaCamera.h>
+
+#include <Disa/PG_DisaMapScene.h>
+#include <Models/PG_DisaScriptTestModel.h>
+
+void RootScene::init() {
+	PG_Scene::init();
+
+	const std::string defaultMap = "MP00701";
+
+	m_model = PG_new<PG_DisaScriptTestModel>("PG_DisaScriptTestModel", this);
+
+	auto guiMain = PG_new<PG_GuiMain>("guiMain", getRoot());
+	m_rootItem = PG_new<PG_GuiItem>("rootItem", glm::vec2(0.f), glm::vec2(300.f, 400.f), guiMain);
+	{
+		auto cam = PG_new<PG_CameraNode>("N_CameraNode", PG_CameraNode::Type_Orthographic, getRoot());
+		cam->setTranslation(glm::vec3(-5.0f, 0.0f, 0.0f));
+		cam->setZoom(120.0f);
+		setActiveCamera(cam);
+	}
+
+	setupToolbar();
+	guiMain->setTooltipItem(PG_new<PG_GuiTooltip>("Tooltip", m_rootItem));
+	setupMapView();
+
+	m_model->openGameFiles();
+	m_model->openMap(defaultMap);
+}
+
+bool RootScene::event(PG_Event* e) {
+	switch (e->getType())
+	{
+		case PG_Event_Key: {
+			auto key = static_cast<PG_KeyEvent*>(e);
+			if (key->getKey() == PG_Key_F5 && !key->isRepeat() && key->isUp()) {
+				PG_Shader::reloadAll();
+				key->accept();
+				return true;
+			}
+		}break;
+	}
+
+	return PG_Scene::event(e);
+}
+
+void RootScene::setupToolbar() {
+	constexpr glm::vec3 backgroundColor = glm::vec3(40.f / 255.f);
+
+	m_toolbar = PG_new<PG_GuiRectangle>("toolbar", glm::vec2(0.f), glm::vec2(10.f, 50.f), m_rootItem);
+	m_toolbar->setColor(backgroundColor);
+	PG_GuiItem::anchor(m_toolbar, PG_Anchor::Top, m_rootItem, PG_Anchor::Top);
+	PG_GuiItem::anchor(m_toolbar, PG_Anchor::Left, m_rootItem, PG_Anchor::Left);
+	PG_GuiItem::anchor(m_toolbar, PG_Anchor::Right, m_rootItem, PG_Anchor::Right);
+
+	m_toolbarRow = PG_new<PG_GuiRow>("ToolbarRow", glm::vec2(0.f, 10.f), glm::vec2(39.f, 30.f), m_toolbar);
+	m_toolbarRow->setSpacing(3.f);
+	m_toolbarRow->setMargin(PG_Anchor::Left, 10.f);
+	m_toolbarRow->setMargin(PG_Anchor::Right, 10.f);
+	m_toolbarRow->fill(m_toolbar);
+}
+
+void RootScene::setupMapView() {
+	auto item = PG_new<PG_GuiRenderItem>("MapRenderItem", m_rootItem);
+	auto sceneRenderer = PG_new<PG_SceneRenderer>("GameSceneRenderer", true, 2, item);
+	auto gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
+
+	/* The map model outlives every map it shows, so the scene is bound once here. Opening another
+	 * map refills the same model. */
+	gameScene->setMapModel(m_model->getMapModel());
+	auto disaCam = PG_new<PG_DisaCamera>("PG_DisaCamera", PG_CameraNode::Type_Perspective, gameScene->getRoot());
+	gameScene->setActiveCamera(disaCam);
+
+	m_model->setScene(gameScene);
+
+
+
+	PG_GuiItem::anchor(item, PG_Anchor::Top, m_toolbar, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(item, PG_Anchor::Left, m_rootItem, PG_Anchor::Left);
+	PG_GuiItem::anchor(item, PG_Anchor::Right, m_rootItem, PG_Anchor::Right);
+	PG_GuiItem::anchor(item, PG_Anchor::Bottom, m_rootItem, PG_Anchor::Bottom);
+}

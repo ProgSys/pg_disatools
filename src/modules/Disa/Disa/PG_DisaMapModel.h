@@ -391,6 +391,15 @@ public:
 	using PG_Object::PG_Object;
 	void init();
 	void clear();
+	/**
+	* @brief Opens a map, its geometry out of the mpd and its textures out of the mpp files
+	* @param mppSD May be invalid, the map then renders on the fallback tile material
+	* @param mppHD May be invalid, HD mode then has nothing to show
+	* @details The geometry is read on a worker, mapChanged() tells when it arrived. The entries read
+	* through their parent container, so that container has to outlive the map.
+	* @returns false when the mpd gives no reader
+	*/
+	bool open(PG_DisaFileEntry mpd, PG_DisaFileEntry mppSD, PG_DisaFileEntry mppHD);
 	void openMap(std::shared_ptr<PG::STREAM::In> reader);
 	void openAsset(PG_DisaFileEntry mpp, int topIndex = 1, int sideIndex = 2, int decalIndex = 0);
 	void openMapAssets(PG_DisaFileEntry mppSDInfo, PG_DisaFileEntry mppHDInfo);

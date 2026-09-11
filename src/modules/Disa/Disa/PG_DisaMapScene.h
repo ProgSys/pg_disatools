@@ -92,7 +92,16 @@ public:
 	PG_DisaMapViewNode* getMapNode() const { return m_mapNode; }
 	PG_DisaMapModel* getMapModel() const;
 
+	/**
+	* @brief Shows the map inside the container and keeps the container alive
+	* @details Also takes the camera start the container names, if it names one.
+	*/
 	void setModel(const std::shared_ptr<PG_DisaMPDContainer>& container);
+	/**
+	* @brief Shows the given map, which somebody else owns
+	* @details The camera stays where it is, a map on its own names no start point.
+	*/
+	void setMapModel(PG_DisaMapModel* model);
 
 private:
 	void orbitCamera(float value);

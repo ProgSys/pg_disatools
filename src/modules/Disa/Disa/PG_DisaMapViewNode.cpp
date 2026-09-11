@@ -45,20 +45,27 @@ void PG_DisaMapViewNode::init() {
 }
 
 void PG_DisaMapViewNode::setModel(const std::shared_ptr<PG_DisaMPDContainer>& container) {
-	if (m_mpdContainer == container) return;
-
-	if (m_mpdContainer) {
-		disconnect(m_mpdContainer->getModel()->getTiles(), nullptr, this, nullptr);
-		disconnect(m_mpdContainer->getModel(), nullptr, this, nullptr);
-	}
 	m_mpdContainer = container;
+	setMapModel(container ? container->getModel() : nullptr);
+}
 
-	if (m_mpdContainer) {
-		auto* model = m_mpdContainer->getModel();
+void PG_DisaMapViewNode::setMapModel(PG_DisaMapModel* model) {
+	if (m_mapModel.get() == model) return;
+	if (m_mpdContainer && m_mpdContainer->getModel() != model) m_mpdContainer.reset();
+
+	if (auto* old = m_mapModel.get()) {
+		disconnect(old->getTiles(), nullptr, this, nullptr);
+		disconnect(old, nullptr, this, nullptr);
+	}
+	m_mapModel = model;
+
+	if (model) {
 		connect(model->getTiles(), &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex, const PG_IdentitySet& identities) {
 			auto* selectionHandler = findFirstChild<PG_DisaMapSelectionHandlerNode>();
 			if (!selectionHandler) return;
-			auto* tiles = m_mpdContainer->getModel()->getTiles();
+			auto* mapModel = getMapModel();
+			if (!mapModel) return;
+			auto* tiles = mapModel->getTiles();
 			if (tiles->empty()) return;
 			endIndex = std::min(endIndex, (unsigned int)tiles->getItems().size() - 1);
 			for (int i = startIndex; i <= endIndex; ++i) {
@@ -66,13 +73,8 @@ void PG_DisaMapViewNode::setModel(const std::shared_ptr<PG_DisaMPDContainer>& co
 			}
 		});
 	}
-	
-	reload();
-}
 
-PG_DisaMapModel* PG_DisaMapViewNode::getMapModel() const {
-	if (m_mpdContainer) return m_mpdContainer->getModel();
-	return nullptr;
+	reload();
 }
 
 void PG_DisaMapViewNode::setMode(EMode mode) {

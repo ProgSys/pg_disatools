@@ -967,6 +967,18 @@ void PG_DisaMapModel::openMap(std::shared_ptr<PG::STREAM::In> reader) {
 	m_jobHandle = PG_Worker::get()->addJob(new PG_JobOpenMPD(reader, PG_Lifeline(this)));
 }
 
+bool PG_DisaMapModel::open(PG_DisaFileEntry mpd, PG_DisaFileEntry mppSD, PG_DisaFileEntry mppHD) {
+	auto reader = mpd.createReader();
+	if (!reader) {
+		OUT_ERROR("Failed to read \"" << mpd.getName() << "\" as a map!");
+		return FAILURE;
+	}
+
+	openMap(reader);
+	openMapAssets(mppSD, mppHD);
+	return SUCCESS;
+}
+
 struct PG_JobOpenGEO : public PG_Job {
 	PG_JobOpenGEO(const std::shared_ptr<PG::STREAM::In>& _geoStream, const PG_Lifeline& _owner) :
 		geoStream(_geoStream),  owner(_owner)

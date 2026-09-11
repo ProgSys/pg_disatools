@@ -2,11 +2,10 @@
 
 #include <Scene/PG_ActorNode.h>
 #include <Resources/PG_Material.h>
+#include <Disa/PG_DisaMapModel.h>
 
 
-class PG_DisaMapModel;
 class PG_FootlooseViewNode;
-class PG_DisaMPDContainer;
 class PG_DisaTeleporterViewNode;
 
 /**
@@ -38,8 +37,17 @@ public:
 	void init() override;
 
 	const std::shared_ptr<PG_DisaMPDContainer>& getModel() const { return m_mpdContainer; }
+	/**
+	* @brief Shows the map inside the container and keeps the container alive
+	*/
 	void setModel(const std::shared_ptr<PG_DisaMPDContainer>& model);
-	PG_DisaMapModel* getMapModel() const;
+
+	PG_DisaMapModel* getMapModel() const { return m_mapModel.get(); }
+	/**
+	* @brief Shows the given map, which somebody else owns
+	* @details The model may keep file containers alive, so whoever owns it has to outlive the view.
+	*/
+	void setMapModel(PG_DisaMapModel* model);
 
 	EMode getMode() const { return m_mode; }
 	void setMode(EMode mode);
@@ -70,7 +78,8 @@ private:
 	void createGeoPanels();
 	void contentChanged();
 
-	std::shared_ptr<PG_DisaMPDContainer> m_mpdContainer;
+	std::shared_ptr<PG_DisaMPDContainer> m_mpdContainer; //only set when the map came out of a container
+	PG_Lifeline_T<PG_DisaMapModel> m_mapModel;
 	EMode m_mode = Mode_View;
 	bool m_HDMode = false; //if true then HD textures are used
 	bool m_isActorsVisible = true; //if true then actors (monsters) be visible

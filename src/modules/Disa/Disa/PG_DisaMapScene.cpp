@@ -129,8 +129,11 @@ void PG_DisaMapScene::copy(PG_DisaMapScene* scene) {
 	assert(scene);
 	if (getActiveCamera() && scene->getActiveCamera())
 		getActiveCamera()->setTransformation(scene->getActiveCamera()->getTransformation());
-	if (auto model = scene->m_mapNode->getModel()) {
-		m_mapNode->setModel(model);
+	if (auto container = scene->m_mapNode->getModel()) {
+		m_mapNode->setModel(container);
+	}
+	else {
+		m_mapNode->setMapModel(scene->m_mapNode->getMapModel());
 	}
 }
 
@@ -320,4 +323,8 @@ void PG_DisaMapScene::setModel(const std::shared_ptr<PG_DisaMPDContainer>& conta
 	if (const auto& start = container->getCameraStartTransformation(); start && getActiveCamera()) {
 		getActiveCamera()->setTransformation(*start);
 	}
+}
+
+void PG_DisaMapScene::setMapModel(PG_DisaMapModel* model) {
+	m_mapNode->setMapModel(model);
 }
