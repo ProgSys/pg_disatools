@@ -15,8 +15,12 @@
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <Disa/fileformats/PG_PSPFS.h>
+#include <Disa/resources/PG_DisaSprite.h>
+#include <Disa/customGui/PG_PupUpDialog.h>
 #include <Disa/utils/PG_SaveTexture.h>
 #include <Resources/PG_Audio.h>
+#include <Util/PG_Dir.h>
+#include <Util/PG_ImageLoad.h>
 #include <Util/Color/ColorConverters.h>
 #include <Util/Color/ColorDefined.h>
 #include <Util/Volume/PG_AABB.h>
@@ -148,6 +152,15 @@ public:
 			PG_GuiSprite* guiSprite = getParent<PG_GuiSprite>();
 			PG_Sprite& loaded = guiSprite->getSprite();
 			if (!loaded.isLoaded()) return; //a load that was cancelled ends here too
+
+			/* An item or weapon sheet carries cutouts for another sprite to pull in and nothing to play,
+			 * so the sheet itself is what there is to look at. */
+			if (loaded.getAnimationSize() <= 0) {
+				openSheets(guiSprite);
+				return;
+			}
+			clearSheet(guiSprite); //what a sheet preview before this one left would cover what plays here
+
 			m_measurements = measureSprite(loaded);
 			
 			auto targetIndex = loaded.getAnimationIndex("1001"); //idle standing
@@ -160,25 +173,94 @@ public:
 		});
 	}
 
-
-	void openAnimationBox(PG_GuiSprite* spriteItem) {
-		PG_Sprite& sprite = spriteItem->getSprite();
-		//a sprite item is reused across previews, the box of the sheet before this one is over
-		auto* spinBox = spriteItem->findFirstChild<PG_GuiSpinBox>();
-		const auto size = sprite.getAnimationSize();
-		if (!sprite.isValid() || size <= 0) {
-			if (spinBox) delete spinBox;
+	/**
+	* @brief Shows the sprite sheets themselves, for a sprite that holds cutouts and no animation.
+	* @details Only the sheet on screen is resolved to colour. Most of these files hold a single sheet and
+	* nobody steps through them, so composing all of them to show the first would be spent on nothing.
+	*/
+	void openSheets(PG_GuiSprite* spriteItem) {
+		const int sheetCount = PG_DisaSpriteSheets::getSize(spriteItem->getSprite());
+		if (sheetCount <= 0) {
+			OUT_WARNING("The sprite \"" << spriteItem->getSprite().getName() << "\" has nothing to show!");
+			clearSpinBox(spriteItem); //the box of the preview before this one has nothing left to step
 			return;
 		}
 
-		if (!spinBox) {
-			constexpr glm::vec2 animationBoxSize(126.f, 26.f);
-			spinBox = PG_GuiSpinBox::createInt("animationBox", glm::vec2(0.f), animationBoxSize, spriteItem);
-			PG_GuiItem::anchor(spinBox, PG_Anchor::HorizontalCenter, spriteItem, PG_Anchor::HorizontalCenter);
-			PG_GuiItem::anchor(spinBox, PG_Anchor::Bottom, spriteItem, PG_Anchor::Bottom);
-			spinBox->setMargin(PG_Anchor::Bottom, 6.f);
+		auto* image = spriteItem->findFirstChild<PG_GuiImage>("sheetImage");
+		if (!image) {
+			image = PG_new<PG_GuiImage>("sheetImage", spriteItem);
+			image->fill(spriteItem);
+			image->setFitType(PG_GuiImage::MaintainAspectFit);
 		}
 
+		showSheet(spriteItem, 0);
+		openSheetBox(spriteItem, sheetCount);
+	}
+
+	/// Resolves one sheet to colour and hands it over, the sheet before it goes with the texture it replaces
+	void showSheet(PG_GuiSprite* spriteItem, int sheetIndex) {
+		auto* image = spriteItem->findFirstChild<PG_GuiImage>("sheetImage");
+		if (!image) return;
+
+		PG_RGBAImage sheet = PG_DisaSpriteSheets::buildImage(spriteItem->getSprite(), sheetIndex);
+		if (sheet.empty()) return;
+		m_sheetTexture.load(PG_UNIQUE_RES("DisaSheetPreview"), sheet, { false, PG_Texture::Nearest, PG_Texture::Clamp });
+		image->setSourceData(m_sheetTexture);
+	}
+
+	void clearSheet(PG_GuiSprite* spriteItem) {
+		if (auto* image = spriteItem->findFirstChild<PG_GuiImage>("sheetImage")) delete image;
+		m_sheetTexture = PG_Texture();
+	}
+
+	void openSheetBox(PG_GuiSprite* spriteItem, int sheetCount) {
+		if (sheetCount <= 1) { //a single sheet is not something to step through
+			clearSpinBox(spriteItem);
+			return;
+		}
+
+		PG_GuiSpinBox* spinBox = createSpinBox(spriteItem);
+		spinBox->setValidator([sheetCount](double v) -> double {
+			return glm::clamp((int)v, 0, sheetCount - 1);
+		});
+		spinBox->setValueToText([](double value) { return "Sheet " + std::to_string((int)value); });
+		//the shown text is not a number, so typing over it with one is what moves the box
+		spinBox->setTextToValue([](const std::string& text) -> double { return std::stod(text); });
+		connect(spinBox, &PG_GuiSpinBox::valueModefied, this, [this](double value) {
+			if (PG_GuiSprite* guiSprite = getParent<PG_GuiSprite>()) showSheet(guiSprite, (int)value);
+		});
+		spinBox->setValue(0);
+	}
+
+	void clearSpinBox(PG_GuiSprite* spriteItem) {
+		if (auto* spinBox = spriteItem->findFirstChild<PG_GuiSpinBox>()) delete spinBox;
+	}
+
+	/**
+	* @brief The spin box under the preview, replacing the one the preview before this one left.
+	* @details A fresh box rather than a reused one, so that no lambda and no connection of the previous
+	* preview can still be on it.
+	*/
+	PG_GuiSpinBox* createSpinBox(PG_GuiSprite* spriteItem) {
+		clearSpinBox(spriteItem);
+
+		constexpr glm::vec2 spinBoxSize(126.f, 26.f);
+		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, spriteItem);
+		PG_GuiItem::anchor(spinBox, PG_Anchor::HorizontalCenter, spriteItem, PG_Anchor::HorizontalCenter);
+		PG_GuiItem::anchor(spinBox, PG_Anchor::Bottom, spriteItem, PG_Anchor::Bottom);
+		spinBox->setMargin(PG_Anchor::Bottom, 6.f);
+		return spinBox;
+	}
+
+	void openAnimationBox(PG_GuiSprite* spriteItem) {
+		PG_Sprite& sprite = spriteItem->getSprite();
+		const auto size = sprite.getAnimationSize();
+		if (!sprite.isValid() || size <= 0) {
+			clearSpinBox(spriteItem);
+			return;
+		}
+
+		PG_GuiSpinBox* spinBox = createSpinBox(spriteItem);
 		spinBox->setValidator([size](double v) -> double {
 			return  glm::clamp((int)v, 0, size - 1);
 		});
@@ -266,6 +348,7 @@ public:
 
 
 	std::unordered_map<std::string, PG_AABB2D> m_measurements;
+	PG_Texture m_sheetTexture; /// The one sheet a cutout only sprite currently shows
 };
 
 
@@ -312,7 +395,9 @@ void PG_DisaPreviewItem::init() {
 	area->fill(this);
 	connect(area, &PG_GuiMouseArea::rightClicked, this, [this] {
 		auto popup = PG_new<PG_GuiMenuPopup>("previewPopup", this);
-		popup->addOption("Export Image", getPreviewTexture() != nullptr, this, &PG_DisaPreviewItem::exportImage);
+		//only the export the open preview can actually do is offered, the two never apply at once
+		if (getPreviewTexture()) popup->addOption("Export Image", this, &PG_DisaPreviewItem::exportImage);
+		else if (getPreviewSprite()) popup->addOption("Export Sprite Sheets", this, &PG_DisaPreviewItem::exportSpriteSheets);
 		popup->addOption(m_previewEnabled ? "Disable Preview" : "Enable Preview", true, this, [this] { setPreviewEnabled(!m_previewEnabled); });
 		popup->openAndDestroyOnClose();
 		});
@@ -331,6 +416,36 @@ void PG_DisaPreviewItem::exportImage() {
 	}
 
 	PG_FileDialog::save(*texture, m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
+}
+
+const PG_Sprite* PG_DisaPreviewItem::getPreviewSprite() const {
+	PG_GuiSprite* spriteItem = m_container ? m_container->findFirstChild<PG_GuiSprite>() : nullptr;
+	if (!spriteItem || !spriteItem->getSprite().isLoaded()) return nullptr;
+	return &spriteItem->getSprite();
+}
+
+void PG_DisaPreviewItem::exportSpriteSheets() {
+	const PG_Sprite* sprite = getPreviewSprite();
+	if (!sprite) {
+		OUT_ERROR("There is no sprite to export!");
+		return;
+	}
+
+	const PG_Dir folder = PG_PopUpDialog::selectDir();
+	if (folder.isEmpty()) return; //the user said no
+
+	const std::vector<PG_RGBAImage> sheets = PG_DisaSpriteSheets::buildImages(*sprite);
+	if (sheets.empty()) {
+		OUT_ERROR("This sprite has no sprite sheet to export!");
+		return;
+	}
+
+	const std::string baseName = PG_File(m_location.getDataT<std::string>(EIdentity::PG_Identity_Text)).getName();
+	for (std::size_t i = 0; i < sheets.size(); ++i) {
+		if (sheets[i].empty()) continue; //a sheet that could not be read back has already said so
+		const PG_File target(folder.toFilePath(baseName + "_" + std::to_string(i) + ".png"));
+		if (!PG_ImageLoad::save(target, sheets[i])) OUT_ERROR("Failed to save: " << target << "!");
+	}
 }
 
 bool PG_DisaPreviewItem::isNameVisible() const {

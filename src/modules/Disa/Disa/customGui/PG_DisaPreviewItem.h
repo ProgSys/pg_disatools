@@ -57,11 +57,19 @@ public:
 	*/
 	void exportImage();
 	/**
+	* @brief Asks the user for a target folder and writes every sheet of the open sprite into it as a png
+	*/
+	void exportSpriteSheets();
+	/**
 	* @returns The picture the open preview is made of, null when it is not made of one
 	* @details A map preview is a rendered scene and an audio preview has its image before it has
 	* anything in it, so neither has a texture to hand over.
 	*/
 	const PG_Texture* getPreviewTexture() const;
+	/**
+	* @returns The sprite the open preview plays, null when the preview is not a sprite or still loading
+	*/
+	const PG_Sprite* getPreviewSprite() const;
 
 private:
 	/**

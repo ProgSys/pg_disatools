@@ -189,3 +189,104 @@ void PG_DisaSprite::load(const std::string& name, std::shared_ptr<PG::STREAM::In
 	PG_Sprite::load(name, loadFunc);
 }
 
+namespace {
+
+/// Resolves one sheet index the way the fragment shader of M_DisaSprite does, but without reading off the end
+glm::rgba colourAt(const PG_RGBAImage& table, int block, unsigned char id) {
+	const unsigned int at = (unsigned int)block * 16 + id;
+	return at < table.size() ? table.get(at, 0) : glm::rgba(0);
+}
+
+/// The bridge behind the sprite, null when it holds something else or has not loaded yet
+const PG_DisaSpriteBridge* getBridge(const PG_Sprite& sprite) {
+	if (!sprite.isLoaded()) return nullptr; //getData has nothing to hand out before then
+	auto* held = std::get_if<PG_SpriteBridge*>(&sprite.getData());
+	return held ? dynamic_cast<const PG_DisaSpriteBridge*>(*held) : nullptr;
+}
+
+/**
+* @brief Reads a texture back out of graphics memory.
+* @details Blocks until the render thread has downloaded it, so never on the render thread and never per
+* frame. The format is asked for rather than guessed, a sheet of indices must not come back as colours.
+*/
+template<typename T>
+T download(const PG_Texture& texture) {
+	PG_Texture::ExportSettings settings;
+	settings.forceFormat = typeid(typename T::Type);
+
+	PG_Texture::ImageFormats image = texture.exportImage(settings).get();
+	T* downloaded = std::get_if<T>(&image);
+	return downloaded ? std::move(*downloaded) : T();
+}
+
+/// The colour table a sprite resolves through, empty when it has none or it could not be read back
+PG_RGBAImage downloadColorTable(const PG_DisaSpriteBridge& bridge, int activeColorTable) {
+	if (bridge.colorTables.empty()) return {};
+	return download<PG_RGBAImage>(bridge.colorTables[glm::clamp(activeColorTable, 0, (int)bridge.colorTables.size() - 1)]);
+}
+
+/// One sheet resolved against an already downloaded colour table
+PG_RGBAImage composeSheet(const PG_DisaSpriteBridge& bridge, int sheetIndex, const PG_RGBAImage& table) {
+	const PG_UCharImage ids = download<PG_UCharImage>(bridge.textures[sheetIndex]);
+	if (ids.empty()) {
+		OUT_ERROR("Failed to read sprite sheet " << sheetIndex << " back!");
+		return {};
+	}
+
+	//block 0 is what a pixel outside every cutout gets, and what a cutout on block 0 wants anyway
+	PG_RGBAImage out(ids.getWidth(), ids.getHeight());
+	for (unsigned int y = 0; y < ids.getHeight(); ++y)
+		for (unsigned int x = 0; x < ids.getWidth(); ++x)
+			out.get(x, y) = colourAt(table, 0, ids.get(x, y));
+
+	//where two cutouts overlap the later one wins, the format has no way to say what should happen there
+	for (const shfileCutout& cutout : bridge.cutouts) {
+		if (cutout.external_sheet > 0 || (int)cutout.sheet != sheetIndex || cutout.colortable == 0) continue;
+
+		const unsigned int endX = std::min<unsigned int>(cutout.x + cutout.width, ids.getWidth());
+		const unsigned int endY = std::min<unsigned int>(cutout.y + cutout.height, ids.getHeight());
+		for (unsigned int y = cutout.y; y < endY; ++y)
+			for (unsigned int x = cutout.x; x < endX; ++x)
+				out.get(x, y) = colourAt(table, cutout.colortable, ids.get(x, y));
+	}
+
+	return out;
+}
+
+}
+
+int PG_DisaSpriteSheets::getSize(const PG_Sprite& sprite) {
+	const PG_DisaSpriteBridge* bridge = getBridge(sprite);
+	return bridge ? (int)bridge->textures.size() : 0;
+}
+
+PG_RGBAImage PG_DisaSpriteSheets::buildImage(const PG_Sprite& sprite, int sheetIndex, int activeColorTable) {
+	const PG_DisaSpriteBridge* bridge = getBridge(sprite);
+	if (!bridge || sheetIndex < 0 || sheetIndex >= (int)bridge->textures.size()) return {};
+
+	const PG_RGBAImage table = downloadColorTable(*bridge, activeColorTable);
+	if (table.empty()) {
+		OUT_ERROR("Failed to read the colortable of \"" << sprite.getName() << "\"!");
+		return {};
+	}
+
+	return composeSheet(*bridge, sheetIndex, table);
+}
+
+std::vector<PG_RGBAImage> PG_DisaSpriteSheets::buildImages(const PG_Sprite& sprite, int activeColorTable) {
+	const PG_DisaSpriteBridge* bridge = getBridge(sprite);
+	if (!bridge) return {};
+
+	//read back once and resolve every sheet through it, rather than once per sheet
+	const PG_RGBAImage table = downloadColorTable(*bridge, activeColorTable);
+	if (table.empty()) {
+		OUT_ERROR("Failed to read the colortable of \"" << sprite.getName() << "\"!");
+		return {};
+	}
+
+	std::vector<PG_RGBAImage> out;
+	out.reserve(bridge->textures.size());
+	for (int i = 0; i < (int)bridge->textures.size(); ++i) out.push_back(composeSheet(*bridge, i, table));
+	return out;
+}
+
