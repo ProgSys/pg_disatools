@@ -8,6 +8,8 @@
 #include <Scene/Gui/PG_GuiLines.h>
 #include <Scene/Gui/PG_GuiMenuPopup.h>
 #include <Scene/Gui/PG_GuiImage.h>
+#include <Scene/Gui/PG_GuiSpinBox.h>
+#include <Scene/Gui/PG_GuiSprite.h>
 #include <Renderer/PG_SceneRenderer.h>
 #include <Disa/PG_DisaMapScene.h>
 #include <Disa/PG_DisaMapViewNode.h>
@@ -17,10 +19,16 @@
 #include <Resources/PG_Audio.h>
 #include <Util/Color/ColorConverters.h>
 #include <Util/Color/ColorDefined.h>
+#include <Util/Volume/PG_AABB.h>
+#include <optional>
+#include <unordered_map>
 
 namespace {
 
 constexpr glm::uvec2 g_waveformSize(256);
+
+/// Frames looked at per animation while measuring, walking every frame of every animation is not worth it
+constexpr int g_spriteBoundsSamples = 8;
 
 class DisaAudioTracking : public PG_GuiMouseArea {
 public:
@@ -119,6 +127,149 @@ private:
 	PG_Audio m_audio;
 	PG_Texture m_texture;
 };
+
+
+class DisaSpritePreview : public PG_Object {
+public:
+	using PG_Object::PG_Object;
+
+	void open(const PG_Sprite& sprite) {
+		PG_GuiSprite* guiSprite = getParent<PG_GuiSprite>();
+
+		//the load of whatever was here before is no longer wanted, and cannot be reached once it is replaced
+		guiSprite->getSprite().disconnect(this);
+		guiSprite->setSprite(sprite);
+
+		PG_Sprite& target = guiSprite->getSprite();
+		//the speed the map view plays its actors at, so a sprite moves the same in both places
+		target.setAnimationSpeed(PG_Sprite::defaultTimeStep / 2.f);
+
+		target.connect(this, [this] {
+			PG_GuiSprite* guiSprite = getParent<PG_GuiSprite>();
+			PG_Sprite& loaded = guiSprite->getSprite();
+			if (!loaded.isLoaded()) return; //a load that was cancelled ends here too
+			m_measurements = measureSprite(loaded);
+			
+			auto targetIndex = loaded.getAnimationIndex("1001"); //idle standing
+			if (targetIndex < 0) targetIndex = loaded.getAnimationIndex("1");
+			if (targetIndex < 0) targetIndex = 0;
+			loaded.setAnimationIndex(targetIndex);
+
+			fitSpriteIntoItem(guiSprite);
+			openAnimationBox(guiSprite);
+		});
+	}
+
+
+	void openAnimationBox(PG_GuiSprite* spriteItem) {
+		PG_Sprite& sprite = spriteItem->getSprite();
+		//a sprite item is reused across previews, the box of the sheet before this one is over
+		auto* spinBox = spriteItem->findFirstChild<PG_GuiSpinBox>();
+		const auto size = sprite.getAnimationSize();
+		if (!sprite.isValid() || size <= 0) {
+			if (spinBox) delete spinBox;
+			return;
+		}
+
+		if (!spinBox) {
+			constexpr glm::vec2 animationBoxSize(126.f, 26.f);
+			spinBox = PG_GuiSpinBox::createInt("animationBox", glm::vec2(0.f), animationBoxSize, spriteItem);
+			PG_GuiItem::anchor(spinBox, PG_Anchor::HorizontalCenter, spriteItem, PG_Anchor::HorizontalCenter);
+			PG_GuiItem::anchor(spinBox, PG_Anchor::Bottom, spriteItem, PG_Anchor::Bottom);
+			spinBox->setMargin(PG_Anchor::Bottom, 6.f);
+		}
+
+		spinBox->setValidator([size](double v) -> double {
+			return  glm::clamp((int)v, 0, size - 1);
+		});
+
+		spinBox->setValueToText([sprite](double value) { 
+			auto name = sprite.getAnimationName((int)value);
+			auto idxStr = std::to_string((int)value);
+			return name.empty() ? "Idx " + idxStr :  (name + " ("+ idxStr+")");
+		});
+		spinBox->setTextToValue([sprite, spinBox](const std::string& text) -> double {
+			const int index = sprite.getAnimationIndex(text);
+			return index < 0 ? spinBox->getValue() : (double)index; //a name the sheet has no animation for changes nothing
+		});
+		connect(spinBox, &PG_GuiSpinBox::valueModefied, this, [this](double value) {
+			PG_GuiSprite* guiSprite = getParent<PG_GuiSprite>();
+			if (!guiSprite) return;
+			guiSprite->getSprite().setAnimationIndex((int)value, true);
+			fitSpriteIntoItem(guiSprite);
+		});
+		spinBox->setValue(sprite.getAnimationIndex());
+	}
+
+	/**
+	* @brief The box every animation of the sprite stays inside, in the units the sprite draws in.
+	* @details Corners are placed the way DisaSprite.vert places them, so what is measured is what is drawn.
+	* Every animation is walked, not just the current one, so the sprite keeps its size as the animation
+	* changes and two animations stay comparable by eye.
+	* @param owner The node the sprite draws under, a traverser reads properties off it.
+	* @returns Nothing when the sprite draws no cutout at all.
+	*/
+	std::unordered_map<std::string, PG_AABB2D> measureSprite(PG_Sprite sprite) {
+		std::unordered_map<std::string, PG_AABB2D> out;
+
+		const int animationCount = sprite.getAnimationSize();
+		for (int animationIndex = 0; animationIndex < animationCount; ++animationIndex) {
+			const std::string animationName = sprite.getAnimationName(animationIndex);
+			if (animationName.empty()) continue;
+
+			sprite.setAnimationIndex(animationIndex, true);
+			const int endFrame = sprite.getEndFrame();
+			const int sampleCount = endFrame > 0 ? g_spriteBoundsSamples : 1;
+			PG_AABB2D bounds;
+			for (int sample = 0; sample < sampleCount; ++sample) {
+				sprite.setFrame(float(endFrame * sample) / float(sampleCount));
+				sprite.traverse(this, glm::mat4(1.f), [&bounds](PG_SpriteTraverserser*, const PG_Geometry&,
+								const PG_Material&, const PG_Texture&, glm::vec2, glm::vec2 cutoutSize, float,
+								PG_SpriteEnums::EStencilDrawMode, bool, const glm::mat4& matrix, std::vector<glm::mat4>*) {
+					const glm::vec2 quad = cutoutSize * 0.02f; //what the vertex shader scales the unit quad by
+					for (const glm::vec2& corner : { glm::vec2(0.f), glm::vec2(quad.x, 0.f), glm::vec2(0.f, quad.y), quad }) {
+						const glm::vec2 at = glm::vec2(matrix * glm::vec4(corner, 0.f, 1.f));
+						bounds.add(at);
+					}
+				});
+			}
+			if (bounds.isValid()) out[animationName] = bounds;
+		}
+
+		return out;
+	}
+
+
+	/// Scales and centres the sprite so that every animation of it stays inside the item
+	void fitSpriteIntoItem(PG_GuiSprite* spriteItem) {
+		PG_Transformation transformation;
+		auto findIt = m_measurements.find(spriteItem->getSprite().getAnimationName());
+		if (findIt == m_measurements.end()) {
+			OUT_WARNING("The sprite \"" << spriteItem->getSprite().getName() << "\" has nothing to measure!");
+			/// Used when a sheet measures to nothing, roughly the size an ordinary character comes out at
+			constexpr float spriteFallbackScale = 0.25f;
+			transformation.setScale(glm::vec3(spriteFallbackScale));
+		}
+		else {
+			/// The share of the preview a sprite is allowed to take up
+			constexpr float spriteFill = 0.9f;
+
+			const glm::vec2 extent = findIt->second.getDimensions();
+			const float largest = std::max(extent.x, extent.y);
+			const float scale = spriteFill / largest;
+			transformation.setScale(glm::vec3(scale));
+			transformation.setTranslation(-findIt->second.getCenter() * scale);
+		}
+
+		spriteItem->setOffsetTransformation(transformation);
+	}
+
+
+	std::unordered_map<std::string, PG_AABB2D> m_measurements;
+};
+
+
+
 
 }
 
@@ -220,6 +371,10 @@ void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
 		open(var.get<PG_Audio>());
 		return;
 	}
+	if (var.is<PG_Sprite>()) {
+		open(var.get<PG_Sprite>());
+		return;
+	}
 	if (var.is<PG_DisaMPPPack>()) {
 		open(var.get<PG_DisaMPPPack>());
 		return;
@@ -258,8 +413,34 @@ void PG_DisaPreviewItem::open(const std::string& imgPath) {
 
 void PG_DisaPreviewItem::open(const PG_Audio& audio) {
 	PG_GuiImage* imgItem = getOrCreateImage();
-	PG_new<DisaAudioPreview>("audioPreview", imgItem)->open(audio, imgItem);
+	DisaAudioPreview* preview = imgItem->findFirstChild<DisaAudioPreview>("audioPreview");
+	if (!preview) preview = PG_new<DisaAudioPreview>("audioPreview", imgItem);
+	preview->open(audio, imgItem);
 	if (m_checker) m_checker->setVisible(true);
+}
+
+PG_GuiSprite* PG_DisaPreviewItem::getOrCreateSprite() {
+	PG_GuiSprite* spriteItem = m_container->findFirstChild<PG_GuiSprite>();
+	if (!spriteItem) {
+		m_container->clearGuiChildren();
+		spriteItem = PG_new<PG_GuiSprite>("PreviewSprite", m_container);
+		spriteItem->fill(m_container);
+		spriteItem->setModelAnchor(PG_GuiSprite::Center);
+		/* A sprite matrix carries the flip that turns sprite space into the scene's y up world, and gui
+		 * space is y down and never mirrored, so both axes go back. */
+		spriteItem->setFlipHorizontal(true);
+		spriteItem->setFlipVertical(true);
+	}
+	return spriteItem;
+}
+
+void PG_DisaPreviewItem::open(const PG_Sprite& sprite) {
+	PG_GuiSprite* spriteItem = getOrCreateSprite();
+	DisaSpritePreview* preview = spriteItem->findFirstChild<DisaSpritePreview>("spritePreview");
+	if (!preview) preview = PG_new<DisaSpritePreview>("spritePreview", spriteItem);
+	preview->open(sprite);
+	if (m_checker) m_checker->setVisible(true);
+	
 }
 
 void PG_DisaPreviewItem::clearImage() {

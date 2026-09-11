@@ -1,6 +1,7 @@
 #include "PG_DisaSprite.h"
 
 #include <Resources/PG_Material.h>
+#include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
 #include <glm/gtx/euler_angles.hpp>
 
@@ -60,14 +61,21 @@ public:
 		}
 	}
 
-	std::string getAnimationName(int index) const override { return std::to_string(animations[index].id); };
+	std::string getAnimationName(int index) const override {
+		if (index < 0 || index >= animations.size()) return {};
+		return std::to_string(animations[index].id); 
+	};
 	int getAnimationIndex(const std::string& name) const override { 
 		unsigned short id = PG_StringUtil::toInt(name);
 		auto findIt = std::ranges::find(animations, id, &PG_DisaSpriteAnimation::id);
 		if (findIt == animations.end()) return -1;
 		return std::distance(animations.begin(), findIt);
 	};
-	int getEndFrame(int animationIndex) const override { return animationIndex < 0? 0: animations[animationIndex].length; }
+	int getEndFrame(int animationIndex) const override {
+		if (animationIndex < 0 || animationIndex >= (int)animations.size()) return 0;
+		return animations[animationIndex].length;
+	}
+	int getAnimationSize() const override { return (int)animations.size(); }
 
 	void clear() override {
 
@@ -76,10 +84,12 @@ public:
 	void traverse(PG_Object* owner, const glm::mat4& modelMatrix, const PG_Geometry& geo,
 		int animationIndex, float frame, const PG_SpriteTraverserser::TraverserseFunc& visitor) const override {
 
-		if (textures.empty() || animations.empty() || animationIndex >= animations.size()) return;
+		//a sheet the preview is pointed at may be anything, and a missing colortable is read below
+		if (textures.empty() || colorTables.empty() || animations.empty() || animationIndex >= animations.size()) return;
 
 		auto aniIt = std::next(animations.begin(), animationIndex);
-		unsigned int frameI = unsigned int(std::floor(frame)) % aniIt->length;
+		if (aniIt->keyframes.empty()) return;
+		unsigned int frameI = aniIt->length != 0? unsigned int(std::floor(frame)) % aniIt->length: 0;
 		
 		auto findKeyIt = std::ranges::find_if(aniIt->keyframes, [frameI](const PG_DisaSpriteKeyframe& k) { return k.at > frameI; });
 		if (findKeyIt == aniIt->keyframes.end()) 
@@ -153,6 +163,24 @@ void PG_DisaSprite::load(unsigned short spriteID, PG_SH&& sh) {
 	std::string name = "DisaSprite" + std::to_string(spriteID);
 
 	PG_Sprite_LoadFunc loadFunc = [spriteID, sh = std::move(sh)]() -> std::variant<PG_SpriteData, PG_SpriteBridge*> {
+		auto* bridge = new PG_DisaSpriteBridge();
+		bridge->load(sh);
+		return bridge;
+		};
+
+	PG_Sprite::load(name, loadFunc);
+}
+
+void PG_DisaSprite::load(const std::string& name, std::shared_ptr<PG::STREAM::In> reader) {
+	PG_Sprite_LoadFunc loadFunc = [name, reader = std::move(reader)]() mutable -> std::variant<PG_SpriteData, PG_SpriteBridge*> {
+		PG_SH sh;
+		const bool result = sh.open(reader.get());
+		reader.reset();
+		if (!result) {
+			OUT_ERROR("Failed to read the sprite sheet \"" << name << "\"!");
+			return PG_SpriteData();
+		}
+
 		auto* bridge = new PG_DisaSpriteBridge();
 		bridge->load(sh);
 		return bridge;

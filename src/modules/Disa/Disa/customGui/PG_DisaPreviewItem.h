@@ -2,11 +2,13 @@
 
 #include <Scene/Gui/PG_GuiItem.h>
 #include <Util/PG_File.h>
+#include <Resources/PG_Sprite.h>
 #include <Resources/PG_Texture.h>
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 
 class PG_Audio;
 class PG_GuiRenderItem;
+class PG_GuiSprite;
 class PG_GuiText;
 class PG_DisaMapScene;
 class PG_GuiImage;
@@ -26,6 +28,8 @@ public:
 	void open(const std::string& imgPath);
 	/// Draws the audio as a waveform, once the samples are in
 	void open(const PG_Audio& audio);
+	/// Plays the sprite, with a spin box to walk through its animations
+	void open(const PG_Sprite& sprite);
 	void open(const PG_DisaMPDPack& mapFiles);
 	void open(const PG_DisaMPPPack& mppPack);
 
@@ -71,6 +75,12 @@ private:
 	* @details Comes up in preview mode, so it turns the map in front of the camera and takes no input.
 	*/
 	PG_DisaMapScene* getOrCreateGameScene();
+	/**
+	* @brief The node a sprite preview plays in, built on the first call.
+	* @details Comes up with the flips that carry a sprite from the scene's y up world into gui space.
+	*/
+	PG_GuiSprite* getOrCreateSprite();
+
 	void clearImage();
 	void clear();
 	void updateBorder();

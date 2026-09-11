@@ -36,6 +36,7 @@
 #include <Util/PG_ImageLoad.h>
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 #include <Disa/fileformats/PG_TX2.h>
+#include <Disa/resources/PG_DisaSprite.h>
 #include <ranges>
 
 
@@ -118,6 +119,13 @@ PG_Variety PG_DisaFileEntry::getPreviewImage() const {
 			});
 		return texture;
 
+	} break;
+	case PG_DisaFileInfo::SH: {
+		auto reader = createReader();
+		if (!reader) return PG_Variety();
+		PG_DisaSprite sprite;
+		sprite.load(m_info.getName().getPath() + "_" + std::to_string((size_t)m_parent), std::move(reader));
+		return PG_Variety(PG_Sprite(std::move(sprite)));
 	} break;
 	case PG_DisaFileInfo::OGG: {
 		auto reader = createReader();
