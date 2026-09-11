@@ -212,12 +212,6 @@ void PG_DisaFileContainerModel::exportToFile(const PG_File& file) {
 	}
 }
 
-void PG_DisaFileContainerModel::openEntry(const PG_Index& index) {
-	if (!index.isValid()) return;
-
-	std::shared_ptr<PG_DisaFileContainer> containerSptr;
-	PG_DisaFileEntry fileEntry = m_filterModel->getData(index, PG_Identity_Item).get<PG_DisaFileEntry>();
-
 void PG_DisaFileContainerModel::openEntry(PG_DisaFileEntry& fileEntry) {
 	if (!fileEntry) return;
 	//check if filecontaner is allready present
