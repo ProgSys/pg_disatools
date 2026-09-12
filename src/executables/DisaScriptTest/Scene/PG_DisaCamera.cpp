@@ -26,9 +26,16 @@ void PG_DisaCamera::onMove(float deltaTime) {
 	translate(move);
 }
 
-void PG_DisaCamera::rotateCam(int dir) {
+float PG_DisaCamera::PG_DisaCamera::getCameraOrbit() const {
+	//const the current orbit of the camera around y axis
+	return 0.f;
+}
+
+void PG_DisaCamera::setCameraOrbit(float degree, float time) {
 	//@todo rotate camera around by 90 degree times dir
-	//use PG_TickComponent for a smooth linar animation
+	// time defines how long the orbit will take, zero or smaller equals instant
+	//use PG_TickComponent for a linar animation
+	//discrad old animation by new "findFirstChild<PG_TickComponent>("setCameraOrbitAni")"
 }
 
 bool PG_DisaCamera::onMouseMotion(PG_MouseMotionEvent* e) {
@@ -60,8 +67,8 @@ bool PG_DisaCamera::onKey(PG_KeyEvent* key)  {
 
 	if (!key->isRepeat()) {
 		switch (key->getKey()) {
-			case PG_Key_Q: rotateCam(-1); break;
-			case PG_Key_E: rotateCam(1); break;
+			case PG_Key_Q: setCameraOrbit(PG_Math::roundTo(getCameraOrbit() - 90.f, 45.f), 10.f); break;
+			case PG_Key_E: setCameraOrbit(PG_Math::roundTo(getCameraOrbit() + 90.f, 45.f), 10.f); break;
 		}
 	}
 

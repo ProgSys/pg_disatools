@@ -9,7 +9,8 @@ public:
 	using PG_FlyCameraNode::PG_FlyCameraNode;
 
 	void init() override;
-	void rotateCam(int dir);
+	float getCameraOrbit() const;
+	void setCameraOrbit(float degree, float time = 0.f);
 
 protected:
 	void onMove(float deltaTime) override;
