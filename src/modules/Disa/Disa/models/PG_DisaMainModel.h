@@ -4,6 +4,8 @@
 #include <Util/PG_Dir.h>
 #include <string>
 
+class PG_DisaFileContainer;
+struct PG_DisaModelResources;
 
 class PG_DisaMainBaseModel {
 public:
