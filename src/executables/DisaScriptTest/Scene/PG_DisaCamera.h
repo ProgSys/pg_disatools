@@ -68,6 +68,12 @@ protected:
 
 	/// View dir flattened onto the ground plane, the direction forward movement follows.
 	glm::vec3 getGroundForward() const;
+	/**
+	* @brief Scale the orbit point movement runs at.
+	* @details Grows with the orbit distance, so the ground moves along with the cursor, but only by
+	* its square root, so zooming far out does not turn every step into a jump.
+	*/
+	float getMoveScale() const;
 	/// Places the camera at the orbit point, pushed back along the view dir.
 	void updateOrbitTransformation();
 	/**

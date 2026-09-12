@@ -51,6 +51,7 @@ void RootScene::init() {
 	const std::string defaultMap = "MP00701";
 
 	m_model = PG_new<PG_DisaScriptTestModel>("PG_DisaScriptTestModel", this);
+	m_model->openGameFiles();
 
 	auto guiMain = PG_new<PG_GuiMain>("guiMain", getRoot());
 	m_rootItem = PG_new<PG_GuiItem>("rootItem", glm::vec2(0.f), glm::vec2(300.f, 400.f), guiMain);
@@ -65,7 +66,6 @@ void RootScene::init() {
 	guiMain->setTooltipItem(PG_new<PG_GuiTooltip>("Tooltip", m_rootItem));
 	setupMapView();
 
-	m_model->openGameFiles();
 	m_model->openMap(defaultMap);
 }
 

@@ -25,15 +25,6 @@
 
 static PG_DisaMapEditorMainModel* g_mainModel = nullptr;
 
-/**
-* @brief Holds some globaly cashed resourses
-*/
-struct PG_DisaMapEditorMainModelResources: public PG_Object {
-	using PG_Object::PG_Object;
-
-	PG_DisaModel teleporterModel;
-};
-
 void PG_DisaMapEditorMainModel::init() {
 	PG_DisaMainModel::init();
 	g_mainModel = this;
@@ -142,7 +133,7 @@ void PG_DisaMapEditorMainModel::openExe() {
 			m_charactersModel->open(file, m_PSPFS, startDat);
 			m_itemsModel->open(startDat);
 			m_geoEffectsModel->open(startDat);
-			loadDisaMainModelResources(startDat.get());
+			cachDisaGeometry(startDat.get(), "BASE.KM2", "R_DisaTeleporterBase");
 
 			//main Data.dat
 			auto model = PG_new<PG_OverviewListModel>("PG_OverviewListModel", this);
@@ -165,7 +156,7 @@ void PG_DisaMapEditorMainModel::openExe() {
 	m_magicsModel->open(startDat);
 	m_geoEffectsModel->open(startDat);
 	m_uiTextursModel->open(startDat);
-	loadDisaMainModelResources(startDat.get());
+	cachDisaGeometry(startDat.get(), "BASE.KM2", "R_DisaTeleporterBase");
 
 	//main Data.dat
 	auto model = PG_new<PG_OverviewListModel>("PG_OverviewListModel", this);
@@ -182,21 +173,6 @@ void PG_DisaMapEditorMainModel::setGridModel(PG_ListModelBase* model) {
 	if (m_gridModel == model) return;
 	m_gridModel = model;
 	emit gridModelChanged(m_gridModel);
-}
-
-void PG_DisaMapEditorMainModel::loadDisaMainModelResources(PG_OLA* startDat) {
-	assert(startDat);
-	if (!m_disaMainModelResources) {
-		m_disaMainModelResources = PG_new<PG_DisaMapEditorMainModelResources>("PG_DisaMapEditorMainModelResources", this);
-	}
-
-	if (auto entry = startDat->find(PG_File("BASE.KM2"), false)) {
-		auto reader = entry.createReader();
-		PG_GEO geo;
-		geo.open(reader.get());
-		m_disaMainModelResources->teleporterModel.load("R_DisaTeleporterBase", geo);
-	}
-
 }
 
 constexpr auto uiStateChnagedStr = "void uiStateChanged()";

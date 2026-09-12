@@ -8,8 +8,8 @@
 #include <Scene/PG_TickComponent.h>
 #include <Util/PG_Math.h>
 
-constexpr float g_moveSpeed = 0.00015f; /// Orbit point movement per millisecond and orbit distance
-constexpr float g_panSpeed = 0.0003f; /// Orbit point movement per dragged pixel and orbit distance
+constexpr float g_moveSpeed = 0.0012f; /// Orbit point movement per millisecond and move scale
+constexpr float g_panSpeed = 0.0024f; /// Orbit point movement per dragged pixel and move scale
 constexpr float g_zoomSpeed = 0.1f; /// Part of the orbit distance one wheel step takes away
 constexpr float g_orbitTurnTime = 250.f;
 /// A view dir below this much length on the ground plane leaves no direction to move along
@@ -115,6 +115,10 @@ glm::vec3 PG_DisaCamera::getGroundForward() const {
 	return glm::normalize(PG_Math::setY(m_orbitForward, 0.f));
 }
 
+float PG_DisaCamera::getMoveScale() const {
+	return std::sqrt(m_orbitDistance);
+}
+
 void PG_DisaCamera::updateOrbitTransformation() {
 	setForward(m_orbitForward);
 	setTranslation(m_orbitPoint - m_orbitForward * m_orbitDistance);
@@ -151,7 +155,7 @@ void PG_DisaCamera::onMove(float deltaTime) {
 	const glm::vec3 forwardProjected = getGroundForward();
 	const glm::vec3 right = glm::normalize(glm::cross(getUpVector(), forwardProjected));
 
-	const glm::vec3 move = (forwardProjected * m_velocity.x + getUpVector() * m_velocity.y + right * m_velocity.z) * (m_orbitDistance * g_moveSpeed * deltaTime);
+	const glm::vec3 move = (forwardProjected * m_velocity.x + getUpVector() * m_velocity.y + right * m_velocity.z) * (getMoveScale() * g_moveSpeed * deltaTime);
 	setOrbitPoint(m_orbitPoint + move);
 }
 
@@ -168,7 +172,7 @@ bool PG_DisaCamera::onMouseMotion(PG_MouseMotionEvent* e) {
 		const glm::vec3 forwardProjected = getGroundForward();
 		const glm::vec3 right = glm::normalize(glm::cross(getUpVector(), forwardProjected));
 
-		const glm::vec3 move = (right * (float)e->getPositionRelative().x + forwardProjected * (float)e->getPositionRelative().y) * (m_orbitDistance * g_panSpeed);
+		const glm::vec3 move = (right * (float)e->getPositionRelative().x + forwardProjected * (float)e->getPositionRelative().y) * (getMoveScale() * g_panSpeed);
 		setOrbitPoint(m_orbitPoint + move);
 	}
 

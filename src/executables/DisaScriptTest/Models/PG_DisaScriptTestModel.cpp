@@ -50,6 +50,8 @@ bool PG_DisaScriptTestModel::openGameFiles() {
 
 	m_charactersModel = PG_new<PG_DisaCharactersModel>("PG_DisaCharactersModel", this);
 	m_charactersModel->open(exePath, m_subdata, startDat);
+
+	cachDisaGeometry(startDat.get(), "BASE.KM2", "R_DisaTeleporterBase");
 	return SUCCESS;
 }
 

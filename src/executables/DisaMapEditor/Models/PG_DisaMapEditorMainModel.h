@@ -16,7 +16,6 @@ class PG_DisaUiTextursModel;
 class PG_ListModelBase;
 class PG_PSPFS;
 class PG_OLA;
-class PG_DisaMapEditorMainModelResources;
 
 class PG_DisaMapEditorMainModel : public PG_DisaMainModel {
 	PG_OBJECT(PG_DisaMapEditorMainModel);
@@ -58,7 +57,6 @@ public:
 
 private:
 	void setGridModel(PG_ListModelBase* model);
-	void loadDisaMainModelResources(PG_OLA* startDat);
 
 	std::shared_ptr<PG_PSPFS> m_PSPFS; //subdata
 	PG_DisaCharactersModel* m_charactersModel = nullptr;
@@ -66,7 +64,6 @@ private:
 	PG_DisaMagicsModel* m_magicsModel = nullptr;
 	PG_DisaGeoEffectsModel* m_geoEffectsModel = nullptr;
 	PG_DisaUiTextursModel* m_uiTextursModel = nullptr;
-	PG_DisaMapEditorMainModelResources* m_disaMainModelResources = nullptr;
 
 	PG_DisaConfig m_config;
 	PG_ListModelBase* m_gridModel = nullptr; //buffer pointer set by pushStateStack
