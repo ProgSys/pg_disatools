@@ -1,10 +1,36 @@
 #pragma once
 
+#include <optional>
+#include <string>
+
 #include <Scene/Model/PG_ListSelectionInteractableModel.h>
 #include <Disa/fileformats/PG_MPD.h>
 #include <Disa/PG_DisaColorEnum.h>
 #include <Disa/PG_DisaIdentifier.h>
 #include <resources/PG_Texture.h>
+
+/**
+* @brief What a script takes over on an actor, each part only for as long as it is set.
+* @details The map places an actor on a tile and lets it stand there looking at the camera. A
+* script wants it anywhere, facing anywhere and playing whatever animation it likes, so it sets
+* these instead of the map data. Nothing set means the actor behaves exactly like a placed one,
+* which is what the editor relies on.
+*/
+struct PG_DisaActorScriptOverride {
+	/// Position in tile units, y is the height. Replaces the position the tile would give it.
+	std::optional<glm::vec3> translation;
+	/// Facing in degree around y, zero looks the same way as the map rotation 2 does.
+	std::optional<float> rotation;
+	/// Sprite animation to play, the view takes the name as it is.
+	std::optional<std::string> animation;
+	std::optional<bool> visible;
+	/// How fast it falls, in tiles per tick squared. Unset means the engine's own.
+	std::optional<float> gravity;
+
+	inline bool isEmpty() const {
+		return !translation && !rotation && !animation && !visible && !gravity;
+	}
+};
 
 class PG_DisaActorModel : public PG_Object {
 	PG_OBJECT(PG_DisaActorModel);
@@ -78,6 +104,7 @@ public:
 
 		Identity_GeoColor,
 		Identity_GeoEffect,
+		Identity_ScriptOverride,
 	};
 
 	void init();
@@ -159,6 +186,19 @@ public:
 	*/
 	void remove();
 
+	/**
+	* @brief What a script has taken over on this actor, see PG_DisaActorScriptOverride.
+	* @details Set through setScriptOverride, which tells the view about it. An actor nothing has
+	* touched has an empty one and behaves like any placed actor.
+	*/
+	const PG_DisaActorScriptOverride& getScriptOverride() const { return m_scriptOverride; }
+	void setScriptOverride(const PG_DisaActorScriptOverride& value);
+	/// Drops every override at once, the actor falls back to its map data.
+	void clearScriptOverride();
+
+	/// Position the actor really stands at, the override when there is one, the tile otherwise.
+	glm::vec3 getTranslation() const;
+
 	const mpdfileActor& getData() const { return m_data; }
 	void setData(const mpdfileActor& data) { m_data = data; }
 	void setData(mpdfileActor&& data) { m_data = std::move(data); }
@@ -173,6 +213,7 @@ private:
 	int m_location = -1;
 	float m_height = 0.f;
 	mpdfileActor m_data;
+	PG_DisaActorScriptOverride m_scriptOverride;
 };
 
 class PG_DisaActorListModel : public PG_ListModel<PG_DisaActorModel*> {

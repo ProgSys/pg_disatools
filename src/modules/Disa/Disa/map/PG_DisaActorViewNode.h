@@ -1,11 +1,14 @@
 #pragma once
+#include <array>
+#include <string>
+
 #include <Scene/PG_ActorNode.h>
 #include <Scene/Model/PG_ListModelLocation.h>
 #include <Scene/Model/PG_ListModelIdentity.h>
 
 class PG_DisaMapModel;
 class PG_DisaMapTileListModel;
-
+struct PG_DisaActorScriptOverride;
 
 class SwaySpring {
 private:
@@ -67,7 +70,20 @@ signals:
 	void translationUserChanged();
 	void characterIdChanged();
 public:
+	/**
+	* @brief Where the facing and the animation of the actor come from.
+	* @details A sprite always turns its face towards the camera, what changes is which of its
+	* four side views is picked and what it plays while it stands there.
+	*/
+	enum EMode : unsigned char {
+		Mode_Map,   /// Faces the way its tile rotation says and idles, what the editor shows
+		Mode_Script /// Follows the model's script override, and falls back to Mode_Map per part
+	};
+
 	using PG_ActorNode::PG_ActorNode;
+
+	inline EMode getMode() const { return m_mode; }
+	void setMode(EMode mode) { m_mode = mode; }
 
 	PG_Object* getObjectModel() const;
 	PG_ListModelLocation getLocation() const { return m_location; }
@@ -102,8 +118,12 @@ private:
 	void updateGroundShadow();
 	void updateColorOffset();
 
+	/// The script override of the model, or an empty one when there is no model or no override.
+	const PG_DisaActorScriptOverride& getScriptOverride() const;
+
 	PG_ListModelLocation m_location;
 	bool m_dragged = false;
+	EMode m_mode = Mode_Map;
     SwaySpring m_spring;
 };
 

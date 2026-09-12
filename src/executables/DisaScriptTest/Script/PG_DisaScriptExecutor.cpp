@@ -4,14 +4,19 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <sstream>
 
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Disa/fileformats/PG_Script.h>
 #include <Disa/fileformats/PG_TalkScript.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Script/PG_DisaActorAnimations.h>
+#include <Script/PG_DisaActorSlotModel.h>
 #include <Script/PG_DisaContext.h>
+#include <Disa/map/PG_DisaActorModel.h>
 
 namespace {
 
@@ -75,7 +80,8 @@ const PG_DisaScriptCommand& currentCommandOf(const PG_DisaScriptLane& lane) {
 /// "[3|talk 2002023] dialog(...)", the lane is in front so parallel scripts stay readable.
 void printLanePrefix(std::stringstream& stream, const PG_DisaScriptExecutor& executor, std::size_t laneIndex) {
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
-	stream << '[' << laneIndex << '|' << (lane.type == PG_DisaScriptLane::Talk ? "talk " : "script ") << lane.scriptId << "] ";
+	stream << '[' << laneIndex << '|' << (lane.type == PG_DisaScriptLane::Talk ? "talk " : "script ")
+		<< lane.scriptId.getName() << "] "; //getName, an identifier turns itself into a bool otherwise
 }
 
 /**
@@ -360,6 +366,259 @@ EDisaScriptResult cmdText(PG_DisaScriptExecutor& executor, std::size_t laneIndex
 	return EDisaScriptResult::Done;
 }
 
+//==== Actors ====
+
+/**
+* @brief The sprite animation a script animation ID stands for.
+* @details The script counts its animations from zero, the sprite sheet numbers its own in the
+* thousands, and how the two line up is not worked out yet. Only idle is certain. An ID that is
+* already in the sheet's range is taken as it is, which is what makes the pose commands work,
+* since those carry sheet numbers to begin with.
+*/
+std::string animationOf(int scriptAnimation) {
+	constexpr int firstSheetAnimation = 1000;
+	const int animation = std::abs(scriptAnimation); //a negative one only mirrors the sprite
+	if (animation >= firstSheetAnimation) return std::to_string(animation);
+	if (animation == 0) return "1001"; //idle
+	return {};
+}
+
+/// Turns the facing a command carries into an angle, nothing when it says to keep the current one.
+std::optional<float> facingOf(int facing) {
+	constexpr int keepFacing = 10;
+	if (facing == keepFacing) return std::nullopt;
+	if (facing < 0 || facing > 3) return std::nullopt;
+	return static_cast<float>(facing) * 90.f;
+}
+
+/// Reads the slot of a command and hands back every actor it stands for.
+std::vector<PG_DisaActorModel*> actorsOf(PG_DisaScriptExecutor& executor, int slot) {
+	auto out = executor.context().resolveSlots(slot);
+	if (out.empty()) {
+		OUT_WARNING("Slot " << slot << " holds no actor, the command does nothing. "
+			"A script slot fills up on its first SetActor or SetActorSprite.");
+	}
+	return out;
+}
+
+/**
+* @brief The actor of a slot, made when the slot is still empty.
+* @details Both SetActor and SetActorSprite run the same allocation in the game: a script slot
+* that holds nothing yet gets an actor right there. A fresh one stands at the map origin, which
+* is inside the floor, so it is dropped onto the ground before anything sees it.
+*/
+PG_DisaActorModel* spawnIntoSlot(PG_DisaContext& context, int slot) {
+	PG_DisaActorModel* actor = context.takeSlot(slot);
+	if (!actor) {
+		OUT_WARNING("Slot " << slot << " can hold no actor, nothing is spawned!");
+		return nullptr;
+	}
+
+	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
+	if (!scriptOverride.translation) {
+		scriptOverride.translation = glm::vec3(0.f);
+		scriptOverride.visible = true;
+		actor->setScriptOverride(scriptOverride);
+		context.snapToGround(actor);
+	}
+	return actor;
+}
+
+EDisaScriptResult cmdSetActor(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 6) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const int slot = bytes[0];
+	const int spriteId = readInt(bytes + 1, 2);
+	const int level = static_cast<int>(readUInt(bytes + 3, 2));
+	const int allegiance = bytes[5];
+
+	PG_DisaActorModel* actor = spawnIntoSlot(executor.context(), slot);
+	if (!actor) return EDisaScriptResult::Done;
+
+	/* 10000 and 20000 on top of the ID pull a real party or story character in, the sprite is the
+	 * same one either way and the stats behind it are not simulated. */
+	actor->setCharacterId(static_cast<unsigned short>(std::abs(spriteId) % 10000));
+	actor->setCharacterLevel(static_cast<unsigned short>(level));
+	actor->setCharacterAlliance(static_cast<unsigned char>(allegiance));
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetActorSprite(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const int spriteId = readInt(bytes + 2, 2);
+
+	//10000 and up is not a sprite, it names another slot to take the look of
+	constexpr int copyFromSlot = 10000;
+	unsigned short sprite = static_cast<unsigned short>(std::abs(spriteId) % copyFromSlot);
+	if (std::abs(spriteId) >= copyFromSlot) {
+		const int sourceSlot = std::abs(spriteId) - copyFromSlot;
+		auto* source = executor.context().resolveSlot(sourceSlot);
+		if (!source) {
+			OUT_WARNING("Slot " << sourceSlot << " holds no actor to take the look of!");
+			return EDisaScriptResult::Done;
+		}
+		sprite = source->getCharacterId();
+	}
+
+	const int slot = static_cast<int>(readUInt(bytes, 2));
+	/* The game allocates the actor here too, a script that only swaps the look of an empty slot
+	 * still ends up with one standing there. */
+	//if (PG_DisaActorSlotModel::isScriptSlot(slot)) {
+	if (sprite > 0) {
+		if (auto* actor = spawnIntoSlot(executor.context(), slot)) actor->setCharacterId(sprite);
+		return EDisaScriptResult::Done;
+	}
+
+	for (auto* actor : actorsOf(executor, slot)) {
+		actor->setCharacterId(sprite);
+	}
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetActorPos(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 13) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const int slot = static_cast<int>(readUInt(bytes, 2));
+	const int parent = static_cast<int>(readUInt(bytes + 2, 2));
+	const glm::vec3 offset(readInt(bytes + 4, 2), readInt(bytes + 6, 2), readInt(bytes + 8, 2));
+	const float duration = static_cast<float>(readUInt(bytes + 10, 2));
+	const auto mode = static_cast<PG_DisaActorAnimations::EMoveMode>(bytes[12]);
+
+	PG_DisaContext& context = executor.context();
+	const glm::vec3 target = context.getSlotOrigin(parent) + PG_DisaContext::toTileUnits(offset);
+	for (auto* actor : actorsOf(executor, slot)) {
+		PG_DisaActorAnimations::move(context, actor, target, duration, mode);
+	}
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetActorPose(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const std::string animation = animationOf(readInt(bytes + 2, 2));
+	if (animation.empty()) return EDisaScriptResult::Done;
+
+	//a pose is held until something else changes it, so it never keeps the actor busy
+	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
+		PG_DisaActorAnimations::play(executor.context(), actor, animation, 0);
+	}
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const std::string animation = animationOf(readInt(bytes + 2, 2));
+	const std::optional<float> facing = facingOf(bytes[4]);
+
+	PG_DisaContext& context = executor.context();
+	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
+		if (facing) {
+			PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
+			scriptOverride.rotation = *facing;
+			actor->setScriptOverride(scriptOverride);
+		}
+		if (!animation.empty()) PG_DisaActorAnimations::play(context, actor, animation, 1);
+	}
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetActorPoseDir(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	//the game builds the sheet number out of the base, the view then picks the side view itself
+	const std::string animation = animationOf(static_cast<int>(readUInt(bytes + 2, 2)) * 10);
+	const std::optional<float> facing = facingOf(bytes[4]);
+
+	PG_DisaContext& context = executor.context();
+	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
+		if (facing) {
+			PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
+			scriptOverride.rotation = *facing;
+			actor->setScriptOverride(scriptOverride);
+		}
+		if (!animation.empty()) PG_DisaActorAnimations::play(context, actor, animation, 0);
+	}
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdRotateActor(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	float duration = static_cast<float>(readUInt(bytes + 1, 2));
+	float degree = static_cast<float>(readInt(bytes + 3, 2));
+
+	//a duration of 10000 and up is not a duration, it sets the facing at once
+	constexpr float setFacingDirectly = 10000.f;
+	if (duration >= setFacingDirectly) {
+		degree = duration - setFacingDirectly;
+		duration = 0.f;
+	}
+
+	PG_DisaContext& context = executor.context();
+	for (auto* actor : actorsOf(executor, bytes[0])) {
+		PG_DisaActorAnimations::rotate(context, actor, degree, duration);
+	}
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetActorGravity(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const int percent = readInt(bytes + 2, 2);
+
+	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
+		PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
+		//a negative value is not a gravity, it asks for the engine's own
+		scriptOverride.gravity = percent < 0 ? std::optional<float>()
+			: std::optional<float>(static_cast<float>(percent) / 100.f / PG_DisaContext::unitsPerTile);
+		actor->setScriptOverride(scriptOverride);
+	}
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdWaitForAnimation(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 2) {
+		printCommand(executor, laneIndex, data);
+		return EDisaScriptResult::Done;
+	}
+
+	const int slot = static_cast<int>(readUInt(static_cast<const unsigned char*>(data), 2));
+	PG_DisaContext& context = executor.context();
+	for (auto* actor : actorsOf(executor, slot)) {
+		if (context.hasAnimation(actor)) return EDisaScriptResult::Running;
+	}
+
+	printCommand(executor, laneIndex, data, "nothing left to wait for");
+	return EDisaScriptResult::Done;
+}
+
 //==== TALK.DAT ====
 
 EDisaScriptResult cmdDialog(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
@@ -529,7 +788,7 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x2A, "SpinCamera", "duration:2,rotX:-2,rotY:-2,rotZ:-2");
 		set(0x2B, "SetCameraView", "duration:2,value:2");
 		set(0x2C, "SetCameraPos", "parent:2,x:-2,y:-2,z:-2,duration:2");
-		set(0x2D, "SetActorGravity", "slot:2,gravity:-2");
+		set(0x2D, "SetActorGravity", "slot:2,gravity:-2", &cmdSetActorGravity);
 		set(0x2E, "SetCameraRotation", "duration:2,rotX:-2,rotY:-2,rotZ:-2");
 		set(0x32, "Text", "", &cmdText);
 		set(0x33, "ClearText");
@@ -549,21 +808,21 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x5A, "LoadData", "loader:1,entry:1");
 		set(0x5C, "SetTextColor", "r:2,g:2,b:2,a:2,duration:2");
 		set(0x61, "RunScriptOnActor", "scriptId:3,slot:2", &cmdRunScript);
-		set(0x64, "MoveActor", "slot:2,parent:2,x:-2,y:-2,z:-2,duration:2,mode:1");
-		set(0x65, "SetActorPos", "slot:2,parent:2,x:-2,y:-2,z:-2,duration:2,mode:1");
-		set(0x66, "SetActorPose", "slot:2,pose:-2");
-		set(0x67, "SetActorAnimation", "slot:2,animation:2,facing:1");
-		set(0x68, "WaitForAnimation", "slot:2", &cmdLogSkippedWait);
+		set(0x64, "MoveActor", "slot:2,parent:2,x:-2,y:-2,z:-2,duration:2,mode:1", &cmdSetActorPos);
+		set(0x65, "SetActorPos", "slot:2,parent:2,x:-2,y:-2,z:-2,duration:2,mode:1", &cmdSetActorPos);
+		set(0x66, "SetActorPose", "slot:2,pose:-2", &cmdSetActorPose);
+		set(0x67, "SetActorAnimation", "slot:2,animation:2,facing:1", &cmdSetActorAnimation);
+		set(0x68, "WaitForAnimation", "slot:2", &cmdWaitForAnimation);
 		set(0x69, "SetActorGroup", "slot:2,group:1");
-		set(0x6A, "SetActorPoseDir", "slot:2,poseBase:2,facing:1");
+		set(0x6A, "SetActorPoseDir", "slot:2,poseBase:2,facing:1", &cmdSetActorPoseDir);
 		set(0x6B, "SetAnimationMode", "slot:2,mode:1");
-		set(0x6D, "SetActor", "slot:1,spriteId:-2,level:2,allegiance:1");
-		set(0x6E, "SetActorSprite", "slot:2,spriteId:-2");
+		set(0x6D, "SetActor", "slot:1,spriteId:-2,level:2,allegiance:1", &cmdSetActor);
+		set(0x6E, "SetActorSprite", "slot:2,spriteId:-2", &cmdSetActorSprite);
 		set(0x6F, "PlayEffect", "effectId:2,parent:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");
 		set(0x70, "SetMapTile", "parent:1,x:-2,z:-2,type:1,value:-2");
 		set(0x71, "PlayAimedEffect", "effectId:2,source:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");
 		set(0x72, "PlayEffectEx", "effectId:2,parent:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2,extraA:2,extraB:2");
-		set(0x73, "RotateActor", "slot:1,duration:2,rotation:-2");
+		set(0x73, "RotateActor", "slot:1,duration:2,rotation:-2", &cmdRotateActor);
 		set(0x74, "PlayAimedEffectEx", "effectId:2,source:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:1,extraA:2,extraB:2");
 		set(0x77, "OrbitActor", "slot:2,duration:2,center:2,x:-2,z:-2,y:-2,angle:-2");
 		set(0x78, "DoAction", "slot:1,action:1");

@@ -1,4 +1,7 @@
 #include "PG_DisaActorViewNode.h"
+#include <cmath>
+#include <stdexcept>
+
 #include <Disa/map/PG_DisaActorModel.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/PG_DisaSpriteNode.h>
@@ -10,11 +13,20 @@
 #include <Scene/PG_CameraNode.h>
 #include <Base/Events/PG_TickEvent.h>
 #include <Util/PG_Math.h>
+#include <Util/PG_StringUtil.h>
 
 PG_Object* PG_DisaActorViewNode::getObjectModel() const {
 	if (!m_location) return nullptr;
 	return m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
 }
+
+const PG_DisaActorScriptOverride& PG_DisaActorViewNode::getScriptOverride() const {
+	static const PG_DisaActorScriptOverride empty;
+	if (m_mode != Mode_Script || !m_location) return empty;
+	auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
+	return model ? model->getScriptOverride() : empty;
+}
+
 
 void PG_DisaActorViewNode::setLocation(PG_ListModelLocation loc) {
 	m_location = loc;
@@ -55,9 +67,21 @@ void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG
 	if (identities.contains(PG_DisaActorModel::Identity_GeoColor)) {
 		updateColorOffset();
 	}
+
+	if (identities.contains(PG_DisaActorModel::Identity_ScriptOverride)) {
+		if (const auto& visible = getScriptOverride().visible) setVisible(*visible);
+	}
 }
 
 void PG_DisaActorViewNode::loadSprite(unsigned short id) {
+	std::cout << "PG_DisaActorViewNode::loadSprite " << id << std::endl;
+	if (id == 0) {
+		PG_ModelNode* model = findFirstChild<PG_ModelNode>("N_Prev");
+		if (model) delete model;
+		PG_DisaSpriteNode* node = findFirstChild<PG_DisaSpriteNode>("N_Sprite");
+		if (node) delete node;
+		return;
+	}
 	PG_DisaSprite sprite;
 	int colorOffset = 0;
 	if (auto* charModel = PG_DisaCharactersModel::get()) {
@@ -87,7 +111,6 @@ void PG_DisaActorViewNode::loadSprite(unsigned short id) {
 		}
 		sprite.setAnimationSpeed(PG_Sprite::defaultTimeStep / 2.f);
 		node->setSprite(std::move(sprite));
-		node->setAnimation("1001");
 		node->setScale(glm::vec3(1.3f));
 		node->setTranslation(glm::vec3(0.5f, 0.1f, 0.5f));
 		node->setColorTableOffset(colorOffset);
@@ -104,8 +127,9 @@ void PG_DisaActorViewNode::setDragged(bool value) {
 	m_spring.setTargetPos(glm::vec3(0.f, value ? 0.5f : 0.0f, 0.f));
 }
 
-static const std::array<std::string, 4> g_idleStand = { "1001" , "11001" ,  "1007" , "11007" };
-static const std::array<std::string, 4> g_hurtStand = { "1061" , "11061" ,  "1067" , "11067" };
+constexpr std::array<std::string_view, 2> g_idleStand = { "1001" ,  "1007"  };
+constexpr std::array<std::string_view, 2> g_hurtStand = { "1061" ,  "1067"  };
+constexpr auto g_mirrorX = "mirrorX";
 constexpr glm::vec3 baseDir = glm::vec3(1.f, 0.f, 0.f);
 constexpr glm::vec3 baseUp = glm::vec3(0.f, 1.f, 0.f);
 
@@ -127,50 +151,73 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 
 		auto* scene = getScene();
 		const glm::vec3 dir = getRotationDir(scene, getTranslationWorld()); 
-
 		//set animation
-		if (PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite"); node && node->getSprite().isValid()) {
-			node->setTranslationY(0.1f + m_spring.getPosition().y);
-			//face sprite towards camera
-			{
-				glm::mat3 m;
-				m[0] = glm::normalize(glm::cross(dir, baseUp));
-				m[2] = -dir;
-				m[1] = glm::normalize(glm::cross(m[2], m[0]));
+		PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite");
+		if (!node || !node->getSprite().isValid()) return PG_ActorNode::event(e);
 
-				node->setRotation(glm::normalize(glm::quat_cast(m)));
+		auto& sprite = node->getSprite();
+		auto name = sprite.getAnimationName(); //debug
+		auto spriteName = sprite.getName(); //debug
+
+		node->setTranslationY(0.1f + m_spring.getPosition().y);
+		//face sprite towards camera
+		{
+			glm::mat3 m;
+			m[0] = glm::normalize(glm::cross(dir, baseUp));
+			m[2] = -dir;
+			m[1] = glm::normalize(glm::cross(m[2], m[0]));
+
+			node->setRotation(glm::normalize(glm::quat_cast(m)));
+		}
+		node->updateModelMatrix();
+		node->updateModelMatrixWorld();
+
+		//choose animation
+		const PG_DisaActorScriptOverride& scriptOverride = getScriptOverride();
+
+		glm::vec2 baseRotation = glm::vec2(1.f, 0.f);
+		if (scriptOverride.rotation) {
+			//the map rotations run clockwise, so the angle does too
+			const float radians = glm::radians(-*scriptOverride.rotation);
+			baseRotation = glm::vec2(std::cos(radians), std::sin(radians));
+		} else if (m_location) {
+			switch (m_location.getDataT<char>(PG_DisaActorModel::Identity_Rotation)) {
+				case -1: baseRotation = glm::vec2(0.f, 1.f); break;
+				case 0: baseRotation = glm::vec2(-1.f, 0.f); break;
+				case 1: baseRotation = glm::vec2(0.f, -1.f); break;
+				case 2: baseRotation = glm::vec2(1.f, 0.f); break;
+			};
+		}
+
+
+		std::array<std::string_view, 2> animationSet;
+		if (scriptOverride.animation) {
+			animationSet.fill(*scriptOverride.animation);
+			//@todo is computed by slot!!
+			if (false) {
+				sprite.removeFrameModefier(g_mirrorX);
+				return PG_ActorNode::event(e);
 			}
-			node->updateModelMatrix();
-			node->updateModelMatrixWorld();
-
-			//choose animation
-			glm::vec2 baseRotation = glm::vec2(1.f, 0.f);
-			if (m_location) {
-				switch (m_location.getDataT<char>(PG_DisaActorModel::Identity_Rotation)) {
-					case -1: baseRotation = glm::vec2(0.f, 1.f); break;
-					case 0: baseRotation = glm::vec2(-1.f, 0.f); break;
-					case 1: baseRotation = glm::vec2(0.f, -1.f); break;
-					case 2: baseRotation = glm::vec2(1.f, 0.f); break;
-				};
+		}
+		else {
+			animationSet = m_dragged ? g_hurtStand : g_idleStand;
+		}
+	
+		const float angle = PG_Math::angle(glm::normalize(glm::vec2(dir.x, dir.z)), baseRotation);
+		if (angle < 0.f) {
+			node->setAnimation(std::string(animationSet[1]), false);
+			if (angle < glm::radians(-90.f)) {
+				sprite.removeFrameModefier(g_mirrorX);
+			} else {
+				sprite.addFrameModefier(g_mirrorX, {});
 			}
-
-			const float angle = PG_Math::angle(glm::normalize(glm::vec2(dir.x, dir.z)), baseRotation);
-
-			const std::array<std::string, 4>& animationSet = m_dragged? g_hurtStand: g_idleStand;
-
-			if (angle < 0.f) {
-				if (angle < glm::radians(-90.f)) {
-					node->setAnimation(animationSet[2], false);
-				} else {
-					node->setAnimation(animationSet[3], false);
-				}
-			}
-			else {
-				if (angle < glm::radians(90.f)) {
-					node->setAnimation(animationSet[1], false);
-				} else{
-					node->setAnimation(animationSet[0], false);
-				}
+		}
+		else {
+			node->setAnimation(std::string(animationSet[0]), false);
+			if (angle < glm::radians(90.f)) {
+				sprite.addFrameModefier(g_mirrorX, {});
+			} else{
+				sprite.removeFrameModefier(g_mirrorX);
 			}
 		}
 	}

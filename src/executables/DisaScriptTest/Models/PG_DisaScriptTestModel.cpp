@@ -16,6 +16,7 @@ void PG_DisaScriptTestModel::init() {
 	PG_DisaMainModel::init();
 	m_mapModel = PG_new<PG_DisaMapModel>("PG_DisaMapModel", this);
 	m_context = PG_new<PG_DisaContext>("PG_DisaContext", this);
+	m_context->setMapModel(m_mapModel);
 	m_scriptExecutor = PG_new<PG_DisaScriptExecutor>("PG_DisaScriptExecutor", m_context);
 
 	connect(m_context, &PG_DisaContext::dungeonChanged, this, &PG_DisaScriptTestModel::openMapIntern);
@@ -110,6 +111,7 @@ bool PG_DisaScriptTestModel::openMapFile(const std::string& mapName) {
 
 	//the model drops the textures of the last map inside open(), the old files may only go after that
 	auto previousFiles = std::move(m_looseFiles);
+	m_context->reset(); //the actors of the last map have nowhere to stand any more
 	if (!m_mapModel->open(mpd, mppSD, mppHD)) return FAILURE;
 	return SUCCESS;
 }

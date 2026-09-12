@@ -45,7 +45,10 @@
 #include <Scene/PG_DisaCamera.h>
 
 #include <Disa/PG_DisaMapScene.h>
+#include <Disa/map/PG_DisaActorViewNode.h>
+#include <Scene/PG_FootlooseViewNode.h>
 #include <Models/PG_DisaScriptTestModel.h>
+#include <Script/PG_DisaActorSlotModel.h>
 #include <Script/PG_DisaContext.h>
 #include <Script/PG_DisaScriptExecutor.h>
 
@@ -72,7 +75,11 @@ bool RootScene::event(PG_Event* e) {
 	switch (e->getType())
 	{
 		case PG_Event_Tick: {
-			m_model->getScriptExecutor()->tick(static_cast<PG_TickEvent*>(e)->getDeltaTimeSeconds());
+			const double seconds = static_cast<PG_TickEvent*>(e)->getDeltaTimeSeconds();
+			/* The animations run first, so a lane that waits for one sees the tick it just had
+			 * rather than the one before. */
+			m_model->getContext()->tick(static_cast<float>(seconds) * PG_DisaScriptExecutor::ticksPerSecond);
+			m_model->getScriptExecutor()->tick(seconds);
 		}break;
 		case PG_Event_Key: {
 			auto key = static_cast<PG_KeyEvent*>(e);
@@ -119,6 +126,7 @@ void RootScene::setupToolbar() {
 	{
 		auto* text = PG_new<PG_GuiTextField>("talkScriptId", glm::vec2(0.f), glm::vec2(256.f, 30.f), m_toolbarRow);
 		text->getBackgroundRectangle()->setMaterial("M_GuiRoundedRectangleLeft5");
+		text->setText("disa::1"); //the intro of the game
 
 		auto btn = PG_new<PG_GuiButton>("execTalkScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
 		btn->setIcon("gui/icon_play.png");
@@ -155,11 +163,25 @@ void RootScene::setupMapView() {
 	gameScene->setActiveCamera(disaCam);
 
 	m_model->setScene(gameScene);
-
-
+	setupScriptActorView(gameScene);
 
 	PG_GuiItem::anchor(item, PG_Anchor::Top, m_toolbar, PG_Anchor::Bottom);
 	PG_GuiItem::anchor(item, PG_Anchor::Left, m_rootItem, PG_Anchor::Left);
 	PG_GuiItem::anchor(item, PG_Anchor::Right, m_rootItem, PG_Anchor::Right);
 	PG_GuiItem::anchor(item, PG_Anchor::Bottom, m_rootItem, PG_Anchor::Bottom);
+}
+
+void RootScene::setupScriptActorView(PG_DisaMapScene* gameScene) {
+	/* The actors a script spawns are not part of the map, so they get a view of their own next to
+	 * the map's. It sits on the same root, which keeps them in the same space as the map's units
+	 * without the map view having to know they exist. */
+	auto* view = PG_new<PG_FootlooseViewNode>("N_ScriptActorView", gameScene->getRoot());
+	view->setItem([](PG_ActorNode* parent, const PG_ListModelLocation& location) {
+		auto* item = PG_new<PG_DisaActorViewNode>("ViewItem", parent);
+		item->setMode(PG_DisaActorViewNode::Mode_Script);
+		item->setLocation(location);
+		return static_cast<PG_ActorNode*>(item);
+		});
+	view->setItemUpdate(PG_FootlooseViewNode::getDefaultUpdateFunc<PG_DisaActorViewNode>());
+	view->setModel(m_model->getContext()->getActors());
 }

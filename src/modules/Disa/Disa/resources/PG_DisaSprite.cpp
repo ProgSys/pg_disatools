@@ -13,7 +13,7 @@ struct PG_DisaSpriteKeyframe {
 struct PG_DisaSpriteAnimation {
 	unsigned short id; //basically the name 
 	unsigned int length = 0.f;
-	bool mirrorX = false;
+	//bool mirrorX = false;
 	std::vector<PG_DisaSpriteKeyframe> keyframes;
 };
 
@@ -50,13 +50,6 @@ public:
 				animation.length += keyframe.duration;
 			}
 
-			if (animation.id == 1001 || animation.id == 1007 || animation.id == 1061 || animation.id == 1067) {
-				animations.push_back(animation);
-
-				animation.mirrorX = true;
-				animation.id += 10000;
-			}
-
 			animations.push_back(std::move(animation));
 		}
 	}
@@ -81,7 +74,7 @@ public:
 
 	}
 
-	void traverse(PG_Object* owner, const glm::mat4& modelMatrix, const PG_Geometry& geo,
+	void traverse(PG_Object* owner, const glm::mat4& modelMatrix, const PG_Geometry& geo, const PG_FrameModefiers& mods,
 		int animationIndex, float frame, const PG_SpriteTraverserser::TraverserseFunc& visitor) const override {
 
 		//a sheet the preview is pointed at may be anything, and a missing colortable is read below
@@ -106,6 +99,7 @@ public:
 
 		spriteMat.set("colorTable", colorTables[colorTableOffset]);
 		float i = 0.f;
+		const bool mirrorX = mods.contains("mirrorX");
 		for (auto it = cutouts.begin() + findKeyIt->layers.start_cutout; it != cutouts.begin() + (findKeyIt->layers.start_cutout + findKeyIt->layers.number_of_cutouts); ++it) {
 			if (it->external_sheet > 0) continue;
 			spriteMat.set("colortableStart", it->colortable * 16);
@@ -113,7 +107,7 @@ public:
 			glm::mat4 mat = modelMatrix;
 			mat = glm::translate(mat, glm::vec3(0.f, 0.f, i));
 			i -= 0.01f; //to combat at z-fighting
-			if (aniIt->mirrorX) {
+			if (mirrorX) {
 				mat = glm::rotate(mat, glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 			}
 			mat = glm::translate(mat, glm::vec3(it->offsetx / 50.f, it->offsety / 50.f, 0.f));

@@ -262,9 +262,29 @@ PG_Texture PG_DisaActorModel::getCharacterPortrait() const {
 	return PG_DisaCharactersModel::get()->getPortrait(getCharacterId());
 }
 
+void PG_DisaActorModel::setScriptOverride(const PG_DisaActorScriptOverride& value) {
+	const bool moved = m_scriptOverride.translation != value.translation;
+	m_scriptOverride = value;
+
+	PG_IdentitySet changes{ Identity_ScriptOverride };
+	if (moved) {
+		changes.insert(Identity_Translation);
+		emit translationChanged();
+	}
+	notifyParent(this, changes);
+}
+
+void PG_DisaActorModel::clearScriptOverride() {
+	setScriptOverride(PG_DisaActorScriptOverride());
+}
+
+glm::vec3 PG_DisaActorModel::getTranslation() const {
+	return m_scriptOverride.translation.value_or(getObjectTranslation());
+}
+
 PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 	switch (identity) {
-	case Identity_Translation: return getObjectTranslation();
+	case Identity_Translation: return getTranslation();
 	case Identity_TileGround: {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
 			if (auto location = model->getTiles()->getTileLocation(glm::ivec2(-m_data.x, m_data.z))) {

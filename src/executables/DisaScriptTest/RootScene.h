@@ -34,6 +34,7 @@ class PG_GuiItem;
 class PG_GuiRectangle;
 class PG_GuiRow;
 class PG_DisaScriptTestModel;
+class PG_DisaMapScene;
 
 /**
 * @brief An empty toolbar and a map underneath it
@@ -52,6 +53,8 @@ public:
 private:
 	void setupToolbar();
 	void setupMapView();
+	/// The actors a script spawns get their own view over the map's.
+	void setupScriptActorView(PG_DisaMapScene* gameScene);
 
 	PG_GuiItem* m_rootItem = nullptr;
 	PG_GuiRectangle* m_toolbar = nullptr;
