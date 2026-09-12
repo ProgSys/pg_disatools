@@ -52,11 +52,12 @@ static inline void appendFilters(std::stringstream& o, char sign, const std::arr
 	count = std::min(count, (unsigned int)filters.size());
 	if (count == 0) return; //a filter list the game doesn't look at has no place in the name
 
-	o << sign;
+	o << sign <<"(";
 	for (unsigned int i = 0; i < count; ++i) {
 		if (i != 0) o << ',';
 		o << filters[i];
 	}
+	o << ")";
 }
 
 static inline void parseFilters(const std::string& list, std::array<std::uint16_t, 4>& filters, std::uint16_t& count) {
@@ -72,20 +73,18 @@ std::string PG_TalkScript::buildScriptName(const talkScriptFileInfoHeader& info)
 	std::stringstream o;
 	o.fill('0');
 
-	if (info.scriptId != 0) {
-		o.width(7);
-		o << info.scriptId;
-	}
-	else {
-		//without a ID the search values are the only thing that tells two scripts apart
-		o.width(4);
-		o << info.dungeonId;
-		o << '_';
-		o.width(4);
-		o << info.searchFlag;
-		appendFilters(o, '+', info.gameStateFilterPositive, info.gameStateFilterPositiveSize);
-		appendFilters(o, '-', info.gameStateFilterNegative, info.gameStateFilterNegativeSize);
-	}
+	//without a ID the search values are the only thing that tells two scripts apart
+	o.width(4);
+	o << info.scriptId;
+	o << '_';
+	o.width(4);
+	o << info.dungeonId;
+	o << '_';
+	o.width(4);
+	o << info.searchFlag;
+	appendFilters(o, '+', info.gameStateFilterPositive, info.gameStateFilterPositiveSize);
+	appendFilters(o, '-', info.gameStateFilterNegative, info.gameStateFilterNegativeSize);
+
 
 	o << ".TSCRIPT";
 	return o.str();

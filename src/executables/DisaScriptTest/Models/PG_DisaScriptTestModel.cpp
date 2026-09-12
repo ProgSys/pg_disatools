@@ -4,11 +4,17 @@
 #include <Disa/fileformats/PG_DisaLooseFileContainer.h>
 #include <Disa/fileformats/PG_OLA.h>
 #include <Disa/fileformats/PG_PSPFS.h>
+#include <Disa/fileformats/PG_Script.h>
+#include <Disa/fileformats/PG_TalkScript.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Util/PG_StringUtil.h>
+
+#include <Script/PG_DisaScriptExecutor.h>
 
 void PG_DisaScriptTestModel::init() {
 	PG_DisaMainModel::init();
 	m_mapModel = PG_new<PG_DisaMapModel>("PG_DisaMapModel", this);
+	m_scriptExecutor = PG_new<PG_DisaScriptExecutor>("PG_DisaScriptExecutor", this);
 }
 
 bool PG_DisaScriptTestModel::openGameFiles() {
@@ -52,7 +58,28 @@ bool PG_DisaScriptTestModel::openGameFiles() {
 	m_charactersModel->open(exePath, m_subdata, startDat);
 
 	cachDisaGeometry(startDat.get(), "BASE.KM2", "R_DisaTeleporterBase");
+	openScripts(startDat);
 	return SUCCESS;
+}
+
+void PG_DisaScriptTestModel::openScripts(const std::shared_ptr<PG_OLA>& startDat) {
+	if (auto entry = startDat->find(PG_File("SCRIPT.DAT"), false)) m_scripts = entry.open<PG_Script>();
+	if (!m_scripts) OUT_WARNING("Failed to open SCRIPT.DAT, no script can be run!");
+
+	if (auto entry = startDat->find(PG_File("TALK.DAT"), false)) m_talkScripts = entry.open<PG_TalkScript>();
+	if (!m_talkScripts) OUT_WARNING("Failed to open TALK.DAT, no talk script can be run!");
+
+	m_scriptExecutor->setContainers(m_scripts, m_talkScripts);
+}
+
+bool PG_DisaScriptTestModel::runScript(int scriptId) {
+	if (scriptId < 0) return FAILURE;
+	return m_scriptExecutor->runScriptById(static_cast<unsigned int>(scriptId));
+}
+
+bool PG_DisaScriptTestModel::runTalkScript(int scriptId) {
+	if (scriptId < 0) return FAILURE;
+	return m_scriptExecutor->runTalkScriptById(static_cast<unsigned int>(scriptId));
 }
 
 bool PG_DisaScriptTestModel::openMap(const std::string& mapName) {
@@ -78,7 +105,22 @@ bool PG_DisaScriptTestModel::openMap(const std::string& mapName) {
 
 	//the model drops the textures of the last map inside open(), the old files may only go after that
 	auto previousFiles = std::move(m_looseFiles);
-	return m_mapModel->open(mpd, mppSD, mppHD);
+	if (!m_mapModel->open(mpd, mppSD, mppHD)) return FAILURE;
+
+	setDungeonFromMapName(mpdName);
+	return SUCCESS;
+}
+
+void PG_DisaScriptTestModel::setDungeonFromMapName(const PG_File& mpdName) {
+	/* A dungeon ID is the map's number, so MP00701 is dungeon 701. Scripts search their talk script
+	 * by it, and a LoadTalkScript given 0xFFFF as its dungeon means the one that is open. */
+	const std::string name = mpdName.getName();
+	const std::size_t firstDigit = name.find_first_of("0123456789");
+	if (firstDigit == std::string::npos) return;
+
+	const int dungeonId = PG_StringUtil::toInt(name.substr(firstDigit));
+	if (dungeonId <= 0) return;
+	m_scriptExecutor->setDungeonId(static_cast<unsigned int>(dungeonId));
 }
 
 bool PG_DisaScriptTestModel::openMap(int id) {
@@ -111,5 +153,8 @@ bool PG_DisaScriptTestModel::openMap(const PG_File& file) {
 
 	auto previousFiles = std::move(m_looseFiles);
 	m_looseFiles = std::move(files);
-	return m_mapModel->open(mpd, mppSD, mppHD);
+	if (!m_mapModel->open(mpd, mppSD, mppHD)) return FAILURE;
+
+	setDungeonFromMapName(mpdFile);
+	return SUCCESS;
 }

@@ -29,6 +29,7 @@
 #include "RootScene.h"
 
 #include <Base/Events/PG_KeyEvent.h>
+#include <Base/Events/PG_TickEvent.h>
 #include <Renderer/PG_SceneRenderer.h>
 #include <Resources/PG_Shader.h>
 #include <Scene/Gui/PG_GuiItem.h>
@@ -44,6 +45,7 @@
 
 #include <Disa/PG_DisaMapScene.h>
 #include <Models/PG_DisaScriptTestModel.h>
+#include <Script/PG_DisaScriptExecutor.h>
 
 void RootScene::init() {
 	PG_Scene::init();
@@ -72,6 +74,9 @@ void RootScene::init() {
 bool RootScene::event(PG_Event* e) {
 	switch (e->getType())
 	{
+		case PG_Event_Tick: {
+			m_model->getScriptExecutor()->tick(static_cast<PG_TickEvent*>(e)->getDeltaTimeSeconds());
+		}break;
 		case PG_Event_Key: {
 			auto key = static_cast<PG_KeyEvent*>(e);
 			if (key->getKey() == PG_Key_F5 && !key->isRepeat() && key->isUp()) {
@@ -115,7 +120,7 @@ void RootScene::setupToolbar() {
 	}
 
 	{
-		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 99999, m_toolbarRow);
+		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 900000, m_toolbarRow);
 		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("execTalkScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
@@ -123,10 +128,12 @@ void RootScene::setupToolbar() {
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Run talk script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
+
+		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, spinBox] { model->runTalkScript(static_cast<int>(spinBox->getValue())); });
 	}
 
 	{
-		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 99999, m_toolbarRow);
+		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 900000, m_toolbarRow);
 		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("execScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
@@ -134,6 +141,8 @@ void RootScene::setupToolbar() {
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Run Script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
+
+		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, spinBox] { model->runScript(static_cast<int>(spinBox->getValue())); });
 	}
 }
 

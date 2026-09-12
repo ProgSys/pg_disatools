@@ -33,7 +33,7 @@
 
 /// header is the script count, a zero, then a address and a ID per script
 static inline unsigned int headerSizeOf(unsigned int numberOfScripts) {
-	return sizeof(unsigned int) * 2 + numberOfScripts * sizeof(unsigned int) * 2;
+	return sizeof(unsigned int) + numberOfScripts * sizeof(unsigned int) * 2;
 }
 
 std::string PG_Script::buildScriptName(unsigned int scriptId) {
@@ -68,9 +68,7 @@ bool PG_Script::open(std::shared_ptr<PG::STREAM::In> reader, const std::function
 
 	const unsigned int fileSize = reader->size();
 	const unsigned int numberOfScripts = reader->readUnsignedInt();
-	const unsigned int zero = reader->readUnsignedInt();
 
-	FILE_CONTAINER_ERROR_TEST(zero != 0, "Second header value is expected to be zero, but is " << zero << "!");
 	FILE_CONTAINER_ERROR_TEST(numberOfScripts == 0 || numberOfScripts > 90000, "SCRIPT.DAT has a invalid number of scripts (" << numberOfScripts << ")!");
 
 	const unsigned int headerSize = headerSizeOf(numberOfScripts);
@@ -89,6 +87,7 @@ bool PG_Script::open(std::shared_ptr<PG::STREAM::In> reader, const std::function
 
 	std::vector<PG_DisaFileEntry> contains;
 	contains.reserve(numberOfScripts);
+
 
 	for (unsigned int i = 0; i < numberOfScripts; ++i) {
 		const unsigned int address = addresses[i];
@@ -121,7 +120,6 @@ bool PG_Script::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 	m_originalReader = createReaderOriginal();
 
 	writer->writeInt(size());
-	writer->writeInt(0);
 
 	//write a empty header, the addresses are only known once the data is written
 	const unsigned int startFileTable = writer->pos();
