@@ -26,10 +26,10 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 
 #include <Util/Debug/PG_DebugOut.h>
-#include <Util/PG_StringUtil.h>
 
 /// header is the script count, a zero, then a address and a ID per script
 static inline unsigned int headerSizeOf(unsigned int numberOfScripts) {
@@ -44,12 +44,23 @@ std::string PG_Script::buildScriptName(unsigned int scriptId) {
 	return o.str();
 }
 
+unsigned int PG_Script::buildScriptId(const std::string& filename) {
+	//a file name is whatever the user typed, so a name that is no number carries no ID
+	try {
+		const long long value = std::stoll(PG_File(filename).getName());
+		if (value < 0 || value > std::numeric_limits<unsigned int>::max()) return 0;
+		return (unsigned int)value;
+	} catch (...) {
+		return 0;
+	}
+}
+
 unsigned int PG_Script::getScriptId(const PG_DisaFileEntry& entry) {
 	//a entry read from a SCRIPT.DAT keeps its ID, one the user added only has the name it was given
 	if (const PG_Variety& extraData = entry.getExtraData(); extraData.is<unsigned int>()) {
 		return extraData.get<unsigned int>();
 	}
-	return (unsigned int)PG_StringUtil::toInt(entry.getInfo().getName().getName());
+	return buildScriptId(entry.getInfo().getName().getFile());
 }
 
 bool PG_Script::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {

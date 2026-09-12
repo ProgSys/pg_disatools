@@ -10,6 +10,7 @@
 #include <Disa/fileformats/PG_SOLA.h>
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/fileformats/PG_Script.h>
+#include <Disa/fileformats/PG_TalkScript.h>
 #include <Disa/fileformats/PG_IMY.h>
 #include <Stream/PG_StreamOutByteFile.h>
 #include <Stream/PG_StreamInOutByteVector.h>
@@ -114,6 +115,7 @@ static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(PG_DisaF
 	case PG_DisaFileInfo::OLA: return std::shared_ptr<PG_OLA>(PG_new<PG_OLA>("PG_OLA"));
 	case PG_DisaFileInfo::SOLA: return std::shared_ptr<PG_SOLA>(PG_new<PG_SOLA>("PG_SOLA"));
 	case PG_DisaFileInfo::SCRIPT: return std::shared_ptr<PG_Script>(PG_new<PG_Script>("PG_Script"));
+	case PG_DisaFileInfo::TALK_SCRIPT: return std::shared_ptr<PG_TalkScript>(PG_new<PG_TalkScript>("PG_TalkScript"));
 	}
 	return {};
 }
@@ -347,7 +349,10 @@ void PG_DisaFileContainerModel::importFiles(const std::vector<PG_File>& files) {
 		}
 
 		auto& items = m_fileContainer->getItems();
-		m_fileContainer->insert(std::next(items.begin(), insertAt), PG_DisaFileEntry(std::move(info), m_fileContainer));
+		PG_DisaFileEntry entry(std::move(info), m_fileContainer);
+		//containers like SCRIPT.DAT keep data per entry that the file itself doesn't hold
+		entry.setExtraData(m_fileContainer->createDefaultExtraData(entry.getName()));
+		m_fileContainer->insert(std::next(items.begin(), insertAt), std::move(entry));
 		items[insertAt].setContainer(container);
 		PG_DisaFileManagerMainModel::get()->addChangedFile(std::move(container));
 		++insertAt;

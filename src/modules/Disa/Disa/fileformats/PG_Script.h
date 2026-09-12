@@ -43,13 +43,21 @@ public:
     bool open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) final;
     bool save(std::shared_ptr<PG::STREAM::Out> writer) const final;
 
+    PG_Variety createDefaultExtraData(const std::string& filename = {}) final { return PG_Variety(buildScriptId(filename)); }
+
     /*!
      * @brief The script ID an entry is stored under, it is what the game references a script by.
-     * @details Taken from the ID list when the entry was read, otherwise parsed from the file name.
+     * @details Taken from the ID list when the entry was read, otherwise rebuilt from the file
+     * name, which is how a file the user added gets its ID.
      */
     static unsigned int getScriptId(const PG_DisaFileEntry& entry);
     /*!
      * @brief The file name an entry with the given script ID gets, like '1000001.SCRIPT'.
      */
     static std::string buildScriptName(unsigned int scriptId);
+    /*!
+     * @brief The script ID a file name describes, the reverse of buildScriptName.
+     * @details A name that is no script name at all gives 0.
+     */
+    static unsigned int buildScriptId(const std::string& filename);
 };

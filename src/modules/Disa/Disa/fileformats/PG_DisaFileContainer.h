@@ -221,6 +221,14 @@ public:
     * @brief Create reader for original data to read the given entry (not saved state)
     */
     virtual std::shared_ptr<PG::STREAM::In> createEntryReaderOriginal(const PG_DisaFileEntry& entry) const;
+    /**
+    * @brief The extra data a entry gets when it is newly added to this container
+    * @details Containers like SCRIPT.DAT and TALK.DAT keep data per entry that the entry
+    * itself doesn't hold, so a added file can only take it from the name it was given.
+    * @param filename Name the new entry has, without any directory
+    * @returns Empty when the container has no extra data
+    */
+    virtual PG_Variety createDefaultExtraData(const std::string& filename = {}) { return {}; }
 
     using PG_DisaFileInterface::open;
     using PG_DisaFileInterface::save;

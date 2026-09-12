@@ -27,6 +27,7 @@
 #include <Util/Typedefs.h>
 #include <Disa/fileformats/PG_TX2.h>
 #include <Disa/fileformats/PG_SH.h>
+#include <Disa/fileformats/PG_TalkScript.h>
 
 template<typename T = bool>
 inline T openFile(const PG_File& file, T (*func)(PG::STREAM::In*)) {
@@ -133,6 +134,27 @@ bool PG_Disa::isScript(PG::STREAM::In* reader) {
 	for (unsigned int a : data) {
 		if (a > std::numeric_limits<unsigned int>::max() / 2) return FAILURE;
 	}
+
+	return SUCCESS;
+}
+
+bool PG_Disa::isTalkScript(const PG_File& file) {
+	return openFile(file, isTalkScript);
+}
+bool PG_Disa::isTalkScript(PG::STREAM::In* reader) {
+	const unsigned int scripts = reader->readUnsignedInt();
+	const unsigned int scriptsAgain = reader->readUnsignedInt();
+	if (scripts == 0 || scripts > 90000 || scripts != scriptsAgain) return FAILURE;
+
+	const unsigned int headerSize = sizeof(unsigned int) * 2 + scripts * sizeof(talkScriptFileInfoHeader);
+	const unsigned int readerSize = reader->size();
+	if (headerSize >= readerSize) return FAILURE;
+
+	//the first entry has to describe a script that starts right where the header ends
+	talkScriptFileInfoHeader info;
+	reader->read(info);
+	if (info.startAddress != 0) return FAILURE;
+	if (info.gameStateFilterPositiveSize > 4 || info.gameStateFilterNegativeSize > 4) return FAILURE;
 
 	return SUCCESS;
 }

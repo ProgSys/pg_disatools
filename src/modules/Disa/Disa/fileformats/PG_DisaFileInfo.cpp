@@ -102,12 +102,13 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
 
     using TestFunc = bool(*)(PG::STREAM::In* reader);
     using PairType = std::pair<Type, TestFunc>;
-    constexpr static std::array<std::pair<Type, TestFunc>, 8> tests = {
+    constexpr static std::array<std::pair<Type, TestFunc>, 9> tests = {
         PairType{Type::PSPFS_V1, &PG_Disa::isPSPFS},
         PairType{Type::IMY, &PG_Disa::isIMY},
         PairType{Type::COLA, &PG_Disa::isIMYPackage},
         PairType{Type::SOLA, &PG_Disa::isSOLA},
         PairType{Type::SCRIPT, &PG_Disa::isScript},
+        PairType{Type::TALK_SCRIPT, &PG_Disa::isTalkScript},
         PairType{Type::TX2, &PG_Disa::isTX2},
         PairType{Type::OLA, &PG_Disa::isOLA},
         PairType{Type::SH, &PG_Disa::isSH},
