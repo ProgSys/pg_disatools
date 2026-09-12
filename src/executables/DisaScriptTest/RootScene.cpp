@@ -46,13 +46,11 @@
 
 #include <Disa/PG_DisaMapScene.h>
 #include <Models/PG_DisaScriptTestModel.h>
+#include <Script/PG_DisaContext.h>
 #include <Script/PG_DisaScriptExecutor.h>
 
 void RootScene::init() {
 	PG_Scene::init();
-
-	const std::string defaultMap = "MP00701";
-
 	m_model = PG_new<PG_DisaScriptTestModel>("PG_DisaScriptTestModel", this);
 	m_model->openGameFiles();
 
@@ -68,8 +66,6 @@ void RootScene::init() {
 	setupToolbar();
 	guiMain->setTooltipItem(PG_new<PG_GuiTooltip>("Tooltip", m_rootItem));
 	setupMapView();
-
-	m_model->openMap(defaultMap);
 }
 
 bool RootScene::event(PG_Event* e) {
@@ -117,7 +113,7 @@ void RootScene::setupToolbar() {
 		btn->setTooltipText("Open Map");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
 
-		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, spinBox] {  model->openMap(static_cast<int>(spinBox->getValue())); });
+		connect(btn, &PG_GuiButton::clicked, m_model->getContext(), [model = m_model->getContext(), spinBox] {  model->setDungeonId(static_cast<int>(spinBox->getValue())); });
 	}
 
 	{

@@ -39,6 +39,7 @@
 
 class PG_Script;
 class PG_TalkScript;
+class PG_DisaContext;
 
 /**
 * @brief Runs the game's two script languages side by side.
@@ -81,14 +82,6 @@ public:
 	bool runTalkScriptById(const PG_DisaIdentifier& scriptId, int parentLane = -1);
 
 	/**
-	* @brief The dungeon the scripts run in, a talk script search with no dungeon of its own uses it.
-	* @details Map group times 100 plus the map number, so MP00701 is 701. SetDungeon writes it, and
-	* a LoadTalkScript given 0xFFFF as its dungeon means "whatever is loaded right now".
-	*/
-	unsigned int getDungeonId() const { return m_dungeonId; }
-	void setDungeonId(unsigned int dungeonId) { m_dungeonId = dungeonId; }
-
-	/**
 	* @brief Advances every lane.
 	* @param deltaTimeSeconds Time since the last tick, a lane sleeping for 60 ticks needs a second of it.
 	*/
@@ -125,13 +118,6 @@ public:
 	/// True while a talk script is running, only one of them can be active at a time.
 	bool hasRunningTalkLane() const;
 
-	/**
-	* @brief The global game state the talk `set` and `clear` and the script `SetFlag` write.
-	* @param flagIndex Index of the bit, the same number an `If` compares against.
-	*/
-	bool getGameFlag(unsigned int flagIndex) const;
-	void setGameFlag(unsigned int flagIndex, bool value);
-
 	/// Ticks a confirm waits before it continues, there is no dialog box to click yet.
 	float getConfirmTicks() const { return m_confirmTicks; }
 	void setConfirmTicks(float ticks) { m_confirmTicks = ticks; }
@@ -139,6 +125,9 @@ public:
 	/// Ticks a wait on a game flag gives up after, so a script cannot hang the tool.
 	float getWaitTimeoutTicks() const { return m_waitTimeoutTicks; }
 	void setWaitTimeoutTicks(float ticks) { m_waitTimeoutTicks = ticks; }
+
+	PG_DisaContext& context();
+	const PG_DisaContext& context() const;
 
 private:
 	/// Reads the entry and parses it into a new lane, returns the lane index or -1.
@@ -160,10 +149,7 @@ private:
 	std::shared_ptr<PG_Script> m_scripts;
 	std::shared_ptr<PG_TalkScript> m_talkScripts;
 
-	/* The game's flags live in one bit array that TALK.DAT also filters its scripts by. */
-	std::vector<unsigned char> m_gameState = std::vector<unsigned char>(8192, 0);
 
-	unsigned int m_dungeonId = 0;
 	float m_confirmTicks = 60.f;
 	float m_waitTimeoutTicks = 300.f;
 };

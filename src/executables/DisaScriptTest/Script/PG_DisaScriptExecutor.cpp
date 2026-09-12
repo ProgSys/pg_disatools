@@ -11,6 +11,7 @@
 #include <Disa/fileformats/PG_Script.h>
 #include <Disa/fileformats/PG_TalkScript.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Script/PG_DisaContext.h>
 
 namespace {
 
@@ -195,7 +196,7 @@ int readOperand(const PG_DisaScriptExecutor& executor, const unsigned char* oper
 	if (operand[0] != 1) return 0;
 	/* Everything below 60000 is a game state bit, above it are queries into a world the tool has
 	 * none of, so those read as zero. */
-	if (value < 60000) return executor.getGameFlag(value) ? 1 : 0;
+	if (value < 60000) return executor.context().getGameFlag(value) ? 1 : 0;
 	return 0;
 }
 
@@ -251,7 +252,7 @@ EDisaScriptResult cmdSetFlag(PG_DisaScriptExecutor& executor, std::size_t laneIn
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
 	if (bytes[3] != 1) return EDisaScriptResult::Done; //only mode 1 writes, the game ignores the rest
-	executor.setGameFlag(readUInt(bytes + 1, 2), readOperand(executor, bytes + 4) != 0);
+	executor.context().setGameFlag(readUInt(bytes + 1, 2), readOperand(executor, bytes + 4) != 0);
 	return EDisaScriptResult::Done;
 }
 
@@ -279,12 +280,13 @@ EDisaScriptResult cmdSetDungeon(PG_DisaScriptExecutor& executor, std::size_t lan
 	const unsigned int dungeonId = readUInt(static_cast<const unsigned char*>(data), 2);
 	if (dungeonId == 0xFFFF) {
 		std::stringstream note;
-		note << "no such dungeon, keeps " << executor.getDungeonId();
+		note << "no such dungeon, keeps current dungeon";
 		printCommand(executor, laneIndex, data, note.str().c_str());
 		return EDisaScriptResult::Done;
 	}
-
-	executor.setDungeonId(dungeonId);
+	if (auto* context = executor.getParent<PG_DisaContext>()) {
+		context->setDungeonId(dungeonId);
+	}
 	printCommand(executor, laneIndex, data);
 	return EDisaScriptResult::Done;
 }
@@ -302,7 +304,7 @@ EDisaScriptResult cmdLoadTalkScript(PG_DisaScriptExecutor& executor, std::size_t
 	unsigned int flag = readUInt(bytes + 5, 2);
 	//0xFFFF is not a dungeon, it stands for the one that is loaded right now
 	const bool currentDungeon = dungeonId == 0xFFFF;
-	if (currentDungeon) dungeonId = executor.getDungeonId();
+	if (currentDungeon) dungeonId = executor.context().getDungeonId();
 
 	std::stringstream stream;
 	stream << id << "::" << dungeonId << "::" << flag;
@@ -314,7 +316,7 @@ EDisaScriptResult cmdLoadTalkScript(PG_DisaScriptExecutor& executor, std::size_t
 	printCommand(executor, laneIndex, data, note.str().c_str());
 
 	//the game reports the result in a game state bit, so a following if can branch on it
-	executor.setGameFlag(5, !loaded);
+	executor.context().setGameFlag(5, !loaded);
 	return EDisaScriptResult::Done;
 }
 
@@ -328,7 +330,7 @@ EDisaScriptResult cmdWaitForFlag(PG_DisaScriptExecutor& executor, std::size_t la
 	PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	const unsigned int flag = currentCommandOf(lane).dataSize >= 2 ? readUInt(static_cast<const unsigned char*>(data), 2) : 0;
 
-	if (executor.getGameFlag(flag)) {
+	if (executor.context().getGameFlag(flag)) {
 		printCommand(executor, laneIndex, data, "flag is set");
 		lane.memory.waitedTicks = 0.f;
 		return EDisaScriptResult::Done;
@@ -392,7 +394,7 @@ EDisaScriptResult cmdTalkFlag(PG_DisaScriptExecutor& executor, std::size_t laneI
 
 	/* The argument splits into a byte index and a bit inside it, which put back together is the
 	 * plain bit index the script SetFlag and an If already use. */
-	executor.setGameFlag(readUInt(static_cast<const unsigned char*>(data), 2), command.opCode == 0x09);
+	executor.context().setGameFlag(readUInt(static_cast<const unsigned char*>(data), 2), command.opCode == 0x09);
 	return EDisaScriptResult::Done;
 }
 
@@ -868,7 +870,7 @@ PG_DisaFileEntry PG_DisaScriptExecutor::findTalkScript(const PG_DisaIdentifier& 
 		 * negative one a clear bit, which is what sorts the story variants of a scene. */
 		const std::size_t positives = std::min<std::size_t>(info.gameStateFilterPositiveSize, info.gameStateFilterPositive.size());
 		const std::size_t negatives = std::min<std::size_t>(info.gameStateFilterNegativeSize, info.gameStateFilterNegative.size());
-		const auto isSet = [this](std::uint16_t bit) { return getGameFlag(bit); };
+		const auto isSet = [c = &context()](std::uint16_t bit) { return c->getGameFlag(bit); };
 
 		if (!std::all_of(info.gameStateFilterPositive.begin(), info.gameStateFilterPositive.begin() + positives, isSet)) continue;
 		if (std::any_of(info.gameStateFilterNegative.begin(), info.gameStateFilterNegative.begin() + negatives, isSet)) continue;
@@ -932,18 +934,16 @@ bool PG_DisaScriptExecutor::hasRunningChildren(std::size_t laneIndex) const {
 	return false;
 }
 
-bool PG_DisaScriptExecutor::getGameFlag(unsigned int flagIndex) const {
-	const std::size_t byteIndex = flagIndex >> 3;
-	if (byteIndex >= m_gameState.size()) return false;
-	return (m_gameState[byteIndex] & (1 << (flagIndex & 7))) != 0;
+
+
+PG_DisaContext& PG_DisaScriptExecutor::context() {
+	if (auto* context = getParent<PG_DisaContext>()) return *context;
+	static PG_DisaContext local;
+	return local;
 }
 
-void PG_DisaScriptExecutor::setGameFlag(unsigned int flagIndex, bool value) {
-	const std::size_t byteIndex = flagIndex >> 3;
-	if (byteIndex >= m_gameState.size()) return;
-	const unsigned char mask = 1 << (flagIndex & 7);
-	if (value) m_gameState[byteIndex] |= mask;
-	else m_gameState[byteIndex] &= ~mask;
+const PG_DisaContext& PG_DisaScriptExecutor::context() const {
+	return const_cast<PG_DisaScriptExecutor*>(this)->context();
 }
 
 bool PG_DisaScriptExecutor::isRunning() const {

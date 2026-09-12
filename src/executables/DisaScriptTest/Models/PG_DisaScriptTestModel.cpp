@@ -9,12 +9,17 @@
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
 
+#include <Script/PG_DisaContext.h>
 #include <Script/PG_DisaScriptExecutor.h>
 
 void PG_DisaScriptTestModel::init() {
 	PG_DisaMainModel::init();
 	m_mapModel = PG_new<PG_DisaMapModel>("PG_DisaMapModel", this);
-	m_scriptExecutor = PG_new<PG_DisaScriptExecutor>("PG_DisaScriptExecutor", this);
+	m_context = PG_new<PG_DisaContext>("PG_DisaContext", this);
+	m_scriptExecutor = PG_new<PG_DisaScriptExecutor>("PG_DisaScriptExecutor", m_context);
+
+	connect(m_context, &PG_DisaContext::dungeonChanged, this, &PG_DisaScriptTestModel::openMapIntern);
+	postCallEvent([this] { openMapIntern(m_context->getDungeonId()); });
 }
 
 bool PG_DisaScriptTestModel::openGameFiles() {
@@ -82,7 +87,7 @@ bool PG_DisaScriptTestModel::runTalkScript(const PG_DisaIdentifier& scriptId) {
 	return m_scriptExecutor->runTalkScriptById(scriptId);
 }
 
-bool PG_DisaScriptTestModel::openMap(const std::string& mapName) {
+bool PG_DisaScriptTestModel::openMapFile(const std::string& mapName) {
 	if (!m_dataDat) {
 		OUT_ERROR("No game files are open, \"" << mapName << "\" can't be found!");
 		return FAILURE;
@@ -106,55 +111,13 @@ bool PG_DisaScriptTestModel::openMap(const std::string& mapName) {
 	//the model drops the textures of the last map inside open(), the old files may only go after that
 	auto previousFiles = std::move(m_looseFiles);
 	if (!m_mapModel->open(mpd, mppSD, mppHD)) return FAILURE;
-
-	setDungeonFromMapName(mpdName);
 	return SUCCESS;
 }
 
-void PG_DisaScriptTestModel::setDungeonFromMapName(const PG_File& mpdName) {
-	/* A dungeon ID is the map's number, so MP00701 is dungeon 701. Scripts search their talk script
-	 * by it, and a LoadTalkScript given 0xFFFF as its dungeon means the one that is open. */
-	const std::string name = mpdName.getName();
-	const std::size_t firstDigit = name.find_first_of("0123456789");
-	if (firstDigit == std::string::npos) return;
-
-	const int dungeonId = PG_StringUtil::toInt(name.substr(firstDigit));
-	if (dungeonId <= 0) return;
-	m_scriptExecutor->setDungeonId(static_cast<unsigned int>(dungeonId));
-}
-
-bool PG_DisaScriptTestModel::openMap(int id) {
+bool PG_DisaScriptTestModel::openMapIntern(int id) {
 	if (id < 0) return false;
 
 	std::stringstream stream;
 	stream << "MP" << std::setfill('0') << std::setw(5) << id;
-	return openMap(stream.str());
-}
-
-bool PG_DisaScriptTestModel::openMap(const PG_File& file) {
-	PG_File given = file;
-	if (file.getFileExtensionFormated() == "mpp") {
-		std::string name = file.getName();
-		if (file.toUpper().getFile().starts_with("NEW_")) name.erase(0, 4); //the HD textures
-		given = file.replaceFileNameAndExtension(name + ".mpd");
-	}
-	const PG_File mpdFile = std::move(given);
-
-	auto files = std::make_shared<PG_DisaLooseFileContainer>();
-	auto mpd = files->add(mpdFile);
-	if (!mpd) return FAILURE;
-
-	const PG_File mppFile = mpdFile.replaceFileExtension("mpp");
-	auto mppSD = mppFile.exists() ? files->add(mppFile) : PG_DisaFileEntry();
-	if (!mppSD) OUT_WARNING("Failed to find the mpp of \"" << mpdFile << "\", the map stays untextured!");
-
-	const PG_File mppHDFile = mppFile.replaceFileNameAndExtension("NEW_" + mppFile.getFile());
-	auto mppHD = mppHDFile.exists() ? files->add(mppHDFile) : PG_DisaFileEntry();
-
-	auto previousFiles = std::move(m_looseFiles);
-	m_looseFiles = std::move(files);
-	if (!m_mapModel->open(mpd, mppSD, mppHD)) return FAILURE;
-
-	setDungeonFromMapName(mpdFile);
-	return SUCCESS;
+	return openMapFile(stream.str());
 }

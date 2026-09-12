@@ -43,6 +43,7 @@ class PG_DisaLooseFileContainer;
 class PG_DisaCharactersModel;
 class PG_DisaMapScene;
 class PG_DisaScriptExecutor;
+class PG_DisaContext;
 
 /**
 * @brief Owns the map that is shown, and everything needed to read one
@@ -62,19 +63,6 @@ public:
 	* @details Without it there are no maps, and without its character data actors show as cubes.
 	*/
 	bool openGameFiles();
-
-	/**
-	* @brief Opens a map out of DATA.DAT
-	* @param mapName With or without the extension, so "MP00701" and "MP00701.MPD" both work
-	*/
-	bool openMap(const std::string& mapName);
-	bool openMap(int id);
-	/**
-	* @brief Opens a loose mpd or mpp
-	* @details The partner files are taken from the same folder, an mpp resolves to its mpd.
-	*/
-	bool openMap(const PG_File& file);
-
 	/**
 	* @brief Runs a script out of SCRIPT.DAT by the ID it is stored under
 	* @details Starts it, the script then runs over the next ticks like it would in game.
@@ -84,19 +72,25 @@ public:
 	bool runTalkScript(const PG_DisaIdentifier& scriptId);
 
 	PG_DisaMapModel* getMapModel() const { return m_mapModel; }
+	PG_DisaContext* getContext() const { return m_context; }
 	PG_DisaScriptExecutor* getScriptExecutor() const { return m_scriptExecutor; }
 
 	PG_DisaMapScene* getScene() const { return m_scene; }
 	void setScene(PG_DisaMapScene* scene) { m_scene = scene; }
 
 private:
+	bool openMapIntern(int id);
+	/**
+	* @brief Opens a map out of DATA.DAT
+	* @param mapName With or without the extension, so "MP00701" and "MP00701.MPD" both work
+	*/
+	bool openMapFile(const std::string& mapName); //@todo replace to PG_DisaIdentifier
 	/// Opens SCRIPT.DAT and TALK.DAT out of START.DAT and hands them to the executor.
 	void openScripts(const std::shared_ptr<PG_OLA>& startDat);
-	/// Tells the executor which dungeon the open map is, scripts search their talk script by it.
-	void setDungeonFromMapName(const PG_File& mpdName);
 
 	PG_DisaMapModel* m_mapModel = nullptr;
 	PG_DisaMapScene* m_scene = nullptr;
+	PG_DisaContext* m_context = nullptr;
 	PG_DisaScriptExecutor* m_scriptExecutor = nullptr;
 
 	/* The map reads its textures through these, so they have to outlive the map. Holding the
