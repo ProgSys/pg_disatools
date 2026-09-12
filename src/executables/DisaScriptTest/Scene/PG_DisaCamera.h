@@ -9,6 +9,7 @@ public:
 	using PG_FlyCameraNode::PG_FlyCameraNode;
 
 	void init() override;
+	void rotateCam(int dir);
 
 protected:
 	void onMove(float deltaTime) override;

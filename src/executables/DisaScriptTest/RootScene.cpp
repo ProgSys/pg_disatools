@@ -37,6 +37,8 @@
 #include <Scene/Gui/PG_GuiRenderItem.h>
 #include <Scene/Gui/PG_GuiRow.h>
 #include <Scene/Gui/PG_GuiTooltip.h>
+#include <Scene/Gui/PG_GuiSpinBox.h>
+#include <Scene/Gui/PG_GuiButton.h>
 #include <Scene/PG_CameraNode.h>
 #include <Scene/PG_DisaCamera.h>
 
@@ -93,10 +95,46 @@ void RootScene::setupToolbar() {
 	PG_GuiItem::anchor(m_toolbar, PG_Anchor::Right, m_rootItem, PG_Anchor::Right);
 
 	m_toolbarRow = PG_new<PG_GuiRow>("ToolbarRow", glm::vec2(0.f, 10.f), glm::vec2(39.f, 30.f), m_toolbar);
-	m_toolbarRow->setSpacing(3.f);
 	m_toolbarRow->setMargin(PG_Anchor::Left, 10.f);
 	m_toolbarRow->setMargin(PG_Anchor::Right, 10.f);
+	m_toolbarRow->setSpacing(0.f);
 	m_toolbarRow->fill(m_toolbar);
+
+	constexpr glm::vec2 spinBoxSize(126.f, 30.f);
+	{
+		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 99999, m_toolbarRow);
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+
+		auto btn = PG_new<PG_GuiButton>("openMap", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
+		btn->setIcon("gui/icon_play.png");
+		btn->setBackground("M_GuiRoundedRectangleRight5");
+		btn->setTooltipText("Open Map");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
+
+		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, spinBox] {  model->openMap(static_cast<int>(spinBox->getValue())); });
+	}
+
+	{
+		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 99999, m_toolbarRow);
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+
+		auto btn = PG_new<PG_GuiButton>("execTalkScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
+		btn->setIcon("gui/icon_play.png");
+		btn->setBackground("M_GuiRoundedRectangleRight5");
+		btn->setTooltipText("Run talk script");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
+	}
+
+	{
+		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 99999, m_toolbarRow);
+		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+
+		auto btn = PG_new<PG_GuiButton>("execScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
+		btn->setIcon("gui/icon_play.png");
+		btn->setBackground("M_GuiRoundedRectangleRight5");
+		btn->setTooltipText("Run Script");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
+	}
 }
 
 void RootScene::setupMapView() {

@@ -63,6 +63,7 @@ public:
 	* @param mapName With or without the extension, so "MP00701" and "MP00701.MPD" both work
 	*/
 	bool openMap(const std::string& mapName);
+	bool openMap(int id);
 	/**
 	* @brief Opens a loose mpd or mpp
 	* @details The partner files are taken from the same folder, an mpp resolves to its mpd.

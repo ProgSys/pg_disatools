@@ -79,6 +79,14 @@ bool PG_DisaScriptTestModel::openMap(const std::string& mapName) {
 	return m_mapModel->open(mpd, mppSD, mppHD);
 }
 
+bool PG_DisaScriptTestModel::openMap(int id) {
+	if (id < 0) return false;
+
+	std::stringstream stream;
+	stream << "MP" << std::setfill('0') << std::setw(5) << id;
+	return openMap(stream.str());
+}
+
 bool PG_DisaScriptTestModel::openMap(const PG_File& file) {
 	PG_File given = file;
 	if (file.getFileExtensionFormated() == "mpp") {
