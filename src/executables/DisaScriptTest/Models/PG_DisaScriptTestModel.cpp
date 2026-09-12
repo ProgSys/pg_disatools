@@ -72,14 +72,14 @@ void PG_DisaScriptTestModel::openScripts(const std::shared_ptr<PG_OLA>& startDat
 	m_scriptExecutor->setContainers(m_scripts, m_talkScripts);
 }
 
-bool PG_DisaScriptTestModel::runScript(int scriptId) {
-	if (scriptId < 0) return FAILURE;
-	return m_scriptExecutor->runScriptById(static_cast<unsigned int>(scriptId));
+bool PG_DisaScriptTestModel::runScript(const PG_DisaIdentifier& scriptId) {
+	if (!scriptId.isValid()) return FAILURE;
+	return m_scriptExecutor->runScriptById(scriptId);
 }
 
-bool PG_DisaScriptTestModel::runTalkScript(int scriptId) {
-	if (scriptId < 0) return FAILURE;
-	return m_scriptExecutor->runTalkScriptById(static_cast<unsigned int>(scriptId));
+bool PG_DisaScriptTestModel::runTalkScript(const PG_DisaIdentifier& scriptId) {
+	if (!scriptId.isValid()) return FAILURE;
+	return m_scriptExecutor->runTalkScriptById(scriptId);
 }
 
 bool PG_DisaScriptTestModel::openMap(const std::string& mapName) {

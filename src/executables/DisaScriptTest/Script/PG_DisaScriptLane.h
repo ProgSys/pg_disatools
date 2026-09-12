@@ -31,22 +31,9 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <Disa/PG_DisaIdentifier.h>
 
 #include "PG_DisaScriptCommand.h"
-
-/**
-* @brief What the game searches a talk script by, TALK.DAT has no plain lookup by ID.
-* @details Every value that is zero matches anything, so a search only has to agree with the ones
-* that are set. The game takes the first entry of the file table that fits and whose game state
-* filters pass, which is what puts the story variants of a scene in front of the plain one.
-*/
-struct PG_DisaTalkScriptSearch {
-	unsigned int scriptId = 0;
-	unsigned int dungeonId = 0; /// Map group times 100 plus the map number, so MP00701 is 701
-	unsigned int searchFlag = 0; /// 1 opens a stage, 2 closes it, 0 is everything else
-
-	inline bool isEmpty() const { return scriptId == 0 && dungeonId == 0 && searchFlag == 0; }
-};
 
 /**
 * @brief The variables one lane keeps while it runs.
@@ -84,9 +71,9 @@ struct PG_DisaScriptLane {
 	std::size_t cursor = 0; /// Command that runs next
 	int parent = -1; /// Lane that started this one, -1 when the user started it
 	EType type = Script;
-	unsigned int scriptId = 0;
+	PG_DisaIdentifier scriptId;
 	/// Talk lanes only, `restart` runs this again so a changed game state can pick another script.
-	PG_DisaTalkScriptSearch search;
+	PG_DisaIdentifier search;
 	std::string name; /// What the lane prints itself as, the entry's file name
 	bool finished = false;
 

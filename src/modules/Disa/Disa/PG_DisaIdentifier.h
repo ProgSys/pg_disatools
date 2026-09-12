@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 struct PG_DisaIdentifier {
 	constexpr static unsigned int customIdStart = 10001;
@@ -34,6 +35,12 @@ struct PG_DisaIdentifier {
 		if (!isValid()) return {};
 		return std::string(value.begin() + splitAt, value.end());
 	}
+	/**
+	* @brief Used for talk scripts
+	* Pattern <id>::<dungeonId>::<flag>
+	*/
+	std::vector<int> getIds() const;
+	int toNumber() const;
 
 	bool isCustom() const {
 		return getNamespace() != "disa";
@@ -70,6 +77,10 @@ struct PG_DisaIdentifier {
 		splitAt = 0;
 		value.clear();
 	}
+
+
+	static PG_DisaIdentifier disaIdentifierFromIds(unsigned int id);
+	static PG_DisaIdentifier disaIdentifierFromIds(unsigned int a, unsigned int b, unsigned int c);
 
 	static inline bool isCustomId(unsigned int id) { return id >= customIdStart; }
 	static inline bool isCustomMagicId(unsigned int id) { return id >= customMagicIdStart; }

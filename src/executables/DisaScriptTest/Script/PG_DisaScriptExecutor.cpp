@@ -260,7 +260,7 @@ EDisaScriptResult cmdRunScript(PG_DisaScriptExecutor& executor, std::size_t lane
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 3) return EDisaScriptResult::Done;
 
-	executor.runScriptById(readUInt(static_cast<const unsigned char*>(data), 3), static_cast<int>(laneIndex));
+	executor.runScriptById(PG_DisaIdentifier::disaIdentifierFromIds(readUInt(static_cast<const unsigned char*>(data), 3)), static_cast<int>(laneIndex));
 	return EDisaScriptResult::Done;
 }
 
@@ -297,15 +297,19 @@ EDisaScriptResult cmdLoadTalkScript(PG_DisaScriptExecutor& executor, std::size_t
 	}
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	PG_DisaTalkScriptSearch search{ readUInt(bytes, 3), readUInt(bytes + 3, 2), readUInt(bytes + 5, 2) };
+	unsigned int id = readUInt(bytes, 3);
+	unsigned int dungeonId = readUInt(bytes + 3, 2);
+	unsigned int flag = readUInt(bytes + 5, 2);
 	//0xFFFF is not a dungeon, it stands for the one that is loaded right now
-	const bool currentDungeon = search.dungeonId == 0xFFFF;
-	if (currentDungeon) search.dungeonId = executor.getDungeonId();
+	const bool currentDungeon = dungeonId == 0xFFFF;
+	if (currentDungeon) dungeonId = executor.getDungeonId();
 
-	const bool loaded = executor.loadTalkScript(search, static_cast<int>(laneIndex));
+	std::stringstream stream;
+	stream << id << "::" << dungeonId << "::" << flag;
+	const bool loaded = executor.callTalkScript(PG_DisaIdentifier(stream.str(), "disa"), static_cast<int>(laneIndex));
 
 	std::stringstream note;
-	if (currentDungeon) note << "dungeon 0xFFFF is the loaded one, " << search.dungeonId << ". ";
+	if (currentDungeon) note << "dungeon 0xFFFF is the loaded one, " << dungeonId << ". ";
 	note << (loaded ? "loaded" : "nothing loaded");
 	printCommand(executor, laneIndex, data, note.str().c_str());
 
@@ -404,7 +408,7 @@ EDisaScriptResult cmdTalkScript(PG_DisaScriptExecutor& executor, std::size_t lan
 	 * what keeps a dialog line from running ahead of the cutscene it belongs to. */
 	if (scriptId != 0) {
 		printCommand(executor, laneIndex, data);
-		executor.runScriptById(scriptId, static_cast<int>(laneIndex));
+		executor.runScriptById(PG_DisaIdentifier::disaIdentifierFromIds(scriptId), static_cast<int>(laneIndex));
 		return EDisaScriptResult::Done;
 	}
 
@@ -778,15 +782,7 @@ void PG_DisaScriptExecutor::setContainers(std::shared_ptr<PG_Script> scripts, st
 	m_talkScripts = std::move(talkScripts);
 }
 
-bool PG_DisaScriptExecutor::runScript(PG_DisaFileEntry entry) {
-	return addLane(entry, PG_DisaScriptLane::Script, PG_Script::getScriptId(entry), -1) >= 0;
-}
-
-bool PG_DisaScriptExecutor::runTalkScript(PG_DisaFileEntry entry) {
-	return addLane(entry, PG_DisaScriptLane::Talk, PG_TalkScript::getScriptInfo(entry).scriptId, -1) >= 0;
-}
-
-bool PG_DisaScriptExecutor::runScriptById(unsigned int scriptId, int parentLane) {
+bool PG_DisaScriptExecutor::runScriptById(const PG_DisaIdentifier& scriptId, int parentLane) {
 	PG_DisaFileEntry entry = findScript(scriptId);
 	if (!entry) {
 		OUT_WARNING("No script with the ID " << scriptId << " in SCRIPT.DAT!");
@@ -795,21 +791,26 @@ bool PG_DisaScriptExecutor::runScriptById(unsigned int scriptId, int parentLane)
 	return addLane(entry, PG_DisaScriptLane::Script, scriptId, parentLane) >= 0;
 }
 
-bool PG_DisaScriptExecutor::runTalkScriptById(unsigned int scriptId, int parentLane) {
-	const PG_DisaTalkScriptSearch search{ scriptId, 0, 0 };
-	PG_DisaFileEntry entry = findTalkScript(search);
-	if (!entry) {
-		OUT_WARNING("No talk script with the ID " << scriptId << " in TALK.DAT!");
+bool PG_DisaScriptExecutor::runTalkScriptById(const PG_DisaIdentifier& identifier, int parentLane) {
+	/* The game keeps one talk script at a time and refuses the search outright while one runs. */
+	if (hasRunningTalkLane()) {
+		OUT_WARNING("A talk script is already running, the search for " << identifier << " is refused.");
 		return FAILURE;
 	}
 
-	const int index = addLane(entry, PG_DisaScriptLane::Talk, scriptId, parentLane);
+	PG_DisaFileEntry entry = findTalkScript(identifier);
+	if (!entry) {
+		OUT_WARNING("No talk script with the ID " << identifier << " in TALK.DAT!");
+		return FAILURE;
+	}
+
+	const int index = addLane(entry, PG_DisaScriptLane::Talk, identifier, parentLane);
 	if (index < 0) return FAILURE;
-	m_lanes[index].search = search;
+	m_lanes[index].search = identifier;
 	return SUCCESS;
 }
 
-int PG_DisaScriptExecutor::addLane(const PG_DisaFileEntry& entry, PG_DisaScriptLane::EType type, unsigned int scriptId, int parentLane) {
+int PG_DisaScriptExecutor::addLane(const PG_DisaFileEntry& entry, PG_DisaScriptLane::EType type, const PG_DisaIdentifier& scriptId, int parentLane) {
 	std::vector<char> code;
 	if (!readEntry(entry, code)) {
 		OUT_ERROR("Failed to read \"" << entry.getName() << "\"!");
@@ -836,24 +837,32 @@ int PG_DisaScriptExecutor::addLane(const PG_DisaFileEntry& entry, PG_DisaScriptL
 	return index;
 }
 
-PG_DisaFileEntry PG_DisaScriptExecutor::findScript(unsigned int scriptId) const {
+PG_DisaFileEntry PG_DisaScriptExecutor::findScript(const PG_DisaIdentifier& identifier) const {
 	if (!m_scripts) return {};
+	const auto scriptId = identifier.toNumber();
+
 	for (const PG_DisaFileEntry& entry : *m_scripts) {
 		if (PG_Script::getScriptId(entry) == scriptId) return entry;
 	}
 	return {};
 }
 
-PG_DisaFileEntry PG_DisaScriptExecutor::findTalkScript(const PG_DisaTalkScriptSearch& search) const {
+PG_DisaFileEntry PG_DisaScriptExecutor::findTalkScript(const PG_DisaIdentifier& identifier) const {
 	/* A search of nothing but wildcards would hand back the very first entry of the archive, which
-	 * is never what the caller means. */
-	if (!m_talkScripts || search.isEmpty()) return {};
+	* is never what the caller means. */
+	if (!m_talkScripts || !identifier.isValid()) return {};
+
+	auto ids = identifier.getIds();
+	if (ids.size() < 1) return {};
+	const unsigned int scriptId = ids.front();
+	const unsigned int dungeonId = ids.size() >= 2 ? ids[1] : 0;
+	const unsigned int searchFlag = ids.size() >= 3 ? ids[2] : 0;
 
 	for (const PG_DisaFileEntry& entry : *m_talkScripts) {
 		const talkScriptFileInfoHeader info = PG_TalkScript::getScriptInfo(entry);
-		if (search.scriptId && info.scriptId != search.scriptId) continue;
-		if (search.dungeonId && info.dungeonId != search.dungeonId) continue;
-		if (search.searchFlag && info.searchFlag != search.searchFlag) continue;
+		if (scriptId && info.scriptId != scriptId) continue;
+		if (dungeonId && info.dungeonId != dungeonId) continue;
+		if (searchFlag && info.searchFlag != searchFlag) continue;
 
 		/* On top of the search every positive filter has to be a set game state bit and every
 		 * negative one a clear bit, which is what sorts the story variants of a scene. */
@@ -875,27 +884,7 @@ bool PG_DisaScriptExecutor::hasRunningTalkLane() const {
 	return false;
 }
 
-bool PG_DisaScriptExecutor::loadTalkScript(const PG_DisaTalkScriptSearch& search, int parentLane) {
-	/* The game keeps one talk script at a time and refuses the search outright while one runs. */
-	if (hasRunningTalkLane()) {
-		OUT_WARNING("A talk script is already running, the search for " << search.scriptId << '_'
-			<< search.dungeonId << '_' << search.searchFlag << " is refused.");
-		return FAILURE;
-	}
-
-	PG_DisaFileEntry entry = findTalkScript(search);
-	if (!entry) {
-		OUT_WARNING("No talk script matches " << search.scriptId << '_' << search.dungeonId << '_' << search.searchFlag << '!');
-		return FAILURE;
-	}
-
-	const int index = addLane(entry, PG_DisaScriptLane::Talk, PG_TalkScript::getScriptInfo(entry).scriptId, parentLane);
-	if (index < 0) return FAILURE;
-	m_lanes[index].search = search;
-	return SUCCESS;
-}
-
-bool PG_DisaScriptExecutor::replaceLane(std::size_t laneIndex, const PG_DisaFileEntry& entry, const PG_DisaTalkScriptSearch& search) {
+bool PG_DisaScriptExecutor::replaceLane(std::size_t laneIndex, const PG_DisaFileEntry& entry, const PG_DisaIdentifier& identifier) {
 	std::vector<char> code;
 	if (!readEntry(entry, code)) return FAILURE;
 
@@ -906,8 +895,8 @@ bool PG_DisaScriptExecutor::replaceLane(std::size_t laneIndex, const PG_DisaFile
 	lane.data.clear();
 	lane.memory = PG_DisaScriptLaneMemory();
 	lane.cursor = 0;
-	lane.scriptId = PG_TalkScript::getScriptInfo(entry).scriptId;
-	lane.search = search;
+	lane.scriptId = identifier;
+	lane.search = identifier;
 	lane.name = entry.getName();
 	parseTalkScript(code, lane);
 
@@ -917,21 +906,20 @@ bool PG_DisaScriptExecutor::replaceLane(std::size_t laneIndex, const PG_DisaFile
 
 bool PG_DisaScriptExecutor::callTalkScript(std::size_t laneIndex, unsigned int scriptId) {
 	/* A call only knows an ID, the dungeon and the flag stay wildcards. */
-	const PG_DisaTalkScriptSearch search{ scriptId, 0, 0 };
-	PG_DisaFileEntry entry = findTalkScript(search);
+	PG_DisaIdentifier identifier = PG_DisaIdentifier::disaIdentifierFromIds(scriptId);
+	PG_DisaFileEntry entry = findTalkScript(identifier);
 	if (!entry) {
 		OUT_WARNING("No talk script with the ID " << scriptId << " in TALK.DAT!");
 		return FAILURE;
 	}
-	return replaceLane(laneIndex, entry, search);
+	return replaceLane(laneIndex, entry, identifier);
 }
 
 bool PG_DisaScriptExecutor::restartTalkScript(std::size_t laneIndex) {
-	const PG_DisaTalkScriptSearch search = m_lanes[laneIndex].search;
+	const PG_DisaIdentifier search = m_lanes[laneIndex].search;
 	PG_DisaFileEntry entry = findTalkScript(search);
 	if (!entry) {
-		OUT_WARNING("Nothing matches " << search.scriptId << '_' << search.dungeonId << '_'
-			<< search.searchFlag << " any more, the lane ends.");
+		OUT_WARNING("Nothing matches " << search  << " any more, the lane ends.");
 		return FAILURE;
 	}
 	return replaceLane(laneIndex, entry, search);

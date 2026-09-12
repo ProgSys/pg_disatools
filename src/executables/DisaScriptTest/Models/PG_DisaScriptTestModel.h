@@ -30,6 +30,7 @@
 
 #include <Disa/models/PG_DisaMainModel.h>
 #include <Disa/PG_DisaMapModel.h>
+#include <Disa/PG_DisaIdentifier.h>
 #include <Util/PG_File.h>
 #include <memory>
 #include <string>
@@ -78,9 +79,9 @@ public:
 	* @brief Runs a script out of SCRIPT.DAT by the ID it is stored under
 	* @details Starts it, the script then runs over the next ticks like it would in game.
 	*/
-	bool runScript(int scriptId);
+	bool runScript(const PG_DisaIdentifier& scriptId);
 	/// Runs a script out of TALK.DAT by the ID it is stored under
-	bool runTalkScript(int scriptId);
+	bool runTalkScript(const PG_DisaIdentifier& scriptId);
 
 	PG_DisaMapModel* getMapModel() const { return m_mapModel; }
 	PG_DisaScriptExecutor* getScriptExecutor() const { return m_scriptExecutor; }

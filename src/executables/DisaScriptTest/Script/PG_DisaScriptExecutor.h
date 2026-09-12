@@ -33,6 +33,7 @@
 
 #include <Base/PG_Object.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
+#include <Disa/PG_DisaIdentifier.h>
 
 #include "PG_DisaScriptLane.h"
 
@@ -72,25 +73,12 @@ public:
 	*/
 	void setContainers(std::shared_ptr<PG_Script> scripts, std::shared_ptr<PG_TalkScript> talkScripts);
 
-	/// Runs a SCRIPT.DAT entry, it starts on the next tick.
-	bool runScript(PG_DisaFileEntry entry);
-	/// Runs a TALK.DAT entry, it starts on the next tick.
-	bool runTalkScript(PG_DisaFileEntry entry);
-
 	/**
 	* @brief Looks a script up by the ID it is stored under and runs it.
 	* @returns false when no script has that ID, or when no archive was set.
 	*/
-	bool runScriptById(unsigned int scriptId, int parentLane = -1);
-	bool runTalkScriptById(unsigned int scriptId, int parentLane = -1);
-
-	/**
-	* @brief Searches a talk script the way the game does and runs it.
-	* @details This is what the script command LoadTalkScript does. Like the game it refuses while
-	* another talk script is running, there is only ever one of them.
-	* @returns false when nothing matches the search, or a talk script is already running.
-	*/
-	bool loadTalkScript(const PG_DisaTalkScriptSearch& search, int parentLane = -1);
+	bool runScriptById(const PG_DisaIdentifier& scriptId, int parentLane = -1);
+	bool runTalkScriptById(const PG_DisaIdentifier& scriptId, int parentLane = -1);
 
 	/**
 	* @brief The dungeon the scripts run in, a talk script search with no dungeon of its own uses it.
@@ -154,17 +142,17 @@ public:
 
 private:
 	/// Reads the entry and parses it into a new lane, returns the lane index or -1.
-	int addLane(const PG_DisaFileEntry& entry, PG_DisaScriptLane::EType type, unsigned int scriptId, int parentLane);
+	int addLane(const PG_DisaFileEntry& entry, PG_DisaScriptLane::EType type, const PG_DisaIdentifier& scriptId, int parentLane);
 	/// Finds the entry a script ID is stored under.
-	PG_DisaFileEntry findScript(unsigned int scriptId) const;
+	PG_DisaFileEntry findScript(const PG_DisaIdentifier& identifier) const;
 	/**
 	* @brief The talk script the game would pick, the first entry of the file table that fits.
 	* @details A search value of zero matches anything, and on top of that every positive game state
 	* filter of the entry has to be set and every negative one clear.
 	*/
-	PG_DisaFileEntry findTalkScript(const PG_DisaTalkScriptSearch& search) const;
+	PG_DisaFileEntry findTalkScript(const PG_DisaIdentifier& identifier) const;
 	/// Refills a lane with a talk script, used by `call` and `restart` which have no call stack.
-	bool replaceLane(std::size_t laneIndex, const PG_DisaFileEntry& entry, const PG_DisaTalkScriptSearch& search);
+	bool replaceLane(std::size_t laneIndex, const PG_DisaFileEntry& entry, const PG_DisaIdentifier& identifier);
 
 	void runLane(std::size_t laneIndex, float deltaTicks);
 

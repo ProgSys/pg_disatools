@@ -40,6 +40,7 @@
 #include <Scene/Gui/PG_GuiTooltip.h>
 #include <Scene/Gui/PG_GuiSpinBox.h>
 #include <Scene/Gui/PG_GuiButton.h>
+#include <Scene/Gui/PG_GuiTextField.h>
 #include <Scene/PG_CameraNode.h>
 #include <Scene/PG_DisaCamera.h>
 
@@ -120,8 +121,8 @@ void RootScene::setupToolbar() {
 	}
 
 	{
-		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 900000, m_toolbarRow);
-		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		auto* text = PG_new<PG_GuiTextField>("talkScriptId", glm::vec2(0.f), glm::vec2(256.f, 30.f), m_toolbarRow);
+		text->getBackgroundRectangle()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("execTalkScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
 		btn->setIcon("gui/icon_play.png");
@@ -129,12 +130,12 @@ void RootScene::setupToolbar() {
 		btn->setTooltipText("Run talk script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
 
-		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, spinBox] { model->runTalkScript(static_cast<int>(spinBox->getValue())); });
+		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, text] { model->runTalkScript(text->getText()); });
 	}
 
 	{
-		auto* spinBox = PG_GuiSpinBox::createInt("spinBox", glm::vec2(0.f), spinBoxSize, 0, 900000, m_toolbarRow);
-		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
+		auto* text = PG_new<PG_GuiTextField>("scriptId", glm::vec2(0.f), spinBoxSize, m_toolbarRow);
+		text->getBackgroundRectangle()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("execScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
 		btn->setIcon("gui/icon_play.png");
@@ -142,7 +143,7 @@ void RootScene::setupToolbar() {
 		btn->setTooltipText("Run Script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
 
-		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, spinBox] { model->runScript(static_cast<int>(spinBox->getValue())); });
+		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, text] { model->runScript(text->getText()); });
 	}
 }
 
