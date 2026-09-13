@@ -3,6 +3,23 @@
 #include <Disa/PG_DisaCharactersModel.h>
 #include <unordered_set>
 
+namespace {
+
+constexpr float degreePerQuarter = 90.f;
+
+/// The quarter an angle rounds to, the map only stores those four.
+EDisaFacing facingOf(float degree) {
+	degree = std::fmod(degree + 180.f, 360.f);
+	if (degree <= 0.f) degree += 360.f;
+
+	//the wrapped angle runs over (-180, 180], so a quarter of -2 is the same west as 2
+	long quarter = std::lround((degree - 180.f) / degreePerQuarter);
+	if (quarter < DisaFacing_North) quarter += 4;
+	return static_cast<EDisaFacing>(quarter);
+}
+
+} //namespace
+
 void PG_DisaActorModel::init() {
 	connect(this, &PG_DisaActorModel::parentChanged, this, [this] {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
@@ -86,13 +103,14 @@ void PG_DisaActorModel::setCharacterLevel(unsigned short level) {
 	notifyParent(this, { Identity_Level });
 }
 
-void PG_DisaActorModel::setCharacterRotation(char value) {
-	if (getCharacterRotation() == value) return;
-	m_data.rotation = value;
+void PG_DisaActorModel::setCharacterFacing(EDisaFacing value) {
+	if (m_data.facing == value && m_rotation == value * degreePerQuarter) return;
+	m_data.facing = value;
+	m_rotation = value * degreePerQuarter;
 
-	emit characterRotationChanged();
-	emit rotationAngleChanged();
-	notifyParent(this, { Identity_Rotation, Identity_RotationAngle });
+	emit characterFacingChanged();
+	emit rotationChanged();
+	notifyParent(this, { Identity_Facing, Identity_Rotation });
 }
 
 void PG_DisaActorModel::setCharacterAlliance(unsigned char value) {
@@ -257,16 +275,24 @@ void PG_DisaActorModel::unpauseAnimation() {
 	notifyParent(this, { Identity_Unpause });
 }
 
-float PG_DisaActorModel::getRotationAngle() const {
-	constexpr float degreePerQuarter = 90.f;
-	return m_scriptOverride.rotation.value_or(getCharacterRotation() * degreePerQuarter);
+void PG_DisaActorModel::setRotation(float value) {
+	const EDisaFacing facing = facingOf(value);
+	if (m_rotation == value && m_data.facing == facing) return;
+	m_rotation = value;
+
+	if (m_data.facing != facing) {
+		m_data.facing = facing;
+		emit characterFacingChanged();
+		emit rotationChanged();
+		notifyParent(this, { Identity_Facing, Identity_Rotation });
+		return;
+	}
+	emit rotationChanged();
+	notifyParent(this, { Identity_Rotation });
 }
 
-void PG_DisaActorModel::setRotationAngle(std::optional<float> value) {
-	if (m_scriptOverride.rotation == value) return;
-	m_scriptOverride.rotation = value;
-	emit rotationAngleChanged();
-	notifyParent(this, { Identity_RotationAngle, Identity_ScriptOverride });
+void PG_DisaActorModel::updateRotation() {
+	m_rotation = m_data.facing * degreePerQuarter;
 }
 
 void PG_DisaActorModel::setMode(EMode value) {
@@ -306,17 +332,12 @@ PG_Texture PG_DisaActorModel::getCharacterPortrait() const {
 
 void PG_DisaActorModel::setScriptOverride(const PG_DisaActorScriptOverride& value) {
 	const bool moved = m_scriptOverride.translation != value.translation;
-	const bool turned = m_scriptOverride.rotation != value.rotation;
 	m_scriptOverride = value;
 
 	PG_IdentitySet changes{ Identity_ScriptOverride, Identity_Unpause };
 	if (moved) {
 		changes.insert(Identity_Translation);
 		emit translationChanged();
-	}
-	if (turned) {
-		changes.insert(Identity_RotationAngle);
-		emit rotationAngleChanged();
 	}
 	notifyParent(this, changes);
 }
@@ -344,11 +365,11 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 		return std::array<glm::vec3, 4>{glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f)};
 	} break;
 	case Identity_Id: return m_data.id;
-	case Identity_RotationAngle: return getRotationAngle();
+	case Identity_Rotation: return getRotation();
 	case Identity_AnimationMode: return static_cast<int>(m_mode);
 	case Identity_AnimationSet: return static_cast<int>(m_animationSet);
 	case Identity_Animation: return m_animation;
-	case Identity_Rotation: return getCharacterRotation();
+	case Identity_Facing: return static_cast<char>(getCharacterFacing());
 	case Identity_Alliance: return getCharacterAlliance();
 	case Identity_GeoColor: return getGeoColor();
 	case Identity_GeoEffect: return getGeoEffect();
@@ -365,10 +386,9 @@ bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 			return true;
 		}
 	}break;
-	case Identity_Rotation: {
-		if (auto v = glm::clamp(value.convert<char>(), (char) -1, (char)3); v != m_data.rotation) {
-			m_data.rotation = v;
-			emit characterRotationChanged();
+	case Identity_Facing: {
+		if (auto v = static_cast<EDisaFacing>(glm::clamp(value.convert<char>(), (char)-1, (char)2)); v != m_data.facing) {
+			setCharacterFacing(v);
 			return true;
 		}
 	}break;
@@ -379,9 +399,9 @@ bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 			return true;
 		}
 	}break;
-	case Identity_RotationAngle: {
-		if (auto v = value.convert<float>(); v != getRotationAngle()) {
-			setRotationAngle(v);
+	case Identity_Rotation: {
+		if (auto v = value.convert<float>(); v != m_rotation) {
+			setRotation(v);
 			return true;
 		}
 	}break;

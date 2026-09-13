@@ -1200,13 +1200,13 @@ static inline void createForActorNoneSelectEdit(PG_GuiColumn* column) {
 }
 
 static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
-	struct RotationToIndex {
+	struct FacingToIndex {
 		PG_Any operator()(const PG_Any& v) const {
 			return int(v.get<char>() + 1);
 		}
 	};
 
-	struct IndexToRotation {
+	struct IndexToFacing {
 		PG_Any operator()(const PG_Any& v) const {
 			return char(glm::clamp(v.get<int>() - 1, -1, 3));
 		}
@@ -1273,7 +1273,7 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 	wrapper->registerProperty("characterTitle", PG_Any::from<std::string>("Multi Selection"));
 	wrapper->registerProperty("characterPortrait", PG_Any::from<PG_Texture>(PG_Texture("gui/disa/disaMissingno.png")));
 	wrapper->registerProperty("characterLevel", PG_Any::from<unsigned short>(1));
-	wrapper->registerProperty("characterRotation", PG_Any::from<char>(1), &PG_PropertyDynamicWrapper::getValueRemap<RotationToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToRotation>);
+	wrapper->registerProperty("characterFacing", PG_Any::from<char>(1), &PG_PropertyDynamicWrapper::getValueRemap<FacingToIndex>, &PG_PropertyDynamicWrapper::setValueRemap<IndexToFacing>);
 	wrapper->registerProperty("characterAlliance", PG_Any::from<unsigned char>(0), &PG_PropertyDynamicWrapper::getValueConvert<unsigned char, int>, &PG_PropertyDynamicWrapper::setValueConvert<int, unsigned char>);
 	wrapper->registerProperty("characterAi", PG_Any::from<unsigned char>(0), &PG_PropertyDynamicWrapper::getValueConvert<unsigned char, int>, &PG_PropertyDynamicWrapper::setValueConvert<int, unsigned char>);
 	wrapper->registerProperty("characterWeapon", PG_Any::from<unsigned short>(1));
@@ -1425,7 +1425,7 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 	{
 
 		PG_GuiRow* row = createRow(column, "Rotation:");
-		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "mobilityDropDown", "characterRotation", "index",
+		auto dropDown = PG_Gui::createGuiElementV2<PG_GuiDropDown>(row, wrapper, "mobilityDropDown", "characterFacing", "index",
 			[](const std::string& name, PG_GuiItem* root) {
 				auto dropDown = PG_new<PG_GuiDropDown>(name, glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), root);
 				auto model = PG_new<PG_ListModel<std::string>>(dropDown);

@@ -52,8 +52,10 @@ public:
 		}
 		case PG_DisaActorModel::Identity_Id:
 			return p_characterId;
+		case PG_DisaActorModel::Identity_Facing:
+			return static_cast<char>(p_facing);
 		case PG_DisaActorModel::Identity_Rotation:
-			return p_rotation;
+			return p_facing * 90.f;
 		case PG_DisaActorModel::Identity_GeoColor:
 			return EDisaGeoColor::DisaGeoColor_None;
 		}
@@ -64,7 +66,7 @@ public:
 	PG_DisaMapTileModel* p_tile = nullptr;
 	unsigned short p_characterId = 0;
 	glm::vec3 p_position = glm::vec3(0.f);
-	char p_rotation = 0;
+	EDisaFacing p_facing = DisaFacing_East;
 };
 
 
@@ -174,18 +176,18 @@ void DisaNewCharacterDrag::mouseMoved(PG_MouseMotionEvent* e) {
 
 		if (angle < 0.f) {
 			if (angle < glm::radians(-90.f)) {
-				m_modelMoc->p_rotation = 2;
+				m_modelMoc->p_facing = DisaFacing_West;
 			}
 			else {
-				m_modelMoc->p_rotation = 1;
+				m_modelMoc->p_facing = DisaFacing_South;
 			}
 		}
 		else {
 			if (angle < glm::radians(90.f)) {
-				m_modelMoc->p_rotation = 0;
+				m_modelMoc->p_facing = DisaFacing_East;
 			}
 			else {
-				m_modelMoc->p_rotation = 0;
+				m_modelMoc->p_facing = DisaFacing_East;
 			}
 		}
 	}
@@ -222,7 +224,7 @@ void DisaNewCharacterDrag::released() {
 
 		data.level = static_cast<unsigned short>(level);
 		data.alliance = 1;
-		data.rotation = m_modelMoc->p_rotation;
+		data.facing = m_modelMoc->p_facing;
 		data.visible = 0;
 		data.ai = 1;
 		data.unk5 = 0;

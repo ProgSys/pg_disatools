@@ -140,13 +140,21 @@ struct mpdfileChunk{
 	std::vector<mpdfileTile> tiles;
 };
 
+/// Which way a unit looks when the map places it. The value is what the file stores.
+enum EDisaFacing : char {
+	DisaFacing_North = -1, /// +X axis, -90 degree
+	DisaFacing_East = 0,   /// +Z axis, 0 degree
+	DisaFacing_South = 1,  /// -X axis, 90 degree
+	DisaFacing_West = 2    /// -Z axis, 180 degree
+};
+
 PACK( struct mpdfileActor
 {
   unsigned short id;          // Class ID
   unsigned short level;
   unsigned char  alliance; //0 = User controlled, 1 = Enemy, 2 = Enemy, third party (will have turn first), 3 = Passive (will do nothing), 4 = Neutral (will do nothing, and not agro enemies)
   char  x, z;
-  char  rotation;    // -1 = W, 0 = N, 1 = E, 2 = S
+  EDisaFacing facing;
   unsigned char  visible;
   unsigned char  ai;          // 0 = Disabled, 1 = Guard, 2 = Attack
   unsigned char  unk5, unk6; //health multiplyer? speed?

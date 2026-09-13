@@ -35,6 +35,14 @@
 
 #include <nlohmann/json.hpp>
 
+//a facing reads as its compass name in json, an unknown one falls back to the first entry
+NLOHMANN_JSON_SERIALIZE_ENUM(EDisaFacing, {
+	{ DisaFacing_North, "North" },
+	{ DisaFacing_East, "East" },
+	{ DisaFacing_South, "South" },
+	{ DisaFacing_West, "West" },
+	});
+
  // functions
 bool PG_MPD::open(const std::string& file) {
 	if (file.empty()) {
@@ -365,7 +373,7 @@ bool PG_MPD::openJson(PG::STREAM::In* reader) {
 			jActor["alliance"].get_to(actor.alliance);
 			jActor["x"].get_to(actor.x);
 			jActor["z"].get_to(actor.z);
-			jActor["rotation"].get_to(actor.rotation);
+			jActor["facing"].get_to(actor.facing);
 			jActor["visible"].get_to(actor.visible);
 			jActor["ai"].get_to(actor.ai);
 			jActor["unknown3"].get_to(actor.unk5);
@@ -539,7 +547,7 @@ void PG_MPD::saveJson(const std::string& file) const {
 		jActor["alliance"] = actor.alliance;
 		jActor["x"] = actor.x;
 		jActor["z"] = actor.z;
-		jActor["rotation"] = actor.rotation;
+		jActor["facing"] = actor.facing;
 		jActor["visible"] = actor.visible;
 		jActor["ai"] = actor.ai;
 		jActor["unknown3"] = actor.unk5;

@@ -1,6 +1,7 @@
 #include "PG_DisaActorViewNode.h"
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -182,11 +183,18 @@ struct AnimationChoice {
 * @details A pose the script named outright wins, it already is a sheet number and the angle has no
 * say in it. Otherwise the set gives the base and the angle the side view on top of it.
 */
-AnimationChoice pickAnimation(const PG_Sprite& sprite, const PG_DisaActorModel& model, float angle) {
-	if (const int pose = model.getAnimation(); pose != 0) return { std::abs(pose), pose < 0 };
+std::optional<AnimationChoice> pickAnimation(const PG_Sprite& sprite, const PG_DisaActorModel& model, float angle) {
+	const PG_DisaActorModel::EMode mode = model.getMode();
+	if (mode == PG_DisaActorModel::Mode_None) {
+		/* The script named the sheet itself and nothing here may overrule it. Without one there is
+		 * nothing to pick either, the actor keeps whatever it was last drawn from. */
+		const int pose = model.getAnimation();
+		if (pose == 0) return {};
+		return AnimationChoice{ std::abs(pose), pose < 0 };
+	}
 
 	const std::size_t set = std::min<std::size_t>(model.getAnimationSet(), g_idleSets.size() - 1);
-	const bool idle = model.getMode() == PG_DisaActorModel::Mode_Idle;
+	const bool idle = mode == PG_DisaActorModel::Mode_Cutscene;
 	const int base = idle ? g_idleSets[set] : g_combatSets[set];
 
 	/* Not every sprite carries all five views, outside the idle and the walk sets most carry none
@@ -194,11 +202,11 @@ AnimationChoice pickAnimation(const PG_Sprite& sprite, const PG_DisaActorModel& 
 	if (idle) {
 		const int view = pickFiveViews(angle);
 		if (sprite.getAnimationIndex(std::to_string(base + std::abs(view))) >= 0) {
-			return { base + std::abs(view), view < 0 };
+			return AnimationChoice{ base + std::abs(view), view < 0 };
 		}
 	}
 	const int view = pickTwoViews(angle);
-	return { base + std::abs(view), view < 0 };
+	return AnimationChoice{ base + std::abs(view), view < 0 };
 }
 constexpr glm::vec3 baseDir = glm::vec3(1.f, 0.f, 0.f);
 constexpr glm::vec3 baseUp = glm::vec3(0.f, 1.f, 0.f);
@@ -244,7 +252,7 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 		/* A script gives whole degree, the map a quarter turn count, and the game stores both as
 		 * the same angle. It turns clockwise around an x axis that points the other way than ours,
 		 * which together come out as half a turn. */
-		const float degree = m_location.getDataT<float>(PG_DisaActorModel::Identity_RotationAngle);
+		const float degree = m_location.getDataT<float>(PG_DisaActorModel::Identity_Rotation);
 		const float radians = glm::radians(degree + 90.f);
 		const glm::vec2 baseRotation(std::cos(radians), std::sin(radians));
 
@@ -257,9 +265,10 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 
 
 		if (auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
-			const auto [animation, mirrored] = pickAnimation(sprite, *model, angle);
-			node->setAnimation(std::to_string(animation), false);
-			setMirrored(mirrored);
+			if (const auto choice = pickAnimation(sprite, *model, angle)) {
+				node->setAnimation(std::to_string(choice->animation), false);
+				setMirrored(choice->mirrored);
+			}
 		}
 	}
 

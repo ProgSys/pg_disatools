@@ -382,7 +382,7 @@ std::optional<float> facingOf(int facing) {
 
 /// Writes the facing of a command onto an actor, if it carries one.
 void applyFacing(PG_DisaActorModel* actor, const std::optional<float>& facing) {
-	if (facing) actor->setRotationAngle(*facing);
+	if (facing) actor->setRotation(*facing);
 }
 
 /// Reads the slot of a command and hands back every actor it stands for.
@@ -522,7 +522,7 @@ EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::siz
 	PG_DisaContext& context = executor.context();
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
 		applyFacing(actor, facing);
-		//the game puts the actor into combat numbering here, the SetAnimationMode after it decides
+		//the game puts the actor into combat numbering here, the SetAnimationModeSet after it decides
 		actor->setMode(PG_DisaActorModel::Mode_Combat);
 		PG_DisaActorAnimations::play(context, actor, animationSet, 1);
 	}
@@ -550,47 +550,50 @@ EDisaScriptResult cmdSetActorPoseDir(PG_DisaScriptExecutor& executor, std::size_
 /**
 * @brief Picks which numbering and how many side views the actor's animations come from.
 * @details Mode 0 leaves the sheet to the pose the script named, 1 is the battle numbering with two
-* side views, 2 the cutscene one with five. Every cutscene actor is put into 2 right after each
-* SetActorAnimation, which sets it back to 1 on its own.
+* side views, 2 the cutscene one with five, which is why EMode counts the same way. Every cutscene
+* actor is put into 2 right after each SetActorAnimation, which sets it back to 1 on its own.
 */
-EDisaScriptResult cmdSetAnimationMode(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+EDisaScriptResult cmdSetAnimationModeSet(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	printCommand(executor, laneIndex, data);
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 3) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
 	const int mode = bytes[2];
-	if (mode != 1 && mode != 2) return EDisaScriptResult::Done;
+	if (mode > PG_DisaActorModel::Mode_Cutscene) return EDisaScriptResult::Done;
 
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
-		actor->setMode(mode == 2 ? PG_DisaActorModel::Mode_Idle : PG_DisaActorModel::Mode_Combat);
+		actor->setMode(static_cast<PG_DisaActorModel::EMode>(mode));
 	}
 	return EDisaScriptResult::Done;
 }
 
-EDisaScriptResult cmdRotateActor(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
-	printCommand(executor, laneIndex, data);
+/**
+* @brief Turns an actor, in one of three ways the duration alone decides between.
+* @details A duration of zero sets the facing outright, one below 10000 adds the angle over that
+* many ticks, and 10000 and up is not a duration at all: it says the angle is one to turn to and
+* carries the length on top of it.
+*/
+EDisaScriptResult cmdSetActorRotation(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
-	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
+	if (currentCommandOf(lane).dataSize < 5) {
+		printCommand(executor, laneIndex, data);
+		return EDisaScriptResult::Done;
+	}
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
 	const float duration = static_cast<float>(readUInt(bytes + 1, 2));
 	const float degree = static_cast<float>(readInt(bytes + 3, 2));
-
-	//10000 and up is not a duration, it says the angle is one to turn to and carries the length on top
 	constexpr float turnToAngle = 10000.f;
+
+	const bool byAngle = duration > 0.f && duration < turnToAngle;
+	const float ticks = duration >= turnToAngle ? duration - turnToAngle : duration;
+	printCommand(executor, laneIndex, data, byAngle ? "rotate by" : ticks > 0.f ? "rotate to" : "set");
 
 	PG_DisaContext& context = executor.context();
 	for (auto* actor : actorsOf(executor, bytes[0])) {
-		if (duration >= turnToAngle) {
-			PG_DisaActorAnimations::rotateTo(context, actor, degree, duration - turnToAngle);
-		}
-		else if (duration > 0.f) {
-			PG_DisaActorAnimations::rotateBy(context, actor, degree, duration);
-		}
-		else {
-			PG_DisaActorAnimations::rotateTo(context, actor, degree, 0.f);
-		}
+		if (byAngle) PG_DisaActorAnimations::rotateBy(context, actor, degree, ticks);
+		else PG_DisaActorAnimations::rotateTo(context, actor, degree, ticks);
 	}
 	return EDisaScriptResult::Done;
 }
@@ -847,14 +850,14 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x68, "ContinueActorAnimation", "slot:2", &cmdContinueActorAnimation);
 		set(0x69, "SetActorGroup", "slot:2,group:1");
 		set(0x6A, "SetActorPoseDir", "slot:2,poseBase:2,facing:1", &cmdSetActorPoseDir);
-		set(0x6B, "SetAnimationMode", "slot:2,mode:1", &cmdSetAnimationMode);
+		set(0x6B, "SetAnimationModeSet", "slot:2,mode:1", &cmdSetAnimationModeSet);
 		set(0x6D, "SetActor", "slot:1,spriteId:-2,level:2,allegiance:1", &cmdSetActor);
 		set(0x6E, "SetActorSprite", "slot:2,spriteId:-2", &cmdSetActorSprite);
 		set(0x6F, "PlayEffect", "effectId:2,parent:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");
 		set(0x70, "SetMapTile", "parent:1,x:-2,z:-2,type:1,value:-2");
 		set(0x71, "PlayAimedEffect", "effectId:2,source:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");
 		set(0x72, "PlayEffectEx", "effectId:2,parent:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2,extraA:2,extraB:2");
-		set(0x73, "RotateActor", "slot:1,duration:2,rotation:-2", &cmdRotateActor);
+		set(0x73, "setActorRotation", "slot:1,duration:2,rotation:-2", &cmdSetActorRotation);
 		set(0x74, "PlayAimedEffectEx", "effectId:2,source:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:1,extraA:2,extraB:2");
 		set(0x77, "OrbitActor", "slot:2,duration:2,center:2,x:-2,z:-2,y:-2,angle:-2");
 		set(0x78, "DoAction", "slot:1,action:1");

@@ -110,20 +110,20 @@ void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel
 
 	const float end = normalizeDegree(degree);
 	if (durationTicks <= 0.f) {
-		actor->setRotationAngle(end);
+		actor->setRotation(end);
 		return;
 	}
 
 	/* The game runs straight from the angle it started at to the target, so a turn that could go
 	 * either way around takes the way the two numbers say and not the shorter one. */
-	const float start = actor->getRotationAngle();
+	const float start = actor->getRotation();
 	auto elapsed = std::make_shared<float>(0.f);
 	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Rotation,
 		[start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
-			self->setRotationAngle(normalizeDegree(glm::mix(start, end, progress)));
+			self->setRotation(normalizeDegree(glm::mix(start, end, progress)));
 			return progress >= 1.f;
 		}, "PG_DisaRotateAnimation");
 }
@@ -131,11 +131,11 @@ void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel
 void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
 	if (!actor) return;
 
-	const float start = actor->getRotationAngle();
+	const float start = actor->getRotation();
 	const float end = start + degree;
 
 	if (durationTicks <= 0.f) {
-		actor->setRotationAngle(normalizeDegree(end));
+		actor->setRotation(normalizeDegree(end));
 		return;
 	}
 
@@ -146,7 +146,7 @@ void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
-			self->setRotationAngle(normalizeDegree(glm::mix(start, end, progress)));
+			self->setRotation(normalizeDegree(glm::mix(start, end, progress)));
 			return progress >= 1.f;
 		}, "PG_DisaRotateAnimation");
 }
@@ -173,5 +173,8 @@ void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* ac
 }
 
 void PG_DisaActorAnimations::pose(PG_DisaActorModel* actor, int animation) {
-	if (actor) actor->setAnimation(animation);
+	if (!actor) return;
+	//naming the sheet takes the choice away from the angle, the way the game drops the mode
+	actor->setMode(PG_DisaActorModel::Mode_None);
+	actor->setAnimation(animation);
 }

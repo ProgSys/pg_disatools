@@ -19,14 +19,12 @@
 struct PG_DisaActorScriptOverride {
 	/// Position in tile units, y is the height. Replaces the position the tile would give it.
 	std::optional<glm::vec3> translation;
-	/// Facing in degree around y, the same space the map rotation counts in quarters of.
-	std::optional<float> rotation;
 	std::optional<bool> visible;
 	/// How fast it falls, in tiles per tick squared. Unset means the engine's own.
 	std::optional<float> gravity;
 
 	inline bool isEmpty() const {
-		return !translation && !rotation && !visible && !gravity;
+		return !translation && !visible && !gravity;
 	}
 };
 
@@ -40,7 +38,7 @@ class PG_DisaActorModel : public PG_Object {
 	PG_PROPERTY(PG_Texture characterPortrait GET getCharacterPortrait CHANGED characterIdChanged);
 	PG_PROPERTY(unsigned short characterLevel GET getCharacterLevel SET setCharacterLevel CHANGED characterLevelChanged);
 
-	PG_PROPERTY(char characterRotation GET getCharacterRotation SET setCharacterRotation CHANGED characterRotationChanged);
+	PG_PROPERTY(char characterFacing GET getCharacterFacing SET setCharacterFacing CHANGED characterFacingChanged);
 	PG_PROPERTY(unsigned char characterAlliance GET getCharacterAlliance SET setCharacterAlliance CHANGED characterAllianceChanged);
 	PG_PROPERTY(unsigned char characterAi GET getCharacterAi SET setCharacterAi CHANGED characterAiChanged);
 	PG_PROPERTY(unsigned short characterWeapon GET getCharacterWeapon SET setCharacterWeapon CHANGED characterWeaponChanged);
@@ -66,7 +64,7 @@ signals:
 	void translationChanged();
 	void characterIdChanged();
 	void characterLevelChanged();
-	void characterRotationChanged();
+	void characterFacingChanged();
 	void characterAiChanged();
 	void characterAllianceChanged();
 	void characterWeaponChanged();
@@ -82,7 +80,7 @@ signals:
 
 	void geoColorChanged();
 	void geoEffectChanged();
-	void rotationAngleChanged();
+	void rotationChanged();
 	void animationModeChanged();
 	void animationSetChanged();
 	void animationChanged();
@@ -93,7 +91,7 @@ public:
 		Identity_Translation = PG_Identity_Custom,
 		Identity_TileGround,
 		Identity_Id,
-		Identity_Rotation,
+		Identity_Facing,
 		Identity_Level,
 		Identity_Alliance,
 		Identity_Ai,
@@ -113,7 +111,7 @@ public:
 		Identity_ScriptOverride,
 		Identity_Unpause,
 		Identity_Next, //will force play next animation segment
-		Identity_RotationAngle,
+		Identity_Rotation,
 		Identity_AnimationMode,
 		Identity_AnimationSet,
 		Identity_Animation,
@@ -126,8 +124,9 @@ public:
 	* The game calls this the animation mode, 1 and 2 of SetAnimationMode.
 	*/
 	enum EMode : unsigned char {
-		Mode_Combat, /// Two side views and the 1000 numbering
-		Mode_Idle    /// Five side views and the cutscene numbering
+		Mode_None,    /// Only the animation a pose named, the angle has no say
+		Mode_Combat,  /// Two side views and the 1000 numbering
+		Mode_Cutscene /// Five side views and the cutscene numbering
 	};
 
 	/**
@@ -172,8 +171,11 @@ public:
 	unsigned short getCharacterLevel() const { return m_data.level; }
 	void setCharacterLevel(unsigned short level);
 
-	char getCharacterRotation() const { return m_data.rotation; }
-	void setCharacterRotation(char value);
+	/// The quarter turn the map stores, which is the rotation snapped. @see getRotation
+	EDisaFacing getCharacterFacing() const { return m_data.facing; }
+	/// Turns the actor onto a quarter, which sets the rotation with it.
+	void setCharacterFacing(EDisaFacing value);
+	void setCharacterFacing(char value) { setCharacterFacing(static_cast<EDisaFacing>(value)); }
 
 	/**
 	* @brief Which way the actor looks, in degree around y.
@@ -181,11 +183,10 @@ public:
 	* East +Z Axis: 0/360 degree
 	* South -X Axis: 90 degree 
 	* West -Z Axis: 180 degree
-	* @returns The angle a script set, or the quarter turn of the map when none did.
 	*/
-	float getRotationAngle() const;
-	/// Takes the facing over, an empty one hands it back to the map rotation. @see getRotationAngle
-	void setRotationAngle(std::optional<float> value);
+	float getRotation() const { return m_rotation; }
+	/// Turns the actor, the facing follows it snapped to the nearest quarter. @see getRotation
+	void setRotation(float value);
 
 	unsigned char getCharacterAlliance() const { return m_data.alliance; }
 	void setCharacterAlliance(unsigned char value);
@@ -280,18 +281,21 @@ public:
 	glm::vec3 getTranslation() const;
 
 	const mpdfileActor& getData() const { return m_data; }
-	void setData(const mpdfileActor& data) { m_data = data; }
-	void setData(mpdfileActor&& data) { m_data = std::move(data); }
+	void setData(const mpdfileActor& data) { m_data = data; updateRotation(); }
+	void setData(mpdfileActor&& data) { m_data = std::move(data); updateRotation(); }
 
 	PG_Variety getData(Identity identity) const;
 	bool setData(const PG_Variety& value, Identity identity);
 private:
 	float calcHeight();
 	void updateHeight();
+	/// Puts the rotation back onto the facing, for when the file data is swapped underneath.
+	void updateRotation();
 	void updateStatMods();
 
 	int m_location = -1;
 	float m_height = 0.f;
+	float m_rotation = 0.f;
 	mpdfileActor m_data;
 	PG_DisaActorScriptOverride m_scriptOverride;
 	EMode m_mode = Mode_Combat;
