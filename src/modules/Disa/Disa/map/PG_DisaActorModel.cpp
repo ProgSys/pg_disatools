@@ -259,18 +259,11 @@ void PG_DisaActorModel::unpauseAnimation() {
 
 float PG_DisaActorModel::getRotationAngle() const {
 	constexpr float degreePerQuarter = 90.f;
-	static bool debug = false;
-	if (debug) {
-		const_cast<PG_DisaActorModel*>(this)->m_scriptOverride.rotation = 0.f;
-		debug = false;
-	}
-
 	return m_scriptOverride.rotation.value_or(getCharacterRotation() * degreePerQuarter);
 }
 
 void PG_DisaActorModel::setRotationAngle(std::optional<float> value) {
 	if (m_scriptOverride.rotation == value) return;
-	if (value) std::cout << "setRotationAngle " << *value << std::endl;
 	m_scriptOverride.rotation = value;
 	emit rotationAngleChanged();
 	notifyParent(this, { Identity_RotationAngle, Identity_ScriptOverride });

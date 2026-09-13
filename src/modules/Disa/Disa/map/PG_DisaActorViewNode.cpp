@@ -86,7 +86,6 @@ void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG
 }
 
 void PG_DisaActorViewNode::loadSprite(unsigned short id) {
-	std::cout << "PG_DisaActorViewNode::loadSprite " << id << std::endl;
 	if (id == 0) {
 		PG_ModelNode* model = findFirstChild<PG_ModelNode>("N_Prev");
 		if (model) delete model;
@@ -227,8 +226,6 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 		if (!node || !node->getSprite().isValid()) return PG_ActorNode::event(e);
 
 		auto& sprite = node->getSprite();
-		auto name = sprite.getAnimationName(); //debug
-		auto spriteName = sprite.getName(); //debug
 
 		node->setTranslationY(0.1f + m_spring.getPosition().y);
 		//face sprite towards camera

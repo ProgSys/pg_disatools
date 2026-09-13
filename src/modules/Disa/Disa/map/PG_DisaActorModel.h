@@ -144,8 +144,8 @@ public:
 		Hurt,
 		VictoryPose,
 		Skill,            /// Monster only, many sprites do not have it
-		ThrowObject,
-		VictoryJump,      /// Usually runs into VictoryPose
+		Throw,
+		VictoryJump,      /// Usually continues with VictoryPose
 		PunchFreezeFrame, /// Monster only
 		SkillAlt          /// Monster only, many sprites do not have it
 	};
