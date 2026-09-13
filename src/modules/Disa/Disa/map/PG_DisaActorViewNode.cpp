@@ -1,6 +1,7 @@
 #include "PG_DisaActorViewNode.h"
 #include <cmath>
 #include <stdexcept>
+#include <utility>
 
 #include <Disa/map/PG_DisaActorModel.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
@@ -67,6 +68,16 @@ void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG
 	if (identities.contains(PG_DisaActorModel::Identity_GeoColor)) {
 		updateColorOffset();
 	}
+	if (identities.contains(PG_DisaActorModel::Identity_Next)) {
+		if (PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite")) {
+			node->getSprite().next(true);
+		}
+	}
+	else if (identities.contains(PG_DisaActorModel::Identity_Unpause)) {
+		if (PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite")) {
+			node->getSprite().setPaused(false);
+		}
+	}
 
 	if (identities.contains(PG_DisaActorModel::Identity_ScriptOverride)) {
 		if (const auto& visible = getScriptOverride().visible) setVisible(*visible);
@@ -127,9 +138,33 @@ void PG_DisaActorViewNode::setDragged(bool value) {
 	m_spring.setTargetPos(glm::vec3(0.f, value ? 0.5f : 0.0f, 0.f));
 }
 
-constexpr std::array<std::string_view, 2> g_idleStand = { "1001" ,  "1007"  };
-constexpr std::array<std::string_view, 2> g_hurtStand = { "1061" ,  "1067"  };
+// Idle animation, has more angles then all other animations. Used mainly for cutscenes.
+constexpr std::array<std::string_view, 5> g_idleStand = { "1" /*side-fornt (m)*/, "2" /*fornt*/, "3" /*side (m)*/, "4" /*side-back (m)*/, "5" /*back*/ };
+// Basic walk. Used mainly for cutscenes. Most sprites don't have a walk fornt (12), side (14), back (18). They either dublicate 11 or 17, or its fully missing. 11 and 17 are expected to be present.
+constexpr std::array<std::string_view, 5> g_idleWalk = { "11" /*side-fornt (m)*/, "12" /*fornt*/, "14" /*side (m)*/, "17" /*side-back (m)*/, "18" /*back*/ };
+
+//Combat animations. Only have two faces that are mirroed based on angle.
+constexpr std::array<std::string_view, 2> g_idleCombatStand = { "1001" , "1007"  };
+constexpr std::array<std::string_view, 2> g_hurtStand = { "1061" , "1067"  };
+
 constexpr auto g_mirrorX = "mirrorX";
+
+/**
+* @brief The side view of a five angle set that fits the angle, and whether it has to be mirrored.
+* @details The sheet only holds one half of the turn, the other half is the same frames mirrored.
+* Front and back look the same from either side, so those two never are.
+*/
+std::pair<std::string_view, bool> pickSideView(const std::array<std::string_view, 5>& animations, float angle) {
+	constexpr float step = 45.f; //five views over half a turn, so each covers 45 degree
+	const float degree = glm::degrees(std::abs(angle));
+	const bool mirrored = angle < 0.f;
+
+	if (degree < step * 0.5f) return { animations[1], false };           //front
+	if (degree < step * 1.5f) return { animations[0], mirrored };        //side front
+	if (degree < step * 2.5f) return { animations[2], mirrored };        //side
+	if (degree < step * 3.5f) return { animations[3], mirrored };        //side back
+	return { animations[4], false };                                     //back
+}
 constexpr glm::vec3 baseDir = glm::vec3(1.f, 0.f, 0.f);
 constexpr glm::vec3 baseUp = glm::vec3(0.f, 1.f, 0.f);
 
@@ -190,34 +225,33 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 		}
 
 
-		std::array<std::string_view, 2> animationSet;
-		if (scriptOverride.animation) {
-			animationSet.fill(*scriptOverride.animation);
-			//@todo is computed by slot!!
-			if (false) {
-				sprite.removeFrameModefier(g_mirrorX);
-				return PG_ActorNode::event(e);
-			}
-		}
-		else {
-			animationSet = m_dragged ? g_hurtStand : g_idleStand;
-		}
-	
 		const float angle = PG_Math::angle(glm::normalize(glm::vec2(dir.x, dir.z)), baseRotation);
-		if (angle < 0.f) {
-			node->setAnimation(std::string(animationSet[1]), false);
-			if (angle < glm::radians(-90.f)) {
-				sprite.removeFrameModefier(g_mirrorX);
-			} else {
-				sprite.addFrameModefier(g_mirrorX, {});
-			}
+		const auto setMirrored = [&sprite](bool mirrored) {
+			if (mirrored) sprite.addFrameModefier(g_mirrorX, {});
+			else sprite.removeFrameModefier(g_mirrorX);
+			};
+
+
+		if (scriptOverride.animation) {
+			//the script named one animation, so there is no side view to pick between
+			node->setAnimation(*scriptOverride.animation, false);
+			setMirrored(false); //@todo is wrong can be mirred too
+		}
+		else if (m_mode == Mode_Script) {
+			//a cutscene actor uses the sets that cover five angles, not the two of a battle
+			const auto [animation, mirrored] = pickSideView(m_idleSet == Idle_Walk ? g_idleWalk : g_idleStand, angle);
+			node->setAnimation(std::string(animation), false);
+			setMirrored(mirrored);
 		}
 		else {
-			node->setAnimation(std::string(animationSet[0]), false);
-			if (angle < glm::radians(90.f)) {
-				sprite.addFrameModefier(g_mirrorX, {});
-			} else{
-				sprite.removeFrameModefier(g_mirrorX);
+			const std::array<std::string_view, 2>& animationSet = m_dragged ? g_hurtStand : g_idleCombatStand;
+			if (angle < 0.f) {
+				node->setAnimation(std::string(animationSet[1]), false);
+				setMirrored(angle >= glm::radians(-90.f));
+			}
+			else {
+				node->setAnimation(std::string(animationSet[0]), false);
+				setMirrored(angle < glm::radians(90.f));
 			}
 		}
 	}

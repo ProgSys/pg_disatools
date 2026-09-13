@@ -4,9 +4,32 @@
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
 #include <glm/gtx/euler_angles.hpp>
+#include <ranges>
+
+
+struct PG_DisaSpriteKeyframeType {
+	PG_DisaSpriteKeyframeType() = default;
+	PG_DisaSpriteKeyframeType(shfileKeyframe::Type t) {
+		apply(t);
+	}
+
+	void apply(shfileKeyframe::Type t) noexcept {
+		switch (t) {
+			case shfileKeyframe::Default: return;
+			case shfileKeyframe::LoopStart: isLoopStart = true; return;
+			case shfileKeyframe::LoopEnd: isLoopEnd = true; return;
+			case shfileKeyframe::AutoPause: isAutoPause = true; return;
+		}
+	}
+
+	bool isLoopStart : 1 = false;
+	bool isLoopEnd : 1 = false;
+	bool isAutoPause : 1 = false;
+};
 
 struct PG_DisaSpriteKeyframe {
 	unsigned int at;
+	PG_DisaSpriteKeyframeType type;
 	shfileLayers layers;
 };
 
@@ -46,7 +69,14 @@ public:
 			for (unsigned short i = it->start_keyframe; i < endKeyframe; ++i) {
 				const auto& keyframe = sh.getKeyframes()[i];
 				if (keyframe.bundel_index >= sh.getLayers().size()) continue;
-				animation.keyframes.emplace_back(animation.length, sh.getLayers()[keyframe.bundel_index]);
+				if (keyframe.duration == 0) { //apply type to back
+					if (!animation.keyframes.empty()) 
+						animation.keyframes.back().type.apply(keyframe.type);
+					continue;
+				}
+
+				PG_DisaSpriteKeyframeType type(keyframe.type);
+				animation.keyframes.emplace_back(animation.length, type, sh.getLayers()[keyframe.bundel_index]);
 				animation.length += keyframe.duration;
 			}
 
@@ -64,9 +94,30 @@ public:
 		if (findIt == animations.end()) return -1;
 		return std::distance(animations.begin(), findIt);
 	};
-	int getEndFrame(int animationIndex) const override {
-		if (animationIndex < 0 || animationIndex >= (int)animations.size()) return 0;
-		return animations[animationIndex].length;
+	PG_SpriteSegment getSegment(int currFrame, int animationIndex) const override {
+		if (animationIndex < 0 || animationIndex >= (int)animations.size()) return {};
+		
+		auto& ani = animations[animationIndex];
+
+		auto findBreakIt = std::ranges::find_if(ani.keyframes, [currFrame](const PG_DisaSpriteKeyframe& k) ->bool {  return currFrame <= k.at && k.type.isAutoPause; });
+		if (findBreakIt != ani.keyframes.end()) {
+			auto range = std::ranges::subrange(ani.keyframes.begin(), findBreakIt);
+			auto rangeRef = range | std::views::reverse;
+			auto findBreakBeginIt = std::ranges::find_if(rangeRef, [currFrame](const PG_DisaSpriteKeyframe& k) ->bool { return k.type.isLoopStart; });
+			if (findBreakBeginIt != rangeRef.end()) {
+				return PG_SpriteSegment{
+					.range = {findBreakBeginIt->at ,findBreakIt->at},
+					.loop = false
+				};
+			}
+			return PG_SpriteSegment{
+				.range = {0 ,findBreakIt->at},
+				.loop = false
+			};
+
+		}
+
+		return PG_SpriteSegment{ .range = {0 , ani.length} };
 	}
 	int getAnimationSize() const override { return (int)animations.size(); }
 

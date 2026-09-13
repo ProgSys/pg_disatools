@@ -15,24 +15,15 @@ void PG_DisaContext::init() {
 //==== Actors ====
 
 PG_DisaActorModel* PG_DisaContext::resolveSlot(int slot) const {
-	/*
-	if (slot >= 0 && slot <= Slot_MapLast) {
-		auto* actors = m_mapModel ? m_mapModel->getActors() : nullptr;
-		if (!actors || slot >= static_cast<int>(actors->size())) return nullptr;
-		return actors->get(slot);
-	}
-	*/
 	return m_actors ? m_actors->getSlot(slot) : nullptr;
 }
 
 std::vector<PG_DisaActorModel*> PG_DisaContext::resolveSlots(int slot) const {
-	/* The group slots stand for everything taking part in the current skill, which needs a battle
-	 * the tool does not run. Every unit the map placed is the closest honest answer. */
+	/* A group slot stands for everything taking part in the current skill, which needs a battle
+	 * the tool does not run. Every actor a script spawned is the closest it can get. */
 	if (slot == Slot_AllTargets) {
-		if (auto* actors = m_mapModel ? m_mapModel->getActors() : nullptr) {
-			return std::vector<PG_DisaActorModel*>(actors->begin(), actors->end());
-		}
-		return {};
+		if (!m_actors) return {};
+		return std::vector<PG_DisaActorModel*>(m_actors->begin(), m_actors->end());
 	}
 
 	if (auto* actor = resolveSlot(slot)) return { actor };
@@ -40,8 +31,6 @@ std::vector<PG_DisaActorModel*> PG_DisaContext::resolveSlots(int slot) const {
 }
 
 PG_DisaActorModel* PG_DisaContext::takeSlot(int slot) {
-	//a slot the map owns already holds its unit, a script only ever changes that one
-	//if (slot >= 0 && slot <= Slot_MapLast) return resolveSlot(slot);
 	return m_actors ? m_actors->takeSlot(slot) : nullptr;
 }
 

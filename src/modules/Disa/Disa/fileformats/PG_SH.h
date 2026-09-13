@@ -56,9 +56,16 @@ PACK(typedef struct
 
 PACK(typedef struct
 {
+	enum Type : unsigned char {
+		Default = 0,
+		LoopStart = 1, //indicates the start of the loop
+		LoopEnd = 2, //indicates the end of the loop
+		AutoPause = 3, //indicates where the loop is exited?
+	};
+
 	unsigned short bundel_index;
 	unsigned char duration;
-	unsigned char type;
+	Type type;
 	short global_x;
 	short global_y;
 }) shfileKeyframe;

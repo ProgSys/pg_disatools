@@ -248,6 +248,14 @@ void PG_DisaActorModel::remove() {
 	if (list) list->remove(m_location);
 }
 
+void PG_DisaActorModel::nextAnimationSegment() {
+	notifyParent(this, { Identity_Next });
+}
+
+void PG_DisaActorModel::unpauseAnimation() {
+	notifyParent(this, { Identity_Unpause });
+}
+
 const std::string& PG_DisaActorModel::getCharacterName() const {
 	const auto& character = PG_DisaCharactersModel::get()->getCharacterModel(getCharacterId());
 	return character.nameNormelized;
@@ -266,7 +274,7 @@ void PG_DisaActorModel::setScriptOverride(const PG_DisaActorScriptOverride& valu
 	const bool moved = m_scriptOverride.translation != value.translation;
 	m_scriptOverride = value;
 
-	PG_IdentitySet changes{ Identity_ScriptOverride };
+	PG_IdentitySet changes{ Identity_ScriptOverride, Identity_Unpause };
 	if (moved) {
 		changes.insert(Identity_Translation);
 		emit translationChanged();

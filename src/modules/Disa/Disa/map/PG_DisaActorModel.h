@@ -105,6 +105,8 @@ public:
 		Identity_GeoColor,
 		Identity_GeoEffect,
 		Identity_ScriptOverride,
+		Identity_Unpause,
+		Identity_Next, //will force play next animation segment
 	};
 
 	void init();
@@ -185,6 +187,11 @@ public:
 	* @brief Will remove this model from list
 	*/
 	void remove();
+	/**
+	* @brief will play next animation segemnt
+	*/
+	void nextAnimationSegment();
+	void unpauseAnimation();
 
 	/**
 	* @brief What a script has taken over on this actor, see PG_DisaActorScriptOverride.
@@ -192,6 +199,7 @@ public:
 	* touched has an empty one and behaves like any placed actor.
 	*/
 	const PG_DisaActorScriptOverride& getScriptOverride() const { return m_scriptOverride; }
+	PG_DisaActorScriptOverride& getScriptOverride() { return m_scriptOverride; }
 	void setScriptOverride(const PG_DisaActorScriptOverride& value);
 	/// Drops every override at once, the actor falls back to its map data.
 	void clearScriptOverride();

@@ -115,6 +115,15 @@ public:
 	/// True while any lane started by the given one is still running.
 	bool hasRunningChildren(std::size_t laneIndex) const;
 
+	/**
+	* @brief True while a script runs that holds the talk script back.
+	* @details The game only updates its talk interpreter while no script is running at all, see
+	* the counter it keeps in DisaTScriptManager. That is what keeps a line of dialog from turning
+	* up before the cutscene it belongs to. Scripts with an ID of 1000001 to 1999999 are left out
+	* of that counter and run alongside the dialog.
+	*/
+	bool isBlockingScriptRunning() const;
+
 	/// True while a talk script is running, only one of them can be active at a time.
 	bool hasRunningTalkLane() const;
 

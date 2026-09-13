@@ -128,7 +128,12 @@ void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* ac
 	if (!actor) return;
 
 	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
-	scriptOverride.animation = animation;
+	if (animation.empty()) {
+		scriptOverride.animation.reset();
+	}
+	else {
+		scriptOverride.animation = animation;
+	}
 	actor->setScriptOverride(scriptOverride);
 
 	//an animation that runs forever is not something a script can wait for, so none is registered

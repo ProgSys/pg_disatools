@@ -17,13 +17,6 @@ int PG_DisaActorSlotModel::getSlotOf(const PG_DisaActorModel* actor) const {
 PG_DisaActorModel* PG_DisaActorSlotModel::takeSlot(int slot) {
 	if (auto* existing = getSlot(slot)) return existing;
 
-	/*
-	if (!isScriptSlot(slot)) {
-		OUT_WARNING("Slot " << slot << " is not one a script may spawn into (" << firstSlot << " to " << lastSlot << ")!");
-		return nullptr;
-	}
-	*/
-
 	auto* actor = PG_new<PG_DisaActorModel>("PG_DisaActorModel");
 	actor->setData(mpdfileActor{}); //a fresh one holds whatever was on the stack otherwise
 	push_back(actor); //takes ownership and gives it its row

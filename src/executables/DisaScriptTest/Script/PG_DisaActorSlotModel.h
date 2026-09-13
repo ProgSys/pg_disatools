@@ -38,8 +38,8 @@
 * they are not an order, so they cannot be the list index, but a view wants a plain list. This
 * keeps both: the list the view walks, and a slot to row table beside it.
 *
-* Only the script's own slots (64 to 95 in the game) live here, the units the map placed stay in
-* the map's own list and are reached through PG_DisaContext::resolveSlot.
+* Every actor a script touches lives here, the units a map placed included. The game keeps those
+* two apart, this does not, which is why a script may spawn into any slot up to 95.
 */
 class PG_DisaActorSlotModel : public PG_DisaActorListModel {
 	PG_OBJECT(PG_DisaActorSlotModel);
@@ -47,10 +47,14 @@ class PG_DisaActorSlotModel : public PG_DisaActorListModel {
 public:
 	using PG_DisaActorListModel::PG_DisaActorListModel;
 
-	/// The lowest and highest slot a script may spawn into, everything else belongs to the map.
-	static constexpr int firstSlot = 64;
+	/**
+	* @brief The slots that name a single actor, everything above is a group or a marker.
+	* @details The game splits these into the units a map placed (up to 63) and the ones a script
+	* spawns (64 to 95), but a script writes into both, so they are kept together here.
+	*/
+	static constexpr int firstSlot = 0;
 	static constexpr int lastSlot = 95;
-	static inline bool isScriptSlot(int slot) { return slot >= firstSlot && slot <= lastSlot; }
+	static inline bool isActorSlot(int slot) { return slot >= firstSlot && slot <= lastSlot; }
 
 	/// The actor in that slot, null when the slot is empty.
 	PG_DisaActorModel* getSlot(int slot) const;

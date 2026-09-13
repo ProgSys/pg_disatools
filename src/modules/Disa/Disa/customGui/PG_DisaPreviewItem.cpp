@@ -300,11 +300,11 @@ public:
 			if (animationName.empty()) continue;
 
 			sprite.setAnimationIndex(animationIndex, true);
-			const int endFrame = sprite.getEndFrame();
-			const int sampleCount = endFrame > 0 ? g_spriteBoundsSamples : 1;
+			const auto endFrame = sprite.getSegment();
+			const int sampleCount = endFrame.range.y > 0 ? g_spriteBoundsSamples : 1;
 			PG_AABB2D bounds;
 			for (int sample = 0; sample < sampleCount; ++sample) {
-				sprite.setFrame(float(endFrame * sample) / float(sampleCount));
+				sprite.setFrame(float(endFrame.range.y * sample) / float(sampleCount));
 				sprite.traverse(this, glm::mat4(1.f), [&bounds](PG_SpriteTraverserser*, const PG_Geometry&,
 								const PG_Material&, const PG_Texture&, glm::vec2, glm::vec2 cutoutSize, float,
 								PG_SpriteEnums::EStencilDrawMode, bool, const glm::mat4& matrix, std::vector<glm::mat4>*) {

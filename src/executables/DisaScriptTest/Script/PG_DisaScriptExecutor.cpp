@@ -468,10 +468,10 @@ EDisaScriptResult cmdSetActorSprite(PG_DisaScriptExecutor& executor, std::size_t
 	}
 
 	const int slot = static_cast<int>(readUInt(bytes, 2));
-	/* The game allocates the actor here too, a script that only swaps the look of an empty slot
-	 * still ends up with one standing there. */
-	//if (PG_DisaActorSlotModel::isScriptSlot(slot)) {
-	if (sprite > 0) {
+	/* The game allocates the actor here too, so a script that only swaps the look of an empty
+	 * slot still ends up with one standing there. Sprite 0 is the one that clears a slot rather
+	 * than filling it. */
+	if (sprite > 0 && PG_DisaActorSlotModel::isActorSlot(slot)) {
 		if (auto* actor = spawnIntoSlot(executor.context(), slot)) actor->setCharacterId(sprite);
 		return EDisaScriptResult::Done;
 	}
@@ -534,7 +534,7 @@ EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::siz
 			scriptOverride.rotation = *facing;
 			actor->setScriptOverride(scriptOverride);
 		}
-		if (!animation.empty()) PG_DisaActorAnimations::play(context, actor, animation, 1);
+		PG_DisaActorAnimations::play(context, actor, animation, 1);
 	}
 	return EDisaScriptResult::Done;
 }
@@ -608,13 +608,25 @@ EDisaScriptResult cmdWaitForAnimation(PG_DisaScriptExecutor& executor, std::size
 		printCommand(executor, laneIndex, data);
 		return EDisaScriptResult::Done;
 	}
-
+	static bool visted = false; //@todo needs to be not a static!!! But attched to the command
 	const int slot = static_cast<int>(readUInt(static_cast<const unsigned char*>(data), 2));
+	auto actors = actorsOf(executor, slot);
+
+	if (!visted) {
+		//should only trigger one time
+		for (auto* actor : actors) {
+			actor->nextAnimationSegment();
+		}
+		visted = true;
+	}
+
 	PG_DisaContext& context = executor.context();
-	for (auto* actor : actorsOf(executor, slot)) {
+
+	for (auto* actor : actors) {
 		if (context.hasAnimation(actor)) return EDisaScriptResult::Running;
 	}
 
+	visted = false;
 	printCommand(executor, laneIndex, data, "nothing left to wait for");
 	return EDisaScriptResult::Done;
 }
@@ -665,16 +677,17 @@ EDisaScriptResult cmdTalkScript(PG_DisaScriptExecutor& executor, std::size_t lan
 	}
 
 	const unsigned int scriptId = readUInt(static_cast<const unsigned char*>(data), 3);
-	/* Zero is not a script, it is how a talk script waits for the scripts it started, which is
-	 * what keeps a dialog line from running ahead of the cutscene it belongs to. */
-	if (scriptId != 0) {
-		printCommand(executor, laneIndex, data);
-		executor.runScriptById(PG_DisaIdentifier::disaIdentifierFromIds(scriptId), static_cast<int>(laneIndex));
+	/* Zero starts nothing, it is only there to make the talk script stop until the scripts it
+	 * started are done. It needs no handling of its own: the lane is held back for as long as a
+	 * script runs either way, so reaching this command at all means there is nothing left to
+	 * wait for. */
+	if (scriptId == 0) {
+		printCommand(executor, laneIndex, data, "every started script finished");
 		return EDisaScriptResult::Done;
 	}
 
-	if (executor.hasRunningChildren(laneIndex)) return EDisaScriptResult::Running;
-	printCommand(executor, laneIndex, data, "every started script finished");
+	printCommand(executor, laneIndex, data);
+	executor.runScriptById(PG_DisaIdentifier::disaIdentifierFromIds(scriptId), static_cast<int>(laneIndex));
 	return EDisaScriptResult::Done;
 }
 
@@ -1138,6 +1151,20 @@ PG_DisaFileEntry PG_DisaScriptExecutor::findTalkScript(const PG_DisaIdentifier& 
 	return {};
 }
 
+bool PG_DisaScriptExecutor::isBlockingScriptRunning() const {
+	/* The game leaves the scripts of this range out of the counter the talk interpreter checks,
+	 * so those keep running next to the dialog instead of holding it back. */
+	constexpr unsigned int firstFreeRunning = 1000001;
+	constexpr unsigned int lastFreeRunning = 1999999;
+
+	for (const PG_DisaScriptLane& lane : m_lanes) {
+		if (lane.finished || lane.type != PG_DisaScriptLane::Script) continue;
+		const unsigned int scriptId = lane.scriptId.getNameAsNumber();
+		if (scriptId < firstFreeRunning || scriptId > lastFreeRunning) return true;
+	}
+	return false;
+}
+
 bool PG_DisaScriptExecutor::hasRunningTalkLane() const {
 	for (const PG_DisaScriptLane& lane : m_lanes) {
 		if (!lane.finished && lane.type == PG_DisaScriptLane::Talk) return true;
@@ -1236,6 +1263,12 @@ void PG_DisaScriptExecutor::tick(double deltaTimeSeconds) {
 void PG_DisaScriptExecutor::runLane(std::size_t laneIndex, float deltaTicks) {
 	if (m_lanes[laneIndex].finished) return;
 
+	/* The game runs its talk interpreter only while no script is running, so a talk script never
+	 * walks ahead of the cutscene it started. Its waits do not tick down meanwhile either, the
+	 * whole thing is simply not updated. */
+	const bool isTalk = m_lanes[laneIndex].type == PG_DisaScriptLane::Talk;
+	if (isTalk && isBlockingScriptRunning()) return;
+
 	if (m_lanes[laneIndex].memory.waitTicks > 0.f) {
 		m_lanes[laneIndex].memory.waitTicks -= deltaTicks;
 		if (m_lanes[laneIndex].memory.waitTicks > 0.f) return;
@@ -1266,6 +1299,8 @@ void PG_DisaScriptExecutor::runLane(std::size_t laneIndex, float deltaTicks) {
 		}
 
 		if (m_lanes[laneIndex].memory.waitTicks > 0.f) return;
+		//a script this lane just started takes over, the rest of the talk script waits for it
+		if (isTalk && isBlockingScriptRunning()) return;
 	}
 
 	OUT_WARNING("Lane " << laneIndex << " ran " << maxCommandsPerTick << " commands in one tick, it looks stuck and is dropped.");

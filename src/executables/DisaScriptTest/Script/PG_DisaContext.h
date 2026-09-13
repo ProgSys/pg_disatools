@@ -98,8 +98,8 @@ public:
 
 	/**
 	* @brief The actor a script means by that slot number.
-	* @details Slots up to 63 are the units the map placed, 64 to 95 are the script's own. The
-	* group slots the game has (101, 151, 160 and up) need a running battle, so they find nothing.
+	* @details Every slot is kept here, the units a map placed are not reached for now. The group
+	* slots the game has (101, 151, 160 and up) need a running battle, so they find nothing.
 	* @returns null when the slot holds no actor.
 	*/
 	PG_DisaActorModel* resolveSlot(int slot) const;
