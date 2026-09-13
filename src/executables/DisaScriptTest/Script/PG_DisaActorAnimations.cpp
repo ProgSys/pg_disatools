@@ -101,13 +101,11 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 void PG_DisaActorAnimations::rotate(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
 	if (!actor) return;
 
-	PG_DisaActorScriptOverride scriptOverride = overrideOf(actor);
-	const float start = scriptOverride.rotation.value_or(0.f);
+	const float start = actor->getRotationAngle();
 	const float end = start + degree; //the game adds the angle, it does not set it
 
 	if (durationTicks <= 0.f) {
-		scriptOverride.rotation = end;
-		actor->setScriptOverride(scriptOverride);
+		actor->setRotationAngle(end);
 		return;
 	}
 
@@ -117,9 +115,7 @@ void PG_DisaActorAnimations::rotate(PG_DisaContext& context, PG_DisaActorModel* 
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
-			PG_DisaActorScriptOverride out = self->getScriptOverride();
-			out.rotation = glm::mix(start, end, progress);
-			self->setScriptOverride(out);
+			self->setRotationAngle(glm::mix(start, end, progress));
 			return progress >= 1.f;
 		}, "PG_DisaRotateAnimation");
 }

@@ -19,7 +19,7 @@
 struct PG_DisaActorScriptOverride {
 	/// Position in tile units, y is the height. Replaces the position the tile would give it.
 	std::optional<glm::vec3> translation;
-	/// Facing in degree around y, zero looks the same way as the map rotation 2 does.
+	/// Facing in degree around y, the same space the map rotation counts in quarters of.
 	std::optional<float> rotation;
 	std::optional<bool> visible;
 	/// How fast it falls, in tiles per tick squared. Unset means the engine's own.
@@ -82,6 +82,7 @@ signals:
 
 	void geoColorChanged();
 	void geoEffectChanged();
+	void rotationAngleChanged();
 	void animationModeChanged();
 	void animationSetChanged();
 	void animationChanged();
@@ -112,6 +113,7 @@ public:
 		Identity_ScriptOverride,
 		Identity_Unpause,
 		Identity_Next, //will force play next animation segment
+		Identity_RotationAngle,
 		Identity_AnimationMode,
 		Identity_AnimationSet,
 		Identity_Animation,
@@ -172,6 +174,16 @@ public:
 
 	char getCharacterRotation() const { return m_data.rotation; }
 	void setCharacterRotation(char value);
+
+	/**
+	* @brief Which way the actor looks, in degree around y.
+	* @details The same space the map counts in quarter turns of, so -90 is north, 0 east, 90 south
+	* and 180 west. A script may take it over with any angle in between.
+	* @returns The angle a script set, or the quarter turn of the map when none did.
+	*/
+	float getRotationAngle() const;
+	/// Takes the facing over, an empty one hands it back to the map rotation. @see getRotationAngle
+	void setRotationAngle(std::optional<float> value);
 
 	unsigned char getCharacterAlliance() const { return m_data.alliance; }
 	void setCharacterAlliance(unsigned char value);

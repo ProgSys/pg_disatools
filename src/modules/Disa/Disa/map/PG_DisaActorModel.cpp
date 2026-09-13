@@ -91,7 +91,8 @@ void PG_DisaActorModel::setCharacterRotation(char value) {
 	m_data.rotation = value;
 
 	emit characterRotationChanged();
-	notifyParent(this, { Identity_Rotation });
+	emit rotationAngleChanged();
+	notifyParent(this, { Identity_Rotation, Identity_RotationAngle });
 }
 
 void PG_DisaActorModel::setCharacterAlliance(unsigned char value) {
@@ -256,6 +257,25 @@ void PG_DisaActorModel::unpauseAnimation() {
 	notifyParent(this, { Identity_Unpause });
 }
 
+float PG_DisaActorModel::getRotationAngle() const {
+	constexpr float degreePerQuarter = 90.f;
+	static bool debug = false;
+	if (debug) {
+		const_cast<PG_DisaActorModel*>(this)->m_scriptOverride.rotation = 0.f;
+		debug = false;
+	}
+
+	return m_scriptOverride.rotation.value_or(getCharacterRotation() * degreePerQuarter);
+}
+
+void PG_DisaActorModel::setRotationAngle(std::optional<float> value) {
+	if (m_scriptOverride.rotation == value) return;
+	if (value) std::cout << "setRotationAngle " << *value << std::endl;
+	m_scriptOverride.rotation = value;
+	emit rotationAngleChanged();
+	notifyParent(this, { Identity_RotationAngle, Identity_ScriptOverride });
+}
+
 void PG_DisaActorModel::setMode(EMode value) {
 	if (m_mode == value) return;
 	m_mode = value;
@@ -293,12 +313,17 @@ PG_Texture PG_DisaActorModel::getCharacterPortrait() const {
 
 void PG_DisaActorModel::setScriptOverride(const PG_DisaActorScriptOverride& value) {
 	const bool moved = m_scriptOverride.translation != value.translation;
+	const bool turned = m_scriptOverride.rotation != value.rotation;
 	m_scriptOverride = value;
 
 	PG_IdentitySet changes{ Identity_ScriptOverride, Identity_Unpause };
 	if (moved) {
 		changes.insert(Identity_Translation);
 		emit translationChanged();
+	}
+	if (turned) {
+		changes.insert(Identity_RotationAngle);
+		emit rotationAngleChanged();
 	}
 	notifyParent(this, changes);
 }
@@ -326,6 +351,7 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 		return std::array<glm::vec3, 4>{glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f)};
 	} break;
 	case Identity_Id: return m_data.id;
+	case Identity_RotationAngle: return getRotationAngle();
 	case Identity_AnimationMode: return static_cast<int>(m_mode);
 	case Identity_AnimationSet: return static_cast<int>(m_animationSet);
 	case Identity_Animation: return m_animation;
@@ -357,6 +383,12 @@ bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 		if (auto v = value.convert<unsigned char>(); v != m_data.alliance) {
 			m_data.alliance = v;
 			emit characterAllianceChanged();
+			return true;
+		}
+	}break;
+	case Identity_RotationAngle: {
+		if (auto v = value.convert<float>(); v != getRotationAngle()) {
+			setRotationAngle(v);
 			return true;
 		}
 	}break;

@@ -371,7 +371,8 @@ EDisaScriptResult cmdText(PG_DisaScriptExecutor& executor, std::size_t laneIndex
 /**
 * @brief Turns the facing a command carries into an angle, nothing when it says to keep the current one.
 * @details The game adds the quarter turn to the world rotation the script runs under, and for the
-* cutscene scripts that rotation sits one quarter turn back, so facing 1 is the one that is straight.
+* cutscene scripts that rotation sits one quarter turn back. The model counts its facing the way the
+* map does, where zero looks east, so facing 1 is the one that lands on zero.
 */
 std::optional<float> facingOf(int facing) {
 	constexpr int keepFacing = 10;
@@ -382,10 +383,7 @@ std::optional<float> facingOf(int facing) {
 
 /// Writes the facing of a command onto an actor, if it carries one.
 void applyFacing(PG_DisaActorModel* actor, const std::optional<float>& facing) {
-	if (!facing) return;
-	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
-	scriptOverride.rotation = *facing;
-	actor->setScriptOverride(scriptOverride);
+	if (facing) actor->setRotationAngle(*facing);
 }
 
 /// Reads the slot of a command and hands back every actor it stands for.

@@ -26,13 +26,6 @@ const PG_DisaActorScriptOverride& PG_DisaActorViewNode::getScriptOverride() cons
 	static const PG_DisaActorScriptOverride empty;
 	if (!m_location) return empty;
 	auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
-	static bool debug = false;
-	if (debug) {
-		PG_DisaActorScriptOverride r;
-		r.rotation = 0.f;
-		model->setScriptOverride(r);
-		debug = false;
-	}
 	return model ? model->getScriptOverride() : empty;
 }
 
@@ -250,15 +243,12 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 		node->updateModelMatrix();
 		node->updateModelMatrixWorld();
 
-		//choose animation
-		const PG_DisaActorScriptOverride& scriptOverride = getScriptOverride();
 
 		/* A script gives whole degree, the map a quarter turn count, and the game stores both as
 		 * the same angle. It turns clockwise around an x axis that points the other way than ours,
 		 * which together come out as half a turn. */
-		const float degree = scriptOverride.rotation ? *scriptOverride.rotation
-			: m_location.getDataT<char>(PG_DisaActorModel::Identity_Rotation) * 90.f;
-		const float radians = glm::radians(degree + 180.f);
+		const float degree = m_location.getDataT<float>(PG_DisaActorModel::Identity_RotationAngle);
+		const float radians = glm::radians(degree + 90.f);
 		const glm::vec2 baseRotation(std::cos(radians), std::sin(radians));
 
 
