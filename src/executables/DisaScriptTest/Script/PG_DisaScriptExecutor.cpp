@@ -376,16 +376,8 @@ EDisaScriptResult cmdText(PG_DisaScriptExecutor& executor, std::size_t laneIndex
 */
 std::optional<float> facingOf(int facing) {
 	constexpr int keepFacing = 10;
-	if (facing == keepFacing) return std::nullopt;
-	switch (facing) {
-		case 0: return { 180.f };
-		case 1: return { 90.f };
-		case 2: return { 0.f };
-		case 3: return { 270.f };
-	}
-	return std::nullopt;
-	//if (facing < 0 || facing > 3) return std::nullopt;
-	//return static_cast<float>(facing - 1) * 90.f;
+	if (facing == keepFacing || facing < 0 || facing > 3) return std::nullopt;
+	return static_cast<float>(facing) * 90.f;
 }
 
 /// Writes the facing of a command onto an actor, if it carries one.
