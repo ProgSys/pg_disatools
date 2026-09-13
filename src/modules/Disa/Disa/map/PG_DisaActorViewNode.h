@@ -70,33 +70,7 @@ signals:
 	void translationUserChanged();
 	void characterIdChanged();
 public:
-	/**
-	* @brief Where the facing and the animation of the actor come from.
-	* @details A sprite always turns its face towards the camera, what changes is which of its
-	* four side views is picked and what it plays while it stands there.
-	*/
-	enum EMode : unsigned char {
-		Mode_Map,   /// Faces the way its tile rotation says and idles, what the editor shows
-		Mode_Script /// Follows the model's script override, and falls back to Mode_Map per part
-	};
-
-	/**
-	* @brief Which animation set a script driven actor stands around in.
-	* @details Both cover five angles, unlike the battle animations which only have two. Which one
-	* the game picks is not worked out yet, so it is set from outside for now.
-	*/
-	enum EIdleSet : unsigned char {
-		Idle_Stand,
-		Idle_Walk
-	};
-
 	using PG_ActorNode::PG_ActorNode;
-
-	inline EMode getMode() const { return m_mode; }
-	void setMode(EMode mode) { m_mode = mode; }
-
-	inline EIdleSet getIdleSet() const { return m_idleSet; }
-	void setIdleSet(EIdleSet set) { m_idleSet = set; }
 
 	PG_Object* getObjectModel() const;
 	PG_ListModelLocation getLocation() const { return m_location; }
@@ -136,8 +110,6 @@ private:
 
 	PG_ListModelLocation m_location;
 	bool m_dragged = false;
-	EMode m_mode = Mode_Map;
-	EIdleSet m_idleSet = Idle_Stand;
     SwaySpring m_spring;
 };
 

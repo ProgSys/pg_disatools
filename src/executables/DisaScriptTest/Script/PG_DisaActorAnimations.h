@@ -78,11 +78,15 @@ void fall(PG_DisaContext& context, PG_DisaActorModel* actor, float gravity);
 void rotate(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks);
 
 /**
-* @brief Plays a sprite animation and keeps the actor busy while it runs.
+* @brief Puts the actor into an animation set and keeps it busy while that set runs.
 * @param loops How often it plays before the actor counts as free again, zero never ends by
 * itself and only a later animation stops it.
-* @details Only the busy state ends, the sprite itself keeps playing either way.
+* @details Only the busy state ends, the sprite itself keeps playing either way. A pose the script
+* named before is dropped, the set and the angle pick the sheet again.
 */
-void play(PG_DisaContext& context, PG_DisaActorModel* actor, const std::string& animation, int loops = 1);
+void play(PG_DisaContext& context, PG_DisaActorModel* actor, int animationSet, int loops = 1);
+
+/// Holds one named sheet, the way SetActorPose does. A negative number is the mirrored sheet.
+void pose(PG_DisaActorModel* actor, int animation);
 
 } //namespace PG_DisaActorAnimations

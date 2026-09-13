@@ -21,14 +21,12 @@ struct PG_DisaActorScriptOverride {
 	std::optional<glm::vec3> translation;
 	/// Facing in degree around y, zero looks the same way as the map rotation 2 does.
 	std::optional<float> rotation;
-	/// Sprite animation to play, the view takes the name as it is.
-	std::optional<std::string> animation;
 	std::optional<bool> visible;
 	/// How fast it falls, in tiles per tick squared. Unset means the engine's own.
 	std::optional<float> gravity;
 
 	inline bool isEmpty() const {
-		return !translation && !rotation && !animation && !visible && !gravity;
+		return !translation && !rotation && !visible && !gravity;
 	}
 };
 
@@ -57,6 +55,10 @@ class PG_DisaActorModel : public PG_Object {
 
 	PG_PROPERTY(glm::u8vec4 characterMagicLevels GET getCharacterMagicLevels SET setCharacterMagicLevels CHANGED characterMagicLevelsChanged);
 
+	PG_PROPERTY(int animationMode GET getMode SET setMode CHANGED animationModeChanged);
+	PG_PROPERTY(int animationSet GET getAnimationSet SET setAnimationSet CHANGED animationSetChanged);
+	PG_PROPERTY(int animation GET getAnimation SET setAnimation CHANGED animationChanged);
+
 	//only for geo constructs (2800)
 	PG_PROPERTY(int characterGeoColor GET getGeoColor SET setGeoColor CHANGED geoColorChanged)
 	PG_PROPERTY(unsigned short characterGeoEffect GET getGeoEffect SET setGeoEffect CHANGED geoEffectChanged)
@@ -80,6 +82,9 @@ signals:
 
 	void geoColorChanged();
 	void geoEffectChanged();
+	void animationModeChanged();
+	void animationSetChanged();
+	void animationChanged();
 public:
 	using PG_Object::PG_Object;
 
@@ -107,6 +112,40 @@ public:
 		Identity_ScriptOverride,
 		Identity_Unpause,
 		Identity_Next, //will force play next animation segment
+		Identity_AnimationMode,
+		Identity_AnimationSet,
+		Identity_Animation,
+	};
+
+	/**
+	* @brief Which numbering and how many side views the actor's animations are picked from.
+	* @details A sprite always faces the camera, what changes is which of its side views is shown.
+	* In battle only two exist and the turn is covered by mirroring them, a cutscene actor has five.
+	* The game calls this the animation mode, 1 and 2 of SetAnimationMode.
+	*/
+	enum EMode : unsigned char {
+		Mode_Combat, /// Two side views and the 1000 numbering
+		Mode_Idle    /// Five side views and the cutscene numbering
+	};
+
+	/**
+	* @brief What the actor is doing, which is a row of the animation table and not a sheet number.
+	* @details Both modes hold twelve of these and only the first three differ between them. What a
+	* sprite really owns varies, a monster has entries a humanoid does not and the other way around.
+	*/
+	enum EAnimationSet : unsigned char {
+		IdleStanding,
+		Walking,
+		FastWalking,      /// In combat this is the frozen frame of an attack in mid air instead
+		Jump,
+		PunchAttack,
+		Hurt,
+		VictoryPose,
+		Skill,            /// Monster only, many sprites do not have it
+		ThrowObject,
+		VictoryJump,      /// Usually runs into VictoryPose
+		PunchFreezeFrame, /// Monster only
+		SkillAlt          /// Monster only, many sprites do not have it
 	};
 
 	void init();
@@ -193,6 +232,25 @@ public:
 	void nextAnimationSegment();
 	void unpauseAnimation();
 
+	EMode getMode() const { return m_mode; }
+	void setMode(EMode value);
+	void setMode(int value) { setMode(static_cast<EMode>(value)); }
+
+	EAnimationSet getAnimationSet() const { return m_animationSet; }
+	void setAnimationSet(EAnimationSet value);
+	void setAnimationSet(int value) { setAnimationSet(static_cast<EAnimationSet>(value)); }
+
+	/**
+	* @brief Sprite animation to play instead of the one the set and the angle would give.
+	* @details This is what SetActorPose names, a sheet number spelled out. The actor then stops
+	* following the camera, a negative number is the same sheet mirrored.
+	* @returns 0 while the set picks the animation, which is the normal case.
+	*/
+	int getAnimation() const { return m_animation; }
+	void setAnimation(int value);
+	/// Hands the choice back to the animation set. @see setAnimation
+	void clearAnimation() { setAnimation(0); }
+
 	/**
 	* @brief What a script has taken over on this actor, see PG_DisaActorScriptOverride.
 	* @details Set through setScriptOverride, which tells the view about it. An actor nothing has
@@ -222,6 +280,9 @@ private:
 	float m_height = 0.f;
 	mpdfileActor m_data;
 	PG_DisaActorScriptOverride m_scriptOverride;
+	EMode m_mode = Mode_Combat;
+	EAnimationSet m_animationSet = IdleStanding;
+	int m_animation = 0;
 };
 
 class PG_DisaActorListModel : public PG_ListModel<PG_DisaActorModel*> {

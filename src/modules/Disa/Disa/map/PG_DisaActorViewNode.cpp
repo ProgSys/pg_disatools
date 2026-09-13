@@ -1,4 +1,5 @@
 #include "PG_DisaActorViewNode.h"
+#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include <utility>
@@ -23,8 +24,15 @@ PG_Object* PG_DisaActorViewNode::getObjectModel() const {
 
 const PG_DisaActorScriptOverride& PG_DisaActorViewNode::getScriptOverride() const {
 	static const PG_DisaActorScriptOverride empty;
-	if (m_mode != Mode_Script || !m_location) return empty;
+	if (!m_location) return empty;
 	auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
+	static bool debug = false;
+	if (debug) {
+		PG_DisaActorScriptOverride r;
+		r.rotation = 0.f;
+		model->setScriptOverride(r);
+		debug = false;
+	}
 	return model ? model->getScriptOverride() : empty;
 }
 
@@ -136,34 +144,69 @@ void PG_DisaActorViewNode::setDragged(bool value) {
 	if (m_dragged == value) return;
 	m_dragged = value;
 	m_spring.setTargetPos(glm::vec3(0.f, value ? 0.5f : 0.0f, 0.f));
+	if (auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
+		model->setAnimationSet(value ? PG_DisaActorModel::Hurt : PG_DisaActorModel::IdleStanding);
+	}
 }
-
-// Idle animation, has more angles then all other animations. Used mainly for cutscenes.
-constexpr std::array<std::string_view, 5> g_idleStand = { "1" /*side-fornt (m)*/, "2" /*fornt*/, "3" /*side (m)*/, "4" /*side-back (m)*/, "5" /*back*/ };
-// Basic walk. Used mainly for cutscenes. Most sprites don't have a walk fornt (12), side (14), back (18). They either dublicate 11 or 17, or its fully missing. 11 and 17 are expected to be present.
-constexpr std::array<std::string_view, 5> g_idleWalk = { "11" /*side-fornt (m)*/, "12" /*fornt*/, "14" /*side (m)*/, "17" /*side-back (m)*/, "18" /*back*/ };
-
-//Combat animations. Only have two faces that are mirroed based on angle.
-constexpr std::array<std::string_view, 2> g_idleCombatStand = { "1001" , "1007"  };
-constexpr std::array<std::string_view, 2> g_hurtStand = { "1061" , "1067"  };
 
 constexpr auto g_mirrorX = "mirrorX";
 
+/* Sheet base of every animation set, indexed by PG_DisaActorModel::EAnimationSet. A side view is
+ * added on top, so a base is never a sheet that exists, and 0 is the sprite's "no data" frame.
+ * Only the first three rows differ, everything from Jump on is shared. */
+constexpr std::array<int, 12> g_combatSets = { 1000, 1010, 1020, 1030, 1500, 1060, 1070, 1080, 1090, 1050, 1610, 1620 };
+constexpr std::array<int, 12> g_idleSets = { 0, 10, 20, 1030, 1500, 1060, 1070, 1080, 1090, 1050, 1610, 1620 };
+
 /**
-* @brief The side view of a five angle set that fits the angle, and whether it has to be mirrored.
-* @details The sheet only holds one half of the turn, the other half is the same frames mirrored.
-* Front and back look the same from either side, so those two never are.
+* @brief The side view for an angle, negative when the sheet has to be mirrored.
+* @details A sheet only holds one half of the turn, the other half is the same frames flipped.
+* Front and back look the same from either side, so those two are never mirrored.
 */
-std::pair<std::string_view, bool> pickSideView(const std::array<std::string_view, 5>& animations, float angle) {
+int pickFiveViews(float angle) {
 	constexpr float step = 45.f; //five views over half a turn, so each covers 45 degree
 	const float degree = glm::degrees(std::abs(angle));
-	const bool mirrored = angle < 0.f;
+	const int side = angle < 0.f ? -1 : 1;
 
-	if (degree < step * 0.5f) return { animations[1], false };           //front
-	if (degree < step * 1.5f) return { animations[0], mirrored };        //side front
-	if (degree < step * 2.5f) return { animations[2], mirrored };        //side
-	if (degree < step * 3.5f) return { animations[3], mirrored };        //side back
-	return { animations[4], false };                                     //back
+	if (degree < step * 0.5f) return 2;         //front
+	if (degree < step * 1.5f) return side * 1;  //side front
+	if (degree < step * 2.5f) return side * 4;  //side
+	if (degree < step * 3.5f) return side * 7;  //side back
+	return 8;                                   //back
+}
+
+/// The same for the two views a battle sprite has, where every quarter turn is a mirror. @see pickFiveViews
+int pickTwoViews(float angle) {
+	const int side = angle < 0.f ? -1 : 1;
+	return side * (glm::degrees(std::abs(angle)) < 90.f ? 1 : 7);
+}
+
+struct AnimationChoice {
+	int animation = 0;
+	bool mirrored = false;
+};
+
+/**
+* @brief Which sheet the actor shows, out of what it is doing and where it looks.
+* @details A pose the script named outright wins, it already is a sheet number and the angle has no
+* say in it. Otherwise the set gives the base and the angle the side view on top of it.
+*/
+AnimationChoice pickAnimation(const PG_Sprite& sprite, const PG_DisaActorModel& model, float angle) {
+	if (const int pose = model.getAnimation(); pose != 0) return { std::abs(pose), pose < 0 };
+
+	const std::size_t set = std::min<std::size_t>(model.getAnimationSet(), g_idleSets.size() - 1);
+	const bool idle = model.getMode() == PG_DisaActorModel::Mode_Idle;
+	const int base = idle ? g_idleSets[set] : g_combatSets[set];
+
+	/* Not every sprite carries all five views, outside the idle and the walk sets most carry none
+	 * of the extra three. One that is missing falls back to the two a battle sprite has. */
+	if (idle) {
+		const int view = pickFiveViews(angle);
+		if (sprite.getAnimationIndex(std::to_string(base + std::abs(view))) >= 0) {
+			return { base + std::abs(view), view < 0 };
+		}
+	}
+	const int view = pickTwoViews(angle);
+	return { base + std::abs(view), view < 0 };
 }
 constexpr glm::vec3 baseDir = glm::vec3(1.f, 0.f, 0.f);
 constexpr glm::vec3 baseUp = glm::vec3(0.f, 1.f, 0.f);
@@ -210,19 +253,13 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 		//choose animation
 		const PG_DisaActorScriptOverride& scriptOverride = getScriptOverride();
 
-		glm::vec2 baseRotation = glm::vec2(1.f, 0.f);
-		if (scriptOverride.rotation) {
-			//the map rotations run clockwise, so the angle does too
-			const float radians = glm::radians(-*scriptOverride.rotation);
-			baseRotation = glm::vec2(std::cos(radians), std::sin(radians));
-		} else if (m_location) {
-			switch (m_location.getDataT<char>(PG_DisaActorModel::Identity_Rotation)) {
-				case -1: baseRotation = glm::vec2(0.f, 1.f); break;
-				case 0: baseRotation = glm::vec2(-1.f, 0.f); break;
-				case 1: baseRotation = glm::vec2(0.f, -1.f); break;
-				case 2: baseRotation = glm::vec2(1.f, 0.f); break;
-			};
-		}
+		/* A script gives whole degree, the map a quarter turn count, and the game stores both as
+		 * the same angle. It turns clockwise around an x axis that points the other way than ours,
+		 * which together come out as half a turn. */
+		const float degree = scriptOverride.rotation ? *scriptOverride.rotation
+			: m_location.getDataT<char>(PG_DisaActorModel::Identity_Rotation) * 90.f;
+		const float radians = glm::radians(degree + 180.f);
+		const glm::vec2 baseRotation(std::cos(radians), std::sin(radians));
 
 
 		const float angle = PG_Math::angle(glm::normalize(glm::vec2(dir.x, dir.z)), baseRotation);
@@ -232,27 +269,10 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 			};
 
 
-		if (scriptOverride.animation) {
-			//the script named one animation, so there is no side view to pick between
-			node->setAnimation(*scriptOverride.animation, false);
-			setMirrored(false); //@todo is wrong can be mirred too
-		}
-		else if (m_mode == Mode_Script) {
-			//a cutscene actor uses the sets that cover five angles, not the two of a battle
-			const auto [animation, mirrored] = pickSideView(m_idleSet == Idle_Walk ? g_idleWalk : g_idleStand, angle);
-			node->setAnimation(std::string(animation), false);
+		if (auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
+			const auto [animation, mirrored] = pickAnimation(sprite, *model, angle);
+			node->setAnimation(std::to_string(animation), false);
 			setMirrored(mirrored);
-		}
-		else {
-			const std::array<std::string_view, 2>& animationSet = m_dragged ? g_hurtStand : g_idleCombatStand;
-			if (angle < 0.f) {
-				node->setAnimation(std::string(animationSet[1]), false);
-				setMirrored(angle >= glm::radians(-90.f));
-			}
-			else {
-				node->setAnimation(std::string(animationSet[0]), false);
-				setMirrored(angle < glm::radians(90.f));
-			}
 		}
 	}
 

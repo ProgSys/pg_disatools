@@ -124,20 +124,11 @@ void PG_DisaActorAnimations::rotate(PG_DisaContext& context, PG_DisaActorModel* 
 		}, "PG_DisaRotateAnimation");
 }
 
-void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* actor, const std::string& animation, int loops) {
+void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* actor, int animationSet, int loops) {
 	if (!actor) return;
 
-	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
-	if (animation.empty()) {
-		/* Clearing it hands the actor back to the idle set the view picks by angle, which is what
-		 * a script means when it asks for animation 0. */
-		scriptOverride.animation.reset();
-		actor->setScriptOverride(scriptOverride);
-		return;
-	}
-
-	scriptOverride.animation = animation;
-	actor->setScriptOverride(scriptOverride);
+	actor->clearAnimation();
+	actor->setAnimationSet(animationSet);
 
 	//an animation that runs forever is not something a script can wait for, so none is registered
 	if (loops <= 0) return;
@@ -152,4 +143,8 @@ void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* ac
 			*left -= deltaTicks;
 			return *left <= 0.f;
 		}, "PG_DisaPlayAnimation");
+}
+
+void PG_DisaActorAnimations::pose(PG_DisaActorModel* actor, int animation) {
+	if (actor) actor->setAnimation(animation);
 }

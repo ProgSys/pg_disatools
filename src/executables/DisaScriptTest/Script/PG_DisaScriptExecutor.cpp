@@ -369,21 +369,23 @@ EDisaScriptResult cmdText(PG_DisaScriptExecutor& executor, std::size_t laneIndex
 //==== Actors ====
 
 /**
-* @brief The sprite animation a script animation ID stands for.
-* scriptAnimation equal 0 resets the actor to default behavior
+* @brief Turns the facing a command carries into an angle, nothing when it says to keep the current one.
+* @details The game adds the quarter turn to the world rotation the script runs under, and for the
+* cutscene scripts that rotation sits one quarter turn back, so facing 1 is the one that is straight.
 */
-std::string animationOf(int scriptAnimation) {
-	const int animation = std::abs(scriptAnimation); //a negative one only mirrors the sprite
-	if (animation > 0) return std::to_string(animation);
-	return {};
-}
-
-/// Turns the facing a command carries into an angle, nothing when it says to keep the current one.
 std::optional<float> facingOf(int facing) {
 	constexpr int keepFacing = 10;
 	if (facing == keepFacing) return std::nullopt;
 	if (facing < 0 || facing > 3) return std::nullopt;
-	return static_cast<float>(facing) * 90.f;
+	return static_cast<float>(facing - 1) * 90.f;
+}
+
+/// Writes the facing of a command onto an actor, if it carries one.
+void applyFacing(PG_DisaActorModel* actor, const std::optional<float>& facing) {
+	if (!facing) return;
+	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
+	scriptOverride.rotation = *facing;
+	actor->setScriptOverride(scriptOverride);
 }
 
 /// Reads the slot of a command and hands back every actor it stands for.
@@ -503,12 +505,10 @@ EDisaScriptResult cmdSetActorPose(PG_DisaScriptExecutor& executor, std::size_t l
 	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	const std::string animation = animationOf(readInt(bytes + 2, 2));
-	if (animation.empty()) return EDisaScriptResult::Done;
-
-	//a pose is held until something else changes it, so it never keeps the actor busy
+	//a pose is a sheet number spelled out, held until something else changes it, and never busy
+	const int pose = readInt(bytes + 2, 2);
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
-		PG_DisaActorAnimations::play(executor.context(), actor, animation, 0);
+		PG_DisaActorAnimations::pose(actor, pose);
 	}
 	return EDisaScriptResult::Done;
 }
@@ -519,17 +519,15 @@ EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::siz
 	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	const std::string animation = animationOf(readInt(bytes + 2, 2));
+	const int animationSet = readInt(bytes + 2, 2);
 	const std::optional<float> facing = facingOf(bytes[4]);
 
 	PG_DisaContext& context = executor.context();
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
-		if (facing) {
-			PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
-			scriptOverride.rotation = *facing;
-			actor->setScriptOverride(scriptOverride);
-		}
-		PG_DisaActorAnimations::play(context, actor, animation, 1);
+		applyFacing(actor, facing);
+		//the game puts the actor into combat numbering here, the SetAnimationMode after it decides
+		actor->setMode(PG_DisaActorModel::Mode_Combat);
+		PG_DisaActorAnimations::play(context, actor, animationSet, 1);
 	}
 	return EDisaScriptResult::Done;
 }
@@ -540,18 +538,35 @@ EDisaScriptResult cmdSetActorPoseDir(PG_DisaScriptExecutor& executor, std::size_
 	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	//the game builds the sheet number out of the base, the view then picks the side view itself
-	const std::string animation = animationOf(static_cast<int>(readUInt(bytes + 2, 2)) * 10);
+	/* The game reads the side view off the camera once and bakes it into the pose, so the actor
+	 * keeps that sheet however it turns afterwards. Only the side front view is taken here. */
+	const int pose = static_cast<int>(readUInt(bytes + 2, 2)) * 10 + 1;
 	const std::optional<float> facing = facingOf(bytes[4]);
 
-	PG_DisaContext& context = executor.context();
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
-		if (facing) {
-			PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
-			scriptOverride.rotation = *facing;
-			actor->setScriptOverride(scriptOverride);
-		}
-		if (!animation.empty()) PG_DisaActorAnimations::play(context, actor, animation, 0);
+		applyFacing(actor, facing);
+		PG_DisaActorAnimations::pose(actor, pose);
+	}
+	return EDisaScriptResult::Done;
+}
+
+/**
+* @brief Picks which numbering and how many side views the actor's animations come from.
+* @details Mode 0 leaves the sheet to the pose the script named, 1 is the battle numbering with two
+* side views, 2 the cutscene one with five. Every cutscene actor is put into 2 right after each
+* SetActorAnimation, which sets it back to 1 on its own.
+*/
+EDisaScriptResult cmdSetAnimationMode(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 3) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const int mode = bytes[2];
+	if (mode != 1 && mode != 2) return EDisaScriptResult::Done;
+
+	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
+		actor->setMode(mode == 2 ? PG_DisaActorModel::Mode_Idle : PG_DisaActorModel::Mode_Combat);
 	}
 	return EDisaScriptResult::Done;
 }
@@ -831,7 +846,7 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x68, "ContinueActorAnimation", "slot:2", &cmdContinueActorAnimation);
 		set(0x69, "SetActorGroup", "slot:2,group:1");
 		set(0x6A, "SetActorPoseDir", "slot:2,poseBase:2,facing:1", &cmdSetActorPoseDir);
-		set(0x6B, "SetAnimationMode", "slot:2,mode:1");
+		set(0x6B, "SetAnimationMode", "slot:2,mode:1", &cmdSetAnimationMode);
 		set(0x6D, "SetActor", "slot:1,spriteId:-2,level:2,allegiance:1", &cmdSetActor);
 		set(0x6E, "SetActorSprite", "slot:2,spriteId:-2", &cmdSetActorSprite);
 		set(0x6F, "PlayEffect", "effectId:2,parent:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");

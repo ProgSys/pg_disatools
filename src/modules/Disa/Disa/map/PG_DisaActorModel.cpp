@@ -256,6 +256,27 @@ void PG_DisaActorModel::unpauseAnimation() {
 	notifyParent(this, { Identity_Unpause });
 }
 
+void PG_DisaActorModel::setMode(EMode value) {
+	if (m_mode == value) return;
+	m_mode = value;
+	emit animationModeChanged();
+	notifyParent(this, { Identity_AnimationMode });
+}
+
+void PG_DisaActorModel::setAnimationSet(EAnimationSet value) {
+	if (m_animationSet == value) return;
+	m_animationSet = value;
+	emit animationSetChanged();
+	notifyParent(this, { Identity_AnimationSet });
+}
+
+void PG_DisaActorModel::setAnimation(int value) {
+	if (m_animation == value) return;
+	m_animation = value;
+	emit animationChanged();
+	notifyParent(this, { Identity_Animation });
+}
+
 const std::string& PG_DisaActorModel::getCharacterName() const {
 	const auto& character = PG_DisaCharactersModel::get()->getCharacterModel(getCharacterId());
 	return character.nameNormelized;
@@ -305,6 +326,9 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 		return std::array<glm::vec3, 4>{glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f)};
 	} break;
 	case Identity_Id: return m_data.id;
+	case Identity_AnimationMode: return static_cast<int>(m_mode);
+	case Identity_AnimationSet: return static_cast<int>(m_animationSet);
+	case Identity_Animation: return m_animation;
 	case Identity_Rotation: return getCharacterRotation();
 	case Identity_Alliance: return getCharacterAlliance();
 	case Identity_GeoColor: return getGeoColor();
@@ -333,6 +357,24 @@ bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 		if (auto v = value.convert<unsigned char>(); v != m_data.alliance) {
 			m_data.alliance = v;
 			emit characterAllianceChanged();
+			return true;
+		}
+	}break;
+	case Identity_AnimationMode: {
+		if (auto v = static_cast<EMode>(value.convert<int>()); v != m_mode) {
+			setMode(v);
+			return true;
+		}
+	}break;
+	case Identity_AnimationSet: {
+		if (auto v = static_cast<EAnimationSet>(value.convert<int>()); v != m_animationSet) {
+			setAnimationSet(v);
+			return true;
+		}
+	}break;
+	case Identity_Animation: {
+		if (auto v = value.convert<int>(); v != m_animation) {
+			setAnimation(v);
 			return true;
 		}
 	}break;

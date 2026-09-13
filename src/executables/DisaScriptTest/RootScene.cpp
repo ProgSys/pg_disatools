@@ -178,7 +178,6 @@ void RootScene::setupScriptActorView(PG_DisaMapScene* gameScene) {
 	auto* view = PG_new<PG_FootlooseViewNode>("N_ScriptActorView", gameScene->getRoot());
 	view->setItem([](PG_ActorNode* parent, const PG_ListModelLocation& location) {
 		auto* item = PG_new<PG_DisaActorViewNode>("ViewItem", parent);
-		item->setMode(PG_DisaActorViewNode::Mode_Script);
 		item->setLocation(location);
 		return static_cast<PG_ActorNode*>(item);
 		});
