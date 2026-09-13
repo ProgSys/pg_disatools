@@ -177,8 +177,10 @@ public:
 
 	/**
 	* @brief Which way the actor looks, in degree around y.
-	* @details The same space the map counts in quarter turns of, so -90 is north, 0 east, 90 south
-	* and 180 west. A script may take it over with any angle in between.
+	* North +X Axis: -90 degree 
+	* East +Z Axis: 0/360 degree
+	* South -X Axis: 90 degree 
+	* West -Z Axis: 180 degree
 	* @returns The angle a script set, or the quarter turn of the map when none did.
 	*/
 	float getRotationAngle() const;

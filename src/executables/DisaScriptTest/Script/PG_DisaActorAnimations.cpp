@@ -20,6 +20,13 @@ PG_DisaActorScriptOverride overrideOf(PG_DisaActorModel* actor) {
 	return out;
 }
 
+/// Wraps an angle into (-180, 180], the range the game keeps a facing in.
+float normalizeDegree(float degree) {
+	degree = std::fmod(degree + 180.f, 360.f);
+	if (degree <= 0.f) degree += 360.f;
+	return degree - 180.f;
+}
+
 void setTranslation(PG_DisaActorModel* actor, const glm::vec3& position) {
 	PG_DisaActorScriptOverride out = overrideOf(actor);
 	out.translation = position;
@@ -98,24 +105,48 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 		}, "PG_DisaMoveAnimation");
 }
 
-void PG_DisaActorAnimations::rotate(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
+void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
 	if (!actor) return;
 
-	const float start = actor->getRotationAngle();
-	const float end = start + degree; //the game adds the angle, it does not set it
-
+	const float end = normalizeDegree(degree);
 	if (durationTicks <= 0.f) {
 		actor->setRotationAngle(end);
 		return;
 	}
 
+	/* The game runs straight from the angle it started at to the target, so a turn that could go
+	 * either way around takes the way the two numbers say and not the shorter one. */
+	const float start = actor->getRotationAngle();
 	auto elapsed = std::make_shared<float>(0.f);
 	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Rotation,
 		[start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
-			self->setRotationAngle(glm::mix(start, end, progress));
+			self->setRotationAngle(normalizeDegree(glm::mix(start, end, progress)));
+			return progress >= 1.f;
+		}, "PG_DisaRotateAnimation");
+}
+
+void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
+	if (!actor) return;
+
+	const float start = actor->getRotationAngle();
+	const float end = start + degree;
+
+	if (durationTicks <= 0.f) {
+		actor->setRotationAngle(normalizeDegree(end));
+		return;
+	}
+
+	//the step is what the game keeps, so a turn of more than once around really goes around twice
+	auto elapsed = std::make_shared<float>(0.f);
+	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Rotation,
+		[start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+			*elapsed += deltaTicks;
+			const float progress = std::min(1.f, *elapsed / durationTicks);
+
+			self->setRotationAngle(normalizeDegree(glm::mix(start, end, progress)));
 			return progress >= 1.f;
 		}, "PG_DisaRotateAnimation");
 }

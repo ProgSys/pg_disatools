@@ -71,11 +71,18 @@ void move(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec3& ta
 void fall(PG_DisaContext& context, PG_DisaActorModel* actor, float gravity);
 
 /**
-* @brief Turns the actor, the angle is added to the way it faces rather than replacing it.
-* @param degree Turn around y, the game's rotations run clockwise.
-* @param durationTicks Zero turns it at once.
+* @brief Turns the actor to an angle.
+* @param degree Facing around y, in the space PG_DisaActorModel counts its rotation in.
+* @param durationTicks Zero sets it at once, otherwise it turns there over that many ticks.
 */
-void rotate(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks);
+void rotateTo(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks);
+
+/**
+* @brief Turns the actor by an angle, on top of the way it already faces.
+* @param degree How far to turn around y. More than a full turn spins.
+* @param durationTicks Zero turns it at once, otherwise the turn is spread over that many ticks.
+*/
+void rotateBy(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks);
 
 /**
 * @brief Puts the actor into an animation set and keeps it busy while that set runs.

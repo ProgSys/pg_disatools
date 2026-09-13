@@ -377,8 +377,15 @@ EDisaScriptResult cmdText(PG_DisaScriptExecutor& executor, std::size_t laneIndex
 std::optional<float> facingOf(int facing) {
 	constexpr int keepFacing = 10;
 	if (facing == keepFacing) return std::nullopt;
-	if (facing < 0 || facing > 3) return std::nullopt;
-	return static_cast<float>(facing - 1) * 90.f;
+	switch (facing) {
+		case 0: return { 180.f };
+		case 1: return { 90.f };
+		case 2: return { 0.f };
+		case 3: return { 270.f };
+	}
+	return std::nullopt;
+	//if (facing < 0 || facing > 3) return std::nullopt;
+	//return static_cast<float>(facing - 1) * 90.f;
 }
 
 /// Writes the facing of a command onto an actor, if it carries one.
@@ -575,19 +582,23 @@ EDisaScriptResult cmdRotateActor(PG_DisaScriptExecutor& executor, std::size_t la
 	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	float duration = static_cast<float>(readUInt(bytes + 1, 2));
-	float degree = static_cast<float>(readInt(bytes + 3, 2));
+	const float duration = static_cast<float>(readUInt(bytes + 1, 2));
+	const float degree = static_cast<float>(readInt(bytes + 3, 2));
 
-	//a duration of 10000 and up is not a duration, it sets the facing at once
-	constexpr float setFacingDirectly = 10000.f;
-	if (duration >= setFacingDirectly) {
-		degree = duration - setFacingDirectly;
-		duration = 0.f;
-	}
+	//10000 and up is not a duration, it says the angle is one to turn to and carries the length on top
+	constexpr float turnToAngle = 10000.f;
 
 	PG_DisaContext& context = executor.context();
 	for (auto* actor : actorsOf(executor, bytes[0])) {
-		PG_DisaActorAnimations::rotate(context, actor, degree, duration);
+		if (duration >= turnToAngle) {
+			PG_DisaActorAnimations::rotateTo(context, actor, degree, duration - turnToAngle);
+		}
+		else if (duration > 0.f) {
+			PG_DisaActorAnimations::rotateBy(context, actor, degree, duration);
+		}
+		else {
+			PG_DisaActorAnimations::rotateTo(context, actor, degree, 0.f);
+		}
 	}
 	return EDisaScriptResult::Done;
 }
