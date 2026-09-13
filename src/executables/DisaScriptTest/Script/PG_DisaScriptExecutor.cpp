@@ -370,16 +370,11 @@ EDisaScriptResult cmdText(PG_DisaScriptExecutor& executor, std::size_t laneIndex
 
 /**
 * @brief The sprite animation a script animation ID stands for.
-* @details The script counts its animations from zero, the sprite sheet numbers its own in the
-* thousands, and how the two line up is not worked out yet. Only idle is certain. An ID that is
-* already in the sheet's range is taken as it is, which is what makes the pose commands work,
-* since those carry sheet numbers to begin with.
+* scriptAnimation equal 0 resets the actor to default behavior
 */
 std::string animationOf(int scriptAnimation) {
-	constexpr int firstSheetAnimation = 1000;
 	const int animation = std::abs(scriptAnimation); //a negative one only mirrors the sprite
-	if (animation >= firstSheetAnimation) return std::to_string(animation);
-	if (animation == 0) return "1001"; //idle
+	if (animation > 0) return std::to_string(animation);
 	return {};
 }
 
