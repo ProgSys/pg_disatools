@@ -597,7 +597,15 @@ EDisaScriptResult cmdSetActorGravity(PG_DisaScriptExecutor& executor, std::size_
 	return EDisaScriptResult::Done;
 }
 
-EDisaScriptResult cmdWaitForAnimation(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+/**
+* @brief Lets an animation that stopped at a marker run on, and waits until it gets there.
+* @details Not every animation loops. Some park at a marker and wait to be let go, which is how a
+* script times a stand up or a draw against its dialog. The game re-runs this command until the
+* animation has parked, lets it go and then moves straight on, it does not wait for the rest of
+* the animation to play out.
+*/
+EDisaScriptResult cmdContinueActorAnimation(PG_DisaScriptExecutor& executor, std::size_t laneIndex,
+	float, const void* data) {
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 2) {
 		printCommand(executor, laneIndex, data);
@@ -820,7 +828,7 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x65, "SetActorPos", "slot:2,parent:2,x:-2,y:-2,z:-2,duration:2,mode:1", &cmdSetActorPos);
 		set(0x66, "SetActorPose", "slot:2,pose:-2", &cmdSetActorPose);
 		set(0x67, "SetActorAnimation", "slot:2,animation:2,facing:1", &cmdSetActorAnimation);
-		set(0x68, "WaitForAnimation", "slot:2", &cmdWaitForAnimation);
+		set(0x68, "ContinueActorAnimation", "slot:2", &cmdContinueActorAnimation);
 		set(0x69, "SetActorGroup", "slot:2,group:1");
 		set(0x6A, "SetActorPoseDir", "slot:2,poseBase:2,facing:1", &cmdSetActorPoseDir);
 		set(0x6B, "SetAnimationMode", "slot:2,mode:1");

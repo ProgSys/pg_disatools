@@ -129,11 +129,14 @@ void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* ac
 
 	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
 	if (animation.empty()) {
+		/* Clearing it hands the actor back to the idle set the view picks by angle, which is what
+		 * a script means when it asks for animation 0. */
 		scriptOverride.animation.reset();
+		actor->setScriptOverride(scriptOverride);
+		return;
 	}
-	else {
-		scriptOverride.animation = animation;
-	}
+
+	scriptOverride.animation = animation;
 	actor->setScriptOverride(scriptOverride);
 
 	//an animation that runs forever is not something a script can wait for, so none is registered

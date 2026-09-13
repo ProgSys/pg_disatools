@@ -140,7 +140,7 @@ public:
 	*/
 	void addAnimation(PG_DisaAnimationComponent* animation);
 
-	/// True while anything still moves the actor, which is what WaitForAnimation waits on.
+	/// True while anything still moves the actor.
 	bool hasAnimation(const PG_DisaActorModel* actor) const;
 	bool hasAnimation(const PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel) const;
 	/// Ends every animation of that actor, or of every actor when none is given.

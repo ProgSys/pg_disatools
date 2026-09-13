@@ -41,7 +41,7 @@ class PG_DisaContext;
 * @details Like a PG_TickComponent, except that it is not the scene that ticks it. It puts itself
 * into the PG_DisaContext when it is made and takes itself out again the moment its function
 * reports that it is done. The context walking one list is what lets a script ask whether a given
-* actor is still busy, which is all `WaitForAnimation` needs.
+* actor is still busy.
 *
 * Two of them on the same actor and the same channel cannot both be right, so the newer one
 * replaces the older, the same way a second SetActorPos overrules the first.

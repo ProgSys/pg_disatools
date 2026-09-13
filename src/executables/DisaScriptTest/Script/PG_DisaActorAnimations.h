@@ -81,7 +81,7 @@ void rotate(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, flo
 * @brief Plays a sprite animation and keeps the actor busy while it runs.
 * @param loops How often it plays before the actor counts as free again, zero never ends by
 * itself and only a later animation stops it.
-* @details This is what makes WaitForAnimation wait, the sprite itself keeps playing either way.
+* @details Only the busy state ends, the sprite itself keeps playing either way.
 */
 void play(PG_DisaContext& context, PG_DisaActorModel* actor, const std::string& animation, int loops = 1);
 
