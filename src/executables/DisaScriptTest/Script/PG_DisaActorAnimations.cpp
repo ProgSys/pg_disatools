@@ -13,13 +13,6 @@
 
 namespace {
 
-/// The override of the actor with its translation filled in, so callers never see an empty one.
-PG_DisaActorScriptOverride overrideOf(PG_DisaActorModel* actor) {
-	PG_DisaActorScriptOverride out = actor->getScriptOverride();
-	if (!out.translation) out.translation = actor->getObjectTranslation();
-	return out;
-}
-
 /// Wraps an angle into (-180, 180], the range the game keeps a facing in.
 float normalizeDegree(float degree) {
 	degree = std::fmod(degree + 180.f, 360.f);
@@ -27,22 +20,16 @@ float normalizeDegree(float degree) {
 	return degree - 180.f;
 }
 
-void setTranslation(PG_DisaActorModel* actor, const glm::vec3& position) {
-	PG_DisaActorScriptOverride out = overrideOf(actor);
-	out.translation = position;
-	actor->setScriptOverride(out);
-}
-
 } //namespace
 
 void PG_DisaActorAnimations::fall(PG_DisaContext& context, PG_DisaActorModel* actor, float gravity) {
 	if (!actor) return;
 
-	const glm::vec3 start = overrideOf(actor).translation.value();
+	const glm::vec3 start = actor->getObjectTranslation();
 	const float ground = context.getGroundHeight(start);
 	if (start.y <= ground) {
 		//already standing on it, or under it, in which case the game puts it back on top
-		if (start.y < ground) setTranslation(actor, glm::vec3(start.x, ground, start.z));
+		if (start.y < ground) actor->setObjectTranslation(glm::vec3(start.x, ground, start.z));
 		return;
 	}
 
@@ -50,14 +37,14 @@ void PG_DisaActorAnimations::fall(PG_DisaContext& context, PG_DisaActorModel* ac
 	PG_DisaContext* world = &context;
 	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Move,
 		[world, gravity, speed](PG_DisaActorModel* self, float deltaTicks) {
-			glm::vec3 position = overrideOf(self).translation.value();
+			glm::vec3 position = self->getObjectTranslation();
 			*speed += self->getScriptOverride().gravity.value_or(gravity) * deltaTicks;
 			position.y -= *speed * deltaTicks;
 
 			const float floorHeight = world->getGroundHeight(position);
 			const bool landed = position.y <= floorHeight;
 			if (landed) position.y = floorHeight;
-			setTranslation(self, position);
+			self->setObjectTranslation(position);
 			return landed;
 		}, "PG_DisaFallAnimation");
 }
@@ -66,7 +53,7 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 	float durationTicks, EMoveMode mode) {
 	if (!actor) return;
 
-	const glm::vec3 start = overrideOf(actor).translation.value();
+	const glm::vec3 start = actor->getObjectTranslation();
 
 	float ticks = durationTicks;
 	if (mode == Move_Speed) {
@@ -76,7 +63,7 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 	}
 
 	if (ticks <= 0.f) {
-		setTranslation(actor, target);
+		actor->setObjectTranslation(target);
 		fall(context, actor, PG_DisaContext::defaultGravity);
 		return;
 	}
@@ -97,7 +84,7 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 
 			glm::vec3 position = glm::mix(start, end, progress);
 			if (arcHeight != 0.f) position.y += arcHeight * std::sin(progress * glm::pi<float>());
-			setTranslation(self, position);
+			self->setObjectTranslation(position);
 
 			if (progress < 1.f) return false;
 			fall(*world, self, PG_DisaContext::defaultGravity);
@@ -170,6 +157,27 @@ void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* ac
 			*left -= deltaTicks;
 			return *left <= 0.f;
 		}, "PG_DisaPlayAnimation");
+}
+
+void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec4& color,
+	float durationTicks) {
+	if (!actor) return;
+
+	if (durationTicks <= 0.f) {
+		actor->setColorMult(color);
+		return;
+	}
+
+	const glm::vec4 start = actor->getColorMult();
+	auto elapsed = std::make_shared<float>(0.f);
+	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Color,
+		[start, color, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+			*elapsed += deltaTicks;
+			const float progress = std::min(1.f, *elapsed / durationTicks);
+
+			self->setColorMult(glm::mix(start, color, progress));
+			return progress >= 1.f;
+		}, "PG_DisaTintAnimation");
 }
 
 void PG_DisaActorAnimations::pose(PG_DisaActorModel* actor, int animation) {

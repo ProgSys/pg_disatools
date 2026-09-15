@@ -96,4 +96,11 @@ void play(PG_DisaContext& context, PG_DisaActorModel* actor, int animationSet, i
 /// Holds one named sheet, the way SetActorPose does. A negative number is the mirrored sheet.
 void pose(PG_DisaActorModel* actor, int animation);
 
+/**
+* @brief Tints the actor's sprite, fading there over the duration.
+* @param color One per channel, 1 leaves it as it is.
+* @param durationTicks Zero sets it at once.
+*/
+void tint(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec4& color, float durationTicks);
+
 } //namespace PG_DisaActorAnimations

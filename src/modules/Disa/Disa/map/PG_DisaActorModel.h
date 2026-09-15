@@ -11,21 +11,15 @@
 
 /**
 * @brief What a script takes over on an actor, each part only for as long as it is set.
-* @details The map places an actor on a tile and lets it stand there looking at the camera. A
-* script wants it anywhere, facing anywhere and playing whatever animation it likes, so it sets
-* these instead of the map data. Nothing set means the actor behaves exactly like a placed one,
-* which is what the editor relies on.
+* @details Everything a script sets that the actor has no place for of its own lives here. The
+* things it shares with a placed actor, the position, the facing, the animation, are members of
+* the model instead.
 */
 struct PG_DisaActorScriptOverride {
-	/// Position in tile units, y is the height. Replaces the position the tile would give it.
-	std::optional<glm::vec3> translation;
-	std::optional<bool> visible;
 	/// How fast it falls, in tiles per tick squared. Unset means the engine's own.
 	std::optional<float> gravity;
 
-	inline bool isEmpty() const {
-		return !translation && !visible && !gravity;
-	}
+	inline bool isEmpty() const { return !gravity; }
 };
 
 class PG_DisaActorModel : public PG_Object {
@@ -53,13 +47,17 @@ class PG_DisaActorModel : public PG_Object {
 
 	PG_PROPERTY(glm::u8vec4 characterMagicLevels GET getCharacterMagicLevels SET setCharacterMagicLevels CHANGED characterMagicLevelsChanged);
 
-	PG_PROPERTY(int animationMode GET getMode SET setMode CHANGED animationModeChanged);
-	PG_PROPERTY(int animationSet GET getAnimationSet SET setAnimationSet CHANGED animationSetChanged);
-	PG_PROPERTY(int animation GET getAnimation SET setAnimation CHANGED animationChanged);
-
 	//only for geo constructs (2800)
 	PG_PROPERTY(int characterGeoColor GET getGeoColor SET setGeoColor CHANGED geoColorChanged)
 	PG_PROPERTY(unsigned short characterGeoEffect GET getGeoEffect SET setGeoEffect CHANGED geoEffectChanged)
+
+	PG_PROPERTY(glm::vec3 characterTranslation GET getObjectTranslation SET setObjectTranslation CHANGED translationChanged);
+	PG_PROPERTY(bool characterVisible GET isVisible SET setVisible CHANGED visibleChanged);
+	PG_PROPERTY(glm::vec4 characterColorMult GET getColorMult SET setColorMult CHANGED colorMultChanged);
+
+	PG_PROPERTY(int animationMode GET getMode SET setMode CHANGED animationModeChanged);
+	PG_PROPERTY(int animationSet GET getAnimationSet SET setAnimationSet CHANGED animationSetChanged);
+	PG_PROPERTY(int animation GET getAnimation SET setAnimation CHANGED animationChanged);
 signals:
 	void translationChanged();
 	void characterIdChanged();
@@ -81,6 +79,8 @@ signals:
 	void geoColorChanged();
 	void geoEffectChanged();
 	void rotationChanged();
+	void visibleChanged();
+	void colorMultChanged();
 	void animationModeChanged();
 	void animationSetChanged();
 	void animationChanged();
@@ -115,6 +115,8 @@ public:
 		Identity_AnimationMode,
 		Identity_AnimationSet,
 		Identity_Animation,
+		Identity_Visible,
+		Identity_ColorMult,
 	};
 
 	/**
@@ -154,10 +156,31 @@ public:
 	int getLocation() const { return m_location; }
 	void setLocation(int index) { m_location = index; updateHeight(); }
 
-	glm::vec3 getObjectTranslation() const;
+	/// Where the actor really stands, in tile units, y is the height.
+	const glm::vec3& getObjectTranslation() const { return m_translation; }
+	/**
+	* @brief Moves the actor, and the tile it is counted as standing on with it.
+	* @details The map stores a whole tile, so moving an actor rounds that out of the position and
+	* takes the ground height of the new tile. A script may leave it in the air, the height is its
+	* own.
+	*/
+	void setObjectTranslation(const glm::vec3& value);
 
 	glm::ivec2 getTilePosition() const;
+	/// Puts the actor onto a tile, which sets the position to the top of it. @see setObjectTranslation
 	void setTilePosition(glm::ivec2 pos);
+
+	/// Whether the actor is drawn at all. A script hides one it only keeps as a position.
+	bool isVisible() const { return m_visible; }
+	void setVisible(bool value);
+
+	/**
+	* @brief Colour the sprite is multiplied with, 1 leaves it as it is.
+	* @details What SetMultRGBA writes, as a fraction rather than the percent the script gives.
+	* The sprite has no alpha of its own yet, so a fully clear actor is simply not drawn.
+	*/
+	const glm::vec4& getColorMult() const { return m_colorMult; }
+	void setColorMult(const glm::vec4& value);
 
 	PG_DisaIdentifier getCharacterIdentifier() const;
 
@@ -277,25 +300,27 @@ public:
 	/// Drops every override at once, the actor falls back to its map data.
 	void clearScriptOverride();
 
-	/// Position the actor really stands at, the override when there is one, the tile otherwise.
-	glm::vec3 getTranslation() const;
-
 	const mpdfileActor& getData() const { return m_data; }
-	void setData(const mpdfileActor& data) { m_data = data; updateRotation(); }
-	void setData(mpdfileActor&& data) { m_data = std::move(data); updateRotation(); }
+	void setData(const mpdfileActor& data) { m_data = data; updateFromData(); }
+	void setData(mpdfileActor&& data) { m_data = std::move(data); updateFromData(); }
 
 	PG_Variety getData(Identity identity) const;
 	bool setData(const PG_Variety& value, Identity identity);
 private:
 	float calcHeight();
 	void updateHeight();
-	/// Puts the rotation back onto the facing, for when the file data is swapped underneath.
+	/// Puts the rotation back onto the facing.
 	void updateRotation();
+	/// Puts the position and the rotation back onto the file data, when that is swapped underneath.
+	void updateFromData();
 	void updateStatMods();
 
 	int m_location = -1;
 	float m_height = 0.f;
 	float m_rotation = 0.f;
+	glm::vec3 m_translation = glm::vec3(0.f);
+	glm::vec4 m_colorMult = glm::vec4(1.f);
+	bool m_visible = true;
 	mpdfileActor m_data;
 	PG_DisaActorScriptOverride m_scriptOverride;
 	EMode m_mode = Mode_Combat;

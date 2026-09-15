@@ -63,6 +63,7 @@ public:
 		Channel_Move,      /// Position, including the fall onto the ground
 		Channel_Rotation,
 		Channel_Animation, /// The sprite animation itself
+		Channel_Color,     /// The colour the sprite is tinted with
 		Channel_Size_
 	};
 

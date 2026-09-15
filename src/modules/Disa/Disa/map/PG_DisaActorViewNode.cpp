@@ -23,19 +23,12 @@ PG_Object* PG_DisaActorViewNode::getObjectModel() const {
 	return m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
 }
 
-const PG_DisaActorScriptOverride& PG_DisaActorViewNode::getScriptOverride() const {
-	static const PG_DisaActorScriptOverride empty;
-	if (!m_location) return empty;
-	auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
-	return model ? model->getScriptOverride() : empty;
-}
-
-
 void PG_DisaActorViewNode::setLocation(PG_ListModelLocation loc) {
 	m_location = loc;
 	loadSprite();
 	updateTransformation();
 	updateGroundShadow();
+	updateColorMult();
 	setVolumeCollision(PG_Volume(glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.3f, 0.5f, 0.3f), glm::mat3(1.0f)));
 	updateModelMatrix();
 	updateModelMatrixWorld();
@@ -50,6 +43,7 @@ void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG
 		updateTransformation();
 		updateGroundShadow();
 		updateColorOffset();
+		updateColorMult();
 		emit translationUserChanged();
 		return;
 	}
@@ -81,9 +75,27 @@ void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG
 		}
 	}
 
-	if (identities.contains(PG_DisaActorModel::Identity_ScriptOverride)) {
-		if (const auto& visible = getScriptOverride().visible) setVisible(*visible);
+	if (identities.contains(PG_DisaActorModel::Identity_ColorMult)) {
+		updateColorMult();
 	}
+	else if (identities.contains(PG_DisaActorModel::Identity_Visible)) {
+		updateVisible();
+	}
+}
+
+void PG_DisaActorViewNode::updateColorMult() {
+	if (!m_location) return;
+	if (PG_DisaSpriteNode* node = findFirstChild<PG_DisaSpriteNode>("N_Sprite")) {
+		node->setColorMult(m_location.getDataT<glm::vec4>(PG_DisaActorModel::Identity_ColorMult));
+	}
+	updateVisible();
+}
+
+void PG_DisaActorViewNode::updateVisible() {
+	if (!m_location) return;
+	//the sprite carries no alpha of its own, so an actor faded out to nothing is simply not drawn
+	const bool clear = m_location.getDataT<glm::vec4>(PG_DisaActorModel::Identity_ColorMult).a <= 0.f;
+	setVisible(m_location.getDataT<bool>(PG_DisaActorModel::Identity_Visible) && !clear);
 }
 
 void PG_DisaActorViewNode::loadSprite(unsigned short id) {

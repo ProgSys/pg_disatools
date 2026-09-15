@@ -402,19 +402,14 @@ std::vector<PG_DisaActorModel*> actorsOf(PG_DisaScriptExecutor& executor, int sl
 * is inside the floor, so it is dropped onto the ground before anything sees it.
 */
 PG_DisaActorModel* spawnIntoSlot(PG_DisaContext& context, int slot) {
+	const bool existed = context.resolveSlot(slot) != nullptr;
 	PG_DisaActorModel* actor = context.takeSlot(slot);
 	if (!actor) {
 		OUT_WARNING("Slot " << slot << " can hold no actor, nothing is spawned!");
 		return nullptr;
 	}
 
-	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
-	if (!scriptOverride.translation) {
-		scriptOverride.translation = glm::vec3(0.f);
-		scriptOverride.visible = true;
-		actor->setScriptOverride(scriptOverride);
-		context.snapToGround(actor);
-	}
+	if (!existed) context.snapToGround(actor);
 	return actor;
 }
 
@@ -594,6 +589,29 @@ EDisaScriptResult cmdSetActorRotation(PG_DisaScriptExecutor& executor, std::size
 	for (auto* actor : actorsOf(executor, bytes[0])) {
 		if (byAngle) PG_DisaActorAnimations::rotateBy(context, actor, degree, ticks);
 		else PG_DisaActorAnimations::rotateTo(context, actor, degree, ticks);
+	}
+	return EDisaScriptResult::Done;
+}
+
+/**
+* @brief Tints the sprite of an actor, over a duration.
+* @details Every channel is a percent where 100 leaves it as it is. The sprite carries no alpha of
+* its own yet, so an actor faded out to nothing is simply not drawn.
+*/
+EDisaScriptResult cmdSetMultRGBA(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 12) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	constexpr float unchanged = 100.f;
+	const glm::vec4 color(readInt(bytes + 2, 2) / unchanged, readInt(bytes + 4, 2) / unchanged,
+		readInt(bytes + 6, 2) / unchanged, readInt(bytes + 8, 2) / unchanged);
+	const float duration = static_cast<float>(readUInt(bytes + 10, 2));
+
+	PG_DisaContext& context = executor.context();
+	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
+		PG_DisaActorAnimations::tint(context, actor, color, duration);
 	}
 	return EDisaScriptResult::Done;
 }
@@ -862,7 +880,7 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x77, "OrbitActor", "slot:2,duration:2,center:2,x:-2,z:-2,y:-2,angle:-2");
 		set(0x78, "DoAction", "slot:1,action:1");
 		set(0x79, "SetActorFlag", "slot:2,value:1");
-		set(0x7A, "SetMultRGBA", "slot:2,r:2,g:2,b:2,a:2,duration:2");
+		set(0x7A, "SetMultRGBA", "slot:2,r:2,g:2,b:2,a:2,duration:2", &cmdSetMultRGBA);
 		set(0x7B, "SetActorPalette", "slot:2,palette:1,variant:1");
 		set(0x82, "LoadStream", "streamId:2");
 		set(0x83, "PlayStream", "streamId:2,volume:1");

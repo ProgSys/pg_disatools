@@ -49,16 +49,14 @@ void PG_DisaActorModel::updateHeight() {
 	PG_IdentitySet changes;
 	changes.insert(Identity_TileGround);
 	if (newHeight != m_height) {
+		//the ground moved, so the actor moves with it and keeps whatever a script lifted it by
+		m_translation.y += newHeight - m_height;
 		m_height = newHeight;
 		changes.insert(Identity_Translation);
 		emit translationChanged();
 	}
 
 	emit getParent<PG_DisaActorListModel>()->itemsChanged(m_location, m_location, changes);
-}
-
-glm::vec3 PG_DisaActorModel::getObjectTranslation() const {
-	return glm::vec3(-m_data.x, m_height, m_data.z) ;
 }
 
 glm::ivec2 PG_DisaActorModel::getTilePosition() const {
@@ -73,12 +71,45 @@ static inline void notifyParent(PG_DisaActorModel* self, const PG_IdentitySet& i
 
 void PG_DisaActorModel::setTilePosition(glm::ivec2 pos) {
 	if (getTilePosition() == pos) return;
-	m_data.x = -pos.x;
-	m_data.z = pos.y;
+	m_data.x = static_cast<char>(-pos.x);
+	m_data.z = static_cast<char>(pos.y);
 	m_height = calcHeight();
+	m_translation = glm::vec3(pos.x, m_height, pos.y);
 
 	emit translationChanged();
 	notifyParent(this, { Identity_Translation, Identity_TileGround });
+}
+
+void PG_DisaActorModel::setObjectTranslation(const glm::vec3& value) {
+	if (m_translation == value) return;
+	m_translation = value;
+
+	PG_IdentitySet changes{ Identity_Translation };
+	//a position between two tiles belongs to the one it stands on, so it is floored not rounded
+	const glm::ivec2 tile(static_cast<int>(std::floor(value.x)), static_cast<int>(std::floor(value.z)));
+	if (getTilePosition() != tile) {
+		m_data.x = static_cast<char>(-tile.x);
+		m_data.z = static_cast<char>(tile.y);
+		m_height = calcHeight();
+		changes.insert(Identity_TileGround);
+	}
+
+	emit translationChanged();
+	notifyParent(this, changes);
+}
+
+void PG_DisaActorModel::setVisible(bool value) {
+	if (m_visible == value) return;
+	m_visible = value;
+	emit visibleChanged();
+	notifyParent(this, { Identity_Visible });
+}
+
+void PG_DisaActorModel::setColorMult(const glm::vec4& value) {
+	if (m_colorMult == value) return;
+	m_colorMult = value;
+	emit colorMultChanged();
+	notifyParent(this, { Identity_ColorMult });
 }
 
 PG_DisaIdentifier PG_DisaActorModel::getCharacterIdentifier() const {
@@ -295,6 +326,12 @@ void PG_DisaActorModel::updateRotation() {
 	m_rotation = static_cast<float>(m_data.facing) * degreePerQuarter;
 }
 
+void PG_DisaActorModel::updateFromData() {
+	updateRotation();
+	m_height = calcHeight();
+	m_translation = glm::vec3(-m_data.x, m_height, m_data.z);
+}
+
 void PG_DisaActorModel::setMode(EMode value) {
 	if (m_mode == value) return;
 	m_mode = value;
@@ -331,28 +368,17 @@ PG_Texture PG_DisaActorModel::getCharacterPortrait() const {
 }
 
 void PG_DisaActorModel::setScriptOverride(const PG_DisaActorScriptOverride& value) {
-	const bool moved = m_scriptOverride.translation != value.translation;
 	m_scriptOverride = value;
-
-	PG_IdentitySet changes{ Identity_ScriptOverride, Identity_Unpause };
-	if (moved) {
-		changes.insert(Identity_Translation);
-		emit translationChanged();
-	}
-	notifyParent(this, changes);
+	notifyParent(this, { Identity_ScriptOverride, Identity_Unpause });
 }
 
 void PG_DisaActorModel::clearScriptOverride() {
 	setScriptOverride(PG_DisaActorScriptOverride());
 }
 
-glm::vec3 PG_DisaActorModel::getTranslation() const {
-	return m_scriptOverride.translation.value_or(getObjectTranslation());
-}
-
 PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 	switch (identity) {
-	case Identity_Translation: return getTranslation();
+	case Identity_Translation: return m_translation;
 	case Identity_TileGround: {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
 			if (auto location = model->getTiles()->getTileLocation(glm::ivec2(-m_data.x, m_data.z))) {
@@ -369,6 +395,8 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 	case Identity_AnimationMode: return static_cast<int>(m_mode);
 	case Identity_AnimationSet: return static_cast<int>(m_animationSet);
 	case Identity_Animation: return m_animation;
+	case Identity_Visible: return m_visible;
+	case Identity_ColorMult: return m_colorMult;
 	case Identity_Facing: return static_cast<char>(getCharacterFacing());
 	case Identity_Alliance: return getCharacterAlliance();
 	case Identity_GeoColor: return getGeoColor();
@@ -420,6 +448,24 @@ bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 	case Identity_Animation: {
 		if (auto v = value.convert<int>(); v != m_animation) {
 			setAnimation(v);
+			return true;
+		}
+	}break;
+	case Identity_Translation: {
+		if (auto v = value.get<glm::vec3>(); v != m_translation) {
+			setObjectTranslation(v);
+			return true;
+		}
+	}break;
+	case Identity_Visible: {
+		if (auto v = value.convert<bool>(); v != m_visible) {
+			setVisible(v);
+			return true;
+		}
+	}break;
+	case Identity_ColorMult: {
+		if (auto v = value.get<glm::vec4>(); v != m_colorMult) {
+			setColorMult(v);
 			return true;
 		}
 	}break;

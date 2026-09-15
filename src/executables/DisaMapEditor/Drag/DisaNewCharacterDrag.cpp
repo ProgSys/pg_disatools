@@ -56,6 +56,10 @@ public:
 			return static_cast<char>(p_facing);
 		case PG_DisaActorModel::Identity_Rotation:
 			return p_facing * 90.f;
+		case PG_DisaActorModel::Identity_Visible:
+			return true;
+		case PG_DisaActorModel::Identity_ColorMult:
+			return glm::vec4(1.f);
 		case PG_DisaActorModel::Identity_GeoColor:
 			return EDisaGeoColor::DisaGeoColor_None;
 		}

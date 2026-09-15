@@ -8,7 +8,6 @@
 
 class PG_DisaMapModel;
 class PG_DisaMapTileListModel;
-struct PG_DisaActorScriptOverride;
 
 class SwaySpring {
 private:
@@ -104,9 +103,9 @@ private:
 	void updateTransformation();
 	void updateGroundShadow();
 	void updateColorOffset();
-
-	/// The script override of the model, or an empty one when there is no model or no override.
-	const PG_DisaActorScriptOverride& getScriptOverride() const;
+	void updateColorMult();
+	/// Hides the actor when the model says so, or when its colour faded it out to nothing.
+	void updateVisible();
 
 	PG_ListModelLocation m_location;
 	bool m_dragged = false;

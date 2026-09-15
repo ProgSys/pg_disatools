@@ -35,7 +35,7 @@ PG_DisaActorModel* PG_DisaContext::takeSlot(int slot) {
 }
 
 glm::vec3 PG_DisaContext::getSlotOrigin(int slot) const {
-	if (auto* actor = resolveSlot(slot)) return actor->getTranslation();
+	if (auto* actor = resolveSlot(slot)) return actor->getObjectTranslation();
 	return glm::vec3(0.f); //everything else counts from the map origin, the teleporter included
 }
 
@@ -53,11 +53,9 @@ float PG_DisaContext::getGroundHeight(const glm::vec3& position) const {
 
 void PG_DisaContext::snapToGround(PG_DisaActorModel* actor) const {
 	if (!actor) return;
-	PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
-	glm::vec3 position = scriptOverride.translation.value_or(actor->getObjectTranslation());
+	glm::vec3 position = actor->getObjectTranslation();
 	position.y = getGroundHeight(position);
-	scriptOverride.translation = position;
-	actor->setScriptOverride(scriptOverride);
+	actor->setObjectTranslation(position);
 }
 
 //==== Animations ====
