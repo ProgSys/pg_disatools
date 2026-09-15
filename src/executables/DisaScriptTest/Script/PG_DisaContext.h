@@ -35,6 +35,8 @@
 
 #include <Base/PG_Object.h>
 
+#include <Base/PG_Lifeline.h>
+
 #include "PG_DisaAnimationComponent.h"
 
 class PG_DisaActorModel;
@@ -88,7 +90,8 @@ public:
 
 	/// The map the actors stand on, the ground height and the map's own units come from it.
 	PG_DisaMapModel* getMapModel() const { return m_mapModel; }
-	void setMapModel(PG_DisaMapModel* model) { m_mapModel = model; }
+	/// The actors move under it, which is how they reach the tiles they stand on.
+	void setMapModel(PG_DisaMapModel* model);
 
 	/// The actors the scripts spawned, a view of its own draws these over the map.
 	PG_DisaActorSlotModel* getActors() const { return m_actors; }
@@ -131,11 +134,17 @@ public:
 	//==== Animations ====
 
 	/**
-	* @brief Takes an animation over, it then runs until it reports that it is done.
-	* @details A second animation on the same actor and channel ends the first, the way a second
-	* SetActorPos overrules the one before it.
+	* @brief The animation of that actor on that channel, made when there is none yet.
+	* @details A second command of a kind takes the running one over instead of starting beside it,
+	* the way a second SetActorPos overrules the one before it. Only the tick function is replaced,
+	* so whatever the first one set up to put back survives the takeover.
+	* @returns null only when there is no actor.
 	*/
-	void addAnimation(PG_DisaAnimationComponent* animation);
+	PG_DisaAnimationComponent* takeAnimation(PG_DisaActorModel* actor,
+		PG_DisaAnimationComponent::EChannel channel, const std::string& name = "PG_DisaAnimationComponent");
+
+	/// Ends one right now, which puts back whatever it was holding. @see takeAnimation
+	void clearAnimation(PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel);
 
 	/// True while anything still moves the actor.
 	bool hasAnimation(const PG_DisaActorModel* actor) const;
@@ -155,6 +164,10 @@ public:
 	void reset();
 
 private:
+	/// The running animation of that actor and channel, null when there is none.
+	PG_DisaAnimationComponent* findAnimation(const PG_DisaActorModel* actor,
+		PG_DisaAnimationComponent::EChannel channel) const;
+
 	/* The game's flags live in one bit array that TALK.DAT also filters its scripts by. */
 	std::vector<unsigned char> m_gameState = std::vector<unsigned char>(8192, 0);
 
@@ -164,6 +177,7 @@ private:
 	PG_DisaActorSlotModel* m_actors = nullptr;
 	PG_DisaMapModel* m_mapModel = nullptr;
 
-	/* Owned here, an animation is dropped the tick it reports that it finished. */
-	std::vector<PG_DisaAnimationComponent*> m_animations;
+	/* The actor owns its animations, so these only hold on long enough to tick them. One that its
+	 * actor took down leaves an expired line behind, which the next tick clears out. */
+	std::vector<PG_Lifeline_T<PG_DisaAnimationComponent>> m_animations;
 };

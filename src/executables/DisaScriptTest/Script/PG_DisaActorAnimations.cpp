@@ -36,6 +36,8 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 	}
 
 	if (ticks <= 0.f) {
+		//nothing to walk, and an arrival puts back whatever a walk already running was holding
+		context.clearAnimation(actor, PG_DisaAnimationComponent::Channel_Move);
 		actor->setObjectTranslation(target);
 		return;
 	}
@@ -47,24 +49,26 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 		? glm::vec3(target.x, context.getGroundHeight(target), target.z)
 		: target;
 
-	//the game walks an actor that is going somewhere, and puts back what it was doing on arrival
-	const PG_DisaActorModel::EAnimationSet before = actor->getAnimationSet();
+	auto* animation = context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Move, "PG_DisaMoveAnimation");
+
+	/* The game walks an actor that is going somewhere. Only the first move remembers what it was
+	 * doing, so a walk retargeted halfway does not come back as a walk. */
+	if (!animation->hasEndFunction()) {
+		const PG_DisaActorModel::EAnimationSet before = actor->getAnimationSet();
+		animation->setEndFunction([before](PG_DisaActorModel* self) { if (self) self->setAnimationSet(before); });
+	}
 	actor->setAnimationSet(PG_DisaActorModel::Walking);
 
 	auto elapsed = std::make_shared<float>(0.f);
-	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Move,
-		[start, end, ticks, arcHeight, before, elapsed](PG_DisaActorModel* self, float deltaTicks) {
-			*elapsed += deltaTicks;
-			const float progress = std::min(1.f, *elapsed / ticks);
+	animation->setTickFunction([start, end, ticks, arcHeight, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+		*elapsed += deltaTicks;
+		const float progress = std::min(1.f, *elapsed / ticks);
 
-			glm::vec3 position = glm::mix(start, end, progress);
-			if (arcHeight != 0.f) position.y += arcHeight * std::sin(progress * glm::pi<float>());
-			self->setObjectTranslation(position);
-
-			if (progress < 1.f) return false;
-			self->setAnimationSet(before);
-			return true;
-		}, "PG_DisaMoveAnimation");
+		glm::vec3 position = glm::mix(start, end, progress);
+		if (arcHeight != 0.f) position.y += arcHeight * std::sin(progress * glm::pi<float>());
+		self->setObjectTranslation(position);
+		return progress >= 1.f; //the end function puts the animation set back
+		});
 }
 
 void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
@@ -72,6 +76,7 @@ void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel
 
 	const float end = normalizeDegree(degree);
 	if (durationTicks <= 0.f) {
+		context.clearAnimation(actor, PG_DisaAnimationComponent::Channel_Rotation);
 		actor->setRotation(end);
 		return;
 	}
@@ -80,14 +85,14 @@ void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel
 	 * either way around takes the way the two numbers say and not the shorter one. */
 	const float start = actor->getRotation();
 	auto elapsed = std::make_shared<float>(0.f);
-	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Rotation,
-		[start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Rotation, "PG_DisaRotateAnimation")
+		->setTickFunction([start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
 			self->setRotation(normalizeDegree(glm::mix(start, end, progress)));
 			return progress >= 1.f;
-		}, "PG_DisaRotateAnimation");
+			});
 }
 
 void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
@@ -97,20 +102,21 @@ void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel
 	const float end = start + degree;
 
 	if (durationTicks <= 0.f) {
+		context.clearAnimation(actor, PG_DisaAnimationComponent::Channel_Rotation);
 		actor->setRotation(normalizeDegree(end));
 		return;
 	}
 
 	//the step is what the game keeps, so a turn of more than once around really goes around twice
 	auto elapsed = std::make_shared<float>(0.f);
-	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Rotation,
-		[start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Rotation, "PG_DisaRotateAnimation")
+		->setTickFunction([start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
 			self->setRotation(normalizeDegree(glm::mix(start, end, progress)));
 			return progress >= 1.f;
-		}, "PG_DisaRotateAnimation");
+			});
 }
 
 void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* actor, int animationSet, int loops) {
@@ -120,18 +126,21 @@ void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* ac
 	actor->setAnimationSet(animationSet);
 
 	//an animation that runs forever is not something a script can wait for, so none is registered
-	if (loops <= 0) return;
+	if (loops <= 0) {
+		context.clearAnimation(actor, PG_DisaAnimationComponent::Channel_Animation);
+		return;
+	}
 
 	/* The sprite node owns the playback, all this does is hold the actor busy for as long as the
 	 * animation would take. A frame count would be better than a guess, but the view only settles
 	 * on a sprite once it has drawn, so the length is not known here yet. */
 	constexpr float ticksPerLoop = 30.f;
 	auto left = std::make_shared<float>(ticksPerLoop * static_cast<float>(loops));
-	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Animation,
-		[left](PG_DisaActorModel*, float deltaTicks) {
+	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Animation, "PG_DisaPlayAnimation")
+		->setTickFunction([left](PG_DisaActorModel*, float deltaTicks) {
 			*left -= deltaTicks;
 			return *left <= 0.f;
-		}, "PG_DisaPlayAnimation");
+			});
 }
 
 void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec4& color,
@@ -139,20 +148,21 @@ void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaActorModel* ac
 	if (!actor) return;
 
 	if (durationTicks <= 0.f) {
+		context.clearAnimation(actor, PG_DisaAnimationComponent::Channel_Color);
 		actor->setColorMult(color);
 		return;
 	}
 
 	const glm::vec4 start = actor->getColorMult();
 	auto elapsed = std::make_shared<float>(0.f);
-	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Color,
-		[start, color, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Color, "PG_DisaTintAnimation")
+		->setTickFunction([start, color, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
 			self->setColorMult(glm::mix(start, color, progress));
 			return progress >= 1.f;
-		}, "PG_DisaTintAnimation");
+			});
 }
 
 void PG_DisaActorAnimations::pose(PG_DisaActorModel* actor, int animation) {

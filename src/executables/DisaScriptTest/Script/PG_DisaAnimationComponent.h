@@ -38,13 +38,13 @@ class PG_DisaContext;
 
 /**
 * @brief One thing that moves an actor over time, a move, a turn or a fall.
-* @details Like a PG_TickComponent, except that it is not the scene that ticks it. It puts itself
-* into the PG_DisaContext when it is made and takes itself out again the moment its function
-* reports that it is done. The context walking one list is what lets a script ask whether a given
-* actor is still busy.
+* @details Like a PG_TickComponent, except that it is not the scene that ticks it. The actor it
+* runs on owns it, and the PG_DisaContext keeps a lifeline to it so it can tick the lot and ask
+* whether a given actor is still busy.
 *
-* Two of them on the same actor and the same channel cannot both be right, so the newer one
-* replaces the older, the same way a second SetActorPos overrules the first.
+* Only one of these exists per actor and channel. A second command of the same kind takes the
+* running one over rather than starting beside it, so what it does is replaceable and what it set
+* up is not, see setTickFunction and setEndFunction.
 */
 class PG_DisaAnimationComponent : public PG_Object {
 	PG_OBJECT(PG_DisaAnimationComponent);
@@ -58,6 +58,9 @@ public:
 	*/
 	using TickFunction = std::function<bool(PG_DisaActorModel* actor, float deltaTicks)>;
 
+	/// Runs when the animation goes away, however it goes. The actor is null when it took it along.
+	using EndFunction = std::function<void(PG_DisaActorModel* actor)>;
+
 	/// What an actor can run one of at a time, a move and a turn do not get in each other's way.
 	enum EChannel : unsigned char {
 		Channel_Move,      /// Position, including the fall onto the ground
@@ -67,15 +70,25 @@ public:
 		Channel_Size_
 	};
 
-	/**
-	* @brief Registers itself with the context, which owns it from then on.
-	* @param context Ticks it and drops it when it is done.
-	*/
-	PG_DisaAnimationComponent(PG_DisaContext* context, PG_DisaActorModel* actor, EChannel channel,
-		const TickFunction& tickFunction, const std::string& name = "PG_DisaAnimationComponent");
+	using PG_Object::PG_Object;
+	~PG_DisaAnimationComponent() override;
 
-	inline PG_DisaActorModel* getActor() const { return m_actor; }
+	/// The actor it runs on, which is the object that owns it.
+	PG_DisaActorModel* getActorModel() const;
+
 	inline EChannel getChannel() const { return m_channel; }
+	inline void setChannel(EChannel value) { m_channel = value; }
+
+	/// What it does with a slice of time. This is the part a later command of the same kind replaces.
+	void setTickFunction(const TickFunction& value);
+
+	/**
+	* @brief What to put back when the animation ends, whoever ends it.
+	* @details Set by whatever started the animation and left alone by anything that takes it over,
+	* so a walk that is retargeted halfway still remembers what the actor was doing before it.
+	*/
+	inline void setEndFunction(const EndFunction& value) { m_endFunction = value; }
+	inline bool hasEndFunction() const { return static_cast<bool>(m_endFunction); }
 
 	/// Runs one slice, @returns true when the animation is over.
 	bool tick(float deltaTicks);
@@ -85,8 +98,8 @@ public:
 	inline bool isFinished() const { return m_finished; }
 
 private:
-	PG_DisaActorModel* m_actor = nullptr;
 	EChannel m_channel = Channel_Move;
 	TickFunction m_tickFunction;
+	EndFunction m_endFunction;
 	bool m_finished = false;
 };

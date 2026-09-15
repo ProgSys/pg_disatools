@@ -1,19 +1,29 @@
 #include "PG_DisaAnimationComponent.h"
 
-#include "PG_DisaContext.h"
+#include <Disa/map/PG_DisaActorModel.h>
 
-PG_DisaAnimationComponent::PG_DisaAnimationComponent(PG_DisaContext* context, PG_DisaActorModel* actor,
-	EChannel channel, const TickFunction& tickFunction, const std::string& name)
-	: PG_Object(name), m_actor(actor), m_channel(channel), m_tickFunction(tickFunction) {
-	if (context) context->addAnimation(this);
+PG_DisaActorModel* PG_DisaAnimationComponent::getActorModel() const {
+	return getParent<PG_DisaActorModel>();
+}
+
+PG_DisaAnimationComponent::~PG_DisaAnimationComponent() {
+	//the actor is already gone when it is the one taking this down, so the end has to cope with null
+	if (m_endFunction) m_endFunction(getActorModel());
+}
+
+void PG_DisaAnimationComponent::setTickFunction(const TickFunction& value) {
+	m_tickFunction = value;
+	m_finished = !m_tickFunction; //a takeover revives one that had already run out
 }
 
 bool PG_DisaAnimationComponent::tick(float deltaTicks) {
 	if (m_finished) return true;
-	if (!m_actor || !m_tickFunction) {
+
+	PG_DisaActorModel* actor = getActorModel();
+	if (!actor || !m_tickFunction) {
 		m_finished = true;
 		return true;
 	}
-	m_finished = m_tickFunction(m_actor, deltaTicks);
+	m_finished = m_tickFunction(actor, deltaTicks);
 	return m_finished;
 }

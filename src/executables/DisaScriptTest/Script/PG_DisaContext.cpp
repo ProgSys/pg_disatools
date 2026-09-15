@@ -12,6 +12,14 @@ void PG_DisaContext::init() {
 	m_actors = PG_new<PG_DisaActorSlotModel>("PG_DisaActorSlotModel", this);
 }
 
+void PG_DisaContext::setMapModel(PG_DisaMapModel* model) {
+	if (m_mapModel == model) return;
+	m_mapModel = model;
+
+	//the actors hang under the map, which is how each of them reaches the tile it stands on
+	if (m_actors) m_actors->setParent(model ? static_cast<PG_Object*>(model) : this);
+}
+
 //==== Actors ====
 
 PG_DisaActorModel* PG_DisaContext::resolveSlot(int slot) const {
@@ -60,34 +68,50 @@ void PG_DisaContext::snapToGround(PG_DisaActorModel* actor) const {
 
 //==== Animations ====
 
-void PG_DisaContext::addAnimation(PG_DisaAnimationComponent* animation) {
-	if (!animation) return;
-
-	//the newer one wins, two animations of the same kind on one actor cannot both be right
-	for (auto* running : m_animations) {
-		if (running->getActor() == animation->getActor() && running->getChannel() == animation->getChannel()) {
-			running->stop();
+PG_DisaAnimationComponent* PG_DisaContext::findAnimation(const PG_DisaActorModel* actor,
+	PG_DisaAnimationComponent::EChannel channel) const {
+	for (const auto& line : m_animations) {
+		auto* animation = line.get();
+		if (animation && !animation->isFinished() && animation->getActorModel() == actor
+			&& animation->getChannel() == channel) {
+			return animation;
 		}
 	}
-	animation->setParent(this);
-	m_animations.push_back(animation);
+	return nullptr;
+}
+
+PG_DisaAnimationComponent* PG_DisaContext::takeAnimation(PG_DisaActorModel* actor,
+	PG_DisaAnimationComponent::EChannel channel, const std::string& name) {
+	if (!actor) return nullptr;
+	if (auto* running = findAnimation(actor, channel)) return running;
+
+	//the actor owns it, so it goes away with the actor and this only holds a line to it
+	auto* animation = PG_new<PG_DisaAnimationComponent>(name, actor);
+	animation->setChannel(channel);
+	m_animations.emplace_back(animation);
+	return animation;
+}
+
+void PG_DisaContext::clearAnimation(PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel) {
+	delete findAnimation(actor, channel);
+	std::erase_if(m_animations, [](const PG_Lifeline_T<PG_DisaAnimationComponent>& line) { return line.expired(); });
 }
 
 bool PG_DisaContext::hasAnimation(const PG_DisaActorModel* actor) const {
-	return std::ranges::any_of(m_animations, [actor](const PG_DisaAnimationComponent* animation) {
-		return !animation->isFinished() && animation->getActor() == actor;
+	return std::ranges::any_of(m_animations, [actor](const PG_Lifeline_T<PG_DisaAnimationComponent>& line) {
+		auto* animation = line.get();
+		return animation && !animation->isFinished() && animation->getActorModel() == actor;
 		});
 }
 
 bool PG_DisaContext::hasAnimation(const PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel) const {
-	return std::ranges::any_of(m_animations, [actor, channel](const PG_DisaAnimationComponent* animation) {
-		return !animation->isFinished() && animation->getActor() == actor && animation->getChannel() == channel;
-		});
+	return findAnimation(actor, channel) != nullptr;
 }
 
 void PG_DisaContext::stopAnimations(const PG_DisaActorModel* actor) {
-	for (auto* animation : m_animations) {
-		if (!actor || animation->getActor() == actor) animation->stop();
+	for (const auto& line : m_animations) {
+		auto* animation = line.get();
+		if (animation && (!actor || animation->getActorModel() == actor)) animation->stop();
 	}
 }
 
@@ -98,10 +122,12 @@ void PG_DisaContext::tick(float deltaTicks) {
 	 * a new one starts on the next. */
 	const std::size_t count = m_animations.size();
 	for (std::size_t i = 0; i < count && i < m_animations.size(); ++i) {
-		m_animations[i]->tick(deltaTicks);
+		if (auto* animation = m_animations[i].get()) animation->tick(deltaTicks);
 	}
 
-	std::erase_if(m_animations, [](PG_DisaAnimationComponent* animation) {
+	std::erase_if(m_animations, [](const PG_Lifeline_T<PG_DisaAnimationComponent>& line) {
+		auto* animation = line.get();
+		if (!animation) return true; //its actor already took it down
 		if (!animation->isFinished()) return false;
 		delete animation;
 		return true;
@@ -109,7 +135,7 @@ void PG_DisaContext::tick(float deltaTicks) {
 }
 
 void PG_DisaContext::reset() {
-	for (auto* animation : m_animations) delete animation;
+	for (const auto& line : m_animations) delete line.get();
 	m_animations.clear();
 	if (m_actors) m_actors->clearSlots();
 }
