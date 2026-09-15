@@ -22,33 +22,6 @@ float normalizeDegree(float degree) {
 
 } //namespace
 
-void PG_DisaActorAnimations::fall(PG_DisaContext& context, PG_DisaActorModel* actor, float gravity) {
-	if (!actor) return;
-
-	const glm::vec3 start = actor->getObjectTranslation();
-	const float ground = context.getGroundHeight(start);
-	if (start.y <= ground) {
-		//already standing on it, or under it, in which case the game puts it back on top
-		if (start.y < ground) actor->setObjectTranslation(glm::vec3(start.x, ground, start.z));
-		return;
-	}
-
-	auto speed = std::make_shared<float>(0.f);
-	PG_DisaContext* world = &context;
-	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Move,
-		[world, gravity, speed](PG_DisaActorModel* self, float deltaTicks) {
-			glm::vec3 position = self->getObjectTranslation();
-			*speed += self->getScriptOverride().gravity.value_or(gravity) * deltaTicks;
-			position.y -= *speed * deltaTicks;
-
-			const float floorHeight = world->getGroundHeight(position);
-			const bool landed = position.y <= floorHeight;
-			if (landed) position.y = floorHeight;
-			self->setObjectTranslation(position);
-			return landed;
-		}, "PG_DisaFallAnimation");
-}
-
 void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec3& target,
 	float durationTicks, EMoveMode mode) {
 	if (!actor) return;
@@ -64,7 +37,6 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 
 	if (ticks <= 0.f) {
 		actor->setObjectTranslation(target);
-		fall(context, actor, PG_DisaContext::defaultGravity);
 		return;
 	}
 
@@ -75,10 +47,13 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 		? glm::vec3(target.x, context.getGroundHeight(target), target.z)
 		: target;
 
+	//the game walks an actor that is going somewhere, and puts back what it was doing on arrival
+	const PG_DisaActorModel::EAnimationSet before = actor->getAnimationSet();
+	actor->setAnimationSet(PG_DisaActorModel::Walking);
+
 	auto elapsed = std::make_shared<float>(0.f);
-	PG_DisaContext* world = &context;
 	new PG_DisaAnimationComponent(&context, actor, PG_DisaAnimationComponent::Channel_Move,
-		[world, start, end, ticks, arcHeight, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+		[start, end, ticks, arcHeight, before, elapsed](PG_DisaActorModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / ticks);
 
@@ -87,7 +62,7 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 			self->setObjectTranslation(position);
 
 			if (progress < 1.f) return false;
-			fall(*world, self, PG_DisaContext::defaultGravity);
+			self->setAnimationSet(before);
 			return true;
 		}, "PG_DisaMoveAnimation");
 }

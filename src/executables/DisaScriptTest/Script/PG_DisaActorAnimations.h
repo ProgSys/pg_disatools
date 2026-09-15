@@ -53,7 +53,7 @@ enum EMoveMode : int {
 };
 
 /**
-* @brief Moves the actor to a place, and lets it drop when it ends up above the ground.
+* @brief Walks the actor to a position, the animation set follows it. to a place, and lets it drop when it ends up above the ground.
 * @param target Where it goes, in tile units.
 * @param durationTicks Ticks it takes, or the speed for Move_Speed. Zero puts it there at once.
 * @details The game plays no animation of its own while this runs, a script that wants the actor
@@ -61,14 +61,6 @@ enum EMoveMode : int {
 */
 void move(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec3& target,
 	float durationTicks, EMoveMode mode = Move_Straight);
-
-/**
-* @brief Lets the actor fall until it stands on the ground under it.
-* @param gravity Tiles per tick squared, the game's default is a bit over a hundredth of a tile.
-* @details Nothing happens when it already stands on or under the ground, which is what keeps a
-* freshly spawned actor out of the floor.
-*/
-void fall(PG_DisaContext& context, PG_DisaActorModel* actor, float gravity);
 
 /**
 * @brief Turns the actor to an angle.

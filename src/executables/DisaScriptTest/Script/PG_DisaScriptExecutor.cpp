@@ -625,11 +625,9 @@ EDisaScriptResult cmdSetActorGravity(PG_DisaScriptExecutor& executor, std::size_
 	const int percent = readInt(bytes + 2, 2);
 
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
-		PG_DisaActorScriptOverride scriptOverride = actor->getScriptOverride();
 		//a negative value is not a gravity, it asks for the engine's own
-		scriptOverride.gravity = percent < 0 ? std::optional<float>()
-			: std::optional<float>(static_cast<float>(percent) / 100.f / PG_DisaContext::unitsPerTile);
-		actor->setScriptOverride(scriptOverride);
+		actor->setGravity(percent < 0 ? PG_DisaActorModel::defaultGravity
+			: static_cast<float>(percent) / 100.f / PG_DisaContext::unitsPerTile);
 	}
 	return EDisaScriptResult::Done;
 }

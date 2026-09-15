@@ -229,7 +229,7 @@ void DisaNewCharacterDrag::released() {
 		data.level = static_cast<unsigned short>(level);
 		data.alliance = 1;
 		data.facing = m_modelMoc->p_facing;
-		data.visible = 0;
+		data.visible = 1;
 		data.ai = 1;
 		data.unk5 = 0;
 		data.unk6 = 0;
@@ -249,7 +249,8 @@ void DisaNewCharacterDrag::released() {
 		view->flush();
 		if (view->getItems().size() == actors->size()) {
 			auto item = dynamic_cast<PG_DisaActorViewNode*>(view->getItems().back());
-			item->setSpring(m_indicator->getSpring());
+			item->setForce(m_indicator->getForce());
+			item->setMotion(m_indicator->getMotion());
 			auto copy = m_indicator->getChildren();
 			for (auto* child : copy | PG_CastTo<PG_ModelNode*>) {
 				if (auto found = item->findFirstChild(child->getName())) {

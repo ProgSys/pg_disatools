@@ -9,19 +9,6 @@
 #include <Disa/PG_DisaIdentifier.h>
 #include <resources/PG_Texture.h>
 
-/**
-* @brief What a script takes over on an actor, each part only for as long as it is set.
-* @details Everything a script sets that the actor has no place for of its own lives here. The
-* things it shares with a placed actor, the position, the facing, the animation, are members of
-* the model instead.
-*/
-struct PG_DisaActorScriptOverride {
-	/// How fast it falls, in tiles per tick squared. Unset means the engine's own.
-	std::optional<float> gravity;
-
-	inline bool isEmpty() const { return !gravity; }
-};
-
 class PG_DisaActorModel : public PG_Object {
 	PG_OBJECT(PG_DisaActorModel);
 	PG_PARENT(PG_Object);
@@ -54,6 +41,7 @@ class PG_DisaActorModel : public PG_Object {
 	PG_PROPERTY(glm::vec3 characterTranslation GET getObjectTranslation SET setObjectTranslation CHANGED translationChanged);
 	PG_PROPERTY(bool characterVisible GET isVisible SET setVisible CHANGED visibleChanged);
 	PG_PROPERTY(glm::vec4 characterColorMult GET getColorMult SET setColorMult CHANGED colorMultChanged);
+	PG_PROPERTY(float characterGravity GET getGravity SET setGravity CHANGED gravityChanged);
 
 	PG_PROPERTY(int animationMode GET getMode SET setMode CHANGED animationModeChanged);
 	PG_PROPERTY(int animationSet GET getAnimationSet SET setAnimationSet CHANGED animationSetChanged);
@@ -81,6 +69,7 @@ signals:
 	void rotationChanged();
 	void visibleChanged();
 	void colorMultChanged();
+	void gravityChanged();
 	void animationModeChanged();
 	void animationSetChanged();
 	void animationChanged();
@@ -108,7 +97,6 @@ public:
 
 		Identity_GeoColor,
 		Identity_GeoEffect,
-		Identity_ScriptOverride,
 		Identity_Unpause,
 		Identity_Next, //will force play next animation segment
 		Identity_Rotation,
@@ -117,7 +105,12 @@ public:
 		Identity_Animation,
 		Identity_Visible,
 		Identity_ColorMult,
+		Identity_Gravity,
+		Identity_FloorHeight,
 	};
+
+	/// Tiles per tick squared, the pull the game drops an actor with. 120 script units are a tile.
+	static constexpr float defaultGravity = 0.1633f / 120.f;
 
 	/**
 	* @brief Which numbering and how many side views the actor's animations are picked from.
@@ -171,8 +164,15 @@ public:
 	void setTilePosition(glm::ivec2 pos);
 
 	/// Whether the actor is drawn at all. A script hides one it only keeps as a position.
-	bool isVisible() const { return m_visible; }
+	bool isVisible() const { return m_data.visible != 0; }
 	void setVisible(bool value);
+
+	/// Top of the tile the actor stands on, which is what it falls onto.
+	float getFloorHeight() const { return m_height; }
+
+	/// How fast the actor falls, in tiles per tick squared. Zero leaves it where it is.
+	float getGravity() const { return m_gravity; }
+	void setGravity(float value);
 
 	/**
 	* @brief Colour the sprite is multiplied with, 1 leaves it as it is.
@@ -289,17 +289,6 @@ public:
 	/// Hands the choice back to the animation set. @see setAnimation
 	void clearAnimation() { setAnimation(0); }
 
-	/**
-	* @brief What a script has taken over on this actor, see PG_DisaActorScriptOverride.
-	* @details Set through setScriptOverride, which tells the view about it. An actor nothing has
-	* touched has an empty one and behaves like any placed actor.
-	*/
-	const PG_DisaActorScriptOverride& getScriptOverride() const { return m_scriptOverride; }
-	PG_DisaActorScriptOverride& getScriptOverride() { return m_scriptOverride; }
-	void setScriptOverride(const PG_DisaActorScriptOverride& value);
-	/// Drops every override at once, the actor falls back to its map data.
-	void clearScriptOverride();
-
 	const mpdfileActor& getData() const { return m_data; }
 	void setData(const mpdfileActor& data) { m_data = data; updateFromData(); }
 	void setData(mpdfileActor&& data) { m_data = std::move(data); updateFromData(); }
@@ -320,9 +309,8 @@ private:
 	float m_rotation = 0.f;
 	glm::vec3 m_translation = glm::vec3(0.f);
 	glm::vec4 m_colorMult = glm::vec4(1.f);
-	bool m_visible = true;
+	float m_gravity = defaultGravity;
 	mpdfileActor m_data;
-	PG_DisaActorScriptOverride m_scriptOverride;
 	EMode m_mode = Mode_Combat;
 	EAnimationSet m_animationSet = IdleStanding;
 	int m_animation = 0;

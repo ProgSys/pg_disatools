@@ -56,9 +56,6 @@ signals:
 public:
 	/// Script units in one tile, every coordinate in a script is counted in these.
 	static constexpr float unitsPerTile = 120.f;
-	/// How fast an actor falls when nothing says otherwise, in tiles per tick squared.
-	static constexpr float defaultGravity = 0.1633f / unitsPerTile;
-
 	/**
 	* @brief The slots a script addresses that are not a plain actor index.
 	* @details Read out of the game's slot resolver, the whole table is in reverse/Doku.md.

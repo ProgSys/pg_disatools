@@ -49,6 +49,7 @@ void PG_DisaActorModel::updateHeight() {
 	PG_IdentitySet changes;
 	changes.insert(Identity_TileGround);
 	if (newHeight != m_height) {
+		changes.insert(Identity_FloorHeight);
 		//the ground moved, so the actor moves with it and keeps whatever a script lifted it by
 		m_translation.y += newHeight - m_height;
 		m_height = newHeight;
@@ -77,7 +78,7 @@ void PG_DisaActorModel::setTilePosition(glm::ivec2 pos) {
 	m_translation = glm::vec3(pos.x, m_height, pos.y);
 
 	emit translationChanged();
-	notifyParent(this, { Identity_Translation, Identity_TileGround });
+	notifyParent(this, { Identity_Translation, Identity_TileGround, Identity_FloorHeight });
 }
 
 void PG_DisaActorModel::setObjectTranslation(const glm::vec3& value) {
@@ -92,6 +93,7 @@ void PG_DisaActorModel::setObjectTranslation(const glm::vec3& value) {
 		m_data.z = static_cast<char>(tile.y);
 		m_height = calcHeight();
 		changes.insert(Identity_TileGround);
+		changes.insert(Identity_FloorHeight);
 	}
 
 	emit translationChanged();
@@ -99,10 +101,17 @@ void PG_DisaActorModel::setObjectTranslation(const glm::vec3& value) {
 }
 
 void PG_DisaActorModel::setVisible(bool value) {
-	if (m_visible == value) return;
-	m_visible = value;
+	if (isVisible() == value) return;
+	m_data.visible = value ? 1 : 0;
 	emit visibleChanged();
 	notifyParent(this, { Identity_Visible });
+}
+
+void PG_DisaActorModel::setGravity(float value) {
+	if (m_gravity == value) return;
+	m_gravity = value;
+	emit gravityChanged();
+	notifyParent(this, { Identity_Gravity });
 }
 
 void PG_DisaActorModel::setColorMult(const glm::vec4& value) {
@@ -367,15 +376,6 @@ PG_Texture PG_DisaActorModel::getCharacterPortrait() const {
 	return PG_DisaCharactersModel::get()->getPortrait(getCharacterId());
 }
 
-void PG_DisaActorModel::setScriptOverride(const PG_DisaActorScriptOverride& value) {
-	m_scriptOverride = value;
-	notifyParent(this, { Identity_ScriptOverride, Identity_Unpause });
-}
-
-void PG_DisaActorModel::clearScriptOverride() {
-	setScriptOverride(PG_DisaActorScriptOverride());
-}
-
 PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 	switch (identity) {
 	case Identity_Translation: return m_translation;
@@ -395,8 +395,10 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 	case Identity_AnimationMode: return static_cast<int>(m_mode);
 	case Identity_AnimationSet: return static_cast<int>(m_animationSet);
 	case Identity_Animation: return m_animation;
-	case Identity_Visible: return m_visible;
+	case Identity_Visible: return isVisible();
 	case Identity_ColorMult: return m_colorMult;
+	case Identity_Gravity: return m_gravity;
+	case Identity_FloorHeight: return m_height;
 	case Identity_Facing: return static_cast<char>(getCharacterFacing());
 	case Identity_Alliance: return getCharacterAlliance();
 	case Identity_GeoColor: return getGeoColor();
@@ -458,8 +460,14 @@ bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 		}
 	}break;
 	case Identity_Visible: {
-		if (auto v = value.convert<bool>(); v != m_visible) {
+		if (auto v = value.convert<bool>(); v != isVisible()) {
 			setVisible(v);
+			return true;
+		}
+	}break;
+	case Identity_Gravity: {
+		if (auto v = value.convert<float>(); v != m_gravity) {
+			setGravity(v);
 			return true;
 		}
 	}break;

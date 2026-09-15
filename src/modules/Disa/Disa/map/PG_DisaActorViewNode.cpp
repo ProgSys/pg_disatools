@@ -83,6 +83,19 @@ void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG
 	}
 }
 
+void PG_DisaActorViewNode::updateForce(float deltaTime) {
+	if (!m_location) return;
+
+	//the fall needs the model under it, the sway does not, so only one of them is fed
+	if (auto* gravity = std::get_if<GravityForce>(&m_force)) {
+		gravity->setGravity(m_location.getDataT<float>(PG_DisaActorModel::Identity_Gravity));
+		gravity->setFloorHeight(m_location.getDataT<float>(PG_DisaActorModel::Identity_FloorHeight));
+	}
+
+	const glm::vec3 position = m_location.getDataT<glm::vec3>(PG_DisaActorModel::Identity_Translation);
+	std::visit([this, deltaTime, &position](const auto& force) { force.update(m_motion, deltaTime, position); }, m_force);
+}
+
 void PG_DisaActorViewNode::updateColorMult() {
 	if (!m_location) return;
 	if (PG_DisaSpriteNode* node = findFirstChild<PG_DisaSpriteNode>("N_Sprite")) {
@@ -148,7 +161,16 @@ bool PG_DisaActorViewNode::isDragged() const {
 void PG_DisaActorViewNode::setDragged(bool value) {
 	if (m_dragged == value) return;
 	m_dragged = value;
-	m_spring.setTargetPos(glm::vec3(0.f, value ? 0.5f : 0.0f, 0.f));
+
+	//a dragged actor hangs off the cursor and swings, a dropped one falls back onto the floor
+	if (value) {
+		SwaySpring spring;
+		spring.setTargetPos(glm::vec3(0.f, 0.5f, 0.f));
+		m_force = spring;
+	}
+	else {
+		m_force = GravityForce();
+	}
 	if (auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
 		model->setAnimationSet(value ? PG_DisaActorModel::Hurt : PG_DisaActorModel::IdleStanding);
 	}
@@ -237,7 +259,7 @@ glm::vec3 PG_DisaActorViewNode::getRotationDir(PG_Scene* scene, const glm::vec3&
 bool PG_DisaActorViewNode::event(PG_Event* e) {
 	if (e->getType() == PG_Event_Tick && isVisible()) {
 		auto* et = static_cast<PG_TickEvent*>(e);
-		m_spring.update(0.1f * et->getDeltaTime());
+		updateForce(0.1f * et->getDeltaTime());
 
 		auto* scene = getScene();
 		const glm::vec3 dir = getRotationDir(scene, getTranslationWorld()); 
@@ -247,7 +269,7 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 
 		auto& sprite = node->getSprite();
 
-		node->setTranslationY(0.1f + m_spring.getPosition().y);
+		node->setTranslationY(0.1f + m_motion.offset.y);
 		//face sprite towards camera
 		{
 			glm::mat3 m;

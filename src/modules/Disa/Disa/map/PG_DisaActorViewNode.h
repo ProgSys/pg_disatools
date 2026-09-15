@@ -1,6 +1,8 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <string>
+#include <variant>
 
 #include <Scene/PG_ActorNode.h>
 #include <Scene/Model/PG_ListModelLocation.h>
@@ -9,49 +11,87 @@
 class PG_DisaMapModel;
 class PG_DisaMapTileListModel;
 
-class SwaySpring {
-private:
-    glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 targetPosition = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 velocity = glm::vec3(0.0f);
-    float springConstant = 0.002f;
-    float dampingFactor = 0.01f;
-
-public:
-	void copy(const SwaySpring& other) {
-		position = other.position;
-		velocity = other.velocity;
-	}
-
-    void applyForce(const glm::vec3& force) {
-        glm::vec3 acceleration = force / 1.0f; // Assuming unit mass
-        velocity += acceleration;
-    }
-
-	void setTargetPos(const glm::vec3& _targetPosition) {
-		targetPosition = _targetPosition;
-	}
-
-    void update(float deltaTime) {
-		if (deltaTime <= 0.f) return;
-		glm::vec3 displacement = targetPosition - position;
-		glm::vec3 springForce = springConstant * displacement;
-		glm::vec3 dampingForce = dampingFactor * velocity;
-
-		glm::vec3 totalForce = springForce - dampingForce;
-
-		velocity += totalForce * deltaTime;
-		position += velocity * deltaTime;
-		if (position.y < 0.f) {
-			position.y = 0.f;
-			velocity.y = 0.f;
-		}
-    }
-
-    glm::vec3 getPosition() const {
-        return position;
-    }
+/**
+* @brief Where an actor's sprite sits relative to its model, and how fast it is going there.
+* @details The state a force drives, kept apart from the force itself so that swapping one for the
+* other does not throw the movement away. A sprite the sway threw upwards keeps rising for a moment
+* after gravity takes over, the way it would if it were really let go.
+*/
+struct PG_DisaActorMotion {
+	glm::vec3 offset = glm::vec3(0.f);
+	glm::vec3 velocity = glm::vec3(0.f);
 };
+
+/**
+* @brief Bobs a dragged sprite above where its model sits.
+* @details One of the two forces a PG_DisaActorViewNode can carry, see PG_DisaActorForce. It knows
+* nothing about the model, the swing it drives is its own around the target.
+*/
+class SwaySpring {
+public:
+	void setTargetPos(const glm::vec3& value) { m_targetPosition = value; }
+	const glm::vec3& getTargetPos() const { return m_targetPosition; }
+
+	void update(PG_DisaActorMotion& motion, float deltaTime, const glm::vec3&) const {
+		if (deltaTime <= 0.f) return;
+
+		const glm::vec3 springForce = m_springConstant * (m_targetPosition - motion.offset);
+		const glm::vec3 dampingForce = m_dampingFactor * motion.velocity;
+		motion.velocity += (springForce - dampingForce) * deltaTime;
+		motion.offset += motion.velocity * deltaTime;
+
+		if (motion.offset.y < 0.f) {
+			motion.offset.y = 0.f;
+			motion.velocity.y = 0.f;
+		}
+	}
+
+private:
+	glm::vec3 m_targetPosition = glm::vec3(0.f);
+	float m_springConstant = 0.002f;
+	float m_dampingFactor = 0.01f;
+};
+
+/**
+* @brief Drops a sprite onto the floor under its model.
+* @details The other force, see PG_DisaActorForce. A script may leave an actor standing in the air,
+* and this is what falls the rest of the way, as an offset, so the position the script set stays
+* the position the script set. A gravity of zero holds the sprite exactly where the model is.
+*/
+class GravityForce {
+public:
+	float getGravity() const { return m_gravity; }
+	/// Tiles per tick squared.
+	void setGravity(float value) { m_gravity = value; }
+
+	float getFloorHeight() const { return m_floorHeight; }
+	/// Height the sprite comes to rest at, in the same space as the model's position.
+	void setFloorHeight(float value) { m_floorHeight = value; }
+
+	void update(PG_DisaActorMotion& motion, float deltaTime, const glm::vec3& position) const {
+		if (m_gravity <= 0.f) {
+			motion.offset = glm::vec3(0.f);
+			motion.velocity = glm::vec3(0.f);
+			return;
+		}
+
+		//how far the floor sits under the model, so a script holding the actor up gives a negative one
+		const float drop = m_floorHeight - position.y;
+		motion.velocity.y -= m_gravity * deltaTime;
+		motion.offset += motion.velocity * deltaTime;
+
+		if (motion.offset.y <= drop) {
+			motion.offset = glm::vec3(0.f, drop, 0.f); //landed, and an actor under the floor is put on top
+			motion.velocity = glm::vec3(0.f);
+		}
+	}
+
+private:
+	float m_gravity = 0.f;
+	float m_floorHeight = 0.f;
+};
+
+using PG_DisaActorForce = std::variant<SwaySpring, GravityForce>;
 
 /**
 * @brief Visual representation of disa map tile
@@ -90,8 +130,12 @@ public:
 
 	bool event(PG_Event* e) override;
 
-	const SwaySpring& getSpring() const { return m_spring; }
-	void setSpring(const SwaySpring& value) { m_spring.copy(value); }
+	const PG_DisaActorForce& getForce() const { return m_force; }
+	void setForce(const PG_DisaActorForce& value) { m_force = value; }
+
+	/// Handing this over with the force is what lets a sprite carry its movement to another node.
+	const PG_DisaActorMotion& getMotion() const { return m_motion; }
+	void setMotion(const PG_DisaActorMotion& value) { m_motion = value; }
 
 	void updateActor();
 
@@ -103,12 +147,15 @@ private:
 	void updateTransformation();
 	void updateGroundShadow();
 	void updateColorOffset();
+	/// Feeds the force the model it is pulling on, then lets it run for a tick.
+	void updateForce(float deltaTime);
 	void updateColorMult();
 	/// Hides the actor when the model says so, or when its colour faded it out to nothing.
 	void updateVisible();
 
 	PG_ListModelLocation m_location;
 	bool m_dragged = false;
-    SwaySpring m_spring;
+	PG_DisaActorForce m_force = GravityForce();
+	PG_DisaActorMotion m_motion;
 };
 
