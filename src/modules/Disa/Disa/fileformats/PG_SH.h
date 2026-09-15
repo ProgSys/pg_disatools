@@ -60,7 +60,7 @@ PACK(typedef struct
 		Default = 0,
 		LoopStart = 1, //indicates the start of the loop
 		LoopEnd = 2, //indicates the end of the loop
-		AutoPause = 3, //indicates where the loop is exited?
+		LoopInbetween = 3, //indicates an internal loop
 	};
 
 	unsigned short bundel_index;

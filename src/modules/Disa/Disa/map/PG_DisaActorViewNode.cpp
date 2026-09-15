@@ -264,9 +264,12 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 			};
 
 
-		if (auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
-			if (const auto choice = pickAnimation(sprite, *model, angle)) {
-				node->setAnimation(std::to_string(choice->animation), false);
+		if (auto* item = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
+			if (const auto choice = pickAnimation(sprite, *item, angle)) {
+				std::string aniName = std::to_string(choice->animation);
+				if (node->getAnimationName() != aniName) {
+					node->setAnimation(aniName, true);
+				}
 				setMirrored(choice->mirrored);
 			}
 		}
@@ -313,10 +316,10 @@ void PG_DisaActorViewNode::setTranslationUser(const glm::vec3& translation) {
 	m_location.setData(translation, PG_DisaActorModel::Identity_Translation);
 }
 
-
 unsigned short PG_DisaActorViewNode::getCharacterId() const {
 	return m_location.getDataT<unsigned short>(PG_DisaActorModel::Identity_Id);
 }
+
 void PG_DisaActorViewNode::setCharacterId(unsigned short id) {
 	m_location.setData(id, PG_DisaActorModel::Identity_Id);
 }

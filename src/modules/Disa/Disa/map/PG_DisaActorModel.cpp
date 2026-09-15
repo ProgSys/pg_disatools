@@ -104,9 +104,9 @@ void PG_DisaActorModel::setCharacterLevel(unsigned short level) {
 }
 
 void PG_DisaActorModel::setCharacterFacing(EDisaFacing value) {
-	if (m_data.facing == value && m_rotation == value * degreePerQuarter) return;
+	if (m_data.facing == value && m_rotation == static_cast<float>(value) * degreePerQuarter) return;
 	m_data.facing = value;
-	m_rotation = value * degreePerQuarter;
+	updateRotation();
 
 	emit characterFacingChanged();
 	emit rotationChanged();
@@ -292,7 +292,7 @@ void PG_DisaActorModel::setRotation(float value) {
 }
 
 void PG_DisaActorModel::updateRotation() {
-	m_rotation = m_data.facing * degreePerQuarter;
+	m_rotation = static_cast<float>(m_data.facing) * degreePerQuarter;
 }
 
 void PG_DisaActorModel::setMode(EMode value) {

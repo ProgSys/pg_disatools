@@ -425,7 +425,7 @@ EDisaScriptResult cmdSetActor(PG_DisaScriptExecutor& executor, std::size_t laneI
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
 	const int slot = bytes[0];
-	const int spriteId = readInt(bytes + 1, 2);
+	const int characterId = readInt(bytes + 1, 2);
 	const int level = static_cast<int>(readUInt(bytes + 3, 2));
 	const int allegiance = bytes[5];
 
@@ -434,7 +434,7 @@ EDisaScriptResult cmdSetActor(PG_DisaScriptExecutor& executor, std::size_t laneI
 
 	/* 10000 and 20000 on top of the ID pull a real party or story character in, the sprite is the
 	 * same one either way and the stats behind it are not simulated. */
-	actor->setCharacterId(static_cast<unsigned short>(std::abs(spriteId) % 10000));
+	actor->setCharacterId(static_cast<unsigned short>(std::abs(characterId) % 10000));
 	actor->setCharacterLevel(static_cast<unsigned short>(level));
 	actor->setCharacterAlliance(static_cast<unsigned char>(allegiance));
 	return EDisaScriptResult::Done;
@@ -446,13 +446,13 @@ EDisaScriptResult cmdSetActorSprite(PG_DisaScriptExecutor& executor, std::size_t
 	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	const int spriteId = readInt(bytes + 2, 2);
+	const int characterId = readInt(bytes + 2, 2);
 
 	//10000 and up is not a sprite, it names another slot to take the look of
 	constexpr int copyFromSlot = 10000;
-	unsigned short sprite = static_cast<unsigned short>(std::abs(spriteId) % copyFromSlot);
-	if (std::abs(spriteId) >= copyFromSlot) {
-		const int sourceSlot = std::abs(spriteId) - copyFromSlot;
+	unsigned short sprite = static_cast<unsigned short>(std::abs(characterId) % copyFromSlot);
+	if (std::abs(characterId) >= copyFromSlot) {
+		const int sourceSlot = std::abs(characterId) - copyFromSlot;
 		auto* source = executor.context().resolveSlot(sourceSlot);
 		if (!source) {
 			OUT_WARNING("Slot " << sourceSlot << " holds no actor to take the look of!");
@@ -851,8 +851,8 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x69, "SetActorGroup", "slot:2,group:1");
 		set(0x6A, "SetActorPoseDir", "slot:2,poseBase:2,facing:1", &cmdSetActorPoseDir);
 		set(0x6B, "SetAnimationModeSet", "slot:2,mode:1", &cmdSetAnimationModeSet);
-		set(0x6D, "SetActor", "slot:1,spriteId:-2,level:2,allegiance:1", &cmdSetActor);
-		set(0x6E, "SetActorSprite", "slot:2,spriteId:-2", &cmdSetActorSprite);
+		set(0x6D, "SetActor", "slot:1,characterId:-2,level:2,allegiance:1", &cmdSetActor);
+		set(0x6E, "SetActorSprite", "slot:2,characterId:-2", &cmdSetActorSprite);
 		set(0x6F, "PlayEffect", "effectId:2,parent:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");
 		set(0x70, "SetMapTile", "parent:1,x:-2,z:-2,type:1,value:-2");
 		set(0x71, "PlayAimedEffect", "effectId:2,source:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");

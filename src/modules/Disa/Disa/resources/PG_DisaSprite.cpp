@@ -16,15 +16,15 @@ struct PG_DisaSpriteKeyframeType {
 	void apply(shfileKeyframe::Type t) noexcept {
 		switch (t) {
 			case shfileKeyframe::Default: return;
-			case shfileKeyframe::LoopStart: isLoopStart = true; return;
-			case shfileKeyframe::LoopEnd: isLoopEnd = true; return;
-			case shfileKeyframe::AutoPause: isAutoPause = true; return;
+			case shfileKeyframe::LoopStart: isStart = true; return;
+			case shfileKeyframe::LoopEnd: isEnd = true; return;
+			case shfileKeyframe::LoopInbetween: isInbetween = true; return;
 		}
 	}
 
-	bool isLoopStart : 1 = false;
-	bool isLoopEnd : 1 = false;
-	bool isAutoPause : 1 = false;
+	bool isStart : 1 = false;
+	bool isEnd : 1 = false;
+	bool isInbetween : 1 = false;
 };
 
 struct PG_DisaSpriteKeyframe {
@@ -99,22 +99,27 @@ public:
 		
 		auto& ani = animations[animationIndex];
 
-		auto findBreakIt = std::ranges::find_if(ani.keyframes, [currFrame](const PG_DisaSpriteKeyframe& k) ->bool {  return currFrame <= k.at && k.type.isAutoPause; });
+		auto findBreakIt = std::ranges::find_if(ani.keyframes, [currFrame](const PG_DisaSpriteKeyframe& k) ->bool {  return currFrame <= k.at && (k.type.isInbetween || k.type.isEnd); });
 		if (findBreakIt != ani.keyframes.end()) {
 			auto range = std::ranges::subrange(ani.keyframes.begin(), findBreakIt);
 			auto rangeRef = range | std::views::reverse;
-			auto findBreakBeginIt = std::ranges::find_if(rangeRef, [currFrame](const PG_DisaSpriteKeyframe& k) ->bool { return k.type.isLoopStart; });
+			auto findBreakBeginIt = std::ranges::find_if(rangeRef, [](const PG_DisaSpriteKeyframe& k) ->bool { return k.type.isStart; });
 			if (findBreakBeginIt != rangeRef.end()) {
 				return PG_SpriteSegment{
 					.range = {findBreakBeginIt->at ,findBreakIt->at},
-					.loop = false
+					.loop = !findBreakIt->type.isStart
 				};
 			}
 			return PG_SpriteSegment{
 				.range = {0 ,findBreakIt->at},
 				.loop = false
 			};
+		}
 
+		auto range = ani.keyframes | std::views::reverse;
+		auto findBreakBeginIt = std::ranges::find_if(range, [currFrame](const PG_DisaSpriteKeyframe& k) ->bool { return k.at <= currFrame && k.type.isStart; });
+		if (findBreakBeginIt != range.end()) {
+			return PG_SpriteSegment{ .range = {findBreakBeginIt->at , ani.length} };
 		}
 
 		return PG_SpriteSegment{ .range = {0 , ani.length} };
