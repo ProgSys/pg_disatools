@@ -38,9 +38,11 @@
 #include <Base/PG_Lifeline.h>
 
 #include "PG_DisaAnimationComponent.h"
+#include "PG_DisaScriptSlots.h"
 
 class PG_DisaSpriteModel;
 class PG_DisaActorSlotModel;
+class PG_DisaActorListModel;
 class PG_DisaMapModel;
 
 /**
@@ -96,25 +98,28 @@ public:
 	/// The actors the scripts spawned, a view of its own draws these over the map.
 	PG_DisaActorSlotModel* getActors() const { return m_actors; }
 
+	/// Everything standing on the map, which is where a script chain puts what it spawns.
+	PG_DisaActorListModel* getMapActors() const;
+
 	/**
 	* @brief The actor a script means by that slot number.
 	* @details Every slot is kept here, the units a map placed are not reached for now. The group
 	* slots the game has (101, 151, 160 and up) need a running battle, so they find nothing.
 	* @returns null when the slot holds no actor.
 	*/
-	PG_DisaSpriteModel* resolveSlot(int slot) const;
+	PG_DisaSpriteModel* resolveSlot(int slot, const PG_DisaScriptSlots* scriptSlots = nullptr) const;
 	/// Every actor a slot stands for, which is more than one only for the group slots.
-	std::vector<PG_DisaSpriteModel*> resolveSlots(int slot) const;
+	std::vector<PG_DisaSpriteModel*> resolveSlots(int slot, const PG_DisaScriptSlots* scriptSlots = nullptr) const;
 
 	/// Makes the actor of a script slot, or hands back the one already in it. @see SetActor
-	PG_DisaSpriteModel* takeSlot(int slot);
+	PG_DisaSpriteModel* takeSlot(int slot, PG_DisaScriptSlots* scriptSlots = nullptr);
 
 	/**
 	* @brief Position the coordinates of a slot are counted from, in tile units.
 	* @details A script gives a position relative to a parent slot, and the map origin for the
 	* slots that name no actor.
 	*/
-	glm::vec3 getSlotOrigin(int slot) const;
+	glm::vec3 getSlotOrigin(int slot, const PG_DisaScriptSlots* scriptSlots = nullptr) const;
 
 	/// Turns the coordinates in a script into the tile units the models are in.
 	static inline glm::vec3 toTileUnits(const glm::vec3& scriptUnits) { return (scriptUnits * glm::vec3(-1.f, -1.f, 1.f)) / unitsPerTile; }

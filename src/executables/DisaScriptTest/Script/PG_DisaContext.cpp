@@ -12,6 +12,10 @@ void PG_DisaContext::init() {
 	m_actors = PG_new<PG_DisaActorSlotModel>("PG_DisaActorSlotModel", this);
 }
 
+PG_DisaActorListModel* PG_DisaContext::getMapActors() const {
+	return m_mapModel ? m_mapModel->getActors() : nullptr;
+}
+
 void PG_DisaContext::setMapModel(PG_DisaMapModel* model) {
 	if (m_mapModel == model) return;
 	m_mapModel = model;
@@ -22,14 +26,17 @@ void PG_DisaContext::setMapModel(PG_DisaMapModel* model) {
 
 //==== Actors ====
 
-PG_DisaSpriteModel* PG_DisaContext::resolveSlot(int slot) const {
+PG_DisaSpriteModel* PG_DisaContext::resolveSlot(int slot, const PG_DisaScriptSlots* scriptSlots) const {
+	//64 to 95 belong to the chain that is running, every other number is the map's own
+	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) return scriptSlots->getSlot(slot);
 	return m_actors ? m_actors->getSlot(slot) : nullptr;
 }
 
-std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot) const {
+std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot, const PG_DisaScriptSlots* scriptSlots) const {
 	/* A group slot stands for everything taking part in the current skill, which needs a battle
-	 * the tool does not run. Every actor a script spawned is the closest it can get. */
+	 * the tool does not run. Every actor the chain spawned is the closest it can get. */
 	if (slot == Slot_AllTargets) {
+		if (scriptSlots) return scriptSlots->getActors();
 		if (!m_actors) return {};
 
 		//the list holds the base, only the ones drawn as a sprite are what a script means here
@@ -40,17 +47,23 @@ std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot) const {
 		return out;
 	}
 
-	if (auto* actor = resolveSlot(slot)) return { actor };
+	if (auto* actor = resolveSlot(slot, scriptSlots)) return { actor };
 	return {};
 }
 
-PG_DisaSpriteModel* PG_DisaContext::takeSlot(int slot) {
+PG_DisaSpriteModel* PG_DisaContext::takeSlot(int slot, PG_DisaScriptSlots* scriptSlots) {
+	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) return scriptSlots->takeActorSlot(slot);
 	return m_actors ? m_actors->takeSlot(slot) : nullptr;
 }
 
-glm::vec3 PG_DisaContext::getSlotOrigin(int slot) const {
-	if (auto* actor = resolveSlot(slot)) return actor->getObjectTranslation();
-	return glm::vec3(0.f); //everything else counts from the map origin, the teleporter included
+glm::vec3 PG_DisaContext::getSlotOrigin(int slot, const PG_DisaScriptSlots* scriptSlots) const {
+	if (auto* actor = resolveSlot(slot, scriptSlots)) return actor->getObjectTranslation();
+
+	//the slots that are not actors carry an origin of their own, the teleporter panel being one
+	if (auto* map = getMapActors()) {
+		if (auto* item = map->getSlotItem(slot)) return item->getObjectTranslation();
+	}
+	return glm::vec3(0.f); //everything else counts from the map origin
 }
 
 //==== Ground ====

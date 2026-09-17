@@ -29,11 +29,13 @@
 #pragma once
 
 #include <cstring>
+#include <memory>
 #include <string>
 #include <vector>
 #include <Disa/PG_DisaIdentifier.h>
 
 #include "PG_DisaScriptCommand.h"
+#include "PG_DisaScriptSlots.h"
 
 /**
 * @brief The variables one lane keeps while it runs.
@@ -76,6 +78,10 @@ struct PG_DisaScriptLane {
 	PG_DisaIdentifier search;
 	std::string name; /// What the lane prints itself as, the entry's file name
 	bool finished = false;
+
+	/* Slots 64 to 95, shared with every lane of the same chain: a lane that starts another hands
+	 * its own table down, so a script can reach what the script before it spawned. */
+	std::shared_ptr<PG_DisaScriptSlots> slots;
 
 	inline bool isAtEnd() const { return cursor >= commands.size(); }
 
