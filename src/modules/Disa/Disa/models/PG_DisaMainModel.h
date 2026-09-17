@@ -43,7 +43,7 @@ public:
 	/**
 	* @brief Reads a GEO out of the container and keeps it as a global model resource
 	* @param resourceName The name the resource takes, "R_" plus the file name when left empty
-	* @details Scene nodes ask for these by name, PG_DisaTeleporterViewNode wants "R_DisaTeleporterBase".
+	* @details Scene nodes ask for these by name, the teleporter slot wants "R_DisaTeleporterBase".
 	* Holding them here is what keeps them loaded, a map that needs one loads nothing itself.
 	* @returns false when the file is missing or is no GEO
 	*/

@@ -724,6 +724,7 @@ void PG_DisaMapModel::init() {
 	connect(m_eventsModel, &PG_DisaMapTileListModel::itemsChanged, this, itemsChangedTest);
 	connect(m_actorsModel, &PG_DisaMapTileListModel::sizeChanged, this, &PG_DisaMapModel::markModified);
 	connect(m_actorsModel, &PG_DisaMapTileListModel::itemsChanged, this, itemsChangedTest);
+	m_actorsModel->setupTeleporter(); //slot 203 keeps itself on the panel from here on
 	connect(this, &PG_DisaMapModel::mapChanged, this, [this] {
 		if (!m_isModified) return;
 		m_isModified = false;

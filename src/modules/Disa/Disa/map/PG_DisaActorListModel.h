@@ -62,7 +62,19 @@ public:
 	/// Hands the rows the map file placed their slots, in file order. @see isMapSlot
 	void resetMapSlots();
 
+	/**
+	* @brief Starts keeping slot 203 on the teleporter panel.
+	* @details Called once by the map model, after every one of its lists exists. The rule belongs
+	* to the slot rather than to what stands in it, so a sprite dropped into 203 lands on the panel
+	* the same way the mesh does.
+	*/
+	void setupTeleporter();
+
 private:
+	/// Puts whatever is in slot 203 onto the panel, next time round the event loop.
+	void updateTeleporter();
+	void doUpdateTeleporter();
+
 	/* A lifeline rather than a pointer: an item removed anywhere else leaves the slot empty instead
 	 * of leaving it pointing at something that is gone. */
 	std::unordered_map<int, PG_Lifeline_T<PG_DisaActorModel>> m_slots;

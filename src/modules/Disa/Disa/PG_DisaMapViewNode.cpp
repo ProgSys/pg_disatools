@@ -8,7 +8,6 @@
 #include <Disa/map/PG_DisaMaterialEditSelectionNode.h>
 #include <Disa/map/PG_DisaEventEditSelectionNode.h>
 #include <Disa/map/PG_DisaActorEditSelectionNode.h>
-#include <Disa/map/PG_DisaTeleporterViewNode.h>
 #include <Disa/map/PG_DisaGeoPanelViewNode.h>
 #include <Disa/map/PG_DisaEventPanelViewNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
@@ -94,7 +93,7 @@ void PG_DisaMapViewNode::setMode(EMode mode) {
 			return true;
 			};
 		getObjectsView()->traverseTestWithoutRoot(func);
-		func(getTeleporterView());
+		if (auto* actors = getActorView()) actors->traverseTestWithoutRoot(func);
 
 	}break;
 	case PG_DisaMapViewNode::Mode_Material:
@@ -140,7 +139,7 @@ void PG_DisaMapViewNode::setMode(EMode mode) {
 			return true;
 			};
 		getObjectsView()->traverseTestWithoutRoot(func);
-		func(getTeleporterView());
+		if (auto* actors = getActorView()) actors->traverseTestWithoutRoot(func);
 
 	} break;
 	case PG_DisaMapViewNode::Mode_Material: {
@@ -222,7 +221,6 @@ void PG_DisaMapViewNode::reload() {
 		m_tilesView = nullptr;
 		m_objectsView = nullptr;
 		m_actorView = nullptr;
-		m_teleporterView = nullptr;
 		return;
 	}
 
@@ -240,9 +238,6 @@ void PG_DisaMapViewNode::reload() {
 		createActorView();
 	}
 
-	if (!m_teleporterView) {
-		m_teleporterView = PG_new<PG_DisaTeleporterViewNode>("PG_DisaTeleporterViewNode", this);
-	}
 
 	if (!g_delayPool) {
 		g_delayPool = PG_new<PG_DelayPool>(PG_Application::get());
@@ -268,7 +263,6 @@ void PG_DisaMapViewNode::reload() {
 	};
 	setDelayModel(m_tilesView, model->getTiles());
 	setDelayModel(m_objectsView, model->getObjects());
-	m_teleporterView->setModel(model->getEvents());
 	if (m_actorView) setDelayModel(m_actorView, model->getActors());
 
 	if (auto geoPanelView = findFirstChild<PG_DisaGeoPanelViewNode>("PG_DisaGeoPanelViewNode")) {
