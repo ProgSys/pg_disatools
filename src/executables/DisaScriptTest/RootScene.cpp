@@ -45,7 +45,8 @@
 #include <Scene/PG_DisaCamera.h>
 
 #include <Disa/PG_DisaMapScene.h>
-#include <Disa/map/PG_DisaActorSpriteNode.h>
+#include <Disa/map/PG_DisaActorListModel.h>
+#include <Disa/map/PG_DisaActorsViewNode.h>
 #include <Scene/PG_FootlooseViewNode.h>
 #include <Models/PG_DisaScriptTestModel.h>
 #include <Script/PG_DisaActorSlotModel.h>
@@ -175,12 +176,6 @@ void RootScene::setupScriptActorView(PG_DisaMapScene* gameScene) {
 	/* The actors a script spawns are not part of the map, so they get a view of their own next to
 	 * the map's. It sits on the same root, which keeps them in the same space as the map's units
 	 * without the map view having to know they exist. */
-	auto* view = PG_new<PG_FootlooseViewNode>("N_ScriptActorView", gameScene->getRoot());
-	view->setItem([](PG_ActorNode* parent, const PG_ListModelLocation& location) {
-		auto* item = PG_new<PG_DisaActorSpriteNode>("ViewItem", parent);
-		item->setLocation(location);
-		return static_cast<PG_ActorNode*>(item);
-		});
-	view->setItemUpdate(PG_FootlooseViewNode::getDefaultUpdateFunc<PG_DisaActorSpriteNode>());
+	auto* view = PG_new<PG_DisaActorsViewNode>("N_ScriptActorView", gameScene->getRoot());
 	view->setModel(m_model->getContext()->getActors());
 }

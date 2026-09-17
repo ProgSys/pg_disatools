@@ -7,6 +7,7 @@
 #include <Disa/PG_DisaAssetsModel.h>
 #include <Disa/PG_DisaCharactersModel.h>
 #include <Disa/map/PG_DisaEventTileModel.h>
+#include <Disa/map/PG_DisaActorListModel.h>
 #include <Disa/map/PG_DisaSpriteModel.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <resources/PG_ResourceSynchronisator.h>
@@ -737,6 +738,7 @@ void PG_DisaMapModel::clear() {
 	m_objectsModel->clear();
 	m_eventsModel->clear();
 	m_actorsModel->clear();
+	m_actorsModel->resetMapSlots();
 }
 
 struct PG_JobOpenMPD : public PG_Job {
@@ -791,6 +793,7 @@ struct PG_JobOpenMPD : public PG_Job {
 				owner->m_objectsModel->clear();
 				owner->m_eventsModel->clear();
 				owner->m_actorsModel->clear();
+				owner->m_actorsModel->resetMapSlots();
 			});
 			return;
 		}
@@ -853,6 +856,7 @@ struct PG_JobOpenMPD : public PG_Job {
 				owner->m_objectsModel->set(std::move(result.objects));
 				owner->m_eventsModel->set(std::move(result.events));
 				owner->m_actorsModel->set(std::move(result.actors));
+				owner->m_actorsModel->resetMapSlots();
 
 				emit owner->mapChanged();
 			});

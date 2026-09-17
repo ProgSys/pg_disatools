@@ -123,10 +123,3 @@ protected:
 	float m_gravity = defaultGravity;
 	bool m_visible = true;
 };
-
-class PG_DisaActorListModel : public PG_ListModel<PG_DisaActorModel*> {
-	PG_OBJECT(PG_DisaActorListModel);
-	PG_PARENT(PG_ListModel<PG_DisaActorModel*>);
-public:
-	using PG_ListModel<PG_DisaActorModel*>::PG_ListModel;
-};

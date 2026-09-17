@@ -10,8 +10,10 @@
 
 
 #include <Disa/PG_DisaCharactersModel.h>
+#include <Disa/map/PG_DisaActorsViewNode.h>
 #include <Disa/map/PG_DisaActorSpriteNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
+#include <Disa/map/PG_DisaActorListModel.h>
 #include <Disa/map/PG_DisaSpriteModel.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <Disa/PG_DisaMapViewNode.h>
@@ -62,6 +64,18 @@ public:
 			return glm::vec4(1.f);
 		case PG_DisaSpriteModel::Identity_GeoColor:
 			return EDisaGeoColor::DisaGeoColor_None;
+		case PG_DisaSpriteModel::Identity_Gravity:
+			return 0.f; //the indicator hangs where the cursor puts it, it does not fall
+		case PG_DisaSpriteModel::Identity_FloorHeight:
+			return p_position.y;
+		case PG_DisaSpriteModel::Identity_AnimationMode:
+			return static_cast<int>(PG_DisaSpriteModel::Mode_Combat);
+		case PG_DisaSpriteModel::Identity_AnimationSet:
+			return static_cast<int>(PG_DisaSpriteModel::IdleStanding);
+		case PG_DisaSpriteModel::Identity_Animation:
+			return 0;
+		case PG_Identity_Item:
+			return static_cast<PG_DisaActorModel*>(nullptr); //there is no model, only these answers
 		}
 
 		return PG_Variety();
@@ -90,10 +104,10 @@ void DisaNewCharacterDrag::start(unsigned short characterId) {
 
 	if (!m_indicator) m_indicator = PG_new<PG_DisaActorSpriteNode>("Indicator", gameScene->getRoot());
 	m_indicator->setDragged(true);
-	m_indicator->setVisible(false);
 	if (!m_modelMoc) m_modelMoc = PG_new<TileMocModel>("TileMocModel", this);
 	m_modelMoc->p_characterId = characterId;
 	m_indicator->setLocation(PG_ListModelLocation(m_modelMoc, 0));
+	m_indicator->setVisible(false); //stays hidden until the first mouse move places it
 
 	simulateMouseRelease();
 
@@ -237,7 +251,7 @@ void DisaNewCharacterDrag::released() {
 		data.level = static_cast<unsigned short>(level);
 		data.alliance = 1;
 		data.facing = m_modelMoc->p_facing;
-		data.visible = 1;
+		data.visible = 0;
 		data.ai = 1;
 		data.unk5 = 0;
 		data.unk6 = 0;

@@ -2,7 +2,7 @@
 #include <Scene/PG_FootlooseViewNode.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <Disa/PG_DisaAssetsModel.h>
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaActorListModel.h>
 
 #include <Disa/map/PG_DisaTileEditSelectionNode.h>
 #include <Disa/map/PG_DisaMaterialEditSelectionNode.h>
@@ -13,7 +13,7 @@
 #include <Disa/map/PG_DisaEventPanelViewNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/map/PG_DisaObjectViewNode.h>
-#include <Disa/map/PG_DisaActorSpriteNode.h>
+#include <Disa/map/PG_DisaActorsViewNode.h>
 #include <Disa/PG_DisaModelNode.h>
 
 #include <resources/PG_ResourceSynchronisator.h>
@@ -210,9 +210,7 @@ void PG_DisaMapViewNode::createGeoPanels() {
 }
 
 void PG_DisaMapViewNode::createActorView() {
-	m_actorView = PG_new<PG_FootlooseViewNode>("PG_DisaActorViewNode", this);
-	m_actorView->setItem(PG_FootlooseViewNode::getDefaultCreateFunc<PG_DisaActorSpriteNode>());
-	m_actorView->setItemUpdate(PG_FootlooseViewNode::getDefaultUpdateFunc<PG_DisaActorSpriteNode>());
+	m_actorView = PG_new<PG_DisaActorsViewNode>("PG_DisaActorsViewNode", this);
 }
 
 static inline PG_DelayPool* g_delayPool = nullptr;

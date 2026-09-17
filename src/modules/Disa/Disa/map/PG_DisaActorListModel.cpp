@@ -1,0 +1,71 @@
+#include "PG_DisaActorListModel.h"
+
+#include <algorithm>
+
+#include <Disa/map/PG_DisaSpriteModel.h>
+
+PG_DisaActorModel* PG_DisaActorListModel::getSlotItem(int slot) const {
+	auto findIt = m_slots.find(slot);
+	return findIt == m_slots.end() ? nullptr : findIt->second.get();
+}
+
+PG_ListModelLocation PG_DisaActorListModel::getSlot(int slot) const {
+	auto* item = getSlotItem(slot);
+	if (!item || item->getLocation() < 0) return PG_ListModelLocation();
+	return PG_ListModelLocation(const_cast<PG_DisaActorListModel*>(this), item->getLocation());
+}
+
+int PG_DisaActorListModel::getSlotOf(const PG_DisaActorModel* item) const {
+	if (!item) return -1;
+	for (const auto& [slot, line] : m_slots) {
+		if (line.get() == item) return slot;
+	}
+	return -1;
+}
+
+void PG_DisaActorListModel::setSlot(int slot, PG_DisaActorModel* item) {
+	if (getSlotItem(slot) == item) return;
+
+	clearSlot(slot);
+	if (!item) return;
+
+	if (item->getLocation() < 0) push_back(item); //takes ownership and gives it its row
+	m_slots[slot] = item;
+}
+
+PG_ListModelLocation PG_DisaActorListModel::takeActorSlot(int slot) {
+	if (auto location = getSlot(slot)) return location;
+
+	auto* actor = PG_new<PG_DisaSpriteModel>("PG_DisaSpriteModel", this);
+	actor->setData(mpdfileActor{}); //a fresh one holds whatever was on the stack otherwise
+	setSlot(slot, actor);
+	return getSlot(slot);
+}
+
+void PG_DisaActorListModel::clearSlot(int slot) {
+	auto findIt = m_slots.find(slot);
+	if (findIt == m_slots.end()) return;
+
+	auto* item = findIt->second.get();
+	m_slots.erase(findIt);
+	//removing moves every row behind it up, which is why the slots are kept beside the rows
+	if (item && item->getLocation() >= 0) remove(item->getLocation());
+}
+
+void PG_DisaActorListModel::clearScriptSlots() {
+	for (int slot = firstScriptSlot; slot <= lastScriptSlot; ++slot) clearSlot(slot);
+}
+
+glm::vec3 PG_DisaActorListModel::getSlotOrigin(int slot) const {
+	//@todo the teleporter panel and the event position, once they are items of their own
+	if (auto* item = getSlotItem(slot)) return item->getObjectTranslation();
+	return glm::vec3(0.f); //everything else counts from the map origin
+}
+
+void PG_DisaActorListModel::resetMapSlots() {
+	for (int slot = firstMapSlot; slot <= lastMapSlot; ++slot) m_slots.erase(slot);
+
+	//the game fills its actor array from the file in order, so row N is slot N
+	const int count = std::min(static_cast<int>(size()), lastMapSlot + 1);
+	for (int row = 0; row < count; ++row) m_slots[row] = &getRef(row);
+}

@@ -1,4 +1,6 @@
 #include "PG_DisaActorModel.h"
+
+#include <Disa/map/PG_DisaActorListModel.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <cmath>
 #include <unordered_set>

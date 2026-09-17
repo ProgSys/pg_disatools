@@ -226,8 +226,9 @@ PG_Texture PG_DisaSpriteModel::getCharacterPortrait() const {
 }
 
 void PG_DisaSpriteModel::updateFromData() {
-	resetPlacement(glm::ivec2(-m_data.x, m_data.z), static_cast<float>(m_data.facing) * 90.f,
-		m_data.visible != 0);
+	/* mpdfileActor::visible is not a draw flag, the game compares it against an effect index, so
+	 * the model keeps its own and the byte is only carried through to the file. */
+	resetPlacement(glm::ivec2(-m_data.x, m_data.z), static_cast<float>(m_data.facing) * 90.f, true);
 }
 
 mpdfileActor PG_DisaSpriteModel::getData() const {
@@ -238,7 +239,6 @@ mpdfileActor PG_DisaSpriteModel::getData() const {
 	out.x = static_cast<char>(-tile.x);
 	out.z = static_cast<char>(tile.y);
 	out.facing = getCharacterFacing();
-	out.visible = isVisible() ? 1 : 0;
 	return out;
 }
 

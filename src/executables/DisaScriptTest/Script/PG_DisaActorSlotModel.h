@@ -30,6 +30,7 @@
 
 #include <unordered_map>
 
+#include <Disa/map/PG_DisaActorListModel.h>
 #include <Disa/map/PG_DisaSpriteModel.h>
 
 /**

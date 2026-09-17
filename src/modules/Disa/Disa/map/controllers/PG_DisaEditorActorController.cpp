@@ -98,7 +98,7 @@ PG_DisaEditorActorController::Found PG_DisaEditorActorController::findObjects(PG
 	Found out;
 	root->traverseTest([&](PG_Object* obj) {
 		if (auto* actor = dynamic_cast<PG_ActorNode*>(obj)) {
-			if (dynamic_cast<PG_FootlooseViewNode*>(actor) && actor->getName() != "PG_DisaActorViewNode") return false;
+			if (dynamic_cast<PG_FootlooseViewNode*>(actor) && actor->getName() != "PG_DisaActorsViewNode") return false;
 
 			if (auto node = dynamic_cast<PG_DisaActorSpriteNode*>(actor); node && node->isVisible()) {
 				if (auto intersection = extractVolume(node).intersect(ray)) {

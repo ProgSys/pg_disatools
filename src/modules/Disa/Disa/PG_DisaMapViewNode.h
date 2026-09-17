@@ -7,6 +7,7 @@
 
 class PG_FootlooseViewNode;
 class PG_DisaTeleporterViewNode;
+class PG_DisaActorsViewNode;
 
 /**
 * @brief Visual representation of disa map
@@ -69,7 +70,7 @@ public:
 
 	PG_FootlooseViewNode* getTileView() const { return m_tilesView; }
 	PG_FootlooseViewNode* getObjectsView() const { return m_objectsView; }
-	PG_FootlooseViewNode* getActorView() const { return m_actorView; }
+	PG_DisaActorsViewNode* getActorView() const { return m_actorView; }
 	PG_DisaTeleporterViewNode* getTeleporterView() const { return m_teleporterView; }
 
 private:
@@ -87,7 +88,7 @@ private:
 
 	PG_FootlooseViewNode* m_tilesView = nullptr;
 	PG_FootlooseViewNode* m_objectsView = nullptr;
-	PG_FootlooseViewNode* m_actorView = nullptr;
+	PG_DisaActorsViewNode* m_actorView = nullptr;
 	PG_DisaTeleporterViewNode* m_teleporterView = nullptr;
 	std::vector<PG_Material> m_matBuffer;
 };

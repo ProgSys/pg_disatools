@@ -145,6 +145,14 @@ private:
 	void loadSprite() { loadSprite(getCharacterId()); }
 	void loadSprite(unsigned short id);
 	void updateTransformation();
+	/**
+	* @brief Reads one identity off the model, without throwing when the item does not answer it.
+	* @details A slot may hold something that is not a sprite, and the drag indicator has no model
+	* behind its location at all, so an unanswered identity has to come back as a default.
+	*/
+	template<typename T>
+	T readData(Identity identity) const { return m_location.getData(identity).convert<T>(); }
+
 	void updateGroundShadow();
 	void updateColorOffset();
 	/// Feeds the force the model it is pulling on, then lets it run for a tick.
