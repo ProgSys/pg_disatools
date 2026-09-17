@@ -1105,9 +1105,11 @@ PG_MPD PG_DisaMapModel::toMPD() const {
 	//save actors
 	mpd.getActors().reserve(getActors()->size());
 
-	for (auto* item : *getActors()) {
-		//only what the file placed is written back, anything else in the list is not the map's
-		auto* actor = dynamic_cast<PG_DisaSpriteModel*>(item);
+	/* Slots 0 to 63 in order are what the file placed, which is exactly what the game's own actor
+	 * array holds. A script's actors sit at 64 and up and the teleporter at 203, so walking the
+	 * slots rather than the rows keeps them out of the file. */
+	for (int slot = PG_DisaActorListModel::firstMapSlot; slot <= PG_DisaActorListModel::lastMapSlot; ++slot) {
+		auto* actor = dynamic_cast<PG_DisaSpriteModel*>(getActors()->getSlotItem(slot));
 		if (!actor) continue;
 		mpd.getActors().push_back(actor->getData());
 		//store meta data to be able to remap the ids

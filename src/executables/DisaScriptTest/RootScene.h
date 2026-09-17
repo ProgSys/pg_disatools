@@ -54,7 +54,6 @@ private:
 	void setupToolbar();
 	void setupMapView();
 	/// The actors a script spawns get their own view over the map's.
-	void setupScriptActorView(PG_DisaMapScene* gameScene);
 
 	PG_GuiItem* m_rootItem = nullptr;
 	PG_GuiRectangle* m_toolbar = nullptr;

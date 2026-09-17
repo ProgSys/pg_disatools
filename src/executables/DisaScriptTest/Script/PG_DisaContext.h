@@ -41,7 +41,6 @@
 #include "PG_DisaScriptSlots.h"
 
 class PG_DisaSpriteModel;
-class PG_DisaActorSlotModel;
 class PG_DisaActorListModel;
 class PG_DisaMapModel;
 
@@ -73,7 +72,6 @@ public:
 
 	using PG_Object::PG_Object;
 
-	void init();
 
 	unsigned int getDungeonId() const { return m_dungeonId; }
 	void setDungeonId(unsigned int id) {
@@ -95,10 +93,12 @@ public:
 	/// The actors move under it, which is how they reach the tiles they stand on.
 	void setMapModel(PG_DisaMapModel* model);
 
-	/// The actors the scripts spawned, a view of its own draws these over the map.
-	PG_DisaActorSlotModel* getActors() const { return m_actors; }
-
-	/// Everything standing on the map, which is where a script chain puts what it spawns.
+	/**
+	* @brief Everything standing on the map, the units it placed and what a script spawned alike.
+	* @details There is one list and the map view draws it, so a script actor needs no view of its
+	* own. Slots 0 to 63 and the ones above 200 are numbered here, 64 to 95 by the running chain.
+	* @see PG_DisaScriptSlots
+	*/
 	PG_DisaActorListModel* getMapActors() const;
 
 	/**
@@ -179,7 +179,6 @@ private:
 	//unsigned int m_dungeonId = 701; //@todo change to PG_DisaIdentifier
 	unsigned int m_dungeonId = 5105; //@todo change to PG_DisaIdentifier
 
-	PG_DisaActorSlotModel* m_actors = nullptr;
 	PG_DisaMapModel* m_mapModel = nullptr;
 
 	/* The actor owns its animations, so these only hold on long enough to tick them. One that its

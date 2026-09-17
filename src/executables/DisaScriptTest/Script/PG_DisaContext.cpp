@@ -6,22 +6,14 @@
 #include <Disa/PG_DisaMapModel.h>
 #include <Util/Debug/PG_DebugOut.h>
 
-#include "PG_DisaActorSlotModel.h"
-
-void PG_DisaContext::init() {
-	m_actors = PG_new<PG_DisaActorSlotModel>("PG_DisaActorSlotModel", this);
-}
+#include <Disa/map/PG_DisaActorListModel.h>
 
 PG_DisaActorListModel* PG_DisaContext::getMapActors() const {
 	return m_mapModel ? m_mapModel->getActors() : nullptr;
 }
 
 void PG_DisaContext::setMapModel(PG_DisaMapModel* model) {
-	if (m_mapModel == model) return;
 	m_mapModel = model;
-
-	//the actors hang under the map, which is how each of them reaches the tile it stands on
-	if (m_actors) m_actors->setParent(model ? static_cast<PG_Object*>(model) : this);
 }
 
 //==== Actors ====
@@ -29,7 +21,8 @@ void PG_DisaContext::setMapModel(PG_DisaMapModel* model) {
 PG_DisaSpriteModel* PG_DisaContext::resolveSlot(int slot, const PG_DisaScriptSlots* scriptSlots) const {
 	//64 to 95 belong to the chain that is running, every other number is the map's own
 	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) return scriptSlots->getSlot(slot);
-	return m_actors ? m_actors->getSlot(slot) : nullptr;
+	auto* map = getMapActors();
+	return map ? dynamic_cast<PG_DisaSpriteModel*>(map->getSlotItem(slot)) : nullptr;
 }
 
 std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot, const PG_DisaScriptSlots* scriptSlots) const {
@@ -37,11 +30,13 @@ std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot, const PG
 	 * the tool does not run. Every actor the chain spawned is the closest it can get. */
 	if (slot == Slot_AllTargets) {
 		if (scriptSlots) return scriptSlots->getActors();
-		if (!m_actors) return {};
+
+		auto* map = getMapActors();
+		if (!map) return {};
 
 		//the list holds the base, only the ones drawn as a sprite are what a script means here
 		std::vector<PG_DisaSpriteModel*> out;
-		for (auto* item : *m_actors) {
+		for (auto* item : *map) {
 			if (auto* sprite = dynamic_cast<PG_DisaSpriteModel*>(item)) out.push_back(sprite);
 		}
 		return out;
@@ -53,7 +48,11 @@ std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot, const PG
 
 PG_DisaSpriteModel* PG_DisaContext::takeSlot(int slot, PG_DisaScriptSlots* scriptSlots) {
 	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) return scriptSlots->takeActorSlot(slot);
-	return m_actors ? m_actors->takeSlot(slot) : nullptr;
+	auto* map = getMapActors();
+	if (!map) return nullptr;
+
+	auto location = map->takeActorSlot(slot);
+	return dynamic_cast<PG_DisaSpriteModel*>(location.getData(PG_Identity_Item).convert<PG_DisaActorModel*>());
 }
 
 glm::vec3 PG_DisaContext::getSlotOrigin(int slot, const PG_DisaScriptSlots* scriptSlots) const {
@@ -156,7 +155,10 @@ void PG_DisaContext::tick(float deltaTicks) {
 void PG_DisaContext::reset() {
 	for (const auto& line : m_animations) delete line.get();
 	m_animations.clear();
-	if (m_actors) m_actors->clearSlots();
+
+	/* What a chain spawned goes when the chain's PG_DisaScriptSlots does, which is when the
+	 * executor drops its lanes. This only clears the map's own script range. */
+	if (auto* map = getMapActors()) map->clearScriptSlots();
 }
 
 bool PG_DisaContext::getGameFlag(unsigned int flagIndex) const {

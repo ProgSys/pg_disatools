@@ -46,10 +46,8 @@
 
 #include <Disa/PG_DisaMapScene.h>
 #include <Disa/map/PG_DisaActorListModel.h>
-#include <Disa/map/PG_DisaActorsViewNode.h>
 #include <Scene/PG_FootlooseViewNode.h>
 #include <Models/PG_DisaScriptTestModel.h>
-#include <Script/PG_DisaActorSlotModel.h>
 #include <Script/PG_DisaContext.h>
 #include <Script/PG_DisaScriptExecutor.h>
 
@@ -164,7 +162,6 @@ void RootScene::setupMapView() {
 	gameScene->setActiveCamera(disaCam);
 
 	m_model->setScene(gameScene);
-	setupScriptActorView(gameScene);
 
 	PG_GuiItem::anchor(item, PG_Anchor::Top, m_toolbar, PG_Anchor::Bottom);
 	PG_GuiItem::anchor(item, PG_Anchor::Left, m_rootItem, PG_Anchor::Left);
@@ -172,10 +169,3 @@ void RootScene::setupMapView() {
 	PG_GuiItem::anchor(item, PG_Anchor::Bottom, m_rootItem, PG_Anchor::Bottom);
 }
 
-void RootScene::setupScriptActorView(PG_DisaMapScene* gameScene) {
-	/* The actors a script spawns are not part of the map, so they get a view of their own next to
-	 * the map's. It sits on the same root, which keeps them in the same space as the map's units
-	 * without the map view having to know they exist. */
-	auto* view = PG_new<PG_DisaActorsViewNode>("N_ScriptActorView", gameScene->getRoot());
-	view->setModel(m_model->getContext()->getActors());
-}

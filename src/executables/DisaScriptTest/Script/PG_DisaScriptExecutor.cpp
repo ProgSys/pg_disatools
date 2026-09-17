@@ -14,7 +14,6 @@
 #include <Disa/fileformats/PG_TalkScript.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Script/PG_DisaActorAnimations.h>
-#include <Script/PG_DisaActorSlotModel.h>
 #include <Script/PG_DisaContext.h>
 #include <Disa/map/PG_DisaSpriteModel.h>
 
@@ -468,7 +467,7 @@ EDisaScriptResult cmdSetActorSprite(PG_DisaScriptExecutor& executor, std::size_t
 	/* The game allocates the actor here too, so a script that only swaps the look of an empty
 	 * slot still ends up with one standing there. Sprite 0 is the one that clears a slot rather
 	 * than filling it. */
-	if (sprite > 0 && PG_DisaActorSlotModel::isActorSlot(slot)) {
+	if (sprite > 0 && PG_DisaActorListModel::isItemSlot(slot)) {
 		if (auto* actor = spawnIntoSlot(executor, laneIndex, slot)) actor->setCharacterId(sprite);
 		return EDisaScriptResult::Done;
 	}
