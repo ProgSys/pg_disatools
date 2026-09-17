@@ -54,8 +54,9 @@ public:
 
 	/**
 	* @brief Where a coordinate parented to that slot counts from, in tile units.
-	* @details An item slot counts from the item, and the few slots that are not items carry an
-	* origin of their own. Anything else counts from the map origin.
+	* @details An item slot counts from the item, height included. A slot that is not an item is a
+	* named origin, the teleporter panel being one, and those carry no height: the game adds only
+	* x and z for them. Anything else counts from the map origin.
 	*/
 	glm::vec3 getSlotOrigin(int slot) const;
 

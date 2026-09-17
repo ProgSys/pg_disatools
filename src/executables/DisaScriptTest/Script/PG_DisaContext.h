@@ -64,10 +64,11 @@ public:
 	* @details Read out of the game's slot resolver, the whole table is in reverse/Doku.md.
 	*/
 	enum ESlot : int {
-		Slot_MapLast = 63,     /// 0 to 63 are the units the map placed
-		Slot_AllTargets = 202, /// Every unit of the target group at once
-		Slot_MapOrigin = 203,  /// Not an actor, the map's teleporter, used as a position parent
+		Slot_MapLast = 63,          /// 0 to 63 are the units the map placed
+		Slot_AllTargets = 202,      /// Every unit of the target group at once
+		Slot_TeleporterPanel = 203, /// Not an actor, the panel, only ever a position parent
 		Slot_ActingUnit = 204,
+		Slot_EventPosition = 210,   /// Not an actor either, the position the event was started at
 	};
 
 	using PG_Object::PG_Object;

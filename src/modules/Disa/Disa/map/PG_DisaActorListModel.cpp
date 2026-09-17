@@ -60,9 +60,15 @@ void PG_DisaActorListModel::clearScriptSlots() {
 }
 
 glm::vec3 PG_DisaActorListModel::getSlotOrigin(int slot) const {
-	//@todo the event position of slot 210, which needs a running event
-	if (auto* item = getSlotItem(slot)) return item->getObjectTranslation();
-	return glm::vec3(0.f); //everything else counts from the map origin
+	auto* item = getSlotItem(slot);
+	if (!item) return glm::vec3(0.f); //slot 201 and every number nobody filled count from the origin
+
+	if (isItemSlot(slot)) return item->getObjectTranslation();
+
+	/* A slot that is not an item is a named origin, and the game adds only x and z for those: an
+	 * actor parented to the panel keeps the height its own command gave it. */
+	const glm::vec3 position = item->getObjectTranslation();
+	return glm::vec3(position.x, 0.f, position.z);
 }
 
 void PG_DisaActorListModel::resetMapSlots() {

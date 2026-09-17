@@ -56,13 +56,20 @@ PG_DisaSpriteModel* PG_DisaContext::takeSlot(int slot, PG_DisaScriptSlots* scrip
 }
 
 glm::vec3 PG_DisaContext::getSlotOrigin(int slot, const PG_DisaScriptSlots* scriptSlots) const {
-	if (auto* actor = resolveSlot(slot, scriptSlots)) return actor->getObjectTranslation();
-
-	//the slots that are not actors carry an origin of their own, the teleporter panel being one
-	if (auto* map = getMapActors()) {
-		if (auto* item = map->getSlotItem(slot)) return item->getObjectTranslation();
+	//the chain's own actors are the only thing the map's table does not know about
+	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) {
+		auto* actor = scriptSlots->getSlot(slot);
+		return actor ? actor->getObjectTranslation() : glm::vec3(0.f);
 	}
-	return glm::vec3(0.f); //everything else counts from the map origin
+
+	if (slot == Slot_EventPosition) {
+		//the game counts from where the event was started, which needs a battle the tool does not run
+		OUT_WARNING("Slot 210 is the position of a running event, the map origin is used instead.");
+		return glm::vec3(0.f);
+	}
+
+	auto* map = getMapActors();
+	return map ? map->getSlotOrigin(slot) : glm::vec3(0.f);
 }
 
 //==== Ground ====
