@@ -1,9 +1,9 @@
 #include "PG_DisaAnimationComponent.h"
 
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 
-PG_DisaActorModel* PG_DisaAnimationComponent::getActorModel() const {
-	return getParent<PG_DisaActorModel>();
+PG_DisaSpriteModel* PG_DisaAnimationComponent::getActorModel() const {
+	return getParent<PG_DisaSpriteModel>();
 }
 
 PG_DisaAnimationComponent::~PG_DisaAnimationComponent() {
@@ -19,7 +19,7 @@ void PG_DisaAnimationComponent::setTickFunction(const TickFunction& value) {
 bool PG_DisaAnimationComponent::tick(float deltaTicks) {
 	if (m_finished) return true;
 
-	PG_DisaActorModel* actor = getActorModel();
+	PG_DisaSpriteModel* actor = getActorModel();
 	if (!actor || !m_tickFunction) {
 		m_finished = true;
 		return true;

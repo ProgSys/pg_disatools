@@ -22,23 +22,29 @@ void PG_DisaContext::setMapModel(PG_DisaMapModel* model) {
 
 //==== Actors ====
 
-PG_DisaActorModel* PG_DisaContext::resolveSlot(int slot) const {
+PG_DisaSpriteModel* PG_DisaContext::resolveSlot(int slot) const {
 	return m_actors ? m_actors->getSlot(slot) : nullptr;
 }
 
-std::vector<PG_DisaActorModel*> PG_DisaContext::resolveSlots(int slot) const {
+std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot) const {
 	/* A group slot stands for everything taking part in the current skill, which needs a battle
 	 * the tool does not run. Every actor a script spawned is the closest it can get. */
 	if (slot == Slot_AllTargets) {
 		if (!m_actors) return {};
-		return std::vector<PG_DisaActorModel*>(m_actors->begin(), m_actors->end());
+
+		//the list holds the base, only the ones drawn as a sprite are what a script means here
+		std::vector<PG_DisaSpriteModel*> out;
+		for (auto* item : *m_actors) {
+			if (auto* sprite = dynamic_cast<PG_DisaSpriteModel*>(item)) out.push_back(sprite);
+		}
+		return out;
 	}
 
 	if (auto* actor = resolveSlot(slot)) return { actor };
 	return {};
 }
 
-PG_DisaActorModel* PG_DisaContext::takeSlot(int slot) {
+PG_DisaSpriteModel* PG_DisaContext::takeSlot(int slot) {
 	return m_actors ? m_actors->takeSlot(slot) : nullptr;
 }
 
@@ -59,7 +65,7 @@ float PG_DisaContext::getGroundHeight(const glm::vec3& position) const {
 	return location.getDataT<float>(PG_DisaMapTileModel::Identity_TopHeight);
 }
 
-void PG_DisaContext::snapToGround(PG_DisaActorModel* actor) const {
+void PG_DisaContext::snapToGround(PG_DisaSpriteModel* actor) const {
 	if (!actor) return;
 	glm::vec3 position = actor->getObjectTranslation();
 	position.y = getGroundHeight(position);
@@ -68,7 +74,7 @@ void PG_DisaContext::snapToGround(PG_DisaActorModel* actor) const {
 
 //==== Animations ====
 
-PG_DisaAnimationComponent* PG_DisaContext::findAnimation(const PG_DisaActorModel* actor,
+PG_DisaAnimationComponent* PG_DisaContext::findAnimation(const PG_DisaSpriteModel* actor,
 	PG_DisaAnimationComponent::EChannel channel) const {
 	for (const auto& line : m_animations) {
 		auto* animation = line.get();
@@ -80,7 +86,7 @@ PG_DisaAnimationComponent* PG_DisaContext::findAnimation(const PG_DisaActorModel
 	return nullptr;
 }
 
-PG_DisaAnimationComponent* PG_DisaContext::takeAnimation(PG_DisaActorModel* actor,
+PG_DisaAnimationComponent* PG_DisaContext::takeAnimation(PG_DisaSpriteModel* actor,
 	PG_DisaAnimationComponent::EChannel channel, const std::string& name) {
 	if (!actor) return nullptr;
 	if (auto* running = findAnimation(actor, channel)) return running;
@@ -92,23 +98,23 @@ PG_DisaAnimationComponent* PG_DisaContext::takeAnimation(PG_DisaActorModel* acto
 	return animation;
 }
 
-void PG_DisaContext::clearAnimation(PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel) {
+void PG_DisaContext::clearAnimation(PG_DisaSpriteModel* actor, PG_DisaAnimationComponent::EChannel channel) {
 	delete findAnimation(actor, channel);
 	std::erase_if(m_animations, [](const PG_Lifeline_T<PG_DisaAnimationComponent>& line) { return line.expired(); });
 }
 
-bool PG_DisaContext::hasAnimation(const PG_DisaActorModel* actor) const {
+bool PG_DisaContext::hasAnimation(const PG_DisaSpriteModel* actor) const {
 	return std::ranges::any_of(m_animations, [actor](const PG_Lifeline_T<PG_DisaAnimationComponent>& line) {
 		auto* animation = line.get();
 		return animation && !animation->isFinished() && animation->getActorModel() == actor;
 		});
 }
 
-bool PG_DisaContext::hasAnimation(const PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel) const {
+bool PG_DisaContext::hasAnimation(const PG_DisaSpriteModel* actor, PG_DisaAnimationComponent::EChannel channel) const {
 	return findAnimation(actor, channel) != nullptr;
 }
 
-void PG_DisaContext::stopAnimations(const PG_DisaActorModel* actor) {
+void PG_DisaContext::stopAnimations(const PG_DisaSpriteModel* actor) {
 	for (const auto& line : m_animations) {
 		auto* animation = line.get();
 		if (animation && (!actor || animation->getActorModel() == actor)) animation->stop();

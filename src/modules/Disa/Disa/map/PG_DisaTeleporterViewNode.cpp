@@ -32,9 +32,6 @@ void PG_DisaTeleporterViewNode::setModel(PG_DisaEventTileListModel* model) {
 
 		connect(mapModel->getTiles(), &PG_DisaMapTileListModel::tilesGeometryChanged, this, &PG_DisaTeleporterViewNode::tileChanged, PG_ConnectionType_Single);
 
-		connect(mapModel->getTiles(), &PG_DisaMapTileListModel::onDeleted, this, [this]() {
-			auto i = 0;
-			});
 	}
 
 	loadGlobal("R_DisaTeleporterBase");

@@ -4,7 +4,7 @@
 
 
 class PG_MouseMotionEvent;
-class PG_DisaActorViewNode;
+class PG_DisaActorSpriteNode;
 class TileMocModel;
 
 class DisaNewCharacterDrag : public PG_Object {
@@ -26,7 +26,7 @@ private:
 	void released();
 	void reset();
 
-	PG_DisaActorViewNode* m_indicator = nullptr;
+	PG_DisaActorSpriteNode* m_indicator = nullptr;
 	TileMocModel* m_modelMoc = nullptr;
 	bool m_dragging = false;
 };

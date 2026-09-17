@@ -7,7 +7,7 @@
 #include <Disa/PG_DisaAssetsModel.h>
 #include <Disa/PG_DisaCharactersModel.h>
 #include <Disa/map/PG_DisaEventTileModel.h>
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <resources/PG_ResourceSynchronisator.h>
 #include <Stream/PG_StreamInOutByteVector.h>
@@ -837,9 +837,10 @@ struct PG_JobOpenMPD : public PG_Job {
 
 		
 		for (const mpdfileActor& actor : mpd.getActors()) {
-			result.actors.push_back(PG_new<PG_DisaActorModel>("PG_DisaActorModel"));
-			result.actors.back()->setData(actor);
-			result.actors.back()->fixStats();
+			auto* sprite = PG_new<PG_DisaSpriteModel>("PG_DisaSpriteModel");
+			sprite->setData(actor);
+			sprite->fixStats();
+			result.actors.push_back(sprite);
 		}
 
 		PG_EventLoop::doRun();
@@ -1097,10 +1098,12 @@ PG_MPD PG_DisaMapModel::toMPD() const {
 	mpd.getChunks() = std::move(chunks);
 
 	//save actors
-	mpd.getHeader().number_of_actors = getActors()->size();
-	mpd.getActors().reserve(mpd.getHeader().number_of_actors);
+	mpd.getActors().reserve(getActors()->size());
 
-	for (auto* actor : *getActors()) {
+	for (auto* item : *getActors()) {
+		//only what the file placed is written back, anything else in the list is not the map's
+		auto* actor = dynamic_cast<PG_DisaSpriteModel*>(item);
+		if (!actor) continue;
 		mpd.getActors().push_back(actor->getData());
 		//store meta data to be able to remap the ids
 		if (const PG_DisaIdentifier& customId = actor->getCharacterIdentifier(); customId.isCustom()) {
@@ -1110,6 +1113,8 @@ PG_MPD PG_DisaMapModel::toMPD() const {
 			}
 		}
 	}
+	//counted after the loop, because the list may hold items that are not the map's own
+	mpd.getHeader().number_of_actors = static_cast<unsigned short>(mpd.getActors().size());
 
 	mpd.getHeader().field_0x4 = 0;
 	mpd.getHeader().field_0x6 = 0;

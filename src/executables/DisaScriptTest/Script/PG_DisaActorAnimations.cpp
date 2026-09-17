@@ -6,7 +6,7 @@
 
 #include <glm/gtc/constants.hpp>
 
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 
 #include "PG_DisaAnimationComponent.h"
 #include "PG_DisaContext.h"
@@ -22,7 +22,7 @@ float normalizeDegree(float degree) {
 
 } //namespace
 
-void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec3& target,
+void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaSpriteModel* actor, const glm::vec3& target,
 	float durationTicks, EMoveMode mode) {
 	if (!actor) return;
 
@@ -54,13 +54,13 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 	/* The game walks an actor that is going somewhere. Only the first move remembers what it was
 	 * doing, so a walk retargeted halfway does not come back as a walk. */
 	if (!animation->hasEndFunction()) {
-		const PG_DisaActorModel::EAnimationSet before = actor->getAnimationSet();
-		animation->setEndFunction([before](PG_DisaActorModel* self) { if (self) self->setAnimationSet(before); });
+		const PG_DisaSpriteModel::EAnimationSet before = actor->getAnimationSet();
+		animation->setEndFunction([before](PG_DisaSpriteModel* self) { if (self) self->setAnimationSet(before); });
 	}
-	actor->setAnimationSet(PG_DisaActorModel::Walking);
+	actor->setAnimationSet(PG_DisaSpriteModel::Walking);
 
 	auto elapsed = std::make_shared<float>(0.f);
-	animation->setTickFunction([start, end, ticks, arcHeight, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+	animation->setTickFunction([start, end, ticks, arcHeight, elapsed](PG_DisaSpriteModel* self, float deltaTicks) {
 		*elapsed += deltaTicks;
 		const float progress = std::min(1.f, *elapsed / ticks);
 
@@ -71,7 +71,7 @@ void PG_DisaActorAnimations::move(PG_DisaContext& context, PG_DisaActorModel* ac
 		});
 }
 
-void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
+void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaSpriteModel* actor, float degree, float durationTicks) {
 	if (!actor) return;
 
 	const float end = normalizeDegree(degree);
@@ -86,7 +86,7 @@ void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel
 	const float start = actor->getRotation();
 	auto elapsed = std::make_shared<float>(0.f);
 	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Rotation, "PG_DisaRotateAnimation")
-		->setTickFunction([start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+		->setTickFunction([start, end, durationTicks, elapsed](PG_DisaSpriteModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
@@ -95,7 +95,7 @@ void PG_DisaActorAnimations::rotateTo(PG_DisaContext& context, PG_DisaActorModel
 			});
 }
 
-void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks) {
+void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaSpriteModel* actor, float degree, float durationTicks) {
 	if (!actor) return;
 
 	const float start = actor->getRotation();
@@ -110,7 +110,7 @@ void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel
 	//the step is what the game keeps, so a turn of more than once around really goes around twice
 	auto elapsed = std::make_shared<float>(0.f);
 	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Rotation, "PG_DisaRotateAnimation")
-		->setTickFunction([start, end, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+		->setTickFunction([start, end, durationTicks, elapsed](PG_DisaSpriteModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
@@ -119,7 +119,7 @@ void PG_DisaActorAnimations::rotateBy(PG_DisaContext& context, PG_DisaActorModel
 			});
 }
 
-void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* actor, int animationSet, int loops) {
+void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaSpriteModel* actor, int animationSet, int loops) {
 	if (!actor) return;
 
 	actor->clearAnimation();
@@ -137,13 +137,13 @@ void PG_DisaActorAnimations::play(PG_DisaContext& context, PG_DisaActorModel* ac
 	constexpr float ticksPerLoop = 30.f;
 	auto left = std::make_shared<float>(ticksPerLoop * static_cast<float>(loops));
 	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Animation, "PG_DisaPlayAnimation")
-		->setTickFunction([left](PG_DisaActorModel*, float deltaTicks) {
+		->setTickFunction([left](PG_DisaSpriteModel*, float deltaTicks) {
 			*left -= deltaTicks;
 			return *left <= 0.f;
 			});
 }
 
-void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec4& color,
+void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaSpriteModel* actor, const glm::vec4& color,
 	float durationTicks) {
 	if (!actor) return;
 
@@ -156,7 +156,7 @@ void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaActorModel* ac
 	const glm::vec4 start = actor->getColorMult();
 	auto elapsed = std::make_shared<float>(0.f);
 	context.takeAnimation(actor, PG_DisaAnimationComponent::Channel_Color, "PG_DisaTintAnimation")
-		->setTickFunction([start, color, durationTicks, elapsed](PG_DisaActorModel* self, float deltaTicks) {
+		->setTickFunction([start, color, durationTicks, elapsed](PG_DisaSpriteModel* self, float deltaTicks) {
 			*elapsed += deltaTicks;
 			const float progress = std::min(1.f, *elapsed / durationTicks);
 
@@ -165,9 +165,9 @@ void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaActorModel* ac
 			});
 }
 
-void PG_DisaActorAnimations::pose(PG_DisaActorModel* actor, int animation) {
+void PG_DisaActorAnimations::pose(PG_DisaSpriteModel* actor, int animation) {
 	if (!actor) return;
 	//naming the sheet takes the choice away from the angle, the way the game drops the mode
-	actor->setMode(PG_DisaActorModel::Mode_None);
+	actor->setMode(PG_DisaSpriteModel::Mode_None);
 	actor->setAnimation(animation);
 }

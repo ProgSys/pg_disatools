@@ -33,7 +33,7 @@
 
 #include <Base/PG_Object.h>
 
-class PG_DisaActorModel;
+class PG_DisaSpriteModel;
 class PG_DisaContext;
 
 /**
@@ -56,10 +56,10 @@ public:
 	* @param deltaTicks Game ticks since the last call.
 	* @returns true when it has nothing left to do and should be dropped.
 	*/
-	using TickFunction = std::function<bool(PG_DisaActorModel* actor, float deltaTicks)>;
+	using TickFunction = std::function<bool(PG_DisaSpriteModel* actor, float deltaTicks)>;
 
 	/// Runs when the animation goes away, however it goes. The actor is null when it took it along.
-	using EndFunction = std::function<void(PG_DisaActorModel* actor)>;
+	using EndFunction = std::function<void(PG_DisaSpriteModel* actor)>;
 
 	/// What an actor can run one of at a time, a move and a turn do not get in each other's way.
 	enum EChannel : unsigned char {
@@ -74,7 +74,7 @@ public:
 	~PG_DisaAnimationComponent() override;
 
 	/// The actor it runs on, which is the object that owns it.
-	PG_DisaActorModel* getActorModel() const;
+	PG_DisaSpriteModel* getActorModel() const;
 
 	inline EChannel getChannel() const { return m_channel; }
 	inline void setChannel(EChannel value) { m_channel = value; }

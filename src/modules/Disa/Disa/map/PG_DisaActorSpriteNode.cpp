@@ -1,11 +1,11 @@
-#include "PG_DisaActorViewNode.h"
+#include "PG_DisaActorSpriteNode.h"
 #include <algorithm>
 #include <cmath>
 #include <optional>
 #include <stdexcept>
 #include <utility>
 
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/PG_DisaSpriteNode.h>
 #include <Disa/resources/PG_DisaSprite.h>
@@ -18,12 +18,12 @@
 #include <Util/PG_Math.h>
 #include <Util/PG_StringUtil.h>
 
-PG_Object* PG_DisaActorViewNode::getObjectModel() const {
+PG_Object* PG_DisaActorSpriteNode::getObjectModel() const {
 	if (!m_location) return nullptr;
 	return m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item);
 }
 
-void PG_DisaActorViewNode::setLocation(PG_ListModelLocation loc) {
+void PG_DisaActorSpriteNode::setLocation(PG_ListModelLocation loc) {
 	m_location = loc;
 	loadSprite();
 	updateTransformation();
@@ -34,7 +34,7 @@ void PG_DisaActorViewNode::setLocation(PG_ListModelLocation loc) {
 	updateModelMatrixWorld();
 }
 
-void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
+void PG_DisaActorSpriteNode::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
 	const bool hasItem = identities.contains(PG_Identity_Item) || m_location != location;
 
 	if (hasItem || identities.contains(PG_Identity_Location)) {
@@ -48,70 +48,70 @@ void PG_DisaActorViewNode::update(const PG_ListModelLocation& location, const PG
 		return;
 	}
 
-	if (identities.contains(PG_DisaActorModel::Identity_Translation)) {
+	if (identities.contains(PG_DisaSpriteModel::Identity_Translation)) {
 		setTranslation(getTranslationUser());
 		emit translationUserChanged();
 	}
 
-	if (identities.contains(PG_DisaActorModel::Identity_TileGround)) {
+	if (identities.contains(PG_DisaSpriteModel::Identity_TileGround)) {
 		updateGroundShadow();
 	}
 
-	if (identities.contains(PG_DisaActorModel::Identity_Id)) {
+	if (identities.contains(PG_DisaSpriteModel::Identity_Id)) {
 		loadSprite();
 	}
 
-	if (identities.contains(PG_DisaActorModel::Identity_GeoColor)) {
+	if (identities.contains(PG_DisaSpriteModel::Identity_GeoColor)) {
 		updateColorOffset();
 	}
-	if (identities.contains(PG_DisaActorModel::Identity_Next)) {
+	if (identities.contains(PG_DisaSpriteModel::Identity_Next)) {
 		if (PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite")) {
 			node->getSprite().next(true);
 		}
 	}
-	else if (identities.contains(PG_DisaActorModel::Identity_Unpause)) {
+	else if (identities.contains(PG_DisaSpriteModel::Identity_Unpause)) {
 		if (PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite")) {
 			node->getSprite().setPaused(false);
 		}
 	}
 
-	if (identities.contains(PG_DisaActorModel::Identity_ColorMult)) {
+	if (identities.contains(PG_DisaSpriteModel::Identity_ColorMult)) {
 		updateColorMult();
 	}
-	else if (identities.contains(PG_DisaActorModel::Identity_Visible)) {
+	else if (identities.contains(PG_DisaSpriteModel::Identity_Visible)) {
 		updateVisible();
 	}
 }
 
-void PG_DisaActorViewNode::updateForce(float deltaTime) {
+void PG_DisaActorSpriteNode::updateForce(float deltaTime) {
 	if (!m_location) return;
 
 	//the fall needs the model under it, the sway does not, so only one of them is fed
 	if (auto* gravity = std::get_if<GravityForce>(&m_force)) {
-		gravity->setGravity(m_location.getDataT<float>(PG_DisaActorModel::Identity_Gravity));
-		gravity->setFloorHeight(m_location.getDataT<float>(PG_DisaActorModel::Identity_FloorHeight));
+		gravity->setGravity(m_location.getDataT<float>(PG_DisaSpriteModel::Identity_Gravity));
+		gravity->setFloorHeight(m_location.getDataT<float>(PG_DisaSpriteModel::Identity_FloorHeight));
 	}
 
-	const glm::vec3 position = m_location.getDataT<glm::vec3>(PG_DisaActorModel::Identity_Translation);
+	const glm::vec3 position = m_location.getDataT<glm::vec3>(PG_DisaSpriteModel::Identity_Translation);
 	std::visit([this, deltaTime, &position](const auto& force) { force.update(m_motion, deltaTime, position); }, m_force);
 }
 
-void PG_DisaActorViewNode::updateColorMult() {
+void PG_DisaActorSpriteNode::updateColorMult() {
 	if (!m_location) return;
 	if (PG_DisaSpriteNode* node = findFirstChild<PG_DisaSpriteNode>("N_Sprite")) {
-		node->setColorMult(m_location.getDataT<glm::vec4>(PG_DisaActorModel::Identity_ColorMult));
+		node->setColorMult(m_location.getDataT<glm::vec4>(PG_DisaSpriteModel::Identity_ColorMult));
 	}
 	updateVisible();
 }
 
-void PG_DisaActorViewNode::updateVisible() {
+void PG_DisaActorSpriteNode::updateVisible() {
 	if (!m_location) return;
 	//the sprite carries no alpha of its own, so an actor faded out to nothing is simply not drawn
-	const bool clear = m_location.getDataT<glm::vec4>(PG_DisaActorModel::Identity_ColorMult).a <= 0.f;
-	setVisible(m_location.getDataT<bool>(PG_DisaActorModel::Identity_Visible) && !clear);
+	const bool clear = m_location.getDataT<glm::vec4>(PG_DisaSpriteModel::Identity_ColorMult).a <= 0.f;
+	setVisible(m_location.getDataT<bool>(PG_DisaSpriteModel::Identity_Visible) && !clear);
 }
 
-void PG_DisaActorViewNode::loadSprite(unsigned short id) {
+void PG_DisaActorSpriteNode::loadSprite(unsigned short id) {
 	if (id == 0) {
 		PG_ModelNode* model = findFirstChild<PG_ModelNode>("N_Prev");
 		if (model) delete model;
@@ -126,7 +126,7 @@ void PG_DisaActorViewNode::loadSprite(unsigned short id) {
 		sprite = std::move(pair.first);
 		colorOffset = pair.second;
 		if (id == 2800 && m_location) { //is geo symbol
-			colorOffset = static_cast<int>(m_location.getDataT<EDisaGeoColor>(PG_DisaActorModel::Identity_GeoColor));
+			colorOffset = static_cast<int>(m_location.getDataT<EDisaGeoColor>(PG_DisaSpriteModel::Identity_GeoColor));
 		}
 	}else{
 		sprite.loadExisting("DisaSprite" + std::to_string(id));
@@ -154,11 +154,11 @@ void PG_DisaActorViewNode::loadSprite(unsigned short id) {
 	}
 }
 
-bool PG_DisaActorViewNode::isDragged() const {
+bool PG_DisaActorSpriteNode::isDragged() const {
 	return m_dragged;
 }
 
-void PG_DisaActorViewNode::setDragged(bool value) {
+void PG_DisaActorSpriteNode::setDragged(bool value) {
 	if (m_dragged == value) return;
 	m_dragged = value;
 
@@ -171,14 +171,14 @@ void PG_DisaActorViewNode::setDragged(bool value) {
 	else {
 		m_force = GravityForce();
 	}
-	if (auto* model = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
-		model->setAnimationSet(value ? PG_DisaActorModel::Hurt : PG_DisaActorModel::IdleStanding);
+	if (auto* model = dynamic_cast<PG_DisaSpriteModel*>(m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item))) {
+		model->setAnimationSet(value ? PG_DisaSpriteModel::Hurt : PG_DisaSpriteModel::IdleStanding);
 	}
 }
 
 constexpr auto g_mirrorX = "mirrorX";
 
-/* Sheet base of every animation set, indexed by PG_DisaActorModel::EAnimationSet. A side view is
+/* Sheet base of every animation set, indexed by PG_DisaSpriteModel::EAnimationSet. A side view is
  * added on top, so a base is never a sheet that exists, and 0 is the sprite's "no data" frame.
  * Only the first three rows differ, everything from Jump on is shared. */
 constexpr std::array<int, 12> g_combatSets = { 1000, 1010, 1020, 1030, 1500, 1060, 1070, 1080, 1090, 1050, 1610, 1620 };
@@ -217,9 +217,9 @@ struct AnimationChoice {
 * @details A pose the script named outright wins, it already is a sheet number and the angle has no
 * say in it. Otherwise the set gives the base and the angle the side view on top of it.
 */
-std::optional<AnimationChoice> pickAnimation(const PG_Sprite& sprite, const PG_DisaActorModel& model, float angle) {
-	const PG_DisaActorModel::EMode mode = model.getMode();
-	if (mode == PG_DisaActorModel::Mode_None) {
+std::optional<AnimationChoice> pickAnimation(const PG_Sprite& sprite, const PG_DisaSpriteModel& model, float angle) {
+	const PG_DisaSpriteModel::EMode mode = model.getMode();
+	if (mode == PG_DisaSpriteModel::Mode_None) {
 		/* The script named the sheet itself and nothing here may overrule it. Without one there is
 		 * nothing to pick either, the actor keeps whatever it was last drawn from. */
 		const int pose = model.getAnimation();
@@ -228,7 +228,7 @@ std::optional<AnimationChoice> pickAnimation(const PG_Sprite& sprite, const PG_D
 	}
 
 	const std::size_t set = std::min<std::size_t>(model.getAnimationSet(), g_idleSets.size() - 1);
-	const bool idle = mode == PG_DisaActorModel::Mode_Cutscene;
+	const bool idle = mode == PG_DisaSpriteModel::Mode_Cutscene;
 	const int base = idle ? g_idleSets[set] : g_combatSets[set];
 
 	/* Not every sprite carries all five views, outside the idle and the walk sets most carry none
@@ -245,7 +245,7 @@ std::optional<AnimationChoice> pickAnimation(const PG_Sprite& sprite, const PG_D
 constexpr glm::vec3 baseDir = glm::vec3(1.f, 0.f, 0.f);
 constexpr glm::vec3 baseUp = glm::vec3(0.f, 1.f, 0.f);
 
-glm::vec3 PG_DisaActorViewNode::getRotationDir(PG_Scene* scene, const glm::vec3& originWorld) {
+glm::vec3 PG_DisaActorSpriteNode::getRotationDir(PG_Scene* scene, const glm::vec3& originWorld) {
 	glm::vec3 dir = ((scene->getActiveCamera()->getTranslationWorld() - originWorld) - scene->getActiveCamera()->getViewDir()) / 2.f;
 	dir = glm::normalize(dir);
 	dir.y = glm::clamp(dir.y, -0.3f, 0.3f);
@@ -256,7 +256,7 @@ glm::vec3 PG_DisaActorViewNode::getRotationDir(PG_Scene* scene, const glm::vec3&
 	return dir;
 }
 
-bool PG_DisaActorViewNode::event(PG_Event* e) {
+bool PG_DisaActorSpriteNode::event(PG_Event* e) {
 	if (e->getType() == PG_Event_Tick && isVisible()) {
 		auto* et = static_cast<PG_TickEvent*>(e);
 		updateForce(0.1f * et->getDeltaTime());
@@ -286,7 +286,7 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 		/* A script gives whole degree, the map a quarter turn count, and the game stores both as
 		 * the same angle. It turns clockwise around an x axis that points the other way than ours,
 		 * which together come out as half a turn. */
-		const float degree = m_location.getDataT<float>(PG_DisaActorModel::Identity_Rotation);
+		const float degree = m_location.getDataT<float>(PG_DisaSpriteModel::Identity_Rotation);
 		const float radians = glm::radians(degree + 90.f);
 		const glm::vec2 baseRotation(std::cos(radians), std::sin(radians));
 
@@ -298,7 +298,7 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 			};
 
 
-		if (auto* item = m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item)) {
+		if (auto* item = dynamic_cast<PG_DisaSpriteModel*>(m_location.getDataT<PG_DisaActorModel*>(PG_Identity_Item))) {
 			if (const auto choice = pickAnimation(sprite, *item, angle)) {
 				std::string aniName = std::to_string(choice->animation);
 				if (node->getAnimationName() != aniName) {
@@ -313,22 +313,22 @@ bool PG_DisaActorViewNode::event(PG_Event* e) {
 	return PG_ActorNode::event(e);
 }
 
-void PG_DisaActorViewNode::updateActor() {
+void PG_DisaActorSpriteNode::updateActor() {
 	updateModelMatrix();
 	updateModelMatrixWorld();
 	PG_TickEvent e(0.f);
 	event(&e);
 }
 
-void PG_DisaActorViewNode::updateTransformation() {
+void PG_DisaActorSpriteNode::updateTransformation() {
 	if (!m_location) return;
 	setTranslation(getTranslationUser());
 }
 
-void PG_DisaActorViewNode::updateGroundShadow() {
+void PG_DisaActorSpriteNode::updateGroundShadow() {
 	if (!m_location) return;
 	PG_ModelNode* model = findFirstChild<PG_ModelNode>("N_Shadow");
-	const auto top = m_location.getDataT<std::array<glm::vec3, 4>>(PG_DisaActorModel::Identity_TileGround);
+	const auto top = m_location.getDataT<std::array<glm::vec3, 4>>(PG_DisaSpriteModel::Identity_TileGround);
 
 	if (top.front() == top.back()) {
 		if (model) delete model;
@@ -342,26 +342,26 @@ void PG_DisaActorViewNode::updateGroundShadow() {
 	PG_DisaTileViewNode::updateFloorShadowGeometry(top, model);
 }
 
-glm::vec3 PG_DisaActorViewNode::getTranslationUser() const {
-	return m_location.getDataT<glm::vec3>(PG_DisaActorModel::Identity_Translation);
+glm::vec3 PG_DisaActorSpriteNode::getTranslationUser() const {
+	return m_location.getDataT<glm::vec3>(PG_DisaSpriteModel::Identity_Translation);
 }
 
-void PG_DisaActorViewNode::setTranslationUser(const glm::vec3& translation) {
-	m_location.setData(translation, PG_DisaActorModel::Identity_Translation);
+void PG_DisaActorSpriteNode::setTranslationUser(const glm::vec3& translation) {
+	m_location.setData(translation, PG_DisaSpriteModel::Identity_Translation);
 }
 
-unsigned short PG_DisaActorViewNode::getCharacterId() const {
-	return m_location.getDataT<unsigned short>(PG_DisaActorModel::Identity_Id);
+unsigned short PG_DisaActorSpriteNode::getCharacterId() const {
+	return m_location.getDataT<unsigned short>(PG_DisaSpriteModel::Identity_Id);
 }
 
-void PG_DisaActorViewNode::setCharacterId(unsigned short id) {
-	m_location.setData(id, PG_DisaActorModel::Identity_Id);
+void PG_DisaActorSpriteNode::setCharacterId(unsigned short id) {
+	m_location.setData(id, PG_DisaSpriteModel::Identity_Id);
 }
 
-void PG_DisaActorViewNode::updateColorOffset() {
+void PG_DisaActorSpriteNode::updateColorOffset() {
 	if (!m_location && getCharacterId() != 2800) return;//must be geo symbol
 
 	if (PG_DisaSpriteNode* node = findFirstChild<PG_DisaSpriteNode>("N_Sprite"); node && node->getSprite().isValid()) {
-		node->setColorTableOffset(static_cast<int>(m_location.getDataT<EDisaGeoColor>(PG_DisaActorModel::Identity_GeoColor)));
+		node->setColorTableOffset(static_cast<int>(m_location.getDataT<EDisaGeoColor>(PG_DisaSpriteModel::Identity_GeoColor)));
 	}
 }

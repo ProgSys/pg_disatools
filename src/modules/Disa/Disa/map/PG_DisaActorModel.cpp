@@ -1,6 +1,6 @@
 #include "PG_DisaActorModel.h"
 #include <Disa/PG_DisaMapModel.h>
-#include <Disa/PG_DisaCharactersModel.h>
+#include <cmath>
 #include <unordered_set>
 
 namespace {
@@ -18,13 +18,19 @@ EDisaFacing facingOf(float degree) {
 	return static_cast<EDisaFacing>(quarter);
 }
 
+void notifyParent(PG_DisaActorModel* self, const PG_IdentitySet& identities) {
+	if (auto* base = self->getParent<PG_ListModelBase>(); base && self->getLocation() >= 0) {
+		emit base->itemsChanged(self->getLocation(), self->getLocation(), identities);
+	}
+}
+
 } //namespace
 
 void PG_DisaActorModel::init() {
 	connect(this, &PG_DisaActorModel::parentChanged, this, [this] {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
 			connect(model->getTiles(), &PG_DisaMapTileListModel::tilesGeometryChanged, this, [this](const std::unordered_set<glm::ivec2, PG_iVec2Hasher>& tiles) {
-				if (tiles.contains(glm::ivec2(-m_data.x, m_data.z))) {
+				if (tiles.contains(getTilePosition())) {
 					updateHeight();
 				}
 			}, PG_ConnectionType_Single);
@@ -35,7 +41,7 @@ void PG_DisaActorModel::init() {
 
 float PG_DisaActorModel::calcHeight() {
 	if (auto* model = findParent<PG_DisaMapModel>(5)) {
-		if (auto location = model->getTiles()->getTileLocation(glm::ivec2(-m_data.x, m_data.z))) {
+		if (auto location = model->getTiles()->getTileLocation(getTilePosition())) {
 			return location.getDataT<float>(PG_DisaMapTileModel::Identity_TopHeight);
 		}
 	}
@@ -61,21 +67,17 @@ void PG_DisaActorModel::updateHeight() {
 }
 
 glm::ivec2 PG_DisaActorModel::getTilePosition() const {
-	return glm::ivec2(-m_data.x, m_data.z);
-}
-
-static inline void notifyParent(PG_DisaActorModel* self, const PG_IdentitySet& identities) {
-	if (auto* base = self->getParent<PG_ListModelBase>(); base && self->getLocation() >= 0) {
-		emit base->itemsChanged(self->getLocation(), self->getLocation(), identities);
-	}
+	//a position between two tiles belongs to the one it stands on, so it is floored not rounded
+	return glm::ivec2(static_cast<int>(std::floor(m_translation.x)), static_cast<int>(std::floor(m_translation.z)));
 }
 
 void PG_DisaActorModel::setTilePosition(glm::ivec2 pos) {
 	if (getTilePosition() == pos) return;
-	m_data.x = static_cast<char>(-pos.x);
-	m_data.z = static_cast<char>(pos.y);
+
+	//the height comes off the new tile, so the move has to happen before it is asked for
+	m_translation = glm::vec3(pos.x, m_translation.y, pos.y);
 	m_height = calcHeight();
-	m_translation = glm::vec3(pos.x, m_height, pos.y);
+	m_translation.y = m_height;
 
 	emit translationChanged();
 	notifyParent(this, { Identity_Translation, Identity_TileGround, Identity_FloorHeight });
@@ -83,14 +85,12 @@ void PG_DisaActorModel::setTilePosition(glm::ivec2 pos) {
 
 void PG_DisaActorModel::setObjectTranslation(const glm::vec3& value) {
 	if (m_translation == value) return;
+
+	const glm::ivec2 tile = getTilePosition();
 	m_translation = value;
 
 	PG_IdentitySet changes{ Identity_Translation };
-	//a position between two tiles belongs to the one it stands on, so it is floored not rounded
-	const glm::ivec2 tile(static_cast<int>(std::floor(value.x)), static_cast<int>(std::floor(value.z)));
 	if (getTilePosition() != tile) {
-		m_data.x = static_cast<char>(-tile.x);
-		m_data.z = static_cast<char>(tile.y);
 		m_height = calcHeight();
 		changes.insert(Identity_TileGround);
 		changes.insert(Identity_FloorHeight);
@@ -101,8 +101,8 @@ void PG_DisaActorModel::setObjectTranslation(const glm::vec3& value) {
 }
 
 void PG_DisaActorModel::setVisible(bool value) {
-	if (isVisible() == value) return;
-	m_data.visible = value ? 1 : 0;
+	if (m_visible == value) return;
+	m_visible = value;
 	emit visibleChanged();
 	notifyParent(this, { Identity_Visible });
 }
@@ -121,207 +121,13 @@ void PG_DisaActorModel::setColorMult(const glm::vec4& value) {
 	notifyParent(this, { Identity_ColorMult });
 }
 
-PG_DisaIdentifier PG_DisaActorModel::getCharacterIdentifier() const {
-	auto* model = PG_DisaCharactersModel::get();
-	if (!model) PG_DisaIdentifier();
-	return model->getCharacterIdentifier(getCharacterId());
-}
-
-void PG_DisaActorModel::setCharacterId(unsigned short id) {
-	if (getCharacterId() == id) return;
-	m_data.id = id;
-
-	emit characterIdChanged();
-	notifyParent(this, { Identity_Id });
-}
-
-void PG_DisaActorModel::setCharacterLevel(unsigned short level) {
-	if (getCharacterLevel() == level) return;
-	m_data.level = level;
-
-	emit characterLevelChanged();
-	notifyParent(this, { Identity_Level });
-}
-
-void PG_DisaActorModel::setCharacterFacing(EDisaFacing value) {
-	if (m_data.facing == value && m_rotation == static_cast<float>(value) * degreePerQuarter) return;
-	m_data.facing = value;
-	updateRotation();
-
-	emit characterFacingChanged();
-	emit rotationChanged();
-	notifyParent(this, { Identity_Facing, Identity_Rotation });
-}
-
-void PG_DisaActorModel::setCharacterAlliance(unsigned char value) {
-	if (getCharacterAlliance() == value) return;
-	m_data.alliance = value;
-
-	emit characterAllianceChanged();
-	notifyParent(this, { Identity_Alliance });
-}
-
-void PG_DisaActorModel::setCharacterAi(unsigned char value) {
-	if (getCharacterAi() == value) return;
-	m_data.ai = value;
-
-	emit characterAiChanged();
-	notifyParent(this, { Identity_Ai });
-}
-
-void PG_DisaActorModel::setCharacterWeapon(unsigned short value) {
-	if (getCharacterWeapon() == value) return;
-	m_data.items[0] = value;
-
-	emit characterWeaponChanged();
-	notifyParent(this, { Identity_Weapon });
-}
-
-void PG_DisaActorModel::setCharacterItemSlot0(unsigned short value) {
-	if (getCharacterItemSlot0() == value) return;
-	m_data.items[1] = value;
-
-	emit characterItemSlot0Changed();
-	notifyParent(this, { Identity_ItemSlot0 });
-}
-
-void PG_DisaActorModel::setCharacterItemSlot1(unsigned short value) {
-	if (getCharacterItemSlot1() == value) return;
-	m_data.items[2] = value;
-
-	emit characterItemSlot1Changed();
-	notifyParent(this, { Identity_ItemSlot1 });
-}
-
-void PG_DisaActorModel::setCharacterItemSlot2(unsigned short value) {
-	if (getCharacterItemSlot2() == value) return;
-	m_data.items[3] = value;
-
-	emit characterItemSlot2Changed();
-	notifyParent(this, { Identity_ItemSlot2 });
-}
-
-void PG_DisaActorModel::setCharacterMagicSlot0(unsigned short value) {
-	if (getCharacterMagicSlot0() == value) return;
-	m_data.magic[0] = value;
-
-	emit characterMagicSlot0Changed();
-	notifyParent(this, { Identity_MagicSlot0 });
-}
-
-void PG_DisaActorModel::setCharacterMagicSlot1(unsigned short value) {
-	if (getCharacterMagicSlot1() == value) return;
-	m_data.magic[1] = value;
-
-	emit characterMagicSlot1Changed();
-	notifyParent(this, { Identity_MagicSlot1 });
-}
-
-void PG_DisaActorModel::setCharacterMagicSlot2(unsigned short value) {
-	if (getCharacterMagicSlot2() == value) return;
-	m_data.magic[2] = value;
-
-	emit characterMagicSlot2Changed();
-	notifyParent(this, { Identity_MagicSlot2 });
-}
-
-void PG_DisaActorModel::setCharacterMagicSlot3(unsigned short value) {
-	if (getCharacterMagicSlot3() == value) return;
-	m_data.magic[3] = value;
-
-	emit characterMagicSlot3Changed();
-	notifyParent(this, { Identity_MagicSlot3 });
-}
-
-void PG_DisaActorModel::setCharacterMagicLevels(glm::u8vec4 levels) {
-	if (getCharacterMagicLevels() == levels) return;
-	std::memcpy(&m_data.magic_level[0], &levels.x, sizeof(unsigned char) * 4);
-
-	emit characterMagicLevelsChanged();
-	notifyParent(this, { Identity_MagicLevels });
-}
-
-void PG_DisaActorModel::updateStatMods() {
-	//reset stat mods
-	if (m_data.geo_effect != 0) {
-		m_data.unk[0] = 1;
-		m_data.unk[1] = 1;
-		m_data.unk[2] = 1;
-		m_data.unk[3] = 1;
-	}
-	else {
-		m_data.unk[0] = 64;
-		m_data.unk[1] = 32;
-		m_data.unk[2] = 96;
-		m_data.unk[3] = 96;
-	}
-}
-
-void PG_DisaActorModel::setGeoColor(EDisaGeoColor color) {
-	if (getGeoColor() == color) return;
-
-	m_data.geo_effect -= m_data.geo_effect % 10;
-	m_data.geo_effect += glm::clamp<unsigned short>(color, DisaGeoColor_None, DisaGeoColor_White);
-	updateStatMods();
-	setCharacterAlliance(2);
-
-	emit geoColorChanged();
-	notifyParent(this, { Identity_GeoColor });
-}
-
-
-void PG_DisaActorModel::setGeoEffect(unsigned short value) {
-	if (getGeoEffect() == value) return;
-
-	unsigned short color = m_data.geo_effect % 10;
-	m_data.geo_effect = value * 10 + color;
-	updateStatMods();
-	setCharacterAlliance(2);
-
-	emit geoEffectChanged();
-	notifyParent(this, { Identity_GeoEffect });
-}
-
-void PG_DisaActorModel::resetGeo() {
-	if (m_data.geo_effect == 0) return;
-	m_data.geo_effect = 0;
-	updateStatMods();
-
-	emit geoColorChanged();
-	emit geoEffectChanged();
-	notifyParent(this, { Identity_GeoColor, Identity_GeoEffect });
-}	
-
-void PG_DisaActorModel::fixStats() {
-	if (m_data.geo_effect != 0) {
-		m_data.unk[0] = 1;
-		m_data.unk[1] = 1;
-		m_data.unk[2] = 1;
-		m_data.unk[3] = 1;
-		m_data.alliance = 2;
-	}
-}
-
-void PG_DisaActorModel::remove() {
-	auto list = getParent<PG_DisaActorListModel>();
-	if (list) list->remove(m_location);
-}
-
-void PG_DisaActorModel::nextAnimationSegment() {
-	notifyParent(this, { Identity_Next });
-}
-
-void PG_DisaActorModel::unpauseAnimation() {
-	notifyParent(this, { Identity_Unpause });
-}
-
 void PG_DisaActorModel::setRotation(float value) {
-	const EDisaFacing facing = facingOf(value);
-	if (m_rotation == value && m_data.facing == facing) return;
+	if (m_rotation == value) return;
+
+	const EDisaFacing before = getCharacterFacing();
 	m_rotation = value;
 
-	if (m_data.facing != facing) {
-		m_data.facing = facing;
+	if (getCharacterFacing() != before) {
 		emit characterFacingChanged();
 		emit rotationChanged();
 		notifyParent(this, { Identity_Facing, Identity_Rotation });
@@ -331,49 +137,25 @@ void PG_DisaActorModel::setRotation(float value) {
 	notifyParent(this, { Identity_Rotation });
 }
 
-void PG_DisaActorModel::updateRotation() {
-	m_rotation = static_cast<float>(m_data.facing) * degreePerQuarter;
+void PG_DisaActorModel::setCharacterFacing(EDisaFacing value) {
+	setRotation(static_cast<float>(value) * degreePerQuarter);
 }
 
-void PG_DisaActorModel::updateFromData() {
-	updateRotation();
+EDisaFacing PG_DisaActorModel::getCharacterFacing() const {
+	return facingOf(m_rotation);
+}
+
+void PG_DisaActorModel::resetPlacement(glm::ivec2 tile, float rotation, bool visible) {
+	m_rotation = rotation;
+	m_visible = visible;
+	m_translation = glm::vec3(tile.x, 0.f, tile.y); //calcHeight reads the tile off the position
 	m_height = calcHeight();
-	m_translation = glm::vec3(-m_data.x, m_height, m_data.z);
+	m_translation.y = m_height;
 }
 
-void PG_DisaActorModel::setMode(EMode value) {
-	if (m_mode == value) return;
-	m_mode = value;
-	emit animationModeChanged();
-	notifyParent(this, { Identity_AnimationMode });
-}
-
-void PG_DisaActorModel::setAnimationSet(EAnimationSet value) {
-	if (m_animationSet == value) return;
-	m_animationSet = value;
-	emit animationSetChanged();
-	notifyParent(this, { Identity_AnimationSet });
-}
-
-void PG_DisaActorModel::setAnimation(int value) {
-	if (m_animation == value) return;
-	m_animation = value;
-	emit animationChanged();
-	notifyParent(this, { Identity_Animation });
-}
-
-const std::string& PG_DisaActorModel::getCharacterName() const {
-	const auto& character = PG_DisaCharactersModel::get()->getCharacterModel(getCharacterId());
-	return character.nameNormelized;
-}
-
-const std::string& PG_DisaActorModel::getCharacterTitle() const {
-	const auto& character = PG_DisaCharactersModel::get()->getCharacterModel(getCharacterId());
-	return character.titleNormelized;
-}
-
-PG_Texture PG_DisaActorModel::getCharacterPortrait() const {
-	return PG_DisaCharactersModel::get()->getPortrait(getCharacterId());
+void PG_DisaActorModel::remove() {
+	auto list = getParent<PG_DisaActorListModel>();
+	if (list) list->remove(m_location);
 }
 
 PG_Variety PG_DisaActorModel::getData(Identity identity) const {
@@ -381,51 +163,36 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 	case Identity_Translation: return m_translation;
 	case Identity_TileGround: {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
-			if (auto location = model->getTiles()->getTileLocation(glm::ivec2(-m_data.x, m_data.z))) {
+			if (auto location = model->getTiles()->getTileLocation(getTilePosition())) {
 				auto* item = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
 				auto top = item->getTop(glm::vec3(0.f, item->getTranslation().y, 0.f));
-				for (glm::vec3& v: top) v.y -= m_height;
+				for (glm::vec3& v : top) v.y -= m_height;
 				return top;
 			}
 		}
 		return std::array<glm::vec3, 4>{glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f), glm::vec3(0.f)};
 	} break;
-	case Identity_Id: return m_data.id;
-	case Identity_Rotation: return getRotation();
-	case Identity_AnimationMode: return static_cast<int>(m_mode);
-	case Identity_AnimationSet: return static_cast<int>(m_animationSet);
-	case Identity_Animation: return m_animation;
-	case Identity_Visible: return isVisible();
+	case Identity_Facing: return static_cast<char>(getCharacterFacing());
+	case Identity_Rotation: return m_rotation;
+	case Identity_Visible: return m_visible;
 	case Identity_ColorMult: return m_colorMult;
 	case Identity_Gravity: return m_gravity;
 	case Identity_FloorHeight: return m_height;
-	case Identity_Facing: return static_cast<char>(getCharacterFacing());
-	case Identity_Alliance: return getCharacterAlliance();
-	case Identity_GeoColor: return getGeoColor();
-	case Identity_GeoEffect: return getGeoEffect();
 	}
 	return PG_Variety();
 }
 
 bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 	switch (identity) {
-	case Identity_Id: {
-		if (auto id = value.convert<unsigned short>(); id != m_data.id){
-			m_data.id = id;
-			emit characterIdChanged();
+	case Identity_Translation: {
+		if (auto v = value.get<glm::vec3>(); v != m_translation) {
+			setObjectTranslation(v);
 			return true;
 		}
 	}break;
 	case Identity_Facing: {
-		if (auto v = static_cast<EDisaFacing>(glm::clamp(value.convert<char>(), (char)-1, (char)2)); v != m_data.facing) {
+		if (auto v = static_cast<EDisaFacing>(glm::clamp(value.convert<char>(), (char)-1, (char)2)); v != getCharacterFacing()) {
 			setCharacterFacing(v);
-			return true;
-		}
-	}break;
-	case Identity_Alliance: {
-		if (auto v = value.convert<unsigned char>(); v != m_data.alliance) {
-			m_data.alliance = v;
-			emit characterAllianceChanged();
 			return true;
 		}
 	}break;
@@ -435,32 +202,8 @@ bool PG_DisaActorModel::setData(const PG_Variety& value, Identity identity) {
 			return true;
 		}
 	}break;
-	case Identity_AnimationMode: {
-		if (auto v = static_cast<EMode>(value.convert<int>()); v != m_mode) {
-			setMode(v);
-			return true;
-		}
-	}break;
-	case Identity_AnimationSet: {
-		if (auto v = static_cast<EAnimationSet>(value.convert<int>()); v != m_animationSet) {
-			setAnimationSet(v);
-			return true;
-		}
-	}break;
-	case Identity_Animation: {
-		if (auto v = value.convert<int>(); v != m_animation) {
-			setAnimation(v);
-			return true;
-		}
-	}break;
-	case Identity_Translation: {
-		if (auto v = value.get<glm::vec3>(); v != m_translation) {
-			setObjectTranslation(v);
-			return true;
-		}
-	}break;
 	case Identity_Visible: {
-		if (auto v = value.convert<bool>(); v != isVisible()) {
+		if (auto v = value.convert<bool>(); v != m_visible) {
 			setVisible(v);
 			return true;
 		}

@@ -13,7 +13,7 @@
 #include <Disa/map/PG_DisaEventPanelViewNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/map/PG_DisaObjectViewNode.h>
-#include <Disa/map/PG_DisaActorViewNode.h>
+#include <Disa/map/PG_DisaActorSpriteNode.h>
 #include <Disa/PG_DisaModelNode.h>
 
 #include <resources/PG_ResourceSynchronisator.h>
@@ -211,8 +211,8 @@ void PG_DisaMapViewNode::createGeoPanels() {
 
 void PG_DisaMapViewNode::createActorView() {
 	m_actorView = PG_new<PG_FootlooseViewNode>("PG_DisaActorViewNode", this);
-	m_actorView->setItem(PG_FootlooseViewNode::getDefaultCreateFunc<PG_DisaActorViewNode>());
-	m_actorView->setItemUpdate(PG_FootlooseViewNode::getDefaultUpdateFunc<PG_DisaActorViewNode>());
+	m_actorView->setItem(PG_FootlooseViewNode::getDefaultCreateFunc<PG_DisaActorSpriteNode>());
+	m_actorView->setItemUpdate(PG_FootlooseViewNode::getDefaultUpdateFunc<PG_DisaActorSpriteNode>());
 }
 
 static inline PG_DelayPool* g_delayPool = nullptr;

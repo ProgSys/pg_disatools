@@ -32,7 +32,7 @@
 
 #include <glm/glm.hpp>
 
-class PG_DisaActorModel;
+class PG_DisaSpriteModel;
 class PG_DisaContext;
 
 /**
@@ -59,22 +59,22 @@ enum EMoveMode : int {
 * @details The game plays no animation of its own while this runs, a script that wants the actor
 * to walk sets the animation itself.
 */
-void move(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec3& target,
+void move(PG_DisaContext& context, PG_DisaSpriteModel* actor, const glm::vec3& target,
 	float durationTicks, EMoveMode mode = Move_Straight);
 
 /**
 * @brief Turns the actor to an angle.
-* @param degree Facing around y, in the space PG_DisaActorModel counts its rotation in.
+* @param degree Facing around y, in the space PG_DisaSpriteModel counts its rotation in.
 * @param durationTicks Zero sets it at once, otherwise it turns there over that many ticks.
 */
-void rotateTo(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks);
+void rotateTo(PG_DisaContext& context, PG_DisaSpriteModel* actor, float degree, float durationTicks);
 
 /**
 * @brief Turns the actor by an angle, on top of the way it already faces.
 * @param degree How far to turn around y. More than a full turn spins.
 * @param durationTicks Zero turns it at once, otherwise the turn is spread over that many ticks.
 */
-void rotateBy(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, float durationTicks);
+void rotateBy(PG_DisaContext& context, PG_DisaSpriteModel* actor, float degree, float durationTicks);
 
 /**
 * @brief Puts the actor into an animation set and keeps it busy while that set runs.
@@ -83,16 +83,16 @@ void rotateBy(PG_DisaContext& context, PG_DisaActorModel* actor, float degree, f
 * @details Only the busy state ends, the sprite itself keeps playing either way. A pose the script
 * named before is dropped, the set and the angle pick the sheet again.
 */
-void play(PG_DisaContext& context, PG_DisaActorModel* actor, int animationSet, int loops = 1);
+void play(PG_DisaContext& context, PG_DisaSpriteModel* actor, int animationSet, int loops = 1);
 
 /// Holds one named sheet, the way SetActorPose does. A negative number is the mirrored sheet.
-void pose(PG_DisaActorModel* actor, int animation);
+void pose(PG_DisaSpriteModel* actor, int animation);
 
 /**
 * @brief Tints the actor's sprite, fading there over the duration.
 * @param color One per channel, 1 leaves it as it is.
 * @param durationTicks Zero sets it at once.
 */
-void tint(PG_DisaContext& context, PG_DisaActorModel* actor, const glm::vec4& color, float durationTicks);
+void tint(PG_DisaContext& context, PG_DisaSpriteModel* actor, const glm::vec4& color, float durationTicks);
 
 } //namespace PG_DisaActorAnimations

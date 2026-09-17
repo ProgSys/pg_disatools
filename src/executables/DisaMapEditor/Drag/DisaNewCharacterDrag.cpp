@@ -10,9 +10,9 @@
 
 
 #include <Disa/PG_DisaCharactersModel.h>
-#include <Disa/map/PG_DisaActorViewNode.h>
+#include <Disa/map/PG_DisaActorSpriteNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <Disa/PG_DisaMapViewNode.h>
 #include <RootScene.h>
@@ -40,9 +40,9 @@ public:
 	PG_Variety getData(PG_Index, Identity identity) const override {
 		switch (identity)
 		{
-		case PG_DisaActorModel::Identity_Translation:
+		case PG_DisaSpriteModel::Identity_Translation:
 			return p_position;
-		case PG_DisaActorModel::Identity_TileGround:{
+		case PG_DisaSpriteModel::Identity_TileGround:{
 			if (!p_tile) return std::array<glm::vec3, 4>{glm::vec3(0.f)};
 			auto out = p_tile->getTop(glm::vec3(0.f));
 			for (glm::vec3& p : out) {
@@ -50,17 +50,17 @@ public:
 			}
 			return out;
 		}
-		case PG_DisaActorModel::Identity_Id:
+		case PG_DisaSpriteModel::Identity_Id:
 			return p_characterId;
-		case PG_DisaActorModel::Identity_Facing:
+		case PG_DisaSpriteModel::Identity_Facing:
 			return static_cast<char>(p_facing);
-		case PG_DisaActorModel::Identity_Rotation:
+		case PG_DisaSpriteModel::Identity_Rotation:
 			return p_facing * 90.f;
-		case PG_DisaActorModel::Identity_Visible:
+		case PG_DisaSpriteModel::Identity_Visible:
 			return true;
-		case PG_DisaActorModel::Identity_ColorMult:
+		case PG_DisaSpriteModel::Identity_ColorMult:
 			return glm::vec4(1.f);
-		case PG_DisaActorModel::Identity_GeoColor:
+		case PG_DisaSpriteModel::Identity_GeoColor:
 			return EDisaGeoColor::DisaGeoColor_None;
 		}
 
@@ -88,7 +88,7 @@ void DisaNewCharacterDrag::start(unsigned short characterId) {
 	PG_DisaMapScene* gameScene = render->findFirstInTree<PG_DisaMapScene>();
 	if (!gameScene) return;
 
-	if (!m_indicator) m_indicator = PG_new<PG_DisaActorViewNode>("Indicator", gameScene->getRoot());
+	if (!m_indicator) m_indicator = PG_new<PG_DisaActorSpriteNode>("Indicator", gameScene->getRoot());
 	m_indicator->setDragged(true);
 	m_indicator->setVisible(false);
 	if (!m_modelMoc) m_modelMoc = PG_new<TileMocModel>("TileMocModel", this);
@@ -197,7 +197,7 @@ void DisaNewCharacterDrag::mouseMoved(PG_MouseMotionEvent* e) {
 	}
 	
 
-	m_indicator->update(m_indicator->getLocation(), { PG_DisaActorModel::Identity_Translation , PG_DisaActorModel::Identity_TileGround });
+	m_indicator->update(m_indicator->getLocation(), { PG_DisaSpriteModel::Identity_Translation , PG_DisaSpriteModel::Identity_TileGround });
 	m_indicator->setVisible(true);
 	m_indicator->updateModelMatrix();
 }
@@ -214,16 +214,24 @@ void DisaNewCharacterDrag::released() {
 		data.x = -static_cast<unsigned char>(m_modelMoc->p_position.x);
 		data.z = static_cast<unsigned char>(m_modelMoc->p_position.z);
 
+		const glm::ivec2 tile(-data.x, data.z);
 		unsigned int level = 0;
-		for (const auto& actor : *actors) {
-			if (actor->getData().x == data.x && actor->getData().z == data.z) {
+		std::size_t counted = 0;
+		for (auto* item : *actors) {
+			//the list holds the base, only a unit can be replaced by another one
+			auto* actor = dynamic_cast<PG_DisaSpriteModel*>(item);
+			if (!actor) continue;
+
+			if (actor->getTilePosition() == tile) {
 				actor->setCharacterId(data.id);
 				reset();
 				return;
 			}
-			level += actor->getData().level;
+			level += actor->getCharacterLevel();
+			++counted;
 		}
-		level = std::round(((float)level) / std::max(actors->size(), (std::size_t)1));
+		//a new unit starts at the average level of the ones already placed
+		level = std::round(((float)level) / std::max(counted, (std::size_t)1));
 		level = std::max(level, 1u);
 
 		data.level = static_cast<unsigned short>(level);
@@ -241,14 +249,14 @@ void DisaNewCharacterDrag::released() {
 		std::memset(&data.magic_level, 0, sizeof(unsigned char) * 4);
 		std::memset(&data.unk, 0, sizeof(char) * 26);
 
-		auto model = PG_new<PG_DisaActorModel>("PG_DisaActorModel", actors);
+		auto model = PG_new<PG_DisaSpriteModel>("PG_DisaSpriteModel", actors);
 		model->setData(data);
 		actors->push_back(model);
 
 		auto* view = scene->getMapNode()->getActorView();
 		view->flush();
 		if (view->getItems().size() == actors->size()) {
-			auto item = dynamic_cast<PG_DisaActorViewNode*>(view->getItems().back());
+			auto item = dynamic_cast<PG_DisaActorSpriteNode*>(view->getItems().back());
 			item->setForce(m_indicator->getForce());
 			item->setMotion(m_indicator->getMotion());
 			auto copy = m_indicator->getChildren();

@@ -6,7 +6,7 @@
 #include <Base/Events/PG_KeyEvent.h>
 
 #include <Disa/PG_DisaMapViewNode.h>
-#include <Disa/map/PG_DisaActorViewNode.h>
+#include <Disa/map/PG_DisaActorSpriteNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/map/PG_DisaActorModel.h>
 #include <Disa/map/PG_DisaIntersection.h>
@@ -36,11 +36,11 @@ PG_DisaEditorActorController::PG_DisaEditorActorController() {
 }
 
 bool PG_DisaEditorActorController::isSelectable(const PG_EditorActorInfo& actor) const {
-	return (bool)dynamic_cast<PG_DisaActorViewNode*>(*actor);
+	return (bool)dynamic_cast<PG_DisaActorSpriteNode*>(*actor);
 }
 
 bool PG_DisaEditorActorController::isDragable(const PG_EditorActorInfo& actor) const {
-	return (bool)dynamic_cast<PG_DisaActorViewNode*>(*actor);
+	return (bool)dynamic_cast<PG_DisaActorSpriteNode*>(*actor);
 }
 
 void PG_DisaEditorActorController::createGizmo(PG_CameraNode* cam, PG_Scene* scene) const {
@@ -51,14 +51,14 @@ void PG_DisaEditorActorController::onSelectionChanged(const std::set<PG_EditorAc
 	PG_DisaActorEditSelectionHandlerNode* selectionNode = getScene()->getRoot()->findFirstInTree<PG_DisaActorEditSelectionHandlerNode>();
 
 	for (const PG_EditorActorInfo& info : deselected) {
-		auto actor = dynamic_cast<PG_DisaActorViewNode*>(info.actor.get());
+		auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(info.actor.get());
 		if (!actor) continue;
 		auto* model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 		selectionNode->setSelected(model, false);
 	}
 
 	for (const PG_EditorActorInfo& info : selected) {
-		auto actor = dynamic_cast<PG_DisaActorViewNode*>(info.actor.get());
+		auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(info.actor.get());
 		if (!actor) continue;
 		auto* model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 		selectionNode->setSelected(model, true);
@@ -69,14 +69,14 @@ void PG_DisaEditorActorController::onHoverChanged(const std::set<PG_EditorActorI
 	PG_DisaActorEditSelectionHandlerNode* selectionNode = getScene()->getRoot()->findFirstInTree<PG_DisaActorEditSelectionHandlerNode>();
 
 	for (const PG_EditorActorInfo& info : unhovered) {
-		auto actor = dynamic_cast<PG_DisaActorViewNode*>(info.actor.get());
+		auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(info.actor.get());
 		if (!actor) continue;
 		auto* model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 		selectionNode->setHovered(model, false);
 	}
 
 	for (const PG_EditorActorInfo& info : hovered) {
-		auto actor = dynamic_cast<PG_DisaActorViewNode*>(info.actor.get());
+		auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(info.actor.get());
 		if (!actor) continue;
 		auto* model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 		selectionNode->setHovered(model, true);
@@ -100,7 +100,7 @@ PG_DisaEditorActorController::Found PG_DisaEditorActorController::findObjects(PG
 		if (auto* actor = dynamic_cast<PG_ActorNode*>(obj)) {
 			if (dynamic_cast<PG_FootlooseViewNode*>(actor) && actor->getName() != "PG_DisaActorViewNode") return false;
 
-			if (auto node = dynamic_cast<PG_DisaActorViewNode*>(actor); node && node->isVisible()) {
+			if (auto node = dynamic_cast<PG_DisaActorSpriteNode*>(actor); node && node->isVisible()) {
 				if (auto intersection = extractVolume(node).intersect(ray)) {
 					out.emplace_back(intersection, actor);
 				}
@@ -124,7 +124,7 @@ PG_DisaEditorActorController::FoundItem PG_DisaEditorActorController::choose(con
 
 void PG_DisaEditorActorController::clicked(PG_EditorCameraComponent* comp, PG_MouseButtonEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam, const PG_Ray& ray) {
 	if (!comp->getHovered() || editorModule->isPicking()) return;
-	auto actor = dynamic_cast<PG_DisaActorViewNode*>(comp->getHovered().get());
+	auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(comp->getHovered().get());
 	if (!actor) return;
 	auto model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 	if (!model) return;
@@ -155,7 +155,7 @@ PG_DisaTileViewNode* PG_DisaEditorActorController::findMinTile(const PG_Scene* s
 void PG_DisaEditorActorController::drag(PG_EditorCameraComponent* comp, PG_MouseMotionEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam, const PG_Ray& ray) {
 	assert(comp);
 	if (!comp->getHovered() || editorModule->isPicking()) return;
-	auto actor = dynamic_cast<PG_DisaActorViewNode*>(comp->getHovered().get());
+	auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(comp->getHovered().get());
 	if (!actor) return;
 	auto model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 	if (!model) return;
@@ -168,7 +168,7 @@ void PG_DisaEditorActorController::drag(PG_EditorCameraComponent* comp, PG_Mouse
 
 void PG_DisaEditorActorController::release(PG_EditorCameraComponent* comp, PG_MouseButtonEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam, const PG_Ray& ray) {
 	if (!comp->getHovered() || editorModule->isPicking()) return;
-	auto actor = dynamic_cast<PG_DisaActorViewNode*>(comp->getHovered().get());
+	auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(comp->getHovered().get());
 	if (!actor) return;
 
 	if (BUTTON_BIT(e->getButton()) & PG_BUTTON_RMASK) {
@@ -188,7 +188,7 @@ void PG_DisaEditorActorController::key(PG_EditorCameraComponent* comp, PG_KeyEve
 			editorModule->clearSelection();
 
 			for (const PG_EditorActorInfo& selected : selection) {
-				auto actor = dynamic_cast<PG_DisaActorViewNode*>(*selected);
+				auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(*selected);
 				if (!actor) continue;
 				auto model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 				if (!model) return;

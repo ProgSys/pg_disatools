@@ -16,7 +16,7 @@
 #include <Script/PG_DisaActorAnimations.h>
 #include <Script/PG_DisaActorSlotModel.h>
 #include <Script/PG_DisaContext.h>
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 
 namespace {
 
@@ -381,12 +381,12 @@ std::optional<float> facingOf(int facing) {
 }
 
 /// Writes the facing of a command onto an actor, if it carries one.
-void applyFacing(PG_DisaActorModel* actor, const std::optional<float>& facing) {
+void applyFacing(PG_DisaSpriteModel* actor, const std::optional<float>& facing) {
 	if (facing) actor->setRotation(*facing);
 }
 
 /// Reads the slot of a command and hands back every actor it stands for.
-std::vector<PG_DisaActorModel*> actorsOf(PG_DisaScriptExecutor& executor, int slot) {
+std::vector<PG_DisaSpriteModel*> actorsOf(PG_DisaScriptExecutor& executor, int slot) {
 	auto out = executor.context().resolveSlots(slot);
 	if (out.empty()) {
 		OUT_WARNING("Slot " << slot << " holds no actor, the command does nothing. "
@@ -401,9 +401,9 @@ std::vector<PG_DisaActorModel*> actorsOf(PG_DisaScriptExecutor& executor, int sl
 * that holds nothing yet gets an actor right there. A fresh one stands at the map origin, which
 * is inside the floor, so it is dropped onto the ground before anything sees it.
 */
-PG_DisaActorModel* spawnIntoSlot(PG_DisaContext& context, int slot) {
+PG_DisaSpriteModel* spawnIntoSlot(PG_DisaContext& context, int slot) {
 	const bool existed = context.resolveSlot(slot) != nullptr;
-	PG_DisaActorModel* actor = context.takeSlot(slot);
+	PG_DisaSpriteModel* actor = context.takeSlot(slot);
 	if (!actor) {
 		OUT_WARNING("Slot " << slot << " can hold no actor, nothing is spawned!");
 		return nullptr;
@@ -424,7 +424,7 @@ EDisaScriptResult cmdSetActor(PG_DisaScriptExecutor& executor, std::size_t laneI
 	const int level = static_cast<int>(readUInt(bytes + 3, 2));
 	const int allegiance = bytes[5];
 
-	PG_DisaActorModel* actor = spawnIntoSlot(executor.context(), slot);
+	PG_DisaSpriteModel* actor = spawnIntoSlot(executor.context(), slot);
 	if (!actor) return EDisaScriptResult::Done;
 
 	/* 10000 and 20000 on top of the ID pull a real party or story character in, the sprite is the
@@ -518,7 +518,7 @@ EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::siz
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
 		applyFacing(actor, facing);
 		//the game puts the actor into combat numbering here, the SetAnimationModeSet after it decides
-		actor->setMode(PG_DisaActorModel::Mode_Combat);
+		actor->setMode(PG_DisaSpriteModel::Mode_Combat);
 		PG_DisaActorAnimations::play(context, actor, animationSet, 1);
 	}
 	return EDisaScriptResult::Done;
@@ -555,10 +555,10 @@ EDisaScriptResult cmdSetAnimationModeSet(PG_DisaScriptExecutor& executor, std::s
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
 	const int mode = bytes[2];
-	if (mode > PG_DisaActorModel::Mode_Cutscene) return EDisaScriptResult::Done;
+	if (mode > PG_DisaSpriteModel::Mode_Cutscene) return EDisaScriptResult::Done;
 
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
-		actor->setMode(static_cast<PG_DisaActorModel::EMode>(mode));
+		actor->setMode(static_cast<PG_DisaSpriteModel::EMode>(mode));
 	}
 	return EDisaScriptResult::Done;
 }
@@ -626,7 +626,7 @@ EDisaScriptResult cmdSetActorGravity(PG_DisaScriptExecutor& executor, std::size_
 
 	for (auto* actor : actorsOf(executor, static_cast<int>(readUInt(bytes, 2)))) {
 		//a negative value is not a gravity, it asks for the engine's own
-		actor->setGravity(percent < 0 ? PG_DisaActorModel::defaultGravity
+		actor->setGravity(percent < 0 ? PG_DisaSpriteModel::defaultGravity
 			: static_cast<float>(percent) / 100.f / PG_DisaContext::unitsPerTile);
 	}
 	return EDisaScriptResult::Done;

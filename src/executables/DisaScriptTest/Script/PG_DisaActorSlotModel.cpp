@@ -4,20 +4,20 @@
 
 #include <Util/Debug/PG_DebugOut.h>
 
-PG_DisaActorModel* PG_DisaActorSlotModel::getSlot(int slot) const {
+PG_DisaSpriteModel* PG_DisaActorSlotModel::getSlot(int slot) const {
 	auto findIt = m_slots.find(slot);
 	return findIt == m_slots.end() ? nullptr : findIt->second;
 }
 
-int PG_DisaActorSlotModel::getSlotOf(const PG_DisaActorModel* actor) const {
+int PG_DisaActorSlotModel::getSlotOf(const PG_DisaSpriteModel* actor) const {
 	auto findIt = std::ranges::find(m_slots, actor, [](const auto& pair) { return pair.second; });
 	return findIt == m_slots.end() ? -1 : findIt->first;
 }
 
-PG_DisaActorModel* PG_DisaActorSlotModel::takeSlot(int slot) {
+PG_DisaSpriteModel* PG_DisaActorSlotModel::takeSlot(int slot) {
 	if (auto* existing = getSlot(slot)) return existing;
 
-	auto* actor = PG_new<PG_DisaActorModel>("PG_DisaActorModel", this);
+	auto* actor = PG_new<PG_DisaSpriteModel>("PG_DisaSpriteModel", this);
 	actor->setData(mpdfileActor{.visible = true}); //a fresh one holds whatever was on the stack otherwise
 	push_back(actor); //takes ownership and gives it its row
 	m_slots[slot] = actor;

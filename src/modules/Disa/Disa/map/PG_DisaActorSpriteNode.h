@@ -24,7 +24,7 @@ struct PG_DisaActorMotion {
 
 /**
 * @brief Bobs a dragged sprite above where its model sits.
-* @details One of the two forces a PG_DisaActorViewNode can carry, see PG_DisaActorForce. It knows
+* @details One of the two forces a PG_DisaActorSpriteNode can carry, see PG_DisaActorForce. It knows
 * nothing about the model, the swing it drives is its own around the target.
 */
 class SwaySpring {
@@ -98,8 +98,8 @@ using PG_DisaActorForce = std::variant<SwaySpring, GravityForce>;
 * Needs a PG_DisaMapModel.
 * @see PG_DisaMapModel
 */
-class PG_DisaActorViewNode : public PG_ActorNode {
-	PG_OBJECT(PG_DisaActorViewNode);
+class PG_DisaActorSpriteNode : public PG_ActorNode {
+	PG_OBJECT(PG_DisaActorSpriteNode);
 	PG_PARENT(PG_ActorNode);
 
 	PG_PROPERTY(PG_Object* model GET getObjectModel);

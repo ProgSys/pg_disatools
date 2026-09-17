@@ -39,7 +39,7 @@
 
 #include "PG_DisaAnimationComponent.h"
 
-class PG_DisaActorModel;
+class PG_DisaSpriteModel;
 class PG_DisaActorSlotModel;
 class PG_DisaMapModel;
 
@@ -102,12 +102,12 @@ public:
 	* slots the game has (101, 151, 160 and up) need a running battle, so they find nothing.
 	* @returns null when the slot holds no actor.
 	*/
-	PG_DisaActorModel* resolveSlot(int slot) const;
+	PG_DisaSpriteModel* resolveSlot(int slot) const;
 	/// Every actor a slot stands for, which is more than one only for the group slots.
-	std::vector<PG_DisaActorModel*> resolveSlots(int slot) const;
+	std::vector<PG_DisaSpriteModel*> resolveSlots(int slot) const;
 
 	/// Makes the actor of a script slot, or hands back the one already in it. @see SetActor
-	PG_DisaActorModel* takeSlot(int slot);
+	PG_DisaSpriteModel* takeSlot(int slot);
 
 	/**
 	* @brief Position the coordinates of a slot are counted from, in tile units.
@@ -129,7 +129,7 @@ public:
 	*/
 	float getGroundHeight(const glm::vec3& position) const;
 	/// Puts the actor on the ground right away, without a fall.
-	void snapToGround(PG_DisaActorModel* actor) const;
+	void snapToGround(PG_DisaSpriteModel* actor) const;
 
 	//==== Animations ====
 
@@ -140,17 +140,17 @@ public:
 	* so whatever the first one set up to put back survives the takeover.
 	* @returns null only when there is no actor.
 	*/
-	PG_DisaAnimationComponent* takeAnimation(PG_DisaActorModel* actor,
+	PG_DisaAnimationComponent* takeAnimation(PG_DisaSpriteModel* actor,
 		PG_DisaAnimationComponent::EChannel channel, const std::string& name = "PG_DisaAnimationComponent");
 
 	/// Ends one right now, which puts back whatever it was holding. @see takeAnimation
-	void clearAnimation(PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel);
+	void clearAnimation(PG_DisaSpriteModel* actor, PG_DisaAnimationComponent::EChannel channel);
 
 	/// True while anything still moves the actor.
-	bool hasAnimation(const PG_DisaActorModel* actor) const;
-	bool hasAnimation(const PG_DisaActorModel* actor, PG_DisaAnimationComponent::EChannel channel) const;
+	bool hasAnimation(const PG_DisaSpriteModel* actor) const;
+	bool hasAnimation(const PG_DisaSpriteModel* actor, PG_DisaAnimationComponent::EChannel channel) const;
 	/// Ends every animation of that actor, or of every actor when none is given.
-	void stopAnimations(const PG_DisaActorModel* actor = nullptr);
+	void stopAnimations(const PG_DisaSpriteModel* actor = nullptr);
 
 	inline std::size_t getAnimationCount() const { return m_animations.size(); }
 
@@ -165,7 +165,7 @@ public:
 
 private:
 	/// The running animation of that actor and channel, null when there is none.
-	PG_DisaAnimationComponent* findAnimation(const PG_DisaActorModel* actor,
+	PG_DisaAnimationComponent* findAnimation(const PG_DisaSpriteModel* actor,
 		PG_DisaAnimationComponent::EChannel channel) const;
 
 	/* The game's flags live in one bit array that TALK.DAT also filters its scripts by. */

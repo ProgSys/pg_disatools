@@ -1,8 +1,8 @@
 #include "PG_DisaActorEditSelectionNode.h"
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
-#include <Disa/map/PG_DisaActorViewNode.h>
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaActorSpriteNode.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 #include <Disa/PG_DisaCharactersModel.h>
 #include <Disa/PG_DisaSpriteNode.h>
 #include <Disa/resources/PG_DisaSprite.h>
@@ -22,7 +22,9 @@ static inline PG_DisaActorEditSelectionNode* createNode(PG_DisaActorEditSelectio
 }
 
 static inline float getBaseHeight(PG_DisaActorModel* model) {
-	return model->getCharacterId() == 2800 ? 0.7 : 1.4;
+	//a geo construct stands lower than a unit, anything that is not a sprite gets the unit height
+	auto* sprite = dynamic_cast<PG_DisaSpriteModel*>(model);
+	return sprite && sprite->getCharacterId() == 2800 ? 0.7 : 1.4;
 }
 
 void PG_DisaActorEditSelectionHandlerNode::setHovered(PG_DisaActorModel* model, bool hovered) {
@@ -155,7 +157,7 @@ void PG_DisaActorEditSelectionNode::rotateTowardsCamera(float dt) {
 	if (!scene) return;
 	dt *= 0.01f;
 
-	const glm::vec3 dir = PG_DisaActorViewNode::getRotationDir(scene, getTranslationWorld());
+	const glm::vec3 dir = PG_DisaActorSpriteNode::getRotationDir(scene, getTranslationWorld());
 
 	//set animation
 	if (PG_SpriteNode* node = findFirstChild<PG_SpriteNode>("N_Sprite"); node && node->getSprite().isValid()) {

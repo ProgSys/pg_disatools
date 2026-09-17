@@ -30,7 +30,7 @@
 
 #include <unordered_map>
 
-#include <Disa/map/PG_DisaActorModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 
 /**
 * @brief The actors a script spawned, addressed by the slot the script knows them under.
@@ -57,16 +57,16 @@ public:
 	static inline bool isActorSlot(int slot) { return slot >= firstSlot && slot <= lastSlot; }
 
 	/// The actor in that slot, null when the slot is empty.
-	PG_DisaActorModel* getSlot(int slot) const;
+	PG_DisaSpriteModel* getSlot(int slot) const;
 	/// The slot an actor sits in, -1 when it is not one of ours.
-	int getSlotOf(const PG_DisaActorModel* actor) const;
+	int getSlotOf(const PG_DisaSpriteModel* actor) const;
 
 	/**
 	* @brief The actor of that slot, made when the slot is still empty.
 	* @details This is what SetActor does, a second call on a taken slot hands back the actor that
 	* is already there so the script can change it rather than stack a new one on top.
 	*/
-	PG_DisaActorModel* takeSlot(int slot);
+	PG_DisaSpriteModel* takeSlot(int slot);
 
 	/// Removes the actor of that slot, does nothing when the slot is empty.
 	void clearSlot(int slot);
@@ -76,5 +76,5 @@ public:
 private:
 	/* Slot to actor rather than slot to row: a removed row moves every row behind it up, a
 	 * pointer the list still owns does not move. */
-	std::unordered_map<int, PG_DisaActorModel*> m_slots;
+	std::unordered_map<int, PG_DisaSpriteModel*> m_slots;
 };
