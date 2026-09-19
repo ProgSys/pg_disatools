@@ -154,8 +154,8 @@ PG_DisaTileViewNode* PG_DisaEditorActorController::findMinTile(const PG_Scene* s
 
 void PG_DisaEditorActorController::drag(PG_EditorCameraComponent* comp, PG_MouseMotionEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam, const PG_Ray& ray) {
 	assert(comp);
-	if (!comp->getHovered() || editorModule->isPicking()) return;
-	auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(comp->getHovered().get());
+	if (!comp->getClicked() || editorModule->isPicking()) return;
+	auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(comp->getClicked().get());
 	if (!actor) return;
 	auto model = dynamic_cast<PG_DisaActorModel*>(actor->getObjectModel());
 	if (!model) return;
@@ -167,8 +167,8 @@ void PG_DisaEditorActorController::drag(PG_EditorCameraComponent* comp, PG_Mouse
 }
 
 void PG_DisaEditorActorController::release(PG_EditorCameraComponent* comp, PG_MouseButtonEvent* e, const PG_Scene* scene, PG_EditorModule* editorModule, PG_CameraNode* cam, const PG_Ray& ray) {
-	if (!comp->getHovered() || editorModule->isPicking()) return;
-	auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(comp->getHovered().get());
+	if (!comp->getClicked() || editorModule->isPicking()) return;
+	auto actor = dynamic_cast<PG_DisaActorSpriteNode*>(comp->getClicked().get());
 	if (!actor) return;
 
 	if (BUTTON_BIT(e->getButton()) & PG_BUTTON_RMASK) {
