@@ -647,7 +647,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
             disaTScriptManager->scriptPointer += 2;
 
             unsigned char* globalStateIt = &FP::getData<unsigned char>(aGlobalStateBits);
-            //std::cout << "Clear(" << gameStateFilter.index << ", " << gameStateFilter.bitIndex << ");" << "// is set " << !gameStateFilter.isSet(globalStateIt) << std::endl;
+            //std::cout << "Clear(" << gameStateFilter.index << ", " << gameStateFilter.bitIndex << ");" << "// is set " << !gameStateFilter.isClear(globalStateIt) << std::endl;
             gameStateFilter.clear(globalStateIt);
 
             //FP::callFastFarA(0x004bfa60, disaTScriptManager);

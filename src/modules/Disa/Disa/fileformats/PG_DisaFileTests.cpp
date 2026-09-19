@@ -184,12 +184,12 @@ bool PG_Disa::isTalkScript(PG::STREAM::In* reader) {
 	const unsigned int scriptsAgain = reader->readUnsignedInt();
 	if (scripts == 0 || scripts > 90000 || scripts != scriptsAgain) return FAILURE;
 
-	const unsigned int headerSize = sizeof(unsigned int) * 2 + scripts * sizeof(talkScriptFileInfoHeader);
+	const unsigned int headerSize = sizeof(unsigned int) * 2 + scripts * sizeof(PG_DisaTalkDatScriptEntry);
 	const unsigned int readerSize = reader->size();
 	if (headerSize >= readerSize) return FAILURE;
 
 	//the first entry has to describe a script that starts right where the header ends
-	talkScriptFileInfoHeader info;
+	PG_DisaTalkDatScriptEntry info;
 	reader->read(info);
 	if (info.startAddress != 0) return FAILURE;
 	if (info.gameStateFilterPositiveSize > 4 || info.gameStateFilterNegativeSize > 4) return FAILURE;

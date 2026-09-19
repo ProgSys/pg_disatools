@@ -41,17 +41,17 @@ int DisaScriptManager::readDisaTalkScript(unsigned char*& dataLocation, uint32_t
         //test if script fits
         if (!((scriptId == 0 || scriptId == entry.scriptId) &&
             (dungeonId == 0 || dungeonId == entry.dungeonId) &&
-            (stateFlag == 0 || stateFlag == entry.stateFlag)
+            (stateFlag == 0 || stateFlag == entry.searchFlag)
             )) return false;
 
         //Tests if flag IS set
         unsigned char* globalStateIt = &FP::getData<unsigned char>(aGlobalStateBits);
-        for (int i = 0; i < entry.gameStateFilterSizePositive; ++i) {
-            if (entry.gameStateFilterPositive[i].isSet(globalStateIt)) return false;
+        for (int i = 0; i < entry.gameStateFilterPositiveSize; ++i) {
+            if (entry.gameStateFilterPositive[i].isClear(globalStateIt)) return false;
         }
         //Tests if flag is NOT set
-        for (int i = 0; i < entry.gameStateFilterSizeNegative; ++i) {
-            if (!entry.gameStateFilterNegative[i].isSet(globalStateIt)) return false;
+        for (int i = 0; i < entry.gameStateFilterNegativeSize; ++i) {
+            if (!entry.gameStateFilterNegative[i].isClear(globalStateIt)) return false;
         }
 
         return true;

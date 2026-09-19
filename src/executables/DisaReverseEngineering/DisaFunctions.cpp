@@ -127,7 +127,7 @@ void FUN_LoadDungeonsCategories() {
         if (findDungeonDatIt == disaDungeonDatList.end() || findDungeonDatIt == nullptr) continue; //DAT entry not found
 
         if (findDungeonDatIt->filter.isEmpty()) continue; //entry is not valid
-        if (findDungeonDatIt->filter.isSet(globalStateIt)) continue; //check if entry should be displayed, based on current game state (maybe save file)
+        if (findDungeonDatIt->filter.isClear(globalStateIt)) continue; //check if entry should be displayed, based on current game state (maybe save file)
 
         unsigned short newEntryId = dungeonsListIt->getMainCategoryId();
 
@@ -2053,7 +2053,7 @@ void __stdcall FUN_004710d0() {
             if (auto findDungeonDatIt = std::ranges::find(disaDungeonDatList, currentDungeon.id, &DisaDungeonDAT::dungeonId); findDungeonDatIt != disaDungeonDatList.end()) {
 
                 if (findDungeonDatIt != disaDungeonDatList.end() && 
-                    !findDungeonDatIt->filter.isSet(globalStateIt) &&
+                    !findDungeonDatIt->filter.isClear(globalStateIt) &&
                     currentDungeon.getMainCategoryId() == (unsigned short)FP::getData<char>(0x0065db44)) {
 
                     (&FP::getData<short>(0x0088ac00))[counter++] = index; //dungeaons entries

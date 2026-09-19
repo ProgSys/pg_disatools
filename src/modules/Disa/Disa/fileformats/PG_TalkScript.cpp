@@ -34,7 +34,7 @@
 
 /// header is the script count twice, then a file table entry per script
 static inline unsigned int headerSizeOf(unsigned int numberOfScripts) {
-	return sizeof(unsigned int) * 2 + numberOfScripts * sizeof(talkScriptFileInfoHeader);
+	return sizeof(unsigned int) * 2 + numberOfScripts * sizeof(PG_DisaTalkDatScriptEntry);
 }
 
 /// a file name is whatever the user typed, so a value that isn't a number is simply not there
@@ -48,28 +48,28 @@ static inline unsigned int toUnsignedInt(const std::string& str, unsigned int fa
 	}
 }
 
-static inline void appendFilters(std::stringstream& o, char sign, const std::array<std::uint16_t, 4>& filters, unsigned int count) {
+static inline void appendFilters(std::stringstream& o, char sign, const std::array<PG_DisaGameStateFilter, 4>& filters, unsigned int count) {
 	count = std::min(count, (unsigned int)filters.size());
 	if (count == 0) return; //a filter list the game doesn't look at has no place in the name
 
 	o << sign <<"(";
 	for (unsigned int i = 0; i < count; ++i) {
 		if (i != 0) o << ',';
-		o << filters[i];
+		o << filters[i].getValue();
 	}
 	o << ")";
 }
 
-static inline void parseFilters(const std::string& list, std::array<std::uint16_t, 4>& filters, std::uint16_t& count) {
+static inline void parseFilters(const std::string& list, std::array<PG_DisaGameStateFilter, 4>& filters, std::uint16_t& count) {
 	count = 0;
 	for (const std::string& value : PG_StringUtil::split(list, ',')) {
 		if (value.empty()) continue;
 		if (count >= filters.size()) break;
-		filters[count++] = (std::uint16_t)toUnsignedInt(value);
+		filters[count++].setValue((std::uint16_t)toUnsignedInt(value));
 	}
 }
 
-std::string PG_TalkScript::buildScriptName(const talkScriptFileInfoHeader& info) {
+std::string PG_TalkScript::buildScriptName(const PG_DisaTalkDatScriptEntry& info) {
 	std::stringstream o;
 	o.fill('0');
 
@@ -90,8 +90,8 @@ std::string PG_TalkScript::buildScriptName(const talkScriptFileInfoHeader& info)
 	return o.str();
 }
 
-talkScriptFileInfoHeader PG_TalkScript::buildScriptInfo(const std::string& filename) {
-	talkScriptFileInfoHeader info{};
+PG_DisaTalkDatScriptEntry PG_TalkScript::buildScriptInfo(const std::string& filename) {
+	PG_DisaTalkDatScriptEntry info{};
 
 	const std::string name = PG_File(filename).getName();
 	if (name.empty()) return info;
@@ -126,9 +126,9 @@ talkScriptFileInfoHeader PG_TalkScript::buildScriptInfo(const std::string& filen
 	return info;
 }
 
-talkScriptFileInfoHeader PG_TalkScript::getScriptInfo(const PG_DisaFileEntry& entry) {
-	if (const PG_Variety& extraData = entry.getExtraData(); extraData.is<talkScriptFileInfoHeader>()) {
-		return extraData.get<talkScriptFileInfoHeader>();
+PG_DisaTalkDatScriptEntry PG_TalkScript::getScriptInfo(const PG_DisaFileEntry& entry) {
+	if (const PG_Variety& extraData = entry.getExtraData(); extraData.is<PG_DisaTalkDatScriptEntry>()) {
+		return extraData.get<PG_DisaTalkDatScriptEntry>();
 	}
 	//a entry added outside of this container has no file table entry yet, its name is all there is to go on
 	return buildScriptInfo(entry.getInfo().getName().getFile());
@@ -148,13 +148,13 @@ bool PG_TalkScript::open(std::shared_ptr<PG::STREAM::In> reader, const std::func
 	FILE_CONTAINER_ERROR_TEST(headerSize >= fileSize, "Header is bigger then the file itself! (" << headerSize << " >= " << fileSize << ")");
 	const unsigned int dataSize = fileSize - headerSize;
 
-	std::vector<talkScriptFileInfoHeader> fileTable;
+	std::vector<PG_DisaTalkDatScriptEntry> fileTable;
 	reader->read(fileTable, numberOfScripts);
 
 	//a script stores no length, so it reaches until the next script starts
 	std::vector<unsigned int> bounds;
 	bounds.reserve(numberOfScripts);
-	for (const talkScriptFileInfoHeader& scriptInfo : fileTable) bounds.push_back(scriptInfo.startAddress);
+	for (const PG_DisaTalkDatScriptEntry& scriptInfo : fileTable) bounds.push_back(scriptInfo.startAddress);
 	std::ranges::sort(bounds);
 	bounds.erase(std::unique(bounds.begin(), bounds.end()), bounds.end());
 
@@ -162,7 +162,7 @@ bool PG_TalkScript::open(std::shared_ptr<PG::STREAM::In> reader, const std::func
 	contains.reserve(numberOfScripts);
 	std::unordered_set<std::string> usedNames; //two scripts the game can't tell apart get the same name
 
-	for (const talkScriptFileInfoHeader& scriptInfo : fileTable) {
+	for (const PG_DisaTalkDatScriptEntry& scriptInfo : fileTable) {
 		FILE_CONTAINER_ERROR_TEST(scriptInfo.startAddress >= dataSize, "A script is outside the range (" << scriptInfo.startAddress << " >= " << dataSize << ")!");
 		FILE_CONTAINER_ERROR_TEST(scriptInfo.gameStateFilterPositiveSize > 4 || scriptInfo.gameStateFilterNegativeSize > 4,
 			"A script has more game state filters then there is room for (" << scriptInfo.gameStateFilterPositiveSize << ", " << scriptInfo.gameStateFilterNegativeSize << ")!");
@@ -204,7 +204,7 @@ bool PG_TalkScript::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 
 	//write a empty file table, the addresses are only known once the data is written
 	const unsigned int startFileTable = writer->pos();
-	std::vector<talkScriptFileInfoHeader> fileTable(size());
+	std::vector<PG_DisaTalkDatScriptEntry> fileTable(size());
 	writer->writeData(fileTable);
 
 	const unsigned int dataStart = writer->pos(); //addresses are relative to the end of the header
@@ -212,7 +212,7 @@ bool PG_TalkScript::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 	std::vector<char> data;
 	auto fileTableIt = fileTable.begin();
 	for (const PG_DisaFileEntry& entry : *this) {
-		talkScriptFileInfoHeader scriptInfo = getScriptInfo(entry);
+		PG_DisaTalkDatScriptEntry scriptInfo = getScriptInfo(entry);
 		scriptInfo.startAddress = writer->pos() - dataStart; //where the script ends up now
 		scriptInfo.gameStateFilterPositiveSize = std::min<std::uint16_t>(scriptInfo.gameStateFilterPositiveSize, 4);
 		scriptInfo.gameStateFilterNegativeSize = std::min<std::uint16_t>(scriptInfo.gameStateFilterNegativeSize, 4);

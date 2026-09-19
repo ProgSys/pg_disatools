@@ -1,40 +1,7 @@
 #pragma once
 
 #include <Disa/dataStructs/PG_DisaStats.h>
-#include <FunctionPatcher.h>
-
-//the first 3 bits is the mask the others are the index
-struct PG_DisaGameStateFilter {
-	unsigned short bitIndex : 3; //the bit that should be tested
-	unsigned short index : 13; //the index of a gamestate at 0x00619330
-	inline unsigned short getIndex() const noexcept { return index; }
-	inline unsigned char getMask() const noexcept { return 1 << bitIndex; }
-
-	inline bool isSet(unsigned char* globalStateIt) const {
-		return ((globalStateIt)[getIndex()] & getMask()) == 0;
-	}
-
-	inline void set(unsigned char* globalStateIt) const {
-		(globalStateIt)[getIndex()] = (globalStateIt)[getIndex()] | getMask();
-	}
-
-	inline void clear(unsigned char* globalStateIt) const {
-		(globalStateIt)[getIndex()] = (globalStateIt)[getIndex()] & ~getMask();
-	}
-
-	inline bool isEmpty() const { return bitIndex == 0 && index == 0; }
-};
-
-struct PG_DisaTalkDatScriptEntry {
-	unsigned int address; //0
-	unsigned int scriptId; //4
-	unsigned short dungeonId; //8
-	unsigned short stateFlag; //10
-	unsigned short gameStateFilterSizePositive; //12
-	unsigned short gameStateFilterSizeNegative; //14-16
-	std::array<PG_DisaGameStateFilter, 4> gameStateFilterPositive; // 16-18-20-22-24
-	std::array<PG_DisaGameStateFilter, 4> gameStateFilterNegative;// 24-26-28-30-32
-};
+#include <Disa/dataStructs/PG_DisaTalkDatStructs.h>
 
 struct PG_DisaScriptMemory;
 

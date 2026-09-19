@@ -94,18 +94,18 @@ void DisaCustomTranslationManager::createBaseTranslation() {
 		const PG_DisaTalkDatScriptEntry* endIt = startIt + scriptManager.sizeTalkScripts;
 		int i = 0;
 		for (const PG_DisaTalkDatScriptEntry& entry : std::ranges::subrange(startIt, endIt)) {
-			unsigned char* code = scriptManager.scriptsData + entry.address;
+			unsigned char* code = scriptManager.scriptsData + entry.startAddress;
 			PG::STREAM::InByteArray reader((const char*)code, 500000);
 			try {
 				auto strs = PG_DisaTalkScript::findStrings(&reader);
 				for (const auto& str : strs) {
 					auto hash = PG_MD5::get(str);
 					if (!dublicateFilter.insert(hash).second) continue;
-					writer << hash<<";;" << shiftJisToString(str) <<";Talk Script "<< std::to_string(i) <<" (" << std::to_string(entry.scriptId) << ", " << std::to_string(entry.dungeonId) << ", " << std::to_string(entry.stateFlag) << "); \n";
+					writer << hash<<";;" << shiftJisToString(str) <<";Talk Script "<< std::to_string(i) <<" (" << std::to_string(entry.scriptId) << ", " << std::to_string(entry.dungeonId) << ", " << std::to_string(entry.searchFlag) << "); \n";
 				}
 			}
 			catch (const PG_CompileException& ex) {
-				OUT_ERROR("Failed to decompile talk script "<<std::dec<< i <<": (" << (int)entry.scriptId << ", " << (int)entry.dungeonId << ", " << (int)entry.stateFlag << ") Reason: " << ex.what() << " At: "<<ex.getLine());
+				OUT_ERROR("Failed to decompile talk script "<<std::dec<< i <<": (" << (int)entry.scriptId << ", " << (int)entry.dungeonId << ", " << (int)entry.searchFlag << ") Reason: " << ex.what() << " At: "<<ex.getLine());
 			}
 			++i;
 		}

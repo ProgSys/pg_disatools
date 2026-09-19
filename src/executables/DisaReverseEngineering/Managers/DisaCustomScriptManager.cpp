@@ -20,12 +20,12 @@ int DisaCustomScriptManager::readTalkScript(unsigned char*& dataLocation, unsign
         {
         case 1: {
             return PG_DisaScriptsModel::readTalkScript(dataLocation, getScriptName(scripts,
-                filterPlayStory.isSet(globalStateIt) ? &DisaCustomCampaignManager::TalkScripts::intro : &DisaCustomCampaignManager::TalkScripts::introSkipStory,
+                filterPlayStory.isClear(globalStateIt) ? &DisaCustomCampaignManager::TalkScripts::intro : &DisaCustomCampaignManager::TalkScripts::introSkipStory,
                 "base::genericDungeonIntro"));
         }break;
         case 2: {
             return PG_DisaScriptsModel::readTalkScript(dataLocation, getScriptName(scripts,
-                filterPlayStory.isSet(globalStateIt) ? &DisaCustomCampaignManager::TalkScripts::exit : &DisaCustomCampaignManager::TalkScripts::exitSkipStory,
+                filterPlayStory.isClear(globalStateIt) ? &DisaCustomCampaignManager::TalkScripts::exit : &DisaCustomCampaignManager::TalkScripts::exitSkipStory,
                 "base::genericDungeonExit"));
         }break;
         default: return -1;

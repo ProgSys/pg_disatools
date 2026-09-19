@@ -1185,7 +1185,7 @@ PG_DisaFileEntry PG_DisaScriptExecutor::findTalkScript(const PG_DisaIdentifier& 
 	const unsigned int searchFlag = ids.size() >= 3 ? ids[2] : 0;
 
 	for (const PG_DisaFileEntry& entry : *m_talkScripts) {
-		const talkScriptFileInfoHeader info = PG_TalkScript::getScriptInfo(entry);
+		const PG_DisaTalkDatScriptEntry info = PG_TalkScript::getScriptInfo(entry);
 		if (scriptId && info.scriptId != scriptId) continue;
 		if (dungeonId && info.dungeonId != dungeonId) continue;
 		if (searchFlag && info.searchFlag != searchFlag) continue;
@@ -1194,7 +1194,7 @@ PG_DisaFileEntry PG_DisaScriptExecutor::findTalkScript(const PG_DisaIdentifier& 
 		 * negative one a clear bit, which is what sorts the story variants of a scene. */
 		const std::size_t positives = std::min<std::size_t>(info.gameStateFilterPositiveSize, info.gameStateFilterPositive.size());
 		const std::size_t negatives = std::min<std::size_t>(info.gameStateFilterNegativeSize, info.gameStateFilterNegative.size());
-		const auto isSet = [c = &context()](std::uint16_t bit) { return c->getGameFlag(bit); };
+		const auto isSet = [c = &context()](const PG_DisaGameStateFilter& filter) { return c->getGameFlag(filter.getValue()); };
 
 		if (!std::all_of(info.gameStateFilterPositive.begin(), info.gameStateFilterPositive.begin() + positives, isSet)) continue;
 		if (std::any_of(info.gameStateFilterNegative.begin(), info.gameStateFilterNegative.begin() + negatives, isSet)) continue;
