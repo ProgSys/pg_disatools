@@ -56,6 +56,9 @@ namespace PG_Disa {
     bool isTX2(const PG_File& file);
     bool isTX2(PG::STREAM::In* reader);
 
+    bool isGeo(const PG_File& file); //model with its textures
+    bool isGeo(PG::STREAM::In* reader); //model with its textures
+
     bool isNISPACK(const PG_File& file);
     bool isNISPACK(PG::STREAM::In* reader);
 

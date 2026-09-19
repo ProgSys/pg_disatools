@@ -102,7 +102,8 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
 
     using TestFunc = bool(*)(PG::STREAM::In* reader);
     using PairType = std::pair<Type, TestFunc>;
-    constexpr static std::array<std::pair<Type, TestFunc>, 9> tests = {
+    //the first test that passes wins, so a loose one goes after the tests it could take a file from
+    constexpr static std::array<std::pair<Type, TestFunc>, 10> tests = {
         PairType{Type::PSPFS_V1, &PG_Disa::isPSPFS},
         PairType{Type::IMY, &PG_Disa::isIMY},
         PairType{Type::COLA, &PG_Disa::isIMYPackage},
@@ -110,6 +111,7 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
         PairType{Type::SCRIPT, &PG_Disa::isScript},
         PairType{Type::TALK_SCRIPT, &PG_Disa::isTalkScript},
         PairType{Type::TX2, &PG_Disa::isTX2},
+        PairType{Type::GEO, &PG_Disa::isGeo},
         PairType{Type::OLA, &PG_Disa::isOLA},
         PairType{Type::SH, &PG_Disa::isSH},
     };

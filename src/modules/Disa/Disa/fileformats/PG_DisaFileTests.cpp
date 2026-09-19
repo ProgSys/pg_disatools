@@ -26,6 +26,7 @@
 #include <Stream/PG_StreamInByteFile.h>
 #include <Util/Typedefs.h>
 #include <Disa/fileformats/PG_TX2.h>
+#include <Disa/fileformats/PG_GEO.h>
 #include <Disa/fileformats/PG_SH.h>
 #include <Disa/fileformats/PG_TalkScript.h>
 
@@ -247,6 +248,61 @@ bool PG_Disa::isTX2(PG::STREAM::In* reader) {
 	return SUCCESS;
 }
 
+
+bool PG_Disa::isGeo(const PG_File& file) {
+	return openFile(file, isGeo);
+}
+
+bool PG_Disa::isGeo(PG::STREAM::In* reader) {
+	const long long fileStart = reader->pos();
+	const long long fileSize = (long long)reader->size() - fileStart;
+	if (fileSize < (long long)(sizeof(geofileHeader) + 32)) return FAILURE;
+
+	geofileHeader header;
+	reader->read(header);
+
+	//the counts PG_GEO::open holds a file to, so what passes here is what it can go on to read
+	if (header.number_of_transformations < 1 || header.number_of_transformations > 1024) return FAILURE;
+	if (header.number_of_keyframes < 0 || header.number_of_keyframes > 1024) return FAILURE;
+	if (header.number_of_nodes < 1 || header.number_of_nodes > 512) return FAILURE;
+	if (header.number_of_meshes < 1 || header.number_of_meshes > 100) return FAILURE;
+
+	/* The three tables sit between the header and the first mesh, so their sizes have to add up to no
+	 * more than where that mesh says it begins. Four counts agreeing with an offset and with the file
+	 * size is what makes this a test rather than a guess, the format carries no magic number. */
+	const long long nodesStart = sizeof(geofileHeader)
+		+ (long long)header.number_of_transformations * sizeof(geofileTransformation)
+		+ (long long)header.number_of_keyframes * sizeof(geofileKeyframe);
+	const long long tablesEnd = nodesStart + (long long)header.number_of_nodes * sizeof(geofileTreeNode);
+
+	const long long firstMesh = header.offset_to_first_mesh;
+	if (firstMesh < tablesEnd || firstMesh >= fileSize) return FAILURE;
+
+	/* The nodes are a tree over those tables, so every index one holds has to land inside what the
+	 * header counted. The offsets above put the whole table inside the file, so this reads no further
+	 * than the first mesh.
+	 * @see PG_DisaModel::parse for what each of these is read as */
+	std::vector<geofileTreeNode> nodes;
+	reader->seek((unsigned int)(fileStart + nodesStart));
+	reader->read(nodes, header.number_of_nodes);
+
+	bool hasRoot = false;
+	for (const geofileTreeNode& node : nodes) {
+		if (node.parent_index > header.number_of_nodes) return FAILURE;
+		hasRoot |= node.parent_index < 1; //parent_index is one based, so anything below 1 is a root
+		if (node.model_index >= header.number_of_meshes) return FAILURE;
+
+		//an index is only read where there is a count to read it with, so only then does it have to be one
+		if (node.number_of_transformations > 0 && (node.transformation_index < 0
+			|| node.transformation_index + node.number_of_transformations > header.number_of_transformations))
+			return FAILURE;
+		if (node.number_of_keyframes > 0 && (node.keyframe_index < 0
+			|| node.keyframe_index + node.number_of_keyframes > header.number_of_keyframes))
+			return FAILURE;
+	}
+
+	return hasRoot; //a tree with nothing to hang off is not one
+}
 
 bool PG_Disa::isNISPACK(const PG_File& file) {
 	return openFile(file, isNISPACK);
