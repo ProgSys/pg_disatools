@@ -39,6 +39,7 @@ void PG_DisaFileInfo::setType(const std::string& extention) {
 	else if (extention == "png") setType(PNG);
 	else if (extention == "tx2") setType(TX2);
 	else if (extention == "geo") setType(GEO);
+	else if (extention == "km3") setType(KM3);
 	else if (extention == "ogg") setType(OGG);
 	else if (extention == "tscript") setType(TALK_SCRIPT);
 	else if (extention == "script") setType(SCRIPT);
@@ -52,6 +53,7 @@ std::string_view PG_DisaFileInfo::toString(Type type) {
     case OLA: return "OLA";
     case COLA: return "COLA";
     case SOLA: return "SOLA";
+    case KM3: return "KM3";
     case TX2: return "TX2";
     case IMY: return "IMY";
     case MPD: return "MPD";
@@ -76,6 +78,7 @@ std::string_view PG_DisaFileInfo::toFileExtension(Type type) {
         case OLA: return "OLA";
         case COLA: return "COLA";
         case SOLA: return "SOLA";
+        case KM3: return "KM3";
         case TX2: return "TX2";
         case IMY: return "IMY";
         case MPD: return "MPD";
@@ -103,7 +106,7 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
     using TestFunc = bool(*)(PG::STREAM::In* reader);
     using PairType = std::pair<Type, TestFunc>;
     //the first test that passes wins, so a loose one goes after the tests it could take a file from
-    constexpr static std::array<std::pair<Type, TestFunc>, 10> tests = {
+    constexpr static std::array<std::pair<Type, TestFunc>, 11> tests = {
         PairType{Type::PSPFS_V1, &PG_Disa::isPSPFS},
         PairType{Type::IMY, &PG_Disa::isIMY},
         PairType{Type::COLA, &PG_Disa::isIMYPackage},
@@ -112,6 +115,7 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
         PairType{Type::TALK_SCRIPT, &PG_Disa::isTalkScript},
         PairType{Type::TX2, &PG_Disa::isTX2},
         PairType{Type::GEO, &PG_Disa::isGeo},
+        PairType{Type::KM3, &PG_Disa::isKM3}, //must go before OLA, its size table also passes as an offset table
         PairType{Type::OLA, &PG_Disa::isOLA},
         PairType{Type::SH, &PG_Disa::isSH},
     };

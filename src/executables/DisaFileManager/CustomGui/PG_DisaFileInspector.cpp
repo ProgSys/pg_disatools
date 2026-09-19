@@ -441,7 +441,8 @@ void PG_DisaFileInspector::updateAction() {
 		return;
 	}
 	case PG_DisaFileInfo::OLA: {
-	case PG_DisaFileInfo::SOLA: 
+	case PG_DisaFileInfo::SOLA:
+	case PG_DisaFileInfo::KM3:
 	case PG_DisaFileInfo::SCRIPT:
 	case PG_DisaFileInfo::TALK_SCRIPT:
 	case PG_DisaFileInfo::MPP: 

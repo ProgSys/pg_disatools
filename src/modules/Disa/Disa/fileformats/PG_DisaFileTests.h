@@ -44,6 +44,9 @@ namespace PG_Disa {
     bool isSOLA(const PG_File& file); //Sprite Offset List Archive
     bool isSOLA(PG::STREAM::In* reader); //Sprite Offset List Archive
 
+    bool isKM3(const PG_File& file); //Effect model archive
+    bool isKM3(PG::STREAM::In* reader); //Effect model archive
+
     bool isScript(const PG_File& file);
     bool isScript(PG::STREAM::In* reader);
 

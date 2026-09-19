@@ -53,6 +53,7 @@ public:
         OLA,  /// Offset list archive
         COLA, /// Compressed offset list archive
         SOLA, /// Sprite sheets offset list archive (it also has a list of IDs)
+        KM3,  /// Effect model archive, stores entry sizes instead of offsets (it also has a list of IDs)
         TX2,
         IMY,
         MPD,
@@ -114,7 +115,7 @@ public:
 
     inline bool isCompressed() const { return isCompressedType() || (m_decompressedSize != 0 && m_decompressedSize != m_size); }
     inline bool isCompressedType() const { return m_type == IMY || m_type == COLA; }
-    inline bool isPackageType() const { return m_type == OLA || m_type == PSPFS_V1 || m_type == COLA || m_type == SOLA; }
+    inline bool isPackageType() const { return m_type == OLA || m_type == PSPFS_V1 || m_type == COLA || m_type == SOLA || m_type == KM3; }
     inline bool isTextureType() const { return m_type == TX2; }
 private:
     PG_File m_name;

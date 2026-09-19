@@ -3,6 +3,7 @@
 std::string_view PG_DisaFileIcon::get(PG_DisaFileInfo::Type type) {
 	switch (type) {
 	case PG_DisaFileInfo::SOLA:
+	case PG_DisaFileInfo::KM3:
 	case PG_DisaFileInfo::OLA: return "gui/icon_folder.svg";
 	case PG_DisaFileInfo::COLA: 
 	case PG_DisaFileInfo::PSPFS_V1:

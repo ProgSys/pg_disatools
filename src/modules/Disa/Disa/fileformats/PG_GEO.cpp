@@ -1021,10 +1021,11 @@ void PG_GEO::computeAddresses() {
 		model.header.size_of_triangles = model.vertices.size() * sizeof(glm::vec3);
 		model.header.number_of_textures = model.textures.size();
 
+		//surfaces with index 0 carry no uvs, so there can be fewer uvs than corners. save() writes model.uv, so reserve exactly that
 		fillSize = sizeof(geofileMeshHeader)
 			+ sizeof(geofileSurface) * model.header.number_of_surfaces
 			+ sizeof(glm::vec3) * model.header.number_of_triangles * 3
-			+ sizeof(glm::vec2) * model.header.number_of_triangles * 3;
+			+ sizeof(glm::vec2) * model.uv.size();
 		if (model.header.isNew) {
 			fillSize += sizeof(glm::vec3) * model.header.number_of_triangles * 3 * 2; //tangent and  bitangent
 		}

@@ -27,6 +27,7 @@
 #include <Util/Typedefs.h>
 #include <Disa/fileformats/PG_TX2.h>
 #include <Disa/fileformats/PG_GEO.h>
+#include <Disa/fileformats/PG_KM3.h>
 #include <Disa/fileformats/PG_SH.h>
 #include <Disa/fileformats/PG_TalkScript.h>
 
@@ -112,6 +113,29 @@ bool PG_Disa::isSOLA(PG::STREAM::In* reader) {
 	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
 
 	return SUCCESS;
+}
+
+bool PG_Disa::isKM3(const PG_File& file) {
+	return openFile(file, isKM3);
+}
+bool PG_Disa::isKM3(PG::STREAM::In* reader) {
+	const unsigned int readerSize = reader->size();
+	const unsigned int numberOfFiles = reader->readUnsignedInt();
+	if (numberOfFiles == 0 || numberOfFiles > 9000) return FAILURE;
+
+	const unsigned int headerSize = reader->readUnsignedInt();
+	if (headerSize != PG_KM3::computeHeaderSize(numberOfFiles) || headerSize >= readerSize) return FAILURE;
+
+	//the entry sizes have to add up to exactly the rest of the file, that is what separates it from an OLA
+	std::vector<unsigned int> sizes;
+	reader->read(sizes, numberOfFiles);
+	unsigned int total = headerSize;
+	for (unsigned int entrySize : sizes) {
+		if (entrySize == 0 || total > readerSize - entrySize) return FAILURE;
+		total += entrySize;
+	}
+
+	return total == readerSize;
 }
 
 bool PG_Disa::isScript(const PG_File& file) {
