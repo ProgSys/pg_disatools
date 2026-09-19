@@ -1,4 +1,8 @@
 #include "PG_DisaCamera.h"
+
+#include <algorithm>
+#include <cmath>
+
 #include <glm/gtx/rotate_vector.hpp>
 #include <Base/Events/PG_MouseMotionEvent.h>
 #include <Base/Events/PG_MouseWheelEvent.h>
@@ -22,8 +26,6 @@ const std::string g_forwardOrbitAni = "setForwardOrbitAni";
 void PG_DisaCamera::init() {
 	PG_FlyCameraNode::init();
 	setFov(0.1f);
-	setFar(300.f); //@todo will need to be set by zoom
-	setNear(10.f); //@todo will need to be set by zoom
 
 	const glm::vec3 startPosition(25.554f, 31.5181f, -22.3441f);
 	m_orbitForward = glm::normalize(glm::vec3(-1.f, -0.8f, 1.f));
@@ -111,6 +113,18 @@ void PG_DisaCamera::setCameraOrbit(float degree, float time) {
 	setForwardOrbit(glm::rotate(m_orbitForward, glm::radians(degree - getCameraOrbit()), getUpVector()), time, getUpVector());
 }
 
+float PG_DisaCamera::getOrbitPitch() const {
+	return glm::degrees(std::asin(glm::clamp(m_orbitForward.y, -1.f, 1.f)));
+}
+
+void PG_DisaCamera::setOrbitAngles(float pitchDegree, float orbitDegree) {
+	constexpr float maxPitch = 89.f;
+	const float pitch = glm::radians(glm::clamp(pitchDegree, -maxPitch, maxPitch));
+	const float orbit = glm::radians(orbitDegree);
+	const float ground = std::cos(pitch);
+	setForwardOrbit(glm::vec3(ground * std::cos(orbit), std::sin(pitch), -ground * std::sin(orbit)));
+}
+
 glm::vec3 PG_DisaCamera::getGroundForward() const {
 	return glm::normalize(PG_Math::setY(m_orbitForward, 0.f));
 }
@@ -122,6 +136,10 @@ float PG_DisaCamera::getMoveScale() const {
 void PG_DisaCamera::updateOrbitTransformation() {
 	setForward(m_orbitForward);
 	setTranslation(m_orbitPoint - m_orbitForward * m_orbitDistance);
+
+	//the depth range follows the zoom, so a close up does not clip and a far shot still reaches the map
+	setNear(std::max(0.1f, m_orbitDistance * 0.1f));
+	setFar(m_orbitDistance * 4.f + 100.f);
 }
 
 void PG_DisaCamera::startOrbitAnimation(const std::string& name, float time, std::function<void(float)> apply) {

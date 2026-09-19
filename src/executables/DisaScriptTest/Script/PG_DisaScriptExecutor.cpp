@@ -13,7 +13,9 @@
 #include <Disa/fileformats/PG_Script.h>
 #include <Disa/fileformats/PG_TalkScript.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Scene/PG_DisaCamera.h>
 #include <Script/PG_DisaActorAnimations.h>
+#include <Script/PG_DisaCameraAnimations.h>
 #include <Script/PG_DisaContext.h>
 #include <Disa/map/PG_DisaSpriteModel.h>
 
@@ -623,6 +625,118 @@ EDisaScriptResult cmdSetMultRGBA(PG_DisaScriptExecutor& executor, std::size_t la
 	return EDisaScriptResult::Done;
 }
 
+//==== Camera ====
+
+EDisaScriptResult cmdLockUser(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	//the game swallows every key while this is set, and the camera is all the input we have
+	if (auto* camera = executor.context().getGameCamera()) camera->setEnabled(false);
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdUnlockUser(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	if (auto* camera = executor.context().getGameCamera()) camera->setEnabled(true);
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetCameraMode(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 1) {
+		printCommand(executor, laneIndex, data);
+		return EDisaScriptResult::Done;
+	}
+
+	/* Only "follows nothing" means anything here. The other three hang the look at point on the map
+	 * cursor or on a unit of a running battle, and we have neither. */
+	const auto mode = static_cast<PG_DisaContext::ECameraMode>(*static_cast<const unsigned char*>(data));
+	printCommand(executor, laneIndex, data, mode == PG_DisaContext::Camera_Free
+		? "the script steers the camera" : "nothing to follow yet, the camera stays where it is");
+	executor.context().setCameraMode(mode);
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetCameraZoom(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const float duration = static_cast<float>(readUInt(bytes, 2));
+	const int distance = readInt(bytes + 2, 2);
+
+	//a distance of zero asks for the game's own, which the player toggles between 800 and 1200
+	constexpr float defaultDistance = 800.f;
+	const float tiles = (distance > 0 ? static_cast<float>(distance) : defaultDistance)
+		/ PG_DisaContext::worldUnitsPerTile;
+	PG_DisaCameraAnimations::zoomTo(executor.context(), tiles, duration);
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSpinCamera(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 8) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const float duration = static_cast<float>(readUInt(bytes, 2));
+	const float pitch = static_cast<float>(readInt(bytes + 2, 2));
+	const float yaw = static_cast<float>(readInt(bytes + 4, 2));
+
+	/* Despite the name the game writes no speed: it spreads the angles over the duration and stops,
+	 * so this turns by them. The roll is zero in every retail script and the camera has none. */
+	PG_DisaCameraAnimations::rotateBy(executor.context(), pitch, -yaw, duration);
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetCameraView(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const float duration = static_cast<float>(readUInt(bytes, 2));
+	const unsigned int raw = readUInt(bytes + 2, 2);
+
+	//the command scales by a sixteenth, and zero asks for the default lens
+	const float value = static_cast<float>(raw) / 16.f;
+	PG_DisaCameraAnimations::viewTo(executor.context(), PG_DisaCameraAnimations::fovOfViewValue(value), duration);
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetCameraPos(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 10) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const int parent = static_cast<int>(readUInt(bytes, 2));
+	const glm::vec3 offset(readInt(bytes + 2, 2), readInt(bytes + 4, 2), readInt(bytes + 6, 2));
+	const float duration = static_cast<float>(readUInt(bytes + 8, 2));
+
+	//the game resolves the parent through the same code SetActorPos uses, so the units match
+	PG_DisaContext& context = executor.context();
+	const glm::vec3 target = context.getSlotOrigin(parent, slotsOf(executor, laneIndex))
+		+ PG_DisaContext::toTileUnits(offset);
+	PG_DisaCameraAnimations::moveTo(context, target, duration);
+	return EDisaScriptResult::Done;
+}
+
+EDisaScriptResult cmdSetCameraRotation(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+	printCommand(executor, laneIndex, data);
+	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
+	if (currentCommandOf(lane).dataSize < 8) return EDisaScriptResult::Done;
+
+	const unsigned char* bytes = static_cast<const unsigned char*>(data);
+	const float duration = static_cast<float>(readUInt(bytes, 2));
+	const float pitch = static_cast<float>(readInt(bytes + 2, 2));
+	const float yaw = static_cast<float>(readInt(bytes + 4, 2));
+
+	PG_DisaCameraAnimations::rotateTo(executor.context(), pitch,
+		PG_DisaCameraAnimations::orbitOfGameYaw(yaw), duration);
+	return EDisaScriptResult::Done;
+}
+
 EDisaScriptResult cmdSetActorGravity(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	printCommand(executor, laneIndex, data);
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
@@ -821,8 +935,8 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x02, "Return", "", &cmdReturn);
 		set(0x03, "RepeatStart", "start:-2,end:-2", &cmdRepeatStart);
 		set(0x04, "RepeatEnd", "", &cmdRepeatEnd);
-		set(0x05, "LockUser");
-		set(0x06, "UnlockUser");
+		set(0x05, "LockUser", "", &cmdLockUser);
+		set(0x06, "UnlockUser", "", &cmdUnlockUser);
 		set(0x07, "If", "", &cmdIf);
 		set(0x08, "SetFlag", "flagType:1,flag:2,mode:1,valueType:1,value:2", &cmdSetFlag);
 		set(0x09, "Nop");
@@ -841,13 +955,13 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x23, "ClearActorData", "slot:2");
 		set(0x24, "SetRenderGroup", "group:2,duration:2,r:1,g:1,b:1,a:1,rotX:-2,rotY:-2,rotZ:-2");
 		set(0x27, "SetCursorPos", "parent:2,x:-2,z:-2,duration:2");
-		set(0x28, "SetCameraMode", "mode:1");
-		set(0x29, "SetCameraZoom", "duration:2,distance:-2");
-		set(0x2A, "SpinCamera", "duration:2,rotX:-2,rotY:-2,rotZ:-2");
-		set(0x2B, "SetCameraView", "duration:2,value:2");
-		set(0x2C, "SetCameraPos", "parent:2,x:-2,y:-2,z:-2,duration:2");
+		set(0x28, "SetCameraMode", "mode:1", &cmdSetCameraMode);
+		set(0x29, "SetCameraZoom", "duration:2,distance:-2", &cmdSetCameraZoom);
+		set(0x2A, "SpinCamera", "duration:2,rotX:-2,rotY:-2,rotZ:-2", &cmdSpinCamera);
+		set(0x2B, "SetCameraView", "duration:2,value:2", &cmdSetCameraView);
+		set(0x2C, "SetCameraPos", "parent:2,x:-2,y:-2,z:-2,duration:2", &cmdSetCameraPos);
 		set(0x2D, "SetActorGravity", "slot:2,gravity:-2", &cmdSetActorGravity);
-		set(0x2E, "SetCameraRotation", "duration:2,rotX:-2,rotY:-2,rotZ:-2");
+		set(0x2E, "SetCameraRotation", "duration:2,rotX:-2,rotY:-2,rotZ:-2", &cmdSetCameraRotation);
 		set(0x32, "Text", "", &cmdText);
 		set(0x33, "ClearText");
 		set(0x34, "WaitForUser", "", &cmdWaitForUser);

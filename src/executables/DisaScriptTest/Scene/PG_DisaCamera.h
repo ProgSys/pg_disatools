@@ -54,6 +54,15 @@ public:
 	*/
 	void setCameraOrbit(float degree, float time = 0.f);
 
+	/// Tilt of the view against the ground plane in degree, negative while the camera looks down.
+	float getOrbitPitch() const;
+	/**
+	* @brief Turns the camera around the orbit point to a tilt and a heading at once.
+	* @param pitchDegree Negative looks down. Clamped short of straight down, which leaves no heading.
+	* @param orbitDegree Absolute orbit angle, the one getCameraOrbit reads. @see setCameraOrbit
+	*/
+	void setOrbitAngles(float pitchDegree, float orbitDegree);
+
 	inline float getMinOrbitDistance() const { return m_minOrbitDistance; }
 	inline void setMinOrbitDistance(float value) { m_minOrbitDistance = value; }
 
@@ -87,6 +96,6 @@ protected:
 	glm::vec3 m_orbitPoint = glm::vec3(0.f);
 	glm::vec3 m_orbitForward = glm::vec3(0.f, 0.f, 1.f);
 	float m_orbitDistance = 64.f;
-	float m_minOrbitDistance = 10.f;
+	float m_minOrbitDistance = 2.f;
 	float m_maxOrbitDistance = 300.f;
 };

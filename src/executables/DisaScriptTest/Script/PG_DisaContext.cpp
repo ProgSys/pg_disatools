@@ -92,6 +92,35 @@ void PG_DisaContext::snapToGround(PG_DisaSpriteModel* actor) const {
 	actor->setObjectTranslation(position);
 }
 
+//==== Camera ====
+
+PG_DisaCameraAnimationComponent* PG_DisaContext::findCameraAnimation(
+	PG_DisaCameraAnimationComponent::EChannel channel) const {
+	for (const auto& line : m_cameraAnimations) {
+		auto* animation = line.get();
+		if (animation && !animation->isFinished() && animation->getChannel() == channel) return animation;
+	}
+	return nullptr;
+}
+
+PG_DisaCameraAnimationComponent* PG_DisaContext::takeCameraAnimation(
+	PG_DisaCameraAnimationComponent::EChannel channel, const std::string& name) {
+	auto* camera = getGameCamera();
+	if (!camera) return nullptr;
+	if (auto* running = findCameraAnimation(channel)) return running;
+
+	//the camera owns it, so it goes away with the camera and this only holds a line to it
+	auto* animation = PG_new<PG_DisaCameraAnimationComponent>(name, camera);
+	animation->setChannel(channel);
+	m_cameraAnimations.emplace_back(animation);
+	return animation;
+}
+
+void PG_DisaContext::clearCameraAnimation(PG_DisaCameraAnimationComponent::EChannel channel) {
+	delete findCameraAnimation(channel);
+	std::erase_if(m_cameraAnimations, [](const PG_Lifeline_T<PG_DisaCameraAnimationComponent>& line) { return line.expired(); });
+}
+
 //==== Animations ====
 
 PG_DisaAnimationComponent* PG_DisaContext::findAnimation(const PG_DisaSpriteModel* actor,
@@ -142,6 +171,7 @@ void PG_DisaContext::stopAnimations(const PG_DisaSpriteModel* actor) {
 }
 
 void PG_DisaContext::tick(float deltaTicks) {
+	tickCameraAnimations(deltaTicks);
 	if (m_animations.empty()) return;
 
 	/* An animation may start another one, so only the ones that were already there run this tick,
@@ -160,9 +190,29 @@ void PG_DisaContext::tick(float deltaTicks) {
 		});
 }
 
+void PG_DisaContext::tickCameraAnimations(float deltaTicks) {
+	if (m_cameraAnimations.empty()) return;
+
+	const std::size_t count = m_cameraAnimations.size();
+	for (std::size_t i = 0; i < count && i < m_cameraAnimations.size(); ++i) {
+		if (auto* animation = m_cameraAnimations[i].get()) animation->tick(deltaTicks);
+	}
+
+	std::erase_if(m_cameraAnimations, [](const PG_Lifeline_T<PG_DisaCameraAnimationComponent>& line) {
+		auto* animation = line.get();
+		if (!animation) return true; //the camera already took it down
+		if (!animation->isFinished()) return false;
+		delete animation;
+		return true;
+		});
+}
+
 void PG_DisaContext::reset() {
 	for (const auto& line : m_animations) delete line.get();
 	m_animations.clear();
+
+	for (const auto& line : m_cameraAnimations) delete line.get();
+	m_cameraAnimations.clear();
 
 	/* What a chain spawned goes when the chain's view model does, which is when the
 	 * executor drops its lanes. This only clears the map's own script range. */

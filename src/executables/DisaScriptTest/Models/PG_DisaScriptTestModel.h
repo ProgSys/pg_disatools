@@ -75,6 +75,12 @@ public:
 	void useGameCamera(bool v);
 	bool iaGameCamera() const;
 	PG_DisaCamera* getGameCamera() const;
+	/**
+	* @brief Puts the game camera back where the game starts a scene, on the middle of the map.
+	* @details Called when a map opens. Its own start is a guess at a plane that no map's floor has
+	* to lie on, so without this the camera looks through the ground.
+	*/
+	void resetGameCamera();
 
 	PG_DisaMapModel* getMapModel() const { return m_mapModel; }
 	PG_DisaContext* getContext() const { return m_context; }
@@ -92,6 +98,8 @@ private:
 	bool openMapFile(const std::string& mapName); //@todo replace to PG_DisaIdentifier
 	/// Opens SCRIPT.DAT and TALK.DAT out of START.DAT and hands them to the executor.
 	void openScripts(const std::shared_ptr<PG_OLA>& startDat);
+	/// Middle of the tiles the map holds, in tile units and without a height.
+	glm::vec3 mapCenter() const;
 
 	PG_DisaMapModel* m_mapModel = nullptr;
 	PG_DisaMapScene* m_scene = nullptr;

@@ -38,7 +38,9 @@
 #include <Base/PG_Lifeline.h>
 
 #include "PG_DisaAnimationComponent.h"
+#include "PG_DisaCameraAnimationComponent.h"
 #include <Disa/map/PG_DisaActorListModel.h>
+#include <Scene/PG_DisaCamera.h> //the lifeline to it needs the whole type
 
 class PG_DisaSpriteModel;
 class PG_DisaMapModel;
@@ -58,6 +60,12 @@ signals:
 public:
 	/// Script units in one tile, every coordinate in a script is counted in these.
 	static constexpr float unitsPerTile = 120.f;
+	/**
+	* @brief World units in one tile, which is what the camera distances are counted in.
+	* @details The camera commands are the only ones the game does not scale by ten on the way in,
+	* so their numbers are ten times smaller than an actor's.
+	*/
+	static constexpr float worldUnitsPerTile = unitsPerTile / 10.f;
 	/**
 	* @brief The slots a script addresses that are not a plain actor index.
 	* @details Read out of the game's slot resolver, the whole table is in reverse/Doku.md.
@@ -136,6 +144,35 @@ public:
 	/// Puts the actor on the ground right away, without a fall.
 	void snapToGround(PG_DisaSpriteModel* actor) const;
 
+	//==== Camera ====
+
+	/// What the look at point of the camera hangs on, which is what SetCameraMode picks.
+	enum ECameraMode : unsigned char {
+		Camera_FollowCursor = 0, /// The game's resting state, the camera trails the map cursor
+		Camera_Free = 1,         /// Follows nothing, so only the script moves it
+		Camera_FollowActing = 2,
+		Camera_FollowTarget = 3,
+	};
+
+	/// The camera the script commands run on, null while no scene is set up.
+	PG_DisaCamera* getGameCamera() const { return m_gameCamera.get(); }
+	void setGameCamera(PG_DisaCamera* camera) { m_gameCamera = camera; }
+
+	inline ECameraMode getCameraMode() const { return m_cameraMode; }
+	inline void setCameraMode(ECameraMode value) { m_cameraMode = value; }
+
+	/**
+	* @brief The camera animation on that channel, made when there is none yet.
+	* @details Same rule as the actor animations, a second command of a kind takes the running one
+	* over instead of starting beside it. @see takeAnimation
+	* @returns null when there is no camera.
+	*/
+	PG_DisaCameraAnimationComponent* takeCameraAnimation(PG_DisaCameraAnimationComponent::EChannel channel,
+		const std::string& name = "PG_DisaCameraAnimationComponent");
+
+	/// Ends the one on that channel right now, so the camera keeps the value it reached.
+	void clearCameraAnimation(PG_DisaCameraAnimationComponent::EChannel channel);
+
 	//==== Animations ====
 
 	/**
@@ -172,6 +209,9 @@ private:
 	/// The running animation of that actor and channel, null when there is none.
 	PG_DisaAnimationComponent* findAnimation(const PG_DisaSpriteModel* actor,
 		PG_DisaAnimationComponent::EChannel channel) const;
+	/// The running camera animation on that channel, null when there is none.
+	PG_DisaCameraAnimationComponent* findCameraAnimation(PG_DisaCameraAnimationComponent::EChannel channel) const;
+	void tickCameraAnimations(float deltaTicks);
 
 	/* The game's flags live in one bit array that TALK.DAT also filters its scripts by. */
 	std::vector<unsigned char> m_gameState = std::vector<unsigned char>(8192, 0);
@@ -184,4 +224,10 @@ private:
 	/* The actor owns its animations, so these only hold on long enough to tick them. One that its
 	 * actor took down leaves an expired line behind, which the next tick clears out. */
 	std::vector<PG_Lifeline_T<PG_DisaAnimationComponent>> m_animations;
+
+	/* The camera lives in the scene and outlives a map, so this only holds a line to it. Its
+	 * animations work the same way the actors' do, the camera owns them and this ticks them. */
+	PG_Lifeline_T<PG_DisaCamera> m_gameCamera;
+	std::vector<PG_Lifeline_T<PG_DisaCameraAnimationComponent>> m_cameraAnimations;
+	ECameraMode m_cameraMode = Camera_FollowCursor;
 };

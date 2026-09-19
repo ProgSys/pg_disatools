@@ -1,5 +1,7 @@
 #include "PG_DisaScriptTestModel.h"
 
+#include <limits>
+
 #include <Disa/PG_DisaCharactersModel.h>
 #include <Disa/fileformats/PG_DisaLooseFileContainer.h>
 #include <Disa/fileformats/PG_OLA.h>
@@ -11,6 +13,7 @@
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
 
+#include <Script/PG_DisaCameraAnimations.h>
 #include <Script/PG_DisaContext.h>
 #include <Script/PG_DisaScriptExecutor.h>
 
@@ -112,6 +115,43 @@ void PG_DisaScriptTestModel::setScene(PG_DisaMapScene* scene) {
 	if (!scene) return;
 	auto disaCam = PG_new<PG_DisaCamera>(gGameCameraName, PG_CameraNode::Type_Perspective, scene->getRoot());
 	scene->setActiveCamera(disaCam);
+	m_context->setGameCamera(disaCam); //the camera commands run on it
+}
+
+void PG_DisaScriptTestModel::resetGameCamera() {
+	auto* camera = getGameCamera();
+	if (!camera) return;
+
+	/* Where the game starts every scene, see FUN_004f8220 and the opening of nearly every script.
+	 * The distance is in world units, of which twelve make a tile. */
+	constexpr float startPitch = -30.f;
+	constexpr float startYaw = -45.f;
+	constexpr float startDistance = 750.f;
+
+	camera->setOrbitAngles(startPitch, PG_DisaCameraAnimations::orbitOfGameYaw(startYaw));
+	camera->setOrbitDistance(startDistance / PG_DisaContext::worldUnitsPerTile);
+	camera->setFov(glm::radians(PG_DisaCameraAnimations::fovOfViewValue(0.f)));
+	camera->setEnabled(true);
+
+	//the middle of the map, on its floor rather than on the plane the camera starts out guessing
+	const glm::vec3 center = mapCenter();
+	camera->setOrbitPoint(glm::vec3(center.x, m_context->getGroundHeight(center), center.z));
+}
+
+glm::vec3 PG_DisaScriptTestModel::mapCenter() const {
+	auto* tiles = m_mapModel ? m_mapModel->getTiles() : nullptr;
+	if (!tiles || tiles->empty()) return glm::vec3(0.f);
+
+	glm::ivec2 min(std::numeric_limits<int>::max());
+	glm::ivec2 max(std::numeric_limits<int>::min());
+	for (const auto* tile : *tiles) {
+		const glm::ivec2 position = tile->getTilePosition();
+		min = glm::min(min, position);
+		max = glm::max(max, position);
+	}
+
+	//a tile is counted from its corner, so the middle of the last one is half a tile further on
+	return glm::vec3((min.x + max.x) * 0.5f + 0.5f, 0.f, (min.y + max.y) * 0.5f + 0.5f);
 }
 
 bool PG_DisaScriptTestModel::openMapFile(const std::string& mapName) {
@@ -139,6 +179,8 @@ bool PG_DisaScriptTestModel::openMapFile(const std::string& mapName) {
 	auto previousFiles = std::move(m_looseFiles);
 	m_context->reset(); //the actors of the last map have nowhere to stand any more
 	if (!m_mapModel->open(mpd, mppSD, mppHD)) return FAILURE;
+
+	resetGameCamera();
 	return SUCCESS;
 }
 
