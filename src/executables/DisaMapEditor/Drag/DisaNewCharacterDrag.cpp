@@ -19,6 +19,7 @@
 #include <Disa/PG_DisaMapViewNode.h>
 #include <RootScene.h>
 #include <Disa/PG_DisaMapScene.h>
+#include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_Math.h>
 #include <Util/PG_RangesTransform.h>
 
@@ -71,7 +72,7 @@ public:
 		case PG_DisaSpriteModel::Identity_AnimationMode:
 			return static_cast<int>(PG_DisaSpriteModel::Mode_Combat);
 		case PG_DisaSpriteModel::Identity_AnimationSet:
-			return static_cast<int>(PG_DisaSpriteModel::IdleStanding);
+			return static_cast<int>(p_aniSet);
 		case PG_DisaSpriteModel::Identity_Animation:
 			return 0;
 		case PG_Identity_Item:
@@ -85,6 +86,7 @@ public:
 	unsigned short p_characterId = 0;
 	glm::vec3 p_position = glm::vec3(0.f);
 	EDisaFacing p_facing = DisaFacing_East;
+	PG_DisaSpriteModel::EAnimationSet p_aniSet = PG_DisaSpriteModel::IdleStanding;
 };
 
 
@@ -187,6 +189,7 @@ void DisaNewCharacterDrag::mouseMoved(PG_MouseMotionEvent* e) {
 	glm::vec2 pos = m_modelMoc->p_tile->getTilePosition();
 	float height = m_modelMoc->p_tile->getTopHeight();
 	m_modelMoc->p_position = glm::vec3(pos.x, height, pos.y);
+	m_modelMoc->p_aniSet = PG_DisaSpriteModel::Hurt;
 
 	if (updateRotation) {
 		const glm::vec3 camDir = cam->getForward();
@@ -263,15 +266,24 @@ void DisaNewCharacterDrag::released() {
 		std::memset(&data.magic_level, 0, sizeof(unsigned char) * 4);
 		std::memset(&data.unk, 0, sizeof(char) * 26);
 
+		/* The game puts a new unit in the first free entry of its actor array, and that array is
+		 * the slot table, so a placed unit takes the smallest slot nobody holds. */
+		const int freeSlot = actors->findFreeMapSlot();
+		if (freeSlot < 0) {
+			OUT_WARNING("Every one of the " << PG_DisaActorListModel::lastMapSlot + 1 << " unit slots is taken, the map can hold no more.");
+			reset();
+			return;
+		}
+
 		auto model = PG_new<PG_DisaSpriteModel>("PG_DisaSpriteModel", actors);
 		model->setData(data);
-		actors->push_back(model);
+		actors->setSlot(freeSlot, model);
 
 		auto* view = scene->getMapNode()->getActorView();
 		view->flush();
 		if (view->getItems().size() == actors->size()) {
 			auto item = dynamic_cast<PG_DisaActorSpriteNode*>(view->getItems().back());
-			item->setForce(m_indicator->getForce());
+			item->setForce(GravityForce()); //we released so it should fall to ground
 			item->setMotion(m_indicator->getMotion());
 			auto copy = m_indicator->getChildren();
 			for (auto* child : copy | PG_CastTo<PG_ModelNode*>) {

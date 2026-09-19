@@ -80,6 +80,13 @@ glm::vec3 PG_DisaActorListModel::getSlotOrigin(int slot) const {
 	return glm::vec3(position.x, 0.f, position.z);
 }
 
+int PG_DisaActorListModel::findFreeMapSlot() const {
+	for (int slot = firstMapSlot; slot <= lastMapSlot; ++slot) {
+		if (isSlotFree(slot)) return slot;
+	}
+	return -1;
+}
+
 void PG_DisaActorListModel::resetMapSlots() {
 	for (int slot = firstMapSlot; slot <= lastMapSlot; ++slot) m_slots.erase(slot);
 

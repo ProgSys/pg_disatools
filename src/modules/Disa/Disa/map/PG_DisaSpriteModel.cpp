@@ -270,13 +270,19 @@ bool PG_DisaSpriteModel::setData(const PG_Variety& value, Identity identity) {
 		}
 	}break;
 	case Identity_AnimationMode: {
-		if (auto v = static_cast<EMode>(value.convert<int>()); v != m_mode) {
+		if (auto v = static_cast<EMode>(value.convert<unsigned char>()); v != m_mode) {
+			setMode(v);
+			return true;
+		} else if (auto v = value.get<EMode>(); v != m_mode) {
 			setMode(v);
 			return true;
 		}
 	}break;
 	case Identity_AnimationSet: {
-		if (auto v = static_cast<EAnimationSet>(value.convert<int>()); v != m_animationSet) {
+		if (auto v = static_cast<EAnimationSet>(value.convert<unsigned char>()); v != m_animationSet) {
+			setAnimationSet(v);
+			return true;
+		} else if (auto v = value.get<EAnimationSet>(); v != m_animationSet) {
 			setAnimationSet(v);
 			return true;
 		}

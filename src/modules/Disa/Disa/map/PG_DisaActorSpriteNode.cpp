@@ -172,8 +172,7 @@ void PG_DisaActorSpriteNode::setDragged(bool value) {
 		m_force = GravityForce();
 	}
 	//through the identity, because the drag indicator has no model at all behind its location
-	m_location.setData(value ? PG_DisaSpriteModel::Hurt : PG_DisaSpriteModel::IdleStanding,
-		PG_DisaSpriteModel::Identity_AnimationSet);
+	m_location.setData(value ? PG_DisaSpriteModel::Hurt : PG_DisaSpriteModel::IdleStanding, PG_DisaSpriteModel::Identity_AnimationSet);
 }
 
 constexpr auto g_mirrorX = "mirrorX";

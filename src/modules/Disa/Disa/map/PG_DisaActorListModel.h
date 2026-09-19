@@ -64,6 +64,14 @@ public:
 	*/
 	glm::vec3 getSlotOrigin(int slot) const;
 
+	/**
+	* @brief The smallest slot of the map range that holds nothing.
+	* @details Where the game would put a new unit: its own allocator takes the first free entry of
+	* the actor array, and that array is the slot table.
+	* @returns -1 when all 64 are taken, which is as many as the file can hold.
+	*/
+	int findFreeMapSlot() const;
+
 	/// Hands the rows the map file placed their slots, in file order. @see isMapSlot
 	void resetMapSlots();
 
