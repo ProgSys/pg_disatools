@@ -148,6 +148,13 @@ void RootScene::setupToolbar() {
 
 		connect(btn, &PG_GuiButton::clicked, m_model, [model = m_model, text] { model->runScript(text->getText()); });
 	}
+
+	{
+		auto btn = PG_new<PG_GuiButton>("execScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
+		btn->setIcon("gui/icon_play.png");
+		btn->setTooltipText("Swap camera");
+		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::Right);
+	}
 }
 
 void RootScene::setupMapView() {

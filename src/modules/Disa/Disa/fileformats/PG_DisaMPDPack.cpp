@@ -19,6 +19,10 @@ PG_DisaFileEntry PG_DisaMPPPack::getMPP() const {
 }
 
 
+PG_DisaFileEntry PG_DisaGEOPack::getGEO() const {
+	return geo.isValid() ? geo.getDataT<PG_DisaFileEntry>(PG_Identity_Item) : PG_DisaFileEntry();
+}
+
 PG_DisaMPPStyle PG_DisaMPPPack::getStyle() const {
 	if (auto data = mpp.getData(PG_Identity_Custom); data && data.is<PG_DisaMPPStyle>()) {
 		return data.get<PG_DisaMPPStyle>();

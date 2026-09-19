@@ -494,6 +494,10 @@ void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
 		open(var.get<PG_DisaMPPPack>());
 		return;
 	}
+	if (var.is<PG_DisaGEOPack>()) {
+		open(var.get<PG_DisaGEOPack>());
+		return;
+	}
 	if (var.is<std::string>()) {
 		open(var.get<std::string>());
 		return;
@@ -632,6 +636,17 @@ void PG_DisaPreviewItem::open(const PG_DisaMPPPack& mppPack) {
 	const auto style = mppPack.getStyle();
 	getOrCreateGameScene()->setModel(
 		PG_DisaMPDContainer::createFromMPP(mpp, style.topIndex, style.sideIndex, style.decalIndex));
+}
+
+void PG_DisaPreviewItem::open(const PG_DisaGEOPack& geoPack) {
+	auto geo = geoPack.getGEO();
+	if (!(geo && geo.getInfo().getType() == PG_DisaFileInfo::GEO)) {
+		OUT_ERROR("Failed to find GEO!");
+		clear();
+		return;
+	}
+
+	getOrCreateGameScene()->setModel(PG_DisaMPDContainer::createFromGEO(geo));
 }
 
 void PG_DisaPreviewItem::setLocation(const PG_ListModelLocation& location) {

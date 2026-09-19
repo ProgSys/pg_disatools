@@ -46,3 +46,10 @@ struct PG_DisaMPPPack {
 	PG_DisaFileEntry getMPP() const;
 	PG_DisaMPPStyle getStyle() const;
 };
+
+/// A geometry carries its own textures, so there is nothing to pair it with
+struct PG_DisaGEOPack {
+	PG_ListModelLocation geo; //model and its textures
+
+	PG_DisaFileEntry getGEO() const;
+};

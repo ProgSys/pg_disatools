@@ -32,6 +32,8 @@ public:
 	void open(const PG_Sprite& sprite);
 	void open(const PG_DisaMPDPack& mapFiles);
 	void open(const PG_DisaMPPPack& mppPack);
+	/// Shows the geometry on its own, as the only object of a map with no tiles
+	void open(const PG_DisaGEOPack& geoPack);
 
 	const PG_ListModelLocation& getLocation() const { return m_location; };
 	void setLocation(const PG_ListModelLocation& location);

@@ -128,7 +128,19 @@ public:
 	void invalidate();
 
 	inline const std::vector<T>& getItems() const { return m_items; }
-
+	/**
+	* @brief Adds an item that has no file behind it.
+	* @details Such an item carries what it shows, nothing refills it out of a container. Used where a
+	* geometry is shown on its own.
+	* @returns The index it landed on
+	*/
+	int add(T item) {
+		m_items.push_back(std::move(item));
+		const int index = (int)m_items.size() - 1;
+		emit itemsAdded(index, index);
+		emit sizeChanged();
+		return index;
+	}
 
 protected:
 	void initialize() {
@@ -210,6 +222,13 @@ public:
 	void importGeometry(const PG_File& file, PG_ListModelLocation location, bool hd);
 	void importGeometry(const PG_GEO& geo, PG_ListModelLocation location, bool hd);
 	void importGeometryGLTF(const PG_File& file, PG_ListModelLocation location, bool hd);
+	/**
+	* @brief Adds a geometry that is already built, rather than one read out of a file entry.
+	* @details Used where a geometry has no file of its own to be reread from, a preview of a single geo.
+	* The same model answers for SD and HD, there is only the one.
+	* @returns The index it landed on, which is what an object's model_id names
+	*/
+	int addGeometry(PG_Model model);
 
 	void addItem(bool texture);
 

@@ -96,6 +96,13 @@ PG_Variety PG_DisaFileEntry::getPreviewImage() const {
 		}
 		return PG_Variety(std::move(pack));
 	}break;
+	case PG_DisaFileInfo::GEO: {
+		auto* fileContainer = dynamic_cast<PG_DisaFileContainer*>(m_parent);
+		if (!fileContainer) return PG_Variety();
+		PG_DisaGEOPack pack;
+		pack.geo = fileContainer->getLocation(getLocation());
+		return PG_Variety(std::move(pack));
+	}break;
 	case PG_DisaFileInfo::MPP: {
 		auto* fileContainer = dynamic_cast<PG_DisaFileContainer*>(m_parent);
 		if (!fileContainer) return PG_Variety();

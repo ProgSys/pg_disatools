@@ -44,7 +44,8 @@ public:
 
 	PG_DisaMapChunkModel* getChunk() const { return m_chunk.get(); }
 	void setChunk(PG_DisaMapChunkModel* model);
-	glm::vec3 getChunkTranslation() const { return m_chunk->getTileTranslation(); }
+	/// An object with no chunk sits at the origin, which is what one shown on its own wants
+	glm::vec3 getChunkTranslation() const { return m_chunk ? m_chunk->getTileTranslation() : glm::vec3(0.f); }
 
 	static float getBaseScale();
 	static glm::ivec3 toObjectTranslation(glm::vec3 worldPos);

@@ -999,35 +999,31 @@ struct PG_JobOpenGEO : public PG_Job {
 	}
 
 	void openGEO() {
-		return; //TODO!
 		assert(geoStream);
 
 		PG_GEO geo;
 		if (!geo.open(geoStream.get())) {
 			geoStream.reset();
+			OUT_ERROR("Failed to read the geometry!");
 			return;
 		}
 		geoStream.reset();
 
 		auto disaModel = PG_DisaModel();
-		disaModel.load("GeoModel", geo);
+		disaModel.load(PG_UNIQUE_RES("R_DisaGeoModel"), geo);
 
 		auto objectModel = PG_new<PG_DisaObjectModel>("PG_DisaObjectModel");
-		mpdfileChunkObject data{
-			.x = 0, .y = 0, .z = 0, 
-			.xRot = 0, .yRot = 0, .zRot = 0, 
-			.xScale = 100, .yScale = 100, .zScale = 100,
-			.unk10 = 0,
-			.unk11 = 0, .model_id = 0, .visible = 1, .unk12 = 0,
-			.textureScrollX = 0, .textureScrollY = 0
-		};
-		objectModel->setData(data);
 
 		if (isCanceled()) return;
 		owner.get()->postCallEvent(
-			[owner = dynamic_cast<PG_DisaMapModel*>(owner.get()), objectModel, geo = std::move(disaModel)]() mutable {
+			[owner = dynamic_cast<PG_DisaMapModel*>(owner.get()), objectModel, model = std::move(disaModel)]() mutable {
+				/* An object names its geometry by index into the assets, so the geometry goes in first and
+				 * the index it lands on is what the object is told to draw. */
+				mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
+				data.model_id = (unsigned char)owner->m_assets->addGeometry(std::move(model));
+				objectModel->setData(data);
+
 				objectModel->setThreadId(owner->getThreadId());
-				//owner->m_assets->addGeometry({ std::move(geo) });
 				owner->m_objectsModel->push_back(objectModel);
 			});
 	}

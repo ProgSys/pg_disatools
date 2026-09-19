@@ -50,8 +50,7 @@ PG_DisaModelNode* PG_DisaObjectViewNode::getModelNode() const {
 }
 
 void PG_DisaObjectViewNode::loadGeometry() {
-	static int i = -1;
-	if (!m_location || (i > 0 && m_location.getIndex() != i)) {
+	if (!m_location) {
 		clearChildren();
 		return;
 	}

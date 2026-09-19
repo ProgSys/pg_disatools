@@ -521,6 +521,18 @@ public:
 		container->createModel()->openAsset(mpp, topIndex, sideIndex, decalIndex);
 		return container;
 	}
+	/**
+	* @brief Opens a single geometry as a map that holds nothing but that one object
+	* @details There are no tiles here, the geo goes into the object list and the camera frames it. The
+	* geo is read on a worker, so the container comes back before there is anything to see.
+	*/
+	template<typename T = PG_DisaMPDContainer>
+	static std::shared_ptr<T> createFromGEO(PG_DisaFileEntry geo) {
+		static_assert(std::is_base_of_v<PG_DisaMPDContainer, T>, "T must derived from PG_DisaMPDContainer!");
+		auto container = std::shared_ptr<T>(PG_new<T>());
+		container->createModel()->openGeo(geo);
+		return container;
+	}
 receivers:
 	//a bit ugly
 	bool saveFile();

@@ -282,6 +282,13 @@ void PG_DisaMapViewNode::contentChanged() {
 	for (auto* item : m_tilesView->getItems() | PG_CastTo<PG_DisaTileViewNode*>) {
 		sync->add(item->getModel());
 	}
+	/* The objects too, otherwise a map of nothing but objects reports itself loaded before any of them is
+	 * there, and whoever waits on it frames an empty scene. */
+	if (m_objectsView) {
+		for (auto* item : m_objectsView->getItems() | PG_CastTo<PG_DisaObjectViewNode*>) {
+			if (auto* modelNode = item->getModelNode()) sync->add(modelNode->getModel());
+		}
+	}
 
 	connect(sync, &PG_ResourceSynchronisator::loaded, this, &PG_DisaMapViewNode::updateTree);
 	connect(sync, &PG_ResourceSynchronisator::loaded, this, &PG_DisaMapViewNode::loaded, PG_ConnectionType_Event);

@@ -657,6 +657,16 @@ void PG_DisaAssetsModel::importGeometryGLTF(const PG_File& file, PG_ListModelLoc
 	importGeometry(geo, location, hd);
 }
 
+int PG_DisaAssetsModel::addGeometry(PG_Model model) {
+	PG_DisaAssetsGeometryItem item;
+	item.sd = model;
+	item.hd = std::move(model);
+	//there is no location to reread from, so what is in there is what it stays
+	item.sdChanged = false;
+	item.hdChanged = false;
+	return m_geomeries->add(std::move(item));
+}
+
 void PG_DisaAssetsModel::addItem(bool texture) {
 	if (!m_containerSD || !m_containerHD ||
 		m_containerSD->size() > 254 || m_containerHD->size() > 254) return;
