@@ -61,8 +61,16 @@ public:
 	void setObjectTranslation(const glm::vec3& value);
 
 	glm::ivec2 getTilePosition() const;
-	/// Puts the actor onto a tile, which sets the position to the top of it. @see setObjectTranslation
+	/// Puts the actor onto a tile, which sets the position to the middle of its top. @see setObjectTranslation
 	void setTilePosition(glm::ivec2 pos);
+
+	/**
+	* @brief Middle of a tile in tile units, which is where something standing on it belongs.
+	* @details A tile is counted from its corner, but the game puts what stands on it half a tile in
+	* on both axes: its own conversion is `tileIndex * 12 + 6`, and twelve units make a tile.
+	* @returns The middle without a height, the caller knows which one it wants.
+	*/
+	static glm::vec3 tileCenter(glm::ivec2 tile) { return glm::vec3(tile.x + 0.5f, 0.f, tile.y + 0.5f); }
 
 	/// The quarter turn the map stores, which is the rotation snapped. @see getRotation
 	EDisaFacing getCharacterFacing() const;

@@ -70,7 +70,8 @@ void PG_DisaActorListModel::clearScriptSlots() {
 
 glm::vec3 PG_DisaActorListModel::getSlotOrigin(int slot) const {
 	auto* item = getSlotItem(slot);
-	if (!item) return glm::vec3(0.f); //slot 201 and every number nobody filled count from the origin
+	//slot 201 and every number nobody filled count from the origin
+	if (!item) return mapOrigin;
 
 	if (isItemSlot(slot)) return item->getObjectTranslation();
 
@@ -155,8 +156,8 @@ void PG_DisaActorListModel::doUpdateTeleporter() {
 		height = tile.getDataT<float>(PG_DisaMapTileModel::Identity_RefHeight);
 	}
 
-	//the panel sits in the middle of its tile, not on the corner the tile is counted from
-	panel->setObjectTranslation(glm::vec3(pos.x + 0.5f, height, pos.y + 0.5f));
+	const glm::vec3 center = PG_DisaActorModel::tileCenter(pos);
+	panel->setObjectTranslation(glm::vec3(center.x, height, center.z));
 	panel->setVisible(true);
 }
 
@@ -268,11 +269,11 @@ void PG_DisaActorScriptViewModel::resetScriptSlots() {
 
 glm::vec3 PG_DisaActorScriptViewModel::getSlotOrigin(int slot) const {
 	if (!PG_DisaActorListModel::isScriptSlot(slot)) {
-		return m_originModel ? m_originModel->getSlotOrigin(slot) : glm::vec3(0.f);
+		return m_originModel ? m_originModel->getSlotOrigin(slot) : PG_DisaActorListModel::mapOrigin;
 	}
 
 	auto* item = getSlotItem(slot);
-	return item ? item->getObjectTranslation() : glm::vec3(0.f);
+	return item ? item->getObjectTranslation() : PG_DisaActorListModel::mapOrigin;
 }
 
 std::vector<PG_DisaActorModel*> PG_DisaActorScriptViewModel::getActors() const {

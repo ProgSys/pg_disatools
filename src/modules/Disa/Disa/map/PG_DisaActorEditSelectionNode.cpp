@@ -171,7 +171,7 @@ void PG_DisaActorEditSelectionNode::rotateTowardsCamera(float dt) {
 
 			node->setAnimation(isSelected()? "4": "3");
 			//std::cout << "Offset: "<< glm::normalize(m[1]) << std::endl;
-			node->setTranslation(glm::vec3(0.5f, 0.f, 0.5f) + glm::normalize(m[1]) * (m_baseHeight + 0.2f * std::sin(m_time)) - m[2] * 0.5f);
+			node->setTranslation(glm::normalize(m[1]) * (m_baseHeight + 0.2f * std::sin(m_time)) - m[2] * 0.5f);
 			node->setRotation(glm::normalize(glm::quat_cast(m)));
 			node->updateModelMatrix();
 			node->updateModelMatrixWorld();

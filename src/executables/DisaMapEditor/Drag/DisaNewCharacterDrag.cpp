@@ -47,7 +47,8 @@ public:
 			return p_position;
 		case PG_DisaSpriteModel::Identity_TileGround:{
 			if (!p_tile) return std::array<glm::vec3, 4>{glm::vec3(0.f)};
-			auto out = p_tile->getTop(glm::vec3(0.f));
+			//read against the indicator, which stands in the middle of the tile top
+			auto out = p_tile->getTop(glm::vec3(-0.5f, p_tile->getTranslation().y, -0.5f));
 			for (glm::vec3& p : out) {
 				p.y -= p_position.y;
 			}
@@ -186,9 +187,8 @@ void DisaNewCharacterDrag::mouseMoved(PG_MouseMotionEvent* e) {
 	const bool updateRotation = !m_modelMoc->p_tile;
 
 	m_modelMoc->p_tile = dynamic_cast<PG_DisaMapTileModel*>(tile->getTileModel());
-	glm::vec2 pos = m_modelMoc->p_tile->getTilePosition();
-	float height = m_modelMoc->p_tile->getTopHeight();
-	m_modelMoc->p_position = glm::vec3(pos.x, height, pos.y);
+	const glm::vec3 center = PG_DisaActorModel::tileCenter(m_modelMoc->p_tile->getTilePosition());
+	m_modelMoc->p_position = glm::vec3(center.x, m_modelMoc->p_tile->getTopHeight(), center.z);
 	m_modelMoc->p_aniSet = PG_DisaSpriteModel::Hurt;
 
 	if (updateRotation) {
@@ -226,12 +226,14 @@ void DisaNewCharacterDrag::released() {
 
 
 
+		//the position is the middle of the tile now, so the file entry comes off the tile itself
+		const glm::ivec2 tile = m_modelMoc->p_tile->getTilePosition();
+
 		mpdfileActor data;
 		data.id = m_modelMoc->p_characterId;
-		data.x = -static_cast<unsigned char>(m_modelMoc->p_position.x);
-		data.z = static_cast<unsigned char>(m_modelMoc->p_position.z);
+		data.x = static_cast<char>(-tile.x);
+		data.z = static_cast<char>(tile.y);
 
-		const glm::ivec2 tile(-data.x, data.z);
 		unsigned int level = 0;
 		std::size_t counted = 0;
 		for (auto* item : *actors) {

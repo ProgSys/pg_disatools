@@ -29,7 +29,7 @@ void PG_DisaActorSpriteNode::setLocation(PG_ListModelLocation loc) {
 	updateTransformation();
 	updateGroundShadow();
 	updateColorMult();
-	setVolumeCollision(PG_Volume(glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.3f, 0.5f, 0.3f), glm::mat3(1.0f)));
+	setVolumeCollision(PG_Volume(glm::vec3(0.f, 0.5f, 0.f), glm::vec3(0.3f, 0.5f, 0.3f), glm::mat3(1.0f)));
 	updateModelMatrix();
 	updateModelMatrixWorld();
 }
@@ -149,7 +149,7 @@ void PG_DisaActorSpriteNode::loadSprite(unsigned short id) {
 		sprite.setAnimationSpeed(PG_Sprite::defaultTimeStep / 2.f);
 		node->setSprite(std::move(sprite));
 		node->setScale(glm::vec3(1.3f));
-		node->setTranslation(glm::vec3(0.5f, 0.1f, 0.5f));
+		node->setTranslation(glm::vec3(0.f, 0.1f, 0.f)); //lifted a little so the feet clear the floor
 		node->setColorTableOffset(colorOffset);
 	}
 }

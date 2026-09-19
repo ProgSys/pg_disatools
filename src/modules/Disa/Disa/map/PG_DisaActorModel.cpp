@@ -77,7 +77,8 @@ void PG_DisaActorModel::setTilePosition(glm::ivec2 pos) {
 	if (getTilePosition() == pos) return;
 
 	//the height comes off the new tile, so the move has to happen before it is asked for
-	m_translation = glm::vec3(pos.x, m_translation.y, pos.y);
+	const glm::vec3 center = tileCenter(pos);
+	m_translation = glm::vec3(center.x, m_translation.y, center.z);
 	m_height = calcHeight();
 	m_translation.y = m_height;
 
@@ -150,7 +151,7 @@ EDisaFacing PG_DisaActorModel::getCharacterFacing() const {
 void PG_DisaActorModel::resetPlacement(glm::ivec2 tile, float rotation, bool visible) {
 	m_rotation = rotation;
 	m_visible = visible;
-	m_translation = glm::vec3(tile.x, 0.f, tile.y); //calcHeight reads the tile off the position
+	m_translation = tileCenter(tile); //calcHeight reads the tile off the position
 	m_height = calcHeight();
 	m_translation.y = m_height;
 }
@@ -167,7 +168,8 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
 			if (auto location = model->getTiles()->getTileLocation(getTilePosition())) {
 				auto* item = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
-				auto top = item->getTop(glm::vec3(0.f, item->getTranslation().y, 0.f));
+				//read against the actor, which stands in the middle, so the corners run out either way
+				auto top = item->getTop(glm::vec3(-0.5f, item->getTranslation().y, -0.5f));
 				for (glm::vec3& v : top) v.y -= m_height;
 				return top;
 			}

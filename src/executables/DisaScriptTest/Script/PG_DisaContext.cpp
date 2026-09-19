@@ -64,13 +64,13 @@ glm::vec3 PG_DisaContext::getSlotOrigin(int slot, const PG_DisaActorScriptViewMo
 	if (slot == Slot_EventPosition) {
 		//the game counts from where the event was started, which needs a battle the tool does not run
 		OUT_WARNING("Slot 210 is the position of a running event, the map origin is used instead.");
-		return glm::vec3(0.f);
+		return PG_DisaActorListModel::mapOrigin;
 	}
 
 	if (scriptSlots) return scriptSlots->getSlotOrigin(slot);
 
 	auto* map = getMapActors();
-	return map ? map->getSlotOrigin(slot) : glm::vec3(0.f);
+	return map ? map->getSlotOrigin(slot) : PG_DisaActorListModel::mapOrigin;
 }
 
 //==== Ground ====

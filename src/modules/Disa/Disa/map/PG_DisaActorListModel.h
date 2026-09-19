@@ -31,6 +31,15 @@ public:
 	/// Not an item, the teleporter panel, which coordinates are counted from. @see getSlotOrigin
 	static constexpr int slotTeleporter = 203;
 
+	/**
+	* @brief Where a coordinate with no parent counts from, in tile units.
+	* @details The map runs along the negative x axis, so a coordinate the game counts the other way
+	* is mirrored on the way in. Mirroring a tile index lands one tile short, which is what the whole
+	* tile on x puts back. The z axis is not mirrored and needs nothing.
+	* @see PG_DisaContext::toTileUnits
+	*/
+	static constexpr glm::vec3 mapOrigin = glm::vec3(1.f, 0.f, 0.f);
+
 	static bool isMapSlot(int slot) { return slot >= firstMapSlot && slot <= lastMapSlot; }
 	static bool isScriptSlot(int slot) { return slot >= firstScriptSlot && slot <= lastScriptSlot; }
 	static bool isItemSlot(int slot) { return isMapSlot(slot) || isScriptSlot(slot); }
