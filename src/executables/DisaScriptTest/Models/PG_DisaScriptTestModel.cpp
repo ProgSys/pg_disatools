@@ -99,6 +99,10 @@ void PG_DisaScriptTestModel::useGameCamera(bool value) {
 	if (cam) m_scene->setActiveCamera(cam);
 }
 
+PG_DisaCamera* PG_DisaScriptTestModel::getGameCamera() const {
+	return m_scene->getRoot()->findFirstChild<PG_DisaCamera>(gGameCameraName);
+}
+
 bool PG_DisaScriptTestModel::iaGameCamera() const {
 	return m_scene && m_scene->getActiveCamera()->getName() == gGameCameraName;
 }

@@ -44,6 +44,7 @@ class PG_DisaCharactersModel;
 class PG_DisaMapScene;
 class PG_DisaScriptExecutor;
 class PG_DisaContext;
+class PG_DisaCamera;
 
 /**
 * @brief Owns the map that is shown, and everything needed to read one
@@ -73,6 +74,7 @@ public:
 	/// Swap between work and game camera
 	void useGameCamera(bool v);
 	bool iaGameCamera() const;
+	PG_DisaCamera* getGameCamera() const;
 
 	PG_DisaMapModel* getMapModel() const { return m_mapModel; }
 	PG_DisaContext* getContext() const { return m_context; }
