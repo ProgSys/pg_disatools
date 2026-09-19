@@ -55,6 +55,16 @@ unsigned int PG_Script::buildScriptId(const std::string& filename) {
 	}
 }
 
+const PG_DisaExtraFields& PG_Script::describeExtraData() const {
+	static const PG_DisaExtraFields fields =
+		makeIdDescription<unsigned int>("Script ID", "What the game references this script by");
+	return fields;
+}
+
+std::string PG_Script::buildEntryName(const PG_DisaFileEntry& entry) const {
+	return buildScriptName(getScriptId(entry));
+}
+
 unsigned int PG_Script::getScriptId(const PG_DisaFileEntry& entry) {
 	//a entry read from a SCRIPT.DAT keeps its ID, one the user added only has the name it was given
 	if (const PG_Variety& extraData = entry.getExtraData(); extraData.is<unsigned int>()) {

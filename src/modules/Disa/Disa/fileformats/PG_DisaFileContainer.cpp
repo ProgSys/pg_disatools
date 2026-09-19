@@ -306,6 +306,11 @@ PG_Variety PG_DisaFileEntry::getData(std::size_t column, Identity identity) cons
 		return m_container;
 	case PG_Identity_PreviewImage:
 		return getPreviewImage();
+	case Identity_ExtraData:
+		return m_extraData;
+	case Identity_ExtraFields:
+		if (!m_parent) break;
+		return &m_parent->describeExtraData();
 	}
 	return PG_Variety();
 }
@@ -323,8 +328,20 @@ bool PG_DisaFileEntry::setData(const PG_Variety& data, Identity identity) {
 		else break;
 		return true;
 	} break;
+	case Identity_ExtraData: {
+		if (m_extraData == data) return false;
+		const bool rename = m_parent && nameRelevantChanged(m_parent->describeExtraData(), m_extraData, data);
+		m_extraData = data;
+		if (m_parent) m_parent->extraDataChanged(*this, rename);
+		return true;
+	} break;
 	}
 	return false;
+}
+
+const PG_DisaExtraFields& PG_DisaContainerInterface::describeExtraData() const {
+	static const PG_DisaExtraFields empty;
+	return empty;
 }
 
 void PG_DisaFileContainer::init() {
@@ -411,8 +428,9 @@ bool PG_DisaFileContainer::refresh(std::shared_ptr<PG::STREAM::In> reader) {
 		}
 		})) return FAILURE;
 
-	//the read data now holds the removals, so this container matches it again
+	//the read data now holds the removals and the edited extra data, so this container matches it again
 	m_filesRemoved = false;
+	m_entryDataChanged = false;
 	notifyIsModifiedChanged();
 	return SUCCESS;
 }
@@ -507,7 +525,8 @@ std::shared_ptr<PG::STREAM::In> PG_DisaFileContainer::createReaderOriginal() con
 
 
 bool PG_DisaFileContainer::isModified() const {
-	return m_filesRemoved || std::ranges::any_of(*this, [](const PG_DisaFileEntry& entry) { return entry.isModified(); });
+	return m_filesRemoved || m_entryDataChanged ||
+		std::ranges::any_of(*this, [](const PG_DisaFileEntry& entry) { return entry.isModified(); });
 }
 
 void PG_DisaFileContainer::notifyIsModifiedChanged() {
@@ -523,6 +542,21 @@ void PG_DisaFileContainer::notifyIsModifiedChanged() {
 
 void PG_DisaFileContainer::fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {
 	emit itemsChanged(entry.getLocation(), entry.getLocation(), { PG_Identity_Item, PG_DisaFileEntry::Identity_Modified });
+	notifyIsModifiedChanged();
+}
+
+void PG_DisaFileContainer::extraDataChanged(PG_DisaFileEntry& entry, bool rename) {
+	/* The file bytes are untouched, so no entry looks modified and the archive would still count as
+	 * clean. Only this flag makes the save reachable. */
+	m_entryDataChanged = true;
+
+	if (rename) {
+		if (std::string name = buildEntryName(entry); !name.empty() && name != entry.getName()) {
+			entry.getInfo().setName(name);
+			emit itemsChanged(entry.getLocation(), entry.getLocation(), { PG_Identity_Item, PG_Identity_Text });
+		}
+	}
+
 	notifyIsModifiedChanged();
 }
 

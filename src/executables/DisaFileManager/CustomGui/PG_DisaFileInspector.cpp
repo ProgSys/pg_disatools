@@ -9,7 +9,11 @@
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Scene/Gui/PG_GuiLines.h>
 #include <Scene/Gui/PG_GuiRow.h>
+#include <Scene/Gui/PG_GuiSpinBox.h>
 #include <Scene/Gui/PG_GuiText.h>
+#include <Scene/Gui/PG_GuiTextEdit.h>
+#include <Scene/Gui/PG_GuiTextField.h>
+#include <Scene/Gui/PG_GuiToggleButton.h>
 #include <Scene/Gui/PG_GuiTooltipArea.h>
 #include <Scene/Model/PG_ListModelLocation.h>
 #include <Util/PG_Dir.h>
@@ -26,6 +30,8 @@
 #include <Models/PG_UiStateBaseModel.h>
 
 #include <algorithm>
+#include <type_traits>
+#include <variant>
 #include <vector>
 
 constexpr float g_narrowWidth = 150.f; //below this the panel drops to the icon column
@@ -37,6 +43,9 @@ constexpr float g_margin = 12.f;
 constexpr float g_narrowMargin = 6.f;
 constexpr float g_spacing = 10.f;
 constexpr float g_headerHeight = 28.f;
+constexpr float g_fieldHeight = 32.f;
+constexpr float g_fieldLabelHeight = 22.f;
+constexpr float g_fieldGap = 10.f; //between one extra data row and the next, inside a row it is the column's own
 
 /// U+2022, swap it for a plain '-' should the font turn out to have no glyph for it
 constexpr const char* g_bullet = "\xE2\x80\xA2 ";
@@ -54,6 +63,29 @@ static PG_ListModelLocation lastSelectedOf(PG_Object* model) {
 
 static int selectionCountOf(PG_Object* model) {
 	return model ? std::max(0, model->getPropertyValue("selectionSize").toInt(0)) : 0;
+}
+
+/// What the file's container keeps about it beside the bytes, null when it keeps nothing
+static const PG_DisaExtraFields* extraFieldsOf(const PG_ListModelLocation& location) {
+	if (!location) return nullptr;
+	const PG_Variety data = location.getData(PG_DisaFileEntry::Identity_ExtraFields);
+	return data.is<const PG_DisaExtraFields*>() ? data.get<const PG_DisaExtraFields*>() : nullptr;
+}
+
+/**
+* @brief Puts one value back into the file's extra data
+* @details Read, change, write. A copy held from when the widget was built would carry the other
+* fields' values as they were then, and writing it back would undo whatever they did since.
+*/
+static void writeExtraValue(PG_ListModelLocation location, const PG_DisaExtraField& field, const PG_Variety& value) {
+	if (!location || !field.setValue) return;
+
+	PG_Variety extraData = location.getData(PG_DisaFileEntry::Identity_ExtraData);
+	//a text field also reports the text the panel itself just set, that is not an edit
+	if (field.getValue && field.getValue(extraData) == value) return;
+
+	field.setValue(extraData, value);
+	location.setData(std::move(extraData), PG_DisaFileEntry::Identity_ExtraData);
 }
 
 /// The file icon on the same rounded plate the action buttons sit on, for the narrow layout
@@ -234,6 +266,7 @@ void PG_DisaFileInspector::rebuild() {
 	m_infoBody = nullptr;
 	m_preview = nullptr;
 	m_iconArea = nullptr;
+	m_extraDataBlock = nullptr;
 	m_actionSlot = nullptr;
 	m_addButton = nullptr;
 	m_replaceButton = nullptr;
@@ -346,6 +379,15 @@ void PG_DisaFileInspector::buildWide() {
 		m_infoBody->setColor(PG_DisaColor::textFrgb);
 		m_infoBody->setWrapMode(PG_GuiText::None);
 	}
+
+	/* What the archive keeps about the file that the file itself doesn't hold. The height stays at
+	 * zero, so the column measures it from whatever updateExtraData grows and a file without extra
+	 * data costs nothing. */
+	m_extraDataBlock = PG_new<PG_GuiColumn>("extraData", column);
+	anchor(m_extraDataBlock, PG_Anchor::Left, column, PG_Anchor::Left);
+	anchor(m_extraDataBlock, PG_Anchor::Right, column, PG_Anchor::Right);
+	m_extraDataBlock->setSpacing(4.f);
+	m_extraDataBlock->setHeight(-1.f); //auto height
 }
 
 void PG_DisaFileInspector::buildNarrow() {
@@ -460,6 +502,130 @@ void PG_DisaFileInspector::updateAction() {
 	standIn->fill(m_actionSlot);
 }
 
+void PG_DisaFileInspector::updateExtraData() {
+	if (!m_extraDataBlock) return; //the narrow layout carries the values in the icon's tooltip instead
+	m_extraDataBlock->clearGuiChildren();
+
+	//a multi selection has no one file whose values these would be
+	const PG_ListModelLocation location = selectionCountOf(m_model) == 1 ? lastSelectedOf(m_model) : PG_ListModelLocation();
+
+	const PG_DisaExtraFields* fields = extraFieldsOf(location);
+	if (!fields || fields->empty()) return;
+
+	addSeparator(m_extraDataBlock);
+
+	auto* title = PG_new<PG_GuiText>("extraTitle", glm::vec2(0.f), glm::vec2(0.f, 30.f), std::string("Extra Data"), m_extraDataBlock);
+	anchor(title, PG_Anchor::Left, m_extraDataBlock, PG_Anchor::Left);
+	anchor(title, PG_Anchor::Right, m_extraDataBlock, PG_Anchor::Right);
+	title->setFontSize(24.f);
+	title->setColor(PG_DisaColor::textFrgb);
+	title->setWrapMode(PG_GuiText::None);
+
+	for (const PG_DisaExtraField& field : *fields) buildExtraField(location, field);
+}
+
+void PG_DisaFileInspector::buildExtraField(const PG_ListModelLocation& location, const PG_DisaExtraField& field) {
+	const PG_DisaExtraField* fieldPtr = &field; //the description belongs to the container and outlives the panel
+
+	const std::string& tooltip = field.tooltip;
+	/*
+	if (field.nameRelevant) {
+		if (!tooltip.empty()) tooltip += "\n";
+		tooltip += "The file name is built from this value";
+	}
+	*/
+
+	const PG_Variety extraData = location.getData(PG_DisaFileEntry::Identity_ExtraData);
+	const PG_Variety value = field.getValue ? field.getValue(extraData) : PG_Variety();
+
+	/* A spin box carries its own title, the others get a line of text above them. Adding a widget
+	 * later is one more alternative in PG_DisaExtraWidget and one more branch here. */
+	PG_GuiItem* widget = std::visit([&](const auto& kind) -> PG_GuiItem* {
+		using Kind = std::decay_t<decltype(kind)>;
+
+		if constexpr (std::is_same_v<Kind, PG_DisaExtraNumber>) {
+			PG_GuiSpinBox* box = kind.isInteger
+				? PG_GuiSpinBox::createInt("fieldValue", glm::vec2(0.f), glm::vec2(0.f, g_fieldHeight), (int)kind.min, (int)kind.max, m_extraDataBlock)
+				: PG_GuiSpinBox::createFloat("fieldValue", glm::vec2(0.f), glm::vec2(0.f, g_fieldHeight), (float)kind.min, (float)kind.max, m_extraDataBlock);
+			box->setTitle(field.title);
+			box->setStep(kind.step);
+			box->setValue(value.convert<double>());
+			box->setEnabled(!field.readOnly);
+			connect(box, &PG_GuiSpinBox::valueModefied, this, [this, location, fieldPtr](double edited) {
+				writeExtraValue(location, *fieldPtr, PG_Variety(edited));
+				updateName();
+				});
+			return box;
+		}
+		else if constexpr (std::is_same_v<Kind, PG_DisaExtraText>) {
+			auto* label = PG_new<PG_GuiText>("fieldLabel", glm::vec2(0.f), glm::vec2(0.f, g_fieldLabelHeight), field.title, m_extraDataBlock);
+			anchor(label, PG_Anchor::Left, m_extraDataBlock, PG_Anchor::Left);
+			anchor(label, PG_Anchor::Right, m_extraDataBlock, PG_Anchor::Right);
+			label->setFontSize(19.f);
+			label->setColor(PG_DisaColor::textFrgb);
+			label->setWrapMode(PG_GuiText::Elide);
+
+			auto* text = PG_new<PG_GuiTextField>("fieldValue", glm::vec2(0.f), glm::vec2(0.f, g_fieldHeight), m_extraDataBlock);
+			text->setBackground("M_GuiRoundedRectangleAll5");
+			text->setPlaceholderText(kind.placeholder);
+			text->setText(value.convert<std::string>());
+			if (auto* edit = text->getTextItem()) {
+				edit->setEnabled(!field.readOnly);
+				//textModified is the user's own typing, textChanged would also report the line above
+				connect(edit, &PG_GuiTextEdit::textModified, this, [this, location, fieldPtr, text] {
+					writeExtraValue(location, *fieldPtr, PG_Variety(text->getText()));
+					updateName();
+					});
+			}
+			return text;
+		}
+		else {
+			auto* label = PG_new<PG_GuiText>("fieldLabel", glm::vec2(0.f), glm::vec2(0.f, g_fieldLabelHeight), field.title, m_extraDataBlock);
+			anchor(label, PG_Anchor::Left, m_extraDataBlock, PG_Anchor::Left);
+			anchor(label, PG_Anchor::Right, m_extraDataBlock, PG_Anchor::Right);
+			label->setFontSize(19.f);
+			label->setColor(PG_DisaColor::textFrgb);
+			label->setWrapMode(PG_GuiText::Elide);
+
+			auto* toggle = PG_new<PG_GuiToggleButton>("fieldValue", glm::vec2(0.f), glm::vec2(g_fieldHeight), m_extraDataBlock);
+			toggle->setBackground("M_GuiRoundedRectangleAll5");
+			toggle->setToggled(value.is<bool>() ? value.get<bool>() : value.convert<int>() != 0);
+			toggle->setEnabled(!field.readOnly);
+			connect(toggle, &PG_GuiToggleButton::toggleChanged, this, [this, location, fieldPtr](bool edited) {
+				writeExtraValue(location, *fieldPtr, PG_Variety(edited));
+				updateName();
+				});
+			return toggle;
+		}
+		}, field.widget);
+
+	anchor(widget, PG_Anchor::Left, m_extraDataBlock, PG_Anchor::Left);
+	anchor(widget, PG_Anchor::Right, m_extraDataBlock, PG_Anchor::Right);
+	widget->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, g_fieldGap); //the gap that follows the row
+
+	if (tooltip.empty()) return;
+	//the area only watches the pointer, it never takes an event away from the widget below it
+	auto* area = PG_new<PG_GuiTooltipArea>("fieldTooltip", widget);
+	area->fill(widget);
+	area->setUseParent(false);
+	area->setTooltipText(tooltip);
+	
+}
+
+void PG_DisaFileInspector::updateName() {
+	if (selectionCountOf(m_model) != 1) return;
+
+	//the container answers a edit of a name relevant value with a rename, the header shows that name
+	const std::string name = columnText(0);
+	if (m_name) m_name->setText(name);
+	if (m_iconArea) {
+		std::string tooltip = name;
+		if (std::string info = buildInfoText(); !info.empty()) tooltip += "\n" + info;
+		if (std::string extra = buildExtraDataText(); !extra.empty()) tooltip += "\n" + extra;
+		m_iconArea->setTooltipText(tooltip);
+	}
+}
+
 /// Only the narrow column needs this, the wide row sizes the group through the layout properties
 void PG_DisaFileInspector::setButtonSide(float side) {
 	for (PG_GuiItem* item : { m_actionSlot, (PG_GuiItem*)m_addButton, (PG_GuiItem*)m_replaceButton,
@@ -551,6 +717,7 @@ void PG_DisaFileInspector::updateSelection() {
 	if (m_infoBody) m_infoBody->setText(buildInfoText());
 
 	updateAction();
+	updateExtraData();
 
 	//one file shows what its type maps to, a pile of them has no one type to show
 	if (m_fileIcon) {
@@ -560,6 +727,7 @@ void PG_DisaFileInspector::updateSelection() {
 
 	if (m_iconArea) {
 		if (std::string info = buildInfoText(); !info.empty()) title += "\n" + info;
+		if (std::string extra = buildExtraDataText(); !extra.empty()) title += "\n" + extra;
 		m_iconArea->setTooltipText(title);
 	}
 
@@ -591,6 +759,24 @@ std::string PG_DisaFileInspector::buildInfoText() const {
 	return g_bullet + std::string("Type: ") + columnText(1) +
 		"\n" + g_bullet + "Size: " + columnText(2) +
 		"\n" + g_bullet + "Index: " + columnText(3);
+}
+
+std::string PG_DisaFileInspector::buildExtraDataText() const {
+	if (selectionCountOf(m_model) != 1) return {};
+
+	const PG_ListModelLocation location = lastSelectedOf(m_model);
+	const PG_DisaExtraFields* fields = extraFieldsOf(location);
+	if (!fields || fields->empty()) return {};
+
+	const PG_Variety extraData = location.getData(PG_DisaFileEntry::Identity_ExtraData);
+
+	std::string out;
+	for (const PG_DisaExtraField& field : *fields) {
+		if (!field.getValue) continue;
+		if (!out.empty()) out += "\n";
+		out += g_bullet + field.title + ": " + field.getValue(extraData).convert<std::string>();
+	}
+	return out;
 }
 
 std::string PG_DisaFileInspector::columnText(int column) const {

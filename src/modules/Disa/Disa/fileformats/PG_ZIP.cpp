@@ -505,6 +505,7 @@ bool PG_ZIP::refresh(std::shared_ptr<PG::STREAM::In> reader)  {
     m_originalZip = nullptr;
     m_originalReader.reset();
     m_filesRemoved = false;
+    m_entryDataChanged = false;
     notifyIsModifiedChanged();
 
     return SUCCESS;
@@ -608,7 +609,7 @@ std::shared_ptr<PG::STREAM::In> PG_ZIP::createReaderFromZip(zip* zip, const PG_D
 bool PG_ZIP::save() {
     if (getFile().isEmpty()) return FAILURE;
 
-    if (m_filesRemoved) {
+    if (m_filesRemoved || m_entryDataChanged) {
         return PG_DisaFileContainer::save();
     }
 

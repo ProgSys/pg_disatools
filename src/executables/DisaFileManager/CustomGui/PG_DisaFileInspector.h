@@ -33,10 +33,13 @@
 
 class PG_DisaPreviewItem;
 class PG_GuiButton;
+class PG_GuiColumn;
 class PG_GuiImage;
 class PG_GuiText;
 class PG_GuiTooltipArea;
+class PG_ListModelLocation;
 class PG_UiStateBaseModel;
+struct PG_DisaExtraField;
 
 /**
 * @brief The right hand panel of the file manager, describing whatever is selected in the table.
@@ -77,8 +80,16 @@ private:
 	/// Fills the action slot with what the selected file offers, or with the stand in
 	void updateAction();
 	void updateSelection();
+	/// Grows a row per value the selected file's container describes, or leaves the block empty
+	void updateExtraData();
+	/// One row of the extra data block, the widget picked by what the field asks for
+	void buildExtraField(const PG_ListModelLocation& location, const PG_DisaExtraField& field);
+	/// The header name only, for after an edit the container answered with a rename
+	void updateName();
 
 	std::string buildInfoText() const;
+	/// The extra data as 'title: value' lines, what the narrow layout shows instead of the rows
+	std::string buildExtraDataText() const;
 	/// The text the file table would show in that column of the selected row
 	std::string columnText(int column) const;
 
@@ -92,6 +103,8 @@ private:
 	PG_GuiText* m_infoBody = nullptr;
 	PG_DisaPreviewItem* m_preview = nullptr;
 	PG_GuiTooltipArea* m_iconArea = nullptr;
+	/// Holds a row per extra data value, and measures to nothing for a file that has none
+	PG_GuiColumn* m_extraDataBlock = nullptr;
 	/// Heads the button group and holds either an action button or the stand in, @see updateAction
 	PG_GuiItem* m_actionSlot = nullptr;
 	PG_GuiButton* m_addButton = nullptr;

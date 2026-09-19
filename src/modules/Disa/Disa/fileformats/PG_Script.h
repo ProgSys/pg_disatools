@@ -44,6 +44,8 @@ public:
     bool save(std::shared_ptr<PG::STREAM::Out> writer) const final;
 
     PG_Variety createDefaultExtraData(const std::string& filename = {}) final { return PG_Variety(buildScriptId(filename)); }
+    const PG_DisaExtraFields& describeExtraData() const final;
+    std::string buildEntryName(const PG_DisaFileEntry& entry) const final;
 
     /*!
      * @brief The script ID an entry is stored under, it is what the game references a script by.

@@ -24,6 +24,8 @@
 
 #include "PG_SOLA.h"
 #include <algorithm>
+#include <limits>
+#include <sstream>
 
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamOutByteFile.h>
@@ -82,12 +84,57 @@ static inline std::map<unsigned short, std::string> readFileNames(std::string fi
 }
 
 
+const PG_DisaExtraFields& PG_SOLA::describeExtraData() const {
+	static const PG_DisaExtraFields fields =
+		makeIdDescription<unsigned short>("Sprite ID", "What the game references this sprite sheet by");
+	return fields;
+}
+
+std::string PG_SOLA::buildEntryName(const PG_DisaFileEntry& entry) const {
+	return buildName(getSpriteId(entry));
+}
+
+std::string PG_SOLA::buildName(unsigned short spriteId) const {
+	std::stringstream o;
+	o.fill('0');
+	o.width(4);
+	o << spriteId << "_";
+
+	if (auto findIt = m_nameTable.find(spriteId); findIt != m_nameTable.end() && !findIt->second.empty()) {
+		o << findIt->second;
+	}
+	else {
+		o << "FILE." << m_fileExtension;
+	}
+
+	return o.str();
+}
+
+unsigned short PG_SOLA::buildSpriteId(const std::string& filename) {
+	//a file name is whatever the user typed, so a name that is no number carries no id
+	try {
+		const long long value = std::stoll(PG_File(filename).getName());
+		if (value < 0 || value > std::numeric_limits<unsigned short>::max()) return 0;
+		return (unsigned short)value;
+	} catch (...) {
+		return 0;
+	}
+}
+
+unsigned short PG_SOLA::getSpriteId(const PG_DisaFileEntry& entry) {
+	//a entry read from a SOLA keeps its id, one the user added only has the name it was given
+	if (const PG_Variety& extraData = entry.getExtraData(); extraData.is<unsigned short>()) {
+		return extraData.get<unsigned short>();
+	}
+	return buildSpriteId(entry.getInfo().getName().getFile());
+}
+
 bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
 	FILE_CONTAINER_ERROR_TEST(!reader->isOpen(), "Reader is not open!");
 
-	std::map<unsigned short, std::string> nameTable;
+	m_nameTable.clear();
 	if (auto entry = getParentEntry()) {
-		nameTable = readFileNames(entry.getInfo().getName());
+		m_nameTable = readFileNames(entry.getInfo().getName());
 	}
 
 	unsigned int fileSize = reader->size();
@@ -105,7 +152,7 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<v
 	reader->seek(lastOffset);
 	const auto fileType = PG_DisaFileInfo::typeFromFileFormat(reader.get());
 	reader->seek(lastLoc);
-	const std::string_view fileExt = PG_DisaFileInfo::toFileExtension(fileType);
+	m_fileExtension = PG_DisaFileInfo::toFileExtension(fileType);
 
 	for (unsigned int i = 0; i < numberOfFiles; ++i) {
 		PG_DisaFileEntry entry = PG_DisaFileEntry(this);
@@ -138,20 +185,8 @@ bool PG_SOLA::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<v
 
 	auto it = chractersIDs.begin();
 	for (auto& entry: contains) {
-		std::stringstream o;
-		o.fill('0');
-		o.width(4);
-		o << *it;
-		o << "_";
-
-		if (auto findIt = nameTable.find(*it); findIt != nameTable.end() && !findIt->second.empty()) {
-			o << findIt->second;
-		}
-		else {
-			o << "FILE." << fileExt;
-		}
 		entry.setExtraData(*it);
-		entry.getInfo().setName(o.str());
+		entry.getInfo().setName(buildName(*it));
 		reader->seek(entry.getInfo().getOffset());
 		++it;
 	}
@@ -184,7 +219,7 @@ bool PG_SOLA::save(std::shared_ptr<PG::STREAM::Out> writer) const{
 	auto idIt = idTable.begin();
 	for (const auto& entry : *this) {
 		*tableIt = writer->pos() - startPos;
-		*idIt = entry.getExtraData().get<unsigned short>();
+		*idIt = getSpriteId(entry);
 
 		auto reader = entry.createReader();
 		if (!reader || !reader->isOpen()) {

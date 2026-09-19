@@ -49,6 +49,8 @@ public:
 	bool save(std::shared_ptr<PG::STREAM::Out> writer) const final;
 
 	PG_Variety createDefaultExtraData(const std::string& filename = {}) final { return PG_Variety(buildScriptInfo(filename)); }
+	const PG_DisaExtraFields& describeExtraData() const final;
+	std::string buildEntryName(const PG_DisaFileEntry& entry) const final;
 
 	/*!
 	 * @brief The file table entry a entry is stored under.

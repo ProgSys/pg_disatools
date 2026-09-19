@@ -48,16 +48,22 @@ static inline unsigned int toUnsignedInt(const std::string& str, unsigned int fa
 	}
 }
 
-static inline void appendFilters(std::stringstream& o, char sign, const std::array<PG_DisaGameStateFilter, 4>& filters, unsigned int count) {
+static inline std::string formatFilters(const std::array<PG_DisaGameStateFilter, 4>& filters, unsigned int count) {
 	count = std::min(count, (unsigned int)filters.size());
-	if (count == 0) return; //a filter list the game doesn't look at has no place in the name
 
-	o << sign <<"(";
+	std::stringstream o;
 	for (unsigned int i = 0; i < count; ++i) {
 		if (i != 0) o << ',';
 		o << filters[i].getValue();
 	}
-	o << ")";
+	return o.str();
+}
+
+static inline void appendFilters(std::stringstream& o, char sign, const std::array<PG_DisaGameStateFilter, 4>& filters, unsigned int count) {
+	const std::string list = formatFilters(filters, count);
+	if (list.empty()) return; //a filter list the game doesn't look at has no place in the name
+
+	o << sign << "(" << list << ")";
 }
 
 static inline void parseFilters(const std::string& list, std::array<PG_DisaGameStateFilter, 4>& filters, std::uint16_t& count) {
@@ -67,6 +73,81 @@ static inline void parseFilters(const std::string& list, std::array<PG_DisaGameS
 		if (count >= filters.size()) break;
 		filters[count++].setValue((std::uint16_t)toUnsignedInt(value));
 	}
+}
+
+/// The file table entry inside a entry's extra data, all zero when there is none yet
+static inline PG_DisaTalkDatScriptEntry infoOf(const PG_Variety& extraData) {
+	if (extraData.is<PG_DisaTalkDatScriptEntry>()) return extraData.get<PG_DisaTalkDatScriptEntry>();
+	return PG_DisaTalkDatScriptEntry{};
+}
+
+/// One whole number of the file table entry, reached through a getter and a setter on the struct
+static PG_DisaExtraField makeNumberField(std::string title, std::string tooltip, double max,
+	const std::function<unsigned int(const PG_DisaTalkDatScriptEntry&)>& get,
+	const std::function<void(PG_DisaTalkDatScriptEntry&, unsigned int)>& set) {
+	PG_DisaExtraField field;
+	field.title = std::move(title);
+	field.tooltip = std::move(tooltip);
+	field.widget = PG_DisaExtraNumber{ 0.0, max };
+	field.nameRelevant = true; //every value here shows up in the name a nameless script gets
+	field.getValue = [get](const PG_Variety& extraData) { return PG_Variety(get(infoOf(extraData))); };
+	field.setValue = [set](PG_Variety& extraData, const PG_Variety& value) {
+		PG_DisaTalkDatScriptEntry info = infoOf(extraData);
+		set(info, (unsigned int)value.convert<double>());
+		extraData = info;
+		};
+	return field;
+}
+
+/// One of the two game state filter lists, as the comma separated numbers the script commands count in
+static PG_DisaExtraField makeFilterField(std::string title, std::string tooltip, bool positive) {
+	PG_DisaExtraField field;
+	field.title = std::move(title);
+	field.tooltip = std::move(tooltip);
+	field.widget = PG_DisaExtraText{ "none" };
+	field.nameRelevant = true;
+	field.getValue = [positive](const PG_Variety& extraData) {
+		const PG_DisaTalkDatScriptEntry info = infoOf(extraData);
+		return PG_Variety(positive ? formatFilters(info.gameStateFilterPositive, info.gameStateFilterPositiveSize)
+			: formatFilters(info.gameStateFilterNegative, info.gameStateFilterNegativeSize));
+		};
+	field.setValue = [positive](PG_Variety& extraData, const PG_Variety& value) {
+		PG_DisaTalkDatScriptEntry info = infoOf(extraData);
+		const std::string list = value.convert<std::string>();
+		if (positive) parseFilters(list, info.gameStateFilterPositive, info.gameStateFilterPositiveSize);
+		else parseFilters(list, info.gameStateFilterNegative, info.gameStateFilterNegativeSize);
+		extraData = info;
+		};
+	return field;
+}
+
+const PG_DisaExtraFields& PG_TalkScript::describeExtraData() const {
+	//startAddress is left out, the save works it out from where the script data lands
+	static const PG_DisaExtraFields fields = [] {
+		PG_DisaExtraFields out;
+		/* PG_GuiSpinBox counts in double and its int setup takes int bounds, so the full unsigned
+		 * range of a script ID does not fit. Real IDs are far below that. */
+		out.push_back(makeNumberField("Script ID", "What the game references this script by, 0 when it has none",
+			(double)std::numeric_limits<int>::max(),
+			[](const PG_DisaTalkDatScriptEntry& info) { return (unsigned int)info.scriptId; },
+			[](PG_DisaTalkDatScriptEntry& info, unsigned int value) { info.scriptId = value; }));
+		out.push_back(makeNumberField("Dungeon ID", "The dungeon a script without a ID is searched in",
+			(double)std::numeric_limits<std::uint16_t>::max(),
+			[](const PG_DisaTalkDatScriptEntry& info) { return (unsigned int)info.dungeonId; },
+			[](PG_DisaTalkDatScriptEntry& info, unsigned int value) { info.dungeonId = (std::uint16_t)value; }));
+		out.push_back(makeNumberField("Search Flag", "Narrows the search further, mostly 0-2 and 102-111",
+			(double)std::numeric_limits<std::uint16_t>::max(),
+			[](const PG_DisaTalkDatScriptEntry& info) { return (unsigned int)info.searchFlag; },
+			[](PG_DisaTalkDatScriptEntry& info, unsigned int value) { info.searchFlag = (std::uint16_t)value; }));
+		out.push_back(makeFilterField("Positive Filters", "Game state bits that have to be set, up to four, comma separated", true));
+		out.push_back(makeFilterField("Negative Filters", "Game state bits that have to be clear, up to four, comma separated", false));
+		return out;
+		}();
+	return fields;
+}
+
+std::string PG_TalkScript::buildEntryName(const PG_DisaFileEntry& entry) const {
+	return buildScriptName(getScriptInfo(entry));
 }
 
 std::string PG_TalkScript::buildScriptName(const PG_DisaTalkDatScriptEntry& info) {

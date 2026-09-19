@@ -23,6 +23,7 @@
  */
 #include "PG_KM3.h"
 
+#include <limits>
 #include <sstream>
 
 #include <Util/Debug/PG_DebugOut.h>
@@ -33,6 +34,43 @@ static constexpr unsigned int alignUp(unsigned int value) {
 	constexpr unsigned int alignment = 16; //every entry starts on a 16 byte boundary, the game expects the model data aligned
 	const unsigned int rest = value % alignment;
 	return rest ? value + (alignment - rest) : value;
+}
+
+const PG_DisaExtraFields& PG_KM3::describeExtraData() const {
+	static const PG_DisaExtraFields fields =
+		makeIdDescription<unsigned short>("Effect ID", "What the game references this effect by");
+	return fields;
+}
+
+std::string PG_KM3::buildEntryName(const PG_DisaFileEntry& entry) const {
+	return buildEffectName(getEffectId(entry));
+}
+
+std::string PG_KM3::buildEffectName(unsigned short effectId) {
+	std::stringstream o;
+	o.fill('0');
+	o.width(4);
+	o << effectId << ".GEO";
+	return o.str();
+}
+
+unsigned short PG_KM3::buildEffectId(const std::string& filename) {
+	//a file name is whatever the user typed, so a name that is no number carries no id
+	try {
+		const long long value = std::stoll(PG_File(filename).getName());
+		if (value < 0 || value > std::numeric_limits<unsigned short>::max()) return 0;
+		return (unsigned short)value;
+	} catch (...) {
+		return 0;
+	}
+}
+
+unsigned short PG_KM3::getEffectId(const PG_DisaFileEntry& entry) {
+	//a entry read from a KM3 keeps its id, one the user added only has the name it was given
+	if (const PG_Variety& extraData = entry.getExtraData(); extraData.is<unsigned short>()) {
+		return extraData.get<unsigned short>();
+	}
+	return buildEffectId(entry.getInfo().getName().getFile());
 }
 
 unsigned int PG_KM3::computeHeaderSize(unsigned int numberOfFiles) {
@@ -71,14 +109,8 @@ bool PG_KM3::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<vo
 		FILE_CONTAINER_ERROR_TEST(sizes[i] > fileSize - offset,
 			"Entry " << i << " is outside the range (" << offset << " + " << sizes[i] << " > " << fileSize << ")!");
 
-		{
-			std::stringstream o;
-			o.fill('0');
-			o.width(4);
-			o << ids[i] << ".GEO";
-			info.setName(o.str());
-			info.setType(PG_DisaFileInfo::GEO);
-		}
+		info.setName(buildEffectName(ids[i]));
+		info.setType(PG_DisaFileInfo::GEO);
 
 		entry.setExtraData(ids[i]);
 		entry.setInfo(std::move(info));
@@ -135,7 +167,7 @@ bool PG_KM3::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 		}
 
 		*sizeIt = writer->pos() - entryStart;
-		*idIt = entry.getExtraData().get<unsigned short>();
+		*idIt = getEffectId(entry);
 		++sizeIt;
 		++idIt;
 	}

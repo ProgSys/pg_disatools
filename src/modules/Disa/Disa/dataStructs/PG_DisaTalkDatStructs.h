@@ -38,6 +38,8 @@ PACK(struct PG_DisaGameStateFilter // 2 bytes
 	}
 
 	inline bool isEmpty() const { return bitIndex == 0 && index == 0; }
+
+	bool operator==(const PG_DisaGameStateFilter& other) const = default;
 });
 static_assert(sizeof(PG_DisaGameStateFilter) == 2, "A game state filter is 2 byte!");
 
@@ -61,5 +63,8 @@ PACK(struct PG_DisaTalkDatScriptEntry // 32 bytes
 	std::uint16_t gameStateFilterNegativeSize; //0-4
 	std::array<PG_DisaGameStateFilter, 4> gameStateFilterPositive;
 	std::array<PG_DisaGameStateFilter, 4> gameStateFilterNegative;
+
+	/// Compares every member, the filters past the two sizes included
+	bool operator==(const PG_DisaTalkDatScriptEntry& other) const = default;
 });
 static_assert(sizeof(PG_DisaTalkDatScriptEntry) == 32, "A TALK.DAT file table entry is 32 byte!");

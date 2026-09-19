@@ -43,6 +43,24 @@ public:
     bool open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) final;
     bool save(std::shared_ptr<PG::STREAM::Out> writer) const final;
 
+    PG_Variety createDefaultExtraData(const std::string& filename = {}) final { return PG_Variety(buildEffectId(filename)); }
+    const PG_DisaExtraFields& describeExtraData() const final;
+    std::string buildEntryName(const PG_DisaFileEntry& entry) const final;
+
     /// Size of the header for the given entry count, the entry data starts right after it
     static unsigned int computeHeaderSize(unsigned int numberOfFiles);
+
+    /*!
+     * @brief The id an entry is stored under, it is what the game references an effect by.
+     * @details Taken from the id list when the entry was read, otherwise rebuilt from the file
+     * name, which is how a file the user added gets its id.
+     */
+    static unsigned short getEffectId(const PG_DisaFileEntry& entry);
+    /// The file name an entry with the given id gets, like '0012.GEO'
+    static std::string buildEffectName(unsigned short effectId);
+    /*!
+     * @brief The id a file name describes, the reverse of buildEffectName.
+     * @details A name that is no effect name at all gives 0.
+     */
+    static unsigned short buildEffectId(const std::string& filename);
 };

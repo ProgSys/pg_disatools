@@ -30,6 +30,7 @@
 #include <Util/Typedefs.h>
 #include <Util/PG_File.h>
 #include <Scene/Model/PG_TableModel.h>
+#include <Disa/fileformats/PG_DisaExtraData.h>
 #include <Disa/fileformats/PG_DisaFileInfo.h>
 #include <Stream/PG_StreamIn.h>
 #include <Stream/PG_StreamInOutByteArray.h>
@@ -75,6 +76,8 @@ public:
     enum EDisaFileEntryIdentity : Identity {
         Identity_Modified = EIdentity::PG_Identity_Custom,
         Identity_Container,
+        Identity_ExtraData, /// the extra data itself, readable and writable
+        Identity_ExtraFields, /// const PG_DisaExtraFields* of the parent container, read only
     };
 
     friend PG_DisaFileContainer;
@@ -229,6 +232,17 @@ public:
     * @returns Empty when the container has no extra data
     */
     virtual PG_Variety createDefaultExtraData(const std::string& filename = {}) { return {}; }
+    /**
+    * @brief What the entries' extra data holds, so a editor can put a widget on each value
+    * @details The description belongs to the container and outlives any single entry.
+    * @returns Empty when the container has no extra data
+    */
+    virtual const PG_DisaExtraFields& describeExtraData() const;
+    /**
+    * @brief The name a entry gets from its current extra data
+    * @returns Empty when the name does not follow the extra data
+    */
+    virtual std::string buildEntryName(const PG_DisaFileEntry& entry) const { return {}; }
 
     using PG_DisaFileInterface::open;
     using PG_DisaFileInterface::save;
@@ -245,6 +259,11 @@ public:
     virtual bool refresh() { return FAILURE; };
 protected:
     virtual void fileEntryModefiedChanged(const PG_DisaFileEntry& entry) {/* does nothing by default*/ }
+    /**
+    * @brief Called after a entry's extra data was replaced
+    * @param rename True when a value the entry's name is built from changed, @see PG_DisaExtraField
+    */
+    virtual void extraDataChanged(PG_DisaFileEntry& entry, bool rename) {/* does nothing by default*/ }
 
     int m_parentFileEntryLocation = -1;
     //std::shared_ptr<PG_DisaFileInterface> m_disaFileParent; //children keep parent alive, kinda like in real life
@@ -326,10 +345,12 @@ protected:
     */
     void notifyIsModifiedChanged();
     void fileEntryModefiedChanged(const PG_DisaFileEntry& entry) override;
+    void extraDataChanged(PG_DisaFileEntry& entry, bool rename) override;
     std::unordered_map<std::string, const PG_DisaFileEntry*> getEntiesWithContainer() const;
 
     PG_File m_file;
     bool m_filesRemoved = false;
+    bool m_entryDataChanged = false; //a entry's extra data was edited, the file bytes did not change
     mutable std::shared_ptr<PG::STREAM::In> m_originalReader; //for optimasation so we don't create a new reader for each file none stop
 };
 
