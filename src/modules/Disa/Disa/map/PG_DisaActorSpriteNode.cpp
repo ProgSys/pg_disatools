@@ -307,6 +307,7 @@ bool PG_DisaActorSpriteNode::event(PG_Event* e) {
 			std::string aniName = std::to_string(choice->animation);
 			if (node->getAnimationName() != aniName) {
 				node->setAnimation(aniName, true);
+				node->setPaused(false);
 			}
 			setMirrored(choice->mirrored);
 		}
