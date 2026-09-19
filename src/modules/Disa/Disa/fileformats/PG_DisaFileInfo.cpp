@@ -110,12 +110,12 @@ PG_DisaFileInfo::Type PG_DisaFileInfo::typeFromFileFormat(PG::STREAM::In* reader
         PairType{Type::PSPFS_V1, &PG_Disa::isPSPFS},
         PairType{Type::IMY, &PG_Disa::isIMY},
         PairType{Type::COLA, &PG_Disa::isIMYPackage},
+        PairType{Type::KM3, &PG_Disa::isKM3}, //before the offset list archives, a size table can pass as an offset table
         PairType{Type::SOLA, &PG_Disa::isSOLA},
         PairType{Type::SCRIPT, &PG_Disa::isScript},
         PairType{Type::TALK_SCRIPT, &PG_Disa::isTalkScript},
         PairType{Type::TX2, &PG_Disa::isTX2},
         PairType{Type::GEO, &PG_Disa::isGeo},
-        PairType{Type::KM3, &PG_Disa::isKM3}, //must go before OLA, its size table also passes as an offset table
         PairType{Type::OLA, &PG_Disa::isOLA},
         PairType{Type::SH, &PG_Disa::isSH},
     };

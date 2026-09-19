@@ -23,6 +23,7 @@
  */
 
 #include "PG_DisaFileTests.h"
+#include <algorithm>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Util/Typedefs.h>
 #include <Disa/fileformats/PG_TX2.h>
@@ -74,23 +75,46 @@ unsigned int PG_Disa::getIMYPackageSize(PG::STREAM::In* reader) {
 	return 0;
 }
 
+/**
+* @brief Tests the offset table that the offset list archives start with.
+* @param numberOfFiles Entry count, already read from the stream, so the reader sits on the table.
+* @param headerSize The earliest position an entry may start at.
+* @details open() takes each entry's size from the gap to the next offset, so an offset may never
+* run backwards or leave the file. Checking only a few scattered ones lets any table of unordered
+* numbers through, a KM3 size table among them.
+*/
+static bool testOffsetTable(PG::STREAM::In* reader, unsigned int numberOfFiles, unsigned int headerSize) {
+	const unsigned int readerSize = reader->size();
+	if (headerSize >= readerSize) return FAILURE;
+
+	constexpr unsigned int maxTested = 100; //a run this long already rules out anything that isn't an offset table
+	const unsigned int tested = std::min(numberOfFiles, maxTested);
+
+	std::vector<unsigned int> offsets;
+	reader->read(offsets, tested);
+	unsigned int previous = headerSize;
+	for (unsigned int fileOffset : offsets) {
+		if (fileOffset < previous || fileOffset >= readerSize) return FAILURE;
+		previous = fileOffset;
+	}
+
+	if (numberOfFiles > tested) { //the far end of the table has to be sane too
+		reader->skip(sizeof(unsigned int) * (numberOfFiles - tested - 1));
+		const unsigned int lastOffset = reader->readUnsignedInt();
+		if (lastOffset < previous || lastOffset >= readerSize) return FAILURE;
+	}
+
+	return SUCCESS;
+}
+
 bool PG_Disa::isOLA(const PG_File& file) {
 	return openFile(file, isOLA);
 }
 bool PG_Disa::isOLA(PG::STREAM::In* reader) {
 	const unsigned int numberOfFiles = reader->readUnsignedInt();
 	if (numberOfFiles == 0 || numberOfFiles > 90000) return FAILURE;
-	const unsigned int headerSize = sizeof(unsigned int) + sizeof(unsigned int) * numberOfFiles;
-	const unsigned int readerSize = reader->size();
 
-	unsigned int fileOffset = reader->readUnsignedInt();
-	if (headerSize >= readerSize || fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
-	if (numberOfFiles == 1) return SUCCESS;
-	reader->skip(headerSize - sizeof(unsigned int) * 3);
-	fileOffset = reader->readUnsignedInt();
-	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
-
-	return SUCCESS;
+	return testOffsetTable(reader, numberOfFiles, sizeof(unsigned int) + sizeof(unsigned int) * numberOfFiles);
 }
 
 bool PG_Disa::isSOLA(const PG_File& file) {
@@ -99,20 +123,9 @@ bool PG_Disa::isSOLA(const PG_File& file) {
 bool PG_Disa::isSOLA(PG::STREAM::In* reader) {
 	const unsigned int numberOfFiles = reader->readUnsignedInt();
 	if (numberOfFiles == 0 || numberOfFiles > 90000) return FAILURE;
-	const unsigned int headerSize = sizeof(unsigned int) + sizeof(unsigned int) * numberOfFiles + sizeof(unsigned short) * numberOfFiles;
-	const unsigned int readerSize = reader->size();
 
-	unsigned int fileOffset = reader->readUnsignedInt();
-	if (headerSize >= readerSize || fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
-	if (numberOfFiles == 1) return SUCCESS;
-	fileOffset = reader->readUnsignedInt();
-	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
-	if (numberOfFiles == 2) return SUCCESS;
-	reader->skip(sizeof(unsigned int) * (numberOfFiles - 3));
-	fileOffset = reader->readUnsignedInt(); //last file
-	if (fileOffset < headerSize || fileOffset >= readerSize) return FAILURE;
-
-	return SUCCESS;
+	return testOffsetTable(reader, numberOfFiles,
+		sizeof(unsigned int) * (1 + numberOfFiles) + sizeof(unsigned short) * numberOfFiles);
 }
 
 bool PG_Disa::isKM3(const PG_File& file) {
