@@ -384,8 +384,8 @@ void applyFacing(PG_DisaSpriteModel* actor, const std::optional<float>& facing) 
 	if (facing) actor->setRotation(*facing);
 }
 
-/// The slot table of the chain the lane belongs to, which owns slots 64 to 95.
-PG_DisaScriptSlots* slotsOf(PG_DisaScriptExecutor& executor, std::size_t laneIndex) {
+/// The chain's view of the map's actors, which owns slots 64 to 95 and passes the rest through.
+PG_DisaActorScriptViewModel* slotsOf(PG_DisaScriptExecutor& executor, std::size_t laneIndex) {
 	return executor.getLane(laneIndex).slots.get();
 }
 
@@ -407,7 +407,7 @@ std::vector<PG_DisaSpriteModel*> actorsOf(PG_DisaScriptExecutor& executor, std::
 */
 PG_DisaSpriteModel* spawnIntoSlot(PG_DisaScriptExecutor& executor, std::size_t laneIndex, int slot) {
 	PG_DisaContext& context = executor.context();
-	PG_DisaScriptSlots* scriptSlots = slotsOf(executor, laneIndex);
+	PG_DisaActorScriptViewModel* scriptSlots = slotsOf(executor, laneIndex);
 
 	const bool existed = context.resolveSlot(slot, scriptSlots) != nullptr;
 	PG_DisaSpriteModel* actor = context.takeSlot(slot, scriptSlots);
@@ -1144,7 +1144,10 @@ int PG_DisaScriptExecutor::addLane(const PG_DisaFileEntry& entry, PG_DisaScriptL
 
 	//a lane started by another shares its slots, one the user started opens a chain of its own
 	if (parentLane >= 0 && parentLane < static_cast<int>(m_lanes.size())) lane.slots = m_lanes[parentLane].slots;
-	if (!lane.slots) lane.slots = std::make_shared<PG_DisaScriptSlots>(context().getMapActors());
+	if (!lane.slots) {
+		auto* map = context().getMapActors();
+		if (map) lane.slots.reset(map->createScriptViewModel());
+	}
 	if (type == PG_DisaScriptLane::Talk) parseTalkScript(code, lane);
 	else parseScript(code, lane);
 

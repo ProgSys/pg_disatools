@@ -38,10 +38,9 @@
 #include <Base/PG_Lifeline.h>
 
 #include "PG_DisaAnimationComponent.h"
-#include "PG_DisaScriptSlots.h"
+#include <Disa/map/PG_DisaActorListModel.h>
 
 class PG_DisaSpriteModel;
-class PG_DisaActorListModel;
 class PG_DisaMapModel;
 
 /**
@@ -98,7 +97,7 @@ public:
 	* @brief Everything standing on the map, the units it placed and what a script spawned alike.
 	* @details There is one list and the map view draws it, so a script actor needs no view of its
 	* own. Slots 0 to 63 and the ones above 200 are numbered here, 64 to 95 by the running chain.
-	* @see PG_DisaScriptSlots
+	* @see PG_DisaActorScriptViewModel
 	*/
 	PG_DisaActorListModel* getMapActors() const;
 
@@ -108,19 +107,19 @@ public:
 	* slots the game has (101, 151, 160 and up) need a running battle, so they find nothing.
 	* @returns null when the slot holds no actor.
 	*/
-	PG_DisaSpriteModel* resolveSlot(int slot, const PG_DisaScriptSlots* scriptSlots = nullptr) const;
+	PG_DisaSpriteModel* resolveSlot(int slot, const PG_DisaActorScriptViewModel* scriptSlots = nullptr) const;
 	/// Every actor a slot stands for, which is more than one only for the group slots.
-	std::vector<PG_DisaSpriteModel*> resolveSlots(int slot, const PG_DisaScriptSlots* scriptSlots = nullptr) const;
+	std::vector<PG_DisaSpriteModel*> resolveSlots(int slot, const PG_DisaActorScriptViewModel* scriptSlots = nullptr) const;
 
 	/// Makes the actor of a script slot, or hands back the one already in it. @see SetActor
-	PG_DisaSpriteModel* takeSlot(int slot, PG_DisaScriptSlots* scriptSlots = nullptr);
+	PG_DisaSpriteModel* takeSlot(int slot, PG_DisaActorScriptViewModel* scriptSlots = nullptr);
 
 	/**
 	* @brief Position the coordinates of a slot are counted from, in tile units.
 	* @details A script gives a position relative to a parent slot, and the map origin for the
 	* slots that name no actor.
 	*/
-	glm::vec3 getSlotOrigin(int slot, const PG_DisaScriptSlots* scriptSlots = nullptr) const;
+	glm::vec3 getSlotOrigin(int slot, const PG_DisaActorScriptViewModel* scriptSlots = nullptr) const;
 
 	/// Turns the coordinates in a script into the tile units the models are in.
 	static inline glm::vec3 toTileUnits(const glm::vec3& scriptUnits) { return (scriptUnits * glm::vec3(-1.f, -1.f, 1.f)) / unitsPerTile; }

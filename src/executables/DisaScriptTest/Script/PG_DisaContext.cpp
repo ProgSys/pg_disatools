@@ -7,6 +7,7 @@
 #include <Util/Debug/PG_DebugOut.h>
 
 #include <Disa/map/PG_DisaActorListModel.h>
+#include <Disa/map/PG_DisaSpriteModel.h>
 
 PG_DisaActorListModel* PG_DisaContext::getMapActors() const {
 	return m_mapModel ? m_mapModel->getActors() : nullptr;
@@ -18,26 +19,31 @@ void PG_DisaContext::setMapModel(PG_DisaMapModel* model) {
 
 //==== Actors ====
 
-PG_DisaSpriteModel* PG_DisaContext::resolveSlot(int slot, const PG_DisaScriptSlots* scriptSlots) const {
-	//64 to 95 belong to the chain that is running, every other number is the map's own
-	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) return scriptSlots->getSlot(slot);
+PG_DisaSpriteModel* PG_DisaContext::resolveSlot(int slot, const PG_DisaActorScriptViewModel* scriptSlots) const {
+	/* The chain's view answers every slot: 64 to 95 out of its own, the rest passed through to the
+	 * list. Without one there is no chain running and the list is asked directly. */
+	if (scriptSlots) return dynamic_cast<PG_DisaSpriteModel*>(scriptSlots->getSlotItem(slot));
+
 	auto* map = getMapActors();
 	return map ? dynamic_cast<PG_DisaSpriteModel*>(map->getSlotItem(slot)) : nullptr;
 }
 
-std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot, const PG_DisaScriptSlots* scriptSlots) const {
+std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot, const PG_DisaActorScriptViewModel* scriptSlots) const {
 	/* A group slot stands for everything taking part in the current skill, which needs a battle
 	 * the tool does not run. Every actor the chain spawned is the closest it can get. */
 	if (slot == Slot_AllTargets) {
-		if (scriptSlots) return scriptSlots->getActors();
-
-		auto* map = getMapActors();
-		if (!map) return {};
-
 		//the list holds the base, only the ones drawn as a sprite are what a script means here
 		std::vector<PG_DisaSpriteModel*> out;
-		for (auto* item : *map) {
+		const auto add = [&out](PG_DisaActorModel* item) {
 			if (auto* sprite = dynamic_cast<PG_DisaSpriteModel*>(item)) out.push_back(sprite);
+		};
+
+		if (scriptSlots) {
+			for (auto* item : scriptSlots->getActors()) add(item);
+			return out;
+		}
+		if (auto* map = getMapActors()) {
+			for (auto* item : *map) add(item);
 		}
 		return out;
 	}
@@ -46,27 +52,22 @@ std::vector<PG_DisaSpriteModel*> PG_DisaContext::resolveSlots(int slot, const PG
 	return {};
 }
 
-PG_DisaSpriteModel* PG_DisaContext::takeSlot(int slot, PG_DisaScriptSlots* scriptSlots) {
-	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) return scriptSlots->takeActorSlot(slot);
-	auto* map = getMapActors();
-	if (!map) return nullptr;
+PG_DisaSpriteModel* PG_DisaContext::takeSlot(int slot, PG_DisaActorScriptViewModel* scriptSlots) {
+	PG_ListModelLocation location;
+	if (scriptSlots) location = scriptSlots->takeActorSlot(slot);
+	else if (auto* map = getMapActors()) location = map->takeActorSlot(slot);
 
-	auto location = map->takeActorSlot(slot);
 	return dynamic_cast<PG_DisaSpriteModel*>(location.getData(PG_Identity_Item).convert<PG_DisaActorModel*>());
 }
 
-glm::vec3 PG_DisaContext::getSlotOrigin(int slot, const PG_DisaScriptSlots* scriptSlots) const {
-	//the chain's own actors are the only thing the map's table does not know about
-	if (scriptSlots && PG_DisaScriptSlots::isScriptSlot(slot)) {
-		auto* actor = scriptSlots->getSlot(slot);
-		return actor ? actor->getObjectTranslation() : glm::vec3(0.f);
-	}
-
+glm::vec3 PG_DisaContext::getSlotOrigin(int slot, const PG_DisaActorScriptViewModel* scriptSlots) const {
 	if (slot == Slot_EventPosition) {
 		//the game counts from where the event was started, which needs a battle the tool does not run
 		OUT_WARNING("Slot 210 is the position of a running event, the map origin is used instead.");
 		return glm::vec3(0.f);
 	}
+
+	if (scriptSlots) return scriptSlots->getSlotOrigin(slot);
 
 	auto* map = getMapActors();
 	return map ? map->getSlotOrigin(slot) : glm::vec3(0.f);
@@ -163,7 +164,7 @@ void PG_DisaContext::reset() {
 	for (const auto& line : m_animations) delete line.get();
 	m_animations.clear();
 
-	/* What a chain spawned goes when the chain's PG_DisaScriptSlots does, which is when the
+	/* What a chain spawned goes when the chain's view model does, which is when the
 	 * executor drops its lanes. This only clears the map's own script range. */
 	if (auto* map = getMapActors()) map->clearScriptSlots();
 }

@@ -166,6 +166,17 @@ PACK( struct mpdfileActor
   unsigned short magic[4];
   unsigned char magic_level[4]; // None weapon related magic spells
   char  unk[26];     // TBD stat modifiers?
+
+  /**
+  * @brief A record every field of which is set, rather than whatever a declaration leaves behind.
+  * @details `mpdfileActor data;` holds the stack. This is what a freshly made actor starts from,
+  * so a caller never has to remember which spelling zeroes it.
+  */
+  static mpdfileActor create() {
+    mpdfileActor out{};
+    out.level = 1; //a unit of level zero is not one the game would ever place
+    return out;
+  }
 } );
 
 

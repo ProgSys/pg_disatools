@@ -1,10 +1,14 @@
 #pragma once
 
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include <Base/PG_Lifeline.h>
 #include <Disa/map/PG_DisaActorModel.h>
 
+using PG_DisaActorLifeline = PG_Lifeline_T<PG_DisaActorModel>;
+class PG_DisaActorScriptViewModel;
 /**
 * @brief Everything standing on the map, addressed the way a script addresses it.
 * @details The rows are an ordinary list in load order. The slot numbers are a map over the top of
@@ -71,6 +75,12 @@ public:
 	*/
 	void setupTeleporter();
 
+	/**
+	* @brief A view of this list for one script chain, which owns slots 64 to 95.
+	* @details The caller owns what comes back, and every actor the chain spawns goes when it does.
+	*/
+	PG_DisaActorScriptViewModel* createScriptViewModel();
+
 private:
 	/// Puts whatever is in slot 203 onto the panel, next time round the event loop.
 	void updateTeleporter();
@@ -78,5 +88,69 @@ private:
 
 	/* A lifeline rather than a pointer: an item removed anywhere else leaves the slot empty instead
 	 * of leaving it pointing at something that is gone. */
-	std::unordered_map<int, PG_Lifeline_T<PG_DisaActorModel>> m_slots;
+	std::unordered_map<int, PG_DisaActorLifeline> m_slots;
+};
+
+
+using SlotActorPair = std::pair<int, PG_DisaActorLifeline>;
+/**
+* @brief A script chain's view of PG_DisaActorListModel, holding slots 64 to 95.
+* @details The game gives every script its own table of these and clears it when the script
+* returns, so a script cannot see what the script that started it spawned. The retail scripts are
+* not written that way: 54 of the 398 that touch these slots address one they never spawned into,
+* which in the real game finds nothing. One view per chain rather than per script makes those do
+* what they plainly meant.
+*
+* The actors themselves are rows of the list this views, next to the units the map placed, so the
+* one view node draws the lot and only the numbering is private to the chain. The actors live
+* exactly as long as this does: dropping it takes them out of the list.
+*
+* Every slot outside 64 to 95 is passed straight through to the list, so a caller that holds one of
+* these never needs to reach past it.
+*/
+class PG_DisaActorScriptViewModel : public PG_ListModel<SlotActorPair> {
+	PG_OBJECT(PG_DisaActorScriptViewModel);
+	PG_PARENT(PG_ListModel<SlotActorPair>);
+	friend PG_DisaActorListModel;
+public:
+	using PG_ListModel<SlotActorPair>::PG_ListModel;
+	~PG_DisaActorScriptViewModel() override;
+
+	/// The list the actors really live in, null once that list is gone.
+	PG_DisaActorListModel* getOriginModel() const { return m_originModel.get(); }
+
+	/// The item of that slot, null when the slot is empty.
+	PG_DisaActorModel* getSlotItem(int slot) const;
+	/// The row of that slot **in the list**, an invalid location when the slot is empty.
+	PG_ListModelLocation getSlot(int slot) const;
+	/// The slot an item sits in, -1 when it sits in none.
+	int getSlotOf(const PG_DisaActorModel* item) const;
+
+	bool isSlotFree(int slot) const { return getSlotItem(slot) == nullptr; }
+	/**
+	* @brief Puts an item into a slot, taking it over.
+	* @details Whatever the slot held is removed with it, so a slot never holds two. The item is
+	* added to the list when it is not one of its rows yet.
+	*/
+	void setSlot(int slot, PG_DisaActorModel* item);
+	/// The row of that slot, with a sprite made for it when the slot was free.
+	PG_ListModelLocation takeActorSlot(int slot);
+	/// Removes the item of that slot, does nothing when the slot is empty.
+	void clearSlot(int slot);
+	/// Removes every actor the chain spawned, which is what dropping this does anyway.
+	void resetScriptSlots();
+
+	/// Where a coordinate parented to that slot counts from. @see PG_DisaActorListModel::getSlotOrigin
+	glm::vec3 getSlotOrigin(int slot) const;
+
+	/// Every actor the chain holds, which is what slot 202 stands in for while no battle runs.
+	std::vector<PG_DisaActorModel*> getActors() const;
+
+private:
+	/// Row of this view that holds the slot, -1 when it holds none.
+	int findRow(int slot) const;
+
+	/* A lifeline because the destructor reaches into the list: a map closed before the chain ends
+	 * would otherwise leave this pointing at something that is gone. */
+	PG_Lifeline_T<PG_DisaActorListModel> m_originModel;
 };

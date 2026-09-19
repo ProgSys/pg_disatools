@@ -27,7 +27,16 @@ int PG_DisaActorListModel::getSlotOf(const PG_DisaActorModel* item) const {
 }
 
 void PG_DisaActorListModel::setSlot(int slot, PG_DisaActorModel* item) {
-	if (getSlotItem(slot) == item) return;
+	auto* current = getSlotItem(slot);
+	if (current == item) return;
+
+	/* Swapping one item for another reuses the row it sits in. Removing first would move every row
+	 * behind it up and the push back would move them all again. */
+	if (current && current->getLocation() >= 0 && item && item->getLocation() < 0) {
+		set(current->getLocation(), item); //deletes what was there and takes the new one over
+		m_slots[slot] = item;
+		return;
+	}
 
 	clearSlot(slot);
 	if (!item) return;
@@ -40,7 +49,7 @@ PG_ListModelLocation PG_DisaActorListModel::takeActorSlot(int slot) {
 	if (auto location = getSlot(slot)) return location;
 
 	auto* actor = PG_new<PG_DisaSpriteModel>("PG_DisaSpriteModel", this);
-	actor->setData(mpdfileActor{}); //a fresh one holds whatever was on the stack otherwise
+	actor->setData(mpdfileActor::create());
 	setSlot(slot, actor);
 	return getSlot(slot);
 }
@@ -142,4 +151,128 @@ void PG_DisaActorListModel::doUpdateTeleporter() {
 	//the panel sits in the middle of its tile, not on the corner the tile is counted from
 	panel->setObjectTranslation(glm::vec3(pos.x + 0.5f, height, pos.y + 0.5f));
 	panel->setVisible(true);
+}
+
+
+PG_DisaActorScriptViewModel* PG_DisaActorListModel::createScriptViewModel() {
+	//no parent: the chain that asked for it owns it, and its actors go when it does
+	auto* view = PG_new<PG_DisaActorScriptViewModel>("PG_DisaActorScriptViewModel");
+	view->m_originModel = this;
+	return view;
+}
+
+//==== PG_DisaActorScriptViewModel ====
+
+PG_DisaActorScriptViewModel::~PG_DisaActorScriptViewModel() {
+	resetScriptSlots();
+}
+
+int PG_DisaActorScriptViewModel::findRow(int slot) const {
+	const auto& rows = getItems();
+	auto findIt = std::ranges::find(rows, slot, &SlotActorPair::first);
+	return findIt == rows.end() ? -1 : static_cast<int>(std::distance(rows.begin(), findIt));
+}
+
+PG_DisaActorModel* PG_DisaActorScriptViewModel::getSlotItem(int slot) const {
+	if (!PG_DisaActorListModel::isScriptSlot(slot)) {
+		return m_originModel ? m_originModel->getSlotItem(slot) : nullptr;
+	}
+
+	const int row = findRow(slot);
+	return row < 0 ? nullptr : get(row).second.get();
+}
+
+PG_ListModelLocation PG_DisaActorScriptViewModel::getSlot(int slot) const {
+	//the actor is a row of the list, which is where a view node reads its data from
+	auto* item = getSlotItem(slot);
+	if (!item || !m_originModel || item->getLocation() < 0) return PG_ListModelLocation();
+	return PG_ListModelLocation(m_originModel.get(), item->getLocation());
+}
+
+int PG_DisaActorScriptViewModel::getSlotOf(const PG_DisaActorModel* item) const {
+	if (!item) return -1;
+
+	for (const auto& [slot, line] : getItems()) {
+		if (line.get() == item) return slot;
+	}
+	return m_originModel ? m_originModel->getSlotOf(item) : -1;
+}
+
+void PG_DisaActorScriptViewModel::setSlot(int slot, PG_DisaActorModel* item) {
+	if (!PG_DisaActorListModel::isScriptSlot(slot)) {
+		if (m_originModel) m_originModel->setSlot(slot, item);
+		return;
+	}
+	if (getSlotItem(slot) == item) return;
+
+	const int row = findRow(slot);
+	auto* current = row < 0 ? nullptr : get(row).second.get();
+
+	if (!item || !m_originModel) {
+		clearSlot(slot);
+		return;
+	}
+
+	//the list owns the actor, this only says which slot of the chain it answers to
+	if (current && current->getLocation() >= 0 && item->getLocation() < 0) {
+		m_originModel->set(current->getLocation(), item); //deletes what was there
+	}
+	else {
+		clearSlot(slot);
+		if (item->getLocation() < 0) m_originModel->push_back(item);
+	}
+
+	const int at = findRow(slot);
+	if (at < 0) push_back(SlotActorPair{ slot, item });
+	else set(at, SlotActorPair{ slot, item });
+}
+
+PG_ListModelLocation PG_DisaActorScriptViewModel::takeActorSlot(int slot) {
+	if (!PG_DisaActorListModel::isScriptSlot(slot)) {
+		return m_originModel ? m_originModel->takeActorSlot(slot) : PG_ListModelLocation();
+	}
+	if (auto location = getSlot(slot)) return location;
+	if (!m_originModel) return PG_ListModelLocation();
+
+	auto* actor = PG_new<PG_DisaSpriteModel>("PG_DisaSpriteModel", m_originModel.get());
+	actor->setData(mpdfileActor::create());
+	setSlot(slot, actor);
+	return getSlot(slot);
+}
+
+void PG_DisaActorScriptViewModel::clearSlot(int slot) {
+	if (!PG_DisaActorListModel::isScriptSlot(slot)) {
+		if (m_originModel) m_originModel->clearSlot(slot);
+		return;
+	}
+
+	const int row = findRow(slot);
+	if (row < 0) return;
+
+	auto* item = get(row).second.get();
+	remove(row); //only the row of this view, the actor belongs to the list
+
+	if (m_originModel && item && item->getLocation() >= 0) m_originModel->remove(item->getLocation());
+}
+
+void PG_DisaActorScriptViewModel::resetScriptSlots() {
+	while (!empty()) clearSlot(get(0).first);
+}
+
+glm::vec3 PG_DisaActorScriptViewModel::getSlotOrigin(int slot) const {
+	if (!PG_DisaActorListModel::isScriptSlot(slot)) {
+		return m_originModel ? m_originModel->getSlotOrigin(slot) : glm::vec3(0.f);
+	}
+
+	auto* item = getSlotItem(slot);
+	return item ? item->getObjectTranslation() : glm::vec3(0.f);
+}
+
+std::vector<PG_DisaActorModel*> PG_DisaActorScriptViewModel::getActors() const {
+	std::vector<PG_DisaActorModel*> out;
+	out.reserve(size());
+	for (const auto& [slot, line] : getItems()) {
+		if (auto* item = line.get()) out.push_back(item);
+	}
+	return out;
 }

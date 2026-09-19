@@ -35,7 +35,7 @@
 #include <Disa/PG_DisaIdentifier.h>
 
 #include "PG_DisaScriptCommand.h"
-#include "PG_DisaScriptSlots.h"
+#include <Disa/map/PG_DisaActorListModel.h>
 
 /**
 * @brief The variables one lane keeps while it runs.
@@ -80,8 +80,9 @@ struct PG_DisaScriptLane {
 	bool finished = false;
 
 	/* Slots 64 to 95, shared with every lane of the same chain: a lane that starts another hands
-	 * its own table down, so a script can reach what the script before it spawned. */
-	std::shared_ptr<PG_DisaScriptSlots> slots;
+	 * its own view down, so a script can reach what the script before it spawned. Every actor the
+	 * chain spawned goes when the last lane holding this does. */
+	std::shared_ptr<PG_DisaActorScriptViewModel> slots;
 
 	inline bool isAtEnd() const { return cursor >= commands.size(); }
 
