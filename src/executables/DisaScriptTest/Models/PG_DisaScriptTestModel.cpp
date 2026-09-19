@@ -6,11 +6,16 @@
 #include <Disa/fileformats/PG_PSPFS.h>
 #include <Disa/fileformats/PG_Script.h>
 #include <Disa/fileformats/PG_TalkScript.h>
+#include <Disa/PG_DisaMapScene.h>
+#include <Scene/PG_DisaCamera.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
 
 #include <Script/PG_DisaContext.h>
 #include <Script/PG_DisaScriptExecutor.h>
+
+constexpr auto gGameCameraName = "PG_DisaGameCameraNode";
+constexpr auto gEditorCameraName = "PG_EditorCameraNode";
 
 void PG_DisaScriptTestModel::init() {
 	PG_DisaMainModel::init();
@@ -86,6 +91,23 @@ bool PG_DisaScriptTestModel::runScript(const PG_DisaIdentifier& scriptId) {
 bool PG_DisaScriptTestModel::runTalkScript(const PG_DisaIdentifier& scriptId) {
 	if (!scriptId.isValid()) return FAILURE;
 	return m_scriptExecutor->runTalkScriptById(scriptId);
+}
+
+void PG_DisaScriptTestModel::useGameCamera(bool value) {
+	assert(m_scene);
+	PG_CameraNode* cam = m_scene->getRoot()->findFirstChild<PG_CameraNode>(value? gGameCameraName : gEditorCameraName);
+	if (cam) m_scene->setActiveCamera(cam);
+}
+
+bool PG_DisaScriptTestModel::iaGameCamera() const {
+	return m_scene && m_scene->getActiveCamera()->getName() == gGameCameraName;
+}
+
+void PG_DisaScriptTestModel::setScene(PG_DisaMapScene* scene) {
+	m_scene = scene;
+	if (!scene) return;
+	auto disaCam = PG_new<PG_DisaCamera>(gGameCameraName, PG_CameraNode::Type_Perspective, scene->getRoot());
+	scene->setActiveCamera(disaCam);
 }
 
 bool PG_DisaScriptTestModel::openMapFile(const std::string& mapName) {

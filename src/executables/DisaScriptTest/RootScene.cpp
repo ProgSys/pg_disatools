@@ -41,8 +41,8 @@
 #include <Scene/Gui/PG_GuiSpinBox.h>
 #include <Scene/Gui/PG_GuiButton.h>
 #include <Scene/Gui/PG_GuiTextField.h>
+#include <Scene/Gui/PG_GuiToggleButton.h>
 #include <Scene/PG_CameraNode.h>
-#include <Scene/PG_DisaCamera.h>
 
 #include <Disa/PG_DisaMapScene.h>
 #include <Disa/map/PG_DisaActorListModel.h>
@@ -114,7 +114,7 @@ void RootScene::setupToolbar() {
 		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("openMap", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_play.png");
+		btn->setIcon("gui/icon_play.svg");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Open Map");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
@@ -128,7 +128,7 @@ void RootScene::setupToolbar() {
 		text->setText("disa::1"); //the intro of the game
 
 		auto btn = PG_new<PG_GuiButton>("execTalkScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_play.png");
+		btn->setIcon("gui/icon_play.svg");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Run talk script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
@@ -141,7 +141,7 @@ void RootScene::setupToolbar() {
 		text->getBackgroundRectangle()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("execScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_play.png");
+		btn->setIcon("gui/icon_play.svg");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Run Script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
@@ -150,10 +150,13 @@ void RootScene::setupToolbar() {
 	}
 
 	{
-		auto btn = PG_new<PG_GuiButton>("execScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_play.png");
+		auto btn = PG_new<PG_GuiToggleButton>("swapCamera", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
+		btn->setIcon("gui/icon_repeat.svg");
 		btn->setTooltipText("Swap camera");
+		btn->setBackground("M_GuiRoundedRectangleAll5");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::Right);
+
+		connect(btn, &PG_GuiToggleButton::toggleChanged, m_model, [model = m_model] (bool toggled) { model->useGameCamera(!toggled); });
 	}
 }
 
@@ -165,9 +168,6 @@ void RootScene::setupMapView() {
 	/* The map model outlives every map it shows, so the scene is bound once here. Opening another
 	 * map refills the same model. */
 	gameScene->setMapModel(m_model->getMapModel());
-	auto disaCam = PG_new<PG_DisaCamera>("PG_DisaCamera", PG_CameraNode::Type_Perspective, gameScene->getRoot());
-	gameScene->setActiveCamera(disaCam);
-
 	m_model->setScene(gameScene);
 
 	PG_GuiItem::anchor(item, PG_Anchor::Top, m_toolbar, PG_Anchor::Bottom);

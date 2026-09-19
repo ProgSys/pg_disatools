@@ -70,13 +70,16 @@ public:
 	bool runScript(const PG_DisaIdentifier& scriptId);
 	/// Runs a script out of TALK.DAT by the ID it is stored under
 	bool runTalkScript(const PG_DisaIdentifier& scriptId);
+	/// Swap between work and game camera
+	void useGameCamera(bool v);
+	bool iaGameCamera() const;
 
 	PG_DisaMapModel* getMapModel() const { return m_mapModel; }
 	PG_DisaContext* getContext() const { return m_context; }
 	PG_DisaScriptExecutor* getScriptExecutor() const { return m_scriptExecutor; }
 
 	PG_DisaMapScene* getScene() const { return m_scene; }
-	void setScene(PG_DisaMapScene* scene) { m_scene = scene; }
+	void setScene(PG_DisaMapScene* scene);
 
 private:
 	bool openMapIntern(int id);
