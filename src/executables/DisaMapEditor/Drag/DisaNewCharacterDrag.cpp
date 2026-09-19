@@ -47,8 +47,7 @@ public:
 			return p_position;
 		case PG_DisaSpriteModel::Identity_TileGround:{
 			if (!p_tile) return std::array<glm::vec3, 4>{glm::vec3(0.f)};
-			//read against the indicator, which stands in the middle of the tile top
-			auto out = p_tile->getTop(glm::vec3(-0.5f, p_tile->getTranslation().y, -0.5f));
+			auto out = p_tile->getTop(glm::vec3(0.f, p_tile->getTranslation().y, 0.f));
 			for (glm::vec3& p : out) {
 				p.y -= p_position.y;
 			}

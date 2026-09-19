@@ -168,8 +168,7 @@ PG_Variety PG_DisaActorModel::getData(Identity identity) const {
 		if (auto* model = findParent<PG_DisaMapModel>(5)) {
 			if (auto location = model->getTiles()->getTileLocation(getTilePosition())) {
 				auto* item = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
-				//read against the actor, which stands in the middle, so the corners run out either way
-				auto top = item->getTop(glm::vec3(-0.5f, item->getTranslation().y, -0.5f));
+				auto top = item->getTop(glm::vec3(0.f, item->getTranslation().y, 0.f));
 				for (glm::vec3& v : top) v.y -= m_height;
 				return top;
 			}

@@ -342,7 +342,9 @@ void PG_DisaActorSpriteNode::updateGroundShadow() {
 	if (!model) {
 		model = PG_new<PG_ModelNode>("N_Shadow", this);
 	}
-	model->setTranslationY(0.01f);
+	/* The corners come in tile space, running from the tile's corner to the one across, while the
+	 * actor stands in the middle of it. */
+	model->setTranslation(glm::vec3(-0.5f, 0.01f, -0.5f));
 	PG_DisaTileViewNode::updateFloorShadowGeometry(top, model);
 }
 
