@@ -1,4 +1,5 @@
 #include "DisaRendering.h"
+#include "DisaRenderObject.h"
 #include <gl/glew.h>
 #include <GL/glu.h>
 #include <algorithm>
@@ -100,65 +101,23 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 using byte = std::uint8_t;
 
 
-/**
-* @brief One 2D camera: an orthographic projection over a virtual 480x272 screen,
-* plus the scroll, zoom and cull rectangle derived from it.
-*
-* Screen space is y down, x = 0 left, y = 0 top. Depth runs 0 to 65535.
-* Created by FUN_00432d40, recomputed by FUN_00432b40 (0x00432b40) after any field above cullRect changes.
-* Size: 0x78
-*/
-struct DisaProjection {
-    float viewLeft;     // 0x00 - default 0
-    float viewRight;    // 0x04 - default 480
-    float viewTop;      // 0x08 - default 0
-    float viewBottom;   // 0x0c - default 272
-    float depthFar;     // 0x10 - default 65535
-    float depthNear;    // 0x14 - default 0, also added to the matrix as a depth bias
-    float zoom;         // 0x18 - default 1, never 0, recompute divides by it
-    float cameraX;      // 0x1c - scroll in virtual pixels
-    float cameraY;      // 0x20 - scroll in virtual pixels
-    glm::ivec4 cullRect;      // 0x24 - derived from everything above (left, right, top, bottom)
-    bool isMatrixDirty;         // 0x34 - set by recompute, cleared once the matrix is uploaded
-    bool padding0x35;           // 0x35 - unused
-    bool padding0x36;           // 0x36
-    bool padding0x37;           // 0x37
-    glm::mat4 projectionMatrix; // 0x38 - ortho * rotateY(pi) * scale(zoom), then scrolled
-};
-
-/**
-* @brief Owns the projection slots and remembers which one OpenGL currently holds.
-* Singleton at 0x005CBBC0, created at 0x00508073, destroyed by FUN_00432e60.
-* Render objects pick their slot through DisaRenderObjectSettings::projIndex.
-* Size: 0x14
-*/
-struct DisaProjectionManager {
-    int32_t projectionCount;      // 0x00 - always 2, bounds the array and the destructor
-    DisaProjection** projections; // 0x04 - heap array of m_projectionCount pointers
-    DisaProjection* selected;     // 0x08 - slot OpenGL holds, null until the first select
-    int32_t selectedIndex;        // 0x0c
-    bool isEnabled;               // 0x10 - false makes selecting a slot do nothing
-    bool isForceReload;           // 0x11 - upload the matrix even if the slot did not change
-    uint16_t padding0x12;         // 0x12 - unused
-
-    /// Instance located at 0x005CBBC0
-    static DisaProjectionManager* get() { return FP::getData<DisaProjectionManager*>(0x005CBBC0);  }
-};
-
-void FUN_00421a30_glUseAndInitProgram(int param_1, int param_2) {
+void FUN_00421a30_glUseAndInitProgram(int vertexShaderIndex, int fragmentShaderIndex) {
     if (FP::getData<bool>(0x006e8cfc)) return;
-    const int shaderIndex = param_1 + param_2 * 16;
+    const int shaderIndex = vertexShaderIndex + fragmentShaderIndex * 16;
     if (FP::getData<int>(0x006e8cf8) == shaderIndex) return;
     FP::getData<int>(0x006e8cf8) = shaderIndex; //lastShaderIndex
-    GLuint programId = (&FP::getData<GLuint>(0x006e8878))[shaderIndex];
-    if (programId == 0) return; //in the original this check is missing
+    /* Slot (10, 17) holds no shader, so its program stays 0. The original binds it anyway to get
+     * back to fixed function, this returns instead: glUseProgram is null until glewInit has run. */
+    const GLuint programId = (&FP::getData<GLuint>(0x006e8878))[shaderIndex];
+    if (programId == 0) return;
     glUseProgram(programId);
-    
-    int i = 0;
-    for (const auto& name : { "tex0", "tex1", "tex2", "tex3", "tex4", "tex5", "tex6" }) {
-        if (auto loc = glGetUniformLocation(programId, "tex0"); loc >= 0)
-            glUniform1i(loc, i);
-        ++i;
+
+    //tex7 sits between tex3 and tex4, the sampler order is not the unit order
+    struct Sampler { const char* name; int unit; };
+    for (const Sampler& sampler : { Sampler{ "tex0", 0 }, { "tex1", 1 }, { "tex2", 2 }, { "tex3", 3 },
+            { "tex7", 7 }, { "tex4", 4 }, { "tex5", 5 }, { "tex6", 6 } }) {
+        if (const GLint location = glGetUniformLocation(programId, sampler.name); location >= 0)
+            glUniform1i(location, sampler.unit);
     }
 }
 
@@ -276,6 +235,7 @@ static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRend
 void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bool depthTestEnabled) {
 
     DisaRenderObjectManager* memoryRenderManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
+    DisaCustomRenderManager::get()->init();
 
     const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
     if ( !*(bool*)(someObjPtr + 0x19) || *(bool*)(someObjPtr + 0x59) || *(bool*)(someObjPtr + 0x60))
@@ -479,7 +439,8 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bo
             glPolygonOffset(0.0, polygonOffsetScale * polygonOffsetValue);
         }
 
-        FP::callThisFarA(0x00426fb0, object, false, pass); //render object
+        //FP::callThisFarA(0x00426fb0, object, false, pass); //render object
+        FUN_00426fb0_RenderObject(object, false, pass); //FP::callThisFarA(0x00426fb0, object, false, pass); //render object
         glPopMatrix();
     }
     //reset back to normal

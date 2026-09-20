@@ -64,6 +64,7 @@ void DisaCustomRenderManager::resetDisaOpenGLStates() {
 
 
 void DisaCustomRenderManager::init() {
+    if (m_isInit) return;
     m_isInit = true;
     GLenum err = glewInit();
     if (err != GLEW_OK) {
@@ -90,7 +91,7 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
     m_viewportSize = glm::ivec2(width, height);
     m_deltaTimer.tick();
 
-    if (!m_isInit) init();
+    init();
 
     m_modelsOld = std::move(m_models);
     m_models.reserve(std::max(m_modelsOld.size(), 32u));

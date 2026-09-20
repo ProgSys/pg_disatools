@@ -67,6 +67,12 @@ struct HockManager {
         //must be first
         replaceFunction("afterCharDataLoad", "Used to init custom characters", 0x0048AFC7, FUN_004cf3c0); //will load character (mod) data
 
+        FUN_glViewportPointer = &FUN_glViewport;
+        FUN_glDrawArraysPointer = &FUN_glDrawArrays;
+
+        replaceFunctionIndirectCall("glViewportPointer", "", 0x00420396, FUN_glViewportPointer); //render begin
+        replaceFunctionIndirectCall("glDrawArraysPointer", "", 0x0042111c, FUN_glDrawArraysPointer); //render begin
+
         replaceFunction("renderObjects", "The main render layer function", 0x00508ead, FUN_00426770);
         replaceFunction("renderObjects", "The main render layer function", 0x00509d1f, FUN_00426770);
         replaceFunction("renderObjects", "The main render layer function", 0x005099e2, FUN_00426770);
@@ -190,11 +196,6 @@ struct HockManager {
         //gameloop map exit
         replaceFunction("MapEndGameloop", "", 0x0048c71c, FUN_004710d0);
 
-        FUN_glViewportPointer = &FUN_glViewport;
-        FUN_glDrawArraysPointer = &FUN_glDrawArrays;
-
-        replaceFunctionIndirectCall("glViewportPointer", "", 0x00420396, FUN_glViewportPointer); //render begin
-        replaceFunctionIndirectCall("glDrawArraysPointer", "", 0x0042111c, FUN_glDrawArraysPointer); //render begin
         //replaceFunction("RenderEnd", "", 0x00509d44, FUN_RenderEnd); //render begin
         
         replaceDefaultCase();

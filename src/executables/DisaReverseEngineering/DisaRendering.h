@@ -207,6 +207,13 @@ enum EDisaRenderPass : int {
 };
 
 /**
+* @brief Binds the program linked from the given shader pair and points its tex0 to tex7 samplers
+* at the matching texture units. The pair (10, 17) has no shaders, so binding it returns to fixed
+* function.
+*/
+void FUN_00421a30_glUseAndInitProgram(int vertexShaderIndex, int fragmentShaderIndex);
+
+/**
 * @brief Compares two DisaRenderObjects using m_depth and m_field0x8. If both are equal or nan then the pointer is used as fallback.
 */
 bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObject* param_2);
