@@ -35,49 +35,100 @@ struct VertexWithNormal {
 }; // 48 bytes
 
 /**
- * @brief Texture sampling parameters.
- * Likely maps directly to OpenGL sampler state.
+ * @brief Texture state captured when the object was submitted, or a vertex color.
+ * Which one applies depends on DisaRenderObject::vertexCount. Zero means the object is a
+ * display list, and then these four bytes are the color handed to glColor4ubv.
  * Total size: 0x04
  */
-struct DisaRenderObjectTexParameter {
-    uint16_t field0x0; //0x00
-    uint8_t magFilter; //0x02 GL_NEAREST or GL_LINEAR (could be bool)
-    uint8_t warpMode;  //0x03 GL_CLAMP or GL_REPEAT == 2
+union DisaRenderObjectTexParameter {
+    struct {
+        uint16_t paletteIndex; // 0x00 - copied off the texture at submit time
+        uint8_t magFilter;     // 0x02 - GL_NEAREST or GL_LINEAR
+        uint8_t wrapMode;      // 0x03 - GL_CLAMP, or GL_REPEAT when 2
+    };
+    uint32_t color;            // packed RGBA, display list objects only
 };
 /**
  * @brief Bitfield-based render state configuration.
- * Packed into a single 16-bit value.
+ * Packed into a single 16-bit value. The signed fields carry -1 to keep the global default.
  */
 struct DisaRenderObjectSettings {
-    uint16_t stencilRef : 8;  // 0x00 [0–7]   - Stencil reference value
-    uint16_t stencilMode : 3; // 0x00 [8–10]  - Stencil operation mode
-    uint16_t projIndex : 1;   // 0x00 [11]    - Projection selector
-    uint16_t blendMode : 4;   // 0x00 [12–15] - Blending mode
+    uint16_t stencilRef : 8;  // 0x00 [0 to 7]   - Stencil reference value
+    int16_t stencilMode : 3;  // 0x00 [8 to 10]  - 0 to 3 pick a glStencilOp, anything else disables it
+    uint16_t projIndex : 1;   // 0x00 [11]       - Projection selector
+    int16_t blendMode : 4;    // 0x00 [12 to 15] - Index of a blend state call list
 };
 
 /**
-* @brief Represents a single renderable object.
-* Managed by DisaRenderObjectManager.
+ * @brief What an object inherits from the scope it was submitted in.
+ * The game keeps a small stack of these at 0x005BB038 with the depth at 0x005BB030. Code
+ * brackets a group of draws with a push that copies the parent word down, edits a bit, and
+ * pops again. A fresh stack starts as castsShadow, useTexture and useLighting.
+ */
+struct DisaRenderFlags {
+    uint32_t castsShadow : 1; // 0x01 - drawn in the shadow pass
+    uint32_t isFullyLit : 1;  // 0x02 - picks the lit program that also samples the normal map
+    uint32_t useTexture : 1;  // 0x04 - when clear the object draws with the flat color program
+    uint32_t useLighting : 1; // 0x08 - only read while useTexture is set
+    uint32_t field0x10 : 1;   // 0x10 - tested by the visibility mask together with depth 41000
+    uint32_t field0x20 : 27;  // 0x20 and above, no bit up here is ever read
+};
+
+/**
+* @brief A reference counted texture. The count is the first member, so the game passes these
+* around as a raw pointer and keeps them alive through FUN_0041E560.
+*/
+struct DisaTextureSPtr {
+    uint32_t m_useCount;  //0x0
+    uint32_t* m_field0x4; //0x4 - image parameters, 0x34 holds the wrap mode and 0x38 the mag filter
+    uint32_t* m_field0x8; //0x8
+    uint16_t m_field0xc;  //0xc - palette index, selects the color table the image uploads with
+    uint16_t m_field0xe;  //0xe
+    uint32_t m_field0x10; //0x10
+    uint32_t m_field0x14; //0x14
+    uint32_t m_field0x18; //0x18 - 3 marks a render target, which is never bound as a normal texture
+
+    /**
+    * Will extract settings for that will be used for glTexParameteri
+    * @see FUN_004245e0
+    */
+    void FUN_004281f0(DisaRenderObjectTexParameter* texParamters) const {
+        texParamters->paletteIndex = m_field0xc;
+        if (m_field0x4) {
+            texParamters->magFilter = (uint8_t)m_field0x4[0xe];
+            texParamters->wrapMode = (uint8_t)m_field0x4[0xd];
+        }
+        else {
+            texParamters->magFilter = 0;
+            texParamters->wrapMode = 1; //1 is never used and will be GL_CLAMP
+        }
+    }
+};
+
+/**
+* @brief One entry of the render list. Filled by the submit functions of
+* DisaRenderObjectManager and drawn by FUN_00426FB0.
+* Total size: 0x74
 */
 struct DisaRenderObject {
-    uint32_t type;            // 0x00
-    float depth;              // 0x04 - sortorder or type? 
+    DisaRenderFlags renderFlags; // 0x00 - inherited from the global flag stack at 0x005BB038
+    float depth;              // 0x04 - primary sort key, 0 to 65535, smaller is drawn first
     float sortBias;           // 0x08 - tie break when two objects share a depth
     DisaRenderObjectSettings renderSettingsBitMask; // 0x0c - Packed render state
-    uint16_t primitiveType;   // 0x0e - index into the GL mode table at
+    int16_t primitiveType;    // 0x0e - index into the GL mode table at 0x00596EA0
     int32_t vertexCount;      // 0x10 - 0 means meshData is a display list id
-    int32_t* field0x14;       // 0x14 - texture
-    DisaRenderObjectTexParameter textureInfo; // 0x18 - texture
-    float* meshData;          // 0x1c - data to a list of VertexSolidColor, VertexBasic or VertexWithNormal
+    DisaTextureSPtr* texture; // 0x14
+    DisaRenderObjectTexParameter textureInfo; // 0x18
+    float* meshData;          // 0x1c - VertexSolidColor, VertexBasic or VertexWithNormal, or a display list id
     glm::mat4* modelMatrix;   // 0x20 - modelMatrix
     glm::mat4* projectionMatrix; // 0x24 - optional custom projection matrix (is mostly null)
     bool isPerspective;       // 0x28 - True: 3D, False: UI (orthographic)
-    bool field0x29;           // 0x29
-    bool depthTestEnabled;    // 0x2a - Depth test enable
+    bool useColorTint;        // 0x29 - multiply and add split of the vertex color
+    bool depthTestEnabled;    // 0x2a - Depth test enable, taken from the global at 0x005AC978
     bool depthMaskEnabled;    // 0x2b - Depth write enable
-    float polygonOffset;      // 0x2c - Depth bias / polygon offset
-    int32_t* field0x30;       // 0x30 
-    glm::mat4 field0x34;      // 0x34
+    float polygonOffset;      // 0x2c - glPolygonOffset units, scaled by the global at 0x005AC924
+    DisaTextureSPtr* normalMap; // 0x30 - when set, the tangent attributes and a normal mapped program are used
+    glm::mat4 modelViewMatrix;  // 0x34 - view times model, only filled on the immediate draw path
 };
 
 /**
@@ -103,8 +154,8 @@ struct DisaRenderObjectManager {
     std::array<float*, 2> m_field0x76030; // 0x76030 - mesh memory cash begin pointer for each block
     std::array<int, 2> m_field0x76038; // 0x76038 
     uint32_t m_renderBlockIndex; // 0x76040 - 0 or 1
-    float m_basePolygonOffset;  // 0x76044 - additional offset added to each object when submitted
-    float m_field0x76048;       // 0x76048
+    float m_depthOffset;        // 0x76044 - added to the depth of every object submitted
+    float m_sortBias;           // 0x76048 - copied into the sortBias of every object submitted
     bool m_skipGlSetup;         // 0x7604c - When bulk rendered its is set to true as openGL setup is done beforehand
     bool m_field0x7604d;        // 0x7604d
     bool m_field0x7604e;        // 0x7604e
@@ -134,9 +185,9 @@ struct DisaRenderObjectManager {
     * @param customData If set to true then the mesh data will directly be send to renderer wihtout checking if it needs to be moved into game buffer 
     */
     void submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-        float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13, bool customData);
+        float poligonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint, bool customData);
 
-    void submitCustomModel(float depth, int modelIndex, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13);
+    void submitCustomModel(float depth, int modelIndex, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint);
 };
 
 /**
@@ -173,4 +224,4 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int param_2, bool dept
 * @brief Submit render data to render queue
 */
 void __stdcall FUN_00425df0_SubmitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-    float poligonOffset, int param_11, bool param_12, bool param_13);
+    float poligonOffset, int param_11, bool param_12, bool useColorTint);
