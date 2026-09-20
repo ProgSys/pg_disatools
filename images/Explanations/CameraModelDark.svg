@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1060" height="720" viewBox="0 0 1060 720">
+<rect width="1060" height="720" fill="#0d1117"/>
+<text x="30.0" y="38.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="21" fill="#e6edf3" font-weight="bold" text-anchor="start">The Disgaea camera</text>
+<text x="30.0" y="58.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#9198a1" font-weight="normal" text-anchor="start">An orbit camera: nothing places the eye. A script writes a look at point, two angles and a distance, and the eye is rebuilt from them every tick.</text>
+<rect x="30.0" y="74.0" width="500.0" height="340.0" rx="10" fill="#161b22" stroke="#30363d"/>
+<text x="48.0" y="101.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#e6edf3" font-weight="bold" text-anchor="start">Side view − pitch and distance</text>
+<line x1="60.0" y1="342.0" x2="500.0" y2="342.0" stroke="#7ec699" stroke-width="2.5" stroke-linecap="round"/>
+<line x1="60.0" y1="342.0" x2="51.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="104.0" y1="342.0" x2="95.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="148.0" y1="342.0" x2="139.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="192.0" y1="342.0" x2="183.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="236.0" y1="342.0" x2="227.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="280.0" y1="342.0" x2="271.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="324.0" y1="342.0" x2="315.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="368.0" y1="342.0" x2="359.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="412.0" y1="342.0" x2="403.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="456.0" y1="342.0" x2="447.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<line x1="500.0" y1="342.0" x2="491.0" y2="351.0" stroke="#2b323b" stroke-width="2.0" stroke-linecap="round"/>
+<text x="496.0" y="368.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#7ec699" font-weight="normal" text-anchor="end">map ground</text>
+<line x1="166.8" y1="242.0" x2="371.8" y2="242.0" stroke="#9198a1" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="5 5"/>
+<path d="M 228.79 242.00 A 62.00 62.00 0 0 1 220.49 273.00" fill="none" stroke="#e3a857" stroke-width="1.8" stroke-linecap="round"/>
+<text x="252.8" y="260.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#e3a857" font-weight="bold" text-anchor="start">pitch</text>
+<text x="252.8" y="275.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11" fill="#e3a857" font-weight="normal" text-anchor="start">rotation.x</text>
+<line x1="166.8" y1="242.0" x2="333.1" y2="338.0" stroke="#79b8f3" stroke-width="2.0" stroke-linecap="round"/>
+<polygon points="340.0,342.0 328.4,340.1 332.6,332.9" fill="#79b8f3"/>
+<text x="244.9" y="306.7" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#79b8f3" font-weight="bold" text-anchor="middle" transform="rotate(30.00 244.9 306.7)">distance</text>
+<text x="236.9" y="320.6" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11" fill="#79b8f3" font-weight="normal" text-anchor="middle" transform="rotate(30.00 236.9 320.6)">zoomOffset</text>
+<line x1="166.8" y1="242.0" x2="166.8" y2="342.0" stroke="#9198a1" stroke-width="1.2" stroke-linecap="round" stroke-dasharray="4 4"/>
+<line x1="160.8" y1="242.0" x2="172.8" y2="242.0" stroke="#9198a1" stroke-width="1.2" stroke-linecap="round"/>
+<text x="154.8" y="288.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="end">distance</text>
+<text x="154.8" y="302.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="end">× sin(pitch)</text>
+<g transform="translate(166.8 242.0) rotate(30.00)">
+<rect x="-13" y="-9" width="22" height="18" rx="3" fill="#79b8f3"/>
+<polygon points="9,-8 21,-14 21,14 9,8" fill="#79b8f3"/>
+</g>
+<circle cx="340.0" cy="342.0" r="4.5" fill="#7ec699"/>
+<circle cx="340.0" cy="342.0" r="11" fill="none" stroke="#7ec699" stroke-width="1.6"/>
+<text x="360.0" y="326.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#7ec699" font-weight="bold" text-anchor="start">look at point</text>
+<text x="360.0" y="340.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11" fill="#7ec699" font-weight="normal" text-anchor="start">eyeOffset</text>
+<text x="48.0" y="384.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">The game's y grows downward, so the pitch that looks down is the negative one: −30°</text>
+<text x="48.0" y="400.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">is the default.</text>
+<rect x="560.0" y="74.0" width="470.0" height="340.0" rx="10" fill="#161b22" stroke="#30363d"/>
+<text x="578.0" y="101.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#e6edf3" font-weight="bold" text-anchor="start">Top view − yaw</text>
+<rect x="624" y="108" width="238" height="238" fill="#11161d"/>
+<line x1="624.0" y1="108.0" x2="624.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="108.0" x2="862.0" y2="108.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="658.0" y1="108.0" x2="658.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="142.0" x2="862.0" y2="142.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="692.0" y1="108.0" x2="692.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="176.0" x2="862.0" y2="176.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="726.0" y1="108.0" x2="726.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="210.0" x2="862.0" y2="210.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="760.0" y1="108.0" x2="760.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="244.0" x2="862.0" y2="244.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="794.0" y1="108.0" x2="794.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="278.0" x2="862.0" y2="278.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="828.0" y1="108.0" x2="828.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="312.0" x2="862.0" y2="312.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="862.0" y1="108.0" x2="862.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="624.0" y1="346.0" x2="862.0" y2="346.0" stroke="#2b323b" stroke-width="1.0" stroke-linecap="round"/>
+<line x1="743.0" y1="227.0" x2="743.0" y2="127.0" stroke="#9198a1" stroke-width="1.3" stroke-linecap="round" stroke-dasharray="5 5"/>
+<text x="743.0" y="119.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="middle">yaw 0</text>
+<path d="M 743.00 169.00 A 58.00 58.00 0 0 1 784.01 185.99" fill="none" stroke="#e3a857" stroke-width="1.8" stroke-linecap="round"/>
+<text x="774.0" y="153.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="13" fill="#e3a857" font-weight="bold" text-anchor="middle">−45°</text>
+<path d="M 743.00 143.00 A 84.00 84.00 0 0 0 684.65 166.58" fill="none" stroke="#e3a857" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="4 3"/>
+<polygon points="684.6,166.6 688.7,157.8 693.6,162.8" fill="#e3a857"/>
+<text x="651.0" y="139.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#e3a857" font-weight="normal" text-anchor="middle">+ yaw</text>
+<line x1="743.0" y1="227.0" x2="813.7" y2="156.3" stroke="#79b8f3" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="6 4"/>
+<text x="792.4" y="207.6" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#79b8f3" font-weight="normal" text-anchor="middle" transform="rotate(-45.00 792.4 207.6)">horizontal</text>
+<line x1="813.7" y1="156.3" x2="760.7" y2="209.3" stroke="#79b8f3" stroke-width="1.8" stroke-linecap="round"/>
+<polygon points="755.0,215.0 759.8,204.2 765.8,210.2" fill="#79b8f3"/>
+<g transform="translate(813.7 156.3) rotate(135.00)">
+<rect x="-13" y="-9" width="22" height="18" rx="3" fill="#79b8f3"/>
+<polygon points="9,-8 21,-14 21,14 9,8" fill="#79b8f3"/>
+</g>
+<circle cx="743.0" cy="227.0" r="4.5" fill="#7ec699"/>
+<circle cx="743.0" cy="227.0" r="11" fill="none" stroke="#7ec699" stroke-width="1.6"/>
+<line x1="808.0" y1="361.0" x2="854.0" y2="361.0" stroke="#9198a1" stroke-width="1.3" stroke-linecap="round"/>
+<polygon points="862.0,361.0 851.0,365.2 851.0,356.8" fill="#9198a1"/>
+<text x="868.0" y="365.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="start">+x</text>
+<line x1="607.0" y1="346.0" x2="607.0" y2="300.0" stroke="#9198a1" stroke-width="1.3" stroke-linecap="round"/>
+<polygon points="607.0,292.0 611.2,303.0 602.8,303.0" fill="#9198a1"/>
+<text x="607.0" y="365.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="middle">−z</text>
+<text x="578.0" y="384.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">Yaw turns towards −x, so the default −45° puts the eye on the +x side of the map.</text>
+<rect x="30.0" y="430.0" width="500.0" height="262.0" rx="10" fill="#161b22" stroke="#30363d"/>
+<text x="48.0" y="457.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#e6edf3" font-weight="bold" text-anchor="start">The lens − what SetCameraFOV changes</text>
+<polygon points="90.0,560.0 383.1,496.1 383.1,623.9" fill="#9198a1" fill-opacity="0.16" stroke="#9198a1" stroke-width="1.4" stroke-linejoin="round" stroke-dasharray="5 4"/>
+<polygon points="90.0,560.0 389.7,547.2 389.7,572.8" fill="#79b8f3" fill-opacity="0.16" stroke="#79b8f3" stroke-width="1.4" stroke-linejoin="round"/>
+<g transform="translate(90.0 560.0) rotate(0.00)">
+<rect x="-13" y="-9" width="22" height="18" rx="3" fill="#79b8f3"/>
+<polygon points="9,-8 21,-14 21,14 9,8" fill="#79b8f3"/>
+</g>
+<text x="402.0" y="496.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#9198a1" font-weight="bold" text-anchor="start">value 1000</text>
+<text x="402.0" y="511.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="start">≈ 25°, a wide shot</text>
+<text x="402.0" y="566.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#79b8f3" font-weight="bold" text-anchor="start">default 320</text>
+<text x="402.0" y="581.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#79b8f3" font-weight="normal" text-anchor="start">≈ 4.9° vertical</text>
+<text x="48.0" y="652.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">Bigger value means narrower: it is a focal length, not an angle. The default is a very</text>
+<text x="48.0" y="668.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">long lens, and it is the 750 unit distance that still makes the map fill the screen.</text>
+<rect x="560.0" y="430.0" width="470.0" height="262.0" rx="10" fill="#161b22" stroke="#30363d"/>
+<text x="578.0" y="457.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#e6edf3" font-weight="bold" text-anchor="start">How the eye is rebuilt, every tick</text>
+<text x="584.0" y="490.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="12.5" fill="#e6edf3" font-weight="normal" text-anchor="start">horizontal = |distance * cos(pitch)|</text>
+<text x="584.0" y="511.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="12.5" fill="#e6edf3" font-weight="normal" text-anchor="start">eye.y = center.y + distance * sin(pitch)</text>
+<text x="584.0" y="532.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="12.5" fill="#e6edf3" font-weight="normal" text-anchor="start">eye.x = center.x - horizontal * sin(yaw)</text>
+<text x="584.0" y="553.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="12.5" fill="#e6edf3" font-weight="normal" text-anchor="start">eye.z = center.z - horizontal * cos(yaw)</text>
+<line x1="584.0" y1="580.0" x2="1006.0" y2="580.0" stroke="#30363d" stroke-width="1.0" stroke-linecap="round"/>
+<text x="584.0" y="598.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#e6edf3" font-weight="bold" text-anchor="start">look at point</text>
+<text x="692.0" y="598.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11.5" fill="#79b8f3" font-weight="normal" text-anchor="start">SetCameraPos</text>
+<text x="1006.0" y="598.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="end">script units, 120 = 1 tile</text>
+<text x="584.0" y="619.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#e6edf3" font-weight="bold" text-anchor="start">distance</text>
+<text x="692.0" y="619.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11.5" fill="#79b8f3" font-weight="normal" text-anchor="start">SetCameraZoom</text>
+<text x="1006.0" y="619.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="end">world units, 12 = 1 tile</text>
+<text x="584.0" y="640.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#e6edf3" font-weight="bold" text-anchor="start">pitch and yaw</text>
+<text x="692.0" y="640.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11.5" fill="#79b8f3" font-weight="normal" text-anchor="start">SetCameraRotation</text>
+<text x="1006.0" y="640.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="end">whole degrees</text>
+<text x="584.0" y="661.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#e6edf3" font-weight="bold" text-anchor="start">lens</text>
+<text x="692.0" y="661.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="11.5" fill="#79b8f3" font-weight="normal" text-anchor="start">SetCameraFOV</text>
+<text x="1006.0" y="661.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="end">value / 16, 0 picks 320</text>
+<text x="584.0" y="684.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">Starting values: distance 750, pitch −30°, yaw 0°, lens 320.</text>
+</svg>
