@@ -59,7 +59,7 @@ int DisaScriptManager::readDisaTalkScript(unsigned char*& dataLocation, uint32_t
 
     if (findIt == endIt) return -1;
     OUT_INFO("Found disa talk script at index " << std::dec << std::distance(startIt, findIt));
-    dataLocation = this->scriptsData + findIt->address;//the script to play
+    dataLocation = this->scriptsData + findIt->startAddress;//the script to play
     return findIt->scriptId;
 }
 
