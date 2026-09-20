@@ -86,13 +86,14 @@ void DisaCustomRenderManager::init() {
     m_imageScreenModel.load("T_DisaScreenImg", { { PG_Material("M_DisaScreenImg"), PG_Geometry::sfq()  } });
 }
 
-void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int height) {
-    m_viewportPos = glm::ivec2(x, y);
-    m_viewportSize = glm::ivec2(width, height);
+void DisaCustomRenderManager::onFrameBegin() {
     m_deltaTimer.tick();
 
     init();
 
+    /* The index a custom render object carries points into m_models, and the game wipes its own
+     * render list in the same frame step, so both have to be emptied at the same moment. The old
+     * list stays alive one more frame because the models it holds may still be in flight. */
     m_modelsOld = std::move(m_models);
     m_models.reserve(std::max(m_modelsOld.size(), 32u));
 
@@ -101,9 +102,12 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
         PG_Context::runCreate();
         PG_Context::destroyGarbage();
     }
+}
 
+void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int height) {
+    m_viewportPos = glm::ivec2(x, y);
+    m_viewportSize = glm::ivec2(width, height);
     glViewport(x, y, width, height);
-
 }
 
 void DisaCustomRenderManager::glDrawArraysReplace(unsigned int mode, int first, int count) {

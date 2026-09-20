@@ -2112,6 +2112,19 @@ void _stdcall FUN_004201d0_RenderClearBegin() {
     }
 }
 
+void __cdecl FUN_00424ae0_FrameBegin() {
+    static bool firstCall = false;
+    if (!firstCall) {
+        firstCall = true;
+        auto* manager = DisaCustomCharacterManager::get();
+        manager->waitForModThread();
+        manager->loadCharacters();
+    }
+
+    DisaCustomRenderManager::get()->onFrameBegin();
+    FP::callFarA(0x00424ae0); //ages the palette slots of every texture, still has to happen
+}
+
 void _stdcall FUN_glViewport(int x, int y, int width, int height) {
     DisaCustomRenderManager::get()->glViewportReplace(x, y, width, height);
 }

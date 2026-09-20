@@ -65,11 +65,12 @@ struct HockManager {
 
     void init() {
         //must be first
-        replaceFunction("afterCharDataLoad", "Used to init custom characters", 0x0048AFC7, FUN_004cf3c0); //will load character (mod) data
+        //replaceFunction("afterCharDataLoad", "Used to init custom characters", 0x0048AFC7, FUN_004cf3c0); //will load character (mod) data
 
         FUN_glViewportPointer = &FUN_glViewport;
         FUN_glDrawArraysPointer = &FUN_glDrawArrays;
 
+        replaceFunction("frameBegin", "Top of the game loop, once per frame", 0x0050897B, FUN_00424ae0_FrameBegin);
         replaceFunctionIndirectCall("glViewportPointer", "", 0x00420396, FUN_glViewportPointer); //render begin
         replaceFunctionIndirectCall("glDrawArraysPointer", "", 0x0042111c, FUN_glDrawArraysPointer); //render begin
 

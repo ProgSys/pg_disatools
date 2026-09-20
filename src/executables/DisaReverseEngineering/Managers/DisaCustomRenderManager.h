@@ -16,6 +16,11 @@ public:
 
 	void init();
 	/**
+	* @brief Start of a frame. Swaps the model list, ticks the timer and runs the event loop.
+	* Hooked to FUN_00424AE0, which the game calls once at the top of its loop.
+	*/
+	void onFrameBegin();
+	/**
 	* @brief Injection of the very first glViewport command
 	*/
 	void glViewportReplace(int x, int y, int width, int height);

@@ -463,6 +463,12 @@ void __stdcall FUN_004710d0();
 
 
 //rendering
+/**
+* @brief Top of the game loop, called once per frame before anything is submitted.
+* Its only guard is the PeekMessage check that gates the whole frame body.
+*/
+void __cdecl FUN_00424ae0_FrameBegin();
+
 void _stdcall FUN_004201d0_RenderClearBegin(); //called at the begin of each frame to clear buffers
 
 void _stdcall FUN_glViewport(int x, int y, int width, int height); //render Begin
