@@ -213,16 +213,16 @@ struct AnimationChoice {
 
 /**
 * @brief Which sheet the actor shows, out of what it is doing and where it looks.
-* @details A pose the script named outright wins, it already is a sheet number and the angle has no
+* @details An animation the script named outright wins, it already is a sheet number and the angle has no
 * say in it. Otherwise the set gives the base and the angle the side view on top of it.
 */
 std::optional<AnimationChoice> pickAnimation(const PG_Sprite& sprite, PG_DisaSpriteModel::EMode mode,
-	int animationSet, int pose, float angle) {
+	int animationSet, int animation, float angle) {
 	if (mode == PG_DisaSpriteModel::Mode_None) {
 		/* The script named the sheet itself and nothing here may overrule it. Without one there is
 		 * nothing to pick either, the actor keeps whatever it was last drawn from. */
-		if (pose == 0) return {};
-		return AnimationChoice{ std::abs(pose), pose < 0 };
+		if (animation == 0) return {};
+		return AnimationChoice{ std::abs(animation), animation < 0 };
 	}
 
 	const std::size_t set = std::min<std::size_t>(animationSet, static_cast<int>(g_idleSets.size()) - 1);
@@ -301,9 +301,9 @@ bool PG_DisaActorSpriteNode::event(PG_Event* e) {
 		 * all behind its location, and a slot may hold something that is not a sprite. */
 		const auto mode = static_cast<PG_DisaSpriteModel::EMode>(readData<int>(PG_DisaSpriteModel::Identity_AnimationMode));
 		const int animationSet = readData<int>(PG_DisaSpriteModel::Identity_AnimationSet);
-		const int pose = readData<int>(PG_DisaSpriteModel::Identity_Animation);
+		const int animation = readData<int>(PG_DisaSpriteModel::Identity_Animation);
 
-		if (const auto choice = pickAnimation(sprite, mode, animationSet, pose, angle)) {
+		if (const auto choice = pickAnimation(sprite, mode, animationSet, animation, angle)) {
 			std::string aniName = std::to_string(choice->animation);
 			if (node->getAnimationName() != aniName) {
 				node->setAnimation(aniName, true);

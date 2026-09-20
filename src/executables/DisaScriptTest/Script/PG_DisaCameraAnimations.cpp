@@ -83,17 +83,17 @@ void PG_DisaCameraAnimations::rotateBy(PG_DisaContext& context, float pitchDegre
 		});
 }
 
-void PG_DisaCameraAnimations::viewTo(PG_DisaContext& context, float fovDegree, float durationTicks) {
+void PG_DisaCameraAnimations::fovTo(PG_DisaContext& context, float fovDegree, float durationTicks) {
 	auto* camera = context.getGameCamera();
 	if (!camera) return;
 
-	animate(context, PG_DisaCameraAnimationComponent::Channel_View, "PG_DisaCameraViewAnimation",
+	animate(context, PG_DisaCameraAnimationComponent::Channel_Fov, "PG_DisaCameraFovAnimation",
 		durationTicks, [start = glm::degrees(camera->getFov()), fovDegree](PG_DisaCamera* self, float progress) {
 			self->setFov(glm::radians(glm::mix(start, fovDegree, progress)));
 		});
 }
 
-float PG_DisaCameraAnimations::fovOfViewValue(float value) {
+float PG_DisaCameraAnimations::fovOfLensValue(float value) {
 	/* The game rebuilds the frustum from the value, see FUN_004f8050: the half width at the near
 	 * plane is (320 / value) * 0.075 and the height is 0.5666667 of that. So the value reads like a
 	 * focal length, bigger means narrower, and the default of 320 is a very long lens. */

@@ -80,13 +80,13 @@ void rotateBy(PG_DisaContext& context, PG_DisaSpriteModel* actor, float degree, 
 * @brief Puts the actor into an animation set and keeps it busy while that set runs.
 * @param loops How often it plays before the actor counts as free again, zero never ends by
 * itself and only a later animation stops it.
-* @details Only the busy state ends, the sprite itself keeps playing either way. A pose the script
-* named before is dropped, the set and the angle pick the sheet again.
+* @details Only the busy state ends, the sprite itself keeps playing either way. A sheet the script
+* named before is dropped, the set and the angle pick one again.
 */
 void play(PG_DisaContext& context, PG_DisaSpriteModel* actor, int animationSet, int loops = 1);
 
-/// Holds one named sheet, the way SetActorPose does. A negative number is the mirrored sheet.
-void pose(PG_DisaSpriteModel* actor, int animation);
+/// Holds one named sheet, the way SetActorAnimation does. A negative number is the mirrored sheet.
+void setAnimation(PG_DisaSpriteModel* actor, int animation);
 
 /**
 * @brief Tints the actor's sprite, fading there over the duration.

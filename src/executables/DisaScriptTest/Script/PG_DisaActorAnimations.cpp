@@ -165,7 +165,7 @@ void PG_DisaActorAnimations::tint(PG_DisaContext& context, PG_DisaSpriteModel* a
 			});
 }
 
-void PG_DisaActorAnimations::pose(PG_DisaSpriteModel* actor, int animation) {
+void PG_DisaActorAnimations::setAnimation(PG_DisaSpriteModel* actor, int animation) {
 	if (!actor) return;
 	//naming the sheet takes the choice away from the angle, the way the game drops the mode
 	actor->setMode(PG_DisaSpriteModel::Mode_None);

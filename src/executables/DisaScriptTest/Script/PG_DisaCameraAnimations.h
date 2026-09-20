@@ -67,15 +67,15 @@ void rotateTo(PG_DisaContext& context, float pitchDegree, float orbitDegree, flo
 void rotateBy(PG_DisaContext& context, float pitchDegree, float orbitDegree, float durationTicks);
 
 /// Opens or narrows the lens, in degree of vertical field of view.
-void viewTo(PG_DisaContext& context, float fovDegree, float durationTicks);
+void fovTo(PG_DisaContext& context, float fovDegree, float durationTicks);
 
 /// The camera heading that matches a yaw out of a script. The two count in opposite directions.
 inline float orbitOfGameYaw(float yawDegree) { return 270.f - yawDegree; }
 
 /**
-* @brief Vertical field of view in degree for the projection value of SetCameraView.
+* @brief Vertical field of view in degree for the lens value of SetCameraFOV.
 * @param value Already scaled by the 1/16 the command applies, zero picks the game's default.
 */
-float fovOfViewValue(float value);
+float fovOfLensValue(float value);
 
 } //namespace PG_DisaCameraAnimations

@@ -60,7 +60,7 @@ public:
 		Channel_Move,     /// The orbit point, what SetCameraPos writes
 		Channel_Rotation, /// Pitch and heading together, the game keeps them in one slot too
 		Channel_Zoom,     /// Distance to the orbit point
-		Channel_View,     /// Field of view, what SetCameraView writes
+		Channel_Fov,      /// Field of view, what SetCameraFOV writes
 		Channel_Size_
 	};
 

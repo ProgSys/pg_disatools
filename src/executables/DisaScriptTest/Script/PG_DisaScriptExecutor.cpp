@@ -500,21 +500,21 @@ EDisaScriptResult cmdSetActorPos(PG_DisaScriptExecutor& executor, std::size_t la
 	return EDisaScriptResult::Done;
 }
 
-EDisaScriptResult cmdSetActorPose(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	printCommand(executor, laneIndex, data);
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	//a pose is a sheet number spelled out, held until something else changes it, and never busy
-	const int pose = readInt(bytes + 2, 2);
+	//the sheet is spelled out, held until something else changes it, and never busy
+	const int animation = readInt(bytes + 2, 2);
 	for (auto* actor : actorsOf(executor, laneIndex, static_cast<int>(readUInt(bytes, 2)))) {
-		PG_DisaActorAnimations::pose(actor, pose);
+		PG_DisaActorAnimations::setAnimation(actor, animation);
 	}
 	return EDisaScriptResult::Done;
 }
 
-EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+EDisaScriptResult cmdSetActorAnimationSet(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	printCommand(executor, laneIndex, data);
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
@@ -526,7 +526,7 @@ EDisaScriptResult cmdSetActorAnimation(PG_DisaScriptExecutor& executor, std::siz
 	PG_DisaContext& context = executor.context();
 	for (auto* actor : actorsOf(executor, laneIndex, static_cast<int>(readUInt(bytes, 2)))) {
 		applyFacing(actor, facing);
-		//the game puts the actor into combat numbering here, the SetAnimationModeSet after it decides
+		//the game puts the actor into combat numbering here, the SetActorAnimationMode after it decides
 		actor->setMode(PG_DisaSpriteModel::Mode_Combat);
 		PG_DisaActorAnimations::play(context, actor, animationSet, 1);
 	}
@@ -539,25 +539,25 @@ EDisaScriptResult cmdSetActorPoseDir(PG_DisaScriptExecutor& executor, std::size_
 	if (currentCommandOf(lane).dataSize < 5) return EDisaScriptResult::Done;
 
 	const unsigned char* bytes = static_cast<const unsigned char*>(data);
-	/* The game reads the side view off the camera once and bakes it into the pose, so the actor
+	/* The game reads the side view off the camera once and bakes it into the sheet, so the actor
 	 * keeps that sheet however it turns afterwards. Only the side front view is taken here. */
-	const int pose = static_cast<int>(readUInt(bytes + 2, 2)) * 10 + 1;
+	const int animation = static_cast<int>(readUInt(bytes + 2, 2)) * 10 + 1;
 	const std::optional<float> facing = facingOf(bytes[4]);
 
 	for (auto* actor : actorsOf(executor, laneIndex, static_cast<int>(readUInt(bytes, 2)))) {
 		applyFacing(actor, facing);
-		PG_DisaActorAnimations::pose(actor, pose);
+		PG_DisaActorAnimations::setAnimation(actor, animation);
 	}
 	return EDisaScriptResult::Done;
 }
 
 /**
 * @brief Picks which numbering and how many side views the actor's animations come from.
-* @details Mode 0 leaves the sheet to the pose the script named, 1 is the battle numbering with two
+* @details Mode 0 leaves the sheet to the one the script named, 1 is the battle numbering with two
 * side views, 2 the cutscene one with five, which is why EMode counts the same way. Every cutscene
-* actor is put into 2 right after each SetActorAnimation, which sets it back to 1 on its own.
+* actor is put into 2 right after each SetActorAnimationSet, which sets it back to 1 on its own.
 */
-EDisaScriptResult cmdSetAnimationModeSet(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+EDisaScriptResult cmdSetActorAnimationMode(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	printCommand(executor, laneIndex, data);
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 3) return EDisaScriptResult::Done;
@@ -673,7 +673,7 @@ EDisaScriptResult cmdSetCameraZoom(PG_DisaScriptExecutor& executor, std::size_t 
 	return EDisaScriptResult::Done;
 }
 
-EDisaScriptResult cmdSpinCamera(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+EDisaScriptResult cmdRotateCamera(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	printCommand(executor, laneIndex, data);
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 8) return EDisaScriptResult::Done;
@@ -689,7 +689,7 @@ EDisaScriptResult cmdSpinCamera(PG_DisaScriptExecutor& executor, std::size_t lan
 	return EDisaScriptResult::Done;
 }
 
-EDisaScriptResult cmdSetCameraView(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
+EDisaScriptResult cmdSetCameraFOV(PG_DisaScriptExecutor& executor, std::size_t laneIndex, float, const void* data) {
 	printCommand(executor, laneIndex, data);
 	const PG_DisaScriptLane& lane = executor.getLane(laneIndex);
 	if (currentCommandOf(lane).dataSize < 4) return EDisaScriptResult::Done;
@@ -698,9 +698,9 @@ EDisaScriptResult cmdSetCameraView(PG_DisaScriptExecutor& executor, std::size_t 
 	const float duration = static_cast<float>(readUInt(bytes, 2));
 	const unsigned int raw = readUInt(bytes + 2, 2);
 
-	//the command scales by a sixteenth, and zero asks for the default lens
-	const float value = static_cast<float>(raw) / 16.f;
-	PG_DisaCameraAnimations::viewTo(executor.context(), PG_DisaCameraAnimations::fovOfViewValue(value), duration);
+	//the command scales the argument by a sixteenth and drops the remainder, zero asks for the default
+	const float lens = static_cast<float>(static_cast<int>(static_cast<float>(raw) / 16.f));
+	PG_DisaCameraAnimations::fovTo(executor.context(), PG_DisaCameraAnimations::fovOfLensValue(lens), duration);
 	return EDisaScriptResult::Done;
 }
 
@@ -957,8 +957,8 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x27, "SetCursorPos", "parent:2,x:-2,z:-2,duration:2");
 		set(0x28, "SetCameraMode", "mode:1", &cmdSetCameraMode);
 		set(0x29, "SetCameraZoom", "duration:2,distance:-2", &cmdSetCameraZoom);
-		set(0x2A, "SpinCamera", "duration:2,rotX:-2,rotY:-2,rotZ:-2", &cmdSpinCamera);
-		set(0x2B, "SetCameraView", "duration:2,value:2", &cmdSetCameraView);
+		set(0x2A, "RotateCamera", "duration:2,rotX:-2,rotY:-2,rotZ:-2", &cmdRotateCamera);
+		set(0x2B, "SetCameraFOV", "duration:2,value:2", &cmdSetCameraFOV);
 		set(0x2C, "SetCameraPos", "parent:2,x:-2,y:-2,z:-2,duration:2", &cmdSetCameraPos);
 		set(0x2D, "SetActorGravity", "slot:2,gravity:-2", &cmdSetActorGravity);
 		set(0x2E, "SetCameraRotation", "duration:2,rotX:-2,rotY:-2,rotZ:-2", &cmdSetCameraRotation);
@@ -982,12 +982,12 @@ const std::array<CommandInfo, 256>& scriptCommands() {
 		set(0x61, "RunScriptOnActor", "scriptId:3,slot:2", &cmdRunScript);
 		set(0x64, "MoveActor", "slot:2,parent:2,x:-2,y:-2,z:-2,duration:2,mode:1", &cmdSetActorPos);
 		set(0x65, "SetActorPos", "slot:2,parent:2,x:-2,y:-2,z:-2,duration:2,mode:1", &cmdSetActorPos);
-		set(0x66, "SetActorPose", "slot:2,pose:-2", &cmdSetActorPose);
-		set(0x67, "SetActorAnimation", "slot:2,animation:2,facing:1", &cmdSetActorAnimation);
+		set(0x66, "SetActorAnimation", "slot:2,animation:-2", &cmdSetActorAnimation);
+		set(0x67, "SetActorAnimationSet", "slot:2,animationSet:2,facing:1", &cmdSetActorAnimationSet);
 		set(0x68, "ContinueActorAnimation", "slot:2", &cmdContinueActorAnimation);
 		set(0x69, "SetActorGroup", "slot:2,group:1");
-		set(0x6A, "SetActorPoseDir", "slot:2,poseBase:2,facing:1", &cmdSetActorPoseDir);
-		set(0x6B, "SetAnimationModeSet", "slot:2,mode:1", &cmdSetAnimationModeSet);
+		set(0x6A, "SetActorPoseDir", "slot:2,animationBase:2,facing:1", &cmdSetActorPoseDir);
+		set(0x6B, "SetActorAnimationMode", "slot:2,mode:1", &cmdSetActorAnimationMode);
 		set(0x6D, "SetActor", "slot:1,characterId:-2,level:2,allegiance:1", &cmdSetActor);
 		set(0x6E, "SetActorSprite", "slot:2,characterId:-2", &cmdSetActorSprite);
 		set(0x6F, "PlayEffect", "effectId:2,parent:2,x:-2,y:-2,z:-2,scale:2,speed:2,group:2");

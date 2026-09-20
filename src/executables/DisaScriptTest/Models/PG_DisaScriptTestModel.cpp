@@ -130,7 +130,7 @@ void PG_DisaScriptTestModel::resetGameCamera() {
 
 	camera->setOrbitAngles(startPitch, PG_DisaCameraAnimations::orbitOfGameYaw(startYaw));
 	camera->setOrbitDistance(startDistance / PG_DisaContext::worldUnitsPerTile);
-	camera->setFov(glm::radians(PG_DisaCameraAnimations::fovOfViewValue(0.f)));
+	camera->setFov(glm::radians(PG_DisaCameraAnimations::fovOfLensValue(0.f)));
 	camera->setEnabled(true);
 
 	//the middle of the map, on its floor rather than on the plane the camera starts out guessing

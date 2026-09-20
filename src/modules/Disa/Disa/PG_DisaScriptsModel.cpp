@@ -182,7 +182,7 @@ static inline std::string opCodeToComment(unsigned char op) {
 	case 0x2C: return "SetCameraPos";
 	case 0x2E: return "SetCameraRotation";
 	case 0x65: return "SetActorPos";
-	case 0x67: return "SetActorAnimation";
+	case 0x67: return "SetActorAnimationSet";
 	case 0x6D: return "SetActor";
 	case 0x73: return "RotateActor";
 	case 0x7A: return "SetMultRGBA";

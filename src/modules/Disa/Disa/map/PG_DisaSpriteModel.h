@@ -10,7 +10,7 @@
 /**
 * @brief A slot item drawn as a character sprite, and the map record behind it.
 * @details Everything the file stores about a unit lives here, along with what a script sets on one:
-* the animation set, the pose and the mode the side views are picked in. Where it stands and which
+* the animation set, the named animation and the mode the side views are picked in. Where it stands and which
 * way it looks belong to PG_DisaActorModel, because a mesh in a slot needs those just as much.
 */
 class PG_DisaSpriteModel : public PG_DisaActorModel {
@@ -97,10 +97,10 @@ public:
 	* @brief Which numbering and how many side views the animations are picked from.
 	* @details A sprite always faces the camera, what changes is which of its side views is shown.
 	* In battle only two exist and the turn is covered by mirroring them, a cutscene actor has five.
-	* The game calls this the animation mode, 1 and 2 of SetAnimationModeSet.
+	* The game calls this the animation mode, 1 and 2 of SetActorAnimationMode.
 	*/
 	enum EMode : unsigned char {
-		Mode_None,    /// Only the animation a pose named, the angle has no say
+		Mode_None,    /// Only the animation the script named, the angle has no say
 		Mode_Combat,  /// Two side views and the 1000 numbering
 		Mode_Cutscene /// Five side views and the cutscene numbering
 	};
@@ -202,7 +202,7 @@ public:
 
 	/**
 	* @brief Sprite animation to play instead of the one the set and the angle would give.
-	* @details This is what SetActorPose names, a sheet number spelled out. The actor then stops
+	* @details This is what SetActorAnimation names, a sheet number spelled out. The actor then stops
 	* following the camera, a negative number is the same sheet mirrored.
 	* @returns 0 while the set picks the animation, which is the normal case.
 	*/
