@@ -94,8 +94,8 @@ struct DisaRenderObjectManager {
     glm::vec3* m_cameraUp;      // 0x08 (not fully confirmed (high))
     glm::vec3* m_field0xc;      // 0x0c
     glm::vec3 m_lookDir;        // 0x10 - camera forward direction
-    uint32_t m_field0x14;       // 0x14
-    uint32_t m_prevRenderObjectListSize; // 0x18 - stores the last m_renderObjectListSize
+    uint32_t m_field0x1c;       // 0x1c
+    uint32_t m_prevRenderObjectListSize; // 0x20 - stores the last m_renderObjectListSize
     std::array<DisaRenderObject, 4096> m_renderObjects; //0x24 - Two blocks each max 2048 items, split at middle
     uint32_t m_renderObjectListSize; // 0x74024
     std::array<DisaRenderObject*, 2048> m_renderObjectList; // 0x74028 - pointers to objects in renderObjects

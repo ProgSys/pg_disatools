@@ -257,7 +257,6 @@ static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRend
         if (object->m_isPerspective == false) {
             if (param_1 == 1) return nullptr;
             //ui orthogonal matrix
-            assert(projectionIndex < projectionManager->projectionCount);
             projectionMat = &projectionManager->projections[projectionIndex]->projectionMatrix;// &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
         }
         else if (param_1 == 1) {
