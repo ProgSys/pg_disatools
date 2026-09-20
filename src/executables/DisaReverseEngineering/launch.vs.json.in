@@ -1,0 +1,15 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "dll",
+      "name": "@PG_LAUNCH_NAME@",
+      "project": "CMakeLists.txt",
+      "projectTarget": "@ProjectId@.dll (bin\\@ProjectId@.dll)",
+      "exe": "@DISGAEA_PC_EXECUTABLE@",
+      "currentDir": "@DISGAEA_PC_DIR@",
+      "args": []
+    }
+  ]
+}

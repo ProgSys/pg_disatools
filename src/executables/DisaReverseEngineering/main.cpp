@@ -562,7 +562,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 
 static DisaCustomBaseModManager g_baseManger;
 /**
-* Build settings:
+* Build settings (done by CMakeLists.txt in this directory):
 * Build Events -> Post-Build Events -> copy /Y "$(TargetDir)$(ProjectName).dll" "D:\Steam\SteamApps\common\Disgaea PC\j.dll"
 * (Only Debug) C++ -> Code Generation -> Basic Runtime Check -> /RTCu
 * Debugging -> Command -> D:/Steam/SteamApps/common/Disgaea PC/dis1_st.exe
