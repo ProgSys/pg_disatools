@@ -1,4 +1,5 @@
 #pragma once
+#include <type_traits>
 
 #ifndef far
 #define far

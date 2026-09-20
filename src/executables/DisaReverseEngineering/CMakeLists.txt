@@ -15,20 +15,17 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
 endif()
 
 # Basic runtime checks: only the uninitialised variable check (/RTCu) is wanted. The
-# stack frame check (/RTCs) does not survive the function hooking - it adds prologue
-# code around the very functions that get patched. CMake puts /RTC1 (= /RTCsu) in the
-# default debug flags, so it is removed rather than overridden, which would make cl
-# warn (D9025). Directory scoped, so only this DLL is affected.
+# stack frame check (/RTCs) verifies that ESP is unchanged across every call, which the
+# game's functions cannot satisfy - they take their first argument in ECX but leave the
+# stack arguments for the caller to pop, so FunctionPatcher corrects ESP one instruction
+# after the check has already fired. CMP0184 is NEW here, so /RTC1 no longer comes from
+# CMAKE_<LANG>_FLAGS_DEBUG and has to be deselected through MSVC_RUNTIME_CHECKS instead.
+# Directory scoped, so only this DLL is affected.
 if(MSVC)
-	string(REPLACE "/RTC1" "" CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}")
-	string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+	set(CMAKE_MSVC_RUNTIME_CHECKS "$<$<CONFIG:Debug>:UninitializedVariable>")
 endif()
 
 include(${CMAKE_MODULE_PATH}/generators/PG_DLL.cmake)
-
-if(MSVC)
-	target_compile_options(${ProjectId} PRIVATE $<$<CONFIG:Debug>:/RTCu>)
-endif()
 
 # The mod is linked against the engine, which the game has to load from its own
 # directory too. Findpg_engine only reports the import library, so the DLL is looked up
