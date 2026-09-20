@@ -1,10 +1,11 @@
 #pragma once
 
 #include <type_traits>
-#define far
+
+#include <Disa/utils/PG_DisaFunctionsDefine.h>
 
 
-class FunctionPatcher {
+class FunctionPatcher : public PG_DisaFunctionsDefine {
 public:
 	constexpr static unsigned int usedBase = 0x00400000;
 
@@ -61,9 +62,6 @@ public:
 
 	static void callFar(unsigned int funcAddress);
 #pragma runtime_checks( "", off ) //seams like it dosn't work for templates :( Must be disabled generally in the settings for the project :(
-	template<typename R, typename... Args>
-	using FarFunction = R(far*)(Args...);
-
 	template<typename R = void, typename... Args>
 	static R callFarA(unsigned int funcAddress, Args... args) {
 		funcAddress -= usedBase;
@@ -72,9 +70,6 @@ public:
 		return ((FarFunction<R, Args...>)(funcAddress))(args...);
 	}
 
-	template<typename R, typename... Args>
-	using FarStdFunction = R(__stdcall far*)(Args...);
-
 	template<typename R = void, typename... Args>
 	static R callStdFarA(unsigned int funcAddress, Args... args) {
 		funcAddress -= usedBase;
@@ -82,9 +77,6 @@ public:
 
 		return ((FarStdFunction<R, Args...>)(funcAddress))(args...);
 	}
-
-	template<typename R, typename... Args>
-	using FarFastFunction = R(__fastcall far*)(Args...);
 
 
 	#define popStackDef(I) \
@@ -186,9 +178,6 @@ public:
 		}
 	}
 
-	template<typename R, typename... Args>
-	using FarThisFunction = R(__thiscall far*)(Args...);
-
 	/**
 	* @brief Calls a thiscall
 	* this is put into ECX register, arguments into the stack.
@@ -240,9 +229,6 @@ public:
 		}
 	}
 
-	template<typename C, typename R, typename... Args>
-	using FarThisFunction2 = R(__thiscall far C::*)(Args...);
-
 	template<typename C, typename R = void, typename... Args>
 	static R callThisFarA2(C* self, unsigned int funcAddress, Args... args) {
 		funcAddress -= usedBase;
@@ -252,9 +238,6 @@ public:
 		*((unsigned int*)&funcPtr) = funcAddress;
 		return (self->*funcPtr)(args...);
 	}
-
-	template<typename R, typename... Args>
-	using FarCdeclFunction = R(__cdecl far*)(Args...);
 
 	template<typename R = void, typename... Args>
 	static R callCdeclFarA(unsigned int funcAddress, Args... args) {

@@ -2,12 +2,13 @@
 
 #include <Disa/dataStructs/PG_DisaStats.h>
 #include <Disa/dataStructs/PG_DisaTalkDatStructs.h>
+#include <Disa/utils/PG_DisaFunctionsDefine.h>
 
 struct PG_DisaScriptMemory;
 
 struct DisaScriptInfo
 {
-	FP::FarCdeclFunction<void, DisaScriptInfo*> function; //0x0
+	PG_DisaFunctionsDefine::FarCdeclFunction<void, DisaScriptInfo*> function; //0x0
 	PG_DisaScriptMemory* scriptMemory; //0x4
 	DisaScriptInfo* nextScript;//0x8
 	short functionSlot; //0xc
@@ -17,7 +18,7 @@ struct DisaScriptInfo
 };
 
 struct DisaWorldContext {
-	FP::FarCdeclFunction<void, DisaScriptInfo*>* callbackFunctionPtr; // 0x0;
+	PG_DisaFunctionsDefine::FarCdeclFunction<void, DisaScriptInfo*>* callbackFunctionPtr; // 0x0;
 	std::uint16_t field_0x4[64]; // 0x4
 	std::uint16_t field_0x84[70]; // 0x84
 	std::uint16_t field_0x110[34]; // 0x110
