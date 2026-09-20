@@ -140,6 +140,23 @@ struct DisaRenderObjectManager {
 };
 
 /**
+* @brief Render pass of FUN_00426770. Selects the shader every object is drawn with,
+* and for the shadow pass also the camera the scene is rendered from.
+* (NC)
+*/
+enum EDisaRenderPass : int {
+    RenderPass_Default,      // 0 - plain textured or unlit, also used for the UI
+    RenderPass_ShadowDepth,  // 1 - casters only, from the light, into the shadow map
+    RenderPass_Scene,        // 2 - lit scene with shadow lookup and normal mapping
+    RenderPass_SSAO,         // 3 - builds the occlusion buffer
+    RenderPass_SSAOComposite,// 4 - multiplies the occlusion buffer into the scene
+    RenderPass_Blur,         // 5 - uniform blur, used on the occlusion buffer
+    RenderPass_BlurPosition, // 6 - blur strength from screen position
+    RenderPass_DepthOfField, // 7 - blur strength from depth, uses focusZ
+    RenderPass_BlurAndDof,   // 8 - position and depth combined
+};
+
+/**
 * @brief Compares two DisaRenderObjects using m_depth and m_field0x8. If both are equal or nan then the pointer is used as fallback.
 */
 bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObject* param_2);
@@ -152,7 +169,7 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 /**
 * @brief Render objects
 */
-void _stdcall FUN_00426770(int param_1, unsigned int param_2, bool depthTestEnabled);
+void _stdcall FUN_00426770(ERenderPass pass, unsigned int param_2, bool depthTestEnabled);
 /**
 * @brief Submit render data to render queue
 */

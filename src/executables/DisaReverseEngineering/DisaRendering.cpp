@@ -202,10 +202,10 @@ void FUN_0042d3e0_SetProjectionMatrix(glm::mat4& thisMatrix, float fovDegrees, f
 /**
 * Needs validation
 */
-static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t type, int32_t* field0x14, float depth, int32_t field0x10, bool isPerspective) {
+static inline bool isVisible(EDisaRenderPass pass, unsigned int visibleBitMask, uint8_t type, int32_t* field0x14, float depth, int32_t field0x10, bool isPerspective) {
     if (bool(visibleBitMask & 4) != (field0x14 && field0x14[6] == 3))
         return false;
-    if ((param_1 == 1) && ((type & 1) == 0))
+    if ((pass == RenderPass_ShadowDepth) && ((type & 1) == 0))
         return false;
     if ((visibleBitMask & 0x40) && depth == 100.0f)
         return true;
@@ -229,7 +229,7 @@ static inline bool isVisible(int param_1, unsigned int visibleBitMask, uint8_t t
         return false;
     if (!(visibleBitMask & 0x1) && (isPerspective != 0))
         return false;
-    if (!(visibleBitMask & 0x2) && (isPerspective == 0) && (param_1 != 2 || depth != 100.0))
+    if (!(visibleBitMask & 0x2) && (isPerspective == 0) && (pass != RenderPass_Scene || depth != 100.0))
         return false;
     if (visibleBitMask & 0x20 && depth == 100.0)
         return false;
@@ -248,18 +248,18 @@ static PG_Object g_dummy;
 static PG_CommandRendererJob g_job;
 static PG_CommandRenderPass g_pass;
 
-static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRenderManager, DisaRenderObject* object, DisaProjectionManager* projectionManager, int param_1) {
+static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRenderManager, DisaRenderObject* object, DisaProjectionManager* projectionManager, EDisaRenderPass pass) {
     const bool projectionIndex = object->renderSettingsBitMask.projIndex; //seams never to be true
     FUN_00432f50_SelectProjection(projectionIndex); //FP::callStdFarA(0x00432f50, stencilBitSet); 
 
     glm::mat4* projectionMat = object->projectionMatrix; // pfVar8
     if (!projectionMat) {
         if (object->isPerspective == false) {
-            if (param_1 == 1) return nullptr;
+            if (pass == RenderPass_ShadowDepth) return nullptr;
             //ui orthogonal matrix
             projectionMat = &projectionManager->projections[projectionIndex]->projectionMatrix;// &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
         }
-        else if (param_1 == 1) {
+        else if (pass == RenderPass_ShadowDepth) {
             //glLoadIdentity(); //is not needed at all but present in original
             projectionMat = &memoryRenderManager->m_field0x760dc;
             const glm::mat4& staticMat = FP::getData<glm::mat4>(0x008191c0);
@@ -273,7 +273,7 @@ static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRend
     return projectionMat;
 }
 
-void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthTestEnabled) {
+void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bool depthTestEnabled) {
 
     DisaRenderObjectManager* memoryRenderManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 
@@ -337,10 +337,10 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         assert(object);
         if (!object) return;
 
-        if (!isVisible(param_1, visibleBitMask, object->type, object->field0x14, object->depth, object->field0x10, object->isPerspective))
+        if (!isVisible(pass, visibleBitMask, object->type, object->field0x14, object->depth, object->field0x10, object->isPerspective))
             continue;
 
-        glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, projectionManager, param_1);
+        glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, projectionManager, pass);
 
         //render custom object
         if (object->uniformSize == g_customModelMarker) {
@@ -385,7 +385,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             glLoadIdentity();
         }
         else {
-            if (param_1 == 1 && memoryRenderManager->m_cameraEye && memoryRenderManager->m_cameraCenter && memoryRenderManager->m_cameraUp) {
+            if (pass == RenderPass_ShadowDepth && memoryRenderManager->m_cameraEye && memoryRenderManager->m_cameraCenter && memoryRenderManager->m_cameraUp) {
                 glLoadIdentity();
                 assert(false);
 
@@ -479,7 +479,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             glPolygonOffset(0.0, polygonOffsetScale * polygonOffsetValue);
         }
 
-        FP::callThisFarA(0x00426fb0, object, false, param_1); //render object
+        FP::callThisFarA(0x00426fb0, object, false, pass); //render object
         glPopMatrix();
     }
     //reset back to normal
