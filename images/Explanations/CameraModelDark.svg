@@ -90,12 +90,13 @@
 <rect x="-13" y="-9" width="22" height="18" rx="3" fill="#79b8f3"/>
 <polygon points="9,-8 21,-14 21,14 9,8" fill="#79b8f3"/>
 </g>
-<text x="402.0" y="496.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#9198a1" font-weight="bold" text-anchor="start">value 1000</text>
-<text x="402.0" y="511.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="start">≈ 25°, a wide shot</text>
-<text x="402.0" y="566.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#79b8f3" font-weight="bold" text-anchor="start">default 320</text>
-<text x="402.0" y="581.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#79b8f3" font-weight="normal" text-anchor="start">≈ 4.9° vertical</text>
-<text x="48.0" y="652.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">Bigger value means narrower: it is a focal length, not an angle. The default is a very</text>
-<text x="48.0" y="668.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">long lens, and it is the 750 unit distance that still makes the map fill the screen.</text>
+<text x="402.0" y="496.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#9198a1" font-weight="bold" text-anchor="start">argument 1000</text>
+<text x="402.0" y="511.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#9198a1" font-weight="normal" text-anchor="start">lens 62.5, ≈ 25°</text>
+<text x="402.0" y="566.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="12" fill="#79b8f3" font-weight="bold" text-anchor="start">argument 0</text>
+<text x="402.0" y="581.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11" fill="#79b8f3" font-weight="normal" text-anchor="start">lens 320, ≈ 4.9°</text>
+<text x="48.0" y="652.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">The argument is divided by 16 to give the lens, and a bigger lens is a narrower view: it</text>
+<text x="48.0" y="668.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">is a focal length, not an angle. An argument of 0 picks the default lens of 320, a very</text>
+<text x="48.0" y="684.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="11.5" fill="#9198a1" font-weight="normal" text-anchor="start">long one, and it is the 750 unit distance that still makes the map fill the screen.</text>
 <rect x="560.0" y="430.0" width="470.0" height="262.0" rx="10" fill="#161b22" stroke="#30363d"/>
 <text x="578.0" y="457.0" font-family="Segoe UI, Helvetica Neue, Arial, sans-serif" font-size="14" fill="#e6edf3" font-weight="bold" text-anchor="start">How the eye is rebuilt, every tick</text>
 <text x="584.0" y="490.0" font-family="Consolas, DejaVu Sans Mono, Menlo, monospace" font-size="12.5" fill="#e6edf3" font-weight="normal" text-anchor="start">horizontal = |distance * cos(pitch)|</text>
