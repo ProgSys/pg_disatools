@@ -100,30 +100,49 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 using byte = std::uint8_t;
 
 
-
-struct DisaProjectionObject {
-    std::array<float, 13> field0x0;
-    bool field0x34; //0x34 isInit?
-    bool field0x35;
-    bool field0x36;
-    bool field0x37;
-    glm::mat4 projectionMatrix; //0x38
+/**
+* @brief One 2D camera: an orthographic projection over a virtual 480x272 screen,
+* plus the scroll, zoom and cull rectangle derived from it.
+*
+* Screen space is y down, x = 0 left, y = 0 top. Depth runs 0 to 65535.
+* Created by FUN_00432d40, recomputed by FUN_00432b40 (0x00432b40) after any field above cullRect changes.
+* Size: 0x78
+*/
+struct DisaProjection {
+    float viewLeft;     // 0x00 - default 0
+    float viewRight;    // 0x04 - default 480
+    float viewTop;      // 0x08 - default 0
+    float viewBottom;   // 0x0c - default 272
+    float depthFar;     // 0x10 - default 65535
+    float depthNear;    // 0x14 - default 0, also added to the matrix as a depth bias
+    float zoom;         // 0x18 - default 1, never 0, recompute divides by it
+    float cameraX;      // 0x1c - scroll in virtual pixels
+    float cameraY;      // 0x20 - scroll in virtual pixels
+    glm::ivec4 cullRect;      // 0x24 - derived from everything above (left, right, top, bottom)
+    bool isMatrixDirty;         // 0x34 - set by recompute, cleared once the matrix is uploaded
+    bool padding0x35;           // 0x35 - unused
+    bool padding0x36;           // 0x36
+    bool padding0x37;           // 0x37
+    glm::mat4 projectionMatrix; // 0x38 - ortho * rotateY(pi) * scale(zoom), then scrolled
 };
 
-struct DisaUnknownObject3 {
-    DisaProjectionObject* field0x0[2];
-    unsigned int field0x8;
-    unsigned int field0xc;
-};
+/**
+* @brief Owns the projection slots and remembers which one OpenGL currently holds.
+* Singleton at 0x005CBBC0, created at 0x00508073, destroyed by FUN_00432e60.
+* Render objects pick their slot through DisaRenderObjectSettings::projIndex.
+* Size: 0x14
+*/
+struct DisaProjectionManager {
+    int32_t projectionCount;      // 0x00 - always 2, bounds the array and the destructor
+    DisaProjection** projections; // 0x04 - heap array of m_projectionCount pointers
+    DisaProjection* selected;     // 0x08 - slot OpenGL holds, null until the first select
+    int32_t selectedIndex;        // 0x0c
+    bool isEnabled;               // 0x10 - false makes selecting a slot do nothing
+    bool isForceReload;           // 0x11 - upload the matrix even if the slot did not change
+    uint16_t padding0x12;         // 0x12 - unused
 
-struct DisaUnknownObject2 {
-    uint32_t field0x0; //0x0
-    DisaUnknownObject3* field0x4; //0x4 option
-    DisaProjectionObject* selectedProjectionObject; //0x8 selected option by param_1
-    uint32_t selectedProjectionObjectIndex; //0xc is set by param_1 is 0 or 1
-    bool field0x10_isEnabled; //0x10 isEnabled
-    bool field0x11; //0x11
-    unsigned short field0x12; //0x12
+    /// Instance located at 0x005CBBC0
+    static DisaProjectionManager* get() { return FP::getData<DisaProjectionManager*>(0x005CBBC0);  }
 };
 
 void FUN_00421a30_glUseAndInitProgram(int param_1, int param_2) {
@@ -142,22 +161,26 @@ void FUN_00421a30_glUseAndInitProgram(int param_1, int param_2) {
         ++i;
     }
 }
-void FUN_00432f50_ProjectionUpdate(uint32_t param_1){
+
+/**
+* @brief Will select and update gui projection by index
+*/
+void FUN_00432f50_SelectProjection(uint32_t projectionIndex){
     //not sure jet what they are cooking here
     //this seems to be a very complex way to manage multiple projection matrices
-    DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
-    if (!unknownObject->field0x10_isEnabled) return;
+    DisaProjectionManager* projectionManager = DisaProjectionManager::get();
+    if (!projectionManager->isEnabled) return;
 
-    DisaProjectionObject* selected = unknownObject->field0x4->field0x0[param_1];
-    if (selected != unknownObject->selectedProjectionObject || unknownObject->field0x11 || selected->field0x34 ) {
+    DisaProjection* selected = projectionManager->projections[projectionIndex];
+    if (selected != projectionManager->selected || projectionManager->isForceReload || selected->isMatrixDirty) {
         glMatrixMode(GL_PROJECTION);
         glLoadMatrixf((float*)&selected->projectionMatrix);
     }
 
-    selected->field0x34 = false;
-    unknownObject->field0x11 = false;
-    unknownObject->selectedProjectionObjectIndex = param_1;
-    unknownObject->selectedProjectionObject = selected;
+    selected->isMatrixDirty = false;
+    projectionManager->isForceReload = false;
+    projectionManager->selectedIndex = projectionIndex;
+    projectionManager->selected = selected;
 }
 
 void FUN_0042d3e0_SetProjectionMatrix(glm::mat4& thisMatrix, float fovDegrees, float width, float height, float nearVal, float farVal) {
@@ -225,16 +248,17 @@ static PG_Object g_dummy;
 static PG_CommandRendererJob g_job;
 static PG_CommandRenderPass g_pass;
 
-static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRenderManager, DisaRenderObject* object, DisaUnknownObject2* unknownObject, int param_1) {
+static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRenderManager, DisaRenderObject* object, DisaProjectionManager* projectionManager, int param_1) {
     const bool projectionIndex = object->m_renderSettingsBitMask.projIndex; //seams never to be true
-    FUN_00432f50_ProjectionUpdate(projectionIndex); //FP::callStdFarA(0x00432f50, stencilBitSet); // somekind of matrix setup
+    FUN_00432f50_SelectProjection(projectionIndex); //FP::callStdFarA(0x00432f50, stencilBitSet); 
 
     glm::mat4* projectionMat = object->m_projectionMatrix; // pfVar8
     if (!projectionMat) {
         if (object->m_isPerspective == false) {
             if (param_1 == 1) return nullptr;
             //ui orthogonal matrix
-            projectionMat = &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
+            assert(projectionIndex < projectionManager->projectionCount);
+            projectionMat = &projectionManager->projections[projectionIndex]->projectionMatrix;// &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
         }
         else if (param_1 == 1) {
             //glLoadIdentity(); //is not needed at all but present in original
@@ -295,14 +319,15 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     const auto* customDisaRenderManger = DisaCustomRenderManager::get();
     bool isInCustomState = false;
     g_pass.renderData.size = glm::ivec2(512);
-    g_pass.renderData.cameraPos = memoryRenderManager->m_center ? *memoryRenderManager->m_center : glm::vec3(0.0F);
+    g_pass.renderData.cameraPos = memoryRenderManager->m_cameraCenter ? *memoryRenderManager->m_cameraCenter : glm::vec3(0.0F);
     g_pass.renderData.deltaTime = customDisaRenderManger->getDeltaTimer().getDeltaTime();
     g_pass.renderData.ticks = customDisaRenderManger->getDeltaTimer().getTotalTime();
     g_job.errorTexture = customDisaRenderManger->getErrorTexture();
     g_job.loadTexture = customDisaRenderManger->getLoadTexture();
-    DisaUnknownObject2* unknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
-    unknownObject->field0x10_isEnabled = true;
-    unknownObject->field0x11 = true;
+
+    DisaProjectionManager* projectionManager = DisaProjectionManager::get();
+    projectionManager->isEnabled = true;
+    projectionManager->isForceReload = true;
     
     if (memoryRenderManager->m_renderBlockSize[memoryRenderManager->m_renderBlockIndex] <= 0) {
         //invalidate list
@@ -316,7 +341,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_isPerspective))
             continue;
 
-        glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, unknownObject, param_1);
+        glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, projectionManager, param_1);
 
         //render custom object
         if (object->m_uniformSize == g_customModelMarker) {
@@ -361,12 +386,12 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
             glLoadIdentity();
         }
         else {
-            if (param_1 == 1 && memoryRenderManager->m_field0x0 && memoryRenderManager->m_center && memoryRenderManager->m_field0x8) {
+            if (param_1 == 1 && memoryRenderManager->m_cameraEye && memoryRenderManager->m_cameraCenter && memoryRenderManager->m_cameraUp) {
                 glLoadIdentity();
                 assert(false);
 
                 //why is it not the same as DisaCameraInfo?
-                const glm::vec3 center = *memoryRenderManager->m_center;
+                const glm::vec3 center = *memoryRenderManager->m_cameraCenter;
                 const glm::vec3 dir = memoryRenderManager->m_lookDir * -2000.0f;
                 const glm::vec3 eye = center + dir;
 
@@ -461,8 +486,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
     //reset back to normal
     if (isInCustomState) glPopAttrib();
     
-
-    unknownObject->field0x10_isEnabled = 0;
+    projectionManager->isEnabled = false;
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 }
@@ -519,8 +543,7 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
             ((DisaTextureSPtr*)textureDataPtr)->FUN_004281f0(&renderObject->m_textureInfo);
             //FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
 
-            DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
-            renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
+            renderObject->m_renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
             renderObject->m_renderSettingsBitMask.blendMode = blendMode;
             renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
             renderObject->m_renderSettingsBitMask.stencilRef = stencilRef;
@@ -606,8 +629,7 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
     renderObject->m_uniformSize = g_customModelMarker;
     renderObject->m_field0x10 = modelIndex; //vertexCount
 
-    DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
-    renderObject->m_renderSettingsBitMask.projIndex = disaUnknownObject->selectedProjectionObjectIndex;
+    renderObject->m_renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
     renderObject->m_renderSettingsBitMask.blendMode = blendMode;
     renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
     renderObject->m_renderSettingsBitMask.stencilRef = stencilRef;
@@ -645,7 +667,7 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
 void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
     float poligonOffset, int param_11, bool param_12, bool param_13){
 
-    DisaUnknownObject2* disaUnknownObject = FP::getData<DisaUnknownObject2*>(0x005cbbc0);
+    DisaProjectionManager* projectionManager = DisaProjectionManager::get();
     DisaRenderObjectManager* roManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
 
     //char* puStack_c;
@@ -673,7 +695,7 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
             renderObject->m_uniformSize  = sizeUniforms;
             renderObject->m_modelMatrix = modelMatrix;
             int& mask = *((int*)&renderObject->m_renderSettingsBitMask);
-            mask = mask ^ (disaUnknownObject->selectedProjectionObjectIndex << 0xb ^ mask) & 0x800;
+            mask = mask ^ (projectionManager->selectedIndex << 0xb ^ mask) & 0x800;
             mask = mask ^ (blendMode << 0xc ^ mask) & 0xf000;
             mask = mask ^ (param_11 << 8 ^ mask) & 0x700;
             *(bool*)&renderObject->m_renderSettingsBitMask = param_12;

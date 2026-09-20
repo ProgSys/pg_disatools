@@ -89,9 +89,9 @@ struct DisaRenderObject {
  * Init function: FUN_00425970
 */
 struct DisaRenderObjectManager {
-    glm::vec3* m_field0x0;      // 0x00
-    glm::vec3* m_center;        // 0x04 - camera center
-    glm::vec3* m_field0x8;      // 0x08
+    glm::vec3* m_cameraEye;     // 0x00 (not fully confirmed (high))
+    glm::vec3* m_cameraCenter;  // 0x04 - camera center, used to compute gluLookAt
+    glm::vec3* m_cameraUp;      // 0x08 (not fully confirmed (high))
     glm::vec3* m_field0xc;      // 0x0c
     glm::vec3 m_lookDir;        // 0x10 - camera forward direction
     uint32_t m_field0x14;       // 0x14
