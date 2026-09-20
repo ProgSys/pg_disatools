@@ -62,10 +62,10 @@ struct DisaRenderObjectSettings {
 struct DisaRenderObject {
     uint32_t type;            // 0x00
     float depth;              // 0x04 - sortorder or type? 
-    float field0x8;           // 0x08
+    float sortBias;           // 0x08 - tie break when two objects share a depth
     DisaRenderObjectSettings renderSettingsBitMask; // 0x0c - Packed render state
-    uint16_t uniformSize;     // 0x0e
-    int32_t field0x10;        // 0x10 - vertexCount or triangleCount?
+    uint16_t primitiveType;   // 0x0e - index into the GL mode table at
+    int32_t vertexCount;      // 0x10 - 0 means meshData is a display list id
     int32_t* field0x14;       // 0x14 - texture
     DisaRenderObjectTexParameter textureInfo; // 0x18 - texture
     float* meshData;          // 0x1c - data to a list of VertexSolidColor, VertexBasic or VertexWithNormal
@@ -140,8 +140,7 @@ struct DisaRenderObjectManager {
 };
 
 /**
-* @brief Render pass of FUN_00426770. Selects the shader every object is drawn with,
-* and for the shadow pass also the camera the scene is rendered from.
+* @brief Render pass of FUN_00426770. Selects the shader every object is drawn with, and for the shadow pass also the camera the scene is rendered from.
 * (NC)
 */
 enum EDisaRenderPass : int {
@@ -169,7 +168,7 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 /**
 * @brief Render objects
 */
-void _stdcall FUN_00426770(ERenderPass pass, unsigned int param_2, bool depthTestEnabled);
+void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int param_2, bool depthTestEnabled);
 /**
 * @brief Submit render data to render queue
 */

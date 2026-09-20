@@ -19,8 +19,8 @@ bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObje
 
     if (!glm::isnan(param_1->depth) && !glm::isnan(param_1->depth) && param_1->depth != param_2->depth)
         return  param_1->depth < param_2->depth;
-    if (!glm::isnan(param_1->field0x8) && !glm::isnan(param_1->field0x8) && param_1->field0x8 != param_2->field0x8)
-        return  param_1->field0x8 < param_2->field0x8;
+    if (!glm::isnan(param_1->sortBias) && !glm::isnan(param_1->sortBias) && param_1->sortBias != param_2->sortBias)
+        return  param_1->sortBias < param_2->sortBias;
     return param_1 < param_2; // tiebreaker by using raw pointer
 }
 
@@ -337,17 +337,17 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bo
         assert(object);
         if (!object) return;
 
-        if (!isVisible(pass, visibleBitMask, object->type, object->field0x14, object->depth, object->field0x10, object->isPerspective))
+        if (!isVisible(pass, visibleBitMask, object->type, object->field0x14, object->depth, object->vertexCount, object->isPerspective))
             continue;
 
         glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, projectionManager, pass);
 
         //render custom object
-        if (object->uniformSize == g_customModelMarker) {
+        if (object->primitiveType == g_customModelMarker) {
             if (!customDisaRenderManger->isEnabled()) continue;
             const auto& models = customDisaRenderManger->getModels();
-            if (object->field0x10 >= models.size()) continue;
-            const PG_DisaModel& model = models[object->field0x10];
+            if (object->vertexCount >= models.size()) continue;
+            const PG_DisaModel& model = models[object->vertexCount];
             if (!model.isLoaded()) continue;
             if (!model.getMaterial(0).getShader().isLoaded()) continue;
 
@@ -517,7 +517,7 @@ struct DisaTextureSPtr {
     }
 };
 
-void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
+void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short primitiveType, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
     float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13, bool customData) {
 
     //char* puStack_c;
@@ -536,7 +536,7 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
             DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
 
             renderObject->depth = m_basePolygonOffset + depth;
-            renderObject->field0x8 = m_field0x76048;
+            renderObject->sortBias = m_field0x76048;
 
             FP::callThisFarA<void>(0x0041e560, &renderObject->field0x14, &textureDataPtr);
             ((DisaTextureSPtr*)textureDataPtr)->FUN_004281f0(&renderObject->textureInfo);
@@ -547,13 +547,13 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
             renderObject->renderSettingsBitMask.stencilMode = stencilMode;
             renderObject->renderSettingsBitMask.stencilRef = stencilRef;
 
-            renderObject->uniformSize = sizeUniforms;
+            renderObject->primitiveType = primitiveType;
             renderObject->modelMatrix = modelMatrix;
             renderObject->isPerspective = isPerspective;
             renderObject->depthTestEnabled = FP::getData<bool>(0x005ac978);
             renderObject->depthMaskEnabled = depthMaskEnabled == false;
             renderObject->field0x29 = (bool)param_13;
-            renderObject->field0x10 = triangleCount;
+            renderObject->vertexCount = triangleCount;
             renderObject->polygonOffset = poligonOffset;
 
             const int typeIndex = FP::getData<int>(0x005bb030);
@@ -622,11 +622,11 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
     DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
 
     renderObject->depth = m_basePolygonOffset + depth;
-    renderObject->field0x8 = m_field0x76048;
+    renderObject->sortBias = m_field0x76048;
     renderObject->field0x14 = nullptr; //no texture
     //mark as special
-    renderObject->uniformSize = g_customModelMarker;
-    renderObject->field0x10 = modelIndex; //vertexCount
+    renderObject->primitiveType = g_customModelMarker;
+    renderObject->vertexCount = modelIndex; //vertexCount
 
     renderObject->renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
     renderObject->renderSettingsBitMask.blendMode = blendMode;
@@ -663,7 +663,7 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
     ++m_renderBlockSize[m_renderBlockIndex];
 }
 
-void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
+void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short primitiveType, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
     float poligonOffset, int param_11, bool param_12, bool param_13){
 
     DisaProjectionManager* projectionManager = DisaProjectionManager::get();
@@ -686,12 +686,12 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
             renderObject = &roManager->m_renderObjects[roManager->m_renderBlockIndex * 2048 + roManager->m_renderBlockSize[roManager->m_renderBlockIndex]];
 
             renderObject->depth = roManager->m_basePolygonOffset + depth;
-            renderObject->field0x8 = roManager->m_field0x76048;
+            renderObject->sortBias = roManager->m_field0x76048;
 
             FP::callThisFarA<void>(0x0041e560, &renderObject->field0x14, &textureDataPtr);
             FP::callThisFarA<void>(0x004281f0, textureDataPtr, &renderObject->textureInfo);
 
-            renderObject->uniformSize  = sizeUniforms;
+            renderObject->primitiveType = primitiveType;
             renderObject->modelMatrix = modelMatrix;
             int& mask = *((int*)&renderObject->renderSettingsBitMask);
             mask = mask ^ (projectionManager->selectedIndex << 0xb ^ mask) & 0x800;
@@ -703,7 +703,7 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
             renderObject->depthTestEnabled = FP::getData<bool>(0x005ac978);
             renderObject->depthMaskEnabled = depthMaskEnabled == false;
             renderObject->field0x29 = (bool)param_13;
-            renderObject->field0x10 = triangleCount;
+            renderObject->vertexCount = triangleCount;
             renderObject->polygonOffset = poligonOffset;
 
             const int typeIndex = FP::getData<int>(0x005bb030);
