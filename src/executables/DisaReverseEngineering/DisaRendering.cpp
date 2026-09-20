@@ -17,10 +17,10 @@ bool FUN_004280a0_sortFunc(const DisaRenderObject* param_1, const DisaRenderObje
     assert(param_1 && param_2);
     if(!param_1 || !param_2) return param_1 > param_2;
 
-    if (!glm::isnan(param_1->m_depth) && !glm::isnan(param_1->m_depth) && param_1->m_depth != param_2->m_depth)
-        return  param_1->m_depth < param_2->m_depth;
-    if (!glm::isnan(param_1->m_field0x8) && !glm::isnan(param_1->m_field0x8) && param_1->m_field0x8 != param_2->m_field0x8)
-        return  param_1->m_field0x8 < param_2->m_field0x8;
+    if (!glm::isnan(param_1->depth) && !glm::isnan(param_1->depth) && param_1->depth != param_2->depth)
+        return  param_1->depth < param_2->depth;
+    if (!glm::isnan(param_1->field0x8) && !glm::isnan(param_1->field0x8) && param_1->field0x8 != param_2->field0x8)
+        return  param_1->field0x8 < param_2->field0x8;
     return param_1 < param_2; // tiebreaker by using raw pointer
 }
 
@@ -249,12 +249,12 @@ static PG_CommandRendererJob g_job;
 static PG_CommandRenderPass g_pass;
 
 static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRenderManager, DisaRenderObject* object, DisaProjectionManager* projectionManager, int param_1) {
-    const bool projectionIndex = object->m_renderSettingsBitMask.projIndex; //seams never to be true
+    const bool projectionIndex = object->renderSettingsBitMask.projIndex; //seams never to be true
     FUN_00432f50_SelectProjection(projectionIndex); //FP::callStdFarA(0x00432f50, stencilBitSet); 
 
-    glm::mat4* projectionMat = object->m_projectionMatrix; // pfVar8
+    glm::mat4* projectionMat = object->projectionMatrix; // pfVar8
     if (!projectionMat) {
-        if (object->m_isPerspective == false) {
+        if (object->isPerspective == false) {
             if (param_1 == 1) return nullptr;
             //ui orthogonal matrix
             projectionMat = &projectionManager->projections[projectionIndex]->projectionMatrix;// &unknownObject->field0x4->field0x0[projectionIndex]->projectionMatrix;
@@ -337,17 +337,17 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         assert(object);
         if (!object) return;
 
-        if (!isVisible(param_1, visibleBitMask, object->m_type, object->m_field0x14, object->m_depth, object->m_field0x10, object->m_isPerspective))
+        if (!isVisible(param_1, visibleBitMask, object->type, object->field0x14, object->depth, object->field0x10, object->isPerspective))
             continue;
 
         glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, projectionManager, param_1);
 
         //render custom object
-        if (object->m_uniformSize == g_customModelMarker) {
+        if (object->uniformSize == g_customModelMarker) {
             if (!customDisaRenderManger->isEnabled()) continue;
             const auto& models = customDisaRenderManger->getModels();
-            if (object->m_field0x10 >= models.size()) continue;
-            const PG_DisaModel& model = models[object->m_field0x10];
+            if (object->field0x10 >= models.size()) continue;
+            const PG_DisaModel& model = models[object->field0x10];
             if (!model.isLoaded()) continue;
             if (!model.getMaterial(0).getShader().isLoaded()) continue;
 
@@ -360,7 +360,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
                 isInCustomState = true;
             }
 
-            const glm::mat4 modelMatrix = object->m_modelMatrix ? *object->m_modelMatrix : glm::mat4(1.0F);
+            const glm::mat4 modelMatrix = object->modelMatrix ? *object->modelMatrix : glm::mat4(1.0F);
             addResModel(model, &g_dummy, modelMatrix, g_job, g_pass, model.additionalProperties);
 
             glDisable(GL_DEPTH_TEST);
@@ -381,7 +381,7 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
 
         //modelview matrix
         glMatrixMode(GL_MODELVIEW);  
-        if (object->m_isPerspective == false) {
+        if (object->isPerspective == false) {
             glLoadIdentity();
         }
         else {
@@ -411,23 +411,23 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         }
 
         glPushMatrix();
-        if (object->m_modelMatrix != nullptr) {
-            glMultMatrixf((GLfloat*)object->m_modelMatrix);
+        if (object->modelMatrix != nullptr) {
+            glMultMatrixf((GLfloat*)object->modelMatrix);
         }
 
         //update some matrix? maybe modelMatrix, maybe multiply with parent?
-        if (object->m_isPerspective == false || object->m_modelMatrix == nullptr) {
-            object->m_field0x34 = FP::getData<glm::mat4>(0x005b2670);
+        if (object->isPerspective == false || object->modelMatrix == nullptr) {
+            object->field0x34 = FP::getData<glm::mat4>(0x005b2670);
         }
         else {
             //mutiply view matrix with model matrix
             const glm::mat4 temp = memoryRenderManager->m_field0x7605c; //renderWorld + 0x1d817
-            object->m_field0x34 = *object->m_modelMatrix * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
+            object->field0x34 = *object->modelMatrix * temp; //  FP::callFastFarA(0x0042ced0, &object->m_field0x34, object->m_field0x20, &temp);
         }
 
         //update stencil
-        const int stencilRefTemp = object->m_renderSettingsBitMask.stencilRef;
-        const int stencilModeTemp = object->m_renderSettingsBitMask.stencilMode;
+        const int stencilRefTemp = object->renderSettingsBitMask.stencilRef;
+        const int stencilModeTemp = object->renderSettingsBitMask.stencilMode;
         if (stencilModeValue != stencilModeTemp || stencilRefValue != stencilRefTemp) {
             stencilRefValue = stencilRefTemp;
             stencilModeValue = stencilModeTemp;
@@ -456,8 +456,8 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         }
 
         //update depth test
-        if (depthTestEnabled != object->m_depthTestEnabled) {
-            depthTestEnabled = object->m_depthTestEnabled;
+        if (depthTestEnabled != object->depthTestEnabled) {
+            depthTestEnabled = object->depthTestEnabled;
             if (depthTestEnabled) {
                 glEnable(GL_DEPTH_TEST);
             }
@@ -467,14 +467,14 @@ void _stdcall FUN_00426770(int param_1, unsigned int visibleBitMask, bool depthT
         }
 
         //update depth mask
-        if (depthMaskEnabled != object->m_depthMaskEnabled) {
-            depthMaskEnabled = object->m_depthMaskEnabled;
+        if (depthMaskEnabled != object->depthMaskEnabled) {
+            depthMaskEnabled = object->depthMaskEnabled;
             glDepthMask(depthMaskEnabled);
         }
 
         //update Polygon Offset
-        if (!glm::isnan(object->m_polygonOffset) && object->m_polygonOffset != polygonOffsetValue) {
-            polygonOffsetValue = object->m_polygonOffset;
+        if (!glm::isnan(object->polygonOffset) && object->polygonOffset != polygonOffsetValue) {
+            polygonOffsetValue = object->polygonOffset;
             const float polygonOffsetScale = FP::getData<float>(0x005ac924);
             glPolygonOffset(0.0, polygonOffsetScale * polygonOffsetValue);
         }
@@ -505,14 +505,14 @@ struct DisaTextureSPtr {
     * @see FUN_004245e0
     */
     void FUN_004281f0(DisaRenderObjectTexParameter* texParamters) const {
-        texParamters->m_field0x0 = m_field0xc;
+        texParamters->field0x0 = m_field0xc;
         if (m_field0x4) {
-            texParamters->m_magFilter = (byte)m_field0x4[0xe];
-            texParamters->m_warpMode = (byte)m_field0x4[0xd];
+            texParamters->magFilter = (byte)m_field0x4[0xe];
+            texParamters->warpMode = (byte)m_field0x4[0xd];
         }
         else {
-            texParamters->m_magFilter = 0;
-            texParamters->m_warpMode = 1; //1 is never used and will be GL_CLAMP
+            texParamters->magFilter = 0;
+            texParamters->warpMode = 1; //1 is never used and will be GL_CLAMP
         }
     }
 };
@@ -535,51 +535,51 @@ void DisaRenderObjectManager::submitVertexBasic(float depth, int* textureDataPtr
         if (m_renderBlockSize[m_renderBlockIndex] < 2048) {
             DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
 
-            renderObject->m_depth = m_basePolygonOffset + depth;
-            renderObject->m_field0x8 = m_field0x76048;
+            renderObject->depth = m_basePolygonOffset + depth;
+            renderObject->field0x8 = m_field0x76048;
 
-            FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
-            ((DisaTextureSPtr*)textureDataPtr)->FUN_004281f0(&renderObject->m_textureInfo);
+            FP::callThisFarA<void>(0x0041e560, &renderObject->field0x14, &textureDataPtr);
+            ((DisaTextureSPtr*)textureDataPtr)->FUN_004281f0(&renderObject->textureInfo);
             //FP::callThisFarA<void>(0x004281f0, textureDataPtr, (short*)&renderObject->m_field0x18);
 
-            renderObject->m_renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
-            renderObject->m_renderSettingsBitMask.blendMode = blendMode;
-            renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
-            renderObject->m_renderSettingsBitMask.stencilRef = stencilRef;
+            renderObject->renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
+            renderObject->renderSettingsBitMask.blendMode = blendMode;
+            renderObject->renderSettingsBitMask.stencilMode = stencilMode;
+            renderObject->renderSettingsBitMask.stencilRef = stencilRef;
 
-            renderObject->m_uniformSize = sizeUniforms;
-            renderObject->m_modelMatrix = modelMatrix;
-            renderObject->m_isPerspective = isPerspective;
-            renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
-            renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
-            renderObject->m_field0x29 = (bool)param_13;
-            renderObject->m_field0x10 = triangleCount;
-            renderObject->m_polygonOffset = poligonOffset;
+            renderObject->uniformSize = sizeUniforms;
+            renderObject->modelMatrix = modelMatrix;
+            renderObject->isPerspective = isPerspective;
+            renderObject->depthTestEnabled = FP::getData<bool>(0x005ac978);
+            renderObject->depthMaskEnabled = depthMaskEnabled == false;
+            renderObject->field0x29 = (bool)param_13;
+            renderObject->field0x10 = triangleCount;
+            renderObject->polygonOffset = poligonOffset;
 
             const int typeIndex = FP::getData<int>(0x005bb030);
-            renderObject->m_type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
+            renderObject->type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
 
             if (m_modelMatrix) {
-                renderObject->m_modelMatrix = m_modelMatrix;
+                renderObject->modelMatrix = m_modelMatrix;
             }
             if (m_projectionMatrix) {
-                renderObject->m_projectionMatrix = m_projectionMatrix;
+                renderObject->projectionMatrix = m_projectionMatrix;
             }
 
             void* _Src = geometryData;
             //CUSTOM memory assignment to support big geometry 
             if (customData) {
-                renderObject->m_meshData = (float*)_Src;
+                renderObject->meshData = (float*)_Src;
             }
             else {
                 if ((_Src < m_field0x76030[m_renderBlockIndex]) || (m_field0x76030[m_renderBlockIndex] + 0x40000 <= _Src)) {
                     size_t _Size = triangleCount * 24;
                     float* _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, this, _Size);
                     memcpy(_Dst, _Src, _Size);
-                    renderObject->m_meshData = _Dst;
+                    renderObject->meshData = _Dst;
                 }
                 else {
-                    renderObject->m_meshData = (float*)_Src;
+                    renderObject->meshData = (float*)_Src;
                 }
             }
 
@@ -621,36 +621,36 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
     if (m_renderBlockSize[m_renderBlockIndex] >= 2048) return; //render queue full
     DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
 
-    renderObject->m_depth = m_basePolygonOffset + depth;
-    renderObject->m_field0x8 = m_field0x76048;
-    renderObject->m_field0x14 = nullptr; //no texture
+    renderObject->depth = m_basePolygonOffset + depth;
+    renderObject->field0x8 = m_field0x76048;
+    renderObject->field0x14 = nullptr; //no texture
     //mark as special
-    renderObject->m_uniformSize = g_customModelMarker;
-    renderObject->m_field0x10 = modelIndex; //vertexCount
+    renderObject->uniformSize = g_customModelMarker;
+    renderObject->field0x10 = modelIndex; //vertexCount
 
-    renderObject->m_renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
-    renderObject->m_renderSettingsBitMask.blendMode = blendMode;
-    renderObject->m_renderSettingsBitMask.stencilMode = stencilMode;
-    renderObject->m_renderSettingsBitMask.stencilRef = stencilRef;
+    renderObject->renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
+    renderObject->renderSettingsBitMask.blendMode = blendMode;
+    renderObject->renderSettingsBitMask.stencilMode = stencilMode;
+    renderObject->renderSettingsBitMask.stencilRef = stencilRef;
 
-    renderObject->m_modelMatrix = modelMatrix;
-    renderObject->m_isPerspective = isPerspective;
-    renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
-    renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
-    renderObject->m_field0x29 = (bool)param_13;;
-    renderObject->m_polygonOffset = poligonOffset;
+    renderObject->modelMatrix = modelMatrix;
+    renderObject->isPerspective = isPerspective;
+    renderObject->depthTestEnabled = FP::getData<bool>(0x005ac978);
+    renderObject->depthMaskEnabled = depthMaskEnabled == false;
+    renderObject->field0x29 = (bool)param_13;;
+    renderObject->polygonOffset = poligonOffset;
 
     const int typeIndex = FP::getData<int>(0x005bb030);
-    renderObject->m_type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
+    renderObject->type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
 
     if (m_modelMatrix) {
-        renderObject->m_modelMatrix = m_modelMatrix;
+        renderObject->modelMatrix = m_modelMatrix;
     }
     if (m_projectionMatrix) {
-        renderObject->m_projectionMatrix = m_projectionMatrix;
+        renderObject->projectionMatrix = m_projectionMatrix;
     }
 
-    renderObject->m_meshData = nullptr;
+    renderObject->meshData = nullptr;
 
     if (m_skipGlSetup) return;
 
@@ -685,35 +685,35 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
         if (roManager->m_renderBlockSize[roManager->m_renderBlockIndex] < 2048) {
             renderObject = &roManager->m_renderObjects[roManager->m_renderBlockIndex * 2048 + roManager->m_renderBlockSize[roManager->m_renderBlockIndex]];
 
-            renderObject->m_depth = roManager->m_basePolygonOffset + depth;
-            renderObject->m_field0x8 = roManager->m_field0x76048;
+            renderObject->depth = roManager->m_basePolygonOffset + depth;
+            renderObject->field0x8 = roManager->m_field0x76048;
 
-            FP::callThisFarA<void>(0x0041e560, &renderObject->m_field0x14, &textureDataPtr);
-            FP::callThisFarA<void>(0x004281f0, textureDataPtr, &renderObject->m_textureInfo);
+            FP::callThisFarA<void>(0x0041e560, &renderObject->field0x14, &textureDataPtr);
+            FP::callThisFarA<void>(0x004281f0, textureDataPtr, &renderObject->textureInfo);
 
-            renderObject->m_uniformSize  = sizeUniforms;
-            renderObject->m_modelMatrix = modelMatrix;
-            int& mask = *((int*)&renderObject->m_renderSettingsBitMask);
+            renderObject->uniformSize  = sizeUniforms;
+            renderObject->modelMatrix = modelMatrix;
+            int& mask = *((int*)&renderObject->renderSettingsBitMask);
             mask = mask ^ (projectionManager->selectedIndex << 0xb ^ mask) & 0x800;
             mask = mask ^ (blendMode << 0xc ^ mask) & 0xf000;
             mask = mask ^ (param_11 << 8 ^ mask) & 0x700;
-            *(bool*)&renderObject->m_renderSettingsBitMask = param_12;
+            *(bool*)&renderObject->renderSettingsBitMask = param_12;
 
-            renderObject->m_isPerspective = isPerspective;
-            renderObject->m_depthTestEnabled = FP::getData<bool>(0x005ac978);
-            renderObject->m_depthMaskEnabled = depthMaskEnabled == false;
-            renderObject->m_field0x29 = (bool)param_13;
-            renderObject->m_field0x10 = triangleCount;
-            renderObject->m_polygonOffset = poligonOffset;
+            renderObject->isPerspective = isPerspective;
+            renderObject->depthTestEnabled = FP::getData<bool>(0x005ac978);
+            renderObject->depthMaskEnabled = depthMaskEnabled == false;
+            renderObject->field0x29 = (bool)param_13;
+            renderObject->field0x10 = triangleCount;
+            renderObject->polygonOffset = poligonOffset;
 
             const int typeIndex = FP::getData<int>(0x005bb030);
-            renderObject->m_type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
+            renderObject->type = (&FP::getData<unsigned int>(0x005bb038))[typeIndex];
 
             if (roManager->m_modelMatrix) {
-                renderObject->m_modelMatrix = (glm::mat4*)roManager->m_modelMatrix;
+                renderObject->modelMatrix = (glm::mat4*)roManager->m_modelMatrix;
             }
             if (roManager->m_projectionMatrix) {
-                renderObject->m_projectionMatrix = roManager->m_projectionMatrix;
+                renderObject->projectionMatrix = roManager->m_projectionMatrix;
             }
 
             void* _Src = geometryData;
@@ -721,10 +721,10 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
                 size_t _Size = triangleCount * 24;
                 float* _Dst = (float*)FP::callThisFarA<int>(0x00425bb0, roManager, _Size);
                 memcpy(_Dst, _Src, _Size);
-                renderObject->m_meshData = _Dst;
+                renderObject->meshData = _Dst;
             }
             else {
-                renderObject->m_meshData = (float*)_Src;
+                renderObject->meshData = (float*)_Src;
             }
 
             if (!roManager->m_skipGlSetup) {

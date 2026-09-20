@@ -40,9 +40,9 @@ struct VertexWithNormal {
  * Total size: 0x04
  */
 struct DisaRenderObjectTexParameter {
-    uint16_t m_field0x0; //0x00
-    uint8_t m_magFilter; //0x02 GL_NEAREST or GL_LINEAR (could be bool)
-    uint8_t m_warpMode;  //0x03 GL_CLAMP or GL_REPEAT == 2
+    uint16_t field0x0; //0x00
+    uint8_t magFilter; //0x02 GL_NEAREST or GL_LINEAR (could be bool)
+    uint8_t warpMode;  //0x03 GL_CLAMP or GL_REPEAT == 2
 };
 /**
  * @brief Bitfield-based render state configuration.
@@ -60,24 +60,24 @@ struct DisaRenderObjectSettings {
 * Managed by DisaRenderObjectManager.
 */
 struct DisaRenderObject {
-    uint32_t m_type;            // 0x00
-    float m_depth;              // 0x04 - sortorder or type? 
-    float m_field0x8;           // 0x08
-    DisaRenderObjectSettings m_renderSettingsBitMask; // 0x0c - Packed render state
-    uint16_t m_uniformSize;     // 0x0e
-    int32_t m_field0x10;        // 0x10 - vertexCount
-    int32_t* m_field0x14;       // 0x14 - texture
-    DisaRenderObjectTexParameter m_textureInfo; // 0x18 - texture
-    float* m_meshData;          // 0x1c - data to a list of VertexSolidColor, VertexBasic or VertexWithNormal
-    glm::mat4* m_modelMatrix;   // 0x20 - modelMatrix
-    glm::mat4* m_projectionMatrix; // 0x24 - optional custom projection matrix (is mostly null)
-    bool m_isPerspective;       // 0x28 - True: 3D, False: UI (orthographic)
-    bool m_field0x29;           // 0x29
-    bool m_depthTestEnabled;    // 0x2a - Depth test enable
-    bool m_depthMaskEnabled;    // 0x2b - Depth write enable
-    float m_polygonOffset;      // 0x2c - Depth bias / polygon offset
-    int32_t* m_field0x30;       // 0x30 
-    glm::mat4 m_field0x34;      // 0x34
+    uint32_t type;            // 0x00
+    float depth;              // 0x04 - sortorder or type? 
+    float field0x8;           // 0x08
+    DisaRenderObjectSettings renderSettingsBitMask; // 0x0c - Packed render state
+    uint16_t uniformSize;     // 0x0e
+    int32_t field0x10;        // 0x10 - vertexCount or triangleCount?
+    int32_t* field0x14;       // 0x14 - texture
+    DisaRenderObjectTexParameter textureInfo; // 0x18 - texture
+    float* meshData;          // 0x1c - data to a list of VertexSolidColor, VertexBasic or VertexWithNormal
+    glm::mat4* modelMatrix;   // 0x20 - modelMatrix
+    glm::mat4* projectionMatrix; // 0x24 - optional custom projection matrix (is mostly null)
+    bool isPerspective;       // 0x28 - True: 3D, False: UI (orthographic)
+    bool field0x29;           // 0x29
+    bool depthTestEnabled;    // 0x2a - Depth test enable
+    bool depthMaskEnabled;    // 0x2b - Depth write enable
+    float polygonOffset;      // 0x2c - Depth bias / polygon offset
+    int32_t* field0x30;       // 0x30 
+    glm::mat4 field0x34;      // 0x34
 };
 
 /**
