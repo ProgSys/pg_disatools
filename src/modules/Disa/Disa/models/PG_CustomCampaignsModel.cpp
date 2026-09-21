@@ -5,8 +5,10 @@
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 #include <Disa/models/PG_DisaMainModel.h>
 #include <Disa/PG_DisaMapModel.h>
+#include <Resources/PG_ResourceManager.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamInOutByteVector.h>
+#include <Util/Debug/PG_DebugOut.h>
 #include <Scene/PG_CameraNode.h>
 #include <Util/PG_ImageLoad.h>
 #include <Util/PG_StringUtil.h>
@@ -458,7 +460,25 @@ void PG_CustomCampaignsModel::afterOpen(zipUPtr& zip) {
 	}
 
 	m_campaignJsonContainer = campaignInfo.open<PG_DisaCampaignJsonContainer>();
+	registerResourceSource();
+}
 
+void PG_CustomCampaignsModel::registerResourceSource() {
+	m_resourceScope.expire(); //an earlier open of this same model may still be registered
+
+	if (!m_campaignJsonContainer || m_campaignJsonContainer->getId().empty()) return;
+	const std::string& id = m_campaignJsonContainer->getId();
+
+	/* the source reads through the archive, so it needs the same shared_ptr everyone else holds.
+	* One built without it can still be edited, it just has nothing to offer the manager. */
+	auto self = std::dynamic_pointer_cast<PG_ZIP>(weak_from_this().lock());
+	if (!self) {
+		OUT_WARNING("Campaign \"" << id << "\" is not held by a shared_ptr, its content stays out"
+			" of the resource manager!");
+		return;
+	}
+
+	m_resourceScope = PG_ResourceManager::registerSource<PG_ZIPResourceSource>(self, id);
 }
 
 

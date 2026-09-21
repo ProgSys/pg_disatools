@@ -1,7 +1,9 @@
 #pragma once
 
 #include <Disa/fileformats/PG_ZIP.h>
+#include <Disa/resources/PG_ZIPResourceSource.h>
 #include <Resources/PG_Texture.h>
+#include <Resources/PG_ResourceSourceScope.h>
 #include <Util/PG_ValueSetter.h>
 #include <Scene/Model/PG_ListModel.h>
 #include <nlohmann/json_fwd.hpp>
@@ -279,6 +281,14 @@ receivers:
 
 private:
 	void afterOpen(zipUPtr& zip) final;
+	/**
+	* @brief Offers everything the campaign carries to the resource manager under its own id.
+	* @details A texture of it then loads as "<id>::<path in the zip>", and letting the campaign
+	* go takes all of it back out. Does nothing for a campaign with no id.
+	*/
+	void registerResourceSource();
 
 	std::shared_ptr<PG_DisaCampaignJsonContainer> m_campaignJsonContainer;
+	/// The registration, so the campaigns content lives exactly as long as the campaign does
+	PG_ResourceSourceScope<PG_ZIPResourceSource> m_resourceScope;
 };
