@@ -466,8 +466,8 @@ void PG_CustomCampaignsModel::afterOpen(zipUPtr& zip) {
 void PG_CustomCampaignsModel::registerResourceSource() {
 	m_resourceScope.expire(); //an earlier open of this same model may still be registered
 
-	if (!m_campaignJsonContainer || m_campaignJsonContainer->getId().empty()) return;
-	const std::string& id = m_campaignJsonContainer->getId();
+	const std::string id = getResourceNameSpace();
+	if (id.empty()) return;
 
 	/* the source reads through the archive, so it needs the same shared_ptr everyone else holds.
 	* One built without it can still be edited, it just has nothing to offer the manager. */

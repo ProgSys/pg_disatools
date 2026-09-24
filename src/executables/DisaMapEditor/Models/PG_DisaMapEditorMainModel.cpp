@@ -15,6 +15,8 @@
 #include <Disa/fileformats/PG_GEO.h>
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Disa/resources/PG_DisaModel.h>
+#include <Disa/models/PG_CustomCampaignsModel.h>
+#include <ranges>
 #include <PG_DisaDefines.h>
 
 
@@ -167,6 +169,13 @@ void PG_DisaMapEditorMainModel::openExe() {
 PG_UiStateBaseModel::UiState PG_DisaMapEditorMainModel::getUiState() const {
 	if (m_modelStack.empty()) return PG_UiStateBaseModel::UiState::Empty;
 	return m_modelStack.back()->getUiState();
+}
+
+std::string PG_DisaMapEditorMainModel::getCurrentResourceNameSpace() const {
+	for (const auto& entry : m_modelStack | std::views::reverse) {
+		if (auto* campaign = dynamic_cast<const PG_CustomCampaignsModel*>(entry.get())) return campaign->getResourceNameSpace();
+	}
+	return {};
 }
 
 void PG_DisaMapEditorMainModel::setGridModel(PG_ListModelBase* model) {

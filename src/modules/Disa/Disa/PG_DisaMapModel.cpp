@@ -1017,14 +1017,7 @@ struct PG_JobOpenGEO : public PG_Job {
 		if (isCanceled()) return;
 		owner.get()->postCallEvent(
 			[owner = dynamic_cast<PG_DisaMapModel*>(owner.get()), objectModel, model = std::move(disaModel)]() mutable {
-				/* An object names its geometry by index into the assets, so the geometry goes in first and
-				 * the index it lands on is what the object is told to draw. */
-				mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
-				data.model_id = (unsigned char)owner->m_assets->addGeometry(std::move(model));
-				objectModel->setData(data);
-
-				objectModel->setThreadId(owner->getThreadId());
-				owner->m_objectsModel->push_back(objectModel);
+				owner->addPreviewObject(objectModel, std::move(model));
 			});
 	}
 };
@@ -1038,6 +1031,22 @@ void PG_DisaMapModel::openGeo(PG_DisaFileEntry geoFile) {
 	}
 
 	m_jobHandle = PG_Worker::get()->addJob(new PG_JobOpenGEO(geoStream, PG_Lifeline(this)));
+}
+
+void PG_DisaMapModel::openModel(PG_Model model) {
+	clear();
+	addPreviewObject(PG_new<PG_DisaObjectModel>("PG_DisaObjectModel"), std::move(model));
+}
+
+void PG_DisaMapModel::addPreviewObject(PG_DisaObjectModel* object, PG_Model model) {
+	/* An object names its geometry by index into the assets, so the geometry goes in first and
+	 * the index it lands on is what the object is told to draw. */
+	mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
+	data.model_id = static_cast<char>(m_assets->addGeometry(std::move(model)));
+	object->setData(data);
+
+	object->setThreadId(getThreadId());
+	m_objectsModel->push_back(object);
 }
 
 PG_MPD PG_DisaMapModel::toMPD() const {

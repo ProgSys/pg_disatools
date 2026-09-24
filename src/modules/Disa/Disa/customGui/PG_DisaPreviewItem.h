@@ -4,6 +4,7 @@
 #include <Util/PG_File.h>
 #include <Resources/PG_Sprite.h>
 #include <Resources/PG_Texture.h>
+#include <Resources/PG_Model.h>
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 
 class PG_Audio;
@@ -34,6 +35,8 @@ public:
 	void open(const PG_DisaMPPPack& mppPack);
 	/// Shows the geometry on its own, as the only object of a map with no tiles
 	void open(const PG_DisaGEOPack& geoPack);
+	/// Shows the model on its own, as the only object of a map with no tiles
+	void open(const PG_Model& model);
 
 	const PG_ListModelLocation& getLocation() const { return m_location; };
 	void setLocation(const PG_ListModelLocation& location);

@@ -64,26 +64,33 @@ PACK(struct mpdfileChunkHeader // 64 bytes
 
 PACK(struct mpdfileChunkObject //36 bytes
 {
-    short x, y, z; // y is negative for some reason?
-    short xRot, yRot, zRot; // in degree
-    short xScale, yScale, zScale; // 0-100
-    short unk10;
-    unsigned char  unk11, model_id, visible, unk12;
-    char textureScrollX, textureScrollY; //this defines the speed and direction of texture scroll for flaged textures
-	unsigned char  pad[10];
+	short x, y, z;                  // 0x00 - 12 units per tile, a tile centre is tile * 12 - 6
+	short xRot, yRot, zRot;         // 0x06 - degrees, the renderer multiplies by pi/180
+	short xScale, yScale, zScale;   // 0x0c - percent, the renderer multiplies by 0.01
+	short animationFrame;           // 0x12 - the frame to start on, the renderer advances and wraps it
+	unsigned char unk0x14;          // 0x14 - no code reads it, zero in every retail object
+	char model_id;                  // 0x15 - signed, indexes a table of 32 models
+	unsigned char visible;          // 0x16 - 0 marks the slot free, the game searches on it
+	char unk0x17;                   // 0x17 - reaches the polygon offset of the model draw, always 0 on disc
+	char textureScrollX;            // 0x18 - uv scroll speed, flagged textures only
+	char textureScrollY;            // 0x19
+	unsigned char padding[2];       // 0x1a
+	float uvScrollX;                // 0x1c - runtime offset, advanced by textureScrollX each frame
+	float uvScrollY;                // 0x20 - runtime offset, advanced by textureScrollY each frame
 
 	static mpdfileChunkObject createEmpty() {
 		return mpdfileChunkObject{
 			0, 0, 0,
-			0, 0 ,0,
+			0, 0, 0,
 			100, 100, 100,
 			0,
 			0, 0, 1, 0,
 			0, 0,
-			{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+			{ 0, 0 },
+			0.f, 0.f
 		};
 	}
-} ) ;
+});
 
 PACK(struct mpdfileChunkEventTile // 4 byte
 {

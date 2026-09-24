@@ -498,6 +498,10 @@ void PG_DisaPreviewItem::openPreview(const PG_Variety& var) {
 		open(var.get<PG_DisaGEOPack>());
 		return;
 	}
+	if (var.is<PG_Model>()) {
+		open(var.get<PG_Model>());
+		return;
+	}
 	if (var.is<std::string>()) {
 		open(var.get<std::string>());
 		return;
@@ -647,6 +651,14 @@ void PG_DisaPreviewItem::open(const PG_DisaGEOPack& geoPack) {
 	}
 
 	getOrCreateGameScene()->setModel(PG_DisaMPDContainer::createFromGEO(geo));
+}
+
+void PG_DisaPreviewItem::open(const PG_Model& model) {
+	if (!model.isValid()) {
+		clearImage();
+		return;
+	}
+	getOrCreateGameScene()->setModel(PG_DisaMPDContainer::createFromModel(model));
 }
 
 void PG_DisaPreviewItem::setLocation(const PG_ListModelLocation& location) {

@@ -7,6 +7,7 @@
 #include <Disa/map/PG_DisaObjectModel.h>
 #include <Disa/PG_DisaColorEnum.h>
 #include <resources/PG_Texture.h>
+#include <Resources/PG_Model.h>
 
 #include <Util/PG_iVec2Hasher.h>
 #include <Util/PG_Transformation.h>
@@ -405,6 +406,11 @@ public:
 	void openMapAssets(PG_DisaFileEntry mppSDInfo, PG_DisaFileEntry mppHDInfo);
 
 	void openGeo(PG_DisaFileEntry geoFile);
+	/**
+	* @brief Shows a finished model as the only object of a map with no tiles
+	* @details The same as openGeo, only there is nothing to read, so the object is there right away.
+	*/
+	void openModel(PG_Model model);
 
 	void createBaseMap(int topIndex = 1, int sideIndex = 2, int decalIndex = 0);
 
@@ -427,6 +433,9 @@ public:
 	PG_DisaAssetsModel* getAssets() const { return m_assets; }
 
 private:
+	/// Puts the model into the assets and hands the object the index it landed on
+	void addPreviewObject(PG_DisaObjectModel* object, PG_Model model);
+
 	PG_JobHandle m_jobHandle;
 	bool m_isModified = false;
 
@@ -531,6 +540,14 @@ public:
 		static_assert(std::is_base_of_v<PG_DisaMPDContainer, T>, "T must derived from PG_DisaMPDContainer!");
 		auto container = std::shared_ptr<T>(PG_new<T>());
 		container->createModel()->openGeo(geo);
+		return container;
+	}
+	/// @see PG_DisaMapModel::openModel
+	template<typename T = PG_DisaMPDContainer>
+	static std::shared_ptr<T> createFromModel(PG_Model model) {
+		static_assert(std::is_base_of_v<PG_DisaMPDContainer, T>, "T must derived from PG_DisaMPDContainer!");
+		auto container = std::shared_ptr<T>(PG_new<T>());
+		container->createModel()->openModel(std::move(model));
 		return container;
 	}
 receivers:

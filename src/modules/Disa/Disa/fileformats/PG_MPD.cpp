@@ -337,16 +337,17 @@ bool PG_MPD::openJson(PG::STREAM::In* reader) {
 				jObject["scale"][1].get_to(object.yScale);
 				jObject["scale"][2].get_to(object.zScale);
 
-				jObject["unknown1"].get_to(object.unk10);
-				jObject["unknown2"].get_to(object.unk11);
+
+				jObject["animationFrame"].get_to(object.animationFrame);
+				jObject["unk0x14"].get_to(object.unk0x14);
 				jObject["model_id"].get_to(object.model_id);
 				jObject["visible"].get_to(object.visible);
-				jObject["unknown3"].get_to(object.unk12);
-				jObject["texture_scroll"][0].get_to(object.textureScrollX); 
-				jObject["texture_scroll"][1].get_to(object.textureScrollY);
-				for (int i = 0; i < 10; ++i) {
-					jObject["padding_" + std::to_string(i + 1)].get_to(object.pad[i]);
-				}
+				jObject["unk0x17"].get_to(object.unk0x17);
+
+				jObject["texture_scroll_speed"][0].get_to(object.textureScrollX);
+				jObject["texture_scroll_speed"][1].get_to(object.textureScrollY);
+				jObject["texture_scroll"][0].get_to(object.uvScrollX);
+				jObject["texture_scroll"][1].get_to(object.uvScrollY);
 			}
 		}
 
@@ -512,15 +513,13 @@ void PG_MPD::saveJson(const std::string& file) const {
 			jObject["positon"] = { object.x, object.y,object.z };
 			jObject["rotation"] = { object.xRot, object.yRot, object.zRot };
 			jObject["scale"] = { object.xScale, object.yScale, object.zScale };
-			jObject["unknown1"] = object.unk10;
-			jObject["unknown2"] = object.unk11;
+			jObject["animationFrame"] = object.animationFrame;
+			jObject["unk0x14"] = object.unk0x14;
 			jObject["model_id"] = object.model_id;
 			jObject["visible"] = object.visible;
-			jObject["unknown3"] = object.unk12;
-			jObject["texture_scroll"] = { object.textureScrollX, object.textureScrollY };
-			for (int i = 0; i < 10; ++i) {
-				jObject["padding_" + std::to_string(i + 1)] = object.pad[i];
-			}
+			jObject["unk0x17"] = object.unk0x17;
+			jObject["texture_scroll_speed"] = { object.textureScrollX, object.textureScrollY };
+			jObject["texture_scroll"] = { object.uvScrollX, object.uvScrollY };
 
 			jObjects.push_back(std::move(jObject));
 		}

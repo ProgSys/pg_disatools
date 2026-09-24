@@ -269,6 +269,8 @@ public:
 	void createNew(std::string name);
 
 	PG_DisaCampaignJsonContainer* getCampaignJsonContainer() const { return m_campaignJsonContainer.get(); }
+	/// The namespace the campaign content is offered to the resource manager under, empty when it has no id
+	std::string getResourceNameSpace() const { return m_campaignJsonContainer ? m_campaignJsonContainer->getId() : std::string(); }
 
 	PG_Texture getPreviewImg() const;
 

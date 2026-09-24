@@ -14,6 +14,7 @@ public:
 
 	PG_DisaEditorModule* mod;
 	PG_GuiItem* root;
+	PG_DisaMapScene* scene = nullptr;
 
 	static void setup(PG_DisaMapScene* scene, PG_GuiItem* root);
 	PG_DisaEditorModule::EMaterialInspectorMode getMaterialInspectorMode() const { return mod->getMaterialInspectorMode(); }

@@ -39,6 +39,8 @@ public:
 	const std::shared_ptr<PG_UiStateBaseModel>& getUiStackEntry(int index) const { return m_modelStack[index]; }
 	const std::shared_ptr<PG_UiStateBaseModel>& getCurrent() const { return m_modelStack.back(); }
 	std::shared_ptr<PG_Object> getCurrentObject() const { return std::dynamic_pointer_cast<PG_Object>(m_modelStack.back()); }
+	/// The resource namespace of the campaign the current state was opened from, empty outside a campaign
+	std::string getCurrentResourceNameSpace() const;
 
 	PG_ListModelBase* getGridModel() const { return m_gridModel; }
 

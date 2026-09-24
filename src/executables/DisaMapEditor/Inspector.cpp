@@ -38,6 +38,8 @@
 #include <Drag/DisaNewCharacterDrag.h>
 
 #include <CustomGui/PG_DisaCharacterPortraitGridTile.h>
+#include <CustomGui/PG_DisaObjectGridTile.h>
+#include <Models/PG_DisaObjectCatalogModel.h>
 #include <CustomGui/PG_DisaEventTileListItem.h>
 #include <CustomGui/PG_DisaItemDropDown.h>
 #include <CustomGui/PG_DisaUVItem.h>
@@ -147,6 +149,35 @@ public:
 };
 
 /**
+* @brief Filters the object catalog by search text, and optionally down to the Disa models
+*/
+class ObjectCatalogFilter : public PG_ListModelFilter {
+	std::string m_searchText;
+	static inline bool m_onlyDisa = false;
+public:
+	using PG_ListModelFilter::PG_ListModelFilter;
+	void setSearchText(const std::string& str) {
+		if (m_searchText == str) return;
+		m_searchText = str;
+		invalidate();
+	}
+	bool isOnlyDisa() const { return m_onlyDisa; }
+	void setOnlyDisa(bool onlyDisa) {
+		if (onlyDisa == m_onlyDisa) return;
+		m_onlyDisa = onlyDisa;
+		invalidate();
+	}
+
+	bool filter(const PG_Variety& v) const final {
+		assert(v.is<PG_DisaObjectCatalogItem>());
+		const auto& item = v.get<PG_DisaObjectCatalogItem>();
+		if (m_onlyDisa && item.source == PG_DisaObjectCatalogItem::Mod) return true;
+		if (m_searchText.empty()) return false;
+		return !(PG_StringUtil::contains(item.displayName, m_searchText, false) || PG_StringUtil::contains(item.resourceName, m_searchText, false));
+	}
+};
+
+/**
 * @brief Only displayes tiles for a given postion
 */
 class EventTilePositionFilter : public PG_ListModelFilter {
@@ -196,6 +227,7 @@ void Inspector::setup(PG_DisaMapScene* scene, PG_GuiItem* root) {
 	auto* inspector = PG_new<Inspector>(root);
 	inspector->mod = mod;
 	inspector->root = root;
+	inspector->scene = scene;
 
 	PG_Object::connect(mod, &PG_DisaEditorModule::modeChanged, inspector, &Inspector::createFunctionBar);
 	PG_Object::connect(mod, &PG_DisaEditorModule::modeChanged, inspector, &Inspector::createInspector);
@@ -427,7 +459,7 @@ static inline PG_Any getValueSumUvOutline(const std::vector<PG_Object*>& selecti
 
 static inline void setValueSumUvOutline(const std::vector<PG_Object*>& selection, const std::vector<PG_Property>& properties, const PG_Any& value) {
 	return;
-	//TODO notused
+	//TODO not used
 	auto selcIt = selection.begin();
 	auto propIt = properties.begin();
 
@@ -991,6 +1023,75 @@ static inline void createForEventEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 }
 
 constexpr float spinTexWidth = 50.f;
+
+
+static inline void createForObjectNoneSelectEdit(PG_GuiColumn* column, PG_DisaMapScene* scene) {
+	column->clearGuiChildren();
+
+	auto catalog = PG_new<PG_DisaObjectCatalogModel>("PG_DisaObjectCatalogModel", column);
+	catalog->setNameSpace(PG_DisaMapEditorMainModel::get()->getCurrentResourceNameSpace());
+	const auto updateAssets = [catalog, scene] {
+		auto* mapModel = scene->getMapModel();
+		catalog->setAssets(mapModel ? mapModel->getAssets() : nullptr);
+		catalog->requestRebuild(); //the same assets may have been refilled for a new map
+		};
+	updateAssets();
+	PG_Object::connect(scene->getMapNode(), &PG_DisaMapViewNode::loaded, catalog, updateAssets);
+
+	auto filterModel = PG_new<ObjectCatalogFilter>("ObjectCatalogFilter", column);
+	filterModel->setModel(catalog);
+
+
+	{
+		PG_GuiItem* searchArea = PG_new<PG_GuiItem>("AearchArea", column);
+		PG_GuiItem::anchor(searchArea, PG_Anchor::Left, column, PG_Anchor::Left);
+		PG_GuiItem::anchor(searchArea, PG_Anchor::Right, column, PG_Anchor::Right);
+		searchArea->setHeight(30.f);
+
+		auto filterBtn = PG_new<PG_GuiToggleButton>("filterBtn", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), searchArea);
+		filterBtn->setIcon("gui/icon_eye.png");
+		filterBtn->setBackground("M_GuiToolButtonEnd");
+		filterBtn->setTooltipText("Only Disa models");
+		filterBtn->setToggled(filterModel->isOnlyDisa());
+		PG_GuiItem::anchor(filterBtn, PG_Anchor::Top, searchArea, PG_Anchor::Top);
+		PG_GuiItem::anchor(filterBtn, PG_Anchor::Right, searchArea, PG_Anchor::Right);
+		PG_GuiItem::connect(filterBtn, &PG_GuiToggleButton::toggleChanged, filterModel, [filterModel, s = filterBtn] { filterModel->setOnlyDisa(s->isToggled()); });
+
+		PG_DisaSearchField* searchField = PG_new<PG_DisaSearchField>("searchField", glm::vec2(0.f), glm::vec2(300.f, 30.f), searchArea);
+		PG_GuiItem::anchor(searchField, PG_Anchor::Top, searchArea, PG_Anchor::Top);
+		PG_GuiItem::anchor(searchField, PG_Anchor::Right, filterBtn, PG_Anchor::Left);
+		PG_GuiItem::anchor(searchField, PG_Anchor::Left, searchArea, PG_Anchor::Left);
+		searchField->setBackground("M_GuiRoundedRectangleLeft5");
+		PG_GuiItem::connect(searchField, &PG_GuiTextField::textChanged, filterModel, [filterModel, s = searchField] { filterModel->setSearchText(s->getText()); });
+	}
+
+
+	auto* gridWrapper = PG_new<PG_GuiItem>("grid", column);
+	gridWrapper->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	PG_GuiItem::anchor(gridWrapper, PG_Anchor::Left, column, PG_Anchor::Left);
+	PG_GuiItem::anchor(gridWrapper, PG_Anchor::Right, column, PG_Anchor::Right);
+
+	auto gridView = PG_new<PG_GuiGridView>("grid", gridWrapper);
+	gridView->fill(gridWrapper);
+	gridView->setClip(true);
+	gridView->setItem(PG_GuiGridView::getDefaultCreateFunc<PG_DisaObjectGridTile>());
+	gridView->setItemUpdate(PG_GuiGridView::getDefaultUpdateFunc<PG_DisaObjectGridTile>());
+	gridView->setCellSize(glm::ivec2((inspectorWidth - 20) / 3));
+	gridView->setModel(filterModel);
+
+	PG_GuiScrollBar* scroll = PG_new<PG_GuiScrollBar>("ScrollBar", gridWrapper);
+	PG_GuiItem::anchor(scroll, PG_Anchor::Top, gridView, PG_Anchor::Top);
+	PG_GuiItem::anchor(scroll, PG_Anchor::Bottom, gridView, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(scroll, PG_Anchor::Right, gridView, PG_Anchor::Right);
+
+	constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
+	scroll->setSize(glm::vec2(10.0f, 0.0f));
+	scroll->setScrollBarColors(PG_Gui::ColorSet{ blueColor, blueColor * 1.1f , blueColor * 1.1f });
+	if (auto rec = dynamic_cast<PG_GuiRectangle*>(scroll->getHandle())) {
+		rec->setMaterial("M_GuiRoundedRectangleAll5");
+	}
+	gridView->setupVerticalScrollBar(scroll);
+}
 
 
 static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
@@ -1898,9 +1999,14 @@ void Inspector::createInspector() {
 			delete wrapper;
 			wrapper = nullptr;
 		}
-		if (mod->getMode() != PG_DisaEditorModule::Mode_Actor) {
+		if (mod->getMode() != PG_DisaEditorModule::Mode_Actor && mod->getMode() != PG_DisaEditorModule::Mode_Object) {
 			if (inspector) delete inspector;
 			return;
+		}
+		//switching between two modes that both show a list for no selection leaves the old list otherwise
+		if (m_lastMode != mod->getMode()) {
+			m_lastMode = mod->getMode();
+			isNew = true;
 		}
 	}
 
@@ -1940,6 +2046,10 @@ void Inspector::createInspector() {
 			case PG_DisaEditorModule::Mode_Actor:
 				inspector->setWidth(inspectorWidth);
 				createForActorNoneSelectEdit(column);
+				break;
+			case PG_DisaEditorModule::Mode_Object:
+				inspector->setWidth(inspectorWidth);
+				createForObjectNoneSelectEdit(column, scene);
 				break;
 			}
 		}
