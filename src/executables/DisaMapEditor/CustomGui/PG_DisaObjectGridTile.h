@@ -33,6 +33,7 @@ class PG_GuiRectangle;
 
 /**
 * @brief A tile of the object catalog, the model preview plus a marker for models that come from a mod.
+* @details Dragging it with the left button starts the DisaNewObjectDrag that lives under the grid.
 * @see PG_DisaObjectCatalogModel
 */
 class PG_DisaObjectGridTile : public PG_DisaPreviewItem {

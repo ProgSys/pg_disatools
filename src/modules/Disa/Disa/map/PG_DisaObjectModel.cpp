@@ -138,9 +138,16 @@ void PG_DisaObjectModel::setUvScroll(glm::ivec2 v) {
 	notifyParent(this, { Identity_UVScroll });
 }
 
+void PG_DisaObjectModel::setResourceName(const std::string& name) {
+	if (m_resourceName == name) return;
+	m_resourceName = name;
+	emit resourceChanged();
+	notifyParent(this, { Identity_ModResource });
+}
+
 void PG_DisaObjectModel::remove() {
 	auto list = getParent<PG_DisaObjectListModel>();
-	if (list) list->remove(m_location);
+	if (list && m_location >= 0) list->remove(m_location);
 }
 
 PG_Variety PG_DisaObjectModel::getData(Identity identity) const {
@@ -149,6 +156,7 @@ PG_Variety PG_DisaObjectModel::getData(Identity identity) const {
 	case Identity_Rotation: return getObjectRotation();
 	case Identity_Scale: return getObjectScale();
 	case Identity_UVScroll: return getUvScroll();
+	case Identity_ModResource: return getResourceName();
 	}
 	return PG_Variety();
 }
@@ -187,6 +195,12 @@ bool PG_DisaObjectModel::setData(const PG_Variety& value, Identity identity) {
 				m_data.yScale = static_cast<short>(std::round(v.y));
 				m_data.zScale = static_cast<short>(std::round(v.z));
 				emit objectScaleChanged();
+				return true;
+			}
+		}break;
+		case Identity_ModResource: {
+			if (std::string v = value.get<std::string>(); v != getResourceName()) {
+				setResourceName(v);
 				return true;
 			}
 		}break;

@@ -264,21 +264,31 @@ void PG_DisaMapScene::setHDMode(bool state) {
 	m_mapNode->setHDMode(state);
 }
 
-void PG_DisaMapScene::addModel(int index, glm::vec3 pos) {
+PG_DisaObjectModel* PG_DisaMapScene::addObject(char modelId, const std::string& resourceName, glm::vec3 pos) {
 	auto* model = getMapModel();
-	if (!model) return;
+	if (!model) return nullptr;
 
 	auto objects = model->getObjects();
 	auto object = PG_new<PG_DisaObjectModel>("PG_DisaObjectModel", objects);
 	object->setChunk(model->getChunks()->back());
 	mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
-	data.model_id = index;
+	data.model_id = modelId;
 	const glm::ivec3 tilePos = PG_DisaObjectModel::toObjectTranslation(pos - model->getChunks()->back()->getTileTranslation());
 	data.x = tilePos.x;
 	data.y = tilePos.y;
 	data.z = tilePos.z;
 	object->setData(data);
+	object->setResourceName(resourceName);
 	objects->push_back(object);
+	return object;
+}
+
+PG_DisaObjectModel* PG_DisaMapScene::addModel(int index, glm::vec3 pos) {
+	return addObject(static_cast<char>(index), {}, pos);
+}
+
+PG_DisaObjectModel* PG_DisaMapScene::addResourceModel(const std::string& resourceName, glm::vec3 pos) {
+	return addObject(-1, resourceName, pos); //-1 is no entry of the model table, the resource is what draws
 }
 
 void PG_DisaMapScene::addModelAtViewCenter(int index) {
@@ -304,12 +314,14 @@ void PG_DisaMapScene::duplicateObject(int objectIndex) {
 		++offsetCounter;
 	}
 
-	auto dublicateData = objects->get(objectIndex)->getData();
+	const PG_DisaObjectModel* original = objects->get(objectIndex);
+	auto dublicateData = original->getData();
 	dublicateData.x += 5 * offsetCounter;
 
 	auto object = PG_new<PG_DisaObjectModel>("PG_DisaObjectModel", objects);
 	object->setChunk(model->getChunks()->back());
 	object->setData(dublicateData);
+	object->setResourceName(original->getResourceName());
 	objects->push_back(object);
 }
 

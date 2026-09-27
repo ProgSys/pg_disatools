@@ -24,17 +24,23 @@ class PG_DisaObjectModel : public PG_Object {
 
 	PG_PROPERTY(glm::ivec2 uvScroll GET getUvScroll SET setUvScroll CHANGED objectUVScrollChanged);
 
+	PG_PROPERTY(bool isMod GET isMod CHANGED resourceChanged);
+	PG_PROPERTY(std::string resourceName GET getResourceName SET setResourceName CHANGED resourceChanged);
+
 signals:
 	void objectTranslationChanged();
 	void objectRotationChanged();
 	void objectScaleChanged();
 	void objectUVScrollChanged();
+
+	void resourceChanged();
 public:
 	enum ECustomIdentity : Identity {
 		Identity_Translation = PG_Identity_Custom,
 		Identity_Rotation,
 		Identity_Scale,
 		Identity_UVScroll,
+		Identity_ModResource,
 	};
 
 	using PG_Object::PG_Object;
@@ -70,6 +76,12 @@ public:
 	glm::ivec3 getObjectDisaScale() const { return { m_data.xScale , m_data.yScale , m_data.zScale }; }
 	void setObjectDisaScale(glm::ivec3 t);
 
+	/// A mod object draws a PG_Model resource instead of the geometry model_id names
+	bool isMod() const { return !m_resourceName.empty(); }
+	/// Fully qualified ("campaign::D_Wall"), so it goes into PG_Model as it is. Empty for a Disa object.
+	const std::string& getResourceName() const { return m_resourceName; }
+	void setResourceName(const std::string& name);
+
 	void remove();
 
 	const mpdfileChunkObject& getData() const { return m_data; }
@@ -79,9 +91,10 @@ public:
 	PG_Variety getData(Identity identity) const;
 	bool setData(const PG_Variety& value, Identity identity);
 private:
-	int m_location = 0;
+	int m_location = -1; /// -1 until a list holds it, so nothing is announced for a stranger's index
 	PG_Lifeline_T<PG_DisaMapChunkModel> m_chunk;
 	mpdfileChunkObject m_data;
+	std::string m_resourceName;
 };
 
 class PG_DisaObjectListModel : public PG_ListModel<PG_DisaObjectModel*> {

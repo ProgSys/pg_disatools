@@ -19,7 +19,7 @@ void PG_DisaObjectViewNode::setLocation(PG_ListModelLocation loc) {
 void PG_DisaObjectViewNode::update(const PG_ListModelLocation& location, const PG_IdentitySet& identities) {
 	const bool hasItem = identities.contains(PG_Identity_Item) || m_location != location;
 
-	if (hasItem || identities.contains(PG_Identity_Location)) {
+	if (hasItem || identities.contains(PG_Identity_Location) || identities.contains(PG_DisaObjectModel::Identity_ModResource)) {
 		m_location = location;
 		loadGeometry();
 		emit translationUserChanged();
@@ -59,7 +59,13 @@ void PG_DisaObjectViewNode::loadGeometry() {
 	const auto& object = model->getData();
 	auto mapModel = model->findParent<PG_DisaMapModel>(3);
 
-	if (!mapModel || object.model_id >= mapModel->getAssets()->getGeometries()->size()) {
+	if (!mapModel) {
+		clearChildren();
+		return;
+	}
+	const auto& geometries = mapModel->getAssets()->getGeometries()->getItems();
+	const bool hasGeometry = object.model_id >= 0 && static_cast<std::size_t>(object.model_id) < geometries.size();
+	if (!model->isMod() && !hasGeometry) {
 		clearChildren();
 		return;
 	}
@@ -78,15 +84,12 @@ void PG_DisaObjectViewNode::loadGeometry() {
 	const glm::vec2 scroll = glm::vec2(object.textureScrollX, object.textureScrollY) * g_disassemblyScrollSpeed; // / 10000.0f;
 	disaModel->setTextureScroll(scroll);
 
-	{
-		PG_Model geoModel;
-		const auto& items = mapModel->getAssets()->getGeometries()->getItems();
-		if (object.model_id < items.size()) {
-			const auto& item = items[object.model_id];
-			const bool isHdMode = mapModel->getAssets()->isHDViewEnabled();
-			geoModel = isHdMode? item.getHDModel() : item.getSDModel();
-		}
-		disaModel->setModel(std::move(geoModel));
+	if (model->isMod()) {
+		disaModel->loadModel(model->getResourceName());
+	} else {
+		const auto& item = geometries[object.model_id];
+		const bool isHdMode = mapModel->getAssets()->isHDViewEnabled();
+		disaModel->setModel(isHdMode ? item.getHDModel() : item.getSDModel());
 	}
 
 	//euler YXZ rotation in degree radians

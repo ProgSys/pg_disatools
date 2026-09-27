@@ -31,7 +31,9 @@
 #include <Scene/PG_Scene.h>
 #include <glm/glm.hpp>
 #include <memory>
+#include <string>
 
+class PG_DisaObjectModel;
 class PG_DisaMapViewNode;
 class PG_DisaMapModel;
 class PG_DisaMPDContainer;
@@ -78,8 +80,16 @@ public:
 
 	/**
 	* @brief Puts a new object of the given model on the map
+	* @returns Null when no map is open
 	*/
-	void addModel(int index, glm::vec3 pos);
+	PG_DisaObjectModel* addModel(int index, glm::vec3 pos);
+	/**
+	* @brief Puts a new mod object on the map, drawn by a PG_Model resource
+	* @details Such an object lives in the editor only, the MPD has no way to name it and saving skips it.
+	* @param resourceName Fully qualified, "campaign::D_Wall"
+	* @returns Null when no map is open
+	*/
+	PG_DisaObjectModel* addResourceModel(const std::string& resourceName, glm::vec3 pos);
 	/**
 	* @brief Puts a new object where the camera looks at the map
 	*/
@@ -105,6 +115,8 @@ public:
 
 private:
 	void orbitCamera(float value);
+	/// Adds an object to the last chunk, snapped to the object grid at pos
+	PG_DisaObjectModel* addObject(char modelId, const std::string& resourceName, glm::vec3 pos);
 
 	bool m_previewMode = false;
 	PG_DisaMapViewNode* m_mapNode = nullptr;

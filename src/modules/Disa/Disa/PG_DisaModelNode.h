@@ -48,6 +48,7 @@ public:
 	void loadGlobal(const std::string& modelId);
 	void loadGlobal(const std::string& modelId, const PG_GEO& geo);
 	void traverseGeometry(const glm::mat4& modelMatrix, const TraverserseFunc& visitor, float distance) const override;
+	void loadModel(const std::string& modelName);
 
 	void makeTransparent();
 	void reverseTransparent();

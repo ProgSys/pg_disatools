@@ -36,6 +36,7 @@
 #include <Disa/CustomGui/PG_DisaSearchField.h>
 
 #include <Drag/DisaNewCharacterDrag.h>
+#include <Drag/DisaNewObjectDrag.h>
 
 #include <CustomGui/PG_DisaCharacterPortraitGridTile.h>
 #include <CustomGui/PG_DisaObjectGridTile.h>
@@ -171,7 +172,7 @@ public:
 	bool filter(const PG_Variety& v) const final {
 		assert(v.is<PG_DisaObjectCatalogItem>());
 		const auto& item = v.get<PG_DisaObjectCatalogItem>();
-		if (m_onlyDisa && item.source == PG_DisaObjectCatalogItem::Mod) return true;
+		if (m_onlyDisa && item.isMod()) return true;
 		if (m_searchText.empty()) return false;
 		return !(PG_StringUtil::contains(item.displayName, m_searchText, false) || PG_StringUtil::contains(item.resourceName, m_searchText, false));
 	}
@@ -1078,6 +1079,7 @@ static inline void createForObjectNoneSelectEdit(PG_GuiColumn* column, PG_DisaMa
 	gridView->setItemUpdate(PG_GuiGridView::getDefaultUpdateFunc<PG_DisaObjectGridTile>());
 	gridView->setCellSize(glm::ivec2((inspectorWidth - 20) / 2));
 	gridView->setModel(filterModel);
+	PG_new<DisaNewObjectDrag>("DisaNewObjectDrag", gridView);
 
 	PG_GuiScrollBar* scroll = PG_new<PG_GuiScrollBar>("ScrollBar", gridWrapper);
 	PG_GuiItem::anchor(scroll, PG_Anchor::Top, gridView, PG_Anchor::Top);

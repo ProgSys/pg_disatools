@@ -23,7 +23,7 @@ void PG_DisaModelNode::loadGlobal(const std::string& modelId) {
 }
 
 void PG_DisaModelNode::loadGlobal(const std::string& modelId, const PG_GEO& geo) {
-	clearChildrenByType({ PG_Type::Node_Model,PG_Type::Node_DisaModel });
+	clearChildrenByType({ PG_Type::Node_Model, PG_Type::Node_DisaModel });
 	if (geo.getTransformations().empty() || geo.getModels().empty() || geo.getTreeNodes().empty()) return;
 
 	PG_DisaModel model;
@@ -50,6 +50,11 @@ void PG_DisaModelNode::traverseGeometry(const glm::mat4& modelMatrix, const Trav
 		}
 	}
 	m_model.traverseGeometry(modelMatrix, matrices, properties, visitor, distance);
+}
+
+void PG_DisaModelNode::loadModel(const std::string& modelName) {
+	clearChildrenByType({ PG_Type::Node_Model, PG_Type::Node_DisaModel });
+	setModel(PG_Model(modelName));
 }
 
 void PG_DisaModelNode::makeTransparent() {

@@ -36,12 +36,8 @@ class PG_DisaAssetsModel;
 * @brief One model an object can be placed with.
 */
 struct PG_DisaObjectCatalogItem {
-	enum ESource {
-		Disa, /// a geometry of the map assets, placed through model_id
-		Mod,  /// a model block of the campaign, placed through its resource name
-	};
+	bool isMod() const { return !resourceName.empty(); }
 
-	ESource source = Disa;
 	int geometryIndex = -1;   /// index into PG_DisaAssetsModel::getGeometries(), only for Disa
 	std::string resourceName; /// fully qualified, only for Mod
 	std::string displayName;

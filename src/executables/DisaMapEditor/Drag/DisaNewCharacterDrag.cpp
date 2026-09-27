@@ -1,4 +1,5 @@
 #include "DisaNewCharacterDrag.h"
+#include "DisaDragUtil.h"
 #include <Base/Events/PG_KeyEvent.h>
 #include <Base/PG_Application.h>
 #include <Base/Events/PG_MouseButtonEvent.h>
@@ -22,16 +23,6 @@
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_Math.h>
 #include <Util/PG_RangesTransform.h>
-
-//@todo dublicate code
-static inline void simulateMouseRelease() {
-	if (auto target = PG_Application::get()->grabbedMouse()) {
-		//simulate key release
-		auto e = PG_new<PG_MouseButtonEvent>(0, true, PG_BUTTON_LEFT, 0, glm::ivec2(-1), glm::ivec2(-1), false, 0);
-		target->event(e);//pretend like mouse was released
-		delete e;
-	}
-}
 
 class TileMocModel : public PG_ListModelBase {
 public:

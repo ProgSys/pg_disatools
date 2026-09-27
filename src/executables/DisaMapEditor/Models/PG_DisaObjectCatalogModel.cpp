@@ -45,7 +45,6 @@ void PG_DisaObjectCatalogModel::rebuild() {
 		items.reserve(geometryCount);
 		for (int i = 0; i < geometryCount; ++i) {
 			PG_DisaObjectCatalogItem& item = items.emplace_back();
-			item.source = PG_DisaObjectCatalogItem::Disa;
 			item.geometryIndex = i;
 			item.displayName = std::to_string(i);
 		}
@@ -54,7 +53,6 @@ void PG_DisaObjectCatalogModel::rebuild() {
 	if (!m_nameSpace.empty()) {
 		for (const PG_ResourceCatalogItem& block : PG_ResourceManager::get()->findPGRBlocks<PG_Model>(m_nameSpace)) {
 			PG_DisaObjectCatalogItem& item = items.emplace_back();
-			item.source = PG_DisaObjectCatalogItem::Mod;
 			item.resourceName = block.name;
 			item.displayName = std::string(PG_ResourceName::split(block.name).name);
 		}
@@ -69,9 +67,9 @@ PG_Variety PG_DisaObjectCatalogModel::getData(PG_Index index, Identity identity)
 
 	switch (identity) {
 	case PG_Identity_Text: return item.displayName;
-	case PG_Identity_Tooltip: return item.source == PG_DisaObjectCatalogItem::Mod ? item.resourceName : "Geometry " + item.displayName;
+	case PG_Identity_Tooltip: return item.isMod()  ? item.resourceName : "Geometry " + item.displayName;
 	case PG_Identity_PreviewImage: return getModel(item);
-	case Identity_IsMod: return item.source == PG_DisaObjectCatalogItem::Mod;
+	case Identity_IsMod: return item.isMod();
 	case Identity_GeometryIndex: return item.geometryIndex;
 	case Identity_ResourceName: return item.resourceName;
 	default: break;
@@ -80,7 +78,7 @@ PG_Variety PG_DisaObjectCatalogModel::getData(PG_Index index, Identity identity)
 }
 
 PG_Model PG_DisaObjectCatalogModel::getModel(const PG_DisaObjectCatalogItem& item) const {
-	if (item.source == PG_DisaObjectCatalogItem::Mod) {
+	if (item.isMod()) {
 		if (!item.model.isValid()) item.model = PG_Model(item.resourceName);
 		return item.model;
 	}
