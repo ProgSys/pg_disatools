@@ -125,6 +125,14 @@ struct DisaSettings {
         return static_cast<bool>(field_0xbe[0x46e]);
     }
 
+    /**
+    * @returns true when map faces are sorted and batched into VBOs (FUN_004f02e0) instead of drawn one quad at a time
+    * (FUN_004f1070). Options menu entry 0xd, byte 0x37.
+    */
+    bool isBatchedMapRendering() const {
+        return static_cast<bool>(field_0x34[3]);
+    }
+
     inline DisaKeyStates::Key getAssignedKey(KeyAssigned key) const{
         return (DisaKeyStates::Key)assignedKeys[key];
     }

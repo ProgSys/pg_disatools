@@ -188,6 +188,18 @@ struct DisaRenderObjectManager {
         float poligonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint, bool customData);
 
     void submitCustomModel(float depth, int modelIndex, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint);
+    /**
+    * @brief Queues an object that calls a compiled GL display list. Draws it right away while m_skipGlSetup is set.
+    * Original function: FUN_00426200, a stdcall with two more stack arguments that are never read.
+    * @param color Handed to glColor4ubv before the list is called.
+    */
+    void submitDisplayList(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset);
+    /**
+    * @brief Bump allocator in the 1 MiB block of the current render block, freed when the block is reset.
+    * Original function: FUN_00425bb0
+    * @return nullptr when the block is full.
+    */
+    void* allocFrameMemory(uint32_t bytes);
 };
 
 /**

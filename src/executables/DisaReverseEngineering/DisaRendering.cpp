@@ -601,6 +601,57 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
     ++m_renderBlockSize[m_renderBlockIndex];
 }
 
+void DisaRenderObjectManager::submitDisplayList(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset) {
+    const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
+    const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
+    if (*(bool*)&m_field0xc || !isEnabled) return;
+
+    if (m_renderBlockSize[m_renderBlockIndex] >= 2048) return; //render queue full
+    DisaRenderObject* renderObject = &m_renderObjects[m_renderBlockIndex * 2048 + m_renderBlockSize[m_renderBlockIndex]];
+
+    renderObject->depth = m_depthOffset + depth;
+    renderObject->sortBias = m_sortBias;
+    renderObject->meshData = reinterpret_cast<float*>(static_cast<uintptr_t>(listId));
+    renderObject->vertexCount = 0; //marks meshData as a display list id
+    renderObject->polygonOffset = polygonOffset;
+
+    //blendMode and primitiveType keep whatever the slot held before, like the original
+    renderObject->renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
+    renderObject->renderSettingsBitMask.stencilMode = 0;
+    renderObject->renderSettingsBitMask.stencilRef = 0;
+    renderObject->textureInfo.color = color;
+
+    renderObject->modelMatrix = modelMatrix;
+    renderObject->isPerspective = isPerspective;
+    renderObject->depthTestEnabled = FP::getData<bool>(0x005ac978);
+    renderObject->depthMaskEnabled = !depthMaskDisabled;
+
+    const int flagStackDepth = FP::getData<int>(0x005bb030);
+    renderObject->renderFlags = (&FP::getData<DisaRenderFlags>(0x005bb038))[flagStackDepth];
+
+    if (m_modelMatrix) renderObject->modelMatrix = m_modelMatrix;
+    if (m_projectionMatrix) renderObject->projectionMatrix = m_projectionMatrix;
+
+    if (m_skipGlSetup) {
+        FUN_00426fb0_RenderObject(renderObject, true, RenderPass_Default);
+        return;
+    }
+
+    if (m_renderObjectListSize < 2048) {
+        m_renderObjectList[m_renderObjectListSize] = renderObject;
+        ++m_renderObjectListSize;
+    }
+    ++m_renderBlockSize[m_renderBlockIndex];
+}
+
+void* DisaRenderObjectManager::allocFrameMemory(uint32_t bytes) {
+    constexpr uint32_t blockBytes = 0x100000;
+    const uint32_t usedUnits = m_field0x76038[m_renderBlockIndex]; //counted in 8 byte units
+    if (bytes + usedUnits * 8 > blockBytes) return nullptr;
+    m_field0x76038[m_renderBlockIndex] = usedUnits + ((bytes + 7) >> 3);
+    return reinterpret_cast<uint8_t*>(m_field0x76030[m_renderBlockIndex]) + usedUnits * 8;
+}
+
 void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short primitiveType, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
     float poligonOffset, int param_11, bool param_12, bool useColorTint){
 

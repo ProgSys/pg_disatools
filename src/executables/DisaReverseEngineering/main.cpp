@@ -12,6 +12,7 @@
 #include <DisaDataFunctions.h>
 #include <DisaScriptManager.h>
 #include <DisaRendering.h>
+#include <DisaMapChunk.h>
 #include <Windows.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
@@ -81,6 +82,10 @@ struct HockManager {
         replaceFunction("renderObjects", "The main render layer function", 0x00509d2a, FUN_00426770);
         replaceFunction("renderObjects", "The main render layer function", 0x00509c0c, FUN_00426770);
         replaceFunction("renderObjects", "The main render layer function", 0x00509c57, FUN_00426770);
+
+        replaceFunction("submitMapChunk", "Queues the tiles, overlays and objects of a map chunk", 0x004651dd, FUN_004a4c60_SubmitMapChunk); //battle map
+        replaceFunction("submitMapChunk", "Queues the tiles, overlays and objects of a map chunk", 0x00488cce, FUN_004a4c60_SubmitMapChunk); //castle hub
+        replaceFunction("submitMapChunk", "Queues the tiles, overlays and objects of a map chunk", 0x0049f729, FUN_004a4c60_SubmitMapChunk); //dark assembly
 
         {
             auto f = &DisaObjectModel::FUN_004e2180;
