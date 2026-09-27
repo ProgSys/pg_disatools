@@ -1076,7 +1076,7 @@ static inline void createForObjectNoneSelectEdit(PG_GuiColumn* column, PG_DisaMa
 	gridView->setClip(true);
 	gridView->setItem(PG_GuiGridView::getDefaultCreateFunc<PG_DisaObjectGridTile>());
 	gridView->setItemUpdate(PG_GuiGridView::getDefaultUpdateFunc<PG_DisaObjectGridTile>());
-	gridView->setCellSize(glm::ivec2((inspectorWidth - 20) / 3));
+	gridView->setCellSize(glm::ivec2((inspectorWidth - 20) / 2));
 	gridView->setModel(filterModel);
 
 	PG_GuiScrollBar* scroll = PG_new<PG_GuiScrollBar>("ScrollBar", gridWrapper);
