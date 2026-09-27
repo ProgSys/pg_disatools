@@ -193,13 +193,13 @@ struct DisaRenderObjectManager {
     * Original function: FUN_00426200, a stdcall with two more stack arguments that are never read.
     * @param color Handed to glColor4ubv before the list is called.
     */
-    void submitDisplayList(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset);
+    void FUN_00426200_submitDisplayList(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset);
     /**
     * @brief Bump allocator in the 1 MiB block of the current render block, freed when the block is reset.
     * Original function: FUN_00425bb0
     * @return nullptr when the block is full.
     */
-    void* allocFrameMemory(uint32_t bytes);
+    void* FUN_00425bb0_allocFrameMemory(uint32_t bytes);
 };
 
 /**

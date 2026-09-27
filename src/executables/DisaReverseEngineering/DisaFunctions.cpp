@@ -821,7 +821,7 @@ int __declspec(naked) __fastcall FUN_GetWidthOfString(char* str, int param_2, in
     }
 }
 
-void FUN_RenderDungeonScreeen(void) { //00471240
+void FUN_00471240_RenderDungeonScreeen(void){
 
     int** ppiVar3;
 
@@ -944,7 +944,7 @@ void FUN_RenderDungeonScreeen(void) { //00471240
 }
 
 
-void FUN_ProccessCategoryDungeonsScreen() { //00471780
+void FUN_00471780_ProccessCategoryDungeonsScreen(){
     //BEGIN custom code
     if (DisaCustomCampaignManager::get()->process()) return; //take over control to procces and render Custom Campaigns menu
     //END custom code
@@ -1030,11 +1030,11 @@ void FUN_ProccessCategoryDungeonsScreen() { //00471780
         }
     }
     //FP::callStdFarA(0x00471240); //render screen
-    FUN_RenderDungeonScreeen();
+    FUN_00471240_RenderDungeonScreeen();
 }
 
 
-void _stdcall FUN_ProccessDungeonsScreen() { //00472a40
+void _stdcall FUN_00472a40_ProccessDungeonsScreen(){
     unsigned int uVar1;
     byte bVar2;
     int iVar3;
@@ -1860,7 +1860,7 @@ void __fastcall FUN_004d5060_LoadMPD(unsigned short chapterId, unsigned short ma
     //FP::callFastFarA(0x0052376a, FP::getData<unsigned int>(0x005ac900)); //check stack corruption (build in by compiler, now it does nothing)
 }
 
-void __fastcall FUN_004d6a30(DisaDungeon* dungeon) {
+void __fastcall FUN_004d6a30_finalizeDungeonLoad(DisaDungeon* dungeon) {
 
     FP::callFastFarA(0x004d6a30, dungeon);
     return;
@@ -2037,7 +2037,7 @@ void __stdcall FUN_004710d0() {
     //END custom code
 
     FP::getData<int>(0x0067728c) = 0;
-    FP::getData<int>(0x0088abcc) = 0xb; // sets state to FUN_ProccessDungeonsScreen in game loop
+    FP::getData<int>(0x0088abcc) = 0xb; // sets state to FUN_00472a40_ProccessDungeonsScreen in game loop
     FP::getData<int>(0x0088abd0) = 0;
     FP::callStdFarA(0x00470fa0); //FUN_PopulateDungeaonsListEntries
     FP::getData<int>(0x0088ac80) = 0; //number of dungeaons entries to display

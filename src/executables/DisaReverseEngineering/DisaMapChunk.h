@@ -36,7 +36,7 @@
 #include "DisaFunctions.h"
 
 /**
-* @brief One textured quad of a map chunk, ready to submit. FUN_004a3ab0 builds the static tile faces,
+* @brief One textured quad of a map chunk, ready to submit. FUN_004a3ab0_buildChunkFaces builds the static tile faces,
 * FUN_004a4660 appends the per frame overlays after them.
 * Size: 0x78
 */
@@ -70,8 +70,8 @@ struct DisaFaceList {
 };
 
 /**
-* @brief A display list whose content is recorded by calling a callback. Created by FUN_004fde70,
-* recorded again by FUN_004fdff0 and destroyed by FUN_004fe080.
+* @brief A display list whose content is recorded by calling a callback. Created by FUN_004fde70_createChunkMesh,
+* recorded again by FUN_004fdff0 and destroyed by FUN_004fe080_destroyCachedMesh.
 * Size: 0x20
 */
 struct DisaCachedMesh {

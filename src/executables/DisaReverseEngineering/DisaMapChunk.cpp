@@ -37,23 +37,28 @@ namespace {
         return glm::rotate(matrix, chunk.rotation.z, glm::vec3(0.f, 0.f, 1.f));
     }
 
-    /// FUN_004f02e0 or FUN_004f1070, both with every blend tag and without normal mapping.
-    void submitFaces(DisaFaceList* faces, glm::mat4* modelMatrix) {
+    /**
+    * @brief Wrapper that picks FUN_004f02e0 (batched) or FUN_004f1070 (one quad at a time) like the original does,
+    * and calls it with every blend tag and without normal mapping.
+    */
+    void FUN_004f02e0_FUN_004f1070_submitFaces(DisaFaceList* faces, glm::mat4* modelMatrix) {
         const unsigned int function = getSettings()->isBatchedMapRendering() ? 0x004f02e0 : 0x004f1070;
         FP::callFastFarA<void>(function, faces, modelMatrix, 0, -1);
     }
 
     /**
-    * @brief FUN_004fde70: records the callback into a new display list and queues the list once.
+    * @brief Wrapper of FUN_004fde70 that fills in the chunk's face list and the batching setting.
+    * Records the callback into a new display list and queues the list once.
     * @param pass 0 for the opaque faces at depth 40000, 2 for the blended faces at depth 40005.
     */
-    DisaCachedMesh* createChunkMesh(DisaMapChunk& chunk, unsigned int callback, glm::mat4* modelMatrix, int pass) {
+    DisaCachedMesh* FUN_004fde70_createChunkMesh(DisaMapChunk& chunk, unsigned int callback, glm::mat4* modelMatrix, int pass) {
         const int batched = getSettings()->isBatchedMapRendering() ? 1 : 0;
         //the callback is passed a second time on the stack, the builder never reads it
         return FP::callFastFarA<DisaCachedMesh*>(0x004fde70, callback, &chunk.meshFaces, callback, modelMatrix, pass, batched);
     }
 
-    void destroyChunkMeshes(DisaMapChunk& chunk) {
+    /// Wrapper that calls FUN_004fe080 on both chunk meshes and clears the pointers.
+    void FUN_004fe080_destroyChunkMeshes(DisaMapChunk& chunk) {
         if (chunk.opaqueMesh) {
             FP::callStdFastFarA<void>(0x004fe080, chunk.opaqueMesh);
             chunk.opaqueMesh = nullptr;
@@ -183,15 +188,15 @@ void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, Dis
             chunk->meshFaces.count = chunk->staticFaceCount + chunk->highlightFaceCount + chunk->geoPanelFaceCount;
             toSubmit = &chunk->meshFaces;
         } else {
-            if (chunk->builtWithBatching != static_cast<uint32_t>(isBatched)) destroyChunkMeshes(*chunk);
+            if (chunk->builtWithBatching != static_cast<uint32_t>(isBatched)) FUN_004fe080_destroyChunkMeshes(*chunk);
 
             if (!chunk->opaqueMesh) {
                 //building also queues the lists once, so they are not submitted again on this frame
                 chunk->builtWithBatching = isBatched;
                 chunk->meshFaces.faces = chunk->faces;
                 chunk->meshFaces.count = chunk->staticFaceCount;
-                chunk->opaqueMesh = createChunkMesh(*chunk, chunk->isHDTexture ? 0x004f2600 : 0x004f25d0, &chunkMatrix, 0);
-                chunk->blendedMesh = createChunkMesh(*chunk, chunk->isHDTexture ? 0x004f2660 : 0x004f2630, &chunkMatrix, 2);
+                chunk->opaqueMesh = FUN_004fde70_createChunkMesh(*chunk, chunk->isHDTexture ? 0x004f2600 : 0x004f25d0, &chunkMatrix, 0);
+                chunk->blendedMesh = FUN_004fde70_createChunkMesh(*chunk, chunk->isHDTexture ? 0x004f2660 : 0x004f2630, &chunkMatrix, 2);
                 glFlush();
             } else {
                 if (chunk->meshState > 1) {
@@ -205,8 +210,8 @@ void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, Dis
 
                 DisaRenderObjectManager* manager = DisaRenderObjectManager::get();
                 pushRenderFlags().isFullyLit = 1;
-                manager->submitDisplayList(40000.f, chunk->opaqueMesh->listId, 0xffffffff, &chunkMatrix, true, false, 0.f);
-                manager->submitDisplayList(40005.f, chunk->blendedMesh->listId, 0xffffffff, &chunkMatrix, true, false, 0.f);
+                manager->FUN_00426200_submitDisplayList(40000.f, chunk->opaqueMesh->listId, 0xffffffff, &chunkMatrix, true, false, 0.f);
+                manager->FUN_00426200_submitDisplayList(40005.f, chunk->blendedMesh->listId, 0xffffffff, &chunkMatrix, true, false, 0.f);
                 popRenderFlags();
             }
 
@@ -214,7 +219,7 @@ void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, Dis
             overlays.count = chunk->geoPanelFaceCount + chunk->highlightFaceCount;
             if (overlays.count >= 1) {
                 const uint32_t bytes = overlays.count * sizeof(DisaMapFace);
-                overlays.faces = static_cast<DisaMapFace*>(DisaRenderObjectManager::get()->allocFrameMemory(bytes));
+                overlays.faces = static_cast<DisaMapFace*>(DisaRenderObjectManager::get()->FUN_00425bb0_allocFrameMemory(bytes));
                 if (overlays.faces) std::memcpy(overlays.faces, chunk->faces + chunk->staticFaceCount, bytes);
                 else toSubmit = nullptr; //the original copies into null and crashes
             } else {
@@ -222,7 +227,7 @@ void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, Dis
             }
         }
 
-        if (toSubmit) submitFaces(toSubmit, &chunkMatrix);
+        if (toSubmit) FUN_004f02e0_FUN_004f1070_submitFaces(toSubmit, &chunkMatrix);
     }
 
     DisaRenderFlags& objectFlags = pushRenderFlags();

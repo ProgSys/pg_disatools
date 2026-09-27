@@ -103,8 +103,8 @@ struct HockManager {
         replaceFunction("LoadDungeonsCategories", "", 0x0047108a, FUN_LoadDungeonsCategories);
         replaceFunction("LoadDungeonsCategories", "", 0x004710f6, FUN_LoadDungeonsCategories);
 
-        replaceFunction("ProccessCategoryDungeonsScreen", "", 0x0048c74b, FUN_ProccessCategoryDungeonsScreen);
-        replaceFunction("ProccessDungeonsScreen", "", 0x0048c741, FUN_ProccessDungeonsScreen);
+        replaceFunction("ProccessCategoryDungeonsScreen", "", 0x0048c74b, FUN_00471780_ProccessCategoryDungeonsScreen);
+        replaceFunction("ProccessDungeonsScreen", "", 0x0048c741, FUN_00472a40_ProccessDungeonsScreen);
 
         replaceFunction("LoadMPP", "", 0x004b6eea, FUN_004a59c0_LoadMPP); //load dungeon assets
         replaceFunction("LoadMPD", "", 0x004b6ecb, FUN_004d5060_LoadMPD);

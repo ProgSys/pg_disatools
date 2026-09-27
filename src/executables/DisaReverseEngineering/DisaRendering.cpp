@@ -601,7 +601,7 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
     ++m_renderBlockSize[m_renderBlockIndex];
 }
 
-void DisaRenderObjectManager::submitDisplayList(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset) {
+void DisaRenderObjectManager::FUN_00426200_submitDisplayList(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset) {
     const unsigned int someObjPtr = FP::getData<unsigned int>(0x005bae70);
     const bool isEnabled = *(bool*)(someObjPtr + 0x19) && !*(bool*)(someObjPtr + 0x59) && !*(bool*)(someObjPtr + 0x60);
     if (*(bool*)&m_field0xc || !isEnabled) return;
@@ -644,7 +644,7 @@ void DisaRenderObjectManager::submitDisplayList(float depth, uint32_t listId, ui
     ++m_renderBlockSize[m_renderBlockIndex];
 }
 
-void* DisaRenderObjectManager::allocFrameMemory(uint32_t bytes) {
+void* DisaRenderObjectManager::FUN_00425bb0_allocFrameMemory(uint32_t bytes) {
     constexpr uint32_t blockBytes = 0x100000;
     const uint32_t usedUnits = m_field0x76038[m_renderBlockIndex]; //counted in 8 byte units
     if (bytes + usedUnits * 8 > blockBytes) return nullptr;

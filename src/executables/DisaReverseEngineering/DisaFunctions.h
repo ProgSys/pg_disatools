@@ -432,13 +432,13 @@ void FUN_LoadDungeonsCategories();
 /**
 * @brief Function that renders the dungens categories screen
 */
-void FUN_RenderDungeonScreeen(void); //00471240
+void FUN_00471240_RenderDungeonScreeen(void);
 
 /**
 * @brief The dungeon categories, like Tutorial
 * Handles button interactions and then call render function.
 */
-void FUN_ProccessCategoryDungeonsScreen(); //00471780
+void FUN_00471780_ProccessCategoryDungeonsScreen();
  
 
 
@@ -446,7 +446,7 @@ void FUN_ProccessCategoryDungeonsScreen(); //00471780
 * @brief The dungeons inside a catagory
 * Handles button interactions and then call render function.
 */
-void _stdcall FUN_ProccessDungeonsScreen(); //00472a40
+void _stdcall FUN_00472a40_ProccessDungeonsScreen();
 
 void* __fastcall FUN_0050a1f0(int param_1, int** param_2, int param_3, char param_4);
 
@@ -458,7 +458,7 @@ void _stdcall FUN_004a59c0_LoadMPP(unsigned short chapterId, unsigned short mapI
 void __fastcall FUN_004d5060_LoadMPD(unsigned short chapterId, unsigned short mapId);
 
 //unused
-void __fastcall FUN_004d6a30(DisaDungeon* dungeon);
+void __fastcall FUN_004d6a30_finalizeDungeonLoad(DisaDungeon* dungeon);
 
 //call SCRIPT
 void __fastcall FUN_004b6420(unsigned int param_1, int param_2); //procces script command
