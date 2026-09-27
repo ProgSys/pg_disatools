@@ -86,7 +86,7 @@ public:
 	/**
 	* @brief Puts a new mod object on the map, drawn by a PG_Model resource
 	* @details Such an object lives in the editor only, the MPD has no way to name it and saving skips it.
-	* @param resourceName Fully qualified, "campaign::D_Wall"
+	* @param resourceName Without its namespace, "D_Wall". The map model supplies the namespace.
 	* @returns Null when no map is open
 	*/
 	PG_DisaObjectModel* addResourceModel(const std::string& resourceName, glm::vec3 pos);

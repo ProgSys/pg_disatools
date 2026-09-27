@@ -85,7 +85,7 @@ void PG_DisaObjectViewNode::loadGeometry() {
 	disaModel->setTextureScroll(scroll);
 
 	if (model->isMod()) {
-		disaModel->loadModel(model->getResourceName());
+		disaModel->loadModel(mapModel->getResourceName(*model));
 	} else {
 		const auto& item = geometries[object.model_id];
 		const bool isHdMode = mapModel->getAssets()->isHDViewEnabled();

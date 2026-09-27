@@ -11,6 +11,7 @@
 #include <Disa/map/PG_DisaSpriteModel.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
 #include <resources/PG_ResourceSynchronisator.h>
+#include <Resources/PG_ResourceName.h>
 #include <Stream/PG_StreamInOutByteVector.h>
 #include <Base/Thread/PG_Async.h>
 
@@ -1031,6 +1032,20 @@ void PG_DisaMapModel::openGeo(PG_DisaFileEntry geoFile) {
 	}
 
 	m_jobHandle = PG_Worker::get()->addJob(new PG_JobOpenGEO(geoStream, PG_Lifeline(this)));
+}
+
+void PG_DisaMapModel::setResourceNameSpace(std::string nameSpace) {
+	if (m_resourceNameSpace == nameSpace) return;
+	m_resourceNameSpace = std::move(nameSpace);
+	//every mod object now resolves to another resource
+	if (!m_objectsModel->empty()) {
+		emit m_objectsModel->itemsChanged(0, m_objectsModel->size() - 1, { PG_DisaObjectModel::Identity_ModResource });
+	}
+}
+
+std::string PG_DisaMapModel::getResourceName(const PG_DisaObjectModel& object) const {
+	if (!object.isMod()) return {};
+	return PG_ResourceName::join(m_resourceNameSpace, object.getResourceName());
 }
 
 void PG_DisaMapModel::openModel(PG_Model model) {

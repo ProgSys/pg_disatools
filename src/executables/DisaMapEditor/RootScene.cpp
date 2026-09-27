@@ -373,6 +373,7 @@ void RootScene::setupMapView() {
 	auto gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 
 	gameScene->setModel(std::dynamic_pointer_cast<PG_DisaMPDContainer>(m_mainModel->getCurrent()));
+	if (auto* mapModel = gameScene->getMapModel()) mapModel->setResourceNameSpace(m_mainModel->getCurrentResourceNameSpace());
 	connect(this, &RootScene::cleanUp, gameScene, [gameScene] {
 		gameScene->setModel(nullptr);
 		});

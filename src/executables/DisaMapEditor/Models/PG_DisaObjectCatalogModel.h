@@ -39,7 +39,7 @@ struct PG_DisaObjectCatalogItem {
 	bool isMod() const { return !resourceName.empty(); }
 
 	int geometryIndex = -1;   /// index into PG_DisaAssetsModel::getGeometries(), only for Disa
-	std::string resourceName; /// fully qualified, only for Mod
+	std::string resourceName; /// without the namespace, as a mod object stores it, only for Mod
 	std::string displayName;
 	mutable PG_Model model;   /// the Mod model, requested on first use
 };

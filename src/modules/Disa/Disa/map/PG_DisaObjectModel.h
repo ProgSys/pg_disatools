@@ -78,7 +78,10 @@ public:
 
 	/// A mod object draws a PG_Model resource instead of the geometry model_id names
 	bool isMod() const { return !m_resourceName.empty(); }
-	/// Fully qualified ("campaign::D_Wall"), so it goes into PG_Model as it is. Empty for a Disa object.
+	/**
+	* @brief The model resource without its namespace ("D_Wall"), empty for a Disa object.
+	* @see PG_DisaMapModel::getResourceName for the name it is requested under
+	*/
 	const std::string& getResourceName() const { return m_resourceName; }
 	void setResourceName(const std::string& name);
 

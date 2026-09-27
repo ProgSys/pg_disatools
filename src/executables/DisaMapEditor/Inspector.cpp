@@ -1030,10 +1030,10 @@ static inline void createForObjectNoneSelectEdit(PG_GuiColumn* column, PG_DisaMa
 	column->clearGuiChildren();
 
 	auto catalog = PG_new<PG_DisaObjectCatalogModel>("PG_DisaObjectCatalogModel", column);
-	catalog->setNameSpace(PG_DisaMapEditorMainModel::get()->getCurrentResourceNameSpace());
 	const auto updateAssets = [catalog, scene] {
 		auto* mapModel = scene->getMapModel();
 		catalog->setAssets(mapModel ? mapModel->getAssets() : nullptr);
+		catalog->setNameSpace(mapModel ? mapModel->getResourceNameSpace() : std::string());
 		catalog->requestRebuild(); //the same assets may have been refilled for a new map
 		};
 	updateAssets();

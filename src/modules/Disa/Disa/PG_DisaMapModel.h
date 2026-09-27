@@ -432,6 +432,15 @@ public:
 	PG_DisaActorListModel* getActors() const { return m_actorsModel; }
 	PG_DisaAssetsModel* getAssets() const { return m_assets; }
 
+	/**
+	* @brief The resource namespace mod objects are looked up in, the one of the campaign the map belongs to.
+	* @details Empty outside a campaign. Part of where the map is opened from, not of the map, so clear() keeps it.
+	*/
+	const std::string& getResourceNameSpace() const { return m_resourceNameSpace; }
+	void setResourceNameSpace(std::string nameSpace);
+	/// The name a mod object's resource is requested under, its name joined with getResourceNameSpace()
+	std::string getResourceName(const PG_DisaObjectModel& object) const;
+
 private:
 	/// Puts the model into the assets and hands the object the index it landed on
 	void addPreviewObject(PG_DisaObjectModel* object, PG_Model model);
@@ -447,6 +456,7 @@ private:
 
 	//cashed resources
 	PG_DisaAssetsModel* m_assets = nullptr;
+	std::string m_resourceNameSpace;
 };
 
 #include <Disa/fileformats/PG_DisaFileContainer.h>
