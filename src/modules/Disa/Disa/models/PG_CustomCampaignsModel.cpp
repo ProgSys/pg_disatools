@@ -467,18 +467,18 @@ void PG_CustomCampaignsModel::registerResourceSource() {
 	m_resourceScope.expire(); //an earlier open of this same model may still be registered
 
 	const std::string id = getResourceNameSpace();
-	if (id.empty()) return;
+	if (id.empty() || !getFile().exists()) return;
 
-	/* the source reads through the archive, so it needs the same shared_ptr everyone else holds.
-	* One built without it can still be edited, it just has nothing to offer the manager. */
-	auto self = std::dynamic_pointer_cast<PG_ZIP>(weak_from_this().lock());
-	if (!self) {
-		OUT_WARNING("Campaign \"" << id << "\" is not held by a shared_ptr, its content stays out"
-			" of the resource manager!");
-		return;
-	}
+	m_resourceScope = PG_ResourceManager::registerSource<PG_ZIPResourceSource>(getFile(), id);
+	if (m_resourceScope && !m_resourceScope->isValid()) m_resourceScope.expire();
+}
 
-	m_resourceScope = PG_ResourceManager::registerSource<PG_ZIPResourceSource>(self, id);
+bool PG_CustomCampaignsModel::save() {
+	//a deregistered source closes its handle and stays closed, so the file can be replaced
+	m_resourceScope.expire();
+	const bool result = PG_ZIP::save();
+	registerResourceSource();
+	return result;
 }
 
 

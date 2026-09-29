@@ -265,8 +265,15 @@ public:
 	};
 
 	using PG_ZIP::PG_ZIP;
+	using PG_ZIP::save;
 
 	void createNew(std::string name);
+	/**
+	* @brief Saves the campaign to its file.
+	* @details The resource source reads the same file, so it is taken out for the write and
+	* registered again afterwards, which also offers the new content.
+	*/
+	bool save() override;
 
 	PG_DisaCampaignJsonContainer* getCampaignJsonContainer() const { return m_campaignJsonContainer.get(); }
 	/// The namespace the campaign content is offered to the resource manager under, empty when it has no id
@@ -284,9 +291,9 @@ receivers:
 private:
 	void afterOpen(zipUPtr& zip) final;
 	/**
-	* @brief Offers everything the campaign carries to the resource manager under its own id.
+	* @brief Offers everything the campaigns file carries to the resource manager under its own id.
 	* @details A texture of it then loads as "<id>::<path in the zip>", and letting the campaign
-	* go takes all of it back out. Does nothing for a campaign with no id.
+	* go takes all of it back out. Does nothing for a campaign with no id, or one never saved.
 	*/
 	void registerResourceSource();
 

@@ -37,7 +37,7 @@ std::vector<char> PG_ZIPUtil::readData(zip_file* zf) {
     zip_int64_t bytesRead;
     constexpr std::size_t maxSize = (1024 * 1024 * 128);//max is 128 MB
     while ((bytesRead = zip_fread(zf, buffer.data(), buffer.size())) > 0) {
-        content.insert(content.end(), buffer.begin(), buffer.end());
+        content.insert(content.end(), buffer.begin(), std::next(buffer.begin(), bytesRead));
         if (content.size() > maxSize) {
             throw_RuntimeError("Zip file is bigger the 128 MB!");
         }
