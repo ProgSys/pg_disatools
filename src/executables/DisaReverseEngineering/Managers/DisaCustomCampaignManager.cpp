@@ -18,8 +18,9 @@
 #include <Util/PG_Dir.h>
 #include <Util/PG_StringUtil.h>
 #include <Stream/PG_StreamInByteFile.h>
+#include <Resources/PG_ResourceManager.h>
+#include <Resources/PG_ResourceName.h>
 #include <zlib.h>
-#include <zip.h>
 #include <nlohmann/json.hpp>
 
 typedef unsigned char byte;
@@ -62,11 +63,8 @@ static inline void readCampaign(DisaCustomCampaignManager::Campaign& campain, co
     readFromJson(j, "previewImage", campain.previewImage);
     readFromJson(j, "backgroundImage", campain.backgroundImage);
 
-    readFromJson(j, "namespace", campain.namespaceMod);
-    if (campain.namespaceMod.empty()) {
-        campain.namespaceMod = info.file.getName();
-    }
-    campain.namespaceMod = PG_StringUtil::toLowerCopy(campain.namespaceMod);
+    campain.namespaceMod = PG_DisaModInfo::resolveNameSpace(j, info.file);
+    if (campain.namespaceMod.empty()) throw_Exception("'campaign.json' or the zips name is no valid namespace!");
 
     campain.name = stringToShiftJis(campain.name);
     campain.description = stringToShiftJis(campain.description);
@@ -75,22 +73,20 @@ static inline void readCampaign(DisaCustomCampaignManager::Campaign& campain, co
 }
 
 void DisaCustomCampaignManager::Campaign::open() {
-    if (archive) archive.reset();
     entries.clear();
-    int error = 0;
-    zip* ptr = zip_open(zipFile.c_str(), 0, &error);
-
-    if (!ptr) {
-        OUT_ERROR("Failed to open the zip '" << zipFile << "': error code " << error);
-        return;
-    }
-    archive = zipUPtr(ptr, [](zip* a) { zip_close(a); });
+    if (!acquire()) OUT_WARNING("Campaign zip '" << zipFile << "' is not offered to the resource manager!");
 
     nlohmann::json j;
     try {
-        j = PG_ZIPUtil::readJson(archive.get(), "campaign.json");
+        auto handle = PG_DisaModInfo::open("campaign.json");
+        if (!handle) {
+            OUT_ERROR("Failed to find 'campaign.json' in zip '" << zipFile << "'!");
+            return;
+        }
+        const std::vector<char> data = handle.readAll();
+        j = nlohmann::json::parse(data.begin(), data.end());
     }
-    catch (const PG_RuntimeError& e) {
+    catch (const std::exception& e) {
         OUT_ERROR("Failed to parse campaign json in zip '" << zipFile << "' with error: " << e.what());
         return;
     }
@@ -285,7 +281,7 @@ void DisaCustomCampaignManager::reactivate() {
 
 void DisaCustomCampaignManager::diactivate() {
     m_entriesState.clear();
-    if (m_activeCampaign) m_activeCampaign->archive.reset();
+    if (m_activeCampaign) m_activeCampaign->release();
 }
 
 static inline void startCutomMap() {
@@ -503,25 +499,26 @@ static inline void renderTextInBox(DisaSettings* settings, const std::string& te
 
 }
 
-static inline PG_Texture getImageTexture(const std::string& id, const std::string& path, zip* archive) {
+static inline PG_Texture getImageTexture(const std::string& id, const std::string& path, const std::string& nameSpace) {
     if (path.empty()) return DisaCustomRenderManager::get()->getErrorTexture();
     PG_Texture tex;
-    tex.load("T_DisaImg_" + id + "_" + path, [path, archive]() -> PG_Texture::ImageFormats {
+    //loads later on another thread, so it captures names and reads through the resource manager
+    tex.load("T_DisaImg_" + id + "_" + path, [path, nameSpace]() -> PG_Texture::ImageFormats {
         auto fullPath = "img/" + path;
         PG_StringUtil::removeAll(fullPath, "..");
 
-        PG_RGBAImage img;
-        try {
-            img = PG_ZIPUtil::readPNGImage(archive, fullPath);
-        }
-        catch (const PG_RuntimeError& e) {
-            OUT_ERROR("Failed to read png from zip '" << fullPath << "' with error: " << e.what());
-        }
-        catch (...) {
-            OUT_ERROR("Failed to read png from zip '" << fullPath << "'!");
+        auto handle = PG_ResourceManager::requestOpen(PG_ResourceName::join(nameSpace, fullPath));
+        if (!handle) {
+            OUT_ERROR("Failed to find '" << fullPath << "' in namespace '" << nameSpace << "'!");
+            return {};
         }
 
-        if (img.empty()) return {};
+        const std::vector<char> data = handle.readAll();
+        PG_RGBAImage img;
+        if (!PG_ImageLoad::load(data, img) || img.empty()) {
+            OUT_ERROR("Failed to load png '" << fullPath << "' of namespace '" << nameSpace << "'!");
+            return {};
+        }
         return img;
         });
     return tex;
@@ -533,7 +530,7 @@ void DisaCustomCampaignManager::renderCustomImage(const std::string& id, const s
     auto* renderManager = DisaCustomRenderManager::get();
    
     PG_DisaModel disaModel(renderManager->getFullImageScreenModel());
-    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->archive.get()));
+    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->namespaceMod));
 
     renderManager->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
 }
@@ -546,7 +543,7 @@ void DisaCustomCampaignManager::renderCustomImage(const std::string& id, const s
     PG_DisaModel disaModel(renderManager->getImageScreenModel());
     disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(pos, 0.f)));
     disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(size, 1.f)));
-    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->archive.get()));
+    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->namespaceMod));
 
     renderManager->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
 }
@@ -716,7 +713,7 @@ DisaCustomCampaignManager::EntriesState DisaCustomCampaignManager::EntriesState:
         using T = std::decay_t<std::remove_const_t<std::remove_pointer_t<decltype(arg)>>>;
         DisaCustomCampaignManager::EntriesState state;
         if constexpr (std::is_same_v<T, DisaCustomCampaignManager>) {
-            if (arg->m_activeCampaign) arg->m_activeCampaign->archive.reset();
+            if (arg->m_activeCampaign) arg->m_activeCampaign->release();
             Campaign* campain = &arg->m_campaigns[index];
             campain->open();
             state.entry = campain;
@@ -747,8 +744,8 @@ DisaCustomCampaignManager::EntriesState DisaCustomCampaignManager::EntriesState:
 }
 
 
-static inline void readMapFile(int* dataLocation, const zipUPtr& archive, const std::vector<DisaCustomCampaignManager::EntriesState>& entriesState, auto&& strFunc) {
-    if (!archive || entriesState.empty()) return;
+static inline void readMapFile(int* dataLocation, const DisaCustomCampaignManager::Campaign& campaign, const std::vector<DisaCustomCampaignManager::EntriesState>& entriesState, auto&& strFunc) {
+    if (entriesState.empty()) return;
     auto area = std::get_if<DisaCustomCampaignManager::CampaignArea*>(&entriesState.back().entry);
     if (!area) return;
     auto& dungeon = (*area)->entries[entriesState.back().getIndex()];
@@ -756,32 +753,25 @@ static inline void readMapFile(int* dataLocation, const zipUPtr& archive, const 
     auto copy = "dungeons/" + strFunc(dungeon);// .mpp;
     PG_StringUtil::removeAll(copy, "..");
 
-    zip_file* zf = zip_fopen(archive.get(), copy.c_str(), 0);
-    if (!zf) {
+    auto handle = campaign.open(copy);
+    if (!handle) {
         OUT_ERROR("Failed to find '" << copy << "' in zip!");
         return;
     }
 
-
-    char* target = (char*)dataLocation;
-    zip_int64_t bytesRead;
-    int i = 0;
-    while ((bytesRead = zip_fread(zf, target, 1024)) > 0) {
-        target += bytesRead;
-        ++i;
-        if (i > 1024 * 10) {
-            OUT_ERROR("FATAIL ERROR: Injection file is too big!");
-            zip_fclose(zf);
-            exit(1);
-            return;
-        }
+    const std::vector<char> data = handle.readAll();
+    constexpr std::size_t maxSize = 1024 * 1024 * 10; //the game reserves no more for a map file
+    if (data.size() > maxSize) {
+        OUT_ERROR("FATAIL ERROR: Injection file is too big!");
+        exit(1);
+        return;
     }
-    zip_fclose(zf);
+    std::ranges::copy(data, reinterpret_cast<char*>(dataLocation));
 }
 
 void DisaCustomCampaignManager::readMPP(int* dataLocation, bool hdTextures) const {
     assert(m_activeCampaign);
-    readMapFile(dataLocation, m_activeCampaign->archive, m_entriesState, [hdTextures](const DisaCustomCampaignManager::CampaignDungeon& d) {
+    readMapFile(dataLocation, *m_activeCampaign, m_entriesState, [hdTextures](const DisaCustomCampaignManager::CampaignDungeon& d) {
         if (hdTextures && !d.mppHD.empty()) return d.mppHD;
         return d.mpp; 
         });
@@ -789,7 +779,7 @@ void DisaCustomCampaignManager::readMPP(int* dataLocation, bool hdTextures) cons
 
 void DisaCustomCampaignManager::readMPD(int* dataLocation) const {
     assert(m_activeCampaign);
-    readMapFile(dataLocation, m_activeCampaign->archive, m_entriesState, [](const DisaCustomCampaignManager::CampaignDungeon& d) { return d.mpd; });
+    readMapFile(dataLocation, *m_activeCampaign, m_entriesState, [](const DisaCustomCampaignManager::CampaignDungeon& d) { return d.mpd; });
 }
 
 

@@ -10,6 +10,8 @@
 #include <Util/PG_ImageLoad.h>
 #include <Util/PG_StringUtil.h>
 #include <Disa/fileformats/PG_JsonUtil.h>
+#include <Disa/utils/PG_DisaModInfo.h>
+#include <Resources/PG_ResourceManager.h>
 
 
 /**
@@ -44,6 +46,9 @@ bool PG_DisaCharacterJsonContainer::open(std::shared_ptr<PG::STREAM::In> reader)
 	PG_JsonUtil::readFromJson(j, "author", m_author);
 	PG_JsonUtil::readFromJson(j, "description", m_description);
 	PG_JsonUtil::readFromJson(j, "previewImage", m_previewImgPath);
+	m_namespaceMod.clear();
+	PG_JsonUtil::readFromJson(j, "namespace", m_namespaceMod);
+	if (m_namespaceMod.empty()) PG_JsonUtil::readFromJson(j, "namesspace", m_namespaceMod);
 
 	if (m_name.empty()) m_name = "Name missing";
 	appendImg(m_previewImgPath);
@@ -155,7 +160,34 @@ void PG_CustomCharacterModel::afterOpen(zipUPtr& zip) {
 	}
 
 	m_characterJsonContainer = campaignInfo.open<PG_DisaCharacterJsonContainer>();
+	registerResourceSource();
+}
 
+std::string PG_CustomCharacterModel::getResourceNameSpace() const {
+	if (!m_characterJsonContainer) return {};
+	return PG_DisaModInfo::resolveNameSpace(m_characterJsonContainer->getNamespaceMod(), getFile());
+}
+
+void PG_CustomCharacterModel::registerResourceSource() {
+	m_resourceScope.expire(); //an earlier open of this same model may still be registered
+
+	const std::string nameSpace = getResourceNameSpace();
+	if (nameSpace.empty() || !getFile().exists()) return;
+
+	m_resourceScope = PG_ResourceManager::registerSource<PG_ZIPResourceSource>(getFile(), nameSpace);
+	if (m_resourceScope && !m_resourceScope->isValid()) m_resourceScope.expire();
+}
+
+bool PG_CustomCharacterModel::save() {
+	bool result = false;
+	{
+		//the source reads the same file, so it waits while it is written and indexes it again after
+		auto guard = m_resourceScope ? m_resourceScope->guardModification() : PG_ResourceSource::ModificationGuard();
+		result = PG_ZIP::save();
+	}
+	//a first save, or the namespace changed, both need a source under the current namespace
+	if (!m_resourceScope || m_resourceScope->getNamespace() != getResourceNameSpace()) registerResourceSource();
+	return result;
 }
 
 

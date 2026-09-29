@@ -232,6 +232,9 @@ public:
 	const std::string& getBackgroundImgPath() const { return m_backgroundImgPath; }
 	void setBackgroundImgPath(const std::string& value) { PG_ValueSetter::change(m_backgroundImgPath, value, this, &PG_DisaCampaignJsonContainer::backgroundImgPathChanged, &PG_DisaCampaignJsonContainer::markModified); }
 
+	/// The namespace campaign.json declares, empty when it declares none
+	const std::string& getNamespaceMod() const { return m_namespaceMod; }
+
 	PG_ListModel<PG_DisaCustomAreaModel*>* getAreas() const { return m_areas; }
 	PG_CustomCampaignsModel* getRootModel() const;
 receivers:
@@ -270,14 +273,17 @@ public:
 	void createNew(std::string name);
 	/**
 	* @brief Saves the campaign to its file.
-	* @details The resource source reads the same file, so it is taken out for the write and
-	* registered again afterwards, which also offers the new content.
+	* @details The resource source reads the same file, so it is suspended for the write and
+	* indexes the new content afterwards.
 	*/
 	bool save() override;
 
 	PG_DisaCampaignJsonContainer* getCampaignJsonContainer() const { return m_campaignJsonContainer.get(); }
-	/// The namespace the campaign content is offered to the resource manager under, empty when it has no id
-	std::string getResourceNameSpace() const { return m_campaignJsonContainer ? m_campaignJsonContainer->getId() : std::string(); }
+	/**
+	* @brief The namespace the campaign content is offered to the resource manager under, the same one the game uses.
+	* @returns Empty without campaign.json, or when neither it nor the file name is a valid namespace.
+	*/
+	std::string getResourceNameSpace() const;
 
 	PG_Texture getPreviewImg() const;
 
@@ -291,9 +297,9 @@ receivers:
 private:
 	void afterOpen(zipUPtr& zip) final;
 	/**
-	* @brief Offers everything the campaigns file carries to the resource manager under its own id.
-	* @details A texture of it then loads as "<id>::<path in the zip>", and letting the campaign
-	* go takes all of it back out. Does nothing for a campaign with no id, or one never saved.
+	* @brief Offers everything the campaigns file carries to the resource manager under its namespace.
+	* @details A texture of it then loads as "<namespace>::<path in the zip>", and letting the campaign
+	* go takes all of it back out. Does nothing without a valid namespace, or for a campaign never saved.
 	*/
 	void registerResourceSource();
 

@@ -1619,6 +1619,8 @@ void __cdecl FUN_00424ae0_FrameBegin() {
     static bool firstCall = false;
     if (!firstCall) {
         firstCall = true;
+        //the mods register with the resource manager, which has to live on this thread
+        DisaCustomRenderManager::get()->init();
         auto* manager = DisaCustomCharacterManager::get();
         manager->waitForModThread();
         manager->loadCharacters();
@@ -1876,7 +1878,7 @@ void __thiscall DisaObjectModel::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba
 
     //create problems with particle systems
     //@todo better to switch to custom models
-    static bool customFunction = false;
+    static bool customFunction = true;
     if (customFunction) {
         FUN_004ef8a0(this, modelMatrix);
     }

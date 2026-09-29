@@ -56,31 +56,13 @@ namespace {
 
 } //namespace
 
+
 PG_ZIPResourceSource::PG_ZIPResourceSource(const PG_File& zipFile, std::string nameSpace) :
 	PG_ResourceSource(std::move(nameSpace)), m_file(zipFile), m_archive(nullptr, [](zip* archive) { zip_discard(archive); }) {
-	const auto stamp = m_file.readStamp();
-	if (!stamp) {
-		OUT_WARNING("Archive \"" << m_file << "\" can't be read, it carries nothing!");
-		return;
+	{
+		std::lock_guard g(m_mutex);
+		if (!indexArchive()) return;
 	}
-	m_stamp = *stamp;
-
-	m_archive = PG_ZIPUtil::openZip(m_file.getPath());
-	if (!m_archive) return;
-	m_isValid = true;
-
-	const zip_int64_t count = zip_get_num_entries(m_archive.get(), 0);
-	struct zip_stat st;
-	for (zip_int64_t i = 0; i < count; ++i) {
-		if (zip_stat_index(m_archive.get(), i, 0, &st) != 0 || !(st.valid & ZIP_STAT_NAME)) continue;
-		std::string path(st.name);
-		if (path.empty() || path.back() == '/') continue; //a folder
-		const Entry entry{ static_cast<std::uint64_t>(i), (st.valid & ZIP_STAT_SIZE) ? st.size : 0 };
-		if (!m_entries.emplace(path, entry).second)
-			OUT_WARNING("Archive \"" << m_file << "\" carries \"" << path << "\" twice, one of them is ignored!");
-	}
-
-	m_lastRead = std::chrono::steady_clock::now();
 	buildIndex();
 	//nothing asks for more until it is registered, and an unregistered source should not lock the file
 	closeNow();
@@ -92,7 +74,14 @@ PG_ZIPResourceSource::~PG_ZIPResourceSource() {
 
 void PG_ZIPResourceSource::traverseEntries(const std::function<void(const std::string&)>& unary) const {
 	if (!unary) return;
-	for (const auto& [path, entry] : m_entries) unary(path);
+	//copied, so unary may read from this source without waiting for itself
+	std::vector<std::string> paths;
+	{
+		std::lock_guard g(m_mutex);
+		paths.reserve(m_entries.size());
+		for (const auto& [path, entry] : m_entries) paths.push_back(path);
+	}
+	for (const std::string& path : paths) unary(path);
 }
 
 void PG_ZIPResourceSource::traversePGR(const std::function<void(const std::string&)>& unary) const {
@@ -103,7 +92,6 @@ void PG_ZIPResourceSource::onRegistered(PG_ResourceManager* manager) {
 	if (!m_isValid) return;
 
 	std::lock_guard g(m_mutex);
-	m_isDeregistered = false;
 	if (m_companionReleased) *m_companionReleased = true;
 	m_companionReleased = std::make_shared<std::atomic_bool>(false);
 	//owned by the manager once it attached, and it deletes itself
@@ -112,10 +100,22 @@ void PG_ZIPResourceSource::onRegistered(PG_ResourceManager* manager) {
 
 void PG_ZIPResourceSource::onDeregistered(PG_ResourceManager* manager) {
 	std::lock_guard g(m_mutex);
-	m_isDeregistered = true;
 	if (m_companionReleased) *m_companionReleased = true;
 	m_companionReleased.reset();
 	m_archive.reset();
+}
+
+void PG_ZIPResourceSource::onModificationBegin() {
+	closeNow();
+}
+
+void PG_ZIPResourceSource::onModificationEnd() {
+	std::lock_guard g(m_mutex);
+	m_entries.clear();
+	m_isChangeReported = false;
+	m_isValid = indexArchive();
+	if (!m_companionReleased) m_archive.reset();
+	//the base reads the .pgr files next, through openStream like any other read
 }
 
 bool PG_ZIPResourceSource::isOpen() const {
@@ -134,11 +134,11 @@ void PG_ZIPResourceSource::closeNow() {
 }
 
 std::shared_ptr<PG::STREAM::In> PG_ZIPResourceSource::openStream(const std::string& path) const {
+	std::lock_guard g(m_mutex);
 	auto findIt = m_entries.find(path);
 	if (findIt == m_entries.end()) return nullptr;
 	const Entry& entry = findIt->second;
 
-	std::lock_guard g(m_mutex);
 	if (!ensureOpen()) return nullptr;
 	m_lastRead = std::chrono::steady_clock::now();
 
@@ -157,6 +157,9 @@ std::shared_ptr<PG::STREAM::In> PG_ZIPResourceSource::openStream(const std::stri
 	}
 	zip_fclose(file);
 
+	//without a companion nobody would close it when idle
+	if (!m_companionReleased) m_archive.reset();
+
 	if (offset != data.size()) {
 		OUT_ERROR("Failed to read \"" << path << "\" in archive \"" << m_file << "\"!");
 		return nullptr;
@@ -164,15 +167,42 @@ std::shared_ptr<PG::STREAM::In> PG_ZIPResourceSource::openStream(const std::stri
 	return std::make_shared<PG::STREAM::InOutByteVector>(std::move(data));
 }
 
+bool PG_ZIPResourceSource::indexArchive() {
+	m_archive.reset();
+	const auto stamp = m_file.readStamp();
+	if (!stamp) {
+		OUT_WARNING("Archive \"" << m_file << "\" can't be read, it carries nothing!");
+		return false;
+	}
+	m_stamp = *stamp;
+
+	m_archive = PG_ZIPUtil::openZip(m_file.getPath());
+	if (!m_archive) return false;
+	m_isValid = true;
+
+	const zip_int64_t count = zip_get_num_entries(m_archive.get(), 0);
+	struct zip_stat st;
+	for (zip_int64_t i = 0; i < count; ++i) {
+		if (zip_stat_index(m_archive.get(), i, 0, &st) != 0 || !(st.valid & ZIP_STAT_NAME)) continue;
+		std::string path(st.name);
+		if (path.empty() || path.back() == '/') continue; //a folder
+		const Entry entry{ static_cast<std::uint64_t>(i), (st.valid & ZIP_STAT_SIZE) ? st.size : 0 };
+		if (!m_entries.emplace(path, entry).second)
+			OUT_WARNING("Archive \"" << m_file << "\" carries \"" << path << "\" twice, one of them is ignored!");
+	}
+	m_lastRead = std::chrono::steady_clock::now();
+	return true;
+}
+
 bool PG_ZIPResourceSource::ensureOpen() const {
 	if (m_archive) return true;
-	if (!m_isValid || m_isDeregistered) return false;
+	if (!m_isValid) return false;
 
 	//the indexes describe the file as it was, a replaced one could hand out the wrong entries
 	const auto stamp = m_file.readStamp();
 	if (!stamp || *stamp != m_stamp) {
 		if (!m_isChangeReported)
-			OUT_WARNING("Archive \"" << m_file << "\" changed or vanished since it was indexed, register it again to read from it!");
+			OUT_WARNING("Archive \"" << m_file << "\" changed or vanished outside a modification, build its source again to read from it!");
 		m_isChangeReported = true;
 		return false;
 	}

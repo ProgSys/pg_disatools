@@ -117,6 +117,9 @@ void PG_DisaCustomCharactersModel::loadCustomCharacters(const PG_File& exePath) 
 		m_mods.push_back({});
 		try {
 			loadCharacters(m_mods.back(), metaCharInfo);
+			//the list is sorted bottom first, so the top of the load order registers last and wins
+			if (!m_mods.back().acquire())
+				OUT_WARNING("Mod '" << metaCharInfo.file << "' is not offered to the resource manager!");
 			if (m_scriptsModel) m_scriptsModel->loadScripts(&m_mods.back(), metaCharInfo);
 			if (m_translationModel) m_translationModel->loadTranslation(&m_mods.back(), metaCharInfo);
 		}
@@ -157,13 +160,8 @@ void PG_DisaCustomCharactersModel::loadCharacters(CharacterMod& mod, const PG_Di
 		throw std::exception("'name' is missing in 'character.json'!");
 	}
 
-	readFromJson(j, "namespace", mod.namespaceMod);
+	mod.namespaceMod = PG_DisaModInfo::resolveNameSpace(j, metaInfo.file);
 	if (mod.namespaceMod.empty()) {
-		mod.namespaceMod = metaInfo.file.getName();
-	}
-	mod.namespaceMod = PG_StringUtil::toLowerCopy(mod.namespaceMod);
-
-	if (!PG_SimpleWordValidator()(mod.namespaceMod) || mod.namespaceMod.empty()) {
 		throw std::exception("Invalid namespace format! Either filename or namespace dosn't match naming convention!");
 	}
 
@@ -370,16 +368,10 @@ std::pair<PG::STREAM::In*, const PG_DisaCustomCharactersModel::Info&>  PG_DisaCu
 	}
 
 	if (info.mod) {
-		try {
-			if (auto archive = PG_ZIPUtil::openZip(info.mod->zipFile)) {
-				return { new PG::STREAM::InOutByteVector(PG_ZIPUtil::readData(archive, info.fileInZip)) , info };
-			}
+		if (auto handle = info.mod->open(info.fileInZip.getPath())) {
+			return { new PG::STREAM::InOutByteVector(handle.readAll()) , info };
 		}
-		catch (const std::exception& ex) {
-			OUT_ERROR("Zip file " << info.mod->zipFile);
-			OUT_ERROR(ex.what());
-		}
-
+		OUT_ERROR("Failed to read '" << info.fileInZip << "' from zip '" << info.mod->zipFile << "'!");
 	}
 
 	return { nullptr, info };
@@ -400,17 +392,12 @@ std::pair<PG::STREAM::In*, const PG_DisaCustomCharactersModel::Info&>  PG_DisaCu
 	}
 
 	if (info.mod) {
-		try {
-			if (auto archive = PG_ZIPUtil::openZip(info.mod->zipFile)) {
-				const auto& target = isHD && !info.fileInZip.isEmpty() ? info.fileInZip : info.secondfileInZip;
-				if (!target.isEmpty()) {
-					return { new PG::STREAM::InOutByteVector(PG_ZIPUtil::readData(archive, target)), info };
-				}
+		const auto& target = isHD && !info.fileInZip.isEmpty() ? info.fileInZip : info.secondfileInZip;
+		if (!target.isEmpty()) {
+			if (auto handle = info.mod->open(target.getPath())) {
+				return { new PG::STREAM::InOutByteVector(handle.readAll()), info };
 			}
-		}
-		catch (const std::exception& ex) {
-			OUT_ERROR("Zip file "<< (isHD && !info.fileInZip.isEmpty() ? info.fileInZip : info.secondfileInZip));
-			OUT_ERROR(ex.what());
+			OUT_ERROR("Failed to read '" << target << "' from zip '" << info.mod->zipFile << "'!");
 		}
 	}
 

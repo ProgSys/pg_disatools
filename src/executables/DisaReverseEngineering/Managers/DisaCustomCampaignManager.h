@@ -8,8 +8,6 @@
 #include <Disa/PG_DisaIdentifier.h>
 #include <Disa/utils/PG_DisaModInfo.h>
 
-class zip;
-using zipUPtr = std::unique_ptr<zip, void(*)(zip*)>;
 class DisaSettings;
 class PG_DisaScriptsModel;
 
@@ -61,6 +59,8 @@ public:
 
 		inline bool operator==(const Campaign& other) const { return id == other.id; }
 
+		using PG_DisaModInfo::open;
+		/// Puts the zip in use and reads the areas and dungeons from it.
 		void open();
 	};
 

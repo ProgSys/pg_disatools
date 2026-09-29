@@ -1,6 +1,8 @@
 #pragma once
 
 #include <Disa/fileformats/PG_ZIP.h>
+#include <Disa/resources/PG_ZIPResourceSource.h>
+#include <Resources/PG_ResourceSourceScope.h>
 #include <Resources/PG_Texture.h>
 #include <Util/PG_ValueSetter.h>
 #include <Scene/Model/PG_ListModel.h>
@@ -57,6 +59,9 @@ public:
 	const std::string& getPreviewImgPath() const { return m_previewImgPath; }
 	void setPreviewImgPath(const std::string& value) { PG_ValueSetter::change(m_previewImgPath, value, this, &PG_DisaCharacterJsonContainer::previewImgPathChanged, &PG_DisaCharacterJsonContainer::markModified); }
 
+	/// The namespace the mod json declares, empty when it declares none
+	const std::string& getNamespaceMod() const { return m_namespaceMod; }
+
 	PG_CustomCharacterModel* getRootModel() const;
 private:
 	bool m_isModified = false;
@@ -66,6 +71,7 @@ private:
 	std::string m_author;
 	std::string m_description;
 	std::string m_previewImgPath;
+	std::string m_namespaceMod;
 };
 
 class PG_CustomCharacterModel : public PG_ZIP {
@@ -83,10 +89,22 @@ public:
 	};
 
 	using PG_ZIP::PG_ZIP;
+	using PG_ZIP::save;
 
 	void createNew(std::string name);
+	/**
+	* @brief Saves the mod to its file.
+	* @details The resource source reads the same file, so it is suspended for the write and
+	* indexes the new content afterwards.
+	*/
+	bool save() override;
 
 	PG_DisaCharacterJsonContainer* getCharacterJsonContainer() const { return m_characterJsonContainer.get(); }
+	/**
+	* @brief The namespace the mod content is offered to the resource manager under, the same one the game uses.
+	* @returns Empty without a mod json, or when neither it nor the file name is a valid namespace.
+	*/
+	std::string getResourceNameSpace() const;
 
 	PG_Texture getPreviewImg() const;
 
@@ -98,6 +116,13 @@ receivers:
 
 private:
 	void afterOpen(zipUPtr& zip) final;
+	/**
+	* @brief Offers everything the mods file carries to the resource manager under its namespace.
+	* @details Does nothing without a valid namespace, or for a mod never saved.
+	*/
+	void registerResourceSource();
 
 	std::shared_ptr<PG_DisaCharacterJsonContainer> m_characterJsonContainer;
+	/// The registration, so the mods content lives exactly as long as the mod does
+	PG_ResourceSourceScope<PG_ZIPResourceSource> m_resourceScope;
 };

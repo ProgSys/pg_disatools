@@ -4,8 +4,29 @@
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Disa/utils/PG_DisaModInfo.h>
 #include <Disa/utils/PG_DisaModLoadInfo.h>
-#include <Disa/fileformats/PG_ZIPUtil.h>
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
+#include <algorithm>
+#include <functional>
+#include <stdexcept>
+#include <vector>
+
+namespace {
+	/// Calls unary for every line. A '\r' right after a '\n' is skipped, one before it stays in the line.
+	void forEachLine(const std::vector<char>& data, const std::function<void(const std::string&)>& unary) {
+		auto begin = data.begin();
+		while (begin != data.end()) {
+			const auto end = std::find(begin, data.end(), '\n');
+			const std::string line(begin, end);
+			if (end == data.end()) {
+				if (!line.empty()) unary(line);
+				return;
+			}
+			unary(line);
+			begin = std::next(end);
+			if (begin != data.end() && *begin == '\r') ++begin;
+		}
+	}
+} //namespace
 
 void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_DisaModLoadInfo& metaInfo) {
 	if (!modInfo || modInfo->id.empty()) return;
@@ -14,13 +35,12 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 
 	std::string specialChars;
 	if (auto findIt = j.find("translations"); findIt != j.end()) {
-		if (!modInfo->archive) {
-			modInfo->archive = PG_ZIPUtil::openZip(modInfo->zipFile);
-		}
 		for (auto& jTranslations: *findIt) {
 			std::string fileName;
 			jTranslations.get_to(fileName);
-			PG_ZIPUtil::readStringLines(modInfo->archive.get(), "translation/" + fileName, [this, &specialChars](const std::string& line) {
+			auto handle = modInfo->open("translation/" + fileName);
+			if (!handle) throw std::runtime_error("Failed to find 'translation/" + fileName + "' in zip!");
+			forEachLine(handle.readAll(), [this, &specialChars](const std::string& line) {
 				auto splits = splitUtf8Simple(line, ';');
 				if (splits.empty()) return;
 				if (splits.back() == "\r") splits.pop_back();
@@ -58,7 +78,8 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 	if (auto findIt = j.find("font"); findIt != j.end()) {
 		std::string fontPath;
 		findIt->get_to(fontPath);
-		auto fontData = PG_ZIPUtil::readData(modInfo->archive.get(), "fonts/" + fontPath);
+		auto handle = modInfo->open("fonts/" + fontPath);
+		std::vector<char> fontData = handle ? handle.readAll() : std::vector<char>();
 		if (fontData.empty()) {
 			OUT_ERROR("Failed to find font: 'fonts/" << fontPath << "'!");
 			return;

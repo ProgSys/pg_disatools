@@ -1,7 +1,6 @@
 #include "PG_DisaScriptsModel.h"
 
 #include <Disa/fileformats/PG_JsonUtil.h>
-#include <Disa/fileformats/PG_ZIPUtil.h>
 #include <Disa/utils/PG_DisaModInfo.h>
 #include <Disa/utils/PG_DisaModLoadInfo.h>
 #include <Disa/models/PG_DisaMainModel.h>
@@ -82,24 +81,17 @@ void PG_DisaScriptsModel::loadScripts(PG_DisaModInfo* modInfo, const PG_DisaModL
 }
 
 static inline std::string readFromZip(const PG_DisaScriptsModel::ScriptInfo& info) {
-	std::string code;
-	bool closeAfterwards = false;
-	if (!info.modInfo->archive) {
-		info.modInfo->archive = PG_ZIPUtil::openZip(info.modInfo->zipFile);
-		closeAfterwards = true;
-	}
-	if (info.modInfo->archive) {
-		try {
-			code = PG_ZIPUtil::readString(info.modInfo->archive.get(), "scripts/"+info.fileInZip.getPath());
-		}
-		catch (...) {}
-	}
-	else {
-		OUT_ERROR("Failed to read file from zip \"" << info.identifier.getIdentifier() << "\" from zip '" << info.modInfo->zipFile << "!");
-	}
-	if (closeAfterwards) info.modInfo->archive.reset();
+	//a script is only read while its mod is in use, so reading around the resource manager is a hint at a bug
+	if (!info.modInfo->isInUse())
+		OUT_WARNING("Script \"" << info.identifier.getIdentifier() << "\" is read from '" << info.modInfo->zipFile << "' while its mod is not in use!");
 
-	return code;
+	auto handle = info.modInfo->open("scripts/" + info.fileInZip.getPath());
+	if (!handle) {
+		OUT_ERROR("Failed to read file from zip \"" << info.identifier.getIdentifier() << "\" from zip '" << info.modInfo->zipFile << "!");
+		return {};
+	}
+	const std::vector<char> data = handle.readAll();
+	return std::string(data.begin(), data.end());
 }
 
 int PG_DisaScriptsModel::readTalkScript(unsigned char*& dataLocation, const PG_DisaIdentifier& identifier) {

@@ -4,6 +4,7 @@
 
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 #include <Disa/models/PG_DisaMainModel.h>
+#include <Disa/utils/PG_DisaModInfo.h>
 #include <Disa/PG_DisaMapModel.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Stream/PG_StreamInByteFile.h>
@@ -300,7 +301,7 @@ bool PG_DisaCampaignJsonContainer::open(std::shared_ptr<PG::STREAM::In> reader) 
 	getTo(j, "description", m_description);
 	getTo(j, "previewImage", m_previewImgPath);
 	getTo(j, "backgroundImage", m_backgroundImgPath);
-	setTo(j, "namespace", m_namespaceMod);
+	getTo(j, "namespace", m_namespaceMod);
 
 	if (m_name.empty()) m_name = "Name missing";
 	appendImg(m_previewImgPath);
@@ -463,6 +464,11 @@ void PG_CustomCampaignsModel::afterOpen(zipUPtr& zip) {
 	registerResourceSource();
 }
 
+std::string PG_CustomCampaignsModel::getResourceNameSpace() const {
+	if (!m_campaignJsonContainer) return {};
+	return PG_DisaModInfo::resolveNameSpace(m_campaignJsonContainer->getNamespaceMod(), getFile());
+}
+
 void PG_CustomCampaignsModel::registerResourceSource() {
 	m_resourceScope.expire(); //an earlier open of this same model may still be registered
 
@@ -474,10 +480,14 @@ void PG_CustomCampaignsModel::registerResourceSource() {
 }
 
 bool PG_CustomCampaignsModel::save() {
-	//a deregistered source closes its handle and stays closed, so the file can be replaced
-	m_resourceScope.expire();
-	const bool result = PG_ZIP::save();
-	registerResourceSource();
+	bool result = false;
+	{
+		//the source reads the same file, so it waits while it is written and indexes it again after
+		auto guard = m_resourceScope ? m_resourceScope->guardModification() : PG_ResourceSource::ModificationGuard();
+		result = PG_ZIP::save();
+	}
+	//a first save, or the id changed, both need a source under the current namespace
+	if (!m_resourceScope || m_resourceScope->getNamespace() != getResourceNameSpace()) registerResourceSource();
 	return result;
 }
 

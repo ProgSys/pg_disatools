@@ -45,13 +45,13 @@ using zipUPtr = std::unique_ptr<zip, void(*)(zip*)>;
 * @details Entry paths are the paths inside the archive, so a campaign that ships
 * "materials/heroes/portrait.png" serves it under that name in its own namespace.
 *
-* The source is the only one holding the libzip handle. It opens it on the first read and, while
-* registered, closes it again once nothing was read for idleTimeout, so the file is not kept locked.
-* A read hands back a stream over its own copy of the bytes, so an open read never needs the handle.
+* The source is the only one holding the libzip handle and opens it on demand. While registered it
+* keeps the handle until nothing was read for idleTimeout, otherwise it closes it after every read,
+* so the file is never kept locked by a source nobody uses. A read hands back a stream over its own
+* copy of the bytes, so an open read never needs the handle.
 *
-* The indexes are built once, in the constructor. A file that changed while the handle was closed
-* can therefore no longer be read, the source has to be built and registered again.
-* Once deregistered it does not open the file again, so its owner can overwrite it.
+* Whoever writes the file does so inside guardModification, the source then indexes it again. A file
+* changed any other way can no longer be read, the source warns and has to be built again.
 */
 class PG_ZIPResourceSource : public PG_ResourceSource {
 public:
@@ -64,9 +64,9 @@ public:
 	std::string getDescription() const override { return m_file.getPath(); }
 	void traverseEntries(const std::function<void(const std::string&)>& unary) const override;
 
-	/// Starts closing the handle when idle.
+	/// Keeps the handle open between reads, until it was idle for idleTimeout.
 	void onRegistered(PG_ResourceManager* manager) override;
-	/// Closes the handle and stops reading, so the file may be overwritten.
+	/// Closes the handle, from now on it is closed after every read.
 	void onDeregistered(PG_ResourceManager* manager) override;
 
 	/// False when the file could not be opened when the source was built, it then carries nothing.
@@ -84,14 +84,25 @@ protected:
 	std::shared_ptr<PG::STREAM::In> openStream(const std::string& path) const override;
 	void traversePGR(const std::function<void(const std::string&)>& unary) const override;
 
+	/// Closes the handle, so the file can be written.
+	void onModificationBegin() override;
+	/// Indexes the file again as it is now.
+	void onModificationEnd() override;
+
 private:
 	struct Entry {
 		std::uint64_t index = 0; /// libzip index
 		std::uint64_t size = 0;  /// uncompressed
 	};
 	/**
+	* @brief Opens the file and fills m_entries and m_stamp from it, leaving the handle open.
+	* Expects m_mutex to be locked.
+	* @returns false when the file can't be opened, the source then carries nothing.
+	*/
+	bool indexArchive();
+	/**
 	* @brief Opens the handle if it is closed. Expects m_mutex to be locked.
-	* @returns false when the source was deregistered, or the file is gone or changed.
+	* @returns false when the file is gone or was changed outside a modification.
 	*/
 	bool ensureOpen() const;
 
@@ -101,12 +112,11 @@ private:
 	/// path inside the archive -> its entry, so a read is a lookup and not a scan of every row
 	std::map<std::string, Entry> m_entries;
 
-	/// libzip handles are not thread safe, and the loader threads read concurrently
+	/// Guards the handle and m_entries. libzip handles are not thread safe, and the loader threads read concurrently.
 	mutable std::mutex m_mutex;
 	mutable zipUPtr m_archive; /// null while closed
 	mutable std::chrono::steady_clock::time_point m_lastRead;
 	mutable bool m_isChangeReported = false;
-	bool m_isDeregistered = false;
-	/// Shared with the companion that closes the handle when idle, set to make it go
+	/// Shared with the companion that closes the handle when idle, set to make it go. Null without one.
 	std::shared_ptr<std::atomic_bool> m_companionReleased;
 };
