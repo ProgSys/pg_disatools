@@ -450,15 +450,11 @@ void _stdcall FUN_00472a40_ProccessDungeonsScreen();
 
 void* __fastcall FUN_0050a1f0(int param_1, int** param_2, int param_3, char param_4);
 
-
-//load MPP
-void _stdcall FUN_004a59c0_LoadMPP(unsigned short chapterId, unsigned short mapId);
-
-//load MPD
-void __fastcall FUN_004d5060_LoadMPD(unsigned short chapterId, unsigned short mapId);
-
-//unused
-void __fastcall FUN_004d6a30_finalizeDungeonLoad(DisaDungeon* dungeon);
+/**
+* @brief Reads a game file into memory.
+* @param fileData Target buffer, allocated when it points to nullptr.
+*/
+void FUN_0050a1f0_GetFileData(int fileIndex, int** fileData, bool param_4);
 
 //call SCRIPT
 void __fastcall FUN_004b6420(unsigned int param_1, int param_2); //procces script command

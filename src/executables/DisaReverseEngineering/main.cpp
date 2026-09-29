@@ -13,6 +13,7 @@
 #include <DisaScriptManager.h>
 #include <DisaRendering.h>
 #include <DisaMapChunk.h>
+#include <DisaMapFunctions.h>
 #include <Windows.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
@@ -115,6 +116,18 @@ struct HockManager {
 
         replaceFunction("LoadMPP", "", 0x004816ef, FUN_004a59c0_LoadMPP); //load dungeon assets
         replaceFunction("LoadMPD", "", 0x0048170a, FUN_004d5060_LoadMPD);
+
+        replaceFunction("clearMap", "Clears both map chunks", 0x00481577, FUN_004d7970_clearMap); //hdTexture reload
+        replaceFunction("clearMap", "Clears both map chunks", 0x0048167d, FUN_004d7970_clearMap); //hdTexture reload
+        replaceFunction("clearMap", "Clears both map chunks", 0x004b6e85, FUN_004d7970_clearMap); //script 0x15
+        replaceFunction("clearMap", "Clears both map chunks", 0x004b6f8c, FUN_004d7970_clearMap); //script 0x16
+        replaceFunction("clearMap", "Clears both map chunks", 0x004b723e, FUN_004d7970_clearMap); //script 0x17
+        {
+            auto f = &DisaMapChunk::FUN_004a27f0_clearChunk;
+            unsigned int i = *((unsigned int*)&f);
+            replaceFunction("clearChunk", "Clears one map chunk", 0x004d6c95, i); //flat arena
+            replaceFunction("clearChunk", "Clears one map chunk", 0x004d9188, i); //item world floor
+        }
 
         //status menu
         replaceFunction("statusMenu", "", 0x004803D1, FUN_0047f080_ProccessStatusMenu);
@@ -623,7 +636,7 @@ DWORD WINAPI startMain() {
 bool IsVCppRedistInstalled()
 {
     HKEY hKey;
-    // Visual Studio 2015–2022 Redistributable (x86)
+    // Visual Studio 2015ï¿½2022 Redistributable (x86)
     const wchar_t* subkey = L"SOFTWARE\\Microsoft\\VisualStudio\\14.0\\VC\\Runtimes\\x86";
 
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, subkey, 0, KEY_READ, &hKey) != ERROR_SUCCESS)
@@ -641,7 +654,7 @@ BOOL APIENTRY DllMain(HINSTANCE, DWORD  reason, LPVOID) {
     /*
     if (!IsVCppRedistInstalled()) {
         MessageBoxW(nullptr,
-            L"Microsoft Visual C++ Redistributable (2015–2022) X86 (32bit) is not installed!\n\n"
+            L"Microsoft Visual C++ Redistributable (2015ï¿½2022) X86 (32bit) is not installed!\n\n"
             L"Please download and install it from microsoft!",
             L"Missing Runtime",
             MB_ICONERROR | MB_OK);

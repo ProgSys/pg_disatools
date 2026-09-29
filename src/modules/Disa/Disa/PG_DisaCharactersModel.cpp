@@ -157,14 +157,14 @@ void PG_DisaCustomCharactersModel::loadCharacters(CharacterMod& mod, const PG_Di
 		throw std::exception("'name' is missing in 'character.json'!");
 	}
 
-	readFromJson(j, "namesspace", mod.namespaceMod);
+	readFromJson(j, "namespace", mod.namespaceMod);
 	if (mod.namespaceMod.empty()) {
 		mod.namespaceMod = metaInfo.file.getName();
 	}
 	mod.namespaceMod = PG_StringUtil::toLowerCopy(mod.namespaceMod);
 
 	if (!PG_SimpleWordValidator()(mod.namespaceMod) || mod.namespaceMod.empty()) {
-		throw std::exception("Invalid namespace format! Either filename or namesspace dosn't match naming convention!");
+		throw std::exception("Invalid namespace format! Either filename or namespace dosn't match naming convention!");
 	}
 
 	mod.zipFile = metaInfo.file;

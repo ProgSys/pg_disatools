@@ -62,7 +62,7 @@ static inline void readCampaign(DisaCustomCampaignManager::Campaign& campain, co
     readFromJson(j, "previewImage", campain.previewImage);
     readFromJson(j, "backgroundImage", campain.backgroundImage);
 
-    readFromJson(j, "namesspace", campain.namespaceMod);
+    readFromJson(j, "namespace", campain.namespaceMod);
     if (campain.namespaceMod.empty()) {
         campain.namespaceMod = info.file.getName();
     }

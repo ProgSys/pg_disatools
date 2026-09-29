@@ -148,7 +148,7 @@ static_assert(sizeof(DisaGeoModelSet) == 0x1750);
 
 /**
 * @brief Runtime map chunk: the tiles, the placed objects and the render cache of one MPD chunk.
-* The game holds two of them at 0x007091c0, loaded by FUN_004d4980.
+* The game holds two of them at 0x007091c0, loaded by FUN_004d4980_CopyDungeonIntoActive.
 * Size: 0x91a8
 */
 struct DisaMapChunk {
@@ -182,6 +182,17 @@ struct DisaMapChunk {
     uint8_t field0x91a5;             // 0x91a5
     bool isHDTexture;                // 0x91a6 - picks the normal mapped list callbacks
     uint8_t padding0x91a7;           // 0x91a7
+
+    static constexpr int count = 2;
+
+    /**
+    * @brief Resets the chunk to an empty, inactive chunk at (6, 0, 6) and destroys its cached meshes.
+    * @param isFullClear Clears the whole tiles. Otherwise geo_color, geo_mark and the padding of each tile are kept.
+    */
+    void __thiscall FUN_004a27f0_clearChunk(bool isFullClear);
+
+    /// The two chunks located at 0x007091c0
+    static DisaMapChunk* get(int index);
 };
 static_assert(sizeof(DisaMapChunk) == 0x91a8);
 static_assert(offsetof(DisaMapChunk, tiles) == 0x3c);

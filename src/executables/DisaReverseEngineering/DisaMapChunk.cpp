@@ -108,6 +108,37 @@ DisaGeoModelSet* DisaGeoModelSet::get(int index) {
     return &(&FP::getData<DisaGeoModelSet>(0x00703480))[index];
 }
 
+DisaMapChunk* DisaMapChunk::get(int index) {
+    return &(&FP::getData<DisaMapChunk>(0x007091c0))[index];
+}
+
+void DisaMapChunk::FUN_004a27f0_clearChunk(bool isFullClear) {
+    isActive = false;
+    position = glm::vec4(6.f, 0.f, 6.f, 1.f);
+    rotation = glm::vec4(0.f, 0.f, 0.f, 1.f);
+    pivot.x = 6.f;
+    pivot.z = 6.f;
+
+    for (mpdfileChunkEventTile& eventTile : eventTiles) {
+        eventTile.index = 0;
+    }
+    for (mpdfileChunkObject& object : objects) {
+        object.visible = 0;
+    }
+
+    if (isFullClear) {
+        std::memset(tiles, 0, sizeof(tiles));
+    } else {
+        static_assert(offsetof(mpdfileTile, geo_color) == 0x78);
+        for (mpdfileTile& tile : tiles) {
+            std::memset(&tile, 0, offsetof(mpdfileTile, geo_color));
+        }
+    }
+    std::memset(tileGrid, 0, sizeof(tileGrid));
+
+    FUN_004fe080_destroyChunkMeshes(*this);
+}
+
 void FUN_004a4660_BuildTileOverlays(DisaMapChunk& chunk) {
     //one white texel of the system texture, used by the plain colored overlays
     const glm::vec2 solidUvMin(241.5f / 256.f, 1.5f / 256.f);

@@ -1091,12 +1091,21 @@ PG_MPD PG_DisaMapModel::toMPD() const {
 		}
 	}
 
+	int skippedModObjects = 0;
 	for (auto* item : *getObjects()) {
+		//model_id has no way to name a resource, and -1 is no valid entry of the table the game reads
+		if (item->isMod()) {
+			++skippedModObjects;
+			continue;
+		}
 		auto& c = chunks[item->getChunk()->getLocation()];
 		int& i = trackers[c.info.header.index].objectCounter;
 		if (i >= c.info.objects.size()) continue;
 		c.info.objects[i] = item->getData();
 		++i;
+	}
+	if (skippedModObjects > 0) {
+		OUT_WARNING(skippedModObjects << " mod objects are not saved, the MPD format cannot reference them yet.");
 	}
 
 	for (auto* item : *getEvents()) {
