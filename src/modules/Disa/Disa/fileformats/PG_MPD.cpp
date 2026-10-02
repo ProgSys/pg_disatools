@@ -140,20 +140,17 @@ bool PG_MPD::open(PG::STREAM::In* reader) {
 	}
 
 	//read custom data
-	m_customMetaData.clear();
+	m_customMetaData.reset();
 	if (const auto blockStart = findMetaDataBlock(reader, start, reader->pos())) {
 		reader->seek(*blockStart + 4);
 		m_customMetaData.open(reader);
 	}
 
-	for (std::size_t i = 0; i < m_chunks.size(); ++i) {
-		mpdfileChunk& chunk = m_chunks[i];
-		chunk.customModels = PG_MPDCustom::readModels(m_customMetaData, static_cast<int>(i));
-
+	for (mpdfileChunk& chunk : m_chunks) {
 		//callers only ever see regular objects, the marker is the binary file's business
 		for (mpdfileChunkObject& object : chunk.info.objects) {
 			if (!object.isCustomModelsMarker()) continue;
-			object = mpdfileChunkObject::createEmpty();
+			object = mpdfileChunkObject{};
 		}
 	}
 
@@ -353,15 +350,16 @@ bool PG_MPD::openJson(PG::STREAM::In* reader) {
 			chunk.tiles.push_back(jsonToTile(jTile));
 		}
 		int iObject = 0;
+		std::vector<PG_MPDCustomModel> customModels;
 
 		if(auto findIt = jChunk.find("objects"); findIt != jChunk.end()){
 			const auto& jObjects = *findIt;
 			for (const auto& jObject : jObjects) {
 				//a name and no model id is a custom model, drawn from a resource and not from the table
 				if (jObject.contains("name") && !jObject.contains("model_id")) {
-					PG_MPDCustomModel& model = chunk.customModels.emplace_back();
+					PG_MPDCustomModel& model = customModels.emplace_back();
 					jObject["name"].get_to(model.name);
-					model.object = mpdfileChunkObject::createEmpty();
+					model.object = mpdfileChunkObject::createNew();
 					jObject["positon"][0].get_to(model.object.x);
 					jObject["positon"][1].get_to(model.object.y);
 					jObject["positon"][2].get_to(model.object.z);
@@ -415,6 +413,7 @@ bool PG_MPD::openJson(PG::STREAM::In* reader) {
 			chunk.info.baseTile = jsonToTile(jChunk["baseTile"]);
 		}
 		m_chunks.push_back(std::move(chunk));
+		setCustomModels(static_cast<int>(m_chunks.size()) - 1, std::move(customModels));
 	}
 
 	if (auto findIt = j.find("actors"); findIt != j.end()) {
@@ -453,7 +452,15 @@ bool PG_MPD::openJson(PG::STREAM::In* reader) {
 void PG_MPD::clear() {
 	m_chunks.clear();
 	m_actors.clear();
-	m_customMetaData.clear();
+	m_customMetaData.reset();
+}
+
+std::vector<PG_MPDCustomModel> PG_MPD::getCustomModels(int chunkIndex) const {
+	return PG_MPDCustom::readModels(m_customMetaData, chunkIndex);
+}
+
+void PG_MPD::setCustomModels(int chunkIndex, std::vector<PG_MPDCustomModel>&& models) {
+	PG_MPDCustom::writeModels(m_customMetaData, chunkIndex, models);
 }
 
 static inline nlohmann::json tileToJson(const mpdfileTile& tile) {
@@ -538,7 +545,8 @@ void PG_MPD::saveJson(const std::string& file) const {
 	};
 
 	auto& chunks = j["chunks"];
-	for (const mpdfileChunk& chunk : m_chunks) {
+	for (std::size_t chunkIndex = 0; chunkIndex < m_chunks.size(); ++chunkIndex) {
+		const mpdfileChunk& chunk = m_chunks[chunkIndex];
 		nlohmann::json jChunk;
 		jChunk["header"] = {
 			{"map_offset", {  chunk.info.header.map_offset_x, chunk.info.header.map_offset_y, chunk.info.header.map_offset_z, chunk.info.header.map_offset_w }},
@@ -576,7 +584,7 @@ void PG_MPD::saveJson(const std::string& file) const {
 			jObjects.push_back(std::move(jObject));
 		}
 		//no model_id, which is what marks them when read back
-		for (const PG_MPDCustomModel& model : chunk.customModels) {
+		for (const PG_MPDCustomModel& model : getCustomModels(static_cast<int>(chunkIndex))) {
 			nlohmann::json jObject;
 			jObject["name"] = model.name;
 			jObject["positon"] = { model.object.x, model.object.y, model.object.z };
@@ -672,7 +680,8 @@ bool PG_MPD::save(PG::STREAM::Out* writer) {
 	writer->write((char*)&m_header, sizeof(mpdfileHeader));
 	for (std::size_t i = 0; i < m_chunks.size(); ++i) {
 		const mpdfileChunk& chunk = m_chunks[i];
-		if (chunk.customModels.empty()) {
+		const std::vector<PG_MPDCustomModel> customModels = getCustomModels(static_cast<int>(i));
+		if (customModels.empty()) {
 			writer->write((char*)&chunk.info, sizeof(mpdfileChunkDef));
 			continue;
 		}
@@ -682,7 +691,7 @@ bool PG_MPD::save(PG::STREAM::Out* writer) {
 			OUT_WARNING("Chunk " << i << " has no free object slot for the custom models marker, it replaces the last object!");
 			freeIt = std::prev(info.objects.end());
 		}
-		*freeIt = mpdfileChunkObject::createCustomModelsMarker(chunk.customModels.front().object);
+		*freeIt = mpdfileChunkObject::createCustomModelsMarker(customModels.front().object);
 		writer->write((char*)&info, sizeof(mpdfileChunkDef));
 	}
 
@@ -692,31 +701,15 @@ bool PG_MPD::save(PG::STREAM::Out* writer) {
 
 	writer->write((char*)m_actors.data(), sizeof(mpdfileActor) * m_actors.size());
 
-	if (PG_DataSerializer metaData = buildMetaData(); !metaData.isEmpty()) {
+	//isSet and not isEmpty, a block whose keys were all removed still has its root and nothing to write
+	if (m_customMetaData.isSet()) {
 		const unsigned int blockStart = writer->pos() - start;
 		writer->writeString("PGMD");
-		metaData.save(writer);
+		m_customMetaData.save(writer);
 		writer->writeInt(static_cast<int>(blockStart)); //so the block can be found from the end
 	}
 
 	return SUCCESS;
-}
-
-PG_DataSerializer PG_MPD::buildMetaData() const {
-	PG_DataSerializer out;
-
-	//a block that was read may still hold the chunks of its file, so only known keys are taken over
-	if (const PG_DataSerializer characters = m_customMetaData["characters"]; characters.isValid()) {
-		PG_DataSerializer target = out["characters"];
-		for (const PG_DataSerializer& entry : characters) target[entry.getKey()] = entry.asString();
-	}
-
-	PG_MPDCustom::ChunkModels models;
-	for (std::size_t i = 0; i < m_chunks.size(); ++i) {
-		if (!m_chunks[i].customModels.empty()) models[static_cast<int>(i)] = m_chunks[i].customModels;
-	}
-	PG_MPDCustom::writeModels(out, models);
-	return out;
 }
 
 mpdfileHeader& PG_MPD::getHeader() {

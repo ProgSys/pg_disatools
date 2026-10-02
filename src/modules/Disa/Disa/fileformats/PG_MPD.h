@@ -83,7 +83,8 @@ PACK(struct mpdfileChunkObject //36 bytes
 	/// unk0x14 of the object that stands in for the custom models of its chunk, 'P'
 	static constexpr unsigned char customModelsMarker = 0x50;
 
-	static mpdfileChunkObject createEmpty() {
+	/// A newly placed object: visible, model 0, at the origin, at full scale. An unused slot is mpdfileChunkObject{}, @see isEmpty
+	static mpdfileChunkObject createNew() {
 		return mpdfileChunkObject{
 			0, 0, 0,
 			0, 0, 0,
@@ -102,7 +103,7 @@ PACK(struct mpdfileChunkObject //36 bytes
 	* @param first Position, rotation and scale are taken from it
 	*/
 	static mpdfileChunkObject createCustomModelsMarker(const mpdfileChunkObject& first) {
-		mpdfileChunkObject out = createEmpty();
+		mpdfileChunkObject out = createNew();
 		out.x = first.x;
 		out.y = first.y;
 		out.z = first.z;
@@ -172,18 +173,17 @@ PACK(struct mpdfileChunkDef{
 
 /**
 * @brief A model of a chunk that is drawn from a PG_Model resource, not from the model table.
-* @details The binary file keeps these in its metadata block and puts a marker object in the table,
-* the json lists them among the objects. @see PG_MPDCustom
+* @details PG_MPD keeps these in its metadata block, the binary file also puts a marker object in the
+* table and the json lists them among the objects. @see PG_MPDCustom
 */
 struct PG_MPDCustomModel {
 	std::string name;          /// the resource without its namespace
 	mpdfileChunkObject object; /// only position, rotation and scale are used
 };
 
-struct mpdfileChunk{
+struct mpdfileChunk {
 	mpdfileChunkDef info; /// never holds the marker of the custom models, only the binary file does
 	std::vector<mpdfileTile> tiles;
-	std::vector<PG_MPDCustomModel> customModels;
 };
 
 /// Which way a unit looks when the map places it. The value is what the file stores.
@@ -255,13 +255,14 @@ public:
 	std::vector<mpdfileActor>& getActors();
 	const std::vector<mpdfileActor>& getActors() const;
 
-	/**
-	* @brief The metadata block of the binary file, as it was read.
-	* @details save() builds the block anew, from "characters" in here and the custom models of the
-	* chunks. A new root key has to be copied over in save() as well, or it is lost.
-	*/
+	/// The metadata block of the binary file. The custom models live in it as well, @see getCustomModels
 	PG_DataSerializer& getCustomMetaData() { return m_customMetaData; }
 	const PG_DataSerializer& getCustomMetaData() const { return m_customMetaData; }
+
+	/// The custom models of a chunk, read from the metadata block. Empty when it has none.
+	std::vector<PG_MPDCustomModel> getCustomModels(int chunkIndex) const;
+	/// Replaces the custom models of a chunk in the metadata block, empty models remove them.
+	void setCustomModels(int chunkIndex, std::vector<PG_MPDCustomModel>&& models);
 
 private:
 	/**
@@ -269,8 +270,6 @@ private:
 	* @param start Where the MPD starts in the reader, the trailer counts from there
 	*/
 	static std::optional<unsigned int> findMetaDataBlock(PG::STREAM::In* reader, unsigned int start, unsigned int actorsEnd);
-	/// The block save() writes, "characters" of the one that was read plus the custom models of the chunks.
-	PG_DataSerializer buildMetaData() const;
 
 	mpdfileHeader m_header;
 	std::vector<mpdfileChunk> m_chunks;

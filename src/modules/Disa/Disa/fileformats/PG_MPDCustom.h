@@ -27,7 +27,6 @@
  */
 #pragma once
 
-#include <map>
 #include <vector>
 #include <Disa/fileformats/PG_MPD.h>
 #include <Util/PG_DataSerializer.h>
@@ -42,13 +41,14 @@
 * Only chunks with custom models get an entry, index is the chunk of the file it belongs to.
 */
 namespace PG_MPDCustom {
-	/// file chunk index -> its models
-	using ChunkModels = std::map<int, std::vector<PG_MPDCustomModel>>;
-
 	constexpr int modelsVersion = 1;
 
-	/// Writes the models version and the chunks list, writes nothing when no chunk has a model.
-	void writeModels(PG_DataSerializer& metaData, const ChunkModels& models);
+	/**
+	* @brief Replaces the models of one chunk of the file.
+	* @details Empty models remove the entry of the chunk, and the chunks list with the version once
+	* no chunk is left in it.
+	*/
+	void writeModels(PG_DataSerializer& metaData, int chunkIndex, const std::vector<PG_MPDCustomModel>& models);
 	/// The models of one chunk of the file, empty when it has none.
 	std::vector<PG_MPDCustomModel> readModels(const PG_DataSerializer& metaData, int chunkIndex);
 }

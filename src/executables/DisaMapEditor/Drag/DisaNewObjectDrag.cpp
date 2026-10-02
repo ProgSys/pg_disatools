@@ -47,7 +47,7 @@ void DisaNewObjectDrag::start(const PG_ListModelLocation& location) {
 
 	//new objects go into the last chunk, see PG_DisaMapScene::addModel
 	m_objectMoc = PG_new<PG_DisaObjectModel>("ObjectMoc", this);
-	m_objectMoc->setData(mpdfileChunkObject::createEmpty());
+	m_objectMoc->setData(mpdfileChunkObject::createNew());
 	m_objectMoc->setChunk(mapModel->getChunks()->back());
 
 	m_indicator = PG_new<PG_ActorNode>("ObjectIndicator", gameScene->getRoot());

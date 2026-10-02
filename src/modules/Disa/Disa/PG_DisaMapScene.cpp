@@ -271,7 +271,7 @@ PG_DisaObjectModel* PG_DisaMapScene::addObject(char modelId, const std::string& 
 	auto objects = model->getObjects();
 	auto object = PG_new<PG_DisaObjectModel>("PG_DisaObjectModel", objects);
 	object->setChunk(model->getChunks()->back());
-	mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
+	mpdfileChunkObject data = mpdfileChunkObject::createNew();
 	data.model_id = modelId;
 	const glm::ivec3 tilePos = PG_DisaObjectModel::toObjectTranslation(pos - model->getChunks()->back()->getTileTranslation());
 	data.x = tilePos.x;

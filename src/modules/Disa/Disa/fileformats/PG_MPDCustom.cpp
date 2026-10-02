@@ -1,31 +1,41 @@
 #include <Disa/fileformats/PG_MPDCustom.h>
-#include <algorithm>
+#include <utility>
 #include <Util/Debug/PG_DebugOut.h>
 
-void PG_MPDCustom::writeModels(PG_DataSerializer& metaData, const ChunkModels& models) {
-	if (std::ranges::all_of(models, [](const auto& pair) { return pair.second.empty(); })) return;
+void PG_MPDCustom::writeModels(PG_DataSerializer& metaData, int chunkIndex, const std::vector<PG_MPDCustomModel>& models) {
+	//looked up const first, the mutable lookup would add an empty "chunks" just to remove nothing from it
+	if (models.empty() && !std::as_const(metaData)["chunks"].isValid()) return;
+
+	PG_DataSerializer chunks = metaData["chunks"];
+	chunks.removeIf([chunkIndex](const PG_DataSerializer& chunk) {
+		int index = -1;
+		return chunk["index"].getTo(index) && index == chunkIndex;
+	});
+
+	if (models.empty()) {
+		if (chunks.getItemCount() == 0) {
+			metaData.remove("chunks");
+			metaData.remove("customModelsVersion");
+		}
+		return;
+	}
 
 	metaData["customModelsVersion"] = modelsVersion;
-	PG_DataSerializer chunks = metaData["chunks"];
-	for (const auto& [chunkIndex, chunkModels] : models) {
-		if (chunkModels.empty()) continue;
-
-		PG_DataSerializer chunk = chunks.emplaceBack();
-		chunk["index"] = chunkIndex;
-		PG_DataSerializer list = chunk["models"];
-		for (const PG_MPDCustomModel& model : chunkModels) {
-			PG_DataSerializer entry = list.emplaceBack();
-			entry["name"] = model.name;
-			entry["x"] = model.object.x;
-			entry["y"] = model.object.y;
-			entry["z"] = model.object.z;
-			entry["xRot"] = model.object.xRot;
-			entry["yRot"] = model.object.yRot;
-			entry["zRot"] = model.object.zRot;
-			entry["xScale"] = model.object.xScale;
-			entry["yScale"] = model.object.yScale;
-			entry["zScale"] = model.object.zScale;
-		}
+	PG_DataSerializer chunk = chunks.emplaceBack();
+	chunk["index"] = chunkIndex;
+	PG_DataSerializer list = chunk["models"];
+	for (const PG_MPDCustomModel& model : models) {
+		PG_DataSerializer entry = list.emplaceBack();
+		entry["name"] = model.name;
+		entry["x"] = model.object.x;
+		entry["y"] = model.object.y;
+		entry["z"] = model.object.z;
+		entry["xRot"] = model.object.xRot;
+		entry["yRot"] = model.object.yRot;
+		entry["zRot"] = model.object.zRot;
+		entry["xScale"] = model.object.xScale;
+		entry["yScale"] = model.object.yScale;
+		entry["zScale"] = model.object.zScale;
 	}
 }
 
@@ -46,7 +56,7 @@ std::vector<PG_MPDCustomModel> PG_MPDCustom::readModels(const PG_DataSerializer&
 		for (const PG_DataSerializer& entry : chunk["models"]) {
 			PG_MPDCustomModel& model = out.emplace_back();
 			model.name = entry["name"].asString();
-			model.object = mpdfileChunkObject::createEmpty();
+			model.object = mpdfileChunkObject::createNew();
 			entry["x"].getTo(model.object.x);
 			entry["y"].getTo(model.object.y);
 			entry["z"].getTo(model.object.z);

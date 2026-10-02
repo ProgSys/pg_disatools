@@ -811,7 +811,8 @@ struct PG_JobOpenMPD : public PG_Job {
 		auto* map = dynamic_cast<PG_DisaMapModel*>(owner.get());
 		//load map
 		LoadResult result;
-		for (const mpdfileChunk& mpdChunk : mpd.getChunks()) {
+		for (std::size_t chunkIndex = 0; chunkIndex < mpd.getChunks().size(); ++chunkIndex) {
+			const mpdfileChunk& mpdChunk = mpd.getChunks()[chunkIndex];
 			result.chunks.push_back(PG_new<PG_DisaMapChunkModel>("PG_DisaMapChunkModel"));
 			result.chunks.back()->setData(mpdChunk.info.header);
 
@@ -831,7 +832,7 @@ struct PG_JobOpenMPD : public PG_Job {
 				result.objects.back()->setChunk(result.chunks.back());
 				result.objects.back()->setData(object);
 			}
-			for (const PG_MPDCustomModel& customModel : mpdChunk.customModels) {
+			for (const PG_MPDCustomModel& customModel : mpd.getCustomModels(static_cast<int>(chunkIndex))) {
 				mpdfileChunkObject data = customModel.object;
 				data.model_id = -1;
 				data.visible = 1;
@@ -1065,7 +1066,7 @@ void PG_DisaMapModel::openModel(PG_Model model) {
 void PG_DisaMapModel::addPreviewObject(PG_DisaObjectModel* object, PG_Model model) {
 	/* An object names its geometry by index into the assets, so the geometry goes in first and
 	 * the index it lands on is what the object is told to draw. */
-	mpdfileChunkObject data = mpdfileChunkObject::createEmpty();
+	mpdfileChunkObject data = mpdfileChunkObject::createNew();
 	data.model_id = static_cast<char>(m_assets->addGeometry(std::move(model)));
 	object->setData(data);
 
@@ -1100,12 +1101,13 @@ PG_MPD PG_DisaMapModel::toMPD() const {
 		}
 	}
 
+	//chunk index -> its mod objects, PG_MPD keeps them in its metadata block and places their marker object
+	std::vector<std::vector<PG_MPDCustomModel>> customModels(chunks.size());
 	bool hasModObjects = false;
 	for (auto* item : *getObjects()) {
 		auto& c = chunks[item->getChunk()->getLocation()];
-		//PG_MPD writes these into its metadata block and places their marker object
 		if (item->isMod()) {
-			c.customModels.push_back(PG_MPDCustomModel{ item->getResourceName(), item->getData() });
+			customModels[item->getChunk()->getLocation()].push_back(PG_MPDCustomModel{ item->getResourceName(), item->getData() });
 			hasModObjects = true;
 			continue;
 		}
@@ -1140,6 +1142,9 @@ PG_MPD PG_DisaMapModel::toMPD() const {
 	}
 
 	mpd.getChunks() = std::move(chunks);
+	for (std::size_t i = 0; i < customModels.size(); ++i) {
+		mpd.setCustomModels(static_cast<int>(i), std::move(customModels[i]));
+	}
 
 	//save actors
 	mpd.getActors().reserve(getActors()->size());
