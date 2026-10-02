@@ -7,6 +7,7 @@
 
 #include <FunctionPatcher.h>
 #include "DisaRendering.h"
+#include <Managers/DisaCustomRenderManager.h>
 
 namespace {
 
@@ -137,6 +138,10 @@ void DisaMapChunk::FUN_004a27f0_clearChunk(bool isFullClear) {
     std::memset(tileGrid, 0, sizeof(tileGrid));
 
     FUN_004fe080_destroyChunkMeshes(*this);
+
+    //BEGIN custom code
+    getCustomMapModels().erase(static_cast<int>(this - DisaMapChunk::get(0)));
+    //END custom code
 }
 
 void FUN_004a4660_BuildTileOverlays(DisaMapChunk& chunk) {
@@ -267,6 +272,13 @@ void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, Dis
     for (mpdfileChunkObject& object : chunk->objects) {
         if (!object.visible) continue;
 
+        //BEGIN custom code
+        if (object.isCustomModelsMarker()) {
+            submitCustomMapModels(*chunk, chunkMatrix);
+            continue;
+        }
+        //END custom code
+
         constexpr double degToRad = 0.017453;
         constexpr double percent = 0.01;
         DisaTransform transform;
@@ -291,3 +303,44 @@ void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, Dis
     }
     popRenderFlags();
 }
+
+//BEGIN custom code
+std::unordered_map<int, std::vector<DisaCustomMapModel>>& getCustomMapModels() {
+    static std::unordered_map<int, std::vector<DisaCustomMapModel>> models;
+    return models;
+}
+
+void submitCustomMapModels(const DisaMapChunk& chunk, const glm::mat4& chunkMatrix) {
+    const auto findIt = getCustomMapModels().find(static_cast<int>(&chunk - DisaMapChunk::get(0)));
+    if (findIt == getCustomMapModels().end()) return;
+
+    DisaCustomRenderManager* renderManager = DisaCustomRenderManager::get();
+    if (!renderManager->isEnabled()) return;
+
+    constexpr double degToRad = 0.017453; //the factors of the vanilla object loop, so both land alike
+    constexpr double percent = 0.01;
+    //the editor shows the map with x and y mirrored, which is the space the models are authored in
+    const glm::mat4 editorToGame = glm::scale(glm::mat4(1.f), glm::vec3(-1.f, -1.f, 1.f));
+
+    for (const DisaCustomMapModel& custom : findIt->second) {
+        if (!custom.model.isLoaded()) continue;
+        const mpdfileChunkObject& object = custom.object;
+
+        //the queue keeps the pointer and draws later, when the next map load may have replaced the models
+        auto* matrix = static_cast<glm::mat4*>(DisaRenderObjectManager::get()->FUN_00425bb0_allocFrameMemory(sizeof(glm::mat4)));
+        if (!matrix) return;
+
+        const glm::vec3 rotation(glm::dvec3(object.xRot, object.yRot, object.zRot) * degToRad);
+        const glm::vec3 scale(glm::dvec3(object.xScale, object.yScale, object.zScale) * percent);
+        //the order of computeChunkMatrix, assumed to be the one FUN_004e13a0 uses for the vanilla objects
+        glm::mat4 modelMatrix = glm::translate(chunkMatrix, glm::vec3(object.x, object.y, object.z) - chunk.pivot);
+        modelMatrix = glm::rotate(modelMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));
+        modelMatrix = glm::rotate(modelMatrix, rotation.x, glm::vec3(1.f, 0.f, 0.f));
+        modelMatrix = glm::rotate(modelMatrix, rotation.z, glm::vec3(0.f, 0.f, 1.f));
+        *matrix = glm::scale(modelMatrix, scale) * editorToGame;
+
+        //depthMaskEnabled is stored inverted by submitCustomModel, false keeps the depth writes on
+        renderManager->submit(40002.f, PG_DisaModel(custom.model), -1, matrix, true, false, 0.f, 0, 0, false);
+    }
+}
+//END custom code

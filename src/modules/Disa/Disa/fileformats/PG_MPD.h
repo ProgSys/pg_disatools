@@ -27,6 +27,8 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <optional>
+#include <string>
 #include <ostream>
 #include <glm/glm.hpp>
 #include <Util/Typedefs.h>
@@ -78,6 +80,9 @@ PACK(struct mpdfileChunkObject //36 bytes
 	float uvScrollX;                // 0x1c - runtime offset, advanced by textureScrollX each frame
 	float uvScrollY;                // 0x20 - runtime offset, advanced by textureScrollY each frame
 
+	/// unk0x14 of the object that stands in for the custom models of its chunk, 'P'
+	static constexpr unsigned char customModelsMarker = 0x50;
+
 	static mpdfileChunkObject createEmpty() {
 		return mpdfileChunkObject{
 			0, 0, 0,
@@ -90,6 +95,29 @@ PACK(struct mpdfileChunkObject //36 bytes
 			0.f, 0.f
 		};
 	}
+
+	/**
+	* @brief A drawable object the modded game replaces by the custom models of its chunk.
+	* @details An unmodded game draws model 0 there instead, so it sits where the first custom model does.
+	* @param first Position, rotation and scale are taken from it
+	*/
+	static mpdfileChunkObject createCustomModelsMarker(const mpdfileChunkObject& first) {
+		mpdfileChunkObject out = createEmpty();
+		out.x = first.x;
+		out.y = first.y;
+		out.z = first.z;
+		out.xRot = first.xRot;
+		out.yRot = first.yRot;
+		out.zRot = first.zRot;
+		out.xScale = first.xScale;
+		out.yScale = first.yScale;
+		out.zScale = first.zScale;
+		out.unk0x14 = customModelsMarker;
+		return out;
+	}
+	bool isCustomModelsMarker() const { return unk0x14 == customModelsMarker; }
+	/// A slot nobody uses, hidden and at the origin
+	bool isEmpty() const { return visible == 0 && x == 0 && y == 0 && z == 0; }
 });
 
 PACK(struct mpdfileChunkEventTile // 4 byte
@@ -142,9 +170,20 @@ PACK(struct mpdfileChunkDef{
 
 });
 
+/**
+* @brief A model of a chunk that is drawn from a PG_Model resource, not from the model table.
+* @details The binary file keeps these in its metadata block and puts a marker object in the table,
+* the json lists them among the objects. @see PG_MPDCustom
+*/
+struct PG_MPDCustomModel {
+	std::string name;          /// the resource without its namespace
+	mpdfileChunkObject object; /// only position, rotation and scale are used
+};
+
 struct mpdfileChunk{
-	mpdfileChunkDef info;
+	mpdfileChunkDef info; /// never holds the marker of the custom models, only the binary file does
 	std::vector<mpdfileTile> tiles;
+	std::vector<PG_MPDCustomModel> customModels;
 };
 
 /// Which way a unit looks when the map places it. The value is what the file stores.
@@ -216,10 +255,23 @@ public:
 	std::vector<mpdfileActor>& getActors();
 	const std::vector<mpdfileActor>& getActors() const;
 
+	/**
+	* @brief The metadata block of the binary file, as it was read.
+	* @details save() builds the block anew, from "characters" in here and the custom models of the
+	* chunks. A new root key has to be copied over in save() as well, or it is lost.
+	*/
 	PG_DataSerializer& getCustomMetaData() { return m_customMetaData; }
 	const PG_DataSerializer& getCustomMetaData() const { return m_customMetaData; }
 
 private:
+	/**
+	* @brief Where "PGMD" starts, found through the trailer, or right after the actors for older files.
+	* @param start Where the MPD starts in the reader, the trailer counts from there
+	*/
+	static std::optional<unsigned int> findMetaDataBlock(PG::STREAM::In* reader, unsigned int start, unsigned int actorsEnd);
+	/// The block save() writes, "characters" of the one that was read plus the custom models of the chunks.
+	PG_DataSerializer buildMetaData() const;
+
 	mpdfileHeader m_header;
 	std::vector<mpdfileChunk> m_chunks;
 	std::vector<mpdfileActor> m_actors;

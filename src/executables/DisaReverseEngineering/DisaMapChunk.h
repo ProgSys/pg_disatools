@@ -30,8 +30,11 @@
 
 #include <cstdint>
 #include <cstddef>
+#include <unordered_map>
+#include <vector>
 #include <glm/glm.hpp>
 #include <Disa/fileformats/PG_MPD.h>
+#include <Resources/PG_Model.h>
 
 #include "DisaFunctions.h"
 
@@ -214,3 +217,23 @@ void FUN_004a4660_BuildTileOverlays(DisaMapChunk& chunk);
 * @param camera The main world camera (0x00730980), only forwarded to the models for billboards.
 */
 void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, DisaCameraInfo* camera);
+
+//BEGIN custom code
+/**
+* @brief A custom model placed on a map chunk. @see PG_MPDCustomModel
+*/
+struct DisaCustomMapModel {
+    PG_Model model;            /// requested in the namespace of the campaign the map belongs to
+    mpdfileChunkObject object; /// position, rotation and scale as the file stores them
+};
+
+/// DisaMapChunk index -> its custom models. Replaced on every map load, dropped when the chunk is cleared.
+std::unordered_map<int, std::vector<DisaCustomMapModel>>& getCustomMapModels();
+
+/**
+* @brief Queues the custom models of the chunk for this frame.
+* @details Called where the marker object of the chunk would be drawn, so whatever hides the marker
+* hides them too.
+*/
+void submitCustomMapModels(const DisaMapChunk& chunk, const glm::mat4& chunkMatrix);
+//END custom code

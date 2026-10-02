@@ -11,6 +11,8 @@
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomCharacterManager.h>
 #include <Disa/fileformats/PG_MPD.h>
+#include <Disa/fileformats/PG_MPDCustom.h>
+#include <Resources/PG_ResourceName.h>
 #include <Stream/PG_StreamInByteArray.h>
 #include <Util/PG_DataSerializer.h>
 #include <Util/Debug/PG_DebugOut.h>
@@ -211,6 +213,9 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
     FP::getData<int*>(0x008acd3c) = puVar9; //actors address
 
     //BEGIN custom code
+    //models from the resources of the campaign, drawn where the marker object of the chunk is
+    std::vector<PG_MPDCustomModel> customModels;
+
     //remap custom actors id
     char* metaDataPtr = (char*)puVar9;
     metaDataPtr += headerFrom->number_of_actors * sizeof(mpdfileActor);
@@ -238,7 +243,26 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
                 charInfo.id = info.characterId;
             }
         }
+
+        //only the first chunk of the file is copied, so only its models count
+        customModels = PG_MPDCustom::readModels(metaData, 0);
     }
+
+    std::vector<DisaCustomMapModel> loadedModels;
+    if (!customModels.empty()) {
+        const std::string nameSpace = DisaCustomCampaignManager::get()->getActiveResourceNameSpace();
+        if (nameSpace.empty()) {
+            OUT_WARNING("The map has " << customModels.size() << " custom models but no campaign is active to load them from!");
+        } else {
+            loadedModels.reserve(customModels.size());
+            for (const PG_MPDCustomModel& customModel : customModels) {
+                loadedModels.push_back({ PG_Model(PG_ResourceName::join(nameSpace, customModel.name)), customModel.object });
+            }
+        }
+    }
+    //an empty list too, so a map without custom models replaces those of the last one.
+    //chunkFrom was moved on to find the actors, the chunk copied into is the one targetMemOffset names
+    getCustomMapModels()[targetMemOffset / static_cast<int>(sizeof(DisaMapChunk))] = std::move(loadedModels);
     //END custom code
 
     FP::callFastFarA(0x004a6070, 0x703480);

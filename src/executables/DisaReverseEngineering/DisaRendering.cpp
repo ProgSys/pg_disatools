@@ -203,7 +203,7 @@ static inline void FUN_00420e50_glStencilOp(int dppassTypeIndex) {
     glStencilOp(GL_KEEP, GL_KEEP, dppassTypes[dppassTypeIndex]);
 }
 
-static PG_Object g_dummy;
+static PG_ActorDummy g_dummy;
 static PG_CommandRendererJob g_job;
 static PG_CommandRenderPass g_pass;
 
@@ -302,17 +302,21 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bo
 
         glm::mat4* projectionMat = getProjectionMatrix(memoryRenderManager, object, projectionManager, pass);
 
+        //BEGIN custom code
         //render custom object
         if (object->primitiveType == g_customModelMarker) {
             if (!customDisaRenderManger->isEnabled()) continue;
             const auto& models = customDisaRenderManger->getModels();
-            if (object->vertexCount >= models.size()) continue;
-            const PG_DisaModel& model = models[object->vertexCount];
+            assert(object->vertexCount != 0);
+            const int32_t modelIndex = object->vertexCount - 1;
+            if (modelIndex < 0 || modelIndex >= models.size()) continue;
+            const PG_DisaModel& model = models[modelIndex];
             if (!model.isLoaded()) continue;
             if (!model.getMaterial(0).getShader().isLoaded()) continue;
 
             g_pass.renderData.projectionMatrix = *projectionMat;
-            g_pass.renderData.viewMatrix = glm::mat4(1.0F);
+            //a model placed in the world is seen through the game's camera, a 2D one is not
+            g_pass.renderData.viewMatrix = object->isPerspective ? memoryRenderManager->m_field0x7605c : glm::mat4(1.0F);
 
             if (!isInCustomState) {
                 DisaCustomRenderManager::resetDisaOpenGLStates();
@@ -320,16 +324,21 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bo
                 isInCustomState = true;
             }
 
-            const glm::mat4 modelMatrix = object->modelMatrix ? *object->modelMatrix : glm::mat4(1.0F);
-            addResModel(model, &g_dummy, modelMatrix, g_job, g_pass, model.additionalProperties);
+           
+            g_dummy.modelMatrix = object->modelMatrix ? *object->modelMatrix : glm::mat4(1.0F);
+            addResModel(model, &g_dummy, g_dummy.modelMatrix, g_job, g_pass, model.additionalProperties);
 
-            glDisable(GL_DEPTH_TEST);
+            //and is hidden by what stands in front of it
+            if (object->isPerspective && object->depthTestEnabled) glEnable(GL_DEPTH_TEST);
+            else glDisable(GL_DEPTH_TEST);
+            glDepthMask(object->isPerspective ? object->depthMaskEnabled : GL_TRUE);
             glEnable(GL_TEXTURE_2D);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             g_pass.runCurrentAndClearAll();
             continue;
         }
+        //END custom code
         if (isInCustomState) {
             glPopAttrib();
             isInCustomState = false;
@@ -564,7 +573,7 @@ void DisaRenderObjectManager::submitCustomModel(float depth, int modelIndex, int
     renderObject->texture = nullptr; //no texture
     //mark as special
     renderObject->primitiveType = g_customModelMarker;
-    renderObject->vertexCount = modelIndex; //vertexCount
+    renderObject->vertexCount = modelIndex + 1; //0 will not render the model as filtered out by game engine
 
     renderObject->renderSettingsBitMask.projIndex = DisaProjectionManager::get()->selectedIndex;
     renderObject->renderSettingsBitMask.blendMode = blendMode;

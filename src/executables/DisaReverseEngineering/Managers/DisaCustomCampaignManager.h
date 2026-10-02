@@ -106,6 +106,8 @@ public:
 	* @brief Returns the current selected background music of selected/loaded map
 	*/
 	unsigned int getBGM() const;
+	/// The namespace the resources of the active campaign resolve in, empty without one
+	std::string getActiveResourceNameSpace() const { return m_activeCampaign ? m_activeCampaign->namespaceMod : std::string(); }
 	/**
 	* @returns Singelton
 	*/

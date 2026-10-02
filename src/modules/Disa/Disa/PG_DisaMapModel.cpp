@@ -826,10 +826,19 @@ struct PG_JobOpenMPD : public PG_Job {
 			}
 			//load objects
 			for (const mpdfileChunkObject& object : mpdChunk.info.objects) {
-				if (object.visible == 0 && object.x == 0 && object.y == 0 && object.z == 0) continue;
+				if (object.isEmpty()) continue;
 				result.objects.push_back(PG_new<PG_DisaObjectModel>("PG_DisaObjectModel"));
 				result.objects.back()->setChunk(result.chunks.back());
 				result.objects.back()->setData(object);
+			}
+			for (const PG_MPDCustomModel& customModel : mpdChunk.customModels) {
+				mpdfileChunkObject data = customModel.object;
+				data.model_id = -1;
+				data.visible = 1;
+				result.objects.push_back(PG_new<PG_DisaObjectModel>("PG_DisaObjectModel"));
+				result.objects.back()->setChunk(result.chunks.back());
+				result.objects.back()->setData(data);
+				result.objects.back()->setResourceName(customModel.name);
 			}
 			//load event tiles
 			for (const mpdfileChunkEventTile& tile : mpdChunk.info.eventTiles) {
@@ -1091,21 +1100,22 @@ PG_MPD PG_DisaMapModel::toMPD() const {
 		}
 	}
 
-	int skippedModObjects = 0;
+	bool hasModObjects = false;
 	for (auto* item : *getObjects()) {
-		//model_id has no way to name a resource, and -1 is no valid entry of the table the game reads
+		auto& c = chunks[item->getChunk()->getLocation()];
+		//PG_MPD writes these into its metadata block and places their marker object
 		if (item->isMod()) {
-			++skippedModObjects;
+			c.customModels.push_back(PG_MPDCustomModel{ item->getResourceName(), item->getData() });
+			hasModObjects = true;
 			continue;
 		}
-		auto& c = chunks[item->getChunk()->getLocation()];
 		int& i = trackers[c.info.header.index].objectCounter;
 		if (i >= c.info.objects.size()) continue;
 		c.info.objects[i] = item->getData();
 		++i;
 	}
-	if (skippedModObjects > 0) {
-		OUT_WARNING(skippedModObjects << " mod objects are not saved, the MPD format cannot reference them yet.");
+	if (hasModObjects && getAssets()->getGeometries()->empty()) {
+		OUT_WARNING("The map has no geometry, the custom models marker uses model 0, which an unmodded game then can't draw!");
 	}
 
 	for (auto* item : *getEvents()) {

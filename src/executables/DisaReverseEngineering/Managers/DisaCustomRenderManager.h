@@ -72,3 +72,14 @@ private:
 	std::vector<PG_DisaModel> m_models;
 	std::vector<PG_DisaModel> m_modelsOld;
 };
+
+class PG_ActorDummy : public PG_Object {
+	PG_OBJECT(PG_ActorDummy);
+	PG_PROPERTY(glm::mat4 modelLocal GET getModelMatrix);
+	PG_PROPERTY(glm::mat4 modelWorld GET getModelMatrix);
+public:
+	using PG_Object::PG_Object;
+
+	const glm::mat4& getModelMatrix() const { return modelMatrix; }
+	glm::mat4 modelMatrix;
+};
