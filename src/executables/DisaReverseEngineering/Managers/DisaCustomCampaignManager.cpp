@@ -1,6 +1,7 @@
 #include "DisaCustomCampaignManager.h"
 #include <Managers/DisaCustomBaseModManager.h>
 #include <Managers/DisaCustomRenderManager.h>
+#include <Scene/PG_ModelNode.h>
 #include <Managers/DisaCustomScriptManager.h>
 #include <DisaFunctions.h>
 #include "FunctionPatcher.h"
@@ -528,11 +529,12 @@ void DisaCustomCampaignManager::renderCustomImage(const std::string& id, const s
     if (id.empty()) return;
 
     auto* renderManager = DisaCustomRenderManager::get();
-   
-    PG_DisaModel disaModel(renderManager->getFullImageScreenModel());
-    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->namespaceMod));
 
-    renderManager->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+    auto* node = renderManager->getNode<PG_ModelNode>(renderManager->makeFrameNodeId("fullImage:" + id + "_" + path), DisaCustomRenderManager::EGroup::Screen);
+    if (node->getModel() != renderManager->getFullImageScreenModel()) node->setModel(renderManager->getFullImageScreenModel());
+    node->setPropertyValue("disaImage", PG_Any::from(getImageTexture(id, path, m_activeCampaign->namespaceMod)));
+
+    renderManager->submit(49999.0f, node, -1, false, false, 0, 0, '\0', false);
 }
 
 void DisaCustomCampaignManager::renderCustomImage(const std::string& id, const std::string& path, const glm::vec2& pos, const glm::vec2& size) {
@@ -540,12 +542,13 @@ void DisaCustomCampaignManager::renderCustomImage(const std::string& id, const s
 
     auto* renderManager = DisaCustomRenderManager::get();
 
-    PG_DisaModel disaModel(renderManager->getImageScreenModel());
-    disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(pos, 0.f)));
-    disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(size, 1.f)));
-    disaModel.additionalProperties["disaImage"] = PG_Any::from(getImageTexture(id, path, m_activeCampaign->namespaceMod));
+    auto* node = renderManager->getNode<PG_ModelNode>(renderManager->makeFrameNodeId("image:" + id + "_" + path), DisaCustomRenderManager::EGroup::Screen);
+    if (node->getModel() != renderManager->getImageScreenModel()) node->setModel(renderManager->getImageScreenModel());
+    node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(pos, 0.f))));
+    node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(size, 1.f))));
+    node->setPropertyValue("disaImage", PG_Any::from(getImageTexture(id, path, m_activeCampaign->namespaceMod)));
 
-    renderManager->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+    renderManager->submit(49999.0f, node, -1, false, false, 0, 0, '\0', false);
 }
 
 

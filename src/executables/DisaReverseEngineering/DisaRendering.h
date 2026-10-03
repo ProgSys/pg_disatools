@@ -2,7 +2,7 @@
 #include <glm/glm.hpp>
 #include <ranges>
 #include <array>
-#include <Resources/PG_DisaModel.h>
+#include <Resources/PG_Model.h>
 
 /**
  * @brief Vertex containing only position and packed color.

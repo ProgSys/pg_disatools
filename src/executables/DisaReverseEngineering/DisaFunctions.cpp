@@ -2,6 +2,7 @@
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomCharacterManager.h>
 #include <Managers/DisaCustomRenderManager.h>
+#include <Scene/PG_ModelNode.h>
 #include <Managers/DisaCustomTranslationManager.h>
 #include <DisaCharacterFunctions.h>
 #include <Windows.h>
@@ -665,11 +666,14 @@ bool __fastcall renderTranslatedStringOverride(int x, int y, int param_3, glm::r
         const glm::vec2 fontScale = manager->getFontScale() * glm::vec2(staticScaleX, 1.8f);
         glm::vec2 fontPos = glm::vec2(x, y) + manager->getFontOffset();
         if (model.isValid() && model.getMaterial(0).isValid()) {
-            PG_DisaModel disaModel(model);
-            disaModel.additionalProperties["disaGuiTransProjection"] = PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(fontPos.x, fontPos.y, 0.f)));
-            disaModel.additionalProperties["disaGuiScaleProjection"] = PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(fontScale.x, scaleY * fontScale.y, 1.f)));
-            disaModel.additionalProperties["disaFontColor"] = PG_Any::from(glm::vec4(*color) / 255.f);
-            DisaCustomRenderManager::get()->submit(49999.0f, std::move(disaModel), -1, nullptr, false, false, 0, 0, '\0', false);
+            auto* renderManager = DisaCustomRenderManager::get();
+            //the same text may be drawn at several places in one frame, each one needs a node of its own
+            auto* node = renderManager->getNode<PG_ModelNode>(renderManager->makeFrameNodeId("font:" + hash), DisaCustomRenderManager::EGroup::Screen);
+            if (node->getModel() != model) node->setModel(model);
+            node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(fontPos.x, fontPos.y, 0.f))));
+            node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(fontScale.x, scaleY * fontScale.y, 1.f))));
+            node->setPropertyValue("disaFontColor", PG_Any::from(glm::vec4(*color) / 255.f));
+            renderManager->submit(49999.0f, node, -1, false, false, 0, 0, '\0', false);
         }
 
         fontPos += manager->getIconOffset();

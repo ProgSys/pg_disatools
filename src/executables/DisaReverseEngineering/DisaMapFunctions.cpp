@@ -10,6 +10,7 @@
 #include <DisaCharacterFunctions.h>
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomRenderManager.h>
 #include <Disa/fileformats/PG_MPD.h>
 #include <Disa/fileformats/PG_MPDCustom.h>
 #include <Resources/PG_ResourceName.h>
@@ -255,8 +256,9 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
             OUT_WARNING("The map has " << customModels.size() << " custom models but no campaign is active to load them from!");
         } else {
             loadedModels.reserve(customModels.size());
+            DisaCustomRenderManager* renderManager = DisaCustomRenderManager::get();
             for (const PG_MPDCustomModel& customModel : customModels) {
-                loadedModels.push_back({ PG_Model(PG_ResourceName::join(nameSpace, customModel.name)), customModel.object });
+                loadedModels.push_back({ PG_Model(PG_ResourceName::join(nameSpace, customModel.name)), customModel.object, renderManager->createUniqueNodeId() });
             }
         }
     }

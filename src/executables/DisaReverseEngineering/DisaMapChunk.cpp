@@ -2,12 +2,16 @@
 
 #include <gl/glew.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/constants.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include <cstdlib>
 #include <cstring>
 
 #include <FunctionPatcher.h>
 #include "DisaRendering.h"
 #include <Managers/DisaCustomRenderManager.h>
+#include <Disa/PG_DisaModelNode.h>
 
 namespace {
 
@@ -319,28 +323,29 @@ void submitCustomMapModels(const DisaMapChunk& chunk, const glm::mat4& chunkMatr
 
     constexpr double degToRad = 0.017453; //the factors of the vanilla object loop, so both land alike
     constexpr double percent = 0.01;
-    //the editor shows the map with x and y mirrored, which is the space the models are authored in
-    const glm::mat4 editorToGame = glm::scale(glm::mat4(1.f), glm::vec3(-1.f, -1.f, 1.f));
+    /* The editor shows the map with x and y mirrored, which is the space the models are authored in.
+     * That mirror is a half turn around z, so it folds into the rotation and the node keeps a plain scale. */
+    const glm::mat3 editorToGame = glm::mat3(glm::rotate(glm::mat4(1.f), glm::pi<float>(), glm::vec3(0.f, 0.f, 1.f)));
+    const glm::mat3 chunkRotation(chunkMatrix);
 
     for (const DisaCustomMapModel& custom : findIt->second) {
-        if (!custom.model.isLoaded()) continue;
         const mpdfileChunkObject& object = custom.object;
-
-        //the queue keeps the pointer and draws later, when the next map load may have replaced the models
-        auto* matrix = static_cast<glm::mat4*>(DisaRenderObjectManager::get()->FUN_00425bb0_allocFrameMemory(sizeof(glm::mat4)));
-        if (!matrix) return;
+        PG_DisaModelNode* node = renderManager->getNode<PG_DisaModelNode>(custom.nodeId, DisaCustomRenderManager::EGroup::World);
+        if (node->getModel() != custom.model) node->setModel(custom.model);
 
         const glm::vec3 rotation(glm::dvec3(object.xRot, object.yRot, object.zRot) * degToRad);
         const glm::vec3 scale(glm::dvec3(object.xScale, object.yScale, object.zScale) * percent);
         //the order of computeChunkMatrix, assumed to be the one FUN_004e13a0 uses for the vanilla objects
-        glm::mat4 modelMatrix = glm::translate(chunkMatrix, glm::vec3(object.x, object.y, object.z) - chunk.pivot);
-        modelMatrix = glm::rotate(modelMatrix, rotation.y, glm::vec3(0.f, 1.f, 0.f));
-        modelMatrix = glm::rotate(modelMatrix, rotation.x, glm::vec3(1.f, 0.f, 0.f));
-        modelMatrix = glm::rotate(modelMatrix, rotation.z, glm::vec3(0.f, 0.f, 1.f));
-        *matrix = glm::scale(modelMatrix, scale) * editorToGame;
+        const glm::mat3 objectRotation(glm::eulerAngleYXZ(rotation.y, rotation.x, rotation.z));
+        const glm::vec3 translation(chunkMatrix * glm::vec4(glm::vec3(object.x, object.y, object.z) - chunk.pivot, 1.f));
+
+        node->setTransformation(translation, glm::quat_cast(chunkRotation * objectRotation * editorToGame), scale);
+        //the event loop only runs at the start of the next frame, so the matrices are updated right away
+        node->updateModelMatrix();
+        node->updateModelMatrixWorld();
 
         //depthMaskEnabled is stored inverted by submitCustomModel, false keeps the depth writes on
-        renderManager->submit(40002.f, PG_DisaModel(custom.model), -1, matrix, true, false, 0.f, 0, 0, false);
+        renderManager->submit(40002.f, node, -1, true, false, 0.f, 0, 0, false);
     }
 }
 //END custom code

@@ -225,6 +225,7 @@ void __fastcall FUN_004a4c60_SubmitMapChunk(DisaMapChunk* chunk, int unused, Dis
 struct DisaCustomMapModel {
     PG_Model model;            /// requested in the namespace of the campaign the map belongs to
     mpdfileChunkObject object; /// position, rotation and scale as the file stores them
+    std::uint64_t nodeId = 0;  /// new on every map load, so the nodes of the last map expire
 };
 
 /// DisaMapChunk index -> its custom models. Replaced on every map load, dropped when the chunk is cleared.

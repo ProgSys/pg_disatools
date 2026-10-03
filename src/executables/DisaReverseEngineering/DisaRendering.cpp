@@ -9,6 +9,7 @@
 
 #include <FunctionPatcher.h>
 #include <Renderer/Command/PG_AddCommands.h>
+#include <Scene/PG_ModelNode.h>
 #include <Managers/DisaCustomRenderManager.h> 
 
 
@@ -203,9 +204,24 @@ static inline void FUN_00420e50_glStencilOp(int dppassTypeIndex) {
     glStencilOp(GL_KEEP, GL_KEEP, dppassTypes[dppassTypeIndex]);
 }
 
-static PG_ActorDummy g_dummy;
 static PG_CommandRendererJob g_job;
 static PG_CommandRenderPass g_pass;
+
+//BEGIN custom code
+/// Whether everything the node draws with is loaded, a draw before that would show nothing or the error texture
+static inline bool isCustomNodeReady(PG_ActorNode* node) {
+    if (auto* model = dynamic_cast<PG_ModelNode*>(node)) {
+        const PG_Model& data = model->getModel();
+        return data.isLoaded() && data.getMaterial(0).getShader().isLoaded();
+    }
+    return true;
+}
+
+/// Adds the render commands of a custom node, by its type. Further node types go here, e.g. PG_SpriteNode to addSprite.
+static inline void addCustomNode(PG_ActorNode* node, PG_CommandRendererJob& job, PG_CommandRenderPass& pass) {
+    if (auto* model = dynamic_cast<PG_ModelNode*>(node)) addModel(model, job, pass);
+}
+//END custom code
 
 static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRenderManager, DisaRenderObject* object, DisaProjectionManager* projectionManager, EDisaRenderPass pass) {
     const bool projectionIndex = object->renderSettingsBitMask.projIndex; //seams never to be true
@@ -306,13 +322,9 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bo
         //render custom object
         if (object->primitiveType == g_customModelMarker) {
             if (!customDisaRenderManger->isEnabled()) continue;
-            const auto& models = customDisaRenderManger->getModels();
             assert(object->vertexCount != 0);
-            const int32_t modelIndex = object->vertexCount - 1;
-            if (modelIndex < 0 || modelIndex >= models.size()) continue;
-            const PG_DisaModel& model = models[modelIndex];
-            if (!model.isLoaded()) continue;
-            if (!model.getMaterial(0).getShader().isLoaded()) continue;
+            PG_ActorNode* node = customDisaRenderManger->getFrameNode(object->vertexCount - 1);
+            if (!node || !node->isVisible() || !isCustomNodeReady(node)) continue;
 
             g_pass.renderData.projectionMatrix = *projectionMat;
             //a model placed in the world is seen through the game's camera, a 2D one is not
@@ -324,9 +336,7 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bo
                 isInCustomState = true;
             }
 
-           
-            g_dummy.modelMatrix = object->modelMatrix ? *object->modelMatrix : glm::mat4(1.0F);
-            addResModel(model, &g_dummy, g_dummy.modelMatrix, g_job, g_pass, model.additionalProperties);
+            addCustomNode(node, g_job, g_pass);
 
             //and is hidden by what stands in front of it
             if (object->isPerspective && object->depthTestEnabled) glEnable(GL_DEPTH_TEST);

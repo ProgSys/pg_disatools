@@ -1,6 +1,9 @@
 #include "DisaCustomRenderManager.h"
 
 #include <GL/glew.h>
+#include <Base/PG_EventLoop.h>
+#include <Base/Events/PG_TickEvent.h>
+#include <Scene/PG_Scene.h>
 #include <Resources/PG_Material.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Managers/DisaCustomBaseModManager.h>
@@ -84,6 +87,12 @@ void DisaCustomRenderManager::init() {
     m_loadTexture.load("gui/disa/disaMissingno.png");
     m_fullImageScreenModel.load("T_DisaFullScreenImg", { { PG_Material("M_DisaFullScreenImg"), PG_Geometry::sfqUVyFlipped()  } });
     m_imageScreenModel.load("T_DisaScreenImg", { { PG_Material("M_DisaScreenImg"), PG_Geometry::sfq()  } });
+
+    m_scene = PG_new<PG_Scene>("DisaCustomScene");
+    m_scene->init();
+    //both stay visible, a hidden actor stops the ticks of everything below it
+    m_worldGroup = PG_new<PG_ActorNode>("DisaWorldGroup", m_scene->getRoot());
+    m_screenGroup = PG_new<PG_ActorNode>("DisaScreenGroup", m_scene->getRoot());
 }
 
 void DisaCustomRenderManager::onFrameBegin() {
@@ -91,12 +100,14 @@ void DisaCustomRenderManager::onFrameBegin() {
 
     init();
 
-    /* The index a custom render object carries points into m_models, and the game wipes its own
-     * render list in the same frame step, so both have to be emptied at the same moment. The old
-     * list stays alive one more frame because the models it holds may still be in flight. */
-    m_modelsOld = std::move(m_models);
-    m_models.reserve(std::max(m_modelsOld.size(), 32u));
+    /* The index a custom render object carries points into m_frameNodes, and the game wipes its own
+     * render list in the same frame step, so both have to be emptied at the same moment. */
+    m_frameNodes.clear();
+    m_frameKeyUses.clear();
+    releaseUnusedNodes();
 
+    //the scene animates on ticks, which are in milliseconds while the delta timer counts seconds
+    PG_EventLoop::postEvent(PG_new<PG_TickEvent>(m_deltaTimer.getDeltaTime() * 1000.0), m_scene);
     PG_EventLoop::doRun();
     {
         PG_Context::runCreate();
@@ -116,12 +127,40 @@ void DisaCustomRenderManager::glDrawArraysReplace(unsigned int mode, int first, 
 
 
 
-void DisaCustomRenderManager::submit(float depth, PG_DisaModel&& model, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool param_13) {
-    assert(model.isValid());
-    if (!model.isValid()) return;
+DisaCustomRenderManager::NodeId DisaCustomRenderManager::makeNodeId(std::string_view key) {
+    return PG_Hash::fnv1a(key) & ~g_uniqueIdBit;
+}
 
-    size_t index = addModel(std::move(model));
-    DisaRenderObjectManager::get()->submitCustomModel(depth, index, blendMode, modelMatrix, isPerspective, depthMaskEnabled, poligonOffset, stencilMode, stencilRef, param_13);
+DisaCustomRenderManager::NodeId DisaCustomRenderManager::makeFrameNodeId(std::string_view key) {
+    const NodeId base = makeNodeId(key);
+    const int use = m_frameKeyUses[base]++;
+    return use == 0 ? base : PG_Hash::combine(base, use) & ~g_uniqueIdBit;
+}
+
+void DisaCustomRenderManager::submit(float depth, PG_ActorNode* node, int blendMode, bool isPerspective, bool depthMaskEnabled, float polygonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint) {
+    assert(node);
+    if (!node) return;
+
+    const int index = static_cast<int>(m_frameNodes.size());
+    m_frameNodes.push_back(node);
+    //the node carries its own matrix, the render object needs none
+    DisaRenderObjectManager::get()->submitCustomModel(depth, index, blendMode, nullptr, isPerspective, depthMaskEnabled, polygonOffset, stencilMode, stencilRef, useColorTint);
+}
+
+PG_ActorNode* DisaCustomRenderManager::getFrameNode(int index) const {
+    if (index < 0 || index >= static_cast<int>(m_frameNodes.size())) return nullptr;
+    return m_frameNodes[index];
+}
+
+void DisaCustomRenderManager::releaseUnusedNodes() {
+    std::erase_if(m_nodes, [this](const auto& pair) {
+        const auto& [id, node] = pair;
+        if (m_usedIds.contains(id) || m_usedIdsLast.contains(id)) return false;
+        if (node) node->deleteLater();
+        return true;
+    });
+    m_usedIdsLast = std::move(m_usedIds);
+    m_usedIds.clear();
 }
 
 DisaCustomRenderManager* DisaCustomRenderManager::get() {
