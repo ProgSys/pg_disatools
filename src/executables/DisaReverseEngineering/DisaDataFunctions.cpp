@@ -2,6 +2,8 @@
 #include "FunctionPatcher.h"
 #include <Managers/DisaCustomBaseModManager.h>
 #include <Managers/DisaCustomModificationsManager.h>
+#include <Disa/modifications/PG_DisaModMagicModel.h>
+#include <Disa/modifications/PG_DisaModCharactersModel.h>
 #include <ranges>
 
 #include <Util/PG_Dir.h>
@@ -87,7 +89,7 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
 
         const auto addCharacter = [&metaData](unsigned short characterId) {
             if (!PG_DisaIdentifier::isCustomId(characterId)) return;
-            PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getCharacterIdentifier(characterId);
+            PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getCharactersModel()->getCharacterIdentifier(characterId);
             if (!identifier) return;
             auto charMeta = metaData["characters"];
             if (auto info = charMeta[std::to_string(characterId)]; !info.isSet()) {
@@ -96,7 +98,7 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
         };
         const auto addMagic = [&metaData](unsigned short magicId) {
             if (!PG_DisaIdentifier::isCustomMagicId(magicId)) return;
-            PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getMagicIdentifier(magicId);
+            PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getMagicModel()->getMagicIdentifier(magicId);
             if (!identifier) return;
             auto charMeta = metaData["magic"];
             if (auto info = charMeta[std::to_string(magicId)]; !info.isSet()) {
@@ -171,7 +173,7 @@ static inline void remapSaveIds(const PG_DataSerializer& metaData, char*& decomp
             if (id == 0) break;
             if (!PG_DisaIdentifier::isCustomMagicId(id)) continue;
             PG_DisaIdentifier identifier(magicMeta[std::to_string(id)].asString());
-            id = DisaCustomModificationsManager::get()->getMagicId(identifier);
+            id = DisaCustomModificationsManager::get()->getMagicModel()->getMagicId(identifier);
             if (id == 0) {
                 OUT_ERROR("Save file contains unknown skill/magic \"" << identifier << "\"!");
                 id = 2213;//prinny bomb
@@ -254,7 +256,7 @@ static inline void readMetaData(char*& decompressedData, uint& decompressedSize)
                 OUT_ERROR("Assembly history entry for \""<< identifier.getIdentifier()<< "\" is invalid! Entry skipped!");
                 continue;
             }
-            info.characterId = DisaCustomModificationsManager::get()->getCharacterId(identifier);
+            info.characterId = DisaCustomModificationsManager::get()->getCharactersModel()->getCharacterId(identifier);
             if (info.characterId == 0) {
                 OUT_ERROR("Assembly history entry for \"" << identifier.getIdentifier() << "\" is unknown!" \
                     "There is no mod present that references that identifier! Entry skipped!");

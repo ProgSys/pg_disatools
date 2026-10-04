@@ -6,6 +6,8 @@
 #include <Disa/resources/PG_DisaModel.h>
 #include <Disa/PG_DisaAssetsModel.h>
 #include <Disa/PG_DisaCharactersModel.h>
+#include <Disa/modifications/PG_DisaCustomModificationsModel.h>
+#include <Disa/modifications/PG_DisaModCharactersModel.h>
 #include <Disa/map/PG_DisaEventTileModel.h>
 #include <Disa/map/PG_DisaActorListModel.h>
 #include <Disa/map/PG_DisaSpriteModel.h>
@@ -774,7 +776,7 @@ struct PG_JobOpenMPD : public PG_Job {
 
 				if (auto info = charsInfo[std::to_string(actor.id)]; info.isValid()) {
 					auto identifier = PG_DisaIdentifier(info.asString());
-					actor.id = PG_DisaCharactersModel::get()->getCharacterId(identifier);
+					actor.id = PG_DisaCharactersModel::get()->getModificationsModel()->getCharactersModel()->getCharacterId(identifier);
 				}
 				else {
 					actor.id = 0;

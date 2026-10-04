@@ -10,6 +10,7 @@
 #include <DisaCharacterFunctions.h>
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomModificationsManager.h>
+#include <Disa/modifications/PG_DisaModCharactersModel.h>
 #include <Managers/DisaCustomRenderManager.h>
 #include <Disa/fileformats/PG_MPD.h>
 #include <Disa/fileformats/PG_MPDCustom.h>
@@ -475,9 +476,9 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
         unsigned int numberOfActors = FP::getData<unsigned int>(0x008acd40);
         for (auto& charInfo : std::ranges::subrange(charInfos, charInfos + numberOfActors)) {
             if (!PG_DisaIdentifier::isCustomId(charInfo.characterId)) continue;
-            const auto& info = DisaCustomModificationsManager::get()->getCharacterInfoIndex(charInfo.characterId - PG_DisaIdentifier::customIdStart);
-            if (!info.identifier) continue;
-            auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(info.identifier);
+            const PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getCharactersModel()->getCharacterIdentifier(charInfo.characterId);
+            if (!identifier) continue;
+            auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(identifier);
 
            
             //is custom character

@@ -30,13 +30,16 @@
 
 #include <Scene/Model/PG_ListModel.h>
 #include <Disa/resources/PG_DisaSprite.h>
-#include <Disa/modifications/PG_DisaCustomModificationsModel.h>
+#include <Util/PG_File.h>
+#include <memory>
 #include <Resources/PG_Texture.h>
 
 class PG_OLA;
 class PG_SOLA;
 class PG_PSPFS;
 class PG_DisaFileContainer;
+class PG_DisaCustomModificationsModel;
+class PG_DisaScriptsModel;
 
 struct PG_DisaCharacterModel {
 	enum EPDisaCharacterModelIdentity : Identity {
@@ -64,11 +67,12 @@ struct PG_DisaCharacterModel {
 };
 
 
-class PG_DisaCharactersModel: public PG_ListModel<PG_DisaCharacterModel>, public PG_DisaCustomModificationsModel {
+class PG_DisaCharactersModel: public PG_ListModel<PG_DisaCharacterModel> {
 	PG_OBJECT(PG_DisaCharactersModel);
 	PG_PARENT(PG_ListModel<PG_DisaCharacterModel>);
 public: 
 	using PG_ListModel<PG_DisaCharacterModel>::PG_ListModel;
+	~PG_DisaCharactersModel();
 
 	void init();
 	void open(const PG_File& exePath, std::shared_ptr<PG_PSPFS> subdata, std::shared_ptr<PG_OLA> startDat);
@@ -80,6 +84,9 @@ public:
 
 	PG_Variety getData(PG_Index index, Identity identity) const override;
 
+	/// The custom modifications, null before init
+	PG_DisaCustomModificationsModel* getModificationsModel() const { return m_modificationsModel.get(); }
+
 	static PG_DisaCharactersModel* get();
 private:
 
@@ -89,4 +96,7 @@ private:
 	std::shared_ptr<PG_SOLA> m_portraitDat;
 
 	std::unordered_map<unsigned int, std::shared_ptr<PG_DisaFileContainer>> m_spriteMapping;
+
+	std::unique_ptr<PG_DisaScriptsModel> m_scriptsModel; //tools without the game have no other owner for it
+	std::unique_ptr<PG_DisaCustomModificationsModel> m_modificationsModel;
 };

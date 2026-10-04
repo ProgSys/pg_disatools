@@ -1,5 +1,9 @@
 #include "DisaCustomModificationsManager.h"
 #include <Managers/DisaCustomBaseModManager.h>
+#include <Disa/modifications/PG_DisaModSpritesModel.h>
+#include <Disa/modifications/PG_DisaModFacesModel.h>
+#include <Disa/modifications/PG_DisaModMagicModel.h>
+#include <Disa/modifications/PG_DisaModCharactersModel.h>
 #include <DisaDataFunctions.h>
 #include "FunctionPatcher.h"
 #include <Util/PG_Dir.h>
@@ -13,8 +17,6 @@
 #include <zip.h>
 #include <nlohmann/json.hpp>
 
-static DisaCustomModificationsManager::Info g_emptyInfo;
-static DisaCustomModificationsManager::Info g_tempInfo;
 
 static inline std::vector<char> buildSpriteData(PG::STREAM::In* reader, unsigned int spriteId) {
 	constexpr unsigned int rawDataHeaderSize = sizeof(unsigned int) * 2 + sizeof(short);
@@ -51,7 +53,7 @@ char* DisaCustomModificationsManager::getSpriteData(unsigned int spriteId){
 	}
 
 	std::vector<char> data;
-	auto [reader, info] = createSpriteReader(DisaCustomBaseModManager::exePath(), spriteId);
+	auto [reader, info] = getSpritesModel()->createSpriteReader(DisaCustomBaseModManager::exePath(), spriteId);
 
 	if (!reader) {
 		m_spriteData[spriteId] = std::move(data);
@@ -71,7 +73,7 @@ char* DisaCustomModificationsManager::getSpriteData(unsigned int spriteId){
 	return loader.data;
 }
 
-static inline std::vector<char> buildFaceData(PG::STREAM::In* reader, unsigned int faceId, const DisaCustomModificationsManager::Info& info, bool isHD) {
+static inline std::vector<char> buildFaceData(PG::STREAM::In* reader, unsigned int faceId, const PG_DisaModFacesModel::FaceInfo& info, bool isHD) {
 	constexpr unsigned int rawDataHeaderSize = sizeof(unsigned int) * 2 + sizeof(short);
 	std::vector<char> data;
 	unsigned int fileSize = reader->size();
@@ -79,10 +81,10 @@ static inline std::vector<char> buildFaceData(PG::STREAM::In* reader, unsigned i
 
 	DisaCustomModificationsManager::FaceHeader& loader = *(DisaCustomModificationsManager::FaceHeader*)data.data();
 	memset(&loader, 0, sizeof(DisaCustomModificationsManager::FaceHeader));
-	if (info.fileInZip.isEmpty()) loader.isHD = false;
-	if (info.secondfileInZip.isEmpty()) loader.isHD = true;
+	if (info.fileHD.isEmpty()) loader.isHD = false;
+	if (info.fileSD.isEmpty()) loader.isHD = true;
 	else loader.isHD = isHD;
-	loader.isOnlyOneImage = info.fileInZip.isEmpty() || info.secondfileInZip.isEmpty();
+	loader.isOnlyOneImage = info.fileHD.isEmpty() || info.fileSD.isEmpty();
 
 	char*& target = *((char**)&loader.header[12 * 4]);
 	target = data.data() + sizeof(DisaCustomModificationsManager::FaceHeader);
@@ -104,7 +106,7 @@ DisaCustomModificationsManager::FaceHeader* DisaCustomModificationsManager::getF
 	}
 
 	std::vector<char> data;
-	auto [reader, info] = createFaceReader(DisaCustomBaseModManager::exePath(), faceId, isHD);
+	auto [reader, info] = getFacesModel()->createFaceReader(DisaCustomBaseModManager::exePath(), faceId, isHD);
 
 	if (!reader) {
 		m_faceData[faceId] = std::move(data);
@@ -129,23 +131,18 @@ void DisaCustomModificationsManager::addCharacterToParty(const PG_DisaIdentifier
 	if (!identifier.isValid()) return;
 	level = glm::clamp<unsigned short>(level, 1, 9999);
 
-	PG_DisaDataCharacter* newCharData = nullptr;
+	const PG_DisaDataCharacter* newCharData = nullptr;
 	PG_DisaCustomModificationsModel::DisplayInfo displayInfo;
 
 	if (identifier.isCustom()) {
-		auto findIt = m_charactersMapper.find(identifier);
-		if (findIt == m_charactersMapper.end()) {
+		const auto* character = getCharactersModel()->findCharacter(identifier);
+		if (!character) {
 			OUT_ERROR("Failed to find custom character with identifier \"" << identifier.getIdentifier() << "\"!");
 			return;
 		}
-		auto findCharDataIt = std::ranges::find(m_characters[findIt->second].mod->characters, identifier, [](const CharacterInfo& i) { return i.identifier; });
-		if (findCharDataIt == m_characters[findIt->second].mod->characters.end()) {
-			OUT_ERROR("Failed to find custom character data with identifier \"" << identifier.getIdentifier() << "\"!");
-			return;
-		}
 
-		newCharData = &findCharDataIt->charData;
-		displayInfo = getDisplayInfo(*findCharDataIt);
+		newCharData = &character->charData;
+		displayInfo = getDisplayInfo(identifier);
 	}
 	else {
 		auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), identifier.getNameAsNumber(), &DisaDataCharacterInfo::characterId);
@@ -221,20 +218,19 @@ void DisaCustomModificationsManager::addCharacterToParty(const PG_DisaIdentifier
 void DisaCustomModificationsManager::recordEnemyKilled(DisaPartyCharacterInfo* characterInfo) {
 	if (!characterInfo || !PG_DisaIdentifier::isCustomId(characterInfo->characterId)) return;
 
-	const auto& charInfo = getCharacterInfo(characterInfo->characterId);
-	if (!charInfo.identifier.isValid() || !charInfo.mod) {
+	const auto* character = getCharactersModel()->findCharacter(characterInfo->characterId);
+	if (!character) {
 		assert(false);
 		return;
 	}
 
 	//can unit even be recruited
-	auto findIt = std::ranges::find(charInfo.mod->characters, charInfo.identifier, &CharacterInfo::identifier);
-	if (findIt == charInfo.mod->characters.end() || 
-		findIt->recruitmentType == CharacterInfo::RecruitmentType_None ||
-		findIt->recruitmentType == CharacterInfo::RecruitmentType_Normal) return;
+	using CharacterInfo = PG_DisaModCharactersModel::CharacterInfo;
+	if (character->recruitmentType == CharacterInfo::RecruitmentType_None ||
+		character->recruitmentType == CharacterInfo::RecruitmentType_Normal) return;
 
 	//add to history
-	auto [it, idAdded] = m_assemblyHistory.try_emplace(charInfo.identifier);
+	auto [it, idAdded] = m_assemblyHistory.try_emplace(character->identifier);
 	if (idAdded) it->second.clear(); //needed as we cant use construct
 	it->second.characterId = characterInfo->characterId;
 	if (it->second.killCount != std::numeric_limits<unsigned short>::max()) {
@@ -265,99 +261,99 @@ void DisaCustomModificationsManager::loadCharactersIntoMememory() {
 	//load magic
 	{
 		DisaDataMagicInfo::steal();
-		const unsigned int originalMagicSize = DisaDataMagicInfo::getSize();
-		for (auto& mod : m_modifications) {
-			for (auto& m : mod.magics) {
-				if (!m.identifier) continue;
+		PG_DisaModMagicModel& magicModel = *getMagicModel();
+		for (auto& m : magicModel) {
+			if (!m.identifier) continue;
 
-				if (auto findIt = m_magicMapper.find(m.identifier.getIdentifier()); findIt != m_magicMapper.end()) {
-					m.magicData.id = findIt->second + PG_DisaIdentifier::customMagicIdStart;
-				}
-				else if (m.identifier.getNamespace() == "disa") {
-					m.magicData.id = m.identifier.getNameAsNumber();
-				}
+			if (unsigned int id = magicModel.getMagicId(m.identifier)) {
+				m.magicData.id = id;
+			}
+			else if (m.identifier.getNamespace() == "disa") {
+				m.magicData.id = m.identifier.getNameAsNumber();
+			}
 
-				if (PG_DisaIdentifier::isCustomMagicId(m.magicData.id)) {
-					reinterpret_cast<PG_DisaDataMagic&>(DisaDataMagicInfo::addNewEntry()) = m.magicData;
-				}
-				else if (auto findIt = std::ranges::find(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end(), m.magicData.id, &PG_DisaDataMagic::id);
-					findIt != DisaDataMagicInfo::end()) {
-					reinterpret_cast<PG_DisaDataMagic&>(*findIt) = m.magicData;
-				} else {
-					OUT_ERROR("Failed to replace magic/skill with identifier \""<< m.identifier <<"\"! Entry not found!");
-					m.identifier.splitAt = 0;
-				}
+			if (PG_DisaIdentifier::isCustomMagicId(m.magicData.id)) {
+				reinterpret_cast<PG_DisaDataMagic&>(DisaDataMagicInfo::addNewEntry()) = m.magicData;
+			}
+			else if (auto findIt = std::ranges::find(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end(), m.magicData.id, &PG_DisaDataMagic::id);
+				findIt != DisaDataMagicInfo::end()) {
+				reinterpret_cast<PG_DisaDataMagic&>(*findIt) = m.magicData;
+			} else {
+				OUT_ERROR("Failed to replace magic/skill with identifier \""<< m.identifier <<"\"! Entry not found!");
+				m.scriptIdentifier.clear();
 			}
 		}
 	}
 
 	//load characters
 	{
-		m_characters.clear();
-		m_charactersMapper.clear();
+		const PG_DisaModSpritesModel& spritesModel = *getSpritesModel();
+		const PG_DisaModMagicModel& magicModel = *getMagicModel();
+		PG_DisaModCharactersModel& charactersModel = *getCharactersModel();
+
+		charactersModel.clearRegistered();
 		DisaDataCharacterInfo::steal();
 		const unsigned int originalCharactersSize = DisaDataCharacterInfo::getSize();
 
-		for (auto& mod : m_modifications) {
-			for (auto& c : mod.characters) {
-				if (!c.identifier || !c.spriteIdentifier) continue;
+		for (unsigned int characterIndex : charactersModel.getIndicesInOrder(getModifications())) {
+			auto& c = charactersModel.getCharacters()[characterIndex];
+			if (!c.identifier || !c.spriteIdentifier) continue;
 
-				if (auto findIt = m_spritesMapper.find(c.spriteIdentifier.getIdentifier()); findIt != m_spritesMapper.end()) {
-					c.charData.spriteId = findIt->second + PG_DisaIdentifier::customIdStart;
-				}
-				else if (c.spriteIdentifier.getNamespace() == "disa") {
-					c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
-				}
-				else continue;
+			if (unsigned short spriteId = spritesModel.findSpriteId(c.spriteIdentifier)) {
+				c.charData.spriteId = spriteId;
+			}
+			else if (c.spriteIdentifier.getNamespace() == "disa") {
+				c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
+			}
+			else continue;
 
-				if (c.charData.spriteId == 0) continue;
-				auto [added, index] = addInfo(Info{ &mod, c.identifier }, m_characters, m_charactersMapper);
+			if (c.charData.spriteId == 0) continue;
+			auto [added, index] = charactersModel.registerCharacter(characterIndex);
 
-				assert(c.skills.size() <= c.charData.skillIds.size());
-				if (!c.skills.empty()) {
-					c.charData.skillIds.fill(0);
-					c.charData.skillLevels.fill(0);
-					int i = 0;
-					for (const auto& skill : c.skills) {
-						if (!skill.first.isValid()) continue;
+			assert(c.skills.size() <= c.charData.skillIds.size());
+			if (!c.skills.empty()) {
+				c.charData.skillIds.fill(0);
+				c.charData.skillLevels.fill(0);
+				int i = 0;
+				for (const auto& skill : c.skills) {
+					if (!skill.first.isValid()) continue;
 
-						if (skill.first.isCustom()) {
-							auto findIt = m_magicMapper.find(skill.first);
-							if (findIt == m_magicMapper.end()) continue;
-							c.charData.skillIds[i] = findIt->second + PG_DisaIdentifier::customMagicIdStart;
-						}
-						else {
-							c.charData.skillIds[i] = skill.first.getNameAsNumber();
-						}
-						c.charData.skillLevels[i] = skill.second;
-						++i;
-					}
-				}
-
-				if (c.identifier.isCustom()) {
-					c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
-					c.charDataIndex = index + originalCharactersSize;
-					if (added) {
-						reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::addNewEntry()) = c.charData;
+					if (skill.first.isCustom()) {
+						unsigned int magicId = magicModel.getMagicId(skill.first);
+						if (magicId == 0) continue;
+						c.charData.skillIds[i] = magicId;
 					}
 					else {
-						reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(index + originalCharactersSize)) = c.charData;
+						c.charData.skillIds[i] = skill.first.getNameAsNumber();
 					}
-				}
-				else {
-					c.charData.characterId = c.identifier.getNameAsNumber();
-					if (auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), c.charData.characterId, &PG_DisaDataCharacter::characterId);
-						findIt != DisaDataCharacterInfo::end()) {
-						c.charDataIndex = std::distance(DisaDataCharacterInfo::begin(), findIt);
-						reinterpret_cast<PG_DisaDataCharacter&>(*findIt) = c.charData;
-					}
-					else {
-						OUT_ERROR("Failed to replace character with identifier \"" << c.identifier << "\"! Entry not found!");
-					}
+					c.charData.skillLevels[i] = skill.second;
+					++i;
 				}
 			}
-		} //for loop
-	}//load characters end
+
+			if (c.identifier.isCustom()) {
+				c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
+				c.charDataIndex = index + originalCharactersSize;
+				if (added) {
+					reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::addNewEntry()) = c.charData;
+				}
+				else {
+					reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(index + originalCharactersSize)) = c.charData;
+				}
+			}
+			else {
+				c.charData.characterId = c.identifier.getNameAsNumber();
+				if (auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), c.charData.characterId, &PG_DisaDataCharacter::characterId);
+					findIt != DisaDataCharacterInfo::end()) {
+					c.charDataIndex = std::distance(DisaDataCharacterInfo::begin(), findIt);
+					reinterpret_cast<PG_DisaDataCharacter&>(*findIt) = c.charData;
+				}
+				else {
+					OUT_ERROR("Failed to replace character with identifier \"" << c.identifier << "\"! Entry not found!");
+				}
+			}
+		}
+	}
 }
 
 

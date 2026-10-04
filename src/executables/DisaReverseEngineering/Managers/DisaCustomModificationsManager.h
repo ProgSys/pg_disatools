@@ -5,7 +5,7 @@
 #include <list>
 #include <Util/PG_File.h>
 #include <Disa/PG_DisaIdentifier.h>
-#include <Disa/PG_DisaCharactersModel.h>
+#include <Disa/modifications/PG_DisaCustomModificationsModel.h>
 #include <mutex>
 #include <condition_variable>
 

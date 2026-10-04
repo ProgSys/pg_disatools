@@ -11,6 +11,7 @@
 #include <DisaDataFunctions.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Managers/DisaCustomModificationsManager.h>
+#include <Disa/modifications/PG_DisaModCharactersModel.h>
 #include <Resources/PG_ResourceManager.h>
 
 using namespace PG_JsonUtil;
@@ -382,43 +383,43 @@ struct DisaAssemblyInfo {
 
         std::map<std::string, std::vector<DisaAssemblyUnitInfo>> groups; //id monster
         DisaAssemblyUnitInfo unitInfo;
-        for (auto& mod : manager.getModifications()) {
-            for (auto& modChar : mod.characters) {
-                if (!modChar.identifier) continue;
+        const PG_DisaModCharactersModel& charactersModel = *manager.getCharactersModel();
+        for (unsigned int characterIndex : charactersModel.getIndicesInOrder(manager.getModifications())) {
+            const auto& modChar = charactersModel.getCharacters()[characterIndex];
+            if (!modChar.identifier) continue;
 
-                //stated as game thinks every* ID over 1999 is a monster thus having special mana cost scaling 
-                unitInfo.killCount = 30;
-                unitInfo.characterId = modChar.charData.characterId;
-                unitInfo.killCountLevelSum = 0;
+            //stated as game thinks every* ID over 1999 is a monster thus having special mana cost scaling 
+            unitInfo.killCount = 30;
+            unitInfo.characterId = modChar.charData.characterId;
+            unitInfo.killCountLevelSum = 0;
 
-                switch (modChar.recruitmentType) {
-                case DisaCustomModificationsManager::CharacterInfo::RecruitmentType_None: continue;
-                case DisaCustomModificationsManager::CharacterInfo::RecruitmentType_Defeated : {
-                    if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier); 
-                        findIt != manager.getAssemblyHistory().end()) {
-                        unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;
-                        if(findIt->second.killCount > 0) break;
-                    }
-                    continue;
+            switch (modChar.recruitmentType) {
+            case PG_DisaModCharactersModel::CharacterInfo::RecruitmentType_None: continue;
+            case PG_DisaModCharactersModel::CharacterInfo::RecruitmentType_Defeated : {
+                if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier); 
+                    findIt != manager.getAssemblyHistory().end()) {
+                    unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;
+                    if(findIt->second.killCount > 0) break;
                 }
-                case DisaCustomModificationsManager::CharacterInfo::RecruitmentType_Monster: {
-                    if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier);
-                        findIt != manager.getAssemblyHistory().end() && findIt->second.killCount > 0) {
-                        unitInfo.killCount = findIt->second.killCount; //used to scale mana cost
-                        unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;
-                        break;
-                    }
-                    continue;
+                continue;
+            }
+            case PG_DisaModCharactersModel::CharacterInfo::RecruitmentType_Monster: {
+                if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier);
+                    findIt != manager.getAssemblyHistory().end() && findIt->second.killCount > 0) {
+                    unitInfo.killCount = findIt->second.killCount; //used to scale mana cost
+                    unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;
+                    break;
                 }
-                default: break;
-                }
+                continue;
+            }
+            default: break;
+            }
 
-                if (modChar.recruitGroupName.empty()) {
-                    groups[modChar.recruitGroupName].emplace_back(unitInfo);
-                }
-                else {
-                    groups[mod.namespaceMod + modChar.recruitGroupName].emplace_back(unitInfo);
-                }
+            if (modChar.recruitGroupName.empty()) {
+                groups[modChar.recruitGroupName].emplace_back(unitInfo);
+            }
+            else {
+                groups[modChar.modInfo->namespaceMod + modChar.recruitGroupName].emplace_back(unitInfo);
             }
         }
 
@@ -781,8 +782,8 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
 
             //BEGIN custom code
             if (PG_DisaIdentifier::isCustomId(selectedUnitInfo.characterId)) {
-                const auto& info = DisaCustomModificationsManager::get()->getCharacterInfo(selectedUnitInfo.characterId);
-                auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(info.identifier);
+                const PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getCharactersModel()->getCharacterIdentifier(selectedUnitInfo.characterId);
+                auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(identifier);
                 if (PG_DisaIdentifier::isCustomId(displayInfo.faceId)) {
                     creationCharacter.setCustomPortraitId(displayInfo.faceId);
                 }

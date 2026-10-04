@@ -1,6 +1,8 @@
 #include "PG_DisaSpriteModel.h"
 
 #include <Disa/PG_DisaCharactersModel.h>
+#include <Disa/modifications/PG_DisaCustomModificationsModel.h>
+#include <Disa/modifications/PG_DisaModCharactersModel.h>
 
 namespace {
 
@@ -14,8 +16,8 @@ void notifyParent(PG_DisaSpriteModel* self, const PG_IdentitySet& identities) {
 
 PG_DisaIdentifier PG_DisaSpriteModel::getCharacterIdentifier() const {
 	auto* model = PG_DisaCharactersModel::get();
-	if (!model) PG_DisaIdentifier();
-	return model->getCharacterIdentifier(getCharacterId());
+	if (!model || !model->getModificationsModel()) return PG_DisaIdentifier();
+	return model->getModificationsModel()->getCharactersModel()->getCharacterIdentifier(getCharacterId());
 }
 
 void PG_DisaSpriteModel::setCharacterId(unsigned short id) {

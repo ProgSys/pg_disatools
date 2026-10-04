@@ -29,166 +29,64 @@
 #pragma once
 
 #include <Disa/PG_DisaIdentifier.h>
-#include <Disa/dataStructs/PG_DisaDataCharacter.h>
-#include <Disa/dataStructs/PG_DisaDataMagic.h>
 #include <Disa/utils/PG_DisaModInfo.h>
-#include <Stream/PG_StreamIn.h>
 #include <Util/PG_File.h>
 #include <list>
-#include <map>
-#include <vector>
+#include <memory>
 
-struct PG_DisaModLoadInfo;
+class PG_DisaModSpritesModel;
+class PG_DisaModFacesModel;
+class PG_DisaModMagicModel;
+class PG_DisaModCharactersModel;
 class PG_DisaScriptsModel;
 class PG_DisaTranslationModel;
 
+/**
+* @brief All mods in the CustomModifications folder. Each content type of a mod is kept by its own model.
+* @details The sub-models are created with this model and are never null.
+*/
 class PG_DisaCustomModificationsModel {
 public:
-	struct CharacterInfo {
-		enum ERecruitmentType {
-			RecruitmentType_None, //can't be recruted
-			RecruitmentType_Normal, //used normal recruitment logic
-			RecruitmentType_Defeated, //at least once killed
-			RecruitmentType_Monster, //at least once killed, plus mana cost scaling on number of killed
-		};
-
-		PG_DisaIdentifier identifier;
-		PG_DisaIdentifier spriteIdentifier;
-		PG_DisaIdentifier faceIdentifier;
-
-		PG_DisaDataCharacter charData;
-		unsigned int charDataIndex = 0;
-		ERecruitmentType recruitmentType = RecruitmentType_Normal; //can be recruted in assebly
-		std::string recruitGroupName;
-		std::vector<std::pair<PG_DisaIdentifier, uint16_t>> skills; //identifier, unlock level
-
-		static inline std::string toString(ERecruitmentType type) {
-			switch (type) {
-			case RecruitmentType_None: return "NONE";
-			case RecruitmentType_Normal: return "NORMAL";
-			case RecruitmentType_Defeated : return "DEFEATED";
-			case RecruitmentType_Monster: return "MONSTER";
-			default: return {};
-			}
-		}
-
-		static void fromString(ERecruitmentType& type, std::string str);
-	};
-
-	struct MagicInfo {
-		PG_DisaIdentifier identifier;
-
-		PG_DisaIdentifier scriptIdentifier;
-		PG_DisaDataMagic magicData;
-	};
-
-	struct Modification : public PG_DisaModInfo {
-		std::vector<CharacterInfo> characters;
-		std::vector<MagicInfo> magics;
-	};
-
-	struct Info {
-		Modification* mod = nullptr;
-		PG_DisaIdentifier identifier;
-		PG_File fileInZip;
-		PG_File secondfileInZip;
-	};
-
 	struct DisplayInfo {
-		unsigned short characterId; 
-		unsigned short spriteId;
-		unsigned short faceId;
-		unsigned short charDataIndex;
+		unsigned short characterId = 0;
+		unsigned short spriteId = 0;
+		unsigned short faceId = 0;
+		unsigned short charDataIndex = 0;
 	};
 
-	PG_DisaCustomModificationsModel();
-	PG_DisaCustomModificationsModel(PG_DisaScriptsModel* scriptsModel, PG_DisaTranslationModel* translationModel);
-
-	std::pair<PG::STREAM::In*, const Info&> createSpriteReader(const std::string& baseDir, unsigned int spriteId);
-	std::pair<PG::STREAM::In*, const Info&> createFaceReader(const std::string& baseDir, unsigned int faceId, bool isHD);
-
-	inline const Info& getCharacterInfo(unsigned int id) const { return getInfo(id, m_characters); }
-	inline const Info& getSpriteInfo(unsigned int id) const { return getInfo(id, m_sprites); }
-	inline const Info& getFaceInfo(unsigned int id) const { return getInfo(id, m_faces); }
-	inline const Info& getMagicInfo(unsigned int id) const { return getInfo(id, m_magic, true); }
-	const Info& getCharacterInfoIndex(unsigned int index) const;
-
-	const std::list<Modification>& getModifications() const { return m_modifications; };
-
-	unsigned int getCharacterId(const PG_DisaIdentifier& identifier) const {
-		if (!identifier) return 0;
-		auto findIt = m_charactersMapper.find(identifier.getIdentifier());
-		if (findIt == m_charactersMapper.end()) return 0;
-		return findIt->second + PG_DisaIdentifier::customIdStart;
-	}
-	PG_DisaIdentifier getCharacterIdentifier(unsigned int id) {
-		if (PG_DisaIdentifier::isCustomId(id)) {
-			id -= PG_DisaIdentifier::customIdStart;
-			if (id >= m_characters.size()) return PG_DisaIdentifier();
-			return m_characters[id].identifier;
-		}
-		else {
-			return PG_DisaIdentifier(std::to_string(id), "disa");
-		}
-	}
-	unsigned int getMagicId(const PG_DisaIdentifier& identifier) const {
-		if (!identifier) return 0;
-		auto findIt = m_magicMapper.find(identifier.getIdentifier());
-		if (findIt == m_magicMapper.end()) return 0;
-		return findIt->second + PG_DisaIdentifier::customMagicIdStart;
-	}
-	PG_DisaIdentifier getMagicIdentifier(unsigned int id) {
-		if (PG_DisaIdentifier::isCustomMagicId(id)) {
-			id -= PG_DisaIdentifier::customMagicIdStart;
-			if (id >= m_magic.size()) return PG_DisaIdentifier();
-			return m_magic[id].identifier;
-		}
-		else {
-			return PG_DisaIdentifier(std::to_string(id), "disa");
-		}
-	}
-	unsigned short getSpriteId(const PG_DisaIdentifier& identifier) const {
-		if (!identifier) return 0;
-		auto findIt = m_spritesMapper.find(identifier.getIdentifier());
-		if (findIt == m_spritesMapper.end()) return 2210; //prinny
-		return findIt->second + PG_DisaIdentifier::customIdStart;
-	}
-
-	DisplayInfo getDisplayInfo(const PG_DisaIdentifier& identifier) const;
-	DisplayInfo getDisplayInfo(const CharacterInfo& c) const;
-
-	PG_DisaScriptsModel* getDisaScriptsModel() const { return m_scriptsModel; }
-	PG_DisaTranslationModel* getDisaTranslationModel() const { return m_translationModel; }
-
-protected:
 	/**
-	* @brief Loads every enabled mod in the CustomModifications folder, in load order
+	* @param scriptsModel Not owned, receives the "scripts" and "talkScripts" blocks. Must not be null.
+	* @param translationModel Not owned, receives the "translation" block. May be null.
+	*/
+	PG_DisaCustomModificationsModel(PG_DisaScriptsModel* scriptsModel, PG_DisaTranslationModel* translationModel);
+	~PG_DisaCustomModificationsModel();
+
+	/**
+	* @brief Loads every enabled mod in the CustomModifications folder.
+	* @details Mods are loaded bottom first, so the top of the load order wins when two use the same identifier.
+	* Afterwards getModifications() is sorted top first.
 	*/
 	void loadModifications(const PG_File& exePath);
 
-	static const Info& getInfo(unsigned int id, const std::vector<Info>& list, bool isMagic = false);
-	static const Info& getInfo(const std::string& id, const std::vector<Info>& list, const std::map<std::string, unsigned int>& mapper);
+	const std::list<PG_DisaModInfo>& getModifications() const { return m_modifications; }
 
-	/**
-	* Added to searchable info
-	* @returns Bool if added and index
-	*/
-	static std::pair<bool, unsigned int> addInfo(Info&& info, std::vector<Info>& list, std::map<std::string, unsigned int>& mapper);
+	PG_DisaModSpritesModel* getSpritesModel() const { return m_spritesModel.get(); }
+	PG_DisaModFacesModel* getFacesModel() const { return m_facesModel.get(); }
+	PG_DisaModMagicModel* getMagicModel() const { return m_magicModel.get(); }
+	PG_DisaModCharactersModel* getCharactersModel() const { return m_charactersModel.get(); }
+	PG_DisaScriptsModel* getScriptsModel() const { return m_scriptsModel; }
+	PG_DisaTranslationModel* getTranslationModel() const { return m_translationModel; }
 
-	//void loadCharactersFromZip(const PG_File& file);
-	void loadModification(Modification& mod, const PG_DisaModLoadInfo& info);
+	/// @returns All zero when the character is not registered
+	DisplayInfo getDisplayInfo(const PG_DisaIdentifier& identifier) const;
 
-	//mod file data
-	std::list<Modification> m_modifications;
+private:
+	std::list<PG_DisaModInfo> m_modifications; //a list, the entries of the sub-models point into it
 
-	std::vector<Info> m_characters;
-	std::map<std::string, unsigned int> m_charactersMapper;
-	std::vector<Info> m_sprites;
-	std::map<std::string, unsigned int> m_spritesMapper;
-	std::vector<Info> m_faces; //portraits
-	std::map<std::string, unsigned int> m_facesMapper;
-	std::vector<Info> m_magic; //skills
-	std::map<std::string, unsigned int> m_magicMapper;
+	std::unique_ptr<PG_DisaModSpritesModel> m_spritesModel;
+	std::unique_ptr<PG_DisaModFacesModel> m_facesModel;
+	std::unique_ptr<PG_DisaModMagicModel> m_magicModel;
+	std::unique_ptr<PG_DisaModCharactersModel> m_charactersModel;
 
 	PG_DisaScriptsModel* m_scriptsModel = nullptr;
 	PG_DisaTranslationModel* m_translationModel = nullptr;

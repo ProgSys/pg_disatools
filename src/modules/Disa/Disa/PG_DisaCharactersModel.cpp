@@ -3,12 +3,16 @@
 #include <Disa/fileformats/PG_SOLA.h>
 #include <Disa/fileformats/PG_TableDAT.h>
 #include <Disa/fileformats/PG_PSPFS.h>
+#include <Disa/modifications/PG_DisaCustomModificationsModel.h>
+#include <Disa/modifications/PG_DisaModSpritesModel.h>
+#include <Disa/modifications/PG_DisaModFacesModel.h>
+#include <Disa/modifications/PG_DisaModCharactersModel.h>
+#include <Disa/PG_DisaScriptsModel.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Util/PG_StringUtil.h>
 #include <Stream/PG_StreamInOutByteVector.h>
 #include <Stream/PG_StreamInOutByteArray.h>
 #include <Stream/PG_StreamInByteFile.h>
-#include <Stream/PG_StreamInOutByteVector.h>
 
 
 static PG_DisaCharactersModel* g_charactersModel = nullptr;
@@ -30,9 +34,13 @@ PG_Variety PG_DisaCharacterModel::getData(Identity identity) const {
 }
 
 
+PG_DisaCharactersModel::~PG_DisaCharactersModel() = default;
+
 void PG_DisaCharactersModel::init() {
 	assert(!g_charactersModel);
 	g_charactersModel = this;
+	m_scriptsModel = std::make_unique<PG_DisaScriptsModel>();
+	m_modificationsModel = std::make_unique<PG_DisaCustomModificationsModel>(m_scriptsModel.get(), nullptr);
 }
 
 void PG_DisaCharactersModel::open(const PG_File& exePath, std::shared_ptr<PG_PSPFS> subdata, std::shared_ptr<PG_OLA> startDat) {
@@ -151,37 +159,39 @@ void PG_DisaCharactersModel::open(const PG_File& exePath, std::shared_ptr<PG_PSP
 	}
 
 	{//load in custom charcters
-		loadModifications(exePath);
-		for (auto& mod : m_modifications) {
-			for (auto& c : mod.characters) {
-				if (!c.identifier || !c.spriteIdentifier) continue;
+		m_modificationsModel->loadModifications(exePath);
+		const PG_DisaModSpritesModel& spritesModel = *m_modificationsModel->getSpritesModel();
+		PG_DisaModCharactersModel& charactersModel = *m_modificationsModel->getCharactersModel();
 
-				if (auto findIt = m_spritesMapper.find(c.spriteIdentifier.getIdentifier()); findIt != m_spritesMapper.end()) {
-					c.charData.spriteId = findIt->second + PG_DisaIdentifier::customIdStart;
-				}
-				else if (c.spriteIdentifier.getNamespace() == "disa") {
-					c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
-				}
-				else continue;
+		for (unsigned int characterIndex : charactersModel.getIndicesInOrder(m_modificationsModel->getModifications())) {
+			auto& c = charactersModel.getCharacters()[characterIndex];
+			if (!c.identifier || !c.spriteIdentifier) continue;
 
-				if (c.charData.spriteId == 0) continue;
-				auto [added, index] = addInfo(Info{ &mod, c.identifier }, m_characters, m_charactersMapper);
-
-				c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
-
-				PG_DisaCharacterModel model;
-
-				model.id = c.charData.characterId;
-				model.name = c.charData.name.data();
-				model.nameNormelized = c.charData.getName();
-				model.title = c.charData.title.data();
-				model.titleNormelized = c.charData.getTitle();
-
-				model.spriteColorOffset = c.charData.paletteIndex;
-				model.spriteId = c.charData.spriteId;
-
-				models.push_back(std::move(model));
+			if (unsigned short spriteId = spritesModel.findSpriteId(c.spriteIdentifier)) {
+				c.charData.spriteId = spriteId;
 			}
+			else if (c.spriteIdentifier.getNamespace() == "disa") {
+				c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
+			}
+			else continue;
+
+			if (c.charData.spriteId == 0) continue;
+			auto [added, index] = charactersModel.registerCharacter(characterIndex);
+
+			c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
+
+			PG_DisaCharacterModel model;
+
+			model.id = c.charData.characterId;
+			model.name = c.charData.name.data();
+			model.nameNormelized = c.charData.getName();
+			model.title = c.charData.title.data();
+			model.titleNormelized = c.charData.getTitle();
+
+			model.spriteColorOffset = c.charData.paletteIndex;
+			model.spriteId = c.charData.spriteId;
+
+			models.push_back(std::move(model));
 		}
 	}
 
@@ -203,17 +213,15 @@ PG_Texture PG_DisaCharactersModel::getPortrait(unsigned short characterId) {
 	}
 	unsigned short faceId = characterId;
 	if (PG_DisaIdentifier::isCustomId(faceId)){
-		unsigned short charIndex = faceId - PG_DisaIdentifier::customIdStart;
-		if (charIndex < m_characters.size()) {
-			const auto& modChars = m_characters[charIndex].mod->characters;
-			auto findCustomCharIt = std::ranges::find(modChars, characterId, [](const CharacterInfo& i) { return i.charData.characterId; });
-			if (findCustomCharIt != modChars.end() && findCustomCharIt->faceIdentifier) {
-				faceId = m_facesMapper[findCustomCharIt->faceIdentifier] + PG_DisaIdentifier::customIdStart;
-			}
+		//without a face from a mod the portrait comes from the game files, found by sprite id
+		faceId = 0;
+		const auto* character = m_modificationsModel->getCharactersModel()->findCharacter(characterId);
+		if (character && character->faceIdentifier) {
+			faceId = m_modificationsModel->getFacesModel()->getFaceId(character->faceIdentifier);
 		}
 	}
 	std::shared_ptr<PG::STREAM::In> reader;
-	reader = std::shared_ptr<PG::STREAM::In>(createFaceReader(m_exePath, faceId, true).first);
+	reader = std::shared_ptr<PG::STREAM::In>(m_modificationsModel->getFacesModel()->createFaceReader(m_exePath, faceId, true).first);
 
 	//read from game files
 	if(!reader && !PG_DisaIdentifier::isCustomId(faceId)){
@@ -264,7 +272,7 @@ std::pair<PG_DisaSprite, unsigned short> PG_DisaCharactersModel::getSprite(unsig
 	}
 
 	std::shared_ptr<PG::STREAM::In> reader;
-	reader = std::shared_ptr<PG::STREAM::In>(createSpriteReader(m_exePath, spriteId).first);
+	reader = std::shared_ptr<PG::STREAM::In>(m_modificationsModel->getSpritesModel()->createSpriteReader(m_exePath, spriteId).first);
 
 	//read from game files
 	if (!reader && !PG_DisaIdentifier::isCustomId(spriteId)) {
