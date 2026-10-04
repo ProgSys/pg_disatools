@@ -242,7 +242,8 @@ void DisaCustomModificationsManager::recordEnemyKilled(DisaPartyCharacterInfo* c
 
 void DisaCustomModificationsManager::loadModifications() {
 	PG_DisaCustomModificationsModel::loadModifications(DisaCustomBaseModManager::exePath());
-	loadCharactersIntoMememory();
+	loadMagicIntoMemory();
+	loadCharactersIntoMemory();
 	m_isHistoryChanged = true;
 }
 
@@ -257,101 +258,59 @@ void DisaCustomModificationsManager::wakeUp() {
 	m_cv.notify_all();
 }
 
-void DisaCustomModificationsManager::loadCharactersIntoMememory() {
-	//load magic
-	{
-		DisaDataMagicInfo::steal();
-		PG_DisaModMagicModel& magicModel = *getMagicModel();
-		for (auto& m : magicModel) {
-			if (!m.identifier) continue;
+void DisaCustomModificationsManager::loadMagicIntoMemory() {
+	DisaDataMagicInfo::steal();
+	PG_DisaModMagicModel& magicModel = *getMagicModel();
+	for (auto& m : magicModel) {
+		if (!m.identifier) continue;
 
-			if (unsigned int id = magicModel.getMagicId(m.identifier)) {
-				m.magicData.id = id;
-			}
-			else if (m.identifier.getNamespace() == "disa") {
-				m.magicData.id = m.identifier.getNameAsNumber();
-			}
+		if (unsigned int id = magicModel.getMagicId(m.identifier)) {
+			m.magicData.id = id;
+		}
+		else if (m.identifier.getNamespace() == "disa") {
+			m.magicData.id = m.identifier.getNameAsNumber();
+		}
 
-			if (PG_DisaIdentifier::isCustomMagicId(m.magicData.id)) {
-				reinterpret_cast<PG_DisaDataMagic&>(DisaDataMagicInfo::addNewEntry()) = m.magicData;
-			}
-			else if (auto findIt = std::ranges::find(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end(), m.magicData.id, &PG_DisaDataMagic::id);
-				findIt != DisaDataMagicInfo::end()) {
-				reinterpret_cast<PG_DisaDataMagic&>(*findIt) = m.magicData;
-			} else {
-				OUT_ERROR("Failed to replace magic/skill with identifier \""<< m.identifier <<"\"! Entry not found!");
-				m.scriptIdentifier.clear();
-			}
+		if (PG_DisaIdentifier::isCustomMagicId(m.magicData.id)) {
+			reinterpret_cast<PG_DisaDataMagic&>(DisaDataMagicInfo::addNewEntry()) = m.magicData;
+		}
+		else if (auto findIt = std::ranges::find(DisaDataMagicInfo::begin(), DisaDataMagicInfo::end(), m.magicData.id, &PG_DisaDataMagic::id);
+			findIt != DisaDataMagicInfo::end()) {
+			reinterpret_cast<PG_DisaDataMagic&>(*findIt) = m.magicData;
+		} else {
+			OUT_ERROR("Failed to replace magic/skill with identifier \""<< m.identifier <<"\"! Entry not found!");
+			m.scriptIdentifier.clear();
 		}
 	}
+}
 
-	//load characters
-	{
-		const PG_DisaModSpritesModel& spritesModel = *getSpritesModel();
-		const PG_DisaModMagicModel& magicModel = *getMagicModel();
-		PG_DisaModCharactersModel& charactersModel = *getCharactersModel();
+void DisaCustomModificationsManager::loadCharactersIntoMemory() {
+	PG_DisaModCharactersModel& charactersModel = *getCharactersModel();
+	const auto registrations = charactersModel.resolve(getModifications(), *getSpritesModel(), *getMagicModel());
 
-		charactersModel.clearRegistered();
-		DisaDataCharacterInfo::steal();
-		const unsigned int originalCharactersSize = DisaDataCharacterInfo::getSize();
+	DisaDataCharacterInfo::steal();
+	const unsigned int originalCharactersSize = DisaDataCharacterInfo::getSize();
 
-		for (unsigned int characterIndex : charactersModel.getIndicesInOrder(getModifications())) {
-			auto& c = charactersModel.getCharacters()[characterIndex];
-			if (!c.identifier || !c.spriteIdentifier) continue;
+	for (const auto& registration : registrations) {
+		auto& c = charactersModel.getCharacters()[registration.characterIndex];
 
-			if (unsigned short spriteId = spritesModel.findSpriteId(c.spriteIdentifier)) {
-				c.charData.spriteId = spriteId;
-			}
-			else if (c.spriteIdentifier.getNamespace() == "disa") {
-				c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
-			}
-			else continue;
-
-			if (c.charData.spriteId == 0) continue;
-			auto [added, index] = charactersModel.registerCharacter(characterIndex);
-
-			assert(c.skills.size() <= c.charData.skillIds.size());
-			if (!c.skills.empty()) {
-				c.charData.skillIds.fill(0);
-				c.charData.skillLevels.fill(0);
-				int i = 0;
-				for (const auto& skill : c.skills) {
-					if (!skill.first.isValid()) continue;
-
-					if (skill.first.isCustom()) {
-						unsigned int magicId = magicModel.getMagicId(skill.first);
-						if (magicId == 0) continue;
-						c.charData.skillIds[i] = magicId;
-					}
-					else {
-						c.charData.skillIds[i] = skill.first.getNameAsNumber();
-					}
-					c.charData.skillLevels[i] = skill.second;
-					++i;
-				}
-			}
-
-			if (c.identifier.isCustom()) {
-				c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
-				c.charDataIndex = index + originalCharactersSize;
-				if (added) {
-					reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::addNewEntry()) = c.charData;
-				}
-				else {
-					reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(index + originalCharactersSize)) = c.charData;
-				}
+		if (c.identifier.isCustom()) {
+			const unsigned int entryIndex = registration.registeredIndex + originalCharactersSize;
+			c.charDataIndex = entryIndex;
+			if (registration.added) {
+				reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::addNewEntry()) = c.charData;
 			}
 			else {
-				c.charData.characterId = c.identifier.getNameAsNumber();
-				if (auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), c.charData.characterId, &PG_DisaDataCharacter::characterId);
-					findIt != DisaDataCharacterInfo::end()) {
-					c.charDataIndex = std::distance(DisaDataCharacterInfo::begin(), findIt);
-					reinterpret_cast<PG_DisaDataCharacter&>(*findIt) = c.charData;
-				}
-				else {
-					OUT_ERROR("Failed to replace character with identifier \"" << c.identifier << "\"! Entry not found!");
-				}
+				reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(entryIndex)) = c.charData;
 			}
+		}
+		else if (auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), c.charData.characterId, &PG_DisaDataCharacter::characterId);
+			findIt != DisaDataCharacterInfo::end()) {
+			c.charDataIndex = std::distance(DisaDataCharacterInfo::begin(), findIt);
+			reinterpret_cast<PG_DisaDataCharacter&>(*findIt) = c.charData;
+		}
+		else {
+			OUT_ERROR("Failed to replace character with identifier \"" << c.identifier << "\"! Entry not found!");
 		}
 	}
 }

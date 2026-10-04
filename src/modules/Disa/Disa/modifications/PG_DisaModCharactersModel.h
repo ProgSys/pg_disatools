@@ -34,6 +34,8 @@
 
 struct PG_DisaModInfo;
 struct PG_DisaModLoadInfo;
+class PG_DisaModSpritesModel;
+class PG_DisaModMagicModel;
 
 /**
 * @brief The "characters" block of every loaded modification.
@@ -90,12 +92,20 @@ public:
 	*/
 	std::vector<unsigned int> getIndicesInOrder(const std::list<PG_DisaModInfo>& modifications) const;
 
+	struct Registration {
+		unsigned int characterIndex = 0; //index into getCharacters()
+		unsigned int registeredIndex = 0; //custom id = registeredIndex + PG_DisaIdentifier::customIdStart
+		bool added = false; //false when it took over the id of an earlier character with the same identifier
+	};
+
 	/**
-	* @brief Gives the character at characterIndex an id. A later character with the same identifier takes over that id.
-	* @returns true when the id is new, plus the index of the id (id = index + PG_DisaIdentifier::customIdStart)
+	* @brief Registers every character whose sprite can be found and resolves its sprite, skill and character id.
+	* @details Drops earlier registrations. Characters are registered in the order of getIndicesInOrder, which decides
+	* their ids. A character in the "disa" namespace replaces an original and gets that original id.
+	* @returns The registered characters in registration order.
 	*/
-	std::pair<bool, unsigned int> registerCharacter(unsigned int characterIndex);
-	void clearRegistered() { m_registered.clear(); }
+	std::vector<Registration> resolve(const std::list<PG_DisaModInfo>& modifications, const PG_DisaModSpritesModel& spritesModel,
+		const PG_DisaModMagicModel& magicModel);
 
 	/// @returns 0 when not registered
 	unsigned int getCharacterId(const PG_DisaIdentifier& identifier) const { return m_registered.getId(identifier); }
@@ -111,6 +121,9 @@ private:
 		PG_DisaIdentifier identifier;
 		unsigned int characterIndex = 0;
 	};
+
+	/// @returns true when the id is new, plus the registered index
+	std::pair<bool, unsigned int> registerCharacter(unsigned int characterIndex);
 
 	std::vector<CharacterInfo> m_characters;
 	PG_DisaModRegistry<RegisteredInfo> m_registered{ PG_DisaIdentifier::customIdStart };

@@ -17,7 +17,10 @@ public:
 
 
 	void loadModifications();
-	void loadCharactersIntoMememory();
+	/// Adds custom magic to the game table and replaces originals
+	void loadMagicIntoMemory();
+	/// Resolves and registers the characters, then adds them to the game table and replaces originals
+	void loadCharactersIntoMemory();
 
 	struct FaceHeader {
 		bool isHD;

@@ -1,10 +1,13 @@
 #include "PG_DisaModCharactersModel.h"
+#include <Disa/modifications/PG_DisaModSpritesModel.h>
+#include <Disa/modifications/PG_DisaModMagicModel.h>
 #include <Disa/fileformats/PG_JsonUtil.h>
 #include <Disa/utils/PG_DisaModInfo.h>
 #include <Disa/utils/PG_DisaModLoadInfo.h>
 #include <Scene/Gui/Validator/PG_GuiTextValidators.h>
 #include <Util/PG_StringUtil.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <cassert>
 
 using namespace PG_JsonUtil;
 
@@ -118,6 +121,53 @@ std::vector<unsigned int> PG_DisaModCharactersModel::getIndicesInOrder(const std
 std::pair<bool, unsigned int> PG_DisaModCharactersModel::registerCharacter(unsigned int characterIndex) {
 	if (characterIndex >= m_characters.size()) return { false, 0 };
 	return m_registered.add(RegisteredInfo{ m_characters[characterIndex].identifier, characterIndex });
+}
+
+std::vector<PG_DisaModCharactersModel::Registration> PG_DisaModCharactersModel::resolve(const std::list<PG_DisaModInfo>& modifications,
+	const PG_DisaModSpritesModel& spritesModel, const PG_DisaModMagicModel& magicModel) {
+	m_registered.clear();
+
+	std::vector<Registration> registrations;
+	for (unsigned int characterIndex : getIndicesInOrder(modifications)) {
+		CharacterInfo& c = m_characters[characterIndex];
+		if (!c.identifier || !c.spriteIdentifier) continue;
+
+		if (unsigned short spriteId = spritesModel.findSpriteId(c.spriteIdentifier)) {
+			c.charData.spriteId = spriteId;
+		}
+		else if (c.spriteIdentifier.getNamespace() == "disa") {
+			c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
+		}
+		else continue;
+
+		if (c.charData.spriteId == 0) continue;
+		auto [added, index] = registerCharacter(characterIndex);
+
+		assert(c.skills.size() <= c.charData.skillIds.size());
+		if (!c.skills.empty()) {
+			c.charData.skillIds.fill(0);
+			c.charData.skillLevels.fill(0);
+			int i = 0;
+			for (const auto& [skillIdentifier, level] : c.skills) {
+				if (!skillIdentifier.isValid()) continue;
+
+				if (skillIdentifier.isCustom()) {
+					unsigned int magicId = magicModel.getMagicId(skillIdentifier);
+					if (magicId == 0) continue;
+					c.charData.skillIds[i] = magicId;
+				}
+				else {
+					c.charData.skillIds[i] = skillIdentifier.getNameAsNumber();
+				}
+				c.charData.skillLevels[i] = level;
+				++i;
+			}
+		}
+
+		c.charData.characterId = c.identifier.isCustom() ? index + PG_DisaIdentifier::customIdStart : c.identifier.getNameAsNumber();
+		registrations.push_back({ characterIndex, index, added });
+	}
+	return registrations;
 }
 
 PG_DisaIdentifier PG_DisaModCharactersModel::getCharacterIdentifier(unsigned int id) const {

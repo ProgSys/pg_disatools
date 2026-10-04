@@ -6,6 +6,7 @@
 #include <Disa/modifications/PG_DisaCustomModificationsModel.h>
 #include <Disa/modifications/PG_DisaModSpritesModel.h>
 #include <Disa/modifications/PG_DisaModFacesModel.h>
+#include <Disa/modifications/PG_DisaModMagicModel.h>
 #include <Disa/modifications/PG_DisaModCharactersModel.h>
 #include <Disa/PG_DisaScriptsModel.h>
 #include <Resources/PG_ResourceManager.h>
@@ -160,25 +161,12 @@ void PG_DisaCharactersModel::open(const PG_File& exePath, std::shared_ptr<PG_PSP
 
 	{//load in custom charcters
 		m_modificationsModel->loadModifications(exePath);
-		const PG_DisaModSpritesModel& spritesModel = *m_modificationsModel->getSpritesModel();
 		PG_DisaModCharactersModel& charactersModel = *m_modificationsModel->getCharactersModel();
+		const auto registrations = charactersModel.resolve(m_modificationsModel->getModifications(),
+			*m_modificationsModel->getSpritesModel(), *m_modificationsModel->getMagicModel());
 
-		for (unsigned int characterIndex : charactersModel.getIndicesInOrder(m_modificationsModel->getModifications())) {
-			auto& c = charactersModel.getCharacters()[characterIndex];
-			if (!c.identifier || !c.spriteIdentifier) continue;
-
-			if (unsigned short spriteId = spritesModel.findSpriteId(c.spriteIdentifier)) {
-				c.charData.spriteId = spriteId;
-			}
-			else if (c.spriteIdentifier.getNamespace() == "disa") {
-				c.charData.spriteId = c.spriteIdentifier.getNameAsNumber();
-			}
-			else continue;
-
-			if (c.charData.spriteId == 0) continue;
-			auto [added, index] = charactersModel.registerCharacter(characterIndex);
-
-			c.charData.characterId = index + PG_DisaIdentifier::customIdStart;
+		for (const auto& registration : registrations) {
+			const auto& c = charactersModel.getCharacters()[registration.characterIndex];
 
 			PG_DisaCharacterModel model;
 
@@ -191,7 +179,9 @@ void PG_DisaCharactersModel::open(const PG_File& exePath, std::shared_ptr<PG_PSP
 			model.spriteColorOffset = c.charData.paletteIndex;
 			model.spriteId = c.charData.spriteId;
 
-			models.push_back(std::move(model));
+			//replacements of originals and later mods with the same identifier take over the existing entry
+			if (auto findIt = std::ranges::find(models, model.id, &PG_DisaCharacterModel::id); findIt != models.end()) *findIt = std::move(model);
+			else models.push_back(std::move(model));
 		}
 	}
 
