@@ -1842,29 +1842,26 @@ void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
             }
         }
 
-        constexpr auto lockSptr = [](int* sptr) -> int* {
-            if (sptr && ((int)sptr - 0x10001U < 0xeffeffff)) {
-                *sptr = *sptr + 1;
-            }
-            return sptr;
-        };
-
-
+        DisaRenderObjectManager* manager = DisaRenderObjectManager::get();
         const float depth = static_cast<float>(key.textureAdditive != 0 ? 45000 : 41000);
+        const int blendMode = key.textureAdditive > 2 ? -1 : key.textureAdditive;
         switch (stride) {
             case sizeof(VertexSolidColor) : {
-                FP::callStdFarA(0x00426040, depth, memory, totalLength, 3, -1, modelMatrix, true, 0, 0);
+                manager->FUN_00426040_submitSolidColor(depth, (VertexSolidColor*)memory, totalLength, 3, -1, modelMatrix, true, 0.f);
             } break;
             case sizeof(VertexBasic) : {
-                auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
-                DisaRenderObjectManager::get()->submitVertexBasic(depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0, custom);
-                //FP::callStdFarA(0x00425df0, depth, textureSDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
+                auto* texture = (DisaTextureSPtr*)context->m_textureDatas[key.textureIndex - 1];
+                if (custom) {
+                    manager->submitVertexBasicCustom(depth, texture, (VertexBasic*)memory, totalLength, 3, blendMode, modelMatrix, true, key.textureAdditive != 0, context->m_poligonOffset, 0, 0, false);
+                }
+                else {
+                    manager->FUN_00425df0_submitVertexBasic(depth, texture, (VertexBasic*)memory, totalLength, 3, blendMode, modelMatrix, true, key.textureAdditive != 0, context->m_poligonOffset, 0, 0, false);
+                }
             } break;
             case sizeof(VertexWithNormal) : {
-                auto textureHDSptr = lockSptr(context->m_textureHDDatas[key.textureIndex - 1]);
-                auto textureSDSptr = lockSptr(context->m_textureDatas[key.textureIndex - 1]);
-
-                FP::callStdFarA(0x004f3450, depth, textureSDSptr, textureHDSptr, memory, totalLength, 3, key.textureAdditive > 2 ? -1 : key.textureAdditive, modelMatrix, true, key.textureAdditive, context->m_poligonOffset, 0, 0, 0);
+                auto* texture = (DisaTextureSPtr*)context->m_textureDatas[key.textureIndex - 1];
+                auto* normalMap = (DisaTextureSPtr*)context->m_textureHDDatas[key.textureIndex - 1];
+                manager->FUN_004f3450_submitVertexWithNormalRef(depth, texture, normalMap, (VertexWithNormal*)memory, totalLength, 3, blendMode, modelMatrix, true, key.textureAdditive != 0, context->m_poligonOffset, 0, 0, false);
             } break;
         }
          
@@ -1947,12 +1944,7 @@ void __fastcall FUN_004ef8a0_original(DisaObjectModel* context, glm::mat4* model
     }
 
     constexpr auto toBlendMode = [](int additive) { return additive == 1 || additive == 2 ? additive : -1; };
-    constexpr auto lockSptr = [](int* sptr) -> int* {
-        if (sptr && ((int)sptr - 0x10001U < 0xeffeffff)) {
-            *sptr = *sptr + 1;
-        }
-        return sptr;
-    };
+    DisaRenderObjectManager* manager = DisaRenderObjectManager::get();
 
     bool scrolled = false; //the uv scroll advances once per call, on the first animated textured surface
     for (const Batch& batch : batches) {
@@ -1991,7 +1983,7 @@ void __fastcall FUN_004ef8a0_original(DisaObjectModel* context, glm::mat4* model
                 for (uint32_t i = 0; i < surface.length; ++i) {
                     vertices[i] = { color, positions[i] };
                 }
-                FP::callStdFarA(0x00426040, 41000.f, vertices, (int)surface.length, 3, toBlendMode(surface.additive), modelMatrix, 1, 0, 0.f, 0, 0);
+                manager->FUN_00426040_submitSolidColor(41000.f, vertices, (int)surface.length, 3, toBlendMode(surface.additive), modelMatrix, true, 0.f);
                 continue;
             }
 
@@ -2016,14 +2008,15 @@ void __fastcall FUN_004ef8a0_original(DisaObjectModel* context, glm::mat4* model
 
         const float depth = translucent ? 45000.f : 41000.f;
         const int blendMode = toBlendMode(batch.additive);
+        auto* texture = (DisaTextureSPtr*)self->m_textureDatas[textureSlot];
         if (hasNormalMap) {
-            int* textureHD = lockSptr(self->m_textureHDDatas[textureSlot]);
-            int* textureSD = lockSptr(self->m_textureDatas[textureSlot]);
-            FP::callStdFarA(0x004f3450, depth, textureSD, textureHD, memory, totalLength, 3, blendMode, modelMatrix, 1, (int)translucent, context->m_poligonOffset, 0, 0, 0);
+            auto* normalMap = (DisaTextureSPtr*)self->m_textureHDDatas[textureSlot];
+            manager->FUN_004f3450_submitVertexWithNormalRef(depth, texture, normalMap, (VertexWithNormal*)memory, totalLength, 3, blendMode, modelMatrix, true, translucent,
+                context->m_poligonOffset, 0, 0, false);
         }
         else {
-            int* textureSD = lockSptr(self->m_textureDatas[textureSlot]);
-            FP::callStdFarA(0x00425df0, depth, textureSD, memory, totalLength, 3, blendMode, modelMatrix, 1, (int)translucent, context->m_poligonOffset, 0, 0, 0);
+            manager->FUN_00425df0_submitVertexBasic(depth, texture, (VertexBasic*)memory, totalLength, 3, blendMode, modelMatrix, true, translucent, context->m_poligonOffset,
+                0, 0, false);
         }
     }
 }

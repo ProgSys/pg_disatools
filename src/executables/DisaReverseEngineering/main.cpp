@@ -89,6 +89,31 @@ struct HockManager {
         replaceFunction("submitMapChunk", "Queues the tiles, overlays and objects of a map chunk", 0x00488cce, FUN_004a4c60_SubmitMapChunk); //castle hub
         replaceFunction("submitMapChunk", "Queues the tiles, overlays and objects of a map chunk", 0x0049f729, FUN_004a4c60_SubmitMapChunk); //dark assembly
 
+        //every call of the render submit functions, one name per function so each can be hooked and unhooked alone
+        for (unsigned int address : { 0x0041fe90u, 0x0046af7du, 0x0046d3f1u, 0x004a6a35u, 0x004cfee0u, 0x004d016cu, 0x004d0771u, 0x004df80du, 0x004f023cu, 0x004f37e2u,
+            0x004fd990u, 0x005098b7u, 0x0050bd08u, 0x0050ef38u, 0x0050f2f7u, 0x0051978cu }) {
+            replaceFunction("submitVertexBasic", "Queues VertexBasic mesh data", address, DisaRenderObjectManager::FUN_00425df0_submitVertexBasicStd);
+        }
+        for (unsigned int address : { 0x00440db5u, 0x0046c2aeu, 0x0046c48bu, 0x004cf9c8u, 0x004f00f8u, 0x004fda63u }) {
+            replaceFunction("submitSolidColor", "Queues untextured VertexSolidColor mesh data", address, DisaRenderObjectManager::FUN_00426040_submitSolidColorStd);
+        }
+        for (unsigned int address : { 0x00420ca7u, 0x0042a3c6u, 0x0042aa54u, 0x0042cc96u, 0x0042fd60u, 0x0042fdd0u, 0x004a4f1fu, 0x004a4f47u, 0x004fdfccu }) {
+            replaceFunction("submitDisplayList", "Queues a GL display list", address, DisaRenderObjectManager::FUN_00426200_submitDisplayListStd);
+        }
+        for (unsigned int address : { 0x004f0f2du, 0x004f126au }) {
+            replaceFunction("submitVertexBasicNormalMap", "Queues VertexBasic mesh data with a normal map", address,
+                DisaRenderObjectManager::FUN_00426350_submitVertexBasicNormalMapStd);
+        }
+        {
+            auto f = &DisaRenderObjectManager::FUN_00426530_submitVertexWithNormal;
+            unsigned int i = *((unsigned int*)&f);
+            for (unsigned int address : { 0x004f0f08u, 0x004f12dfu, 0x004f34efu }) {
+                replaceFunction("submitVertexWithNormal", "Queues VertexWithNormal mesh data", address, i);
+            }
+        }
+        replaceFunction("submitVertexWithNormalRef", "Queues VertexWithNormal mesh data with two textures", 0x004f0293,
+            DisaRenderObjectManager::FUN_004f3450_submitVertexWithNormalRefStd);
+
         {
             auto f = &DisaObjectModel::FUN_004e2180;
             unsigned int i = *((unsigned int*)&f);

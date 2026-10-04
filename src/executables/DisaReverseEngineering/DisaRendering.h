@@ -103,6 +103,24 @@ struct DisaTextureSPtr {
             texParamters->wrapMode = 1; //1 is never used and will be GL_CLAMP
         }
     }
+
+    /// Pointers outside 0x10001 to 0xEFFFFFFF are marker values, the game never counts or frees them.
+    static bool isCounted(const DisaTextureSPtr* texture);
+    /**
+    * @brief Drops one reference and frees the texture when it was the last one.
+    * Original function: FUN_0041E5C0
+    */
+    static void FUN_0041e5c0_release(DisaTextureSPtr* texture);
+    /**
+    * @brief Takes a reference to source, stores it in target and releases what target held before.
+    * Original function: FUN_0041E560
+    */
+    static void FUN_0041e560_assign(DisaTextureSPtr*& target, DisaTextureSPtr* source);
+    /**
+    * @brief Releases what target holds and sets it to nullptr.
+    * Original function: FUN_004275B0
+    */
+    static void FUN_004275b0_reset(DisaTextureSPtr*& target);
 };
 
 /**
@@ -179,27 +197,115 @@ struct DisaRenderObjectManager {
     inline auto getRenderObjectList() {
         return std::ranges::subrange(m_renderObjectList.begin(), std::next(m_renderObjectList.begin(), m_renderObjectListSize));
     }
-    /**
-    * @brief Will add a new render object that uses VertexBasic as its mesh type
-    * Original function: FUN_00425df0
-    * @param customData If set to true then the mesh data will directly be send to renderer wihtout checking if it needs to be moved into game buffer 
+    /*
+    * The submit functions below fill the next free slot of the current render block and append it to the render
+    * list, or draw it right away while m_skipGlSetup is set. Nothing is queued while the scene does not draw or
+    * the block holds 2048 objects. Fields a submit does not write keep the value of the slot, which is zero after
+    * the per frame reset (FUN_00425CC0).
+    *
+    * Every member that has a free stdcall original also has a static Std version with the exact original stack
+    * layout. Only those are used to replace call sites of the game. Textures are borrowed by the members, the
+    * reference the originals take by value is released by the Std version.
+    *
+    * depthMaskDisabled is true for translucent objects, they are drawn without writing depth.
     */
-    void submitVertexBasic(float depth, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-        float poligonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint, bool customData);
 
-    void submitCustomModel(float depth, int modelIndex, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint);
+    /**
+    * @brief Queues VertexBasic mesh data with one texture.
+    * Original function: FUN_00425df0
+    * @param vertices Copied into the current render block unless they already live there.
+    */
+    void FUN_00425df0_submitVertexBasic(float depth, DisaTextureSPtr* texture, VertexBasic* vertices, int vertexCount, short primitiveType, int blendMode, glm::mat4* modelMatrix,
+        bool isPerspective, bool depthMaskDisabled, float polygonOffset, int stencilMode, uint8_t stencilRef, bool useColorTint);
+    /// Call site replacement for FUN_00425df0. Releases the texture reference the original takes by value.
+    static void __stdcall FUN_00425df0_submitVertexBasicStd(float depth, DisaTextureSPtr* texture, VertexBasic* vertices, int vertexCount, short primitiveType, int blendMode,
+        glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset, int stencilMode, uint8_t stencilRef, bool useColorTint);
+    /**
+    * @brief FUN_00425df0_submitVertexBasic for mesh data owned by the caller, not part of the game.
+    * The vertices are used in place and never copied, so they have to stay alive until the frame is rendered.
+    */
+    void submitVertexBasicCustom(float depth, DisaTextureSPtr* texture, VertexBasic* vertices, int vertexCount, short primitiveType, int blendMode, glm::mat4* modelMatrix,
+        bool isPerspective, bool depthMaskDisabled, float polygonOffset, int stencilMode, uint8_t stencilRef, bool useColorTint);
+
+    /**
+    * @brief Queues untextured VertexSolidColor mesh data.
+    * Original function: FUN_00426040. Always writes depth, clears the stencil settings and leaves useColorTint as the slot holds it.
+    */
+    void FUN_00426040_submitSolidColor(float depth, VertexSolidColor* vertices, int vertexCount, short primitiveType, int blendMode, glm::mat4* modelMatrix, bool isPerspective,
+        float polygonOffset);
+    /**
+    * @brief Call site replacement for FUN_00426040.
+    * The unused slots keep the parameter list of FUN_00425df0. Callers reserve them but never write them, so they hold garbage.
+    */
+    static void __stdcall FUN_00426040_submitSolidColorStd(float depth, VertexSolidColor* vertices, int vertexCount, short primitiveType, int blendMode, glm::mat4* modelMatrix,
+        bool isPerspective, int unusedDepthMask, float polygonOffset, int unusedStencilMode, int unusedStencilRef);
+
     /**
     * @brief Queues an object that calls a compiled GL display list. Draws it right away while m_skipGlSetup is set.
-    * Original function: FUN_00426200, a stdcall with two more stack arguments that are never read.
+    * Original function: FUN_00426200. Leaves texture, blend mode and primitive type as the slot holds them.
     * @param color Handed to glColor4ubv before the list is called.
     */
     void FUN_00426200_submitDisplayList(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset);
+    /// Call site replacement for FUN_00426200. The last two slots are never read.
+    static void __stdcall FUN_00426200_submitDisplayListStd(float depth, uint32_t listId, uint32_t color, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled,
+        float polygonOffset, int unusedArg8, int unusedArg9);
+
+    /**
+    * @brief Queues VertexBasic mesh data with a color texture and a normal map.
+    * Original function: FUN_00426350. Always perspective, writes depth, no color tint and no stencil.
+    * The vertices are not copied while m_skipGlSetup is set.
+    * @param textures [0] color texture, [1] normal map. Borrowed, the original takes no reference to the array.
+    */
+    void FUN_00426350_submitVertexBasicNormalMap(float depth, DisaTextureSPtr* const* textures, VertexBasic* vertices, int vertexCount, short primitiveType, int blendMode,
+        glm::mat4* modelMatrix, float polygonOffset);
+    /// Call site replacement for FUN_00426350. The unused slots keep the parameter list of FUN_00425df0.
+    static void __stdcall FUN_00426350_submitVertexBasicNormalMapStd(float depth, DisaTextureSPtr* const* textures, VertexBasic* vertices, int vertexCount, short primitiveType,
+        int blendMode, glm::mat4* modelMatrix, int unusedPerspective, int unusedDepthMask, float polygonOffset, int unusedStencilMode, int unusedStencilRef, int unusedColorTint);
+
+    /**
+    * @brief Queues VertexWithNormal mesh data with a color texture and a normal map.
+    * Original function: FUN_00426530, a thiscall, so this member replaces call sites directly.
+    * The vertices are not copied while m_skipGlSetup is set, and the immediate draw computes modelViewMatrix itself.
+    * @param textures [0] color texture, [1] normal map. Borrowed.
+    */
+    void FUN_00426530_submitVertexWithNormal(float depth, DisaTextureSPtr* const* textures, VertexWithNormal* vertices, int vertexCount, short primitiveType, int blendMode,
+        glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset, int stencilMode, uint8_t stencilRef, bool useColorTint);
+
+    /**
+    * @brief FUN_00426530_submitVertexWithNormal with the two textures given one by one.
+    * Original function: FUN_004f3450. Holds an own reference to both textures for the duration of the call.
+    */
+    void FUN_004f3450_submitVertexWithNormalRef(float depth, DisaTextureSPtr* texture, DisaTextureSPtr* normalMap, VertexWithNormal* vertices, int vertexCount, short primitiveType,
+        int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset, int stencilMode, uint8_t stencilRef, bool useColorTint);
+    /// Call site replacement for FUN_004f3450. Releases both texture references the original takes by value.
+    static void __stdcall FUN_004f3450_submitVertexWithNormalRefStd(float depth, DisaTextureSPtr* texture, DisaTextureSPtr* normalMap, VertexWithNormal* vertices,
+        int vertexCount, short primitiveType, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskDisabled, float polygonOffset, int stencilMode,
+        uint8_t stencilRef, bool useColorTint);
+
+    void submitCustomModel(float depth, int modelIndex, int blendMode, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled, float poligonOffset, int stencilMode, unsigned char stencilRef, bool useColorTint);
     /**
     * @brief Bump allocator in the 1 MiB block of the current render block, freed when the block is reset.
     * Original function: FUN_00425bb0
     * @return nullptr when the block is full.
     */
     void* FUN_00425bb0_allocFrameMemory(uint32_t bytes);
+
+private:
+    /**
+    * @brief Gate and slot shared by every submit. Writes depth, sortBias and the projection selector.
+    * @return nullptr when the scene does not draw or the current block is full.
+    */
+    DisaRenderObject* acquireRenderObject(float depth);
+    /// Render flags of the current scope, the global depth test, and the matrix overrides of the manager.
+    void inheritScope(DisaRenderObject* object) const;
+    /// The vertices when they already live in the current render block, otherwise a copy in frame memory.
+    float* keepMeshData(void* vertices, uint32_t bytes);
+    /// Appends the object to the render list and counts it in its block.
+    void queueRenderObject(DisaRenderObject* object);
+    /// Immediate draw while m_skipGlSetup is set. The slot is not counted, so the next submit reuses it.
+    void drawRenderObjectNow(DisaRenderObject* object, int blendMode);
+    void submitVertexBasic(float depth, DisaTextureSPtr* texture, VertexBasic* vertices, int vertexCount, short primitiveType, int blendMode, glm::mat4* modelMatrix,
+        bool isPerspective, bool depthMaskDisabled, float polygonOffset, int stencilMode, uint8_t stencilRef, bool useColorTint, bool copyVertices);
 };
 
 /**
@@ -290,8 +396,3 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 * @brief Render objects
 */
 void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int param_2, bool depthTestEnabled);
-/**
-* @brief Submit render data to render queue
-*/
-void __stdcall FUN_00425df0_SubmitVertexBasic(float param_1, int* textureDataPtr, void* geometryData, int triangleCount, short sizeUniforms, int param_6, glm::mat4* modelMatrix, bool isPerspective, bool depthMaskEnabled,
-    float poligonOffset, int param_11, bool param_12, bool useColorTint);
