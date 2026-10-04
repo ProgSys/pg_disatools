@@ -289,7 +289,7 @@ void __fastcall FUN_00427c30_makeHeap(DisaRenderObject** begin, DisaRenderObject
 /**
 * @brief Render objects
 */
-void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int param_2, bool depthTestEnabled);
+void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int param_2, bool depthTestEnabled);
 /**
 * @brief Submit render data to render queue
 */

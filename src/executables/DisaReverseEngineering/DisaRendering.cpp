@@ -249,7 +249,7 @@ static inline glm::mat4* getProjectionMatrix(DisaRenderObjectManager* memoryRend
     return projectionMat;
 }
 
-void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bool depthTestEnabled) {
+void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int visibleBitMask, bool depthTestEnabled) {
 
     DisaRenderObjectManager* memoryRenderManager = FP::getData<DisaRenderObjectManager*>(0x005bb02c);
     DisaCustomRenderManager::get()->init();
@@ -933,7 +933,7 @@ void FUN_00509300_RenderFrame() {
     FP::callStdFarA(0x00422320, true); //usePointLight
     if (useShadows) {
         shadowMap->bind(1);
-        FUN_00426770(RenderPass_ShadowDepth, 0x1091, false);
+        FUN_00426770_RenderObjects(RenderPass_ShadowDepth, 0x1091, false);
         shadowMap->unbind();
 
         glm::mat4* shadowMatrices = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint8_t*>(shadowMap) + 0x30);
@@ -945,14 +945,14 @@ void FUN_00509300_RenderFrame() {
         shadowMap->bind(2);
         sceneTarget->bind(1);
         shadowMap->bindTextures(-1);
-        FUN_00426770(RenderPass_Scene, 0x18d1, true);
+        FUN_00426770_RenderObjects(RenderPass_Scene, 0x18d1, true);
         sceneTarget->unbind();
         if (useDepthOfField) FP::callStdFarA(0x004231b0); //autofocus into m_focusZ
         shadowMap->unbind();
     }
     else {
         sceneTarget->bind(1);
-        FUN_00426770(RenderPass_Scene, 0x18d1, true);
+        FUN_00426770_RenderObjects(RenderPass_Scene, 0x18d1, true);
         sceneTarget->unbind();
         if (useDepthOfField) FP::callStdFarA(0x004231b0);
     }
@@ -963,14 +963,14 @@ void FUN_00509300_RenderFrame() {
         uploadSsaoSamplePoints();
         sceneTarget->bindTextures(-1);
         effectTarget->bind(1);
-        FUN_00426770(RenderPass_SSAO, 0xe, false);
+        FUN_00426770_RenderObjects(RenderPass_SSAO, 0xe, false);
         effectTarget->unbind();
 
         FP::callStdFarA(0x004220e0, true); //useBlurToAll
         uploadSsaoSamplePoints();
         effectTarget->bindTextures(3);
         effectTarget->bind(3);
-        FUN_00426770(RenderPass_Blur, 0xe, false);
+        FUN_00426770_RenderObjects(RenderPass_Blur, 0xe, false);
         effectTarget->unbind();
         FP::callStdFarA(0x004220e0, false);
 
@@ -978,25 +978,25 @@ void FUN_00509300_RenderFrame() {
         sceneTarget->bindTextures(-1);
         effectTarget->bindTextures(-1);
         sceneTarget->bind(3);
-        FUN_00426770(RenderPass_SSAOComposite, 0xe, false);
+        FUN_00426770_RenderObjects(RenderPass_SSAOComposite, 0xe, false);
         sceneTarget->unbind();
         FP::callStdFarA(0x00422140, false, 0);
     }
 
     sceneTarget->bind(3);
-    FUN_00426770(RenderPass_Default, 0x100, false);
+    FUN_00426770_RenderObjects(RenderPass_Default, 0x100, false);
     sceneTarget->unbind();
 
     EDisaRenderPass postPass = RenderPass_Default;
     sceneTarget->bind(3);
     if (!usePositionBlur && !useDepthOfField) {
-        FUN_00426770(RenderPass_Default, 0x2429, true);
+        FUN_00426770_RenderObjects(RenderPass_Default, 0x2429, true);
         sceneTarget->unbind();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         sceneTarget->bindTextures(0);
     }
     else {
-        FUN_00426770(RenderPass_Default, 0x2409, true);
+        FUN_00426770_RenderObjects(RenderPass_Default, 0x2409, true);
         sceneTarget->unbind();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -1013,7 +1013,7 @@ void FUN_00509300_RenderFrame() {
         else postPass = RenderPass_DepthOfField;
     }
     //stretches the scene target over the window
-    FUN_00426770(postPass, 0xe, false);
-    FUN_00426770(RenderPass_Default, 0x3a, true);
+    FUN_00426770_RenderObjects(postPass, 0xe, false);
+    FUN_00426770_RenderObjects(RenderPass_Default, 0x3a, true);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
