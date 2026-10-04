@@ -1871,6 +1871,163 @@ void __fastcall FUN_004ef8a0(DisaObjectModel* context, glm::mat4* modelMatrix) {
     }
 }
 
+/// The per frame allocator FUN_004ef8a0 inlines twice. Returns nullptr when the active bank has no buffer.
+static byte* FUN_004ef8a0_allocFrameMemory(uint32_t bytes) {
+    byte* slot = (&FP::getData<byte*>(0x005bae88))[FP::getData<int>(0x005bae84)];
+    if (!slot) return FP::callStdFarA<byte*>(0x00425c10, 0x20, bytes);
+
+    const uint32_t bank = *(uint32_t*)(slot + 0x20) >> 0x1d & 1;
+    if (*(int*)(slot + 0x08 + bank * 4) == 0) return nullptr;
+
+    const uint32_t offset = *(uint32_t*)(slot + bank * 4) + 0x1f & 0xffffffe0; //32 byte aligned
+    *(uint32_t*)(slot + bank * 4) = offset + bytes;
+    return *(byte**)(slot + 0x10 + bank * 4) + offset;
+}
+
+/**
+* @brief FUN_0046ab50, packs the truncated surface color into RGBA bytes.
+* If any RGB channel is above 255, all three are clamped to 511 and halved, keeping the hue. Alpha is clamped alone.
+*/
+static uint32_t FUN_0046ab50_packColor(int r, int g, int b, int a) {
+    const uint32_t divisor = r > 0xff || g > 0xff || b > 0xff ? 2 : 1;
+    const auto channel = [divisor](int value) { return (uint32_t)(uint8_t)((uint32_t)std::min(value, 0x1ff) / divisor); };
+    const uint32_t alpha = a > 0xff ? 0xff : (uint8_t)a;
+    return channel(r) | channel(g) << 8 | channel(b) << 16 | alpha << 24;
+}
+
+/**
+* @brief The uv scroll step of FUN_004ef8a0.
+* @param firstUV First uv of the animated surface. The scroll wraps by one when it lands outside [0,1].
+*/
+static void FUN_004ef8a0_advanceUVScroll(DisaObjectModel* self, const glm::vec2& firstUV) {
+    DisaObjectScrollInfo* scroll = self->m_uvScrollObject;
+    const double factor = FP::getData<double>(0x00598258); //0.0007326
+
+    self->m_uvScrollSpeed = glm::vec2(*scroll->uvScrollSpeedX, *scroll->uvScrollSpeedY);
+    *scroll->uvScrollX = (float)(self->m_uvScrollSpeed.x * factor + *scroll->uvScrollX);
+    *scroll->uvScrollY = (float)(self->m_uvScrollSpeed.y * factor + *scroll->uvScrollY);
+    self->m_uvScroll = glm::vec2(*scroll->uvScrollX, *scroll->uvScrollY);
+
+    const glm::vec2 first = self->m_uvScroll + firstUV;
+    if (first.x < 0.f || first.x > 1.f) {
+        self->m_uvScroll.x += first.x > 1.f ? -1.f : 1.f;
+        *scroll->uvScrollX = self->m_uvScroll.x;
+    }
+    if (first.y < 0.f || first.y > 1.f) {
+        self->m_uvScroll.y += first.y > 1.f ? -1.f : 1.f;
+        *scroll->uvScrollY = self->m_uvScroll.y;
+    }
+}
+
+/**
+* @brief FUN_004ef8a0 as close to the game's code as possible, without any memory reuse.
+* @details Surfaces are merged into batches by texture and additive mode in first seen order. Each textured batch is
+* copied into frame memory and submitted once. Untextured surfaces get their own memory and are submitted one by one.
+* A batch goes to the translucent layer (45000, no depth writes) when its last surface is additive or has alpha <= 128.
+*/
+void __fastcall FUN_004ef8a0_original(DisaObjectModel* context, glm::mat4* modelMatrix) {
+    DisaObjectModel* self = context->m_self;
+    const glm::frgba* colorMultiplier = context->m_colorMultiplier;
+    const auto surfaces = std::ranges::subrange(self->m_geofileSurfaces, self->m_geofileSurfaces + self->m_numberOfSurfaces);
+
+    struct Batch {
+        int textureIndex; /// 1 based, 0 is untextured
+        int additive;
+        int length;
+    };
+    std::vector<Batch> batches;
+    for (const geofileSurface& surface : surfaces) {
+        auto batchIt = std::ranges::find_if(batches, [&surface](const Batch& batch) { return batch.textureIndex == surface.index && batch.additive == surface.additive; });
+        if (batchIt == batches.end()) {
+            batches.push_back({ surface.index, surface.additive, surface.length });
+        }
+        else {
+            batchIt->length += surface.length;
+        }
+    }
+
+    constexpr auto toBlendMode = [](int additive) { return additive == 1 || additive == 2 ? additive : -1; };
+    constexpr auto lockSptr = [](int* sptr) -> int* {
+        if (sptr && ((int)sptr - 0x10001U < 0xeffeffff)) {
+            *sptr = *sptr + 1;
+        }
+        return sptr;
+    };
+
+    bool scrolled = false; //the uv scroll advances once per call, on the first animated textured surface
+    for (const Batch& batch : batches) {
+        const int textureSlot = batch.textureIndex - 1;
+        const bool hasNormalMap = textureSlot >= 0 && self->m_textures[batch.textureIndex]->hasNormal;
+
+        //untextured batches get memory too, it stays unused
+        byte* memory = FUN_004ef8a0_allocFrameMemory(batch.length * (hasNormalMap ? sizeof(VertexWithNormal) : sizeof(VertexBasic)));
+        if (!memory) continue; //the original writes to it anyway and crashes
+
+        bool translucent = false;
+        int totalLength = 0;
+        uint32_t vertexStart = 0;
+        for (const geofileSurface& surface : surfaces) {
+            const uint32_t surfaceStart = vertexStart;
+            vertexStart += surface.length;
+            if (surface.index != batch.textureIndex || surface.additive != batch.additive) continue;
+
+            const uint32_t color = FUN_0046ab50_packColor(
+                (int)(colorMultiplier->r * (double)surface.rMult),
+                (int)((double)surface.gMult * colorMultiplier->g),
+                (int)((double)surface.bMult * colorMultiplier->b),
+                (int)((double)surface.aMult * self->m_alphaScale * colorMultiplier->a));
+            const glm::vec3* positions = self->m_triangles + surfaceStart;
+            const glm::vec2* uvs = self->m_uvs + surfaceStart;
+
+            const DisaObjectScrollInfo* scroll = self->m_uvScrollObject;
+            if (!scrolled && surface.animated && textureSlot >= 0 && (scroll->uvScrollSpeedX || scroll->uvScrollSpeedY)) {
+                scrolled = true;
+                FUN_004ef8a0_advanceUVScroll(self, *uvs);
+            }
+
+            if (textureSlot < 0) {
+                auto* vertices = (VertexSolidColor*)FUN_004ef8a0_allocFrameMemory(surface.length * sizeof(VertexSolidColor));
+                if (!vertices) continue;
+                for (uint32_t i = 0; i < surface.length; ++i) {
+                    vertices[i] = { color, positions[i] };
+                }
+                FP::callStdFarA(0x00426040, 41000.f, vertices, (int)surface.length, 3, toBlendMode(surface.additive), modelMatrix, 1, 0, 0.f, 0, 0);
+                continue;
+            }
+
+            translucent = color >> 24 <= 0x80 || surface.additive != 0;
+            if (self->m_textures[surface.index]->hasNormal) {
+                VertexWithNormal* vertices = (VertexWithNormal*)memory + totalLength;
+                const glm::vec3* tangents = self->m_tangentAndBitangent + surfaceStart * 2;
+                for (uint32_t i = 0; i < surface.length; ++i) {
+                    vertices[i] = { uvs[i] + self->m_uvScroll, color, positions[i], tangents[i * 2], tangents[i * 2 + 1] };
+                }
+            }
+            else {
+                VertexBasic* vertices = (VertexBasic*)memory + totalLength;
+                for (uint32_t i = 0; i < surface.length; ++i) {
+                    vertices[i] = { uvs[i] + self->m_uvScroll, color, positions[i] };
+                }
+            }
+            totalLength += surface.length;
+        }
+
+        if (batch.length <= 0 || totalLength <= 0 || textureSlot < 0) continue;
+
+        const float depth = translucent ? 45000.f : 41000.f;
+        const int blendMode = toBlendMode(batch.additive);
+        if (hasNormalMap) {
+            int* textureHD = lockSptr(self->m_textureHDDatas[textureSlot]);
+            int* textureSD = lockSptr(self->m_textureDatas[textureSlot]);
+            FP::callStdFarA(0x004f3450, depth, textureSD, textureHD, memory, totalLength, 3, blendMode, modelMatrix, 1, (int)translucent, context->m_poligonOffset, 0, 0, 0);
+        }
+        else {
+            int* textureSD = lockSptr(self->m_textureDatas[textureSlot]);
+            FP::callStdFarA(0x00425df0, depth, textureSD, memory, totalLength, 3, blendMode, modelMatrix, 1, (int)translucent, context->m_poligonOffset, 0, 0, 0);
+        }
+    }
+}
+
 void __thiscall DisaObjectModel::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba* colorMultiplier, uint32_t param_3, float poligonOffset) {
     //no need to render geometry if its alpha is zero
     if (glm::isnan(colorMultiplier->a) || colorMultiplier->a == 0.f) return;
@@ -1880,13 +2037,11 @@ void __thiscall DisaObjectModel::FUN_004e2180(glm::mat4* modelMatrix, glm::frgba
     m_self = this;
     m_poligonOffset = poligonOffset;
 
-    //create problems with particle systems
-    //@todo better to switch to custom models
-    static bool customFunction = true;
-    if (customFunction) {
-        FUN_004ef8a0(this, modelMatrix);
-    }
-    else {
-        FP::callFastFarA(0x004ef8a0, this, modelMatrix); //original
+    //0 game code, 1 recreation with memory reuse (breaks particle systems), 2 recreation without optimizations
+    static int renderFunction = 2;
+    switch (renderFunction) {
+        case 0: FP::callFastFarA(0x004ef8a0, this, modelMatrix); break;
+        case 1: FUN_004ef8a0(this, modelMatrix); break;
+        default: FUN_004ef8a0_original(this, modelMatrix); break;
     }
 }

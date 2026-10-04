@@ -862,7 +862,7 @@ void FUN_00509300_RenderFrame() {
     DisaRenderTarget* shadowMap = FP::getData<DisaRenderTarget*>(0x008b7dc4);
     DisaRenderTarget* sceneTarget = FP::getData<DisaRenderTarget*>(0x008b7dc8);
     DisaRenderTarget* effectTarget = FP::getData<DisaRenderTarget*>(0x008b7dcc);
-    DisaCustomRenderManager::get()->init();
+    DisaCustomRenderManager::get()->init(); //custom code
 
     bool useShadows = false;
     if (settings) {

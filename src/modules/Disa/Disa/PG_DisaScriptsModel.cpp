@@ -6,6 +6,7 @@
 #include <Disa/models/PG_DisaMainModel.h>
 #include <Disa/PG_DisaTalkCompiler.h>
 #include <Stream/PG_StreamInByteFile.h>
+#include <Stream/PG_StreamInByteArray.h>
 #include <Util/Debug/PG_DebugOut.h>
 
 using namespace PG_JsonUtil;
@@ -157,6 +158,7 @@ int PG_DisaScriptsModel::readTalkScript(unsigned char*& dataLocation, const PG_D
 static inline std::string opCodeToComment(unsigned char op) {
 	switch (op)
 	{
+	case 0x00: return "Error";
 	case 0x01: return "Sleep";
 	case 0x02: return "Return";
 	case 0x03: return "RepeatStart";
@@ -164,24 +166,91 @@ static inline std::string opCodeToComment(unsigned char op) {
 	case 0x05: return "LockUser";
 	case 0x06: return "UnlockUser";
 	case 0x07: return "If";
+	case 0x08: return "SetFlag";
 	case 0x09: return "Nop";
-	case 0x0A: return "FadeOut";
+	case 0x0A: return "SetFade";
+	case 0x0B: return "SleepSkippable";
+	case 0x0C: return "ShakeScreen";
+	case 0x0E: return "SetFadeColor";
 	case 0x11: return "LoadTalkScript";
 	case 0x12: return "RunScript";
+	case 0x15: return "SetDungeon";
+	case 0x16: return "EnterDungeon";
+	case 0x17: return "LoadDungeonGeometry";
+	case 0x18: return "WaitForMapLoad";
+	case 0x1B: return "SetScreenColor";
+	case 0x1C: return "SetActorRawPos";
+	case 0x23: return "ClearActorData";
+	case 0x24: return "SetRenderGroup";
 	case 0x27: return "SetCursorPos";
-	case 0x29: return "SetCameraZoom";
 	case 0x28: return "SetCameraMode";
+	case 0x29: return "SetCameraZoom";
+	case 0x2A: return "RotateCamera";
+	case 0x2B: return "SetCameraFOV";
 	case 0x2C: return "SetCameraPos";
+	case 0x2D: return "SetActorGravity";
 	case 0x2E: return "SetCameraRotation";
+	case 0x32: return "Text";
+	case 0x33: return "ClearText";
+	case 0x34: return "WaitForUser";
+	case 0x37: return "ShowText";
+	case 0x38: return "ResetTextScroll";
+	case 0x39: return "LoadPortrait";
+	case 0x3A: return "ShowPortrait";
+	case 0x46: return "SetUnitField";
+	case 0x4E: return "SpawnPartyMember";
+	case 0x4F: return "AddPartyMember";
+	case 0x50: return "AddMoney";
+	case 0x51: return "GiveItem";
+	case 0x53: return "RequestTalk";
+	case 0x54: return "WaitForFlag";
+	case 0x55: return "WaitForPortrait";
+	case 0x5A: return "LoadData";
+	case 0x5C: return "SetTextColor";
+	case 0x61: return "RunScriptOnActor";
+	case 0x64: return "MoveActor";
 	case 0x65: return "SetActorPos";
+	case 0x66: return "SetActorAnimation";
 	case 0x67: return "SetActorAnimationSet";
+	case 0x68: return "ContinueActorAnimation";
+	case 0x69: return "SetActorGroup";
+	case 0x6A: return "SetActorPoseDir";
+	case 0x6B: return "SetActorAnimationMode";
 	case 0x6D: return "SetActor";
-	case 0x73: return "RotateActor";
+	case 0x6E: return "SetActorSprite";
+	case 0x6F: return "PlayEffect";
+	case 0x70: return "SetMapTile";
+	case 0x71: return "PlayAimedEffect";
+	case 0x72: return "PlayEffectEx";
+	case 0x73: return "setActorRotation";
+	case 0x74: return "PlayAimedEffectEx";
+	case 0x77: return "OrbitActor";
+	case 0x78: return "DoAction";
+	case 0x79: return "SetActorFlag";
 	case 0x7A: return "SetMultRGBA";
+	case 0x7B: return "SetActorPalette";
+	case 0x82: return "LoadStream";
+	case 0x83: return "PlayStream";
 	case 0x87: return "PlayVoice";
+	case 0x88: return "StopVoice";
 	case 0x8C: return "PlaySound";
+	case 0x8D: return "FadeSoundVolume";
 	case 0x91: return "PlayBGM";
+	case 0x92: return "FadeBGM";
+	case 0x93: return "PlayBGMDirect";
+	case 0x94: return "PlayBGMWait";
+	case 0x95: return "PlayBGMAt";
+	case 0x98: return "SetUnitScript";
 	case 0xC8: return "RunFunction";
+	case 0xC9: return "SetSceneMode";
+	case 0xCA: return "SetActorFlag2";
+	case 0xCB: return "SetActorDepth";
+	case 0xCC: return "PlayEffectId";
+	case 0xCD: return "PlayAimedEffectId";
+	case 0xCE: return "PlayEffectExId";
+	case 0xCF: return "PlayAimedEffectExId";
+	case 0xD0: return "SetEffectParam";
+	case 0xD1: return "SetEffectValue";
 	default:
 		break;
 	}
@@ -291,6 +360,20 @@ std::string PG_DisaScriptsModel::scriptToString(unsigned int* dataLocation) cons
 	std::stringstream ss;
 	printScript((unsigned char*)dataLocation, ss);
 	return ss.str();
+}
+
+std::string PG_DisaScriptsModel::talkScriptToString(unsigned char* dataLocation) const {
+	size_t size = 0;
+	auto* at = dataLocation;
+	while ((*at != 0xFF || *at != 0xFE) && size < 19000) { ++at; ++size; }
+	
+	PG::STREAM::InByteArray stream((char*)dataLocation, size);
+	try {
+		return PG_DisaTalkScript::decompile(&stream);
+	}
+	catch (...) {
+		return {};
+	}
 }
 
 PG_DisaScriptsModel::ScriptInfo g_emtpy;

@@ -47,6 +47,7 @@ public:
 	}
 
 	std::string scriptToString(unsigned int* dataLocation) const;
+	std::string talkScriptToString(unsigned char* dataLocation) const;
 
 	const ScriptInfo& getScriptInfo(unsigned int index);
 	const ScriptInfo& getTalkScriptInfo(unsigned int index);

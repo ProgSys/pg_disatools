@@ -428,7 +428,7 @@ struct CommandTerminal {
         }
         else if (msg == "ps" || msg == "printScript") {
             if (split.size() != 2) {
-                std::cout << "Error: printScript needs arguments!" << std::endl;
+                std::cout << "Error: printScript needs arguments! Id and optional target." << std::endl;
                 return;
             }
             auto args = PG_StringUtil::split(split.back(), ",");
@@ -449,6 +449,30 @@ struct CommandTerminal {
             }
             else {
                 OUT_INFO("Script: \"" << args[0]<<"\"");
+                std::cout << script << std::endl;
+            }
+        }
+        else if (msg == "pts" || msg == "printTalkScript") {
+            if (split.size() != 2) {
+                std::cout << "Error: printScript needs arguments! Id and optional target." << std::endl;
+                return;
+            }
+            auto args = PG_StringUtil::split(split.back(), ",");
+            if (args.empty()) return;
+            auto* manager = DisaCustomScriptManager::get();
+            unsigned char* data = nullptr;
+            manager->PG_DisaScriptsModel::readTalkScript(data, PG_DisaIdentifier(args[0]));
+            if (!data) {
+                std::cout << "Script: \"" << args[0] << "\" not found!" << std::endl;
+                return;
+            }
+            const std::string script = manager->PG_DisaScriptsModel::talkScriptToString(data);
+            if (args.size() == 2 && (args.back() == "c" || args.back() == "clipboard")) {
+                OUT_INFO("Talk Script \"" << args[0] << "\" added to clipboard!");
+                OS::Clipboard::textToClipboard(script);
+            }
+            else {
+                OUT_INFO("Talk Script: \"" << args[0] << "\"");
                 std::cout << script << std::endl;
             }
         }
