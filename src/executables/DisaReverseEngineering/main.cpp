@@ -76,6 +76,7 @@ struct HockManager {
         replaceFunctionIndirectCall("glViewportPointer", "", 0x00420396, FUN_glViewportPointer); //render begin
         replaceFunctionIndirectCall("glDrawArraysPointer", "", 0x0042111c, FUN_glDrawArraysPointer); //render begin
 
+        replaceFunction("renderFrame", "Renders the frame through the render targets", 0x00508ea0, FUN_00509300_RenderFrame);
         replaceFunction("renderObjects", "The main render layer function", 0x00508ead, FUN_00426770);
         replaceFunction("renderObjects", "The main render layer function", 0x00509d1f, FUN_00426770);
         replaceFunction("renderObjects", "The main render layer function", 0x005099e2, FUN_00426770);

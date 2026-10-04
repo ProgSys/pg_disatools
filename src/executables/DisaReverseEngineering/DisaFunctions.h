@@ -106,12 +106,15 @@ struct DisaSettings {
     unsigned char field_0x21; //new/old text
     unsigned char field_0x22; //new/old cursor
     bool isHDTextures; //0x23
-    unsigned int field_0x24;
-    unsigned char field_0x28;
-    unsigned char field_0x29;
-    unsigned char field_0x2a;
+    unsigned int shadowMapQuality;
+    unsigned char isUsePositionBlur;
+    unsigned char isUseDepthOfField;
+    unsigned char isUseSsao;
     unsigned char field_0x2b;
-    unsigned int field_0x2c;
+    unsigned char field_0x2c;
+    unsigned char field_0x2d;
+    unsigned char field_0x2e;
+    unsigned char field_0x2f;
     unsigned int field_0x30; //new/old ui style
     std::array<unsigned char, 76> field_0x34; //unknown
     std::array<unsigned char, 31> assignedKeys; //0x80 List of assigned keys by user (navigate UI, gameplay and so on), see KeyAssigned

@@ -219,6 +219,57 @@ enum EDisaRenderPass : int {
 };
 
 /**
+* @brief An off screen render target, the class the game calls CGraRenderMap.
+* The scene (0x008B7DC8) and effect (0x008B7DCC) targets use this layout. The shadow map
+* (0x008B7DC4) is its own class with the same vtable slots, size 0xF0, and keeps its view,
+* projection and light modelview matrices at 0x30, 0x70 and 0xB0.
+* Total size: 0x30
+*/
+struct DisaRenderTarget {
+    void** m_vtable;              // 0x00
+    uint32_t m_colorTexture;      // 0x04
+    int m_textureUnit;            // 0x08 - index into the GL_TEXTUREi table at 0x00531698
+    int m_width;                  // 0x0c
+    int m_height;                 // 0x10
+    int m_bindMode;               // 0x14 - mode of the last bind, 0 when unbound
+    uint32_t m_framebuffer;       // 0x18
+    uint32_t m_depthRenderbuffer; // 0x1c
+    uint32_t m_depthTexture;      // 0x20 - bound to GL_TEXTURE4
+    float m_focusZ;               // 0x24 - average centre depth, written by FUN_004231B0
+    uint32_t m_colorTexture1;     // 0x28 - second draw buffer, bound to GL_TEXTURE5
+    uint32_t m_colorTexture2;     // 0x2c - third draw buffer, bound to GL_TEXTURE6
+
+    /// Creates the GL names. Vtable slot 0x08, FUN_00422A00 for the scene target.
+    void generate();
+    /// Deletes the GL names and zeroes them. Vtable slot 0x0C, FUN_00422A50 for the scene target.
+    void release();
+    /**
+    * @brief Allocates the textures and attaches them to the framebuffer.
+    * Vtable slot 0x10, FUN_00422C60 for the scene target.
+    */
+    void allocate(int width, int height);
+    /**
+    * @brief Binds the framebuffer and sets the viewport. Vtable slot 0x14, FUN_00422F90 for the scene target.
+    * @param mode 1 uses the target size and clears color and depth, 2 uses the window size, 3 uses the target size and keeps the content.
+    */
+    void bind(int mode);
+    /// Returns to the default framebuffer with a window sized viewport. Vtable slot 0x18, FUN_00423040.
+    void unbind();
+    /**
+    * @brief Binds the target textures for sampling. Vtable slot 0x1C, FUN_00423120 for the scene target.
+    * @param unit Texture unit of the color texture, -1 uses m_textureUnit.
+    */
+    void bindTextures(int unit);
+};
+
+/**
+* @brief Renders one frame through the render targets: shadow map, lit scene, SSAO, blur or depth of field, then the UI.
+* Only called while the render targets exist (0x00889A23), otherwise the game renders pass 0 directly.
+* Original function: FUN_00509300
+*/
+void FUN_00509300_RenderFrame();
+
+/**
 * @brief Binds the program linked from the given shader pair and points its tex0 to tex7 samplers
 * at the matching texture units. The pair (10, 17) has no shaders, so binding it returns to fixed
 * function.

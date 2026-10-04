@@ -1,5 +1,6 @@
 #include "DisaRendering.h"
 #include "DisaRenderObject.h"
+#include "DisaFunctions.h"
 #include <gl/glew.h>
 #include <GL/glu.h>
 #include <algorithm>
@@ -366,7 +367,7 @@ void _stdcall FUN_00426770(EDisaRenderPass pass, unsigned int visibleBitMask, bo
         else {
             if (pass == RenderPass_ShadowDepth && memoryRenderManager->m_cameraEye && memoryRenderManager->m_cameraCenter && memoryRenderManager->m_cameraUp) {
                 glLoadIdentity();
-                assert(false);
+                //assert(false);
 
                 //why is it not the same as DisaCameraInfo?
                 const glm::vec3 center = *memoryRenderManager->m_cameraCenter;
@@ -761,4 +762,258 @@ void __stdcall FUN_00425df0_SubmitVertexBasic(float depth, int* textureDataPtr, 
     }
     //ExceptionList = local_10;
     return;
+}
+
+void DisaRenderTarget::generate() {
+    ((FP::FarThisFunction<void, DisaRenderTarget*>)m_vtable[2])(this);
+}
+
+void DisaRenderTarget::release() {
+    ((FP::FarThisFunction<void, DisaRenderTarget*>)m_vtable[3])(this);
+}
+
+void DisaRenderTarget::allocate(int width, int height) {
+    ((FP::FarThisFunction<void, DisaRenderTarget*, int, int>)m_vtable[4])(this, width, height);
+}
+
+void DisaRenderTarget::bind(int mode) {
+    ((FP::FarThisFunction<void, DisaRenderTarget*, int>)m_vtable[5])(this, mode);
+}
+
+void DisaRenderTarget::unbind() {
+    ((FP::FarThisFunction<void, DisaRenderTarget*>)m_vtable[6])(this);
+}
+
+void DisaRenderTarget::bindTextures(int unit) {
+    ((FP::FarThisFunction<void, DisaRenderTarget*, int>)m_vtable[7])(this, unit);
+}
+
+/// The original FUN_00421A30. Unlike FUN_00421a30_glUseAndInitProgram it also binds program 0.
+static void FUN_0x00421a30_useGameProgram(int vertexShaderIndex, int fragmentShaderIndex) {
+    FP::callStdFarA(0x00421a30, vertexShaderIndex, fragmentShaderIndex);
+}
+
+/// @return vertexIndex + fragmentIndex * 16 of the bound program
+static int getBoundProgramIndex() {
+    return FP::getData<int>(0x006e8cf8);
+}
+
+static void restoreGameProgram(int programIndex) {
+    FUN_0x00421a30_useGameProgram(programIndex & 0xf, programIndex >> 4);
+}
+
+static void setBoundProgramUniform(const char* name, int value) {
+    if (FP::getData<bool>(0x006e8cfc)) return;
+    const GLuint programId = (&FP::getData<GLuint>(0x006e8878))[getBoundProgramIndex()];
+    if (const GLint location = glGetUniformLocation(programId, name); location >= 0)
+        glUniform1i(location, value);
+}
+
+/// Sets useDepthOfField to 0 on both depth of field programs.
+static void clearUseDepthOfField() {
+    const int lastProgram = getBoundProgramIndex();
+    FUN_0x00421a30_useGameProgram(7, 13);
+    setBoundProgramUniform("useDepthOfField", 0);
+    FUN_0x00421a30_useGameProgram(7, 14);
+    setBoundProgramUniform("useDepthOfField", 0);
+    restoreGameProgram(lastProgram);
+}
+
+/// Uploads samplePoints to the SSAO program (8, 15) through FUN_00421CD0.
+static void uploadSsaoSamplePoints() {
+    const int lastProgram = getBoundProgramIndex();
+    //the original binds (7, 13) and (7, 14) here without setting anything
+    FUN_0x00421a30_useGameProgram(7, 13);
+    FUN_0x00421a30_useGameProgram(7, 14);
+    restoreGameProgram(lastProgram);
+    FUN_0x00421a30_useGameProgram(8, 15);
+    FP::callStdFarA(0x00421cd0);
+    restoreGameProgram(lastProgram);
+}
+
+static glm::ivec2 getWindowSize() {
+    //[0] is the display mode, widths start at [1] and heights at [6], those two are also the fallback
+    int*& screenTable = FP::getData<int*>(0x005d7c30);
+    if (!screenTable) screenTable = FP::callFastFarA<int*>(0x004333f0, 0x34);
+    const int mode = screenTable[0];
+    const int width = screenTable[mode + 1];
+    const int height = screenTable[mode + 6];
+    return { width < 1 ? screenTable[1] : width, height < 1 ? screenTable[6] : height };
+}
+
+/// Rebuilds the shadow map for the quality setting at DisaSettings 0x24.
+static void rebuildShadowMap(DisaRenderTarget* shadowMap, unsigned int quality) {
+    glm::ivec2 size;
+    switch (quality) {
+        case 1: size = { 1024, 512 }; break;
+        case 2: size = { 2048, 2048 }; break;
+        default: size = { 32, 32 }; break;
+    }
+    FP::callStdFarA(0x004224d0, size.x, size.y); //shadowMapSize
+    shadowMap->release();
+    shadowMap->generate();
+    shadowMap->allocate(size.x, size.y);
+    FP::getData<unsigned int>(0x005ae738) = quality;
+}
+
+void FUN_00509300_RenderFrame() {
+    DisaSettings* settings = FP::getData<DisaSettings*>(0x005d7c40);
+    DisaRenderObjectManager* roManager = DisaRenderObjectManager::get();
+    DisaRenderTarget* shadowMap = FP::getData<DisaRenderTarget*>(0x008b7dc4);
+    DisaRenderTarget* sceneTarget = FP::getData<DisaRenderTarget*>(0x008b7dc8);
+    DisaRenderTarget* effectTarget = FP::getData<DisaRenderTarget*>(0x008b7dcc);
+    DisaCustomRenderManager::get()->init();
+
+    bool useShadows = false;
+    if (settings) {
+        //BEGIN custom code
+        const glm::ivec2 maxTargetSize{ 1280, 720 };
+        //const glm::ivec2 targetSize = glm::min(getWindowSize(), maxTargetSize);
+        const glm::ivec2 targetSize = glm::max(getWindowSize(), maxTargetSize); //did they flip min and max?!
+        //END custom code
+        if ((sceneTarget->m_width > 0 && sceneTarget->m_width != targetSize.x) || (sceneTarget->m_height > 0 && sceneTarget->m_height != targetSize.y)) {
+            for (DisaRenderTarget* target : { sceneTarget, effectTarget }) {
+                target->release();
+                target->generate();
+                target->allocate(targetSize.x, targetSize.y);
+            }
+            rebuildShadowMap(shadowMap, settings->shadowMapQuality);
+        }
+        useShadows = settings->shadowMapQuality != 0;
+    }
+    const bool usePositionBlur = settings && settings->isUsePositionBlur;
+    const bool useDepthOfField = settings && settings->isUseDepthOfField;
+    bool useSsao = settings && settings->isUseSsao;
+    bool useNormalMap = settings && static_cast<bool>(settings->field_0x2c);
+    if (settings && !settings->isHDTextures) {
+        useSsao = false;
+        useNormalMap = false;
+    }
+
+    const glm::mat4 view = roManager->m_field0x7605c;
+    const glm::mat4 invView = glm::inverse(view); //original uses FUN_0042D4C0
+    FP::callStdFarA(0x00421f80, &invView); //invViewMtx
+    const glm::mat4 projection = roManager->m_perspectiveMatrix ? *roManager->m_perspectiveMatrix : FP::getData<glm::mat4>(0x005b2670);
+    const glm::mat4 viewProjection = projection * view; //original uses FUN_0042CED0
+    FP::callStdFarA(0x00422020, &viewProjection, &view, &invView); //viewProjMtx, viewMtx, invViewMtx
+
+    clearUseDepthOfField();
+    uploadSsaoSamplePoints();
+    {
+        const int lastProgram = getBoundProgramIndex();
+        FUN_0x00421a30_useGameProgram(7, 11);
+        setBoundProgramUniform("useBlurToAll", 0);
+        restoreGameProgram(lastProgram);
+    }
+    FP::callStdFarA(0x00422140, false, 0); //useSSAO, the second argument is never read
+
+    if (settings && settings->shadowMapQuality != FP::getData<unsigned int>(0x005ae738))
+        rebuildShadowMap(shadowMap, settings->shadowMapQuality);
+
+    FP::callStdFarA(0x00422440, useNormalMap);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    if (auto* vertices = static_cast<VertexBasic*>(roManager->FUN_00425bb0_allocFrameMemory(4 * sizeof(VertexBasic)))) {
+        //480 x 272 is the orthographic UI space
+        vertices[0] = { { 0.f, 1.f }, 0xffffffff, { 0.f, 0.f, 1.f } };
+        vertices[1] = { { 1.f, 1.f }, 0xffffffff, { 480.f, 0.f, 1.f } };
+        vertices[2] = { { 0.f, 0.f }, 0xffffffff, { 0.f, 272.f, 1.f } };
+        vertices[3] = { { 1.f, 0.f }, 0xffffffff, { 480.f, 272.f, 1.f } };
+
+        //the submit takes the texture by value and releases that reference again
+        int* texture = FP::getData<int*>(0x00778a0c);
+        if (texture && reinterpret_cast<uint32_t>(texture) - 0x10001u < 0xeffeffffu) ++*texture;
+
+        bool& depthTestEnabled = FP::getData<bool>(0x005ac978);
+        depthTestEnabled = false;
+        FP::callStdFarA(0x00425df0, 40001.f, texture, static_cast<void*>(vertices), 4, 4, -1, static_cast<glm::mat4*>(nullptr), false, true, 0.f, 0, 0, false);
+        depthTestEnabled = true;
+    }
+
+    FP::callStdFarA(0x00422320, true); //usePointLight
+    if (useShadows) {
+        shadowMap->bind(1);
+        FUN_00426770(RenderPass_ShadowDepth, 0x1091, false);
+        shadowMap->unbind();
+
+        glm::mat4* shadowMatrices = reinterpret_cast<glm::mat4*>(reinterpret_cast<uint8_t*>(shadowMap) + 0x30);
+        shadowMatrices[0] = roManager->m_field0x7605c;
+        shadowMatrices[1] = roManager->m_field0x760dc;
+        shadowMatrices[2] = roManager->m_field0x7609c;
+
+        FUN_004201d0_RenderClearBegin();
+        shadowMap->bind(2);
+        sceneTarget->bind(1);
+        shadowMap->bindTextures(-1);
+        FUN_00426770(RenderPass_Scene, 0x18d1, true);
+        sceneTarget->unbind();
+        if (useDepthOfField) FP::callStdFarA(0x004231b0); //autofocus into m_focusZ
+        shadowMap->unbind();
+    }
+    else {
+        sceneTarget->bind(1);
+        FUN_00426770(RenderPass_Scene, 0x18d1, true);
+        sceneTarget->unbind();
+        if (useDepthOfField) FP::callStdFarA(0x004231b0);
+    }
+    FP::callStdFarA(0x00422320, false);
+
+    if (useSsao) {
+        clearUseDepthOfField();
+        uploadSsaoSamplePoints();
+        sceneTarget->bindTextures(-1);
+        effectTarget->bind(1);
+        FUN_00426770(RenderPass_SSAO, 0xe, false);
+        effectTarget->unbind();
+
+        FP::callStdFarA(0x004220e0, true); //useBlurToAll
+        uploadSsaoSamplePoints();
+        effectTarget->bindTextures(3);
+        effectTarget->bind(3);
+        FUN_00426770(RenderPass_Blur, 0xe, false);
+        effectTarget->unbind();
+        FP::callStdFarA(0x004220e0, false);
+
+        FP::callStdFarA(0x00422140, useSsao, 0);
+        sceneTarget->bindTextures(-1);
+        effectTarget->bindTextures(-1);
+        sceneTarget->bind(3);
+        FUN_00426770(RenderPass_SSAOComposite, 0xe, false);
+        sceneTarget->unbind();
+        FP::callStdFarA(0x00422140, false, 0);
+    }
+
+    sceneTarget->bind(3);
+    FUN_00426770(RenderPass_Default, 0x100, false);
+    sceneTarget->unbind();
+
+    EDisaRenderPass postPass = RenderPass_Default;
+    sceneTarget->bind(3);
+    if (!usePositionBlur && !useDepthOfField) {
+        FUN_00426770(RenderPass_Default, 0x2429, true);
+        sceneTarget->unbind();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        sceneTarget->bindTextures(0);
+    }
+    else {
+        FUN_00426770(RenderPass_Default, 0x2409, true);
+        sceneTarget->unbind();
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        const int lastProgram = getBoundProgramIndex();
+        FUN_0x00421a30_useGameProgram(7, 13);
+        FP::callStdFarA(0x00421c40, useDepthOfField, 1.04f, 1.2f); //useDepthOfField, minRatio, maxRatio
+        FUN_0x00421a30_useGameProgram(7, 14);
+        FP::callStdFarA(0x00421c40, useDepthOfField, 1.04f, 1.2f);
+        restoreGameProgram(lastProgram);
+        FP::callStdFarA(0x00421e80, 0, 0, true, sceneTarget->m_focusZ); //focusZ, the first two arguments are never read
+        sceneTarget->bindTextures(-1);
+
+        if (usePositionBlur) postPass = useDepthOfField ? RenderPass_BlurAndDof : RenderPass_BlurPosition;
+        else postPass = RenderPass_DepthOfField;
+    }
+    //stretches the scene target over the window
+    FUN_00426770(postPass, 0xe, false);
+    FUN_00426770(RenderPass_Default, 0x3a, true);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
