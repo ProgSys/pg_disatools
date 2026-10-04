@@ -1,7 +1,7 @@
 #include "DisaCustomScriptManager.h"
 #include "DisaCustomCampaignManager.h"
 #include "DisaScriptManager.h"
-#include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomModificationsManager.h>
 #include <DisaFunctions.h>
 #include "FunctionPatcher.h"
 
@@ -42,11 +42,11 @@ int DisaCustomScriptManager::readScript(unsigned int*& dataLocation, int scriptI
     if (auto split = PG_DisaIdentifier::splitScriptId(scriptId); PG_DisaIdentifier::isCustomScriptId(split)) {
         switch (split.first) {
         case PG_DisaIdentifier::ScriptType_Magic: {
-            auto* charManager = DisaCustomCharacterManager::get();
+            auto* charManager = DisaCustomModificationsManager::get();
             const auto& info = charManager->getMagicInfo(split.second);
             if (!info.mod) return -1;
 
-            auto findIt = std::ranges::find(info.mod->magics, info.identifier, &PG_DisaCustomCharactersModel::MagicInfo::identifier);
+            auto findIt = std::ranges::find(info.mod->magics, info.identifier, &PG_DisaCustomModificationsModel::MagicInfo::identifier);
             if (findIt == info.mod->magics.end() || !findIt->scriptIdentifier.isValid()) {
                 OUT_INFO("Failed to find a custom script for magic! (" << scriptId << ")");
                 return -1;
@@ -76,5 +76,5 @@ int DisaCustomScriptManager::readDisaScript(unsigned int*& dataLocation, uint32_
 }
 
 DisaCustomScriptManager* DisaCustomScriptManager::get() {
-	return reinterpret_cast<DisaCustomScriptManager*>(DisaCustomCharacterManager::get()->getDisaScriptsModel());
+	return reinterpret_cast<DisaCustomScriptManager*>(DisaCustomModificationsManager::get()->getDisaScriptsModel());
 }

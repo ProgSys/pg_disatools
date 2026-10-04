@@ -1,6 +1,6 @@
 ﻿#include "DisaFunctions.h"
 #include <Managers/DisaCustomCampaignManager.h>
-#include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomModificationsManager.h>
 #include <Managers/DisaCustomRenderManager.h>
 #include <Scene/PG_ModelNode.h>
 #include <Managers/DisaCustomTranslationManager.h>
@@ -1625,9 +1625,9 @@ void __cdecl FUN_00424ae0_FrameBegin() {
         firstCall = true;
         //the mods register with the resource manager, which has to live on this thread
         DisaCustomRenderManager::get()->init();
-        auto* manager = DisaCustomCharacterManager::get();
+        auto* manager = DisaCustomModificationsManager::get();
         manager->waitForModThread();
-        manager->loadCharacters();
+        manager->loadModifications();
     }
 
     DisaCustomRenderManager::get()->onFrameBegin();

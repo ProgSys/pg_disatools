@@ -15,11 +15,14 @@ public:
 
 	PG_Dir getModDir() const;
 	PG_Dir getCustomCampaignsDir() const;
-	PG_Dir getCustomCharactersDir() const;
+	PG_Dir getCustomModificationsDir() const;
 	PG_Dir getCustomScripsDir() const;
 	PG_Dir getCustomTalkScripsDir() const;
 	PG_Dir getCustomTranslationDir() const;
 
+
+	/// Same as getCustomModificationsDir, for code that has an exe path but no main model
+	static PG_Dir customModificationsDir(const PG_File& exePath);
 
 	static PG_DisaMainBaseModel* get();
 	static PG_File exePath() { return get()->getExePath(); }

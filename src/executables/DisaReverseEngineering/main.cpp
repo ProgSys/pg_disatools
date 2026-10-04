@@ -2,7 +2,7 @@
 #include <FunctionPatcher.h>
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomBaseModManager.h>
-#include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomModificationsManager.h>
 #include <Managers/DisaCustomScriptManager.h>
 #include <Managers/DisaCustomTranslationManager.h>
 #include <DisaFunctions.h>
@@ -494,7 +494,7 @@ struct CommandTerminal {
                 return;
             }
 
-            DisaCustomCharacterManager::get()->addCharacterToPary(identifier, 
+            DisaCustomModificationsManager::get()->addCharacterToParty(identifier, 
                 args.size() > 1 ? std::max(1, PG_StringUtil::toInt(args[1])) : 1,
                 args.size() > 2 ? glm::clamp(-1,128, PG_StringUtil::toInt(args[2])): -1
             );
@@ -644,7 +644,7 @@ DWORD WINAPI startMain() {
     PG_EventLoop::start();
     
     DisaCustomCampaignManager::get()->loadCampaigns();
-    DisaCustomCharacterManager::get()->wakeUp();
+    DisaCustomModificationsManager::get()->wakeUp();
 
 
     commandTerminal.run();

@@ -1,4 +1,4 @@
-#include "DisaCustomCharacterManager.h"
+#include "DisaCustomModificationsManager.h"
 #include <Managers/DisaCustomBaseModManager.h>
 #include <DisaDataFunctions.h>
 #include "FunctionPatcher.h"
@@ -13,8 +13,8 @@
 #include <zip.h>
 #include <nlohmann/json.hpp>
 
-static DisaCustomCharacterManager::Info gEmptyInfo;
-static DisaCustomCharacterManager::Info gTempInfo;
+static DisaCustomModificationsManager::Info g_emptyInfo;
+static DisaCustomModificationsManager::Info g_tempInfo;
 
 static inline std::vector<char> buildSpriteData(PG::STREAM::In* reader, unsigned int spriteId) {
 	constexpr unsigned int rawDataHeaderSize = sizeof(unsigned int) * 2 + sizeof(short);
@@ -42,7 +42,7 @@ static inline std::vector<char> buildSpriteData(PG::STREAM::In* reader, unsigned
 	return data;
 }
 
-char* DisaCustomCharacterManager::getSpriteData(unsigned int spriteId){
+char* DisaCustomModificationsManager::getSpriteData(unsigned int spriteId){
 	//do we have data loaded?
 	if (auto findSpriteIt = m_spriteData.find(spriteId); findSpriteIt != m_spriteData.end()) {
 		if (findSpriteIt->second.size() < sizeof(DisaSpriteLoaderInfo)) return nullptr;
@@ -71,21 +71,21 @@ char* DisaCustomCharacterManager::getSpriteData(unsigned int spriteId){
 	return loader.data;
 }
 
-static inline std::vector<char> buildFaceData(PG::STREAM::In* reader, unsigned int faceId, const DisaCustomCharacterManager::Info& info, bool isHD) {
+static inline std::vector<char> buildFaceData(PG::STREAM::In* reader, unsigned int faceId, const DisaCustomModificationsManager::Info& info, bool isHD) {
 	constexpr unsigned int rawDataHeaderSize = sizeof(unsigned int) * 2 + sizeof(short);
 	std::vector<char> data;
 	unsigned int fileSize = reader->size();
-	data.resize(sizeof(DisaCustomCharacterManager::FaceHeader) + fileSize);
+	data.resize(sizeof(DisaCustomModificationsManager::FaceHeader) + fileSize);
 
-	DisaCustomCharacterManager::FaceHeader& loader = *(DisaCustomCharacterManager::FaceHeader*)data.data();
-	memset(&loader, 0, sizeof(DisaCustomCharacterManager::FaceHeader));
+	DisaCustomModificationsManager::FaceHeader& loader = *(DisaCustomModificationsManager::FaceHeader*)data.data();
+	memset(&loader, 0, sizeof(DisaCustomModificationsManager::FaceHeader));
 	if (info.fileInZip.isEmpty()) loader.isHD = false;
 	if (info.secondfileInZip.isEmpty()) loader.isHD = true;
 	else loader.isHD = isHD;
 	loader.isOnlyOneImage = info.fileInZip.isEmpty() || info.secondfileInZip.isEmpty();
 
 	char*& target = *((char**)&loader.header[12 * 4]);
-	target = data.data() + sizeof(DisaCustomCharacterManager::FaceHeader);
+	target = data.data() + sizeof(DisaCustomModificationsManager::FaceHeader);
 	reader->read(target, fileSize);
 
 
@@ -95,7 +95,7 @@ static inline std::vector<char> buildFaceData(PG::STREAM::In* reader, unsigned i
 }
 
 
-DisaCustomCharacterManager::FaceHeader* DisaCustomCharacterManager::getFaceData(unsigned int faceId, bool isHD) {
+DisaCustomModificationsManager::FaceHeader* DisaCustomModificationsManager::getFaceData(unsigned int faceId, bool isHD) {
 	//do we have data loaded?
 	if (auto findIt = m_faceData.find(faceId); findIt != m_faceData.end()) {
 		if (findIt->second.size() < sizeof(FaceHeader)) return nullptr;
@@ -125,12 +125,12 @@ DisaCustomCharacterManager::FaceHeader* DisaCustomCharacterManager::getFaceData(
 
 }
 
-void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& identifier, unsigned short level, int8_t mentorIndex) const{
+void DisaCustomModificationsManager::addCharacterToParty(const PG_DisaIdentifier& identifier, unsigned short level, int8_t mentorIndex) const{
 	if (!identifier.isValid()) return;
 	level = glm::clamp<unsigned short>(level, 1, 9999);
 
 	PG_DisaDataCharacter* newCharData = nullptr;
-	PG_DisaCustomCharactersModel::DisplayInfo displayInfo;
+	PG_DisaCustomModificationsModel::DisplayInfo displayInfo;
 
 	if (identifier.isCustom()) {
 		auto findIt = m_charactersMapper.find(identifier);
@@ -158,13 +158,13 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 		displayInfo.characterId = newCharData->characterId;
 		displayInfo.spriteId = newCharData->spriteId;
 		displayInfo.faceId = newCharData->characterId;
-		displayInfo.charDatIndex = std::distance(DisaDataCharacterInfo::begin(), findIt);
+		displayInfo.charDataIndex = std::distance(DisaDataCharacterInfo::begin(), findIt);
 	}
 
 
 
-	if (!newCharData || displayInfo.characterId == 0 || displayInfo.charDatIndex == 0) {
-		OUT_ERROR("The character \"" << identifier.getIdentifier() << "\" has invalid data! (characterId or charDatIndex is 0)");
+	if (!newCharData || displayInfo.characterId == 0 || displayInfo.charDataIndex == 0) {
+		OUT_ERROR("The character \"" << identifier.getIdentifier() << "\" has invalid data! (characterId or charDataIndex is 0)");
 		return;
 	}
 
@@ -190,7 +190,7 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 	if(level != 1) newChar.experience = FP::getData<std::array<unsigned long long, 9999>>(0x005e9b28)[level] * newCharData->experienceScale;
 	newChar.characterId = displayInfo.characterId;
 	newChar.spriteId = displayInfo.spriteId;
-	newChar.charDatIndex = displayInfo.charDatIndex;
+	newChar.charDatIndex = displayInfo.charDataIndex;
 
 	newChar.counterBase = newCharData->counter;
 	newChar.counter = newCharData->counter;
@@ -218,7 +218,7 @@ void DisaCustomCharacterManager::addCharacterToPary(const PG_DisaIdentifier& ide
 
 }
 
-void DisaCustomCharacterManager::recordEnemyKilled(DisaPartyCharacterInfo* characterInfo) {
+void DisaCustomModificationsManager::recordEnemyKilled(DisaPartyCharacterInfo* characterInfo) {
 	if (!characterInfo || !PG_DisaIdentifier::isCustomId(characterInfo->characterId)) return;
 
 	const auto& charInfo = getCharacterInfo(characterInfo->characterId);
@@ -240,33 +240,33 @@ void DisaCustomCharacterManager::recordEnemyKilled(DisaPartyCharacterInfo* chara
 	if (it->second.killCount != std::numeric_limits<unsigned short>::max()) {
 		++it->second.killCount;
 	}
-	it->second.killCountLevelSum = std::min(it->second.killCountLevelSum + characterInfo->level, DisaCustomCharacterManager::maxKillLevelSum);
+	it->second.killCountLevelSum = std::min(it->second.killCountLevelSum + characterInfo->level, DisaCustomModificationsManager::maxKillLevelSum);
 	m_isHistoryChanged = true;
 }
 
-void DisaCustomCharacterManager::loadCharacters() {
-	loadCustomCharacters(DisaCustomBaseModManager::exePath());
+void DisaCustomModificationsManager::loadModifications() {
+	PG_DisaCustomModificationsModel::loadModifications(DisaCustomBaseModManager::exePath());
 	loadCharactersIntoMememory();
 	m_isHistoryChanged = true;
 }
 
-void DisaCustomCharacterManager::waitForModThread() {
+void DisaCustomModificationsManager::waitForModThread() {
 	std::unique_lock<std::mutex> lock(m_mtx);
 	m_cv.wait(lock, [this] { return !m_paused; });
 }
 
-void DisaCustomCharacterManager::wakeUp() {
+void DisaCustomModificationsManager::wakeUp() {
 	std::unique_lock<std::mutex> lock(m_mtx);
 	m_paused = false;
 	m_cv.notify_all();
 }
 
-void DisaCustomCharacterManager::loadCharactersIntoMememory() {
+void DisaCustomModificationsManager::loadCharactersIntoMememory() {
 	//load magic
 	{
 		DisaDataMagicInfo::steal();
 		const unsigned int originalMagicSize = DisaDataMagicInfo::getSize();
-		for (auto& mod : m_mods) {
+		for (auto& mod : m_modifications) {
 			for (auto& m : mod.magics) {
 				if (!m.identifier) continue;
 
@@ -298,7 +298,7 @@ void DisaCustomCharacterManager::loadCharactersIntoMememory() {
 		DisaDataCharacterInfo::steal();
 		const unsigned int originalCharactersSize = DisaDataCharacterInfo::getSize();
 
-		for (auto& mod : m_mods) {
+		for (auto& mod : m_modifications) {
 			for (auto& c : mod.characters) {
 				if (!c.identifier || !c.spriteIdentifier) continue;
 
@@ -362,7 +362,7 @@ void DisaCustomCharacterManager::loadCharactersIntoMememory() {
 
 
 
-DisaCustomCharacterManager* DisaCustomCharacterManager::get() {
-	static DisaCustomCharacterManager manager(DisaCustomBaseModManager::get()->getScriptsModel(), DisaCustomBaseModManager::get()->getTranslationModel());
+DisaCustomModificationsManager* DisaCustomModificationsManager::get() {
+	static DisaCustomModificationsManager manager(DisaCustomBaseModManager::get()->getScriptsModel(), DisaCustomBaseModManager::get()->getTranslationModel());
 	return &manager;
 }

@@ -1,4 +1,4 @@
-#include "PG_CustomCharacterModel.h"
+#include "PG_CustomModificationModel.h"
 
 #include <nlohmann/json.hpp>
 
@@ -15,9 +15,9 @@
 
 
 /**
-* =============== PG_DisaCharacterJsonContainer ===============
+* =============== PG_DisaModificationJsonContainer ===============
 */
-void PG_DisaCharacterJsonContainer::init() {
+void PG_DisaModificationJsonContainer::init() {
 
 }
 
@@ -26,7 +26,7 @@ static inline void appendImg(std::string& path) {
 	if (!path.empty()) path = "img/" + path;
 }
 
-bool PG_DisaCharacterJsonContainer::open(std::shared_ptr<PG::STREAM::In> reader)  {
+bool PG_DisaModificationJsonContainer::open(std::shared_ptr<PG::STREAM::In> reader)  {
 	if (!reader) return SUCCESS;
 	std::string content = reader->readString(reader->size());
 	reader.reset();
@@ -62,7 +62,7 @@ bool PG_DisaCharacterJsonContainer::open(std::shared_ptr<PG::STREAM::In> reader)
 }
 
 
-bool PG_DisaCharacterJsonContainer::refresh(std::shared_ptr<PG::STREAM::In> reader) {
+bool PG_DisaModificationJsonContainer::refresh(std::shared_ptr<PG::STREAM::In> reader) {
 	return open(reader);
 }
 
@@ -82,7 +82,7 @@ static inline std::string getCurrentTimepoint() {
 	return oss.str();
 }
 
-bool PG_DisaCharacterJsonContainer::save(std::shared_ptr<PG::STREAM::Out> writer) const {
+bool PG_DisaModificationJsonContainer::save(std::shared_ptr<PG::STREAM::Out> writer) const {
 
 	nlohmann::json j;
 	if (m_id.empty()) return FAILURE;
@@ -94,7 +94,7 @@ bool PG_DisaCharacterJsonContainer::save(std::shared_ptr<PG::STREAM::Out> writer
 	return FAILURE;
 }
 
-void PG_DisaCharacterJsonContainer::markModified() {
+void PG_DisaModificationJsonContainer::markModified() {
 	if (m_isModified) return;
 	m_isModified = true;
 	triggerFileChanged();
@@ -102,12 +102,12 @@ void PG_DisaCharacterJsonContainer::markModified() {
 
 
 
-PG_CustomCharacterModel* PG_DisaCharacterJsonContainer::getRootModel() const {
-	return dynamic_cast<PG_CustomCharacterModel*>(m_disaFileParent.lock().get());
+PG_CustomModificationModel* PG_DisaModificationJsonContainer::getRootModel() const {
+	return dynamic_cast<PG_CustomModificationModel*>(m_disaFileParent.lock().get());
 }
 
 /**
-* =============== PG_CustomCharacterModel ===============
+* =============== PG_CustomModificationModel ===============
 */
 #pragma comment(lib, "rpcrt4.lib")  // UuidCreate - Minimum supported OS Win 2000
 #include <windows.h>
@@ -122,53 +122,50 @@ static inline std::string createUUID() {
 	return out;
 }
 
-void PG_CustomCharacterModel::createNew(std::string name) {
+void PG_CustomModificationModel::createNew(std::string name) {
 	PG_StringUtil::trim(name);
 	if (name.empty()) return;
 
-	auto characterFile = PG_File("character.json");
-	PG_DisaFileEntry characterInfo = find(characterFile);
-	if (characterInfo) {
-		OUT_ERROR("'character.json' already exists!");
+	auto modFile = PG_File("mod.json");
+	PG_DisaFileEntry modInfo = find(modFile);
+	if (modInfo) {
+		OUT_ERROR("'mod.json' already exists!");
 		return;
 	}
 
-	characterInfo = PG_DisaFileEntry();
-	characterInfo.setParent(this);
-	characterInfo.getInfo().setName(characterFile);
-	characterInfo.getInfo().setType(PG_DisaFileInfo::JSON);
-	characterInfo.getInfo().setSize(1);
-	push_back(characterInfo);
-	characterInfo = back();
-	m_characterJsonContainer = characterInfo.open<PG_DisaCharacterJsonContainer>();
-	m_characterJsonContainer->setId(createUUID());
-	m_characterJsonContainer->setName(name);
-	m_characterJsonContainer->setDescription("New custom character");
-	m_characterJsonContainer->markModified();
+	modInfo = PG_DisaFileEntry();
+	modInfo.setParent(this);
+	modInfo.getInfo().setName(modFile);
+	modInfo.getInfo().setType(PG_DisaFileInfo::JSON);
+	modInfo.getInfo().setSize(1);
+	push_back(modInfo);
+	modInfo = back();
+	m_modificationJsonContainer = modInfo.open<PG_DisaModificationJsonContainer>();
+	m_modificationJsonContainer->setId(createUUID());
+	m_modificationJsonContainer->setName(name);
+	m_modificationJsonContainer->setDescription("New custom modification");
+	m_modificationJsonContainer->markModified();
 }
 
 
 
-void PG_CustomCharacterModel::afterOpen(zipUPtr& zip) {
-	auto campaignInfo = find(PG_File("character.json"));
-	if (!campaignInfo) {
-		campaignInfo = find(PG_File("mod.json"));
-	}
-	if (!campaignInfo) {
+void PG_CustomModificationModel::afterOpen(zipUPtr& zip) {
+	auto modInfo = find(PG_File("mod.json"));
+	if (!modInfo) {
 		clear();
 		return;
 	}
 
-	m_characterJsonContainer = campaignInfo.open<PG_DisaCharacterJsonContainer>();
+	m_modificationJsonContainer = modInfo.open<PG_DisaModificationJsonContainer>();
 	registerResourceSource();
 }
 
-std::string PG_CustomCharacterModel::getResourceNameSpace() const {
-	if (!m_characterJsonContainer) return {};
-	return PG_DisaModInfo::resolveNameSpace(m_characterJsonContainer->getNamespaceMod(), getFile());
+std::string PG_CustomModificationModel::getResourceNameSpace() const {
+	if (!m_modificationJsonContainer) return {};
+	return PG_DisaModInfo::resolveNameSpace(m_modificationJsonContainer->getNamespaceMod(), getFile());
 }
 
-void PG_CustomCharacterModel::registerResourceSource() {
+void PG_CustomModificationModel::registerResourceSource() {
 	m_resourceScope.expire(); //an earlier open of this same model may still be registered
 
 	const std::string nameSpace = getResourceNameSpace();
@@ -178,7 +175,7 @@ void PG_CustomCharacterModel::registerResourceSource() {
 	if (m_resourceScope && !m_resourceScope->isValid()) m_resourceScope.expire();
 }
 
-bool PG_CustomCharacterModel::save() {
+bool PG_CustomModificationModel::save() {
 	bool result = false;
 	{
 		//the source reads the same file, so it waits while it is written and indexes it again after
@@ -192,11 +189,11 @@ bool PG_CustomCharacterModel::save() {
 
 
 
-PG_Texture PG_CustomCharacterModel::getPreviewImg() const {
+PG_Texture PG_CustomModificationModel::getPreviewImg() const {
 	PG_Texture texture;
-	if (!m_characterJsonContainer || m_characterJsonContainer->getPreviewImgPath().empty()) return texture;
-	if (auto previewInfo = find(PG_File(m_characterJsonContainer->getPreviewImgPath()))) {
-		texture.load(m_characterJsonContainer->getId() + m_characterJsonContainer->getPreviewImgPath(), [reader = previewInfo.createReader()]()->PG_Texture::ImageFormats {
+	if (!m_modificationJsonContainer || m_modificationJsonContainer->getPreviewImgPath().empty()) return texture;
+	if (auto previewInfo = find(PG_File(m_modificationJsonContainer->getPreviewImgPath()))) {
+		texture.load(m_modificationJsonContainer->getId() + m_modificationJsonContainer->getPreviewImgPath(), [reader = previewInfo.createReader()]()->PG_Texture::ImageFormats {
 			std::vector<unsigned char> data;
 			reader->read(data, reader->size());
 			PG_RGBAImage img;
@@ -249,7 +246,7 @@ static inline void addFile(PG_ZIP* self, std::vector<std::shared_ptr<PG_DisaChan
 
 constexpr auto spritesFolder = "sprites/";
 
-void PG_CustomCharacterModel::importFile(const PG_File& file) {
+void PG_CustomModificationModel::importFile(const PG_File& file) {
 	if (file.isEmpty() || !file.exists()) return;
 	return; //TODO
 	/*
@@ -308,7 +305,7 @@ void PG_CustomCharacterModel::importFile(const PG_File& file) {
 	*/
 }
 
-void PG_CustomCharacterModel::customRemove(std::size_t index) {
+void PG_CustomModificationModel::customRemove(std::size_t index) {
 	if (index > size()) return;
 
 	if (m_items[index].getInfo().getType() == PG_DisaFileInfo::MPD) {

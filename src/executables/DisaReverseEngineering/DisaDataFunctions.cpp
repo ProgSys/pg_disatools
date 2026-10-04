@@ -1,7 +1,7 @@
 #include "DisaDataFunctions.h"
 #include "FunctionPatcher.h"
 #include <Managers/DisaCustomBaseModManager.h>
-#include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomModificationsManager.h>
 #include <ranges>
 
 #include <Util/PG_Dir.h>
@@ -22,7 +22,7 @@ std::pair<unsigned short, const char*> DisaSpriteOffsetListArchiveData::getDataE
 
 char* __fastcall FUN_004de880_getSpriteData(unsigned int spriteId) {
     //CUSTOM CODE START
-    if (char* cunstomSpriteAddress = DisaCustomCharacterManager::get()->getSpriteData(spriteId)) {
+    if (char* cunstomSpriteAddress = DisaCustomModificationsManager::get()->getSpriteData(spriteId)) {
         return cunstomSpriteAddress;
     }
     //CUSTOM CODE END
@@ -87,7 +87,7 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
 
         const auto addCharacter = [&metaData](unsigned short characterId) {
             if (!PG_DisaIdentifier::isCustomId(characterId)) return;
-            PG_DisaIdentifier identifier = DisaCustomCharacterManager::get()->getCharacterIdentifier(characterId);
+            PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getCharacterIdentifier(characterId);
             if (!identifier) return;
             auto charMeta = metaData["characters"];
             if (auto info = charMeta[std::to_string(characterId)]; !info.isSet()) {
@@ -96,7 +96,7 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
         };
         const auto addMagic = [&metaData](unsigned short magicId) {
             if (!PG_DisaIdentifier::isCustomMagicId(magicId)) return;
-            PG_DisaIdentifier identifier = DisaCustomCharacterManager::get()->getMagicIdentifier(magicId);
+            PG_DisaIdentifier identifier = DisaCustomModificationsManager::get()->getMagicIdentifier(magicId);
             if (!identifier) return;
             auto charMeta = metaData["magic"];
             if (auto info = charMeta[std::to_string(magicId)]; !info.isSet()) {
@@ -122,9 +122,9 @@ bool __stdcall FUN_00442260_Save(char* data, size_t fileSize, char* filename) {
             }
         }
 
-        if (!DisaCustomCharacterManager::get()->getAssemblyHistory().empty()){
+        if (!DisaCustomModificationsManager::get()->getAssemblyHistory().empty()){
             auto assemblyHistory = metaData["assemblyHistory"];
-            for (auto& [identifier, info] : DisaCustomCharacterManager::get()->getAssemblyHistory()) {
+            for (auto& [identifier, info] : DisaCustomModificationsManager::get()->getAssemblyHistory()) {
                 auto entry = assemblyHistory[identifier.getIdentifier()];
                 entry["killCount"] = info.killCount;
                 entry["killCountLevelSum"] = info.killCountLevelSum;
@@ -171,7 +171,7 @@ static inline void remapSaveIds(const PG_DataSerializer& metaData, char*& decomp
             if (id == 0) break;
             if (!PG_DisaIdentifier::isCustomMagicId(id)) continue;
             PG_DisaIdentifier identifier(magicMeta[std::to_string(id)].asString());
-            id = DisaCustomCharacterManager::get()->getMagicId(identifier);
+            id = DisaCustomModificationsManager::get()->getMagicId(identifier);
             if (id == 0) {
                 OUT_ERROR("Save file contains unknown skill/magic \"" << identifier << "\"!");
                 id = 2213;//prinny bomb
@@ -182,7 +182,7 @@ static inline void remapSaveIds(const PG_DataSerializer& metaData, char*& decomp
         if (!PG_DisaIdentifier::isCustomId(c.characterId)) continue;
 
         PG_DisaIdentifier identifier(charMeta[std::to_string(c.characterId)].asString());
-        auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
+        auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(identifier);
 
         if (displayInfo.characterId == 0) {
             OUT_ERROR("Save file contains unknown character \"" << identifier << "\"!");
@@ -198,7 +198,7 @@ static inline void remapSaveIds(const PG_DataSerializer& metaData, char*& decomp
         c.characterId = displayInfo.characterId;
         c.spriteId = displayInfo.spriteId;
         c.setCustomPortraitId(displayInfo.faceId);
-        c.charDatIndex = displayInfo.charDatIndex;
+        c.charDatIndex = displayInfo.charDataIndex;
     }
 
     { //dark assembly
@@ -206,7 +206,7 @@ static inline void remapSaveIds(const PG_DataSerializer& metaData, char*& decomp
         for (auto& disaAssemblyUnitInfo : assemblyUnitInfos) {
             if (!PG_DisaIdentifier::isCustomId(disaAssemblyUnitInfo.characterId)) continue;
             PG_DisaIdentifier identifier(charMeta[std::to_string(disaAssemblyUnitInfo.characterId)].asString());
-            auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
+            auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(identifier);
             if (displayInfo.characterId == 0) {
                 OUT_ERROR("Save file contains unknown character \"" << identifier.getIdentifier() << "\"!");
                 disaAssemblyUnitInfo.characterId = 2210;
@@ -254,7 +254,7 @@ static inline void readMetaData(char*& decompressedData, uint& decompressedSize)
                 OUT_ERROR("Assembly history entry for \""<< identifier.getIdentifier()<< "\" is invalid! Entry skipped!");
                 continue;
             }
-            info.characterId = DisaCustomCharacterManager::get()->getCharacterId(identifier);
+            info.characterId = DisaCustomModificationsManager::get()->getCharacterId(identifier);
             if (info.characterId == 0) {
                 OUT_ERROR("Assembly history entry for \"" << identifier.getIdentifier() << "\" is unknown!" \
                     "There is no mod present that references that identifier! Entry skipped!");
@@ -316,6 +316,6 @@ __declspec(naked) void FUN_0043e600_decompressSave_NoneStd(char* data) {
 bool __stdcall FUN_004422c0_LoadSave(void* dst, size_t dstSize, char* filename, int* param_4, __time64_t* param_5) {
     auto v = FP::callStdFarA<bool>(0x004422c0, dst, dstSize, filename, param_4, param_5);
     //apply load
-    DisaCustomCharacterManager::get()->setAssemblyHistory(std::move(g_assemblyHistoryLoadMap));
+    DisaCustomModificationsManager::get()->setAssemblyHistory(std::move(g_assemblyHistoryLoadMap));
     return v;
 }

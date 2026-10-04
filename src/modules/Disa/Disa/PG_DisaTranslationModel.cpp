@@ -31,10 +31,12 @@ namespace {
 void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_DisaModLoadInfo& metaInfo) {
 	if (!modInfo || modInfo->id.empty()) return;
 
-	auto& j = metaInfo.json;
+	auto findBlockIt = metaInfo.json.find("translation");
+	if (findBlockIt == metaInfo.json.end()) return;
+	auto& j = *findBlockIt;
 
 	std::string specialChars;
-	if (auto findIt = j.find("translations"); findIt != j.end()) {
+	if (auto findIt = j.find("files"); findIt != j.end()) {
 		for (auto& jTranslations: *findIt) {
 			std::string fileName;
 			jTranslations.get_to(fileName);

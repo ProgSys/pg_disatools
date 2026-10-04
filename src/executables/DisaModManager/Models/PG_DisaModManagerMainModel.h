@@ -10,7 +10,7 @@ class PG_DisaModManagerMainModel : public PG_DisaMainModel {
 public:
 	enum EUiState {
 		None,
-		CustomCharacters,
+		CustomModifications,
 		CustomCampaigns,
 	};
 signals:

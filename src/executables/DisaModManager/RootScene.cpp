@@ -122,19 +122,19 @@ void RootScene::setupToolbar() {
 		popup->open();
 	});
 
-	auto actorButton = PG_new<PG_GuiToggleButton>("ActorModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	actorButton->setToggled(false);
-	actorButton->setIcon("gui/icon_actor.png");
-	actorButton->setBackground("M_GuiToolButtonStart");
-	actorButton->setTooltipText("Characters");
-	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
-	actorButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
+	auto modificationsButton = PG_new<PG_GuiToggleButton>("ModificationsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
+	modificationsButton->setToggled(false);
+	modificationsButton->setIcon("gui/icon_actor.png");
+	modificationsButton->setBackground("M_GuiToolButtonStart");
+	modificationsButton->setTooltipText("Modifications");
+	modificationsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+	modificationsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
 
-	connect(actorButton, &PG_GuiButton::clicked, m_mainModel, [m = m_mainModel]() {
-		m->setUiState(PG_DisaModManagerMainModel::CustomCharacters);
+	connect(modificationsButton, &PG_GuiButton::clicked, m_mainModel, [m = m_mainModel]() {
+		m->setUiState(PG_DisaModManagerMainModel::CustomModifications);
 		});
-	connect(m_mainModel, &PG_DisaModManagerMainModel::uiStateChanged, actorButton, [a = actorButton](PG_DisaModManagerMainModel::EUiState state) {
-		a->setToggled(state == PG_DisaModManagerMainModel::CustomCharacters);
+	connect(m_mainModel, &PG_DisaModManagerMainModel::uiStateChanged, modificationsButton, [a = modificationsButton](PG_DisaModManagerMainModel::EUiState state) {
+		a->setToggled(state == PG_DisaModManagerMainModel::CustomModifications);
 		});
 
 	auto mapsButton = PG_new<PG_GuiToggleButton>("MapModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
@@ -210,7 +210,7 @@ void RootScene::setupCenter() {
 		connect(model, &PG_ListModelBase::sizeChanged, arrow, updateVisibility);
 		updateVisibility();
 	});
-	m_mainModel->setUiState(PG_DisaModManagerMainModel::CustomCharacters);
+	m_mainModel->setUiState(PG_DisaModManagerMainModel::CustomModifications);
 }
 
 bool RootScene::event(PG_Event* e) {

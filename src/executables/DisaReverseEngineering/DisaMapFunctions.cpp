@@ -9,7 +9,7 @@
 #include <DisaMapChunk.h>
 #include <DisaCharacterFunctions.h>
 #include <Managers/DisaCustomCampaignManager.h>
-#include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomModificationsManager.h>
 #include <Managers/DisaCustomRenderManager.h>
 #include <Disa/fileformats/PG_MPD.h>
 #include <Disa/fileformats/PG_MPDCustom.h>
@@ -235,7 +235,7 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
                 //is custom character
                 PG_DisaIdentifier identifier(charsInfo[std::to_string(charInfo.id)].asString());
 
-                auto info = DisaCustomCharacterManager::get()->getDisplayInfo(identifier);
+                auto info = DisaCustomModificationsManager::get()->getDisplayInfo(identifier);
                 if (info.characterId == 0) {
                     OUT_ERROR("Failed to find custom character \"" << identifier.getIdentifier() << "\"! Replacing with prinny!");
                     charInfo.id = 2210;
@@ -475,9 +475,9 @@ void __fastcall FUN_004d4980_CopyDungeonIntoActive(int chapterId, int mapId, int
         unsigned int numberOfActors = FP::getData<unsigned int>(0x008acd40);
         for (auto& charInfo : std::ranges::subrange(charInfos, charInfos + numberOfActors)) {
             if (!PG_DisaIdentifier::isCustomId(charInfo.characterId)) continue;
-            const auto& info = DisaCustomCharacterManager::get()->getCharacterInfoIndex(charInfo.characterId - PG_DisaIdentifier::customIdStart);
+            const auto& info = DisaCustomModificationsManager::get()->getCharacterInfoIndex(charInfo.characterId - PG_DisaIdentifier::customIdStart);
             if (!info.identifier) continue;
-            auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(info.identifier);
+            auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(info.identifier);
 
            
             //is custom character

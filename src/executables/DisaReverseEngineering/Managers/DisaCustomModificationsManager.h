@@ -9,14 +9,14 @@
 #include <mutex>
 #include <condition_variable>
 
-class DisaCustomCharacterManager: public PG_DisaCustomCharactersModel {
+class DisaCustomModificationsManager: public PG_DisaCustomModificationsModel {
 public:
 	constexpr static uint32_t maxKillLevelSum = 99999999u;
 
-	using PG_DisaCustomCharactersModel::PG_DisaCustomCharactersModel;
+	using PG_DisaCustomModificationsModel::PG_DisaCustomModificationsModel;
 
 
-	void loadCharacters();
+	void loadModifications();
 	void loadCharactersIntoMememory();
 
 	struct FaceHeader {
@@ -29,7 +29,7 @@ public:
 	FaceHeader* getFaceData(unsigned int faceId, bool isHD);
 
 
-	void addCharacterToPary(const PG_DisaIdentifier& identifier, unsigned short level = 1, int8_t mentorIndex = -1) const;
+	void addCharacterToParty(const PG_DisaIdentifier& identifier, unsigned short level = 1, int8_t mentorIndex = -1) const;
 
 	const std::unordered_map<PG_DisaIdentifier, DisaAssemblyUnitInfo>& getAssemblyHistory() const { return m_assemblyHistory; };
 	void setAssemblyHistory(std::unordered_map<PG_DisaIdentifier, DisaAssemblyUnitInfo>&& history) {
@@ -49,7 +49,7 @@ public:
 	void waitForModThread();
 	void wakeUp();
 
-	static DisaCustomCharacterManager* get();
+	static DisaCustomModificationsManager* get();
 private:
 	std::unordered_map<unsigned int, std::vector<char>> m_spriteData; //loaded sprite files
 	std::unordered_map<unsigned int, std::vector<char>> m_faceData; //loaded face files

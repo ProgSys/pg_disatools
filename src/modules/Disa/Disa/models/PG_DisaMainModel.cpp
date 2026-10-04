@@ -41,9 +41,12 @@ PG_Dir PG_DisaMainBaseModel::getCustomCampaignsDir() const {
 	return exePath.getDir() + "/mod/CustomCampaigns";
 }
 
-PG_Dir PG_DisaMainBaseModel::getCustomCharactersDir() const {
-	auto exePath = getExePath();
-	return exePath.getDir() + "/mod/CustomCharacters";
+PG_Dir PG_DisaMainBaseModel::getCustomModificationsDir() const {
+	return customModificationsDir(getExePath());
+}
+
+PG_Dir PG_DisaMainBaseModel::customModificationsDir(const PG_File& exePath) {
+	return exePath.getDir() + "/mod/CustomModifications";
 }
 
 PG_Dir PG_DisaMainBaseModel::getCustomScripsDir() const {

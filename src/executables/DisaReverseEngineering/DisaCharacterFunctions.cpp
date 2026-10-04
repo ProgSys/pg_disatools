@@ -10,7 +10,7 @@
 #include <Disa/fileformats/PG_JsonUtil.h>
 #include <DisaDataFunctions.h>
 #include <Stream/PG_StreamInByteFile.h>
-#include <Managers/DisaCustomCharacterManager.h>
+#include <Managers/DisaCustomModificationsManager.h>
 #include <Resources/PG_ResourceManager.h>
 
 using namespace PG_JsonUtil;
@@ -290,7 +290,7 @@ void __fastcall FUN_004d63b0_EnemyUnitKilled(DisaPartyCharacterInfo* character) 
     auto characterId = character->characterId;
     //BEGIN custom
     if (PG_DisaIdentifier::isCustomId(characterId)) {
-        DisaCustomCharacterManager::get()->recordEnemyKilled(character);
+        DisaCustomModificationsManager::get()->recordEnemyKilled(character);
         return;
     }
     //END custom
@@ -302,7 +302,7 @@ void __fastcall FUN_004d63b0_EnemyUnitKilled(DisaPartyCharacterInfo* character) 
         if (item.killCount != std::numeric_limits<unsigned short>::max()) {
             ++item.killCount;
         }
-        item.killCountLevelSum = std::min(item.killCountLevelSum + character->level, DisaCustomCharacterManager::maxKillLevelSum);
+        item.killCountLevelSum = std::min(item.killCountLevelSum + character->level, DisaCustomModificationsManager::maxKillLevelSum);
     }
 }
 
@@ -376,13 +376,13 @@ struct DisaAssemblyInfo {
     static inline std::vector<unsigned int> customAssemblyLookUp; 
 
     static void buildCustom() {
-        DisaCustomCharacterManager& manager = *DisaCustomCharacterManager::get();
+        DisaCustomModificationsManager& manager = *DisaCustomModificationsManager::get();
 
         if (!manager.isUpdatedNeededForAssemblyHistory()) return;
 
         std::map<std::string, std::vector<DisaAssemblyUnitInfo>> groups; //id monster
         DisaAssemblyUnitInfo unitInfo;
-        for (auto& mod : manager.getMods()) {
+        for (auto& mod : manager.getModifications()) {
             for (auto& modChar : mod.characters) {
                 if (!modChar.identifier) continue;
 
@@ -392,8 +392,8 @@ struct DisaAssemblyInfo {
                 unitInfo.killCountLevelSum = 0;
 
                 switch (modChar.recruitmentType) {
-                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_None: continue;
-                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_Defeated : {
+                case DisaCustomModificationsManager::CharacterInfo::RecruitmentType_None: continue;
+                case DisaCustomModificationsManager::CharacterInfo::RecruitmentType_Defeated : {
                     if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier); 
                         findIt != manager.getAssemblyHistory().end()) {
                         unitInfo.killCountLevelSum = findIt->second.killCountLevelSum;
@@ -401,7 +401,7 @@ struct DisaAssemblyInfo {
                     }
                     continue;
                 }
-                case DisaCustomCharacterManager::CharacterInfo::RecruitmentType_Monster: {
+                case DisaCustomModificationsManager::CharacterInfo::RecruitmentType_Monster: {
                     if (auto findIt = manager.getAssemblyHistory().find(modChar.identifier);
                         findIt != manager.getAssemblyHistory().end() && findIt->second.killCount > 0) {
                         unitInfo.killCount = findIt->second.killCount; //used to scale mana cost
@@ -781,8 +781,8 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
 
             //BEGIN custom code
             if (PG_DisaIdentifier::isCustomId(selectedUnitInfo.characterId)) {
-                const auto& info = DisaCustomCharacterManager::get()->getCharacterInfo(selectedUnitInfo.characterId);
-                auto displayInfo = DisaCustomCharacterManager::get()->getDisplayInfo(info.identifier);
+                const auto& info = DisaCustomModificationsManager::get()->getCharacterInfo(selectedUnitInfo.characterId);
+                auto displayInfo = DisaCustomModificationsManager::get()->getDisplayInfo(info.identifier);
                 if (PG_DisaIdentifier::isCustomId(displayInfo.faceId)) {
                     creationCharacter.setCustomPortraitId(displayInfo.faceId);
                 }
@@ -852,7 +852,7 @@ void __fastcall FUN_004b5490(unsigned int portraitImageId, unsigned int portrait
     if (portraitColor & 0x80) { //indicator that custom
         portraitColor = portraitColor & ~0x80;//remove indicator bit
         unsigned short id = portraitImageId | portraitColor << 8;
-        if (DisaCustomCharacterManager::FaceHeader* data = DisaCustomCharacterManager::get()->getFaceData(id, settings->field_0x21)) {
+        if (DisaCustomModificationsManager::FaceHeader* data = DisaCustomModificationsManager::get()->getFaceData(id, settings->field_0x21)) {
             const unsigned int imgSize = data->isHD ? 160 : 40;
             FP::callFastFarA<void>(0x0050eb30, data->header.data(), (float*)&FP::getData<float>(0x005ad534), (float)param_3, (float)param_4, param_5, param_6, param_7, 0, 0, imgSize, imgSize, portraitColor);
         }
@@ -881,7 +881,7 @@ void __fastcall FUN_004b5490(unsigned int portraitImageId, unsigned int portrait
     }
     char* imgHeader;
     //CUSTOM CODE START
-    if (DisaCustomCharacterManager::FaceHeader* data = DisaCustomCharacterManager::get()->getFaceData(imageOffset, settings->field_0x21)) {
+    if (DisaCustomModificationsManager::FaceHeader* data = DisaCustomModificationsManager::get()->getFaceData(imageOffset, settings->field_0x21)) {
         imgHeader = data->header.data();
         imgSize = data->isHD ? 160 : 40;
     }
@@ -909,7 +909,7 @@ __declspec(naked) void FUN_004b5490_NoneStd(int param_3, int param_4, int param_
 
 void __stdcall FUN_004cf3c0() {
     FP::callStdFarA<void>(0x004cf3c0); //builds face index list
-    auto* manager = DisaCustomCharacterManager::get();
+    auto* manager = DisaCustomModificationsManager::get();
     manager->waitForModThread();
-    manager->loadCharacters();
+    manager->loadModifications();
 }

@@ -4,8 +4,8 @@
 #include <Models/PG_DisaModListModel.h>
 #include <Util/PG_Dir.h>
 
-class PG_DisaModCharactersListModel : public PG_DisaModListModel {
-	PG_OBJECT(PG_DisaModCharactersListModel);
+class PG_DisaModModificationsListModel : public PG_DisaModListModel {
+	PG_OBJECT(PG_DisaModModificationsListModel);
 	PG_PARENT(PG_DisaModListModel);
 
 public:
@@ -15,5 +15,5 @@ public:
 	void addZip(const PG_File& file) override;
 public:
 	void loadData() override;
-	void addCustomCharacters(std::vector<PG_DisaModListModelItem>& items, const PG_Dir& dir);
+	void addCustomModifications(std::vector<PG_DisaModListModelItem>& items, const PG_Dir& dir);
 };

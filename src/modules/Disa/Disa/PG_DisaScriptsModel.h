@@ -8,7 +8,7 @@ struct PG_DisaModLoadInfo;
 struct PG_DisaModInfo;
 
 class PG_DisaScriptsModel {
-	friend class PG_DisaCustomCharactersModel;
+	friend class PG_DisaCustomModificationsModel;
 	friend class DisaCustomCampaignManager;
 public:
 	struct ScriptInfo {
