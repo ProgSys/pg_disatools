@@ -16,7 +16,16 @@ public:
 	using PG_DisaCustomModificationsModel::PG_DisaCustomModificationsModel;
 
 
+	/**
+	* @brief Reads the mods and offers them to the resource manager. Does not touch the game tables.
+	* @details Must run on the main thread, after the render manager is initialized.
+	*/
 	void loadModifications();
+	/**
+	* @brief Writes magic and characters of the loaded mods into the game tables.
+	* @details The game sets up its tables in its first init (FUN_00489b60), so this must run after it.
+	*/
+	void loadIntoMemory();
 	/// Adds custom magic to the game table and replaces originals
 	void loadMagicIntoMemory();
 	/// Resolves and registers the characters, then adds them to the game table and replaces originals

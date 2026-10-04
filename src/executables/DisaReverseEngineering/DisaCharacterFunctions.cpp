@@ -32,6 +32,7 @@ struct DisaDataRemap {
         auto range = std::ranges::subrange(originalPtr, originalPtr + originalSize);
         customData.insert(customData.end(), range.begin(), range.end());
         FP::getData<T*>(AddressOrgData) = customData.data();
+        FP::getData<uint32_t>(AddressOrgSize) = originalSize; //entries added by an earlier steal are gone
     }
 
     T& addNewEntry() {
@@ -910,7 +911,6 @@ __declspec(naked) void FUN_004b5490_NoneStd(int param_3, int param_4, int param_
 
 void __stdcall FUN_004cf3c0() {
     FP::callStdFarA<void>(0x004cf3c0); //builds face index list
-    auto* manager = DisaCustomModificationsManager::get();
-    manager->waitForModThread();
-    manager->loadModifications();
+    //the game has just set up its character and magic tables, the mods were loaded on the first frame before
+    DisaCustomModificationsManager::get()->loadIntoMemory();
 }

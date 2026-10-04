@@ -67,7 +67,7 @@ struct HockManager {
 
     void init() {
         //must be first
-        //replaceFunction("afterCharDataLoad", "Used to init custom characters", 0x0048AFC7, FUN_004cf3c0); //will load character (mod) data
+        replaceFunction("afterCharDataLoad", "Writes the mod characters and magic into the game tables", 0x0048AFC7, FUN_004cf3c0);
 
         FUN_glViewportPointer = &FUN_glViewport;
         FUN_glDrawArraysPointer = &FUN_glDrawArrays;

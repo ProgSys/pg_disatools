@@ -242,6 +242,9 @@ void DisaCustomModificationsManager::recordEnemyKilled(DisaPartyCharacterInfo* c
 
 void DisaCustomModificationsManager::loadModifications() {
 	PG_DisaCustomModificationsModel::loadModifications(DisaCustomBaseModManager::exePath());
+}
+
+void DisaCustomModificationsManager::loadIntoMemory() {
 	loadMagicIntoMemory();
 	loadCharactersIntoMemory();
 	m_isHistoryChanged = true;
@@ -295,13 +298,11 @@ void DisaCustomModificationsManager::loadCharactersIntoMemory() {
 		auto& c = charactersModel.getCharacters()[registration.characterIndex];
 
 		if (c.identifier.isCustom()) {
-			const unsigned int entryIndex = registration.registeredIndex + originalCharactersSize;
-			c.charDataIndex = entryIndex;
 			if (registration.added) {
 				reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::addNewEntry()) = c.charData;
 			}
 			else {
-				reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(entryIndex)) = c.charData;
+				reinterpret_cast<PG_DisaDataCharacter&>(DisaDataCharacterInfo::getEntry(registration.registeredIndex + originalCharactersSize)) = c.charData;
 			}
 		}
 		else if (auto findIt = std::ranges::find(DisaDataCharacterInfo::begin(), DisaDataCharacterInfo::end(), c.charData.characterId, &PG_DisaDataCharacter::characterId);

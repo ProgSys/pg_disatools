@@ -100,4 +100,4 @@ void __fastcall FUN_004b5490(unsigned int portraitImageId, unsigned int portrait
 void FUN_004b5490_NoneStd(int param_3, int param_4, int param_5, int param_6, int param_7);
 
 //is called after characters where loaded
-void __stdcall FUN_004cf3c0(); //called after all data has been loaded
+void __stdcall FUN_004cf3c0(); //called once the game has set up its data tables
