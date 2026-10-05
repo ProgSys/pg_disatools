@@ -494,6 +494,17 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
 
     auto baselines = PG_GuiText::createBaseLine(chars, manager->getFont(), 24.f, glm::vec2(0));
     const glm::vec2 padding = manager->getFont().getAtlasPadding();
+
+    //the baselines are in layout units, the char infos in atlas units
+    constexpr float layoutScale = 24.f / 71.f; //font size of createBaseLine over the scale factor of PG_GuiText
+    //pen position of a char, its offset also holds the bearing
+    const auto penOf = [&chars](const PG_GuiText::Char& ch) { return ch.offset.x - chars[ch.textIndex].bearing.x * layoutScale; };
+    //room the chars from first to last take, up to where the following char would start without its kerning
+    const auto replacedWidth = [&](auto first, auto last, const PG_GuiText::Baseline& line) {
+        if (const auto followIt = std::next(last); followIt != line.chars.end())
+            return penOf(*followIt) - chars[followIt->textIndex].kerning * layoutScale - penOf(*first);
+        return penOf(*last) + chars[last->textIndex].advance.x * layoutScale - penOf(*first);
+    };
     for (PG_GuiText::Baseline& baseline : baselines) {
         for (auto it = baseline.chars.begin(); it != baseline.chars.end(); ++it) {
             PG_GuiText::Char& c = *it;
@@ -502,12 +513,13 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
             //White Square && White Up-Pointing Triangle
             if (auto findIt = g_charcodeToKeyboardSetting.find(c.charcode); findIt != g_charcodeToKeyboardSetting.end()) {
                 //special case for L1 and R1
-                auto nextIt = std::next(it);
+                auto lastReplacedIt = it; //the icon replaces the chars up to this one
                 if ((findIt->second.second == 2)) {
+                    auto nextIt = std::next(it);
                     if (nextIt != baseline.chars.end() && nextIt->charcode == 49) {
                         //is L1 or R2
                         nextIt->textureIndex = -1;
-                        baseline.start.x -= nextIt->size.x;
+                        lastReplacedIt = nextIt;
                     }
                     else {
                         //normal L or R
@@ -516,13 +528,12 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                 }
 
                 if (findIt != g_charcodeToKeyboardSetting.end()) {
-
                     auto cutout = getKeyMapCutout(settings, findIt->second.first);
                     if (cutout.x > 0) {
-                        constexpr std::array<std::pair<int, float>, 3> styles = { 
-                            std::pair<int, float>{14, 25.f}, //size, offset
-                            std::pair<int, float>{14, 26.f},
-                            std::pair<int, float>{14, 27.f}, //L1 R1
+                        constexpr std::array<std::pair<int, float>, 3> styles = {
+                            std::pair<int, float>{14, 26.f}, //size, advance of the icon in layout units
+                            std::pair<int, float>{14, 27.f},
+                            std::pair<int, float>{14, 28.f}, //L1 R1
                         };
                         const auto& style = styles[settings->isController()? findIt->second.second : 0];
 
@@ -531,9 +542,8 @@ void createFontGeometry(PG_Model& model, std::vector<DisaTextIcon>& icons, DisaS
                             cutout,
                             glm::vec2(basePos.x - 2.f, 2.f), style.first
                         );
-                        float nextCharDist = nextIt != baseline.chars.end() ? nextIt->offset.x - c.offset.x : c.size.x;
-                        //float nextCharDist = c.size.x;
-                        baseline.start.x += style.second - nextCharDist;
+
+                        baseline.start.x += style.second - replacedWidth(it, lastReplacedIt, baseline);
                         continue;
                     }
                 }
