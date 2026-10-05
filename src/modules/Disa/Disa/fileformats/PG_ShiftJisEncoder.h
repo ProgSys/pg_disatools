@@ -20,6 +20,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <optional>
 /**
 * @brief Will convert a Shift Jis string to an utf-8 string
 */
@@ -96,3 +97,9 @@ std::string toShiftJisString(const std::array<char, Size>& data) {
 * @brief Will split given utf8 string by given simple 1 byte character
 */
 std::vector<std::string> splitUtf8Simple(const std::string& string, const char splitter);
+
+/**
+* @brief Parses a Unicode code point given as "U+2665" and returns it UTF-8 encoded
+* Returns std::nullopt if the format or code point is invalid
+*/
+std::optional<std::string> parseCodePointToUtf8(const std::string& str);

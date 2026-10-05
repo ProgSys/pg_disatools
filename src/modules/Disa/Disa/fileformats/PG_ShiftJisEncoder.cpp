@@ -2,6 +2,7 @@
 #include "PG_ShiftJisToUtf8LookUpTable.h"
 #include "PG_Utf8ToShiftJisLookUpTable.h"
 #include <map>
+#include <stdexcept>
 
 static std::map<char, unsigned short> g_toFullWidth = {
 	{' ', 0x8140},
@@ -723,5 +724,36 @@ std::vector<std::string> splitUtf8Simple(const std::string& string, const char s
 	}
 
 	if(!curr.empty()) out.push_back(std::move(curr));
+	return out;
+}
+
+std::optional<std::string> parseCodePointToUtf8(const std::string& str) {
+	if (str.size() < 3 || (str[0] != 'U' && str[0] != 'u') || str[1] != '+') return std::nullopt;
+	unsigned long cp = 0;
+	try {
+		size_t pos = 0;
+		cp = std::stoul(str.substr(2), &pos, 16);
+		if (pos != str.size() - 2) return std::nullopt;
+	} catch (const std::exception&) {
+		return std::nullopt;
+	}
+	if (cp == 0 || cp > 0x10FFFF || (cp >= 0xD800 && cp <= 0xDFFF)) return std::nullopt;
+
+	std::string out;
+	if (cp < 0x80) {
+		out.push_back(static_cast<char>(cp));
+	} else if (cp < 0x800) {
+		out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+		out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+	} else if (cp < 0x10000) {
+		out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+		out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+		out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+	} else {
+		out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+		out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+		out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+		out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+	}
 	return out;
 }

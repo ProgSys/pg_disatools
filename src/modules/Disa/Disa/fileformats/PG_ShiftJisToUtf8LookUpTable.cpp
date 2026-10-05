@@ -23439,6 +23439,10 @@ unsigned long long utf8FullwidthToHalfwidth(unsigned long long c) {
         return static_cast<unsigned long long>(third - 0x20); // maps to 0x60..0x7E
     }
 
+    // U+FFE5 FULLWIDTH YEN SIGN -> U+00A5 YEN SIGN
+    if ((c & 0xFFFFFFULL) == 0xEFBFA5ULL)
+        return 0xC2A5ULL;
+
     // Not a supported fullwidth ASCII character; return unchanged
     return c;
 }
