@@ -35,6 +35,9 @@ PG_Variety PG_DisaCharacterModel::getData(Identity identity) const {
 }
 
 
+PG_DisaCharactersModel::PG_DisaCharactersModel() = default;
+PG_DisaCharactersModel::PG_DisaCharactersModel(const std::string& name) : PG_ListModel<PG_DisaCharacterModel>(name) {}
+PG_DisaCharactersModel::PG_DisaCharactersModel(std::string&& name) : PG_ListModel<PG_DisaCharacterModel>(std::move(name)) {}
 PG_DisaCharactersModel::~PG_DisaCharactersModel() = default;
 
 void PG_DisaCharactersModel::init() {

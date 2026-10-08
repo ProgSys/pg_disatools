@@ -14,6 +14,7 @@
 #include <Scene/Gui/PG_GuiTextEdit.h>
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Scene/Gui/PG_GuiScrollBar.h>
+#include <Scene/Gui/PG_GuiScrollComponent.h>
 #include <Scene/Gui/PG_GuiListView.h>
 #include <Scene/Gui/PG_GuiGridView.h>
 #include <Scene/Model/PG_ListModel.h>
@@ -1092,7 +1093,7 @@ static inline void createForObjectNoneSelectEdit(PG_GuiColumn* column, PG_DisaMa
 	if (auto rec = dynamic_cast<PG_GuiRectangle*>(scroll->getHandle())) {
 		rec->setMaterial("M_GuiRoundedRectangleAll5");
 	}
-	gridView->setupVerticalScrollBar(scroll);
+	PG_new<PG_GuiScrollComponent>(gridView)->setVerticalScrollBar(scroll);
 }
 
 
@@ -1299,7 +1300,7 @@ static inline void createForActorNoneSelectEdit(PG_GuiColumn* column) {
 	if (auto rec = dynamic_cast<PG_GuiRectangle*>(scroll->getHandle())) {
 		rec->setMaterial("M_GuiRoundedRectangleAll5");
 	}
-	gridView->setupVerticalScrollBar(scroll);
+	PG_new<PG_GuiScrollComponent>(gridView)->setVerticalScrollBar(scroll);
 }
 
 static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper* wrapper) {
@@ -2040,6 +2041,13 @@ void Inspector::createInspector() {
 		PG_GuiItem::anchor(column, PG_Anchor::Bottom, inspector, PG_Anchor::Bottom);
 		column->setMargin(4.f);
 		column->setHeight(100.f);
+
+		auto scroll = PG_new<PG_GuiScrollComponent>(column);
+		constexpr glm::vec3 blueColor = glm::vec3(133.f, 208.f, 255.f) / 255.f;
+		scroll->getVerticalScrollBar()->setScrollBarColors(PG_Gui::ColorSet{ blueColor, blueColor * 1.1f , blueColor * 1.1f });
+		if (auto rec = dynamic_cast<PG_GuiRectangle*>(scroll->getVerticalScrollBar()->getHandle())) {
+			rec->setMaterial("M_GuiRoundedRectangleAll5");
+		}
 	}
 
 	if (!wrapper) {

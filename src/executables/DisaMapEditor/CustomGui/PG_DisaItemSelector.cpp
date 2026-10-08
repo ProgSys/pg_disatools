@@ -5,6 +5,7 @@
 #include <Scene/Gui/PG_GuiMain.h>
 #include <Scene/Gui/PG_GuiListView.h>
 #include <Scene/Gui/PG_GuiScrollBar.h>
+#include <Scene/Gui/PG_GuiScrollComponent.h>
 #include <Scene/Gui/PG_GuiMenuPopup.h>
 #include <Util/Color/ColorDefined.h>
 #include <PG_DisaGridTile.h>
@@ -117,7 +118,11 @@ void PG_DisaItemSelector::initPopupMenu(PG_GuiPopupInstance* parent) {
 	listView->setItemUpdate(PG_GuiListView::getDefaultUpdateFunc<PG_DisaGridTile>());
 	listView->setModel(m_model);
 
-	if (getSize().x < 50.f) return; //scroll bar would take too much space
+	auto scrollComponent = PG_new<PG_GuiScrollComponent>(listView);
+	if (getSize().x < 50.f) {
+		scrollComponent->getVerticalScrollBar()->setVisible(false); //a bar would take too much space, the wheel still scrolls
+		return;
+	}
 	PG_GuiScrollBar* scrollY = PG_new<PG_GuiScrollBar>("PG_GuiScrollBarY", menu);
 	scrollY->setSize(glm::vec2(10.0f, 0.0f));
 	scrollY->setScrollBarColors({
@@ -132,7 +137,7 @@ void PG_DisaItemSelector::initPopupMenu(PG_GuiPopupInstance* parent) {
 	scrollY->setMargin(PG_Anchor::Top, 3.f);
 	scrollY->setMargin(PG_Anchor::Bottom, 3.f);
 	scrollY->setMargin(PG_Anchor::Right, 3.f);
-	listView->setupVerticalScrollBar(scrollY);
+	scrollComponent->setVerticalScrollBar(scrollY);
 }
 
 void PG_DisaItemSelector::selected(PG_ListModelLocation loc) {

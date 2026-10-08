@@ -40,6 +40,7 @@
 #include <Scene/Gui/PG_GuiToggleButton.h>
 #include <Scene/Gui/PG_GuiListView.h>
 #include <Scene/Gui/PG_GuiScrollBar.h>
+#include <Scene/Gui/PG_GuiScrollComponent.h>
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Scene/Gui/PG_GuiText.h>
 #include <Scene/Gui/PG_GuiTableView.h>
@@ -249,7 +250,6 @@ void RootScene::setupCenter() {
 
 	auto bgList = PG_new<PG_GuiListView>("PG_GuiListView", content);
 	bgList->setClip(true);
-	bgList->setUserInteractionEnabled(false);
 	bgList->setItem(PG_GuiListView::getDefaultCreateFunc<PG_DisaFileTableRowItem>());
 	bgList->setItemUpdate(PG_GuiListView::getDefaultUpdateFunc<PG_DisaFileTableRowItem>());
 
@@ -268,7 +268,9 @@ void RootScene::setupCenter() {
 
 
 	bgList->setCellSize(tableView->getCellSize().y);
-	connect(tableView, &PG_GuiGridView::scrollChanged, bgList, &PG_GuiGridView::setScrollPosition);
+	connect(tableView, &PG_GuiItem::contentOffsetChanged, bgList, [tableView, bgList] {
+		bgList->setContentOffset(glm::vec2(0.f, tableView->getContentOffset().y));
+	});
 
 
 	tableView->setColumnWidthModel(tableHeader);
@@ -290,11 +292,29 @@ void RootScene::setupCenter() {
 	scrollY->setMargin(PG_Anchor::Top, 3.f);
 	scrollY->setMargin(PG_Anchor::Bottom, 3.f);
 	scrollY->setMargin(PG_Anchor::Right, 3.f);
-	tableView->setupVerticalScrollBar(scrollY);
+	auto scrollComponent = PG_new<PG_GuiScrollComponent>(tableView);
+	scrollComponent->setVerticalScrollBar(scrollY);
+
+	PG_GuiScrollBar* scrollX = PG_new<PG_GuiScrollBar>("PG_GuiScrollBarX", content);
+	scrollX->setSize(glm::vec2(0.0f, 10.0f));
+	scrollX->setScrollBarColors(scrollY->getScrollBarColors());
+	PG_GuiItem::anchor(scrollX, PG_Anchor::Left, content, PG_Anchor::Left);
+	PG_GuiItem::anchor(scrollX, PG_Anchor::Right, scrollY, PG_Anchor::Left);
+	PG_GuiItem::anchor(scrollX, PG_Anchor::Bottom, content, PG_Anchor::Bottom);
+	scrollX->setMargin(PG_Anchor::Left, 3.f);
+	scrollX->setMargin(PG_Anchor::Right, 3.f);
+	scrollX->setMargin(PG_Anchor::Bottom, 3.f);
+	scrollComponent->setHorizontalScrollBar(scrollX);
+	if (auto rec = dynamic_cast<PG_GuiRectangle*>(scrollX->getHandle())) {
+		rec->setMaterial("M_GuiRoundedRectangleAll5");
+	}
 	tableHeader->moveToBack();
 
 	connect(scrollY, &PG_GuiMouseArea::enabledChanged, tableView, [tableView](bool visible) {
 		tableView->setMargin(PG_Anchor::Right, visible? 17.f: 7.f);
+		});
+	connect(scrollX, &PG_GuiMouseArea::enabledChanged, tableView, [tableView](bool visible) {
+		tableView->setMargin(PG_Anchor::Bottom, visible ? 17.f : 0.f);
 		});
 
 	connect(m_mainModel, &PG_DisaFileManagerMainModel::centerModelChanged, this, [this, tableView, bgList] (PG_UiStateBaseModel* oldModel, PG_UiStateBaseModel* newModel){

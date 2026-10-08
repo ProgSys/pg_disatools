@@ -42,6 +42,7 @@
 #include <Scene/Gui/PG_GuiRenderItem.h>
 #include <Scene/Gui/PG_GuiGridView.h>
 #include <Scene/Gui/PG_GuiScrollBar.h>
+#include <Scene/Gui/PG_GuiScrollComponent.h>
 #include <Scene/Gui/PG_GuiModel.h>
 #include <Scene/Gui/PG_GuiTooltip.h>
 #include <Scene/Gui/PG_GuiTextField.h>
@@ -434,7 +435,7 @@ void RootScene::setupGridView() {
 		rec->setMaterial("M_GuiRoundedRectangleAll5");
 	}
 
-	gridView->setupVerticalScrollBar(scroll);
+	PG_new<PG_GuiScrollComponent>(gridView)->setVerticalScrollBar(scroll);
 
 	PG_GuiItem* container = PG_new<PG_GuiItem>("NavWrapper", gridWrapper);
 	container->setPosition(glm::vec2(0, -20));

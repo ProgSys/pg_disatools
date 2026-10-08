@@ -40,6 +40,7 @@
 #include <Scene/Gui/PG_GuiToggleButton.h>
 #include <Scene/Gui/PG_GuiListView.h>
 #include <Scene/Gui/PG_GuiScrollBar.h>
+#include <Scene/Gui/PG_GuiScrollComponent.h>
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Scene/Gui/PG_GuiText.h>
 
@@ -178,7 +179,7 @@ void RootScene::setupCenter() {
 	scrollY->setMargin(PG_Anchor::Top, 3.f);
 	scrollY->setMargin(PG_Anchor::Bottom, 3.f);
 	scrollY->setMargin(PG_Anchor::Right, 3.f);
-	listView->setupVerticalScrollBar(scrollY);
+	PG_new<PG_GuiScrollComponent>(listView)->setVerticalScrollBar(scrollY);
 	connect(scrollY, &PG_GuiMouseArea::enabledChanged, listView, [listView](bool visible) {
 		listView->setMargin(PG_Anchor::Right, visible? 17.f: 7.f);
 		});

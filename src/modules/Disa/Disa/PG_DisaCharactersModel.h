@@ -71,7 +71,10 @@ class PG_DisaCharactersModel: public PG_ListModel<PG_DisaCharacterModel> {
 	PG_OBJECT(PG_DisaCharactersModel);
 	PG_PARENT(PG_ListModel<PG_DisaCharacterModel>);
 public: 
-	using PG_ListModel<PG_DisaCharacterModel>::PG_ListModel;
+	//defined in the .cpp, the unique_ptr members need complete types to be destroyed
+	PG_DisaCharactersModel();
+	PG_DisaCharactersModel(const std::string& name);
+	PG_DisaCharactersModel(std::string&& name);
 	~PG_DisaCharactersModel();
 
 	void init();
