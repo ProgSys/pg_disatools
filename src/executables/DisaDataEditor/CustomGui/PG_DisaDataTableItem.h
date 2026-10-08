@@ -51,14 +51,11 @@ private:
 /**
 * @brief One editable cell of the data table.
 * @details The edit is committed to the model when it loses focus or Return is pressed, Escape reverts it.
-* A right click asks the owning view to open the row menu, see setRowMenuFunc.
 */
 class PG_DisaDataCellItem : public PG_GuiItem {
 	PG_OBJECT(PG_DisaDataCellItem);
 	PG_PARENT(PG_GuiItem);
 public:
-	using RowMenuFunc = std::function<void(PG_GuiItem* owner, std::size_t row)>;
-
 	using PG_GuiItem::PG_GuiItem;
 	void init() override;
 	bool filterEvent(PG_Event* e) override;
@@ -66,9 +63,6 @@ public:
 	const PG_ListModelLocation& getLocation() const { return m_location; }
 	void setLocation(const PG_ListModelLocation& location);
 	void update(const PG_ListModelLocation& location, const PG_IdentitySet& identities);
-
-	/// Called on right click, shared by all cells
-	static void setRowMenuFunc(RowMenuFunc func);
 private:
 	void updateText();
 	void updateBackground();

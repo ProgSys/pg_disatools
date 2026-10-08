@@ -112,5 +112,6 @@ private:
 	PG_Def m_def;
 	std::vector<std::string> m_headerValues; /// One per header format, empty for ZERO
 	std::vector<Row> m_rows;
+	std::vector<char> m_trailingData; /// Whatever follows the last row, written back unchanged
 	bool m_modified = false;
 };

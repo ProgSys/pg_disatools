@@ -14,8 +14,6 @@
 namespace {
 	constexpr float g_fontSize = 18.f;
 	constexpr char g_font[] = "ClearSans/ClearSans-Regular.ttf";
-
-	PG_DisaDataCellItem::RowMenuFunc g_rowMenuFunc;
 }
 
 void PG_DisaDataHeaderItem::init() {
@@ -67,11 +65,6 @@ void PG_DisaDataCellItem::init() {
 	connect(m_text, &PG_GuiTextEdit::activateChanged, this, [this](bool active) {
 		if (!active) commit();
 	});
-
-	connect(m_text, &PG_GuiTextEdit::rightClicked, this, [this] {
-		if (!m_location || !g_rowMenuFunc) return;
-		g_rowMenuFunc(this, m_location.getIndex().get(0));
-	});
 }
 
 bool PG_DisaDataCellItem::filterEvent(PG_Event* e) {
@@ -111,10 +104,6 @@ void PG_DisaDataCellItem::update(const PG_ListModelLocation& location, const PG_
 		updateText();
 		updateBackground();
 	}
-}
-
-void PG_DisaDataCellItem::setRowMenuFunc(RowMenuFunc func) {
-	g_rowMenuFunc = std::move(func);
 }
 
 void PG_DisaDataCellItem::updateText() {

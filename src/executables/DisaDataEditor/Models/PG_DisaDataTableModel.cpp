@@ -6,6 +6,9 @@
 #include <Util/PG_StringUtil.h>
 #include <Util/Debug/PG_DebugOut.h>
 
+#include <cstdint>
+#include <Disa/fileformats/PG_Utf8ToShiftJisLookUpTable.h>
+
 #include <charconv>
 #include <cstring>
 #include <fstream>
@@ -46,6 +49,19 @@ namespace {
 
 	bool isShiftJisLeadByte(unsigned char c) {
 		return (c >= 0x81 && c <= 0x9F) || (c >= 0xE0 && c <= 0xFC);
+	}
+
+	/**
+	* @brief Converts to full width Shift JIS, like the game files use.
+	* @details utf8ToShiftJis packs the utf8 bytes of a char in reverse order of its lookup table, so every
+	* none ASCII char misses and is looked up here again with the bytes swapped.
+	*/
+	std::string toShiftJis(const std::string& utf8) {
+		return utf8ToShiftJis(utf8, true, [](uint32_t packed) -> unsigned short {
+			uint32_t swapped = 0;
+			for (; packed; packed >>= 8) swapped = (swapped << 8) | (packed & 0xFF);
+			return utf8ToShiftJis(swapped);
+		});
 	}
 
 	/// Cuts the string to at most maxBytes, without splitting a double byte char
@@ -227,7 +243,7 @@ namespace {
 			writeNumber(out, number, numberByteSize(format));
 		}break;
 		case RowFormat::SHIFT_JIS: {
-			std::string sjis = utf8ToShiftJis(value, false);
+			std::string sjis = toShiftJis(value);
 			if (format.dynamicLength == 0) clampShiftJis(sjis, format.byteSize);
 			writeString(format, out, std::move(sjis));
 		}break;
@@ -369,6 +385,7 @@ bool PG_DisaDataTableModel::open(const PG_File& file, std::string& errorOut) {
 	}
 	m_def = std::move(def);
 	m_headerValues = std::move(headerValues);
+	m_trailingData.assign(data.begin() + reader.pos, data.end());
 	m_rows = std::move(rows);
 	m_file = file;
 	m_modified = false;
@@ -398,8 +415,7 @@ bool PG_DisaDataTableModel::save(const PG_File& file) {
 		}
 	}
 
-	//the old editor did end every file like this
-	data.insert(data.end(), 16, 0);
+	data.insert(data.end(), m_trailingData.begin(), m_trailingData.end());
 
 	std::ofstream stream(file.getPath(), std::ios::binary | std::ios::trunc);
 	if (!stream) return false;
@@ -614,7 +630,7 @@ bool PG_DisaDataTableModel::validate(const RowFormat& format, std::string& value
 	}
 	case RowFormat::SHIFT_JIS: {
 		if (format.dynamicLength) return true;
-		std::string sjis = utf8ToShiftJis(value, false);
+		std::string sjis = toShiftJis(value);
 		if (sjis.size() <= format.byteSize) return true;
 		clampShiftJis(sjis, format.byteSize);
 		value = shiftJisToUtf8(sjis);

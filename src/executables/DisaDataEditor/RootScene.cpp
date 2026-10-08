@@ -29,6 +29,7 @@
 #include "RootScene.h"
 
 #include <Base/Events/PG_KeyEvent.h>
+#include <Base/Events/PG_MouseButtonEvent.h>
 #include <Resources/PG_Shader.h>
 
 #include <Scene/Gui/PG_GuiMain.h>
@@ -81,8 +82,6 @@ void RootScene::init() {
 	m_center->setClip(true);
 
 	guiMain->setTooltipItem(PG_new<PG_GuiTooltip>("Tooltip", m_rootItem));
-
-	PG_DisaDataCellItem::setRowMenuFunc([this](PG_GuiItem* owner, std::size_t row) { openRowMenu(owner, row); });
 
 	const auto updateTitle = [this] { emit titleChanged(getTitle()); };
 	connect(m_model, &PG_DisaDataTableModel::fileChanged, this, updateTitle);
@@ -169,13 +168,10 @@ void RootScene::rebuildTable() {
 	content->fill(m_center);
 	m_tableContent = content;
 
-	//behind the table, so an empty table can still get its first row
-	auto* emptyArea = PG_new<PG_GuiMouseArea>("emptyTableArea", content);
-	emptyArea->fill(content);
-	emptyArea->setAcceptedButtons(PG_GuiMouseArea::Right);
-	connect(emptyArea, &PG_GuiMouseArea::rightClicked, this, [this, emptyArea] {
-		if (m_model->isOpen() && m_model->empty()) openRowMenu(emptyArea, 0);
-	});
+	//behind the table, it gets the right clicks the cells ignore
+	auto* tableArea = PG_new<PG_GuiMouseArea>("tableArea", content);
+	tableArea->fill(content);
+	tableArea->setAcceptedButtons(PG_GuiMouseArea::Right);
 
 	PG_GuiTableHeaderView* tableHeader = PG_new<PG_GuiTableHeaderView>("tableHeader", content);
 	PG_GuiItem::anchor(tableHeader, PG_Anchor::Top, content, PG_Anchor::Top);
@@ -230,6 +226,15 @@ void RootScene::rebuildTable() {
 	});
 	connect(scrollX, &PG_GuiMouseArea::enabledChanged, tableView, [tableView](bool visible) {
 		tableView->setMargin(PG_Anchor::Bottom, visible ? 17.f : 0.f);
+	});
+
+	connect(tableArea, &PG_GuiMouseArea::mouseClicked, this, [this, tableArea, tableView](PG_MouseButtonEvent* e) {
+		if (e->getButton() != PG_BUTTON_RIGHT || !tableView->isInside(e->getPosition())) return;
+		const float y = tableView->toContentSpace(tableView->toLocalTranslation(e->getPosition())).y;
+		const float rowHeight = tableView->getCellSize().y + tableView->getSpacing();
+		if (y < 0.f || rowHeight <= 0.f) return;
+		//below the last row only inserting is offered
+		openRowMenu(tableArea, std::min(std::size_t(y / rowHeight), m_model->size()));
 	});
 
 	if (m_model->isOpen()) tableView->setModel(m_model);
