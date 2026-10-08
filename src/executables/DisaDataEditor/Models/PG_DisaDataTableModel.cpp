@@ -166,12 +166,17 @@ namespace {
 		return true;
 	}
 
-	/// @returns false when the data ended too early
-	bool readCell(const RowFormat& format, ByteReader& reader, std::string& out) {
+	/**
+	* @returns false when the data ended too early
+	* @param rawOut Gets the bytes of a text cell as they are in the file
+	*/
+	bool readCell(const RowFormat& format, ByteReader& reader, std::string& out, std::optional<std::string>* rawOut = nullptr) {
 		switch (format.type) {
 		case RowFormat::ZERO: {
 			std::string skip;
-			return reader.read(skip, format.byteSize);
+			if (!reader.read(skip, format.byteSize)) return false;
+			if (rawOut) *rawOut = std::move(skip);
+			return true;
 		}
 		case RowFormat::INT:
 		case RowFormat::UINT: {
@@ -188,6 +193,7 @@ namespace {
 			std::size_t size = 0;
 			std::string sjis;
 			if (!readStringSize(format, reader, size) || !reader.read(sjis, size)) return false;
+			if (rawOut) *rawOut = sjis;
 			if (format.dynamicLength == 0) sjis.resize(std::strlen(sjis.c_str()));
 			out = shiftJisToUtf8(sjis);
 			return true;
@@ -196,6 +202,7 @@ namespace {
 			std::size_t size = 0;
 			std::string utf16;
 			if (!readStringSize(format, reader, size) || !reader.read(utf16, size)) return false;
+			if (rawOut) *rawOut = utf16;
 			if (format.dynamicLength == 0) {
 				std::size_t end = 0;
 				while (end + 1 < utf16.size() && (utf16[end] != 0 || utf16[end + 1] != 0)) end += 2;
@@ -363,12 +370,11 @@ bool PG_DisaDataTableModel::open(const PG_File& file, std::string& errorOut) {
 	std::vector<Row> rows(rowCount);
 	for (Row& row : rows) {
 		for (const RowFormat& format : def.formats) {
-			std::string value;
-			if (!readCell(format, reader, value)) {
+			Cell& cell = row.emplace_back();
+			if (!readCell(format, reader, cell.text, &cell.raw)) {
 				errorOut = "The file ended before all " + std::to_string(rowCount) + " rows were read! Is it the right definition?";
 				return false;
 			}
-			if (format.type != RowFormat::ZERO) row.push_back(std::move(value));
 		}
 	}
 
@@ -408,10 +414,10 @@ bool PG_DisaDataTableModel::save(const PG_File& file) {
 	}
 
 	for (const Row& row : m_rows) {
-		std::size_t cell = 0;
-		for (const RowFormat& format : m_def.formats) {
-			if (format.type == RowFormat::ZERO) writeCell(format, data, {});
-			else writeCell(format, data, row[cell++]);
+		for (std::size_t i = 0; i < m_def.formats.size(); ++i) {
+			const RowFormat& format = m_def.formats[i];
+			if (row[i].raw) writeString(format, data, *row[i].raw);
+			else writeCell(format, data, row[i].text);
 		}
 	}
 
@@ -438,10 +444,10 @@ bool PG_DisaDataTableModel::exportCSV(const PG_File& file) const {
 		stream << csvEscape(getColumnName(c));
 	}
 	stream << '\n';
-	for (const Row& row : m_rows) {
+	for (std::size_t r = 0; r < m_rows.size(); ++r) {
 		for (std::size_t c = 0; c < getColumnCount(); ++c) {
 			if (c) stream << ',';
-			if (c < row.size()) stream << csvEscape(row[c]);
+			if (const Cell* cell = getCell(r, c)) stream << csvEscape(cell->text);
 		}
 		stream << '\n';
 	}
@@ -486,9 +492,8 @@ void PG_DisaDataTableModel::insertRow(std::size_t at) {
 
 	Row row;
 	if (m_rows.empty()) {
-		for (std::size_t c = 0; c < getColumnCount(); ++c) {
-			const RowFormat* format = getFormat(c);
-			row.push_back(format && (format->type == RowFormat::INT || format->type == RowFormat::UINT) ? "0" : "");
+		for (const RowFormat& format : m_def.formats) {
+			row.push_back(Cell{ format.type == RowFormat::INT || format.type == RowFormat::UINT ? "0" : "" });
 		}
 	}
 	else row = m_rows[std::min(at, m_rows.size() - 1)];
@@ -518,8 +523,10 @@ void PG_DisaDataTableModel::removeRow(std::size_t at) {
 void PG_DisaDataTableModel::moveRow(std::size_t from, std::size_t to) {
 	if (from >= m_rows.size() || to >= m_rows.size() || from == to) return;
 	std::swap(m_rows[from], m_rows[to]);
-	for (std::size_t c = 0; c < m_def.header.size() && c < m_rows[from].size(); ++c) {
-		if (m_def.header[c].type == ColumnFormat::INDEX) std::swap(m_rows[from][c], m_rows[to][c]);
+	for (std::size_t c = 0; c < m_def.header.size(); ++c) {
+		Cell* fromCell = getCell(from, c);
+		Cell* toCell = getCell(to, c);
+		if (m_def.header[c].type == ColumnFormat::INDEX && fromCell && toCell) std::swap(*fromCell, *toCell);
 	}
 	emit itemsChanged(std::min(from, to), std::max(from, to), { PG_Identity_Item, PG_Identity_Text });
 	setModified(true);
@@ -551,7 +558,10 @@ PG_Variety PG_DisaDataTableModel::getData(PG_Index index, Identity identity) con
 	case PG_Identity_Location: return PG_Variety(getLocation(index));
 	case PG_Identity_Text:
 	case PG_Identity_Edit:
-		return PG_Variety(column < m_rows[row].size() ? m_rows[row][column] : std::string());
+	{
+		const Cell* cell = getCell(row, column);
+		return PG_Variety(cell ? cell->text : std::string());
+	}
 	case PG_Identity_Tooltip: return PG_Variety(getColumnName(column));
 	case Identity_Editable: return PG_Variety(isEditable(column));
 	case Identity_Background: return PG_Variety(getBackground(row, column));
@@ -564,13 +574,15 @@ void PG_DisaDataTableModel::setData(PG_Index index, const PG_Variety& data, Iden
 	if (!isIndexValid(index) || index.size() < 2) return;
 	const std::size_t row = index.get(0);
 	const std::size_t column = index.get(1);
-	if (!isEditable(column) || column >= m_rows[row].size()) return;
+	Cell* cell = getCell(row, column);
+	if (!isEditable(column) || !cell) return;
 
 	std::string value = data.convert<std::string>();
 	PG_StringUtil::trim(value);
 	const bool valid = validate(*getFormat(column), value);
-	if (valid && value != m_rows[row][column]) {
-		m_rows[row][column] = std::move(value);
+	if (valid && value != cell->text) {
+		cell->text = std::move(value);
+		cell->raw.reset();
 		setModified(true);
 	}
 	//also when rejected, so the view shows the old value again
@@ -582,6 +594,15 @@ const RowFormat* PG_DisaDataTableModel::getFormat(std::size_t column) const {
 	const int formatIndex = m_def.header[column].formatIndex;
 	if (formatIndex < 0 || formatIndex >= int(m_def.formats.size())) return nullptr;
 	return &m_def.formats[formatIndex];
+}
+
+const PG_DisaDataTableModel::Cell* PG_DisaDataTableModel::getCell(std::size_t row, std::size_t column) const {
+	if (row >= m_rows.size() || !getFormat(column)) return nullptr;
+	return &m_rows[row][m_def.header[column].formatIndex];
+}
+
+PG_DisaDataTableModel::Cell* PG_DisaDataTableModel::getCell(std::size_t row, std::size_t column) {
+	return const_cast<Cell*>(std::as_const(*this).getCell(row, column));
 }
 
 bool PG_DisaDataTableModel::isEditable(std::size_t column) const {
@@ -599,7 +620,7 @@ glm::vec4 PG_DisaDataTableModel::getBackground(std::size_t row, std::size_t colu
 	if (col.colorMin == col.colorMax) return glm::vec4(minColor, alpha);
 
 	long long value = 0;
-	const std::string& text = m_rows[row][column];
+	const std::string& text = getCell(row, column)->text;
 	std::from_chars(text.data(), text.data() + text.size(), value);
 	const float t = glm::clamp(float(value - col.colorMin) / float(col.colorMax - col.colorMin), 0.f, 1.f);
 	return glm::vec4(glm::mix(minColor, maxColor, t), alpha);
@@ -658,10 +679,12 @@ void PG_DisaDataTableModel::shiftIndexColumns(std::size_t startRow, long long am
 	for (std::size_t c = 0; c < m_def.header.size(); ++c) {
 		if (m_def.header[c].type != ColumnFormat::INDEX) continue;
 		for (std::size_t r = startRow; r < m_rows.size(); ++r) {
-			if (c >= m_rows[r].size()) continue;
+			Cell* cell = getCell(r, c);
+			if (!cell) continue;
 			long long value = 0;
-			std::from_chars(m_rows[r][c].data(), m_rows[r][c].data() + m_rows[r][c].size(), value);
-			m_rows[r][c] = std::to_string(value + amount);
+			std::from_chars(cell->text.data(), cell->text.data() + cell->text.size(), value);
+			cell->text = std::to_string(value + amount);
+			cell->raw.reset();
 		}
 	}
 }

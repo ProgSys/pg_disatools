@@ -33,6 +33,7 @@
 #include <Util/PG_File.h>
 #include <Util/PG_Dir.h>
 #include <glm/glm.hpp>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -98,9 +99,17 @@ public:
 	void setData(PG_Index index, const PG_Variety& data, Identity identity) override;
 
 private:
-	using Row = std::vector<std::string>;
+	struct Cell {
+		std::string text;
+		/// The bytes of a text or zero cell as they were in the file, written back as long as the text is unchanged
+		std::optional<std::string> raw;
+	};
+	using Row = std::vector<Cell>; /// One cell per row format, also the ZERO ones
 
 	const PG_DefDefinition::RowFormat* getFormat(std::size_t column) const;
+	/// nullptr when the column has no format
+	const Cell* getCell(std::size_t row, std::size_t column) const;
+	Cell* getCell(std::size_t row, std::size_t column);
 	bool isEditable(std::size_t column) const;
 	glm::vec4 getBackground(std::size_t row, std::size_t column) const;
 	/// Returns false when value doesn't fit the format, value may be shortened
