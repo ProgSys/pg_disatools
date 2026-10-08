@@ -676,6 +676,9 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 	}
 
 	auto uvItem = PG_new<PG_DisaUVItem>("uvItem", glm::vec2(0.f, 0.f), glm::vec2(inspectorWidth - 10), column);
+	PG_GuiItem::anchor(uvItem, PG_Anchor::Left, column, PG_Anchor::Left);
+	PG_GuiItem::anchor(uvItem, PG_Anchor::Right, column, PG_Anchor::Right);
+	uvItem->setLayoutProperty(PG_GuiItem::LayoutProperty_AspectRatio, glm::vec2(1.f)); //stays square as the scroll bar takes width
 	PG_Gui::connectGuiElementV2(wrapper, "texture", uvItem, "image");
 	PG_Gui::connectGuiElementV2(wrapper, "texUvOutlines", uvItem, "outlines");
 
