@@ -36,6 +36,7 @@
 #include <Scene/Gui/PG_GuiMain.h>
 #include <Scene/Gui/PG_GuiRectangle.h>
 #include <Scene/Gui/PG_GuiRow.h>
+#include <Scene/Gui/PG_GuiCell.h>
 #include <Scene/Gui/PG_GuiTooltip.h>
 #include <Scene/Gui/PG_GuiButton.h>
 #include <Scene/Gui/PG_GuiToggleButton.h>
@@ -58,7 +59,6 @@
 #define APP_TITLE "Disa TX2 Editor"
 
 namespace {
-	constexpr float g_colorTablePanelWidth = 330.f;
 	constexpr float g_minZoom = 0.05f;
 	constexpr float g_maxZoom = 64.f;
 }
@@ -173,18 +173,23 @@ void RootScene::setupToolbar() {
 	auto convertButton = createButton("convertButton", "gui/icon_repeat.svg", "Convert to");
 	connect(convertButton, &PG_GuiButton::clicked, this, &RootScene::openConvertDialog);
 
-	m_infoButton = createToggleButton("infoButton", "gui/icon_tag.svg", "Image info");
-	m_infoButton->setToggled(true);
-	connect(m_infoButton, &PG_GuiToggleButton::toggleChanged, this, &RootScene::updateInfo);
+	m_colorTableButton = createToggleButton("colorTableButton", "gui/icon_pick.svg", "Color table");
+	connect(m_colorTableButton, &PG_GuiToggleButton::toggleChanged, this, [this](bool toggled) {
+		if (toggled) {
+			m_cell->addBottom(m_colorTablePanel, m_colorTableHeight);
+			return;
+		}
+		m_colorTableHeight = m_colorTablePanel->getSize().y;
+		m_cell->remove(m_colorTablePanel);
+		m_colorTablePanel->setParent(m_hiddenItems);
+	});
 
 	auto spacer = PG_new<PG_GuiItem>("toolbarSpacer", glm::vec2(0.f), glm::vec2(1.f, 30.f), m_toolbarRow);
 	spacer->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
 
-	m_colorTableButton = createToggleButton("colorTableButton", "gui/icon_pick.svg", "Color table");
-	connect(m_colorTableButton, &PG_GuiToggleButton::toggleChanged, this, [this](bool toggled) {
-		m_colorTablePanel->setVisible(toggled);
-		m_viewArea->setMargin(PG_Anchor::Right, toggled ? g_colorTablePanelWidth : 0.f);
-	});
+	m_infoButton = createToggleButton("infoButton", "gui/icon_tag.svg", "Image info");
+	m_infoButton->setToggled(true);
+	connect(m_infoButton, &PG_GuiToggleButton::toggleChanged, this, &RootScene::updateInfo);
 
 	const auto updateEnabled = [this, saveButton, saveAsButton, focusButton, convertButton] {
 		const bool isOpen = m_model->isOpen();
@@ -199,12 +204,20 @@ void RootScene::setupToolbar() {
 }
 
 void RootScene::setupView() {
+	//the image on top, the color table can be added below it
+	m_cell = PG_new<PG_GuiCell>("mainCell", m_rootItem);
+	PG_GuiItem::anchor(m_cell, PG_Anchor::Top, m_toolbar, PG_Anchor::Bottom);
+	PG_GuiItem::anchor(m_cell, PG_Anchor::Left, m_rootItem, PG_Anchor::Left);
+	PG_GuiItem::anchor(m_cell, PG_Anchor::Right, m_rootItem, PG_Anchor::Right);
+	PG_GuiItem::anchor(m_cell, PG_Anchor::Bottom, m_rootItem, PG_Anchor::Bottom);
+
+	m_hiddenItems = PG_new<PG_GuiItem>("hiddenItems", m_rootItem);
+	m_hiddenItems->setVisible(false);
+
 	m_viewArea = PG_new<PG_GuiItem>("viewArea", m_rootItem);
-	PG_GuiItem::anchor(m_viewArea, PG_Anchor::Top, m_toolbar, PG_Anchor::Bottom);
-	PG_GuiItem::anchor(m_viewArea, PG_Anchor::Left, m_rootItem, PG_Anchor::Left);
-	PG_GuiItem::anchor(m_viewArea, PG_Anchor::Right, m_rootItem, PG_Anchor::Right);
-	PG_GuiItem::anchor(m_viewArea, PG_Anchor::Bottom, m_rootItem, PG_Anchor::Bottom);
+	m_viewArea->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
 	m_viewArea->setClip(true);
+	m_cell->addTop(m_viewArea);
 
 	auto background = PG_new<PG_GuiImage>("viewBackground", m_viewArea);
 	background->fill(m_viewArea);
@@ -270,12 +283,8 @@ void RootScene::setupView() {
 }
 
 void RootScene::setupColorTable() {
-	m_colorTablePanel = PG_new<PG_GuiRectangle>("colorTablePanel", glm::vec2(0.f), glm::vec2(g_colorTablePanelWidth, 10.f), m_rootItem);
-	m_colorTablePanel->setColor(PG_Gui::backgroundColor);
-	PG_GuiItem::anchor(m_colorTablePanel, PG_Anchor::Top, m_toolbar, PG_Anchor::Bottom);
-	PG_GuiItem::anchor(m_colorTablePanel, PG_Anchor::Right, m_rootItem, PG_Anchor::Right);
-	PG_GuiItem::anchor(m_colorTablePanel, PG_Anchor::Bottom, m_rootItem, PG_Anchor::Bottom);
-	m_colorTablePanel->setVisible(false);
+	//parked until the color table button adds it to the cell
+	m_colorTablePanel = PG_new<PG_GuiItem>("colorTablePanel", glm::vec2(0.f), glm::vec2(100.f, m_colorTableHeight), m_hiddenItems);
 
 	m_colorTableView = PG_new<PG_DisaColorTableView>("colorTableView", m_colorTablePanel);
 	m_colorTableView->fill(m_colorTablePanel);

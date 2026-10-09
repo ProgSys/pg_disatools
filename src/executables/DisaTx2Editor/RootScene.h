@@ -38,6 +38,7 @@ class PG_GuiItem;
 class PG_GuiImage;
 class PG_GuiMouseArea;
 class PG_GuiRectangle;
+class PG_GuiCell;
 class PG_GuiRow;
 class PG_GuiText;
 class PG_GuiToggleButton;
@@ -84,7 +85,10 @@ private:
 	PG_GuiText* m_infoText = nullptr;
 	PG_GuiToggleButton* m_infoButton = nullptr;
 	PG_GuiToggleButton* m_colorTableButton = nullptr;
-	PG_GuiRectangle* m_colorTablePanel = nullptr;
+	PG_GuiCell* m_cell = nullptr;
+	PG_GuiItem* m_hiddenItems = nullptr; /// Holds the color table while it is not part of the cell
+	PG_GuiItem* m_colorTablePanel = nullptr;
+	float m_colorTableHeight = 260.f;
 	PG_DisaColorTableView* m_colorTableView = nullptr;
 	bool m_keepFocused = true; /// The image is refitted when the view resizes, until it is zoomed or panned
 };

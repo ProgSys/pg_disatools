@@ -7,6 +7,7 @@
 #include <Scene/Gui/PG_GuiImage.h>
 #include <Scene/Gui/PG_GuiMouseArea.h>
 #include <Scene/Gui/PG_GuiRectangle.h>
+#include <Scene/Gui/PG_GuiRow.h>
 #include <Scene/Gui/PG_GuiScrollBar.h>
 #include <Scene/Gui/PG_GuiScrollComponent.h>
 #include <Scene/Gui/PG_GuiText.h>
@@ -21,30 +22,39 @@
 #include <cctype>
 
 namespace {
-	constexpr float g_buttonSize = 28.f;
-	constexpr float g_swatchSize = 26.f;
+	constexpr float g_swatchSize = 40.f;
+
+	/// Black or white, whatever reads better on the color
+	glm::vec3 contrastColor(const glm::rgba& color) {
+		const float luminance = (0.299f * color.r + 0.587f * color.g + 0.114f * color.b) / 255.f;
+		return color.a > 127 && luminance > 0.6f ? PG_Color::blackFrgb : PG_Color::whiteFrgb;
+	}
 }
 
 void PG_DisaColorSwatchItem::init() {
 	PG_GuiItem::init();
 
-	auto* pattern = PG_new<PG_GuiImage>("pattern", this);
-	pattern->fill(this);
-	pattern->setMargin(PG_Anchor::Left, 2.f);
-	pattern->setMargin(PG_Anchor::Right, 2.f);
-	pattern->setMargin(PG_Anchor::Top, 2.f);
-	pattern->setMargin(PG_Anchor::Bottom, 2.f);
+	auto* border = PG_new<PG_GuiRectangle>("border", this);
+	border->fill(this);
+	border->setColor(PG_Color::blackFrgb);
+
+	auto* pattern = PG_new<PG_GuiImage>("pattern", border);
+	pattern->fill(border);
+	for (auto side : { PG_Anchor::Left, PG_Anchor::Right, PG_Anchor::Top, PG_Anchor::Bottom }) pattern->setMargin(side, 1.f);
 	pattern->setFitType(PG_GuiImage::Repeat);
 	pattern->setSource("/gui/pattern.png");
 
 	m_color = PG_new<PG_GuiRectangle>("color", pattern);
 	m_color->fill(pattern);
 
-	m_selection = PG_new<PG_GuiRectangle>("selection", this);
-	m_selection->fill(this);
+	m_selection = PG_new<PG_GuiRectangle>("selection", pattern);
+	m_selection->fill(pattern);
 	m_selection->setColor(PG_Color::whiteFrgb);
-	m_selection->setAlpha(0.f);
-	m_selection->moveToBack();
+	m_selection->setVisible(false);
+
+	m_indexText = PG_new<PG_GuiText>("index", glm::vec2(3.f, 1.f), glm::vec2(g_swatchSize - 4.f, 14.f), pattern);
+	m_indexText->setFontSize(12.f);
+	m_indexText->setWrapMode(PG_GuiText::None);
 
 	m_area = PG_new<PG_GuiMouseArea>("swatchArea", this);
 	m_area->fill(this);
@@ -71,7 +81,9 @@ void PG_DisaColorSwatchItem::update(const PG_ListModelLocation& location, const 
 }
 
 void PG_DisaColorSwatchItem::setSelected(bool selected) {
-	m_selection->setAlpha(selected ? 1.f : 0.f);
+	m_selection->setVisible(selected);
+	if (selected) m_indexText->setColor(PG_Color::blackFrgb);
+	else if (m_location) m_indexText->setColor(contrastColor(m_location.getDataT<glm::rgba>(PG_Identity_Item)));
 }
 
 void PG_DisaColorSwatchItem::updateColor() {
@@ -79,6 +91,7 @@ void PG_DisaColorSwatchItem::updateColor() {
 	const glm::rgba color = m_location.getDataT<glm::rgba>(PG_Identity_Item);
 	m_color->setColor(glm::vec3(color) / 255.f);
 	m_color->setAlpha(color.a / 255.f);
+	m_indexText->setText(std::to_string(m_location.getIndex().get(0)));
 	m_area->setTooltipText(m_location.getDataT<std::string>(PG_Identity_Tooltip));
 	auto* view = findParent<PG_DisaColorTableView>();
 	setSelected(view && view->getSelected() == m_location.getIndex().get(0));
@@ -87,37 +100,42 @@ void PG_DisaColorSwatchItem::updateColor() {
 void PG_DisaColorTableView::init() {
 	PG_GuiItem::init();
 
-	auto* buttonRow = PG_new<PG_GuiItem>("buttonRow", glm::vec2(0.f), glm::vec2(10.f, g_buttonSize), this);
-	anchor(buttonRow, PG_Anchor::Top, this, PG_Anchor::Top);
-	anchor(buttonRow, PG_Anchor::Left, this, PG_Anchor::Left);
-	anchor(buttonRow, PG_Anchor::Right, this, PG_Anchor::Right);
-	buttonRow->setMargin(PG_Anchor::Top, 6.f);
+	//===== toolbar, styled like the toolbars of the editors =====
+	auto* toolbar = PG_new<PG_GuiRectangle>("colorTableToolbar", glm::vec2(0.f), glm::vec2(10.f, 50.f), this);
+	toolbar->setColor(PG_Color::blackGrayFrgb);
+	anchor(toolbar, PG_Anchor::Top, this, PG_Anchor::Top);
+	anchor(toolbar, PG_Anchor::Left, this, PG_Anchor::Left);
+	anchor(toolbar, PG_Anchor::Right, this, PG_Anchor::Right);
 
-	float x = 6.f;
-	const auto createButton = [&x, buttonRow](const std::string& name, const std::string& icon, const std::string& tooltip) {
-		auto* button = PG_new<PG_GuiButton>(name, glm::vec2(x, 0.f), glm::vec2(g_buttonSize), buttonRow);
+	auto* toolbarRow = PG_new<PG_GuiRow>("colorTableToolbarRow", glm::vec2(0.f, 10.f), glm::vec2(39.f, 30.f), toolbar);
+	toolbarRow->setSpacing(3.f);
+	toolbarRow->setMargin(PG_Anchor::Left, 10.f);
+	toolbarRow->setMargin(PG_Anchor::Right, 10.f);
+	toolbarRow->fill(toolbar);
+
+	const auto createButton = [toolbarRow](const std::string& name, const std::string& icon, const std::string& tooltip) {
+		auto* button = PG_new<PG_GuiButton>(name, glm::vec2(0.f), glm::vec2(39.f, 30.f), toolbarRow);
 		button->setIcon(icon);
 		button->setBackground("M_GuiRoundedRectangleAll5");
 		button->setTooltipText(tooltip);
-		x += g_buttonSize + 3.f;
 		return button;
 	};
 
 	m_prevButton = createButton("prevTableButton", "gui/icon_prevFrame.svg", "Previous color table");
-	m_tableText = PG_new<PG_GuiText>("tableText", glm::vec2(x, 0.f), glm::vec2(56.f, g_buttonSize), buttonRow);
+	m_tableText = PG_new<PG_GuiText>("tableText", glm::vec2(0.f), glm::vec2(56.f, 30.f), toolbarRow);
 	m_tableText->setFontSize(18.f);
 	m_tableText->setColor(PG_Color::hentaiBlueFrgb);
 	m_tableText->setHorizontalAlignment(PG_GuiText::HorizontalCenter);
 	m_tableText->setVerticalAlignment(PG_GuiText::VerticalCenter);
-	x += 59.f;
 	m_nextButton = createButton("nextTableButton", "gui/icon_nextFrame.svg", "Next color table");
-	x += 8.f;
+	m_nextButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 	m_addButton = createButton("addTableButton", "gui/icon_add.svg", "Add an empty color table");
 	m_copyButton = createButton("copyTableButton", "gui/icon_duplicate.svg", "Add a copy of this color table");
 	m_removeButton = createButton("removeTableButton", "gui/icon_delete.svg", "Remove this color table");
-	x += 8.f;
+	m_removeButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 	m_importButton = createButton("importTableButton", "gui/icon_folder.svg", "Import color table from image");
 	m_exportButton = createButton("exportTableButton", "gui/icon_export.svg", "Export color table as png");
+	m_exportButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 
 	connect(m_prevButton, &PG_GuiButton::clicked, this, [this] {
 		if (!m_model || m_model->getTableCount() == 0) return;
@@ -141,20 +159,15 @@ void PG_DisaColorTableView::init() {
 		if (PG_File file = PG_FileDialog::save(this, "png", name)) m_model->exportTable(file);
 	});
 
-	//===== edit of the selected color =====
-	auto* editRow = PG_new<PG_GuiItem>("editRow", glm::vec2(0.f), glm::vec2(10.f, 30.f), this);
-	anchor(editRow, PG_Anchor::Bottom, this, PG_Anchor::Bottom);
-	anchor(editRow, PG_Anchor::Left, this, PG_Anchor::Left);
-	anchor(editRow, PG_Anchor::Right, this, PG_Anchor::Right);
-	editRow->setMargin(PG_Anchor::Bottom, 6.f);
-
-	m_selectedColor = PG_new<PG_GuiRectangle>("selectedColor", glm::vec2(6.f, 0.f), glm::vec2(30.f), editRow);
-	m_selectedText = PG_new<PG_GuiText>("selectedText", glm::vec2(42.f, 0.f), glm::vec2(70.f, 30.f), editRow);
+	//the selected color and its hex edit
+	m_selectedColor = PG_new<PG_GuiRectangle>("selectedColor", glm::vec2(0.f), glm::vec2(30.f), toolbarRow);
+	m_selectedColor->setMaterial("M_GuiRoundedRectangleAll5");
+	m_selectedText = PG_new<PG_GuiText>("selectedText", glm::vec2(0.f), glm::vec2(80.f, 30.f), toolbarRow);
 	m_selectedText->setFontSize(18.f);
 	m_selectedText->setColor(PG_Color::hentaiBlueFrgb);
 	m_selectedText->setVerticalAlignment(PG_GuiText::VerticalCenter);
 
-	m_hexField = PG_new<PG_GuiTextField>("hexField", glm::vec2(116.f, 0.f), glm::vec2(130.f, 30.f), editRow);
+	m_hexField = PG_new<PG_GuiTextField>("hexField", glm::vec2(0.f), glm::vec2(130.f, 30.f), toolbarRow);
 	m_hexField->setBackground("M_GuiRoundedRectangleAll5");
 	m_hexField->getBackgroundRectangle()->setColor(PG_Gui::backgroundFullColor);
 	m_hexField->setPlaceholderText("RRGGBBAA");
@@ -168,16 +181,26 @@ void PG_DisaColorTableView::init() {
 	});
 
 	//===== grid =====
-	m_grid = PG_new<PG_GuiGridView>("colorGrid", this);
-	anchor(m_grid, PG_Anchor::Top, buttonRow, PG_Anchor::Bottom);
-	anchor(m_grid, PG_Anchor::Bottom, editRow, PG_Anchor::Top);
-	anchor(m_grid, PG_Anchor::Left, this, PG_Anchor::Left);
-	anchor(m_grid, PG_Anchor::Right, this, PG_Anchor::Right);
+	auto* gridArea = PG_new<PG_GuiItem>("colorGridArea", this);
+	anchor(gridArea, PG_Anchor::Top, toolbar, PG_Anchor::Bottom);
+	anchor(gridArea, PG_Anchor::Bottom, this, PG_Anchor::Bottom);
+	anchor(gridArea, PG_Anchor::Left, this, PG_Anchor::Left);
+	anchor(gridArea, PG_Anchor::Right, this, PG_Anchor::Right);
+	gridArea->setClip(true);
+
+	auto* background = PG_new<PG_GuiImage>("colorGridBackground", gridArea);
+	background->fill(gridArea);
+	background->setFitType(PG_GuiImage::Repeat);
+	background->setSource("/gui/pattern.png");
+
+	m_grid = PG_new<PG_GuiGridView>("colorGrid", gridArea);
+	m_grid->fill(gridArea);
 	m_grid->setMargin(PG_Anchor::Top, 6.f);
 	m_grid->setMargin(PG_Anchor::Bottom, 6.f);
 	m_grid->setMargin(PG_Anchor::Left, 6.f);
-	m_grid->setMargin(PG_Anchor::Right, 16.f);
+	m_grid->setMargin(PG_Anchor::Right, 18.f);
 	m_grid->setCellSize(glm::ivec2(int(g_swatchSize)));
+	m_grid->setSpacing(0.f);
 	m_grid->setClip(true);
 	m_grid->setItem([](PG_GuiItem* parent, const PG_ListModelLocation& location) -> PG_GuiItem* {
 		auto* swatch = PG_new<PG_DisaColorSwatchItem>("swatch", parent);
@@ -188,13 +211,14 @@ void PG_DisaColorTableView::init() {
 		if (auto* swatch = dynamic_cast<PG_DisaColorSwatchItem*>(item)) swatch->update(location, identities);
 	});
 
-	auto* scrollBar = PG_new<PG_GuiScrollBar>("colorGridScrollBar", this);
-	scrollBar->setSize(glm::vec2(8.f, 0.f));
+	auto* scrollBar = PG_new<PG_GuiScrollBar>("colorGridScrollBar", gridArea);
+	scrollBar->setSize(glm::vec2(10.f, 0.f));
 	scrollBar->setScrollBarColors({ PG_Color::hentaiBlueFrgb * 0.5f, PG_Color::hentaiBlueFrgb * 0.7f, PG_Color::hentaiBlueFrgb });
-	anchor(scrollBar, PG_Anchor::Top, m_grid, PG_Anchor::Top);
-	anchor(scrollBar, PG_Anchor::Bottom, m_grid, PG_Anchor::Bottom);
-	anchor(scrollBar, PG_Anchor::Right, this, PG_Anchor::Right);
-	scrollBar->setMargin(PG_Anchor::Right, 4.f);
+	if (auto* handle = dynamic_cast<PG_GuiRectangle*>(scrollBar->getHandle())) handle->setMaterial("M_GuiRoundedRectangleAll5");
+	anchor(scrollBar, PG_Anchor::Top, gridArea, PG_Anchor::Top);
+	anchor(scrollBar, PG_Anchor::Bottom, gridArea, PG_Anchor::Bottom);
+	anchor(scrollBar, PG_Anchor::Right, gridArea, PG_Anchor::Right);
+	for (auto side : { PG_Anchor::Top, PG_Anchor::Bottom, PG_Anchor::Right }) scrollBar->setMargin(side, 3.f);
 	auto* scrollComponent = PG_new<PG_GuiScrollComponent>(m_grid);
 	scrollComponent->setVerticalScrollBar(scrollBar);
 

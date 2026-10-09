@@ -37,6 +37,7 @@ class PG_GuiButton;
 class PG_GuiGridView;
 class PG_GuiMouseArea;
 class PG_GuiRectangle;
+class PG_GuiRow;
 class PG_GuiText;
 class PG_GuiTextField;
 
@@ -59,13 +60,14 @@ private:
 	PG_ListModelLocation m_location;
 	PG_GuiRectangle* m_color = nullptr;
 	PG_GuiRectangle* m_selection = nullptr;
+	PG_GuiText* m_indexText = nullptr;
 	PG_GuiMouseArea* m_area = nullptr;
 };
 
 /**
 * @brief Shows and edits the color tables of a PG_DisaColorTableModel.
-* @details A row of buttons steps through the tables and adds, copies, removes, imports or exports them, below
-* is a grid of all colors of the current table. A clicked color can be changed as hex in the field at the bottom.
+* @details The toolbar steps through the tables, adds, copies, removes, imports or exports them, and edits the
+* clicked color as hex. Below it is a grid of all colors of the current table.
 */
 class PG_DisaColorTableView : public PG_GuiItem {
 	PG_OBJECT(PG_DisaColorTableView);
