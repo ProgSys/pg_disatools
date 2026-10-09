@@ -47,12 +47,22 @@ void PG_DisaColorSwatchItem::init() {
 	m_color = PG_new<PG_GuiRectangle>("color", pattern);
 	m_color->fill(pattern);
 
-	m_selection = PG_new<PG_GuiRectangle>("selection", pattern);
-	m_selection->fill(pattern);
-	m_selection->setColor(PG_Color::whiteFrgb);
+	//a frame over the border, in the same color as the index so it shows on any color
+	constexpr float frameWidth = 3.f;
+	m_selection = PG_new<PG_GuiItem>("selection", this);
+	m_selection->fill(this);
 	m_selection->setVisible(false);
+	std::size_t sideIndex = 0;
+	for (auto side : { PG_Anchor::Left, PG_Anchor::Right, PG_Anchor::Top, PG_Anchor::Bottom }) {
+		auto* line = PG_new<PG_GuiRectangle>("selectionSide", glm::vec2(0.f), glm::vec2(frameWidth), m_selection);
+		m_selectionSides[sideIndex++] = line;
+		anchor(line, side, m_selection, side);
+		const bool isVertical = side == PG_Anchor::Left || side == PG_Anchor::Right;
+		anchor(line, isVertical ? PG_Anchor::Top : PG_Anchor::Left, m_selection, isVertical ? PG_Anchor::Top : PG_Anchor::Left);
+		anchor(line, isVertical ? PG_Anchor::Bottom : PG_Anchor::Right, m_selection, isVertical ? PG_Anchor::Bottom : PG_Anchor::Right);
+	}
 
-	m_indexText = PG_new<PG_GuiText>("index", glm::vec2(3.f, 1.f), glm::vec2(g_swatchSize - 4.f, 14.f), pattern);
+	m_indexText = PG_new<PG_GuiText>("index", glm::vec2(4.f, 3.f), glm::vec2(g_swatchSize - 8.f, 14.f), pattern);
 	m_indexText->setFontSize(12.f);
 	m_indexText->setWrapMode(PG_GuiText::None);
 
@@ -82,8 +92,10 @@ void PG_DisaColorSwatchItem::update(const PG_ListModelLocation& location, const 
 
 void PG_DisaColorSwatchItem::setSelected(bool selected) {
 	m_selection->setVisible(selected);
-	if (selected) m_indexText->setColor(PG_Color::blackFrgb);
-	else if (m_location) m_indexText->setColor(contrastColor(m_location.getDataT<glm::rgba>(PG_Identity_Item)));
+	if (!m_location) return;
+	const glm::vec3 color = contrastColor(m_location.getDataT<glm::rgba>(PG_Identity_Item));
+	m_indexText->setColor(color);
+	for (auto* side : m_selectionSides) side->setColor(color);
 }
 
 void PG_DisaColorSwatchItem::updateColor() {

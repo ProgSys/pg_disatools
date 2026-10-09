@@ -81,6 +81,7 @@ private:
 	PG_GuiMouseArea* m_navigationArea = nullptr;
 	PG_GuiItem* m_imageScroll = nullptr;
 	PG_GuiImage* m_image = nullptr;
+	PG_GuiItem* m_originMarker = nullptr; /// Two lines through the top left corner of the image, shown with the info
 	PG_GuiRectangle* m_infoOverlay = nullptr;
 	PG_GuiText* m_infoText = nullptr;
 	PG_GuiToggleButton* m_infoButton = nullptr;

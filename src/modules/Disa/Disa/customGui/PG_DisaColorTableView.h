@@ -31,6 +31,7 @@
 
 #include <Scene/Gui/PG_GuiItem.h>
 #include <Scene/Model/PG_ListModelLocation.h>
+#include <array>
 
 class PG_DisaColorTableModel;
 class PG_GuiButton;
@@ -59,7 +60,8 @@ private:
 
 	PG_ListModelLocation m_location;
 	PG_GuiRectangle* m_color = nullptr;
-	PG_GuiRectangle* m_selection = nullptr;
+	PG_GuiItem* m_selection = nullptr; /// Frame around the selected tile
+	std::array<PG_GuiRectangle*, 4> m_selectionSides{};
 	PG_GuiText* m_indexText = nullptr;
 	PG_GuiMouseArea* m_area = nullptr;
 };

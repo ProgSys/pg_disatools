@@ -42,6 +42,7 @@
 #include <Scene/Gui/PG_GuiToggleButton.h>
 #include <Scene/Gui/PG_GuiMouseArea.h>
 #include <Scene/Gui/PG_GuiImage.h>
+#include <Scene/Gui/PG_GuiLines.h>
 #include <Scene/Gui/PG_GuiText.h>
 #include <Scene/Gui/PG_GuiDropDown.h>
 #include <Scene/Gui/PG_GuiPopup.h>
@@ -229,6 +230,17 @@ void RootScene::setupView() {
 	m_navigationArea->setAcceptedButtons(PG_GuiMouseArea::Middle | PG_GuiMouseArea::Wheel);
 
 	m_imageScroll = PG_new<PG_GuiItem>("imageScroll", glm::vec2(0.f), glm::vec2(-1.f), m_viewArea);
+	//behind the image, so only the parts outside of it show and point at its top left corner
+	m_originMarker = PG_new<PG_GuiItem>("originMarker", glm::vec2(0.f), glm::vec2(1.f), m_imageScroll);
+	auto* axisX = PG_new<PG_GuiLines>("originAxisX", m_originMarker);
+	axisX->addPoints({ glm::vec2(-1000000.f, 0.f), glm::vec2(1000000.f, 0.f) });
+	axisX->setColor(PG_Color::redFrgb);
+	axisX->setIgnoreSize(true);
+	auto* axisY = PG_new<PG_GuiLines>("originAxisY", m_originMarker);
+	axisY->addPoints({ glm::vec2(0.f, -1000000.f), glm::vec2(0.f, 1000000.f) });
+	axisY->setColor(PG_Color::greenFrgb);
+	axisY->setIgnoreSize(true);
+
 	m_image = PG_new<PG_GuiImage>("image", glm::vec2(0.f), glm::vec2(1.f), m_imageScroll);
 	m_image->setVisible(false);
 
@@ -292,7 +304,9 @@ void RootScene::setupColorTable() {
 }
 
 void RootScene::updateInfo() {
-	m_infoOverlay->setVisible(m_infoButton && m_infoButton->isToggled() && m_model->isOpen());
+	const bool showInfo = m_infoButton && m_infoButton->isToggled() && m_model->isOpen();
+	m_infoOverlay->setVisible(showInfo);
+	m_originMarker->setVisible(showInfo);
 	if (!m_model->isOpen()) return;
 
 	const PG_TX2& tx2 = m_model->getTx2();
