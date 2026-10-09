@@ -725,8 +725,7 @@ void PG_TX2::getRGBAData(char* rgbaOut, unsigned short colortable) const {
 		const ColorTable& table = header.colortables[colortable];
 		for (unsigned int i = 0; i < data.size(); ++i) {
 			const unsigned int pos = i * sizeof(glm::rgba);
-			assert((unsigned char)data[i] >= 256); //"Color table offset out of bound!"
-			assert(((unsigned char)data[i]) >= table.size()); // Color table offset out of table bound!;
+			assert((unsigned char)data[i] < table.size()); //color table offset out of table bound
 			const glm::rgba& co = table[(unsigned char)data[i]];
 			rgbaOut[pos] = co.r;
 			rgbaOut[pos + 1] = co.g;
