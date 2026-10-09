@@ -260,9 +260,9 @@ void RootScene::setupCenter() {
 	PG_GuiItem::anchor(tableView, PG_Anchor::Left, content, PG_Anchor::Left);
 	PG_GuiItem::anchor(tableView, PG_Anchor::Right, content, PG_Anchor::Right);
 
-	//bgList->fill(tableView);
-	PG_GuiItem::anchor(bgList, PG_Anchor::Top, tableHeader, PG_Anchor::Bottom);
-	PG_GuiItem::anchor(bgList, PG_Anchor::Bottom, content, PG_Anchor::Bottom);
+	//same height as the table, or the two reach different scroll ends and the rows drift apart
+	PG_GuiItem::anchor(bgList, PG_Anchor::Top, tableView, PG_Anchor::Top);
+	PG_GuiItem::anchor(bgList, PG_Anchor::Bottom, tableView, PG_Anchor::Bottom);
 	PG_GuiItem::anchor(bgList, PG_Anchor::Left, content, PG_Anchor::Left);
 	PG_GuiItem::anchor(bgList, PG_Anchor::Right, content, PG_Anchor::Right);
 

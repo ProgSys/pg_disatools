@@ -50,6 +50,7 @@
 #include <Disa/PG_DisaColorDefines.h>
 
 #include <Models/PG_DisaDataTableModel.h>
+#include <Models/PG_DisaDefListModel.h>
 #include <CustomGui/PG_DisaDataTableItem.h>
 
 #define APP_TITLE "Disa Data Editor"
@@ -58,6 +59,8 @@ void RootScene::init() {
 	PG_Scene::init();
 
 	m_model = PG_new<PG_DisaDataTableModel>("dataTableModel", this);
+	m_defListModel = PG_new<PG_DisaDefListModel>("defListModel", this);
+	m_defListModel->reload();
 
 	auto guiMain = PG_new<PG_GuiMain>("guiMain", getRoot());
 	m_rootItem = PG_new<PG_GuiItem>("rootItem", glm::vec2(0.f), glm::vec2(300.f, 400.f), guiMain);
@@ -178,10 +181,12 @@ void RootScene::rebuildTable() {
 	PG_GuiItem::anchor(tableHeader, PG_Anchor::Left, content, PG_Anchor::Left);
 	PG_GuiItem::anchor(tableHeader, PG_Anchor::Right, content, PG_Anchor::Right);
 	tableHeader->setHeight(32.f);
-	tableHeader->setItem([model = m_model](PG_GuiItem* parent, std::size_t columnIndex) {
+	//without a file the available definitions are listed
+	const bool isOpen = m_model->isOpen();
+	tableHeader->setItem([this, isOpen](PG_GuiItem* parent, std::size_t columnIndex) {
 		auto* header = PG_new<PG_DisaDataHeaderItem>("HeaderItem" + std::to_string(columnIndex), parent);
-		header->setText(model->getColumnName(columnIndex));
-		header->setWidth(model->getColumnWidth(columnIndex));
+		header->setText(isOpen ? m_model->getColumnName(columnIndex) : m_defListModel->getColumnName(columnIndex));
+		header->setWidth(isOpen ? m_model->getColumnWidth(columnIndex) : m_defListModel->getColumnWidth(columnIndex));
 		return header;
 	});
 
@@ -237,7 +242,8 @@ void RootScene::rebuildTable() {
 		openRowMenu(tableArea, std::min(std::size_t(y / rowHeight), m_model->size()));
 	});
 
-	if (m_model->isOpen()) tableView->setModel(m_model);
+	if (isOpen) tableView->setModel(m_model);
+	else tableView->setModel(m_defListModel);
 }
 
 void RootScene::openRowMenu(PG_GuiItem* owner, std::size_t row) {

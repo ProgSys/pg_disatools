@@ -32,6 +32,7 @@
 #include <Util/PG_File.h>
 
 class PG_DisaDataTableModel;
+class PG_DisaDefListModel;
 class PG_GuiItem;
 class PG_GuiRectangle;
 class PG_GuiRow;
@@ -62,6 +63,7 @@ private:
 	void showError(const std::string& title, const std::string& text);
 
 	PG_DisaDataTableModel* m_model = nullptr;
+	PG_DisaDefListModel* m_defListModel = nullptr;
 	PG_GuiItem* m_rootItem = nullptr;
 	PG_GuiRectangle* m_toolbar = nullptr;
 	PG_GuiRow* m_toolbarRow = nullptr;
