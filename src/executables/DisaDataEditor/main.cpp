@@ -20,10 +20,15 @@ int main(int argc, char* args[]) {
 	PG_SDLApplication app;
 
 	app.setAlwaysRender(true);
+	app.setDropFileEnabled(true);
 	PG_SDLWindow* window = PG_new<PG_SDLWindow>(APP_NAME, glm::ivec2(1280, 800), &app);
 	PG_SceneRenderer* renderer = PG_new<PG_SceneRenderer>("MainRenderer", window);
 	RootScene* scene = PG_new<RootScene>("RootScene", renderer);
 	PG_Object::connect(scene, &RootScene::titleChanged, window, [window](std::string title) { window->setTitle(title); });
+	//opened from the event loop of the scene, not from inside the platform event polling
+	PG_Object::connect(&app, &PG_Application::fileDropped, scene, [scene](std::string file) {
+		scene->postCallEvent([scene, file = std::move(file)] { scene->open(file); });
+	});
 
 	if (const std::string file = findFileArgument(argc, args); !file.empty()) scene->open(file);
 
