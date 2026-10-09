@@ -81,7 +81,9 @@ public:
 
 private:
 	void resetColorTables();
+	/// Rebuilds the texture once the current event is done
 	void updateTexture();
+	void rebuildTexture();
 	void setModified(bool modified);
 
 	PG_TX2 m_tx2;
@@ -89,4 +91,5 @@ private:
 	PG_Texture m_texture;
 	PG_DisaColorTableModel* m_colorTableModel = nullptr;
 	bool m_modified = false;
+	bool m_textureUpdatePending = false;
 };

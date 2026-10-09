@@ -14,11 +14,3 @@ set_target_properties(${ProjectId} PROPERTIES
 if(MSVC)
   target_link_options(${ProjectId}  PRIVATE "/MANIFEST:NO")
 endif()
-
-#temporary for testing: the MCP module of the engine, started with --mcp
-set(DISA_TX2_EDITOR_MCP_LIB "${CMAKE_SOURCE_DIR}/../../pg_engine_v2/build/x64-Debug/lib/MCP.lib")
-if(CMAKE_BUILD_TYPE STREQUAL "Debug" AND EXISTS "${DISA_TX2_EDITOR_MCP_LIB}")
-  target_include_directories(${ProjectId} PRIVATE "${CMAKE_SOURCE_DIR}/../../pg_engine_v2/src/modules/MCP")
-  target_link_libraries(${ProjectId} PRIVATE "${DISA_TX2_EDITOR_MCP_LIB}" ws2_32 crypt32)
-  target_compile_definitions(${ProjectId} PRIVATE DISA_TX2_EDITOR_MCP)
-endif()

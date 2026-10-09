@@ -23,7 +23,9 @@ void PG_DisaColorTableModel::refresh() {
 }
 
 void PG_DisaColorTableModel::setTableCountEditable(bool editable) {
+	if (m_tableCountEditable == editable) return;
 	m_tableCountEditable = editable;
+	emit tablesChanged();
 }
 
 int PG_DisaColorTableModel::getTableCount() const {
@@ -155,6 +157,10 @@ void PG_DisaColorTableModel::setData(PG_Index index, const PG_Variety& data, Ide
 }
 
 void PG_DisaColorTableModel::resetItems(std::size_t oldSize) {
+	if (oldSize && oldSize == size()) {
+		emit itemsChanged(0, oldSize - 1, { PG_Identity_Item, PG_Identity_Text });
+		return;
+	}
 	if (oldSize) emit itemsRemoved(0, oldSize - 1);
 	if (const std::size_t newSize = size()) emit itemsAdded(0, newSize - 1);
 	emit sizeChanged();

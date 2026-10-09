@@ -234,8 +234,9 @@ void RootScene::setupView() {
 		const glm::vec2 pos = m_imageScroll->getPosition() - m_navigationArea->toLocalTranslation(glm::vec2(e->getPosition()));
 		m_imageScroll->setPosition(m_imageScroll->getPosition() - (pos - pos * (scale / oldScale)));
 	});
-	connect(m_viewArea, &PG_GuiItem::sizeChanged, this, [this] {
-		if (m_keepFocused) focusImage();
+	//emitted in the middle of the layout pass, so the refit waits for it to end
+	connect(m_viewArea, &PG_GuiItem::resolvedSizeChanged, this, [this] {
+		if (m_keepFocused) postCallEvent([this] { focusImage(); });
 	});
 
 	connect(m_model, &PG_DisaTx2EditorModel::imageChanged, this, [this] {
