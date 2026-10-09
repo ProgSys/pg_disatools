@@ -145,7 +145,7 @@ void RootScene::setupToolbar() {
 
 	auto openButton = createButton("openButton", "gui/icon_folder.svg", "Open file");
 	connect(openButton, &PG_GuiButton::clicked, this, [this] {
-		open(PG_FileDialog::open(this, "tx2,txp,png,tga,jpg"));
+		open(PG_FileDialog::open(this, "tx2,txp,png"));
 	});
 
 	auto saveButton = createButton("saveButton", "gui/icon_save.svg", "Save file");

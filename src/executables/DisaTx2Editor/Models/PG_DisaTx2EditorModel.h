@@ -40,7 +40,7 @@ class PG_DisaColorTableModel;
 
 /**
 * @brief Holds the TX2 image that is edited, and the texture it is shown with.
-* @details Other images (png, tga, jpg) can be opened too, they become BGRA TX2 images.
+* @details A png can be opened too, it becomes a BGRA TX2 image.
 */
 class PG_DisaTx2EditorModel : public PG_Object {
 	PG_OBJECT(PG_DisaTx2EditorModel);
