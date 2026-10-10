@@ -182,3 +182,24 @@ void PG_DisaTx2EditorModel::setModified(bool modified) {
 	m_modified = modified;
 	emit modifiedChanged();
 }
+
+std::optional<int> PG_DisaTx2EditorModel::getColorIndex(int x, int y) const {
+	if (!isOpen() || m_tx2.header.colortables.empty() || m_tx2.header.colortableSize == 0) return std::nullopt;
+	if (x < 0 || y < 0 || x >= m_tx2.getWidth() || y >= m_tx2.getHeight()) return std::nullopt;
+	const std::size_t pixel = std::size_t(y) * m_tx2.getWidth() + x;
+
+	switch (m_tx2.getType()) {
+	case PG_TX2::COLORTABLE_BGRA16:
+	case PG_TX2::COLORTABLE_RGBA16: {
+		if (pixel / 2 >= m_tx2.data.size()) return std::nullopt;
+		//two pixels per byte, the first in the low half
+		const unsigned char byte = m_tx2.data[pixel / 2];
+		return pixel % 2 == 0 ? byte & 0x0F : byte >> 4;
+	}
+	case PG_TX2::COLORTABLE_BGRA256:
+	case PG_TX2::COLORTABLE_RGBA256:
+		if (pixel >= m_tx2.data.size()) return std::nullopt;
+		return (unsigned char)m_tx2.data[pixel] % m_tx2.header.colortableSize; //wraps like PG_TX2::getRGBAData
+	default: return std::nullopt;
+	}
+}

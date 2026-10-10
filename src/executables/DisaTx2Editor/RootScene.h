@@ -31,6 +31,8 @@
 
 #include <Scene/PG_Scene.h>
 #include <Util/PG_File.h>
+#include <glm/glm.hpp>
+#include <optional>
 
 class PG_DisaTx2EditorModel;
 class PG_DisaColorTableView;
@@ -69,6 +71,10 @@ private:
 	void setupView();
 	void setupColorTable();
 	void updateInfo();
+	/// The image pixel under a window position, std::nullopt outside of the image
+	std::optional<glm::ivec2> pixelAt(const glm::vec2& windowPosition) const;
+	/// Moves the coordinate label to the cursor, hidden while the info is off or the cursor is not on the image
+	void updateCursorInfo(const glm::vec2& windowPosition);
 	void openConvertDialog();
 	void convertTo(int targetIndex);
 	void showError(const std::string& title, const std::string& text);
@@ -84,6 +90,8 @@ private:
 	PG_GuiItem* m_originMarker = nullptr; /// Two lines through the top left corner of the image, shown with the info
 	PG_GuiRectangle* m_infoOverlay = nullptr;
 	PG_GuiText* m_infoText = nullptr;
+	PG_GuiRectangle* m_cursorInfo = nullptr;
+	PG_GuiText* m_cursorInfoText = nullptr;
 	PG_GuiToggleButton* m_infoButton = nullptr;
 	PG_GuiToggleButton* m_colorTableButton = nullptr;
 	PG_GuiCell* m_cell = nullptr;

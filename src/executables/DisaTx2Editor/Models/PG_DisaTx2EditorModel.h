@@ -34,6 +34,7 @@
 #include <Resources/PG_Texture.h>
 #include <Util/PG_File.h>
 #include <string>
+#include <optional>
 #include <vector>
 
 class PG_DisaColorTableModel;
@@ -78,6 +79,8 @@ public:
 	static const std::vector<ConvertTarget>& getConvertTargets();
 	/// The number of different colors the image has with the current color table, stops counting after max + 1
 	std::size_t countColors(std::size_t max) const;
+	/// The color table index of a pixel as it is shown, std::nullopt without color tables or outside of the image
+	std::optional<int> getColorIndex(int x, int y) const;
 
 private:
 	void resetColorTables();

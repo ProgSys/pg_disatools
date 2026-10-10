@@ -30,6 +30,7 @@
 
 #include <Base/Events/PG_KeyEvent.h>
 #include <Base/Events/PG_MouseMotionEvent.h>
+#include <Base/Events/PG_MouseButtonEvent.h>
 #include <Base/Events/PG_MouseWheelEvent.h>
 #include <Resources/PG_Shader.h>
 
@@ -227,7 +228,8 @@ void RootScene::setupView() {
 
 	m_navigationArea = PG_new<PG_GuiMouseArea>("navigationArea", m_viewArea);
 	m_navigationArea->fill(m_viewArea);
-	m_navigationArea->setAcceptedButtons(PG_GuiMouseArea::Middle | PG_GuiMouseArea::Wheel);
+	m_navigationArea->setAcceptedButtons(PG_GuiMouseArea::Left | PG_GuiMouseArea::Middle | PG_GuiMouseArea::Wheel);
+	m_navigationArea->setHoverEnabled(true);
 
 	m_imageScroll = PG_new<PG_GuiItem>("imageScroll", glm::vec2(0.f), glm::vec2(-1.f), m_viewArea);
 	//behind the image, so only the parts outside of it show and point at its top left corner
@@ -245,9 +247,21 @@ void RootScene::setupView() {
 	m_image->setVisible(false);
 
 	connect(m_navigationArea, &PG_GuiMouseArea::mouseMotion, this, [this](PG_MouseMotionEvent* e) {
-		if (e->getButton() != PG_BUTTON_MIDDLE) return;
-		m_keepFocused = false;
-		m_imageScroll->setPosition(m_imageScroll->getPosition() + glm::vec2(e->getPositionRelative()));
+		if (e->getButton() == PG_BUTTON_MIDDLE) {
+			m_keepFocused = false;
+			m_imageScroll->setPosition(m_imageScroll->getPosition() + glm::vec2(e->getPositionRelative()));
+		}
+		updateCursorInfo(glm::vec2(e->getPosition()));
+	});
+	connect(m_navigationArea, &PG_GuiMouseArea::hoveredChanged, this, [this](bool hovered) {
+		if (!hovered) m_cursorInfo->setVisible(false);
+	});
+	//a click on the image selects the color of the pixel in the color table
+	connect(m_navigationArea, &PG_GuiMouseArea::mouseClicked, this, [this](PG_MouseButtonEvent* e) {
+		if (e->getButton() != PG_BUTTON_LEFT || !m_colorTableButton->isToggled()) return;
+		const auto pixel = pixelAt(glm::vec2(e->getPosition()));
+		if (!pixel) return;
+		if (const auto index = m_model->getColorIndex(pixel->x, pixel->y)) m_colorTableView->setSelected(*index);
 	});
 	connect(m_navigationArea, &PG_GuiMouseArea::wheelChanged, this, [this](PG_MouseWheelEvent* e) {
 		m_keepFocused = false;
@@ -292,6 +306,48 @@ void RootScene::setupView() {
 	m_infoText->setFontSize(18.f);
 	m_infoText->setColor(PG_Color::hentaiBlueFrgb);
 	m_infoText->setWrapMode(PG_GuiText::None);
+
+	//===== pixel under the cursor, follows the mouse =====
+	m_cursorInfo = PG_new<PG_GuiRectangle>("cursorInfo", glm::vec2(0.f), glm::vec2(100.f, 24.f), m_viewArea);
+	m_cursorInfo->setColor(PG_Color::blackFrgb);
+	m_cursorInfo->setAlpha(0.6f);
+	m_cursorInfo->setMaterial("M_GuiRoundedRectangleAll5");
+	m_cursorInfo->setVisible(false);
+
+	m_cursorInfoText = PG_new<PG_GuiText>("cursorInfoText", m_cursorInfo);
+	m_cursorInfoText->fill(m_cursorInfo);
+	m_cursorInfoText->setMargin(PG_Anchor::Left, 6.f);
+	m_cursorInfoText->setFontSize(16.f);
+	m_cursorInfoText->setColor(PG_Color::hentaiBlueFrgb);
+	m_cursorInfoText->setWrapMode(PG_GuiText::None);
+	m_cursorInfoText->setVerticalAlignment(PG_GuiText::VerticalCenter);
+}
+
+std::optional<glm::ivec2> RootScene::pixelAt(const glm::vec2& windowPosition) const {
+	if (!m_model->isOpen()) return std::nullopt;
+	const glm::ivec2 pixel(glm::floor(m_image->toLocalTranslation(windowPosition)));
+	if (pixel.x < 0 || pixel.y < 0 || pixel.x >= m_model->getTx2().getWidth() || pixel.y >= m_model->getTx2().getHeight()) return std::nullopt;
+	return pixel;
+}
+
+void RootScene::updateCursorInfo(const glm::vec2& windowPosition) {
+	const auto pixel = m_infoButton->isToggled() ? pixelAt(windowPosition) : std::nullopt;
+	if (!pixel) {
+		m_cursorInfo->setVisible(false);
+		return;
+	}
+
+	std::string text = "(" + std::to_string(pixel->x) + "," + std::to_string(pixel->y) + ")";
+	if (const auto index = m_model->getColorIndex(pixel->x, pixel->y)) text += " #" + std::to_string(*index);
+	m_cursorInfoText->setText(text);
+
+	constexpr float charWidth = 9.f; //roughly, at the font size of the label
+	constexpr glm::vec2 cursorOffset(16.f, 18.f); //below and right of the arrow
+	const glm::vec2 size(text.size() * charWidth + 12.f, 24.f);
+	const glm::vec2 local = m_viewArea->toLocalTranslation(windowPosition) + cursorOffset;
+	m_cursorInfo->setSize(size);
+	m_cursorInfo->setPosition(glm::min(local, m_viewArea->getSize() - size));
+	m_cursorInfo->setVisible(true);
 }
 
 void RootScene::setupColorTable() {
@@ -307,6 +363,7 @@ void RootScene::updateInfo() {
 	const bool showInfo = m_infoButton && m_infoButton->isToggled() && m_model->isOpen();
 	m_infoOverlay->setVisible(showInfo);
 	m_originMarker->setVisible(showInfo);
+	if (!showInfo) m_cursorInfo->setVisible(false);
 	if (!m_model->isOpen()) return;
 
 	const PG_TX2& tx2 = m_model->getTx2();
