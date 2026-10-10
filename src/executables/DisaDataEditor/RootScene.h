@@ -31,6 +31,8 @@
 #include <Scene/PG_Scene.h>
 #include <Util/PG_File.h>
 
+class PG_MouseButtonEvent;
+
 class PG_DisaDataTableModel;
 class PG_DisaDefListModel;
 class PG_GuiItem;
@@ -59,7 +61,7 @@ public:
 private:
 	void setupToolbar();
 	void rebuildTable();
-	void openRowMenu(PG_GuiItem* owner, std::size_t row);
+	void openRowMenu(PG_GuiItem* owner, std::size_t row, const PG_MouseButtonEvent* e);
 	void showError(const std::string& title, const std::string& text);
 
 	PG_DisaDataTableModel* m_model = nullptr;

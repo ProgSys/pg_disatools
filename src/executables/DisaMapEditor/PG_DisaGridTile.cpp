@@ -71,7 +71,7 @@ void PG_DisaGridTile::init(){
 		func.callArgs(model, getLocation());
 		});
 
-	connect(this, &PG_DisaGridTile::rightClicked, this, [this] {
+	connect(this, &PG_DisaGridTile::rightClicked, this, [this](PG_MouseButtonEvent* e) {
 		auto rootModel = m_location.getModelRoot();
 		if (auto mapsModel = dynamic_cast<PG_DisaMapListModel*>(rootModel); mapsModel && m_location) {
 			//TODO depricated/dosn't work
@@ -81,7 +81,7 @@ void PG_DisaGridTile::init(){
 			popup->addOption("", false);
 			popup->addOption("Import MPD", this, [this, mapsModel] { mapsModel->importData(m_location); });
 			popup->addOption("Import Json", true, this, [this, mapsModel] { mapsModel->importJSON(m_location); });
-			popup->openAndDestroyOnClose();
+			popup->openAndDestroyOnClose(e);
 		}
 		else if (dynamic_cast<PG_UiStateCustomCampaignsModel*>(rootModel)) {
 			auto* model = m_location.getModel();
@@ -93,7 +93,7 @@ void PG_DisaGridTile::init(){
 				}
 				model->remove(i); 
 				});
-			popup->openAndDestroyOnClose();
+			popup->openAndDestroyOnClose(e);
 		}
 		else if (PG_GuiImage* imgItem = m_container->findFirstChild<PG_GuiImage>()) {
 			const PG_Texture* tex = std::get_if<PG_Texture>(&imgItem->getSourceData());
@@ -102,7 +102,7 @@ void PG_DisaGridTile::init(){
 			popup->addOption("Export Image", this, [this, imgItem, tex] {
 				PG_FileDialog::save(tex, m_location.getDataT<std::string>(EIdentity::PG_Identity_Text));
 			});
-			popup->openAndDestroyOnClose();
+			popup->openAndDestroyOnClose(e);
 		}
 	});
 }

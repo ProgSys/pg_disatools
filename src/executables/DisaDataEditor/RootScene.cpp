@@ -239,14 +239,14 @@ void RootScene::rebuildTable() {
 		const float rowHeight = tableView->getCellSize().y + tableView->getSpacing();
 		if (y < 0.f || rowHeight <= 0.f) return;
 		//below the last row only inserting is offered
-		openRowMenu(tableArea, std::min(std::size_t(y / rowHeight), m_model->size()));
+		openRowMenu(tableArea, std::min(std::size_t(y / rowHeight), m_model->size()), e);
 	});
 
 	if (isOpen) tableView->setModel(m_model);
 	else tableView->setModel(m_defListModel);
 }
 
-void RootScene::openRowMenu(PG_GuiItem* owner, std::size_t row) {
+void RootScene::openRowMenu(PG_GuiItem* owner, std::size_t row, const PG_MouseButtonEvent* e) {
 	if (!m_model->isOpen()) return;
 	auto* model = m_model;
 	const std::size_t size = model->size();
@@ -264,7 +264,7 @@ void RootScene::openRowMenu(PG_GuiItem* owner, std::size_t row) {
 	else {
 		popup->addOption("Insert row", model, [model] { model->insertRow(model->size()); });
 	}
-	popup->openAndDestroyOnClose();
+	popup->openAndDestroyOnClose(e);
 }
 
 void RootScene::showError(const std::string& title, const std::string& text) {

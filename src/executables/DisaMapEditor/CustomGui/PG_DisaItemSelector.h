@@ -8,6 +8,7 @@ class PG_ListModelBase;
 class PG_DisaGridTile;
 class PG_GuiPopup;
 class PG_GuiPopupInstance;
+class PG_MouseButtonEvent;
 
 /**
 * @brief Image tile to select an item form the model
@@ -19,7 +20,7 @@ class PG_DisaItemSelector : public PG_GuiRectangle {
 	PG_PROPERTY(std::string name GET getName SET setSelectedName CHANGED selectedChanged);
 signals:
 	void selectedChanged();
-	void rightClicked();
+	void rightClicked(PG_MouseButtonEvent* e); ///e is only valid during the emit
 public:
 	using PG_GuiRectangle::PG_GuiRectangle;
 

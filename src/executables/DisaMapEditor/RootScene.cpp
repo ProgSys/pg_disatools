@@ -1046,7 +1046,7 @@ void RootScene::setupToolbarMapView() {
 			auto* window = PG_new<PG_GuiWindowPopup>("AssetsWindow", this);
 			window->setType(PG_GuiWindowPopup::Type_Utility);
 
-			window->setCreator([assetModel = gameScene->getMapModel()->getAssets()](PG_GuiWindowPopupInstance* i) {
+			window->setCreator([assetModel = gameScene->getMapModel()->getAssets()](PG_GuiWindowPopupInstance* i, std::optional<glm::vec2>) {
 				i->setSize(glm::vec2(590.f, 500.f));
 				auto w = PG_new<PG_DisaAssetsWindow>("DisaAssetsWindow", i);
 				w->fill(i);

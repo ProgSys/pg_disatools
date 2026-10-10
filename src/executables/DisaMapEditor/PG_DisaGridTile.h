@@ -10,6 +10,7 @@ class PG_GuiText;
 class PG_DisaMapScene;
 class PG_DisaMapModel;
 class PG_GuiRectangle;
+class PG_MouseButtonEvent;
 
 class PG_DisaGridTile : public PG_GuiItem
 {
@@ -17,7 +18,7 @@ class PG_DisaGridTile : public PG_GuiItem
 signals:
 	void clicked();
 	void clickedLocation(PG_ListModelLocation loc);
-	void rightClicked();
+	void rightClicked(PG_MouseButtonEvent* e); ///e is only valid during the emit
 	void selectionChanged();
 public:
 	using PG_GuiItem::PG_GuiItem;

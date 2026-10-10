@@ -393,13 +393,13 @@ void PG_DisaPreviewItem::init() {
 	area->setConferEnabled(true);
 	area->setAcceptedButtons(PG_GuiMouseArea::Right);
 	area->fill(this);
-	connect(area, &PG_GuiMouseArea::rightClicked, this, [this] {
+	connect(area, &PG_GuiMouseArea::rightClicked, this, [this](PG_MouseButtonEvent* e) {
 		auto popup = PG_new<PG_GuiMenuPopup>("previewPopup", this);
 		//only the export the open preview can actually do is offered, the two never apply at once
 		if (getPreviewTexture()) popup->addOption("Export Image", this, &PG_DisaPreviewItem::exportImage);
 		else if (getPreviewSprite()) popup->addOption("Export Sprite Sheets", this, &PG_DisaPreviewItem::exportSpriteSheets);
 		popup->addOption(m_previewEnabled ? "Disable Preview" : "Enable Preview", true, this, [this] { setPreviewEnabled(!m_previewEnabled); });
-		popup->openAndDestroyOnClose();
+		popup->openAndDestroyOnClose(e);
 		});
 }
 

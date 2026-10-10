@@ -193,7 +193,7 @@ static inline PG_DisaItemSelector* createSelector(const std::string& name, PG_Gu
 PG_DisaItemSelector* PG_DisaItemSelector::createImageSelector(const std::string& name, PG_GuiItem* root, PG_ListModelBase* model) {
 	auto* item = createSelector(name, root, model, PG_CategoryFilterModel::Image);
 
-	PG_Object::connect(item, &PG_DisaItemSelector::rightClicked, item, [item] {
+	PG_Object::connect(item, &PG_DisaItemSelector::rightClicked, item, [item](PG_MouseButtonEvent* e) {
 		if (!item->getModel()) return;
 		auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", item);
 		
@@ -215,7 +215,7 @@ PG_DisaItemSelector* PG_DisaItemSelector::createImageSelector(const std::string&
 				});
 		}
 		popup->addOption("Clear", true, item, [item] { item->clear(); });
-		popup->openAndDestroyOnClose();
+		popup->openAndDestroyOnClose(e);
 		});
 	return item;
 }
@@ -223,10 +223,10 @@ PG_DisaItemSelector* PG_DisaItemSelector::createImageSelector(const std::string&
 PG_DisaItemSelector* PG_DisaItemSelector::createDungeonSelector(const std::string& name, PG_GuiItem* root, PG_ListModelBase* model) {
 	auto* item = createSelector(name, root, model, PG_CategoryFilterModel::Dungeons);
 
-	PG_Object::connect(item, &PG_DisaItemSelector::rightClicked, item, [item, model] {
+	PG_Object::connect(item, &PG_DisaItemSelector::rightClicked, item, [item, model](PG_MouseButtonEvent* e) {
 		auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", item);
 		popup->addOption("Clear", true, item, [item] { item->clear(); });
-		popup->openAndDestroyOnClose();
+		popup->openAndDestroyOnClose(e);
 	});
 
 	return item;

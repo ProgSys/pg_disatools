@@ -214,12 +214,12 @@ static inline void importTexture(PG_DisaAssetsListItem* owner, PG_ListModelLocat
 	
 }
 
-static inline void addTextureOptions(PG_DisaAssetsListItem* owner, PG_ListModelLocation location, PG_DisaAssetsModel::ETextureType type) {
+static inline void addTextureOptions(PG_DisaAssetsListItem* owner, PG_ListModelLocation location, PG_DisaAssetsModel::ETextureType type, const PG_MouseButtonEvent* e) {
 	if (!location) return;
 	auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", owner);
 	popup->addOption("Export", owner, [owner, location, type] { exportTexture(owner, location, type); });
 	popup->addOption("Import", true, owner, [owner, location, type] { importTexture(owner, location, type); });
-	popup->openAndDestroyOnClose();
+	popup->openAndDestroyOnClose(e);
 }
 
 
@@ -258,13 +258,13 @@ static inline void importGeoemtryGLTF(PG_DisaAssetsListItem* owner, PG_ListModel
 	}
 }
 
-static inline void addGeometryOptions(PG_DisaAssetsListItem* owner, PG_ListModelLocation location, bool hd) {
+static inline void addGeometryOptions(PG_DisaAssetsListItem* owner, PG_ListModelLocation location, bool hd, const PG_MouseButtonEvent* e) {
 	if (!location) return;
 	auto popup = PG_new<PG_GuiMenuPopup>("headerPopup", owner);
 	popup->addOption("Export", owner, [owner, location, hd] { exportGeoemtry(owner, location, hd); });
 	popup->addOption("Import", true, owner, [owner, location, hd] { importGeoemtry(owner, location, hd); });
 	popup->addOption("Import GLTF (Experimental)", true, owner, [owner, location, hd] { importGeoemtryGLTF(owner, location, hd); });
-	popup->openAndDestroyOnClose();
+	popup->openAndDestroyOnClose(e);
 }
 
 void PG_DisaAssetsListItem::updateCenter() {
@@ -291,7 +291,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 			area->fill(imageSD);
 			area->setAcceptedButtons(PG_GuiMouseArea::Right);
 
-			connect(area, &PG_GuiMouseArea::rightClicked, this, [this] { addTextureOptions(this, m_location, PG_DisaAssetsModel::TextureSD); });
+			connect(area, &PG_GuiMouseArea::rightClicked, this, [this](PG_MouseButtonEvent* e) { addTextureOptions(this, m_location, PG_DisaAssetsModel::TextureSD, e); });
 
 			//sperator
 			addSeperator(tileSize, imageSD, m_rightItem);
@@ -320,7 +320,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 			area->fill(imageHQ);
 			area->setAcceptedButtons(PG_GuiMouseArea::Right);
 
-			connect(area, &PG_GuiMouseArea::rightClicked, this, [this] { addTextureOptions(this, m_location, PG_DisaAssetsModel::TextureHD); });
+			connect(area, &PG_GuiMouseArea::rightClicked, this, [this](PG_MouseButtonEvent* e) { addTextureOptions(this, m_location, PG_DisaAssetsModel::TextureHD, e); });
 		}
 		auto imageHQModified = m_rightItem->findFirstChild<PG_GuiRectangle>("imageHQModified");
 		if (!imageHQModified) {
@@ -346,7 +346,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 			area->fill(imageNormal);
 			area->setAcceptedButtons(PG_GuiMouseArea::Right);
 
-			connect(area, &PG_GuiMouseArea::rightClicked, this, [this] { addTextureOptions(this, m_location, PG_DisaAssetsModel::TextureNormal); });
+			connect(area, &PG_GuiMouseArea::rightClicked, this, [this](PG_MouseButtonEvent* e) { addTextureOptions(this, m_location, PG_DisaAssetsModel::TextureNormal, e); });
 		}
 		auto imageNormalModified = m_rightItem->findFirstChild<PG_GuiRectangle>("imageNormalModified");
 		if (!imageNormalModified) {
@@ -387,7 +387,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 			area->fill(item);
 			area->setAcceptedButtons(PG_GuiMouseArea::Right);
 
-			connect(area, &PG_GuiMouseArea::rightClicked, this, [this] { addGeometryOptions(this, m_location, false); });
+			connect(area, &PG_GuiMouseArea::rightClicked, this, [this](PG_MouseButtonEvent* e) { addGeometryOptions(this, m_location, false, e); });
 
 
 			addSeperator(tileSize, geoSDbg, m_rightItem);
@@ -421,7 +421,7 @@ void PG_DisaAssetsListItem::updateCenter() {
 			area->fill(item);
 			area->setAcceptedButtons(PG_GuiMouseArea::Right);
 
-			connect(area, &PG_GuiMouseArea::rightClicked, this, [this] { addGeometryOptions(this, m_location, true); });
+			connect(area, &PG_GuiMouseArea::rightClicked, this, [this](PG_MouseButtonEvent* e) { addGeometryOptions(this, m_location, true, e); });
 		}
 		else {
 			sceneHD = dynamic_cast<PG_DisaMapScene*>(geoHDbg->findFirstInTree(PG_Search::byName("GameScene")));
