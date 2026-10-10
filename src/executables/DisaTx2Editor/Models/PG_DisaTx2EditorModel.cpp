@@ -162,13 +162,8 @@ void PG_DisaTx2EditorModel::resetColorTables() {
 }
 
 void PG_DisaTx2EditorModel::updateTexture() {
-	if (m_textureUpdatePending) return;
-	m_textureUpdatePending = true;
 	//several changes in a row, like a new table that is also the current one, rebuild the texture once
-	postCallEvent([this] {
-		m_textureUpdatePending = false;
-		rebuildTexture();
-	});
+	postCallEvent(PG_Event_Behaviour_Singleton, &PG_DisaTx2EditorModel::rebuildTexture);
 }
 
 void PG_DisaTx2EditorModel::rebuildTexture() {

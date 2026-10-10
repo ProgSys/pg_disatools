@@ -91,5 +91,4 @@ private:
 	PG_Texture m_texture;
 	PG_DisaColorTableModel* m_colorTableModel = nullptr;
 	bool m_modified = false;
-	bool m_textureUpdatePending = false;
 };

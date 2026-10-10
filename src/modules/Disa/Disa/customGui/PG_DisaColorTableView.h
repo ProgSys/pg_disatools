@@ -92,7 +92,7 @@ public:
 
 private:
 	void updateControls();
-	/// The full color dialog for the selected color, the color is only written when the dialog is confirmed
+	/// The full color dialog for the selected color, previewed once a change rests for 100ms, canceling restores the color
 	void openColorDialog();
 
 	PG_DisaColorTableModel* m_model = nullptr;

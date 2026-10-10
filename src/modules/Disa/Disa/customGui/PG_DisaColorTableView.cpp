@@ -12,6 +12,7 @@
 #include <Scene/Gui/PG_GuiText.h>
 #include <Scene/Gui/PG_GuiColorPicker.h>
 #include <Scene/Gui/PG_GuiColorDialog.h>
+#include <Base/PG_Timer.h>
 #include <Scene/Gui/PG_GuiUtil.h>
 #include <Util/Color/ColorDefined.h>
 #include <Util/Color/ColorConverters.h>
@@ -292,7 +293,26 @@ void PG_DisaColorTableView::updateControls() {
 void PG_DisaColorTableView::openColorDialog() {
 	if (!m_model || m_selected < 0) return;
 	const int index = m_selected;
-	PG_GuiColorDialog::open(this, PG_Color::rgbaToF(m_model->getColor(index)), [this, index](std::optional<glm::vec4> color) {
-		if (color && m_model && index < int(m_model->size())) m_model->setColor(index, PG_DisaColorTableModel::toRGBA(*color));
+	const glm::rgba original = m_model->getColor(index);
+	const auto setColor = [this, index](const glm::rgba& color) {
+		if (m_model && index < int(m_model->size())) m_model->setColor(index, color);
+	};
+
+	//filled in once the dialog exists, the timer lives and dies with it
+	auto timer = std::make_shared<PG_Timer*>(nullptr);
+	auto* dialog = PG_GuiColorDialog::open(this, PG_Color::rgbaToF(original), [setColor, original, timer](std::optional<glm::vec4> color) {
+		if (*timer) (*timer)->stop();
+		setColor(color ? PG_DisaColorTableModel::toRGBA(*color) : original);
 	});
+	if (!dialog) return;
+
+	//the preview waits until the color rested for a moment, every change of a drag would rebuild the image
+	*timer = PG_new<PG_Timer>(dialog);
+	(*timer)->setDuration(100ms);
+	auto pending = std::make_shared<glm::vec4>(PG_Color::rgbaToF(original));
+	connect(dialog, &PG_GuiColorDialog::colorModified, *timer, [timer, pending](glm::vec4 color) {
+		*pending = color;
+		(*timer)->start(true);
+	});
+	connect(*timer, &PG_Timer::passed, this, [setColor, pending] { setColor(PG_DisaColorTableModel::toRGBA(*pending)); });
 }
