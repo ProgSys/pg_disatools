@@ -83,7 +83,7 @@ bool PG_DisaSelectorDropDown::event(PG_Event* e) {
 			auto button = static_cast<PG_MouseButtonEvent*>(e);
 			if (button->getButton() == PG_BUTTON_RIGHT) {
 				if (button->isUp() && isInside(button->getPosition())) {
-					emit rightClicked();
+					emit rightClicked(button);
 				}
 				return true;
 			}
