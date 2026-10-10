@@ -177,8 +177,14 @@ bool decompressTX2(PG::STREAM::In* instream, const PG_TX2::tx2header& img, PG_RG
 		}
 
 
+		if (img.colortables.empty() || img.colortables[0].empty()) {
+			OUT_ERROR("Color table is missing!");
+			return true;
+		}
+
 		imageOut.resize(img.width, img.height);
 
+		//indices can carry a table offset, see PG_TX2::getRGBAData
 		const auto& table = img.colortables[0];
 		for (unsigned int i = 0; i < total_number_of_bytes; ++i) {
 			imageOut[i] = table[instream->readUnsignedChar() % table.size()];
@@ -652,13 +658,13 @@ void PG_TX2::getRGBAData(char* rgbaOut, unsigned short colortable) const {
 	case PG_TX2::Type::COLORTABLE_RGBA256:
 	case PG_TX2::Type::COLORTABLE_BGRA256:
 	{
-		if (colortable >= header.colortables.size()) return;
+		if (colortable >= header.colortables.size() || header.colortables[colortable].empty()) return;
 
 		const ColorTable& table = header.colortables[colortable];
 		for (unsigned int i = 0; i < data.size(); ++i) {
 			const unsigned int pos = i * sizeof(glm::rgba);
-			assert((unsigned char)data[i] < table.size()); //color table offset out of table bound
-			const glm::rgba& co = table[(unsigned char)data[i]];
+			//some files store the table in the index too (ITEM.TX2 has 65 for entry 1 of 16), so it wraps
+			const glm::rgba& co = table[(unsigned char)data[i] % table.size()];
 			rgbaOut[pos] = co.r;
 			rgbaOut[pos + 1] = co.g;
 			rgbaOut[pos + 2] = co.b;
