@@ -92,7 +92,7 @@ public:
 
 private:
 	void updateControls();
-	/// The full color dialog for the selected color, the image follows every change until it is canceled
+	/// The full color dialog for the selected color, the color is only written when the dialog is confirmed
 	void openColorDialog();
 
 	PG_DisaColorTableModel* m_model = nullptr;

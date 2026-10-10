@@ -292,16 +292,7 @@ void PG_DisaColorTableView::updateControls() {
 void PG_DisaColorTableView::openColorDialog() {
 	if (!m_model || m_selected < 0) return;
 	const int index = m_selected;
-	const glm::rgba original = m_model->getColor(index);
-	const auto setColor = [this, index](const glm::rgba& color) {
-		if (m_model && index < int(m_model->size())) m_model->setColor(index, color);
-	};
-
-	auto* dialog = PG_GuiColorDialog::open(this, PG_Color::rgbaToF(original), [setColor, original](std::optional<glm::vec4> color) {
-		setColor(color ? PG_DisaColorTableModel::toRGBA(*color) : original);
-	});
-	if (!dialog) return;
-	connect(dialog, &PG_GuiColorDialog::colorModified, this, [setColor](glm::vec4 color) {
-		setColor(PG_DisaColorTableModel::toRGBA(color));
+	PG_GuiColorDialog::open(this, PG_Color::rgbaToF(m_model->getColor(index)), [this, index](std::optional<glm::vec4> color) {
+		if (color && m_model && index < int(m_model->size())) m_model->setColor(index, PG_DisaColorTableModel::toRGBA(*color));
 	});
 }
