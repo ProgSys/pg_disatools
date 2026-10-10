@@ -1,6 +1,5 @@
 #include "PG_DisaColorTableView.h"
 
-#include <Base/Events/PG_KeyEvent.h>
 #include <Base/Events/PG_MouseButtonEvent.h>
 #include <Scene/Gui/PG_GuiButton.h>
 #include <Scene/Gui/PG_GuiGridView.h>
@@ -11,15 +10,15 @@
 #include <Scene/Gui/PG_GuiScrollBar.h>
 #include <Scene/Gui/PG_GuiScrollComponent.h>
 #include <Scene/Gui/PG_GuiText.h>
-#include <Scene/Gui/PG_GuiTextEdit.h>
-#include <Scene/Gui/PG_GuiTextField.h>
+#include <Scene/Gui/PG_GuiColorPicker.h>
+#include <Scene/Gui/PG_GuiColorDialog.h>
 #include <Scene/Gui/PG_GuiUtil.h>
 #include <Util/Color/ColorDefined.h>
+#include <Util/Color/ColorConverters.h>
 
 #include <Disa/models/PG_DisaColorTableModel.h>
 #include <Disa/utils/PG_FileDialog.h>
 
-#include <cctype>
 
 namespace {
 	constexpr float g_swatchSize = 40.f;
@@ -71,6 +70,10 @@ void PG_DisaColorSwatchItem::init() {
 	connect(m_area, &PG_GuiMouseArea::clicked, this, [this] {
 		if (!m_location) return;
 		if (auto* view = findParent<PG_DisaColorTableView>()) view->setSelected(m_location.getIndex().get(0));
+	});
+	connect(m_area, &PG_GuiMouseArea::doubleClicked, this, [this] {
+		if (!m_location) return;
+		if (auto* view = findParent<PG_DisaColorTableView>()) view->editColor(m_location.getIndex().get(0));
 	});
 
 	if (auto* view = findParent<PG_DisaColorTableView>()) {
@@ -171,26 +174,23 @@ void PG_DisaColorTableView::init() {
 		if (PG_File file = PG_FileDialog::save(this, "png", name)) m_model->exportTable(file);
 	});
 
-	//the selected color and its hex edit
-	m_selectedColor = PG_new<PG_GuiRectangle>("selectedColor", glm::vec2(0.f), glm::vec2(30.f), toolbarRow);
-	m_selectedColor->setMaterial("M_GuiRoundedRectangleAll5");
-	m_selectedText = PG_new<PG_GuiText>("selectedText", glm::vec2(0.f), glm::vec2(80.f, 30.f), toolbarRow);
+	//the selected color, edited right here or in the full dialog its swatch opens
+	m_picker = PG_new<PG_GuiColorPicker>("colorPicker", glm::vec2(0.f), PG_GuiColorPicker::Minimal, toolbarRow);
+	m_picker->getLastSelectedSwatch().area->setTooltipText("Selected color, click for the full color picker");
+	m_picker->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+	connect(m_picker, &PG_GuiColorPicker::colorModified, this, [this](glm::vec4 color) {
+		if (!m_model || m_selected < 0) return;
+		m_applyingPickerColor = true;
+		m_model->setColor(m_selected, PG_DisaColorTableModel::toRGBA(color));
+		m_applyingPickerColor = false;
+		m_picker->setLastSelectedSwatchColor(color);
+	});
+	connect(m_picker, &PG_GuiColorPicker::lastSelectedClicked, this, &PG_DisaColorTableView::openColorDialog);
+
+	m_selectedText = PG_new<PG_GuiText>("selectedText", glm::vec2(0.f), glm::vec2(90.f, 30.f), toolbarRow);
 	m_selectedText->setFontSize(18.f);
 	m_selectedText->setColor(PG_Color::hentaiBlueFrgb);
 	m_selectedText->setVerticalAlignment(PG_GuiText::VerticalCenter);
-
-	m_hexField = PG_new<PG_GuiTextField>("hexField", glm::vec2(0.f), glm::vec2(130.f, 30.f), toolbarRow);
-	m_hexField->setBackground("M_GuiRoundedRectangleAll5");
-	m_hexField->getBackgroundRectangle()->setColor(PG_Gui::backgroundFullColor);
-	m_hexField->setPlaceholderText("RRGGBBAA");
-	m_hexField->getTextItem()->setMaxChars(9);
-	m_hexField->getTextItem()->setValidator([](std::string& str) {
-		return std::ranges::all_of(str, [](char c) { return std::isxdigit((unsigned char)c) || c == '#'; });
-	});
-	m_hexField->getTextItem()->addEventFilter(this);
-	connect(m_hexField->getTextItem(), &PG_GuiTextEdit::activateChanged, this, [this](bool active) {
-		if (!active) commitHex();
-	});
 
 	//===== grid =====
 	auto* gridArea = PG_new<PG_GuiItem>("colorGridArea", this);
@@ -237,23 +237,6 @@ void PG_DisaColorTableView::init() {
 	updateControls();
 }
 
-bool PG_DisaColorTableView::filterEvent(PG_Event* e) {
-	if (e->getType() != EEventTypes::PG_Event_Key) return false;
-	auto* key = static_cast<PG_KeyEvent*>(e);
-	if (!key->isDown() || !m_hexField->getTextItem()->isKeysGrabbed()) return false;
-	switch (key->getKey()) {
-	case PG_Key_Return:
-	case PG_Key_Return2:
-		m_hexField->getTextItem()->unfocus();
-		return true;
-	case PG_Key_Escape:
-		setSelected(m_selected); //puts the current value back into the field
-		m_hexField->getTextItem()->unfocus();
-		return true;
-	default: return false;
-	}
-}
-
 void PG_DisaColorTableView::setModel(PG_DisaColorTableModel* model) {
 	if (model == m_model) return;
 	if (m_model) disconnect(m_model, nullptr, this, nullptr);
@@ -272,20 +255,24 @@ void PG_DisaColorTableView::setSelected(int index) {
 	const bool changed = index != m_selected;
 	m_selected = index;
 
-	m_hexField->getTextItem()->setEnabled(index >= 0);
 	if (index >= 0) {
-		const glm::rgba color = m_model->getColor(index);
-		m_selectedColor->setColor(glm::vec3(color) / 255.f);
-		m_selectedColor->setAlpha(color.a / 255.f);
+		const glm::vec4 color = PG_Color::rgbaToF(m_model->getColor(index));
+		//the picker keeps its own unrounded color while it is the one changing it
+		if (!m_applyingPickerColor) m_picker->setColor(color);
+		if (changed) m_picker->setInitialColor(color);
+		m_picker->setLastSelectedSwatchColor(color);
 		m_selectedText->setText("Index " + std::to_string(index));
-		if (!m_hexField->getTextItem()->isKeysGrabbed()) m_hexField->setText(PG_DisaColorTableModel::toHex(color));
 	}
 	else {
-		m_selectedColor->setAlpha(0.f);
+		m_picker->setLastSelectedSwatchColor(std::nullopt);
 		m_selectedText->setText("");
-		m_hexField->setText("");
 	}
 	if (changed) emit selectedChanged(m_selected);
+}
+
+void PG_DisaColorTableView::editColor(int index) {
+	setSelected(index);
+	openColorDialog();
 }
 
 void PG_DisaColorTableView::updateControls() {
@@ -302,9 +289,19 @@ void PG_DisaColorTableView::updateControls() {
 	setSelected(m_selected);
 }
 
-void PG_DisaColorTableView::commitHex() {
+void PG_DisaColorTableView::openColorDialog() {
 	if (!m_model || m_selected < 0) return;
-	glm::rgba color;
-	if (PG_DisaColorTableModel::fromHex(m_hexField->getText(), color)) m_model->setColor(m_selected, color);
-	setSelected(m_selected);
+	const int index = m_selected;
+	const glm::rgba original = m_model->getColor(index);
+	const auto setColor = [this, index](const glm::rgba& color) {
+		if (m_model && index < int(m_model->size())) m_model->setColor(index, color);
+	};
+
+	auto* dialog = PG_GuiColorDialog::open(this, PG_Color::rgbaToF(original), [setColor, original](std::optional<glm::vec4> color) {
+		setColor(color ? PG_DisaColorTableModel::toRGBA(*color) : original);
+	});
+	if (!dialog) return;
+	connect(dialog, &PG_GuiColorDialog::colorModified, this, [setColor](glm::vec4 color) {
+		setColor(PG_DisaColorTableModel::toRGBA(color));
+	});
 }

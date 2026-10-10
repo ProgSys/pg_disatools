@@ -40,7 +40,7 @@ class PG_GuiMouseArea;
 class PG_GuiRectangle;
 class PG_GuiRow;
 class PG_GuiText;
-class PG_GuiTextField;
+class PG_GuiColorPicker;
 
 /// One color of a PG_DisaColorTableView
 class PG_DisaColorSwatchItem : public PG_GuiItem {
@@ -69,7 +69,8 @@ private:
 /**
 * @brief Shows and edits the color tables of a PG_DisaColorTableModel.
 * @details The toolbar steps through the tables, adds, copies, removes, imports or exports them, and edits the
-* clicked color as hex. Below it is a grid of all colors of the current table.
+* clicked color with a color picker. Below it is a grid of all colors of the current table, a double click opens
+* the full color dialog.
 */
 class PG_DisaColorTableView : public PG_GuiItem {
 	PG_OBJECT(PG_DisaColorTableView);
@@ -79,7 +80,6 @@ signals:
 public:
 	using PG_GuiItem::PG_GuiItem;
 	void init() override;
-	bool filterEvent(PG_Event* e) override;
 
 	inline PG_DisaColorTableModel* getModel() const { return m_model; }
 	void setModel(PG_DisaColorTableModel* model);
@@ -87,10 +87,13 @@ public:
 	/// -1 when no color is selected
 	inline int getSelected() const { return m_selected; }
 	void setSelected(int index);
+	/// Selects the color and opens the full color dialog for it
+	void editColor(int index);
 
 private:
 	void updateControls();
-	void commitHex();
+	/// The full color dialog for the selected color, the image follows every change until it is canceled
+	void openColorDialog();
 
 	PG_DisaColorTableModel* m_model = nullptr;
 	int m_selected = -1;
@@ -105,6 +108,6 @@ private:
 	PG_GuiButton* m_exportButton = nullptr;
 	PG_GuiGridView* m_grid = nullptr;
 	PG_GuiText* m_selectedText = nullptr;
-	PG_GuiRectangle* m_selectedColor = nullptr;
-	PG_GuiTextField* m_hexField = nullptr;
+	PG_GuiColorPicker* m_picker = nullptr;
+	bool m_applyingPickerColor = false; /// True while a change of the picker is written to the model
 };

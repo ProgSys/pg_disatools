@@ -1,8 +1,8 @@
 #include "PG_DisaColorTableModel.h"
 
 #include <Util/PG_ImageLoad.h>
+#include <Util/Color/ColorConverters.h>
 
-#include <charconv>
 
 void PG_DisaColorTableModel::setTables(Tables* tables, std::size_t colorsPerTable) {
 	const std::size_t oldSize = size();
@@ -102,29 +102,8 @@ bool PG_DisaColorTableModel::importTable(const PG_File& file) {
 	return true;
 }
 
-std::string PG_DisaColorTableModel::toHex(const glm::rgba& color) {
-	constexpr char digits[] = "0123456789ABCDEF";
-	std::string out;
-	for (int i = 0; i < 4; ++i) {
-		out.push_back(digits[color[i] >> 4]);
-		out.push_back(digits[color[i] & 0xF]);
-	}
-	return out;
-}
-
-bool PG_DisaColorTableModel::fromHex(std::string hex, glm::rgba& colorOut) {
-	if (!hex.empty() && hex.front() == '#') hex.erase(hex.begin());
-	if (hex.size() != 6 && hex.size() != 8) return false;
-	glm::rgba color(0, 0, 0, 255);
-	for (std::size_t i = 0; i < hex.size() / 2; ++i) {
-		unsigned int value = 0;
-		const char* begin = hex.data() + i * 2;
-		auto result = std::from_chars(begin, begin + 2, value, 16);
-		if (result.ec != std::errc() || result.ptr != begin + 2) return false;
-		color[int(i)] = static_cast<unsigned char>(value);
-	}
-	colorOut = color;
-	return true;
+glm::rgba PG_DisaColorTableModel::toRGBA(const glm::vec4& color) {
+	return glm::rgba(glm::round(glm::clamp(color, 0.f, 1.f) * 255.f));
 }
 
 std::size_t PG_DisaColorTableModel::size() const {
@@ -139,8 +118,8 @@ PG_Variety PG_DisaColorTableModel::getData(PG_Index index, Identity identity) co
 	case PG_Identity_Location: return PG_Variety(getLocation(index));
 	case PG_Identity_Item: return PG_Variety(color);
 	case PG_Identity_Text:
-	case PG_Identity_Edit: return PG_Variety(toHex(color));
-	case PG_Identity_Tooltip: return PG_Variety(std::to_string(index.get(0)) + ": #" + toHex(color));
+	case PG_Identity_Edit: return PG_Variety(PG_Color::toHex(PG_Color::rgbaToF(color)));
+	case PG_Identity_Tooltip: return PG_Variety(std::to_string(index.get(0)) + ": #" + PG_Color::toHex(PG_Color::rgbaToF(color)));
 	default: return PG_Variety();
 	}
 }
@@ -151,8 +130,7 @@ void PG_DisaColorTableModel::setData(PG_Index index, const PG_Variety& data, Ide
 		setColor(index.get(0), data.get<glm::rgba>());
 	}
 	else if (identity == PG_Identity_Text || identity == PG_Identity_Edit) {
-		glm::rgba color;
-		if (fromHex(data.convert<std::string>(), color)) setColor(index.get(0), color);
+		if (auto color = PG_Color::fromHex(data.convert<std::string>())) setColor(index.get(0), toRGBA(*color));
 	}
 }
 

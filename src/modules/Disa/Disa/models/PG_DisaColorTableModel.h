@@ -86,9 +86,8 @@ public:
 	/// Reads the pixels of an image row by row into the current table
 	bool importTable(const PG_File& file);
 
-	static std::string toHex(const glm::rgba& color);
-	/// Accepts RRGGBB or RRGGBBAA, with or without a leading '#'
-	static bool fromHex(std::string hex, glm::rgba& colorOut);
+	/// A color with rgba in [0, 1], like the color pickers use, as 8 bit color
+	static glm::rgba toRGBA(const glm::vec4& color);
 
 	bool empty() const override { return size() == 0; }
 	std::size_t size() const override;
