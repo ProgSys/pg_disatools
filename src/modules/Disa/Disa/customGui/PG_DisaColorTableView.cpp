@@ -154,18 +154,21 @@ void PG_DisaColorTableView::init() {
 	m_exportButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 
 	connect(m_prevButton, &PG_GuiButton::clicked, this, [this] {
+		applyPendingColor();
 		if (!m_model || m_model->getTableCount() == 0) return;
 		const int count = m_model->getTableCount();
 		m_model->setCurrentTable((m_model->getCurrentTable() + count - 1) % count);
 	});
 	connect(m_nextButton, &PG_GuiButton::clicked, this, [this] {
+		applyPendingColor();
 		if (!m_model || m_model->getTableCount() == 0) return;
 		m_model->setCurrentTable((m_model->getCurrentTable() + 1) % m_model->getTableCount());
 	});
-	connect(m_addButton, &PG_GuiButton::clicked, this, [this] { if (m_model) m_model->insertTable(false); });
-	connect(m_copyButton, &PG_GuiButton::clicked, this, [this] { if (m_model) m_model->insertTable(true); });
-	connect(m_removeButton, &PG_GuiButton::clicked, this, [this] { if (m_model) m_model->removeCurrentTable(); });
+	connect(m_addButton, &PG_GuiButton::clicked, this, [this] { applyPendingColor(); if (m_model) m_model->insertTable(false); });
+	connect(m_copyButton, &PG_GuiButton::clicked, this, [this] { applyPendingColor(); if (m_model) m_model->insertTable(true); });
+	connect(m_removeButton, &PG_GuiButton::clicked, this, [this] { applyPendingColor(); if (m_model) m_model->removeCurrentTable(); });
 	connect(m_importButton, &PG_GuiButton::clicked, this, [this] {
+		applyPendingColor();
 		if (!m_model) return;
 		if (PG_File file = PG_FileDialog::open(this, "png")) m_model->importTable(file);
 	});
@@ -179,12 +182,16 @@ void PG_DisaColorTableView::init() {
 	m_picker = PG_new<PG_GuiColorPicker>("colorPicker", glm::vec2(0.f), PG_GuiColorPicker::Minimal, toolbarRow);
 	m_picker->getLastSelectedSwatch().area->setTooltipText("Selected color, click for the full color picker");
 	m_picker->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
+	//like the dialog, the table only follows once the color rested for a moment
+	m_pickerTimer = PG_new<PG_Timer>(this);
+	m_pickerTimer->setDuration(100ms);
+	connect(m_pickerTimer, &PG_Timer::passed, this, &PG_DisaColorTableView::applyPendingColor);
 	connect(m_picker, &PG_GuiColorPicker::colorModified, this, [this](glm::vec4 color) {
 		if (!m_model || m_selected < 0) return;
-		m_applyingPickerColor = true;
-		m_model->setColor(m_selected, PG_DisaColorTableModel::toRGBA(color));
-		m_applyingPickerColor = false;
+		m_pendingIndex = m_selected;
+		m_pendingColor = color;
 		m_picker->setLastSelectedSwatchColor(color);
+		m_pickerTimer->start(true);
 	});
 	connect(m_picker, &PG_GuiColorPicker::lastSelectedClicked, this, &PG_DisaColorTableView::openColorDialog);
 
@@ -253,6 +260,7 @@ void PG_DisaColorTableView::setModel(PG_DisaColorTableModel* model) {
 
 void PG_DisaColorTableView::setSelected(int index) {
 	if (!m_model || index < 0 || index >= int(m_model->size())) index = -1;
+	if (index != m_selected) applyPendingColor();
 	const bool changed = index != m_selected;
 	m_selected = index;
 
@@ -291,6 +299,7 @@ void PG_DisaColorTableView::updateControls() {
 }
 
 void PG_DisaColorTableView::openColorDialog() {
+	applyPendingColor();
 	if (!m_model || m_selected < 0) return;
 	const int index = m_selected;
 	const glm::rgba original = m_model->getColor(index);
@@ -315,4 +324,15 @@ void PG_DisaColorTableView::openColorDialog() {
 		(*timer)->start(true);
 	});
 	connect(*timer, &PG_Timer::passed, this, [setColor, pending] { setColor(PG_DisaColorTableModel::toRGBA(*pending)); });
+}
+
+void PG_DisaColorTableView::applyPendingColor() {
+	if (m_pickerTimer) m_pickerTimer->stop();
+	if (m_pendingIndex < 0) return;
+	const int index = m_pendingIndex;
+	m_pendingIndex = -1; //writing the color selects again, which must not find it pending
+	if (!m_model || index >= int(m_model->size())) return;
+	m_applyingPickerColor = true;
+	m_model->setColor(index, PG_DisaColorTableModel::toRGBA(m_pendingColor));
+	m_applyingPickerColor = false;
 }

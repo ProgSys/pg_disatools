@@ -41,6 +41,7 @@ class PG_GuiRectangle;
 class PG_GuiRow;
 class PG_GuiText;
 class PG_GuiColorPicker;
+class PG_Timer;
 
 /// One color of a PG_DisaColorTableView
 class PG_DisaColorSwatchItem : public PG_GuiItem {
@@ -94,6 +95,8 @@ private:
 	void updateControls();
 	/// The full color dialog for the selected color, previewed once a change rests for 100ms, canceling restores the color
 	void openColorDialog();
+	/// Writes the color the toolbar picker holds back, right away instead of after the delay
+	void applyPendingColor();
 
 	PG_DisaColorTableModel* m_model = nullptr;
 	int m_selected = -1;
@@ -110,4 +113,7 @@ private:
 	PG_GuiText* m_selectedText = nullptr;
 	PG_GuiColorPicker* m_picker = nullptr;
 	bool m_applyingPickerColor = false; /// True while a change of the picker is written to the model
+	PG_Timer* m_pickerTimer = nullptr;
+	int m_pendingIndex = -1; /// Color waiting for the timer, -1 when there is none
+	glm::vec4 m_pendingColor{ 0.f };
 };
