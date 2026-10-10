@@ -25,6 +25,7 @@
 #include <Util/PG_S3Compression.h>
 #include <Util/PG_Exception.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Disa/utils/PG_DisaColorReducer.h>
 
 
 #include <Stream/PG_StreamIn.h>
@@ -410,102 +411,33 @@ bool compressTX2(const PG_RGBAImage& imageIn, PG_TX2::Type compressionTypeIn, PG
 		//clean up
 		imageOut.header.colortables.clear();
 	}
-	else if (compressionTypeIn == PG_TX2::COLORTABLE_RGBA256 || compressionTypeIn == PG_TX2::COLORTABLE_BGRA256) {
-		PG_RGBAImage imgReduced = imageIn;
-		//PG::UTIL::reduceColors(imgReduced,256);
+	else if (compressionTypeIn == PG_TX2::COLORTABLE_RGBA256 || compressionTypeIn == PG_TX2::COLORTABLE_BGRA256
+		|| compressionTypeIn == PG_TX2::COLORTABLE_RGBA16 || compressionTypeIn == PG_TX2::COLORTABLE_BGRA16) {
+		const bool is16 = compressionTypeIn == PG_TX2::COLORTABLE_RGBA16 || compressionTypeIn == PG_TX2::COLORTABLE_BGRA16;
+		const unsigned short colorCount = is16 ? 16 : 256;
+		PG_DisaColorReducer::Result reduced = PG_DisaColorReducer::reduce(imageIn, colorCount);
 
+		ColorTable colortable = std::move(reduced.palette);
+		colortable.resize(colorCount);
 
-		std::vector<glm::rgba> colortable;
-		colortable.reserve(256);
-		imageOut.header.type = compressionTypeIn;
-		imageOut.header.width = imgReduced.getWidth();
-		imageOut.header.height = imgReduced.getHeight();
+		imageOut.header.width = imageIn.getWidth();
+		imageOut.header.height = imageIn.getHeight();
+		imageOut.header.colortableSize = colorCount;
+		//tables of the type before don't fit the new indices
+		imageOut.header.colortables = { std::move(colortable) };
 
-		for (const glm::rgba& color : imgReduced) {
-			bool found = false;
-			for (const glm::rgba& color2 : colortable)
-				if (color == color2) {
-					found = true;
-					break;
-				}
-			if (colortable.size() >= 256) {
-				OUT_INFO("There are more then 256 colors inside color table!");
-				break;
+		if (is16) {
+			//two pixels per byte, the first in the low half
+			imageOut.data.resize((reduced.indices.size() + 1) / 2);
+			for (std::size_t i = 0; i < reduced.indices.size(); i += 2) {
+				const unsigned char low = reduced.indices[i] & 0x0F;
+				const unsigned char high = i + 1 < reduced.indices.size() ? reduced.indices[i + 1] & 0x0F : 0;
+				imageOut.data[i / 2] = char(low | (high << 4));
 			}
-			if (!found) colortable.push_back(color);
 		}
-
-		colortable.resize(256);
-
-		imageOut.data.resize(imageOut.header.width * imageOut.header.height);
-		imageOut.header.colortableSize = 256;
-		imageOut.header.colortables.insert(imageOut.header.colortables.begin(), colortable);
-
-		auto it = imageOut.data.begin();
-		for (const glm::rgba& color : imgReduced) {
-			unsigned int i = 0;
-			for (unsigned int a = 0; a < colortable.size(); a++) {
-				if (color == colortable[a]) {
-					i = a;
-					break;
-				}
-			}
-			(*it) = i;
-			it++;
+		else {
+			imageOut.data.assign(reduced.indices.begin(), reduced.indices.end());
 		}
-	}
-	else if (compressionTypeIn == PG_TX2::COLORTABLE_RGBA16 || compressionTypeIn == PG_TX2::COLORTABLE_BGRA16) {
-		PG_RGBAImage imgReduced = imageIn;
-		//PG::UTIL::reduceColors(imgReduced,16);
-
-		std::vector<glm::rgba> colortable;
-		colortable.reserve(16);
-		imageOut.header.width = imgReduced.getWidth();
-		imageOut.header.height = imgReduced.getHeight();
-
-		for (const glm::rgba& color : imgReduced) {
-			bool found = false;
-			for (const glm::rgba& color2 : colortable)
-				if (color == color2) {
-					found = true;
-					break;
-				}
-			if (colortable.size() >= 16) {
-				OUT_INFO("There are more then 16 colors inside color table!");
-				break;
-			}
-			if (!found) colortable.push_back(color);
-		}
-
-		colortable.resize(16);
-
-		imageOut.data.resize(imageOut.header.width * imageOut.header.height * 0.5);
-		imageOut.header.colortableSize = 16;
-		imageOut.header.colortables.insert(imageOut.header.colortables.begin(), colortable);
-
-		unsigned int i = 0;
-		for (char& c : imageOut.data) {
-			const glm::rgba& color1 = imgReduced[i];
-			const glm::rgba& color2 = imgReduced[i + 1];
-			unsigned int i1 = 0;
-			unsigned int i2 = 0;
-			for (unsigned int a = 0; a < colortable.size(); a++) {
-				if (color1 == colortable[a]) {
-					i1 = a;
-					break;
-				}
-			}
-			for (unsigned int a = 0; a < colortable.size(); a++) {
-				if (color2 == colortable[a]) {
-					i2 = a;
-					break;
-				}
-			}
-
-			c = (i1 & 0x0F) | ((i2 << 4) & 0xF0);
-			i += 2;
-		}
-
 	}
 	else {
 		OUT_ERROR("Compression type not supported, please choose another one.");
