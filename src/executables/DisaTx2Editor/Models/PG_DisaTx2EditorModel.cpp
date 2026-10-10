@@ -173,7 +173,7 @@ void PG_DisaTx2EditorModel::rebuildTexture() {
 	}
 	PG_RGBAImage image(m_tx2.getWidth(), m_tx2.getHeight());
 	m_tx2.getRGBAData((char*)image.data(), (unsigned short)m_colorTableModel->getCurrentTable());
-	m_texture.load(PG_UNIQUE_RES("DisaTx2EditorImage"), PG_Texture::ImageFormats{ std::move(image) }, { false, PG_Texture::Nearest, PG_Texture::Clamp });
+	m_texture.load(PG_UNIQUE_RES("DisaTx2EditorImage"), PG_Texture::ImageFormats{ std::move(image) }, { false, PG_Texture::Mipmap, PG_Texture::Clamp });
 	emit imageChanged();
 }
 

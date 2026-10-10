@@ -180,7 +180,7 @@ void PG_DisaColorTableView::init() {
 
 	//the selected color, edited right here or in the full dialog its swatch opens
 	m_picker = PG_new<PG_GuiColorPicker>("colorPicker", glm::vec2(0.f), PG_GuiColorPicker::Minimal, toolbarRow);
-	m_picker->getLastSelectedSwatch().area->setTooltipText("Selected color, click for the full color picker");
+	m_picker->getLastSelectedSwatch().area->setTooltipText("Change color");
 	m_picker->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
 	//like the dialog, the table only follows once the color rested for a moment
 	m_pickerTimer = PG_new<PG_Timer>(this);
