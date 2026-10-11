@@ -79,7 +79,7 @@ void PG_DisaCharacterPortraitGridTile::reload() {
 		m_image->setSourceData(img);
 	}
 	else {
-		m_image->setSource("gui/disa/disaMissingno.png");
+		m_image->setSource("gui/disa/disaMissingno.svg");
 	}
 
 	m_text->setText(std::to_string(m_location.getDataT<unsigned short>(PG_DisaCharacterModel::Identity_Id)));

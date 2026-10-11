@@ -79,7 +79,7 @@ void PG_DisaModListItem::init() {
 
 	{
 		auto btn = PG_new<PG_GuiButton>("DeleteButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-		btn->setIcon("gui/icon_delete.png");
+		btn->setIcon("gui/icon_delete.svg");
 		PG_Material mat("M_GuiToolButtonStart");
 		mat.makeInstance();
 		mat.set("radiusTopLeft", 0.f);
@@ -99,7 +99,7 @@ void PG_DisaModListItem::init() {
 
 	{
 		auto btn = PG_new<PG_GuiToggleButton>("DisableButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-		btn->setIcon("gui/disa/icon_disabled.png");
+		btn->setIcon("gui/disa/icon_disabled.svg");
 		btn->setBackground("M_GuiToolButton");
 		btn->setTooltipText("Disable");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
@@ -113,7 +113,7 @@ void PG_DisaModListItem::init() {
 
 	{
 		auto btn = PG_new<PG_GuiButton>("MoveUpButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-		btn->setIcon("gui/disa/icon_up.png");
+		btn->setIcon("gui/disa/icon_up.svg");
 		btn->setBackground("M_GuiToolButton");
 		btn->setTooltipText("Move up");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
@@ -125,7 +125,7 @@ void PG_DisaModListItem::init() {
 
 	{
 		auto btn = PG_new<PG_GuiButton>("MoveDownButton", glm::vec2(3.f, 0.f), glm::vec2(45.f, 30.f), toolbarRow);
-		btn->setIcon("gui/disa/icon_down.png");
+		btn->setIcon("gui/disa/icon_down.svg");
 		btn->setBackground("M_GuiToolButton");
 		btn->setTooltipText("Move down");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);

@@ -108,7 +108,7 @@ void RootScene::setupToolbar() {
 	toolbarRow->clearGuiChildren();
 
 	auto importButton = PG_new<PG_GuiButton>("importButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-	importButton->setIcon("gui/icon_export.png");
+	importButton->setIcon("gui/icon_export.svg");
 	importButton->setBackground("M_GuiRoundedRectangleAll5");
 	importButton->setTooltipText("Import zip");
 	importButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
@@ -125,7 +125,7 @@ void RootScene::setupToolbar() {
 
 	auto modificationsButton = PG_new<PG_GuiToggleButton>("ModificationsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	modificationsButton->setToggled(false);
-	modificationsButton->setIcon("gui/icon_actor.png");
+	modificationsButton->setIcon("gui/icon_actor.svg");
 	modificationsButton->setBackground("M_GuiToolButtonStart");
 	modificationsButton->setTooltipText("Modifications");
 	modificationsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
@@ -140,7 +140,7 @@ void RootScene::setupToolbar() {
 
 	auto mapsButton = PG_new<PG_GuiToggleButton>("MapModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	mapsButton->setToggled(false);
-	mapsButton->setIcon("gui/disa/icon_disaTerrain.png");
+	mapsButton->setIcon("gui/disa/icon_disaTerrain.svg");
 	mapsButton->setBackground("M_GuiToolButtonEnd");
 	mapsButton->setTooltipText("Campaigns");
 	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);

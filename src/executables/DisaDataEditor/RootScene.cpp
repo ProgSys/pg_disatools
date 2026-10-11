@@ -119,13 +119,13 @@ void RootScene::setupToolbar() {
 		return button;
 	};
 
-	auto openButton = createButton("openButton", "gui/icon_folder.png", "Open file");
+	auto openButton = createButton("openButton", "gui/icon_folder.svg", "Open file");
 	openButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 	connect(openButton, &PG_GuiButton::clicked, this, [this] {
 		open(PG_FileDialog::open(this, "DAT"));
 	});
 
-	auto saveButton = createButton("saveButton", "gui/icon_save.png", "Save file");
+	auto saveButton = createButton("saveButton", "gui/icon_save.svg", "Save file");
 	connect(saveButton, &PG_GuiButton::clicked, this, [this] {
 		if (!m_model->isOpen()) return;
 		auto* popup = PG_PopUpDialog::createConfirm(m_rootItem, "Save?", "Do you want to save and overwrite \"" + m_model->getFile().getFile() + "\"?");
@@ -135,7 +135,7 @@ void RootScene::setupToolbar() {
 		popup->open();
 	});
 
-	auto saveAsButton = createButton("saveAsButton", "gui/icon_saveAs.png", "Save as");
+	auto saveAsButton = createButton("saveAsButton", "gui/icon_saveAs.svg", "Save as");
 	connect(saveAsButton, &PG_GuiButton::clicked, this, [this] {
 		if (!m_model->isOpen()) return;
 		PG_File file = PG_FileDialog::save(this, "DAT", m_model->getFile().getFile());
@@ -143,7 +143,7 @@ void RootScene::setupToolbar() {
 		if (!m_model->save(file)) showError("Save failed", "Failed to save \"" + file.getPath() + "\"!");
 	});
 
-	auto exportButton = createButton("exportCsvButton", "gui/icon_export.png", "Export as CSV");
+	auto exportButton = createButton("exportCsvButton", "gui/icon_export.svg", "Export as CSV");
 	connect(exportButton, &PG_GuiButton::clicked, this, [this] {
 		if (!m_model->isOpen()) return;
 		PG_File file = PG_FileDialog::save(this, "csv", m_model->getFile().getName() + ".csv");

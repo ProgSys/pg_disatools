@@ -62,7 +62,7 @@ void PG_DisaAssetsListItem::init() {
 	//PG_GuiItem::anchor(m_topBtn, PG_Anchor::Top, buttonGroup, PG_Anchor::Top);
 
 	auto bottomBtn = PG_new<PG_GuiButton>("TopBtn", glm::vec2(0.f, 0.f), glm::vec2(30.f, 34.f), buttonGroup);
-	bottomBtn->setIcon("gui/icon_brush_draw.png");
+	bottomBtn->setIcon("gui/icon_brush_draw.svg");
 	bottomBtn->setBackground("M_GuiRoundedRectangleBottom5");
 	bottomBtn->setTooltipText("Apply");
 	PG_GuiItem::anchor(bottomBtn, PG_Anchor::Bottom, buttonGroup, PG_Anchor::Bottom);
@@ -477,7 +477,7 @@ void PG_DisaAssetsWindow::init() {
 	{
 
 		auto addButton = PG_new<PG_GuiButton>("AddButton", glm::vec2(15.f, 10.f), glm::vec2(32.f, 30.f), toolbar);
-		addButton->setIcon("gui/icon_add.png");
+		addButton->setIcon("gui/icon_add.svg");
 		addButton->setBackground("M_GuiRoundedRectangleAll5");
 		PG_GuiItem::anchor(addButton, PG_Anchor::Left, toolbar, PG_Anchor::Left);
 

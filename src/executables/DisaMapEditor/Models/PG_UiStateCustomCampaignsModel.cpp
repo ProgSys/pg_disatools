@@ -139,11 +139,11 @@ PG_UiStateCustomCampaignsModel::UiState PG_UiStateCustomCampaignsModel::getUiSta
 
 std::vector<PG_UiStateCustomCampaignsModel::ModeIcon> PG_UiStateCustomCampaignsModel::getSubModeIcons() const {
 	return {
-		{SubUiState_Settings, "Settings", "gui/icon_tag.png"},
-		{SubUiState_DungeonsPlan, "Plan", "gui/icon_flag.png"},
-		{SubUiState_Dungeons, "Dungeons", "gui/icon_actor.png"},
-		{SubUiState_Images, "Images", "gui/icon_texture.png"},
-		{SubUiState_Scripts, "Scripts", "gui/icon_script.png"},
+		{SubUiState_Settings, "Settings", "gui/icon_tag.svg"},
+		{SubUiState_DungeonsPlan, "Plan", "gui/icon_flag.svg"},
+		{SubUiState_Dungeons, "Dungeons", "gui/icon_actor.svg"},
+		{SubUiState_Images, "Images", "gui/icon_texture.svg"},
+		{SubUiState_Scripts, "Scripts", "gui/icon_script.svg"},
 	};
 }
 

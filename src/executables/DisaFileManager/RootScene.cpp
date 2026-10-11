@@ -123,7 +123,7 @@ void RootScene::setupToolbar() {
 
 	{
 		auto openButton = PG_new<PG_GuiButton>("openButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-		openButton->setIcon("gui/icon_folder.png");
+		openButton->setIcon("gui/icon_folder.svg");
 		openButton->setBackground("M_GuiRoundedRectangleAll5");
 		openButton->setTooltipText("Open file");
 		openButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
@@ -140,7 +140,7 @@ void RootScene::setupToolbar() {
 
 	{
 		auto saveButton = PG_new<PG_GuiButton>("saveButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-		saveButton->setIcon("gui/icon_save.png");
+		saveButton->setIcon("gui/icon_save.svg");
 		saveButton->setBackground("M_GuiRoundedRectangleAll5");
 		saveButton->setTooltipText("Save file");
 		saveButton->setEnabled(false);
@@ -154,7 +154,7 @@ void RootScene::setupToolbar() {
 
 	{
 		auto saveAsButton = PG_new<PG_GuiButton>("saveAsButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-		saveAsButton->setIcon("gui/icon_saveAs.png");
+		saveAsButton->setIcon("gui/icon_saveAs.svg");
 		saveAsButton->setBackground("M_GuiRoundedRectangleAll5");
 		saveAsButton->setTooltipText("Save as");
 		saveAsButton->setEnabled(false);
@@ -200,7 +200,7 @@ void RootScene::setupNavbar() {
 	navbarRow->clearGuiChildren();
 
 	auto backButton = PG_new<PG_GuiButton>("backButton", glm::vec2(0.0f), glm::vec2(39.f, 24.f), navbarRow);
-	backButton->setIcon("gui/icon_back.png");
+	backButton->setIcon("gui/icon_back.svg");
 	backButton->setBackground("M_GuiRoundedRectangleAll5");
 	backButton->setTooltipText("Back");
 	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);

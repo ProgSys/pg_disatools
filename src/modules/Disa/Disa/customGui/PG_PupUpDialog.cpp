@@ -184,7 +184,7 @@ PG_PopUpDialog* PG_PopUpDialog::createSelectFile(PG_GuiItem* parentItem, const s
 		textField->getTextItem()->setMaxChars(9000);
 
 		PG_GuiButton* openButton = PG_new<PG_GuiButton>("N_OpenButton", glm::vec2(0.f), glm::vec2(39.f, 30.f), textFiledContainer);
-		openButton->setIcon("gui/icon_folder.png");
+		openButton->setIcon("gui/icon_folder.svg");
 		openButton->setBackground("M_GuiRoundedRectangleRight5");
 		openButton->setTooltipText("Open");
 		PG_GuiItem::anchor(openButton, PG_Anchor::Left, textField, PG_Anchor::Right);

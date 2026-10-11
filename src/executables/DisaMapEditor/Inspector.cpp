@@ -421,7 +421,7 @@ static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrappe
 				[&info](const std::string& name, PG_GuiItem* root) {
 					auto toggleButton = PG_new<PG_GuiToggleButton>(name, glm::vec2(0.f), glm::vec2(50.f, 32.f), root);
 					toggleButton->setTooltipText(info.toolTip);
-					toggleButton->setIcon("gui/icon_eye.png");
+					toggleButton->setIcon("gui/icon_eye.svg");
 					toggleButton->setBackground(info.background);
 					toggleButton->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
 					return toggleButton;
@@ -437,7 +437,7 @@ static inline void createForTerrainEdit(PG_GuiColumn* column, PG_SelectionWrappe
 		[](const std::string& name, PG_GuiItem* root) {
 			auto toggleButton = PG_new<PG_GuiToggleButton>(name, glm::vec2(5.f, 0.f), glm::vec2(40.f, 32.f), root);
 			toggleButton->setTooltipText("Starting point of the map");
-			toggleButton->setIcon("gui/disa/icon_teleporter.png");
+			toggleButton->setIcon("gui/disa/icon_teleporter.svg");
 			toggleButton->setText("Set teleporter");
 			toggleButton->setBackground("M_GuiRoundedRectangleAll5");
 			return toggleButton;
@@ -646,7 +646,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 
 		auto btn = PG_new<PG_GuiToggleButton>("toggleBtn", row);
 		btn->setSize(glm::vec2(50.f, 32.f));
-		btn->setIcon("gui/icon_mirror_vertical.png");
+		btn->setIcon("gui/icon_mirror_vertical.svg");
 		btn->setBackground("M_GuiRoundedRectangleLeft5");
 		btn->setTooltipText("Mirror Vertical");
 		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
@@ -654,7 +654,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 
 		btn = PG_new<PG_GuiToggleButton>("toggleBtn", row);
 		btn->setSize(glm::vec2(50.f, 32.f));
-		btn->setIcon("gui/icon_mirror_horizontal.png");
+		btn->setIcon("gui/icon_mirror_horizontal.svg");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Mirror Horizontal");
 		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
@@ -668,7 +668,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 
 		auto btn = PG_new<PG_GuiToggleButton>("toggleBtn", row);
 		btn->setSize(glm::vec2(50.f, 32.f));
-		btn->setIcon("gui/disa/icon_shadow.png");
+		btn->setIcon("gui/disa/icon_shadow.svg");
 		btn->setBackground("M_GuiRoundedRectangleAll5");
 		btn->setTooltipText("Is shadow");
 		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
@@ -757,7 +757,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 
 		auto btn = PG_new<PG_GuiToggleButton>("toggleGridBtn", row);
 		btn->setSize(glm::vec2(50.f, 32.f));
-		btn->setIcon("gui/icon_grid.png");
+		btn->setIcon("gui/icon_grid.svg");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Grid");
 		btn->setLayoutProperty(PG_GuiSpinBox::LayoutProperty_Flow, PG_Anchor::Right);
@@ -767,7 +767,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 	{
 		auto btn = PG_new<PG_GuiButton>("autoPlaneProjectBtn", glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), column);
 		btn->setText("Auto plane project");
-		btn->setIcon("gui/disa/icon_event.png");
+		btn->setIcon("gui/disa/icon_event.svg");
 		btn->setTooltipText("Projects UVs onto the plane originating from the first selected face");
 		btn->setBackground("M_GuiRoundedRectangleAll5");
 		PG_GuiItem::anchor(btn, PG_Anchor::Right, column, PG_Anchor::Right);
@@ -953,7 +953,7 @@ static inline void createForMaterialEdit(Inspector* self, PG_GuiColumn* column, 
 	{
 		auto btn = PG_new<PG_GuiButton>("clearTextureBtn", glm::vec2(0.f, 0.f), glm::vec2(40.f, 32.f), column);
 		btn->setText("Clear texture");
-		btn->setIcon("gui/icon_delete.png");
+		btn->setIcon("gui/icon_delete.svg");
 		btn->setBackground("M_GuiRoundedRectangleAll5");
 		PG_GuiItem::anchor(btn, PG_Anchor::Right, column, PG_Anchor::Right);
 		PG_GuiItem::anchor(btn, PG_Anchor::Left, column, PG_Anchor::Left);
@@ -974,7 +974,7 @@ static inline void createForEventEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 	auto selectionChangedProp = wrapper->registerSelectionChanged();
 
 	auto addButton = PG_new<PG_GuiButton>("AddButton", glm::vec2(0.f), glm::vec2(100.f, 30.f), column);
-	addButton->setIcon("gui/icon_add.png");
+	addButton->setIcon("gui/icon_add.svg");
 	addButton->setText("Add event");
 	addButton->setBackground("M_GuiRoundedRectangleAll5");
 	PG_GuiItem::anchor(addButton, PG_Anchor::Left, column, PG_Anchor::Left);
@@ -1054,7 +1054,7 @@ static inline void createForObjectNoneSelectEdit(PG_GuiColumn* column, PG_DisaMa
 		searchArea->setHeight(30.f);
 
 		auto filterBtn = PG_new<PG_GuiToggleButton>("filterBtn", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), searchArea);
-		filterBtn->setIcon("gui/icon_eye.png");
+		filterBtn->setIcon("gui/icon_eye.svg");
 		filterBtn->setBackground("M_GuiToolButtonEnd");
 		filterBtn->setTooltipText("Only Disa models");
 		filterBtn->setToggled(filterModel->isOnlyDisa());
@@ -1210,7 +1210,7 @@ static inline void createForObjectEdit(PG_GuiColumn* column, PG_SelectionWrapper
 
 	{
 		auto duplicateButton = PG_new<PG_GuiButton>("DuplicateButton", glm::vec2(0.f), glm::vec2(100.f, 30.f), column);
-		duplicateButton->setIcon("gui/icon_add.png");
+		duplicateButton->setIcon("gui/icon_add.svg");
 		duplicateButton->setText("Duplicate");
 		duplicateButton->setBackground("M_GuiRoundedRectangleAll5");
 		PG_GuiItem::anchor(duplicateButton, PG_Anchor::Left, column, PG_Anchor::Left);
@@ -1237,7 +1237,7 @@ inline void setLableText(PG_GuiText* text) {
 	text->setBorderColor(glm::vec3(0.f));
 	text->setMaterial(PG_Material("M_GuiTextBorderSDF"));
 	text->setFontSize(32.f);
-	text->setFont("BalooThambi/BalooThambi-Regular.ttf");
+	text->setFont("Disa/DisaFont-Regular-imp.ttf");
 }
 
 inline void setText(PG_GuiText* text) {
@@ -1261,7 +1261,7 @@ static inline void createForActorNoneSelectEdit(PG_GuiColumn* column) {
 		searchArea->setHeight(30.f);
 
 		auto filterBtn = PG_new<PG_GuiToggleButton>("filterBtn", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), searchArea);
-		filterBtn->setIcon("gui/icon_eye.png");
+		filterBtn->setIcon("gui/icon_eye.svg");
 		filterBtn->setBackground("M_GuiToolButtonEnd");
 		filterBtn->setTooltipText("Show All");
 		filterBtn->setToggled(filterModel->isShowAll());
@@ -1747,7 +1747,7 @@ void Inspector::createFunctionBar() {
 
 	auto btn = PG_new<PG_GuiToggleButton>("TerrainEdit", toolbar);
 	btn->setSize(glm::vec2(42));
-	btn->setIcon("gui/icon_smallTiles.png");
+	btn->setIcon("gui/icon_smallTiles.svg");
 	btn->setTooltipText("Terrain edit");
 	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setBackground("M_GuiRoundedRectangleTop5");
@@ -1763,7 +1763,7 @@ void Inspector::createFunctionBar() {
 
 	btn = PG_new<PG_GuiToggleButton>("MaterialEdit", toolbar);
 	btn->setSize(glm::vec2(42));
-	btn->setIcon("gui/icon_texture.png");
+	btn->setIcon("gui/icon_texture.svg");
 	btn->setTooltipText("Material edit");
 	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setAutoToggle(false);
@@ -1778,7 +1778,7 @@ void Inspector::createFunctionBar() {
 
 	btn = PG_new<PG_GuiToggleButton>("ObjectEdit", toolbar);
 	btn->setSize(glm::vec2(42));
-	btn->setIcon("gui/icon_model.png");
+	btn->setIcon("gui/icon_model.svg");
 	btn->setTooltipText("Object edit");
 	btn->setTooltipPositionHint(PG_TooltipPositionHint_Right);
 	btn->setAutoToggle(false);
@@ -1793,7 +1793,7 @@ void Inspector::createFunctionBar() {
 
 	btn = PG_new<PG_GuiToggleButton>("EventEdit", toolbar);
 	btn->setSize(glm::vec2(42));
-	btn->setIcon("gui/disa/icon_eventTile.png");
+	btn->setIcon("gui/disa/icon_eventTile.svg");
 	btn->setTooltipText("Event edit");
 	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setAutoToggle(false);
@@ -1808,7 +1808,7 @@ void Inspector::createFunctionBar() {
 
 	btn = PG_new<PG_GuiToggleButton>("ActorEdit", toolbar);
 	btn->setSize(glm::vec2(42));
-	btn->setIcon("gui/icon_actor.png");
+	btn->setIcon("gui/icon_actor.svg");
 	btn->setTooltipText("Actor edit");
 	btn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 	btn->setBackground("M_GuiRoundedRectangleBottom5");
@@ -1838,7 +1838,7 @@ void Inspector::createFunctionBar() {
 		auto modeBtn = PG_new<PG_GuiToggleButton>("SelectMode", editModeColumn);
 		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
-		modeBtn->setIcon("gui/icon_cursor.png");
+		modeBtn->setIcon("gui/icon_cursor.svg");
 		modeBtn->setTooltipText("Select mode");
 		modeBtn->setBackground("M_GuiRoundedRectangleTop5");
 		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Select);
@@ -1853,7 +1853,7 @@ void Inspector::createFunctionBar() {
 		modeBtn = PG_new<PG_GuiToggleButton>("TranslateMode", editModeColumn);
 		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
-		modeBtn->setIcon("gui/icon_axis.png");
+		modeBtn->setIcon("gui/icon_axis.svg");
 		modeBtn->setTooltipText("Translate mode");
 		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Translate);
 
@@ -1867,7 +1867,7 @@ void Inspector::createFunctionBar() {
 		modeBtn = PG_new<PG_GuiToggleButton>("RotateMode", editModeColumn);
 		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
-		modeBtn->setIcon("gui/icon_rotate.png");
+		modeBtn->setIcon("gui/icon_rotate.svg");
 		modeBtn->setTooltipText("Rotate mode");
 		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Rotate);
 
@@ -1881,7 +1881,7 @@ void Inspector::createFunctionBar() {
 		modeBtn = PG_new<PG_GuiToggleButton>("ScaleMode", editModeColumn);
 		modeBtn->setTooltipPositionHint(ETooltipPositionHint::PG_TooltipPositionHint_Right);
 		modeBtn->setSize(glm::vec2(32.f));
-		modeBtn->setIcon("gui/icon_scale.png");
+		modeBtn->setIcon("gui/icon_scale.svg");
 		modeBtn->setTooltipText("Scale mode");
 		modeBtn->setBackground("M_GuiRoundedRectangleBottom5");
 		modeBtn->setToggled(mod->getEditMode() == PG_DisaEditorModule::EEditMode::Scale);

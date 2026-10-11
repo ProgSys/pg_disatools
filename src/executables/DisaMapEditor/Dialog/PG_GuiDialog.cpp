@@ -11,7 +11,7 @@
 PG_GuiDialog::PG_GuiDialog(const std::string& name) :
 	PG_GuiItem(name, PG_TypeInfo::create<PG_GuiDialog>(PG_Type::Node_GuiDialog, { PG_Type::Node_GuiItem, PG_Type::Node_GuiDialog })){
 
-	m_text = PG_new<PG_GuiTextEdit>("IntroText", "BalooThambi/BalooThambi-Regular.ttf", this);
+	m_text = PG_new<PG_GuiTextEdit>("IntroText", "Disa/DisaFont-Regular-imp.ttf", this);
 }
 
 void PG_GuiDialog::init() {
