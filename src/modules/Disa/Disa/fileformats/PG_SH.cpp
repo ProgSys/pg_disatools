@@ -113,10 +113,9 @@ bool PG_SH::open(PG::STREAM::In* reader) {
 			reader->read((char*)colortable.data(), colortable.size() * sizeof(glm::rgba));
 			//flip Red and Blue
 			for (glm::rgba& color : colortable) {
-				const char r = color.r;
-				color.r = color.b;
-				color.b = r;
+				std::swap(color.r, color.b);
 			}
+			
 		}
 
 

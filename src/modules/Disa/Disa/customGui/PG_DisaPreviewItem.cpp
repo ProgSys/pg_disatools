@@ -167,6 +167,7 @@ public:
 			if (targetIndex < 0) targetIndex = loaded.getAnimationIndex("1");
 			if (targetIndex < 0) targetIndex = 0;
 			loaded.setAnimationIndex(targetIndex);
+			loaded.setPaused(false);
 
 			fitSpriteIntoItem(guiSprite);
 			openAnimationBox(guiSprite);
@@ -278,6 +279,7 @@ public:
 			PG_GuiSprite* guiSprite = getParent<PG_GuiSprite>();
 			if (!guiSprite) return;
 			guiSprite->getSprite().setAnimationIndex((int)value, true);
+			guiSprite->getSprite().setPaused(false);
 			fitSpriteIntoItem(guiSprite);
 		});
 		spinBox->setValue(sprite.getAnimationIndex());
@@ -547,6 +549,7 @@ PG_GuiSprite* PG_DisaPreviewItem::getOrCreateSprite() {
 	if (!spriteItem) {
 		m_container->clearGuiChildren();
 		spriteItem = PG_new<PG_GuiSprite>("PreviewSprite", m_container);
+		spriteItem->setPropertyValue("colorMult", PG_Any::from(glm::vec4(1.0)));
 		spriteItem->fill(m_container);
 		spriteItem->setModelAnchor(PG_GuiSprite::Center);
 		/* A sprite matrix carries the flip that turns sprite space into the scene's y up world, and gui
