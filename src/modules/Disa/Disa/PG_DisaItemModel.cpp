@@ -86,7 +86,7 @@ void PG_DisaItemsModel::open(std::shared_ptr<PG_OLA> startDat) {
 		model.nameNormelized = PG_StringUtil::fullwidthAndHalfwidthUtf8ToNormal(model.name);
 		model.description = row.columns[descriptionIndex].data.convert<decltype(model.description)>();
 		model.descriptionNormelized = PG_StringUtil::fullwidthAndHalfwidthUtf8ToNormal(model.description);
-		if (iconIndexIndex < row.columns.size() && iconTypeIndex < row.columns.size()) {
+		if (iconIndexIndex >= 0 && iconTypeIndex >= 0 && iconIndexIndex < row.columns.size() && iconTypeIndex < row.columns.size()) {
 			model.iconIndex = row.columns[iconIndexIndex].data.convert<decltype(model.iconIndex)>();
 			model.iconType = row.columns[iconTypeIndex].data.convert<decltype(model.iconType)>();
 		}

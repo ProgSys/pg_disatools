@@ -1236,8 +1236,8 @@ inline void setLableText(PG_GuiText* text) {
 	text->setColor(glm::rgb(255, 190, 80));
 	text->setBorderColor(glm::vec3(0.f));
 	text->setMaterial(PG_Material("M_GuiTextBorderSDF"));
-	text->setFontSize(32.f);
-	text->setFont("Disa/DisaFont-Regular-imp.ttf");
+	text->setFontSize(30.f);
+	text->setFont("Disa/DisaFont-Bold.ttf");
 }
 
 inline void setText(PG_GuiText* text) {
@@ -1454,15 +1454,17 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 		PG_GuiItem::anchor(label, PG_Anchor::Bottom, frame, PG_Anchor::Top);
 		PG_GuiItem::anchor(label, PG_Anchor::Left, text, PG_Anchor::Left);
 		setLableText(label);
-		label->setPosition(glm::vec2(0.f, 5.f));
+		label->setPosition(glm::vec2(0.f, 12.f));
 		label->setText("NAME");
+		label->setFontSize(23.f);
 
 		label = PG_new<PG_GuiText>("IDLabel", frame);
 		PG_GuiItem::anchor(label, PG_Anchor::Bottom, frame, PG_Anchor::Top);
 		PG_GuiItem::anchor(label, PG_Anchor::Left, spinBoxCharacterId, PG_Anchor::Left);
 		setLableText(label);
-		label->setPosition(glm::vec2(0.f, 5.f));
+		label->setPosition(glm::vec2(0.f, 12.f));
 		label->setText("ID");
+		label->setFontSize(23.f);
 	}
 
 	frame = PG_new<PG_GuiImage>("BaseStatsFrame", column);
@@ -1489,7 +1491,7 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 		setLableText(label);
 		label->setHeight(34.f);
 		label->setWidth(80.f);
-		label->setPosition(glm::vec2(15.f, 0.f));
+		label->setPosition(glm::vec2(5.f, 0.f));
 		label->setText("CLASS");
 
 		PG_GuiText* text = PG_new<PG_GuiText>("ClassText", frame);
@@ -1512,7 +1514,7 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 		setLableText(label2);
 		label2->setHeight(34.f);
 		label2->setWidth(80.f);
-		label2->setPosition(glm::vec2(15.f, 5.f));
+		label2->setPosition(glm::vec2(5.f, 5.f));
 		label2->setText("LV");
 
 		auto lvSpinBox = PG_Gui::createSpinBoxV2<PG_GuiSpinBox, unsigned short>(frame, wrapper, "LevelText", "characterLevel");
