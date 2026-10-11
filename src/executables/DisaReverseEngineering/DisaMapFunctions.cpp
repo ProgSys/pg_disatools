@@ -7,6 +7,7 @@
 
 #include <FunctionPatcher.h>
 #include <DisaMapChunk.h>
+#include <DisaMath.h>
 #include <DisaCharacterFunctions.h>
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomModificationsManager.h>
@@ -576,4 +577,73 @@ void __fastcall FUN_004d6a30_finalizeDungeonLoad(DisaDungeon* dungeon) {
     FP::callFastFarA(0x004f8800, (float*)&FP::getData<int>(0x00730980), extraout_EDX_06);
     FP::callFastFarA(0x0046cab0, &FP::getData<int>(0x00730ba0), FP::getData<float>(fTeleportPannelX) + 6.0, 0.0, FP::getData<float>(fTeleportPannelZ) + 6.0, 0.0);
 
+}
+
+float __fastcall FUN_004d2be0_getGroundHeight(int* chunkIndex, int unused, float x, float z) {
+    const auto& isChunkInWorldGrid = FP::getData<std::array<uint8_t, DisaMapChunk::count>>(0x0065db48);
+
+    float lowest = 1000000.f;
+    int lowestIndex = -1;
+    for (int i = 0; i < DisaMapChunk::count; ++i) {
+        const DisaMapChunk* chunk = DisaMapChunk::get(i);
+        if (!chunk->isActive || !isChunkInWorldGrid[i]) continue;
+
+        const float height = chunk->FUN_004a2af0_getHeight(x, z);
+        if (height < lowest) {
+            lowest = height;
+            lowestIndex = i;
+        }
+    }
+
+    if (chunkIndex) *chunkIndex = lowestIndex;
+    return lowestIndex >= 0 ? lowest : 0.f;
+}
+
+glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, int screenY, float height, bool followTerrain) {
+    const glm::mat4 inverse = glm::inverse(FP::getData<glm::mat4>(0x00819200));
+    const auto unproject = [&inverse, screenX, screenY](float depth) {
+        const glm::vec4 point = inverse * glm::vec4(static_cast<float>(screenX), static_cast<float>(screenY), depth, 1.f);
+        return glm::vec3(point) / point.w;
+    };
+    const glm::vec3 nearPoint = unproject(0.f);
+    const glm::vec3 rayDirection = glm::normalize(nearPoint - unproject(1.f));
+
+    const float rayLength = -nearPoint.y / rayDirection.y; //cut with the plane y = 0
+    const glm::vec3 groundPoint = nearPoint + rayDirection * rayLength;
+
+    const glm::vec3 viewDirection = glm::normalize(groundPoint - FP::getData<DisaCameraInfo>(0x00730980).eye);
+
+    if (followTerrain) {
+        const glm::dvec3 step = glm::dvec3(viewDirection.x, -viewDirection.y, viewDirection.z) * 2.0;
+        constexpr double tolerance = 0.6f;
+        for (int i = 100; i > 0; --i) {
+            const float stepCount = static_cast<float>(i);
+            const float sampleX = static_cast<float>(groundPoint.x - step.x * stepCount);
+            const float rayHeight = static_cast<float>(step.y * stepCount);
+            const float sampleZ = static_cast<float>(groundPoint.z - step.z * stepCount);
+
+            const float groundHeight = FUN_004d2be0_getGroundHeight(nullptr, 0, sampleX, sampleZ);
+            if (groundHeight >= rayHeight - tolerance && groundHeight <= rayHeight + tolerance) {
+                *out = glm::vec3(sampleX, -rayHeight, sampleZ);
+                OUT_INFO("currAt:" << *out);
+                return out;
+            }
+        }
+    }
+
+    //whole steps, the original truncates the distance to an integer
+    const float steps = static_cast<float>(static_cast<int>(-height / double(viewDirection.y)));
+    *out = glm::vec3(static_cast<float>(groundPoint.x - double(steps) * viewDirection.x), height, static_cast<float>(groundPoint.z - double(steps) * viewDirection.z));
+    return out;
+}
+
+__declspec(naked) void FUN_004d1070_screenToWorld_NoneStd(int screenY, float height, bool followTerrain) {
+    //out and screenX stay in ECX and EDX, the stack arguments are pushed again for the fastcall to pop
+    __asm {
+        push [esp + 12]
+        push [esp + 12]
+        push [esp + 12]
+        call FUN_004d1070_screenToWorld
+        ret
+    }
 }

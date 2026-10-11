@@ -5,11 +5,13 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 
 #include <FunctionPatcher.h>
 #include "DisaRendering.h"
+#include "DisaMath.h"
 #include <Managers/DisaCustomRenderManager.h>
 #include <Disa/PG_DisaModelNode.h>
 
@@ -107,6 +109,34 @@ namespace {
         return tile.unk3[0];
     }
 
+    /**
+    * @brief The inner part of FUN_004a2af0. The line from corner through (x, z) is cut with the line through lineBegin
+    * and lineEnd. Each point holds x, height and z.
+    */
+    float interpolateTileHeight(float x, float z, const glm::vec3& corner, const glm::vec3& lineBegin, const glm::vec3& lineEnd) {
+        const auto distance = [](double deltaX, double deltaZ) { return std::sqrt(static_cast<float>(deltaX * deltaX + deltaZ * deltaZ)); };
+
+        const double toCornerX = double(corner.x) - x;
+        const double toCornerZ = double(corner.z) - z;
+        const float slope = static_cast<float>(toCornerZ / toCornerX);
+        const float offset = static_cast<float>(z - double(slope) * x);
+        const float lineSlope = static_cast<float>((double(lineBegin.z) - lineEnd.z) / (double(lineBegin.x) - lineEnd.x));
+        const float lineOffset = static_cast<float>(lineEnd.z - double(lineSlope) * lineEnd.x);
+
+        const float cutX = static_cast<float>((double(lineOffset) - offset) / (double(slope) - lineSlope));
+        const float cutZ = static_cast<float>(offset + double(slope) * cutX);
+
+        const float toBegin = distance(double(lineBegin.x) - cutX, double(lineBegin.z) - cutZ);
+        const float toEnd = distance(double(lineEnd.x) - cutX, double(lineEnd.z) - cutZ);
+        const float lineLength = toEnd + toBegin;
+        const float cutHeight = static_cast<float>(double(toBegin) * lineEnd.y / lineLength + double(toEnd) * lineBegin.y / lineLength);
+
+        const float toCorner = distance(toCornerX, toCornerZ);
+        const float toCut = distance(double(x) - cutX, double(z) - cutZ);
+        const float length = toCut + toCorner;
+        return static_cast<float>(double(toCorner) * cutHeight / length + double(toCut) * corner.y / length);
+    }
+
 } //namespace
 
 DisaGeoModelSet* DisaGeoModelSet::get(int index) {
@@ -146,6 +176,46 @@ void DisaMapChunk::FUN_004a27f0_clearChunk(bool isFullClear) {
     //BEGIN custom code
     getCustomMapModels().erase(static_cast<int>(this - DisaMapChunk::get(0)));
     //END custom code
+}
+
+float DisaMapChunk::FUN_004a2af0_getHeight(float x, float z) const {
+    constexpr float tileSize = 12.f;
+    FUN_004e32a0_rotateXZ(static_cast<float>(rotation.y * double(57.29674f)), x - position.x, z - position.z);
+    const float localX = pivot.x + FP::getData<float>(0x006b791c);
+    const float localZ = pivot.z + FP::getData<float>(0x006b7a60);
+
+    const int tileX = static_cast<int>(localX * double(1.f / tileSize));
+    const int tileZ = static_cast<int>(localZ * double(1.f / tileSize));
+    if (tileX < 0 || tileZ < 0 || tileX >= 40 || tileZ >= 40) return 0.f;
+
+    const int tileIndex = tileGrid[tileX][tileZ] - 1;
+    if (tileIndex < 0) return 0.f;
+    const mpdfileTile& tile = tiles[tileIndex];
+    if (!tile.visible) return 0.f;
+
+    const float x0 = static_cast<float>(tile.x * 12);
+    const float x1 = static_cast<float>(tile.x * 12 + 12);
+    const float z0 = static_cast<float>(tile.z * 12);
+    const float z1 = static_cast<float>(tile.z * 12 + 12);
+    const glm::vec3 southWest(x0, static_cast<float>(tile.cornersTop[0]), z0);
+    const glm::vec3 southEast(x1, static_cast<float>(tile.cornersTop[1]), z0);
+    const glm::vec3 northWest(x0, static_cast<float>(tile.cornersTop[2]), z1);
+    const glm::vec3 northEast(x1, static_cast<float>(tile.cornersTop[3]), z1);
+
+    const auto alongEdge = [tileSize](const glm::vec3& from, const glm::vec3& to, float offset) {
+        const float t = static_cast<float>(std::abs(offset) / double(tileSize));
+        return static_cast<float>(from.y + double(to.y - from.y) * t);
+    };
+    if (std::abs(x0 - localX) < 0.01f) return alongEdge(southWest, northWest, localZ - z0);
+    if (std::abs(x1 - localX) < 0.01f) return alongEdge(southEast, northEast, localZ - z0);
+    if (std::abs(z0 - localZ) < 0.01f) return alongEdge(southWest, southEast, localX - x0);
+    if (std::abs(z1 - localZ) < 0.01f) return alongEdge(northWest, northEast, localX - x0);
+
+    const glm::vec3 point(localX, 0.f, localZ);
+    if (FUN_0046e410_sideOfLine(&southEast, &northWest, &point) == 1) {
+        return interpolateTileHeight(localX, localZ, southEast, northWest, northEast);
+    }
+    return interpolateTileHeight(localX, localZ, southWest, southEast, northWest);
 }
 
 void FUN_004a4660_BuildTileOverlays(DisaMapChunk& chunk) {

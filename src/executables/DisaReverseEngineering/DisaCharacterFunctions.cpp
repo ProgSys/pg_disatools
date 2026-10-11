@@ -9,6 +9,7 @@
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Disa/fileformats/PG_JsonUtil.h>
 #include <DisaDataFunctions.h>
+#include <DisaMapFunctions.h>
 #include <Stream/PG_StreamInByteFile.h>
 #include <Managers/DisaCustomModificationsManager.h>
 #include <Disa/modifications/PG_DisaModCharactersModel.h>
@@ -710,7 +711,7 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
     if (settings->isMouseActive) {
         transform.clear();
         glm::vec3 hoverWorldPos = glm::vec3(0.f);
-        FP::callFastFarA<void>(0x004d1070, &hoverWorldPos, FP::getData<unsigned int>(0x00701c80), FP::getData<unsigned int>(0x00701c84), 0.f, '\x01');
+        FUN_004d1070_screenToWorld(&hoverWorldPos, FP::getData<int>(0x00701c80), FP::getData<int>(0x00701c84), 0.f, true);
 
         /* ORIGINAL
         //wtf is this code bro. Its the most ugliest thing I have ever seen :(
@@ -736,7 +737,7 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
 
         //BEGIN custom code
         glm::vec3 clickAtWorld = glm::vec3(0.f);
-        FP::callFastFarA<void>(0x004d1070, &clickAtWorld, FP::getData<unsigned int>(0x00701c80), FP::getData<unsigned int>(0x00701c84), 0.f, '\x01');
+        FUN_004d1070_screenToWorld(&clickAtWorld, FP::getData<int>(0x00701c80), FP::getData<int>(0x00701c84), 0.f, true);
 
         constexpr float tileSize = 21.f;
         glm::ivec2 hoverTile = glm::floor((glm::vec2(clickAtWorld.x, clickAtWorld.z) + glm::vec2(tileSize / 2.f, 0.f)) / tileSize);

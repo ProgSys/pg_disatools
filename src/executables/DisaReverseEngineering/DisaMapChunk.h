@@ -194,6 +194,18 @@ struct DisaMapChunk {
     */
     void __thiscall FUN_004a27f0_clearChunk(bool isFullClear);
 
+    /**
+    * @brief Height of the tile surface at a world position, negative is up.
+    * Original function: FUN_004a2af0
+    * @details The position is rotated into the chunk with FUN_004e32a0_rotateXZ, which also writes its result to the
+    * globals 0x006B791C and 0x006B7A60. On a tile edge the two corners of that edge are interpolated. Inside, the
+    * side of the diagonal from SE to NW picks a corner and a line: on the SW side the line from SE through the
+    * position is cut with the north edge, otherwise the line from SW is cut with the diagonal. The height at the
+    * cut is interpolated from the two ends of the cut line, the result again between the corner and the cut.
+    * @return 0 outside the 40 x 40 grid and where no visible tile is.
+    */
+    float __thiscall FUN_004a2af0_getHeight(float x, float z) const;
+
     /// The two chunks located at 0x007091c0
     static DisaMapChunk* get(int index);
 };

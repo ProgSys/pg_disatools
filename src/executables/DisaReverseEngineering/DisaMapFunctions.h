@@ -93,3 +93,35 @@ void __fastcall FUN_004d7970_clearMap(bool isFullClear);
 * @brief Deactivates all map units and releases the temporary characters they point to.
 */
 void FUN_004d3060_clearMapUnits();
+
+/**
+* @brief Ground height at a world position over both map chunks, negative is up.
+* Original function: FUN_004d2be0, which leaves x and z on the stack for the caller to pop.
+* Only active chunks that are part of the world grid (0x0065DB48) count, and of those the smallest height wins, so
+* the topmost surface.
+* @param chunkIndex Receives the chunk the height comes from, -1 when no chunk counts. Can be nullptr.
+* @param unused EDX, never read.
+* @return 0 when no chunk counts.
+*/
+float __fastcall FUN_004d2be0_getGroundHeight(int* chunkIndex, int unused, float x, float z);
+
+/**
+* @brief The world position under a screen position, used to point the map cursor at the mouse.
+* Original function: FUN_004d1070, which leaves screenY, height and followTerrain on the stack for the caller to pop.
+* @details The screen position is unprojected with the inverse of the matrix at 0x00819200 at depth 0 and 1, and the
+* ray between them is cut with the plane y = 0. The direction from the camera eye at 0x00730980 to that point is
+* the view direction. Without followTerrain the point is moved to the plane y = height in whole unit steps along the
+* view direction, so x and z can be off by up to one step. With followTerrain the view ray is walked from 200 units
+* before that point towards it in steps of 2, and the first sample within 0.6 of FUN_004d2be0_getGroundHeight is
+* taken. If no sample hits, it falls back to the plane like without followTerrain.
+* @param screenX In the 480 x 272 screen space of the mouse (0x00701C80).
+* @param height Plane height for the fallback.
+* @return out
+*/
+glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, int screenY, float height, bool followTerrain);
+
+/**
+* @brief Call site replacement for FUN_004d1070. Takes out and screenX in ECX and EDX like the original and leaves
+* the stack arguments for the caller to pop.
+*/
+void FUN_004d1070_screenToWorld_NoneStd(int screenY, float height, bool followTerrain);

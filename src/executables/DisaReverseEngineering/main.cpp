@@ -114,6 +114,10 @@ struct HockManager {
         replaceFunction("submitVertexWithNormalRef", "Queues VertexWithNormal mesh data with two textures", 0x004f0293,
             DisaRenderObjectManager::FUN_004f3450_submitVertexWithNormalRefStd);
 
+        for (unsigned int address : { 0x0045c24eu, 0x0045ddafu, 0x0045e9b4u, 0x00462106u, 0x0048814eu, 0x0048e1b4u, 0x0049e2e1u, 0x004d1685u, 0x004d1cf4u }) {
+            replaceFunction("screenToWorld", "The world position under the mouse, moves the map cursor", address, FUN_004d1070_screenToWorld_NoneStd);
+        }
+
         {
             auto f = &DisaObjectModel::FUN_004e2180;
             unsigned int i = *((unsigned int*)&f);
