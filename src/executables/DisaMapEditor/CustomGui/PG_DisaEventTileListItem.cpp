@@ -15,7 +15,7 @@ void PG_DisaEventTileListItem::init() {
 		});
 
 	m_removeBtn = PG_new<PG_GuiButton>("RemoveButton", glm::vec2(0.f), glm::vec2(39.f, 30.f), this);
-	m_removeBtn->setIcon("gui/icon_delete.svg");
+	m_removeBtn->setIcon("I_icon_delete");
 	m_removeBtn->setBackground("M_GuiRoundedRectangleAll5");
 	m_removeBtn->setTooltipText("Remove");
 

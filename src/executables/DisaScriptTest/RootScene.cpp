@@ -114,7 +114,7 @@ void RootScene::setupToolbar() {
 		spinBox->getBackground()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("openMap", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_play.svg");
+		btn->setIcon("I_icon_play");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Open Map");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
@@ -128,7 +128,7 @@ void RootScene::setupToolbar() {
 		text->setText("disa::1"); //the intro of the game
 
 		auto btn = PG_new<PG_GuiButton>("execTalkScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_play.svg");
+		btn->setIcon("I_icon_play");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Run talk script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
@@ -141,7 +141,7 @@ void RootScene::setupToolbar() {
 		text->getBackgroundRectangle()->setMaterial("M_GuiRoundedRectangleLeft5");
 
 		auto btn = PG_new<PG_GuiButton>("execScript", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_play.svg");
+		btn->setIcon("I_icon_play");
 		btn->setBackground("M_GuiRoundedRectangleRight5");
 		btn->setTooltipText("Run Script");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 25.f);
@@ -151,7 +151,7 @@ void RootScene::setupToolbar() {
 
 	{
 		auto btn = PG_new<PG_GuiToggleButton>("swapCamera", glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
-		btn->setIcon("gui/icon_repeat.svg");
+		btn->setIcon("I_icon_repeat");
 		btn->setTooltipText("Swap camera");
 		btn->setBackground("M_GuiRoundedRectangleAll5");
 		btn->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::Right);

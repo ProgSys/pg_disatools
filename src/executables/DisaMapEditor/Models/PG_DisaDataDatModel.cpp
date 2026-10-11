@@ -17,8 +17,8 @@ void PG_DisaDataDatModel::setSubUiState(SubUiState state) {
 
 std::vector<PG_DisaDataDatModel::ModeIcon> PG_DisaDataDatModel::getSubModeIcons() const {
 	return {
-		{SubUiState_Dungeons, "Dungeons", "gui/icon_actor.svg"},
-		{SubUiState_Images, "Images", "gui/icon_texture.svg"},
+		{SubUiState_Dungeons, "Dungeons", "I_icon_actor"},
+		{SubUiState_Images, "Images", "I_icon_texture"},
 	};
 }
 

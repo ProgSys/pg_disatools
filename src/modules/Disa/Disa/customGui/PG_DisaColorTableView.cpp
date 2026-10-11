@@ -137,20 +137,20 @@ void PG_DisaColorTableView::init() {
 		return button;
 	};
 
-	m_prevButton = createButton("prevTableButton", "gui/icon_prevFrame.svg", "Previous color table");
+	m_prevButton = createButton("prevTableButton", "I_icon_prevFrame", "Previous color table");
 	m_tableText = PG_new<PG_GuiText>("tableText", glm::vec2(0.f), glm::vec2(56.f, 30.f), toolbarRow);
 	m_tableText->setFontSize(18.f);
 	m_tableText->setColor(PG_Color::hentaiBlueFrgb);
 	m_tableText->setHorizontalAlignment(PG_GuiText::HorizontalCenter);
 	m_tableText->setVerticalAlignment(PG_GuiText::VerticalCenter);
-	m_nextButton = createButton("nextTableButton", "gui/icon_nextFrame.svg", "Next color table");
+	m_nextButton = createButton("nextTableButton", "I_icon_nextFrame", "Next color table");
 	m_nextButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
-	m_addButton = createButton("addTableButton", "gui/icon_add.svg", "Add an empty color table");
-	m_copyButton = createButton("copyTableButton", "gui/icon_duplicate.svg", "Add a copy of this color table");
-	m_removeButton = createButton("removeTableButton", "gui/icon_delete.svg", "Remove this color table");
+	m_addButton = createButton("addTableButton", "I_icon_add", "Add an empty color table");
+	m_copyButton = createButton("copyTableButton", "I_icon_duplicate", "Add a copy of this color table");
+	m_removeButton = createButton("removeTableButton", "I_icon_delete", "Remove this color table");
 	m_removeButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
-	m_importButton = createButton("importTableButton", "gui/icon_folder.svg", "Import color table from image");
-	m_exportButton = createButton("exportTableButton", "gui/icon_export.svg", "Export color table as png");
+	m_importButton = createButton("importTableButton", "I_icon_folder", "Import color table from image");
+	m_exportButton = createButton("exportTableButton", "I_icon_export", "Export color table as png");
 	m_exportButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 
 	connect(m_prevButton, &PG_GuiButton::clicked, this, [this] {

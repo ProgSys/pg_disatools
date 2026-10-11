@@ -446,7 +446,7 @@ void RootScene::setupGridView() {
 
 	auto small = PG_new<PG_GuiToggleButton>("ToggleSmallButton", glm::vec2(0.f, 0.f), glm::vec2(39.f, 30.f), container);
 	small->setToggled(false);
-	small->setIcon("gui/icon_smallTiles.svg");
+	small->setIcon("I_icon_smallTiles");
 	small->setBackground("M_GuiToolButtonStart");
 	small->getAnchor(PG_Anchor::Top)->setAnchor(container->getAnchor(PG_Anchor::Top));
 	small->getAnchor(PG_Anchor::Left)->setAnchor(container->getAnchor(PG_Anchor::Left));
@@ -455,7 +455,7 @@ void RootScene::setupGridView() {
 
 	auto normal = PG_new<PG_GuiToggleButton>("ToggleNormalButton", glm::vec2(0.f, 0.f), glm::vec2(39.f, 30.f), container);
 	normal->setToggled(true);
-	normal->setIcon("gui/icon_normalTiles.svg");
+	normal->setIcon("I_icon_normalTiles");
 	normal->setBackground("M_GuiToolButton");
 	normal->getAnchor(PG_Anchor::Top)->setAnchor(container->getAnchor(PG_Anchor::Top));
 	normal->getAnchor(PG_Anchor::Left)->setAnchor(small->getAnchor(PG_Anchor::Right));
@@ -464,7 +464,7 @@ void RootScene::setupGridView() {
 
 	auto big = PG_new<PG_GuiToggleButton>("ToggleBigButton", glm::vec2(0.f, 0.f), glm::vec2(39.f, 30.f), container);
 	big->setToggled(false);
-	big->setIcon("gui/icon_bigTiles.svg");
+	big->setIcon("I_icon_bigTiles");
 	big->setBackground("M_GuiToolButtonEnd");
 	big->getAnchor(PG_Anchor::Top)->setAnchor(container->getAnchor(PG_Anchor::Top));
 	big->getAnchor(PG_Anchor::Right)->setAnchor(container->getAnchor(PG_Anchor::Right));
@@ -649,7 +649,7 @@ void RootScene::setupCustomCampaignPlanView() {
 
 
 	auto addButton = PG_new<PG_GuiButton>("AddButton", glm::vec2(-5.0f, 10.f), glm::vec2(39.f, 30.f), column);
-	addButton->setIcon("gui/icon_add.svg");
+	addButton->setIcon("I_icon_add");
 	addButton->setBackground("M_GuiRoundedRectangleAll5");
 	addButton->setTooltipText("Add Area");
 	addButton->setPreventCulling(true);
@@ -707,7 +707,7 @@ GuiType* createGuiToggleButtonModeElement(PG_GuiItem* root, PG_Object* wrapper, 
 void RootScene::setupToolbarGeneric() {
 	toolbarRow->clearGuiChildren();
 	auto backButton = PG_new<PG_GuiButton>("BackButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-	backButton->setIcon("gui/icon_back.svg");
+	backButton->setIcon("I_icon_back");
 	backButton->setBackground("M_GuiRoundedRectangleAll5");
 	backButton->setTooltipText("Back");
 	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
@@ -723,7 +723,7 @@ void RootScene::setupToolbarGeneric() {
 		auto isModifiedProp = currObject->getProperty("isModified");
 		if (saveFunc && isModifiedProp) {
 			auto importBtn = PG_new<PG_GuiButton>("SaveButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-			importBtn->setIcon("gui/icon_save.svg");
+			importBtn->setIcon("I_icon_save");
 			importBtn->setBackground("M_GuiRoundedRectangleAll5");
 			importBtn->setTooltipText("Save");
 			importBtn->setEnabled(currObject->getPropertyValue(isModifiedProp).get<bool>());
@@ -740,7 +740,7 @@ void RootScene::setupToolbarGeneric() {
 		auto func = currObject->getFunction("void addNewCampaign(const std::string&,bool*)");
 		if (func) {
 			auto importBtn = PG_new<PG_GuiButton>("AddButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-			importBtn->setIcon("gui/icon_add.svg");
+			importBtn->setIcon("I_icon_add");
 			importBtn->setBackground("M_GuiRoundedRectangleAll5");
 			importBtn->setTooltipText("Add new campaign");
 
@@ -768,7 +768,7 @@ void RootScene::setupToolbarGeneric() {
 		auto func = currObject->getFunction("void addNewDungeon(const std::string&,const PG_DisaFileEntry&,const PG_DisaFileEntry&,int,int,int)");
 		if (func) {
 			auto importBtn = PG_new<PG_GuiButton>("AddButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-			importBtn->setIcon("gui/icon_add.svg");
+			importBtn->setIcon("I_icon_add");
 			importBtn->setBackground("M_GuiRoundedRectangleAll5");
 			importBtn->setTooltipText("Add new dungeon");
 
@@ -782,7 +782,7 @@ void RootScene::setupToolbarGeneric() {
 
 	if (auto func = currObject->getFunction("void importFile(const PG_File&)")) {
 		auto importBtn = PG_new<PG_GuiButton>("ImportButton", glm::vec2(0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-		importBtn->setIcon("gui/icon_folder.svg");
+		importBtn->setIcon("I_icon_folder");
 		importBtn->setBackground("M_GuiRoundedRectangleAll5");
 		importBtn->setTooltipText("Import file");
 
@@ -835,7 +835,7 @@ void RootScene::setupToolbarMapView() {
 	auto* mapNode = getGameScene(m_center);
 
 	auto backButton = PG_new<PG_GuiButton>("BackButton", glm::vec2(40.f, 0.0f), glm::vec2(39.f, 30.f), toolbarRow);
-	backButton->setIcon("gui/icon_back.svg");
+	backButton->setIcon("I_icon_back");
 	backButton->setBackground("M_GuiRoundedRectangleAll5");
 	backButton->setTooltipText("Back");
 	backButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 10.f);
@@ -844,7 +844,7 @@ void RootScene::setupToolbarMapView() {
 
 
 	auto saveButton = PG_new<PG_GuiButton>("SaveButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	saveButton->setIcon("gui/icon_save.svg");
+	saveButton->setIcon("I_icon_save");
 	saveButton->setBackground("M_GuiRoundedRectangleAll5");
 	saveButton->setTooltipText("Save");
 	//saveButton->setEnabled(false);
@@ -874,7 +874,7 @@ void RootScene::setupToolbarMapView() {
 
 	auto axisButton = PG_new<PG_GuiToggleButton>("AxisButton", glm::vec2(40.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	axisButton->setToggled(true);
-	axisButton->setIcon("gui/icon_axis.svg");
+	axisButton->setIcon("I_icon_axis");
 	axisButton->setBackground("M_GuiToolButtonStart");
 	axisButton->setTooltipText("Hide/Show axis");
 	axisButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
@@ -886,7 +886,7 @@ void RootScene::setupToolbarMapView() {
 	/*
 	auto hiddenButton = PG_new<PG_GuiToggleButton>("HiddenButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	hiddenButton->setToggled(false);
-	hiddenButton->setIcon("gui/icon_eye.svg");
+	hiddenButton->setIcon("I_icon_eye");
 	hiddenButton->setBackground("M_GuiToolButton");
 	hiddenButton->setTooltipText("Hide/Show hidden models");
 
@@ -897,7 +897,7 @@ void RootScene::setupToolbarMapView() {
 	
 
 	auto actorButton = PG_new<PG_GuiToggleButton>("ActorButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	actorButton->setIcon("gui/icon_actor.svg");
+	actorButton->setIcon("I_icon_actor");
 	actorButton->setBackground("M_GuiToolButton");
 	actorButton->setTooltipText("Hide/Show actor positions");
 	actorButton->setToggled(mapNode->isActorsVisible());
@@ -908,7 +908,7 @@ void RootScene::setupToolbarMapView() {
 		});
 
 	auto geoPanelButton = PG_new<PG_GuiToggleButton>("GeoPanelButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	geoPanelButton->setIcon("gui/disa/icon_geoPanel.svg");
+	geoPanelButton->setIcon("I_disa_icon_geoPanel");
 	geoPanelButton->setBackground("M_GuiToolButton");
 	geoPanelButton->setTooltipText("Hide/Show GeoPanels");
 	geoPanelButton->setToggled(mapNode->isGeoPanelsVisible());
@@ -920,7 +920,7 @@ void RootScene::setupToolbarMapView() {
 
 	auto hdButton = PG_new<PG_GuiToggleButton>("HDButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	hdButton->setToggled(false);
-	hdButton->setIcon("gui/disa/icon_HD.svg");
+	hdButton->setIcon("I_disa_icon_HD");
 	hdButton->setBackground("M_GuiToolButtonEnd");
 	hdButton->setTooltipText("Toggle HD textures");
 	hdButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
@@ -932,7 +932,7 @@ void RootScene::setupToolbarMapView() {
 	//export/import
 	/*
 	auto exportGLTFButton = PG_new<PG_GuiButton>("ExportGltfButton", glm::vec2(20.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	exportGLTFButton->setIcon("gui/icon_export.svg");
+	exportGLTFButton->setIcon("I_icon_export");
 	exportGLTFButton->setBackground("M_GuiToolButtonStart");
 	exportGLTFButton->setTooltipText("Export GLTF");
 
@@ -942,7 +942,7 @@ void RootScene::setupToolbarMapView() {
 		});
 
 	auto exportJsonButton = PG_new<PG_GuiButton>("ExportJsonButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	exportJsonButton->setIcon("gui/icon_json_export.svg");
+	exportJsonButton->setIcon("I_icon_json_export");
 	exportJsonButton->setBackground("M_GuiToolButton");
 	exportJsonButton->setTooltipText("Export Json");
 
@@ -953,7 +953,7 @@ void RootScene::setupToolbarMapView() {
 		});
 
 	auto importJsonButton = PG_new<PG_GuiToggleButton>("ImportJsonButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	importJsonButton->setIcon("gui/icon_json_import.svg");
+	importJsonButton->setIcon("I_icon_json_import");
 	importJsonButton->setBackground("M_GuiToolButtonEnd");
 	importJsonButton->setTooltipText("Import Json");
 	connect(importJsonButton, &PG_GuiButton::clicked, this, [this]() {
@@ -968,7 +968,7 @@ void RootScene::setupToolbarMapView() {
 
 	//EDIT
 	auto editToggleButton = PG_new<PG_GuiToggleButton>("EditButton", glm::vec2(3.f, 0.f), glm::vec2(100.f, 30.f), toolbarRow);
-	editToggleButton->setIcon("gui/icon_edit.svg");
+	editToggleButton->setIcon("I_icon_edit");
 	editToggleButton->getIcon()->setPosition(glm::vec2(3.f, 0.f));
 	editToggleButton->setText("Edit");
 	editToggleButton->setBackground("M_GuiToolButtonStart");
@@ -981,7 +981,7 @@ void RootScene::setupToolbarMapView() {
 	});
 
 	auto playTestButton = PG_new<PG_GuiButton>("PlayTestButton", glm::vec2(0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	playTestButton->setIcon("gui/icon_play.svg");
+	playTestButton->setIcon("I_icon_play");
 	playTestButton->setBackground("M_GuiToolButtonEnd");
 	playTestButton->setTooltipText("Play test");
 	playTestButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
@@ -1032,7 +1032,7 @@ void RootScene::setupToolbarMapView() {
 		});
 
 	auto assetsButton = PG_new<PG_GuiToggleButton>("OpenJsonButton", glm::vec2(20.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	assetsButton->setIcon("gui/icon_model.svg");
+	assetsButton->setIcon("I_icon_model");
 	assetsButton->setBackground("M_GuiRoundedRectangleAll5");
 	assetsButton->setTooltipText("Assets");
 	assetsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::Right);

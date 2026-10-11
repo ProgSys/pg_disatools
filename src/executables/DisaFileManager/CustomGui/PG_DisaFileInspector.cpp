@@ -50,7 +50,7 @@ constexpr float g_fieldGap = 10.f; //between one extra data row and the next, in
 /// U+2022, swap it for a plain '-' should the font turn out to have no glyph for it
 constexpr const char* g_bullet = "\xE2\x80\xA2 ";
 /// Keeps the head of the button group filled when the selected file has no action of its own
-constexpr const char* g_actionStandIn = "gui/disa/icon_standin.svg";
+constexpr const char* g_actionStandIn = "I_disa_icon_standin";
 constexpr unsigned char g_rebuildEvent = PG_Event_Behaviour_Singleton | PG_Event_Behaviour_Later;
 
 /// Empty when the model has no selection, or is not the kind of model that tracks one
@@ -145,7 +145,7 @@ private:
 		const bool playing = (bool)m_audio;
 		//setIcon builds a fresh item, so it gets the size the group is on rather than its own default
 		const float side = button->getSize().x > 0.f ? button->getSize().x : g_buttonSize;
-		button->setIcon(playing ? "gui/icon_pause.svg" : "gui/icon_play.svg", glm::vec2(side * g_iconRatio));
+		button->setIcon(playing ? "I_icon_pause" : "I_icon_play", glm::vec2(side * g_iconRatio));
 		button->setTooltipText(playing ? "Stop playing" : "Play the audio");
 	}
 
@@ -452,10 +452,10 @@ void PG_DisaFileInspector::buildButtons(PG_GuiItem* parent) {
 	//first in the group, and the only one whose contents are thrown away as the selection moves
 	m_actionSlot = PG_new<PG_GuiItem>("actionSlot", glm::vec2(0.f), glm::vec2(g_buttonSize), parent);
 
-	m_addButton = makeGroupButton(parent, "addButton", "gui/icon_add.svg", "Import one or more files below the selected file");
-	m_replaceButton = makeGroupButton(parent, "replaceButton", "gui/icon_repeat.svg", "Replace selected file keeping its name");
-	m_exportButton = makeGroupButton(parent, "exportButton", "gui/icon_file_export.svg", "Extract selected file or files");
-	m_deleteButton = makeGroupButton(parent, "deleteButton", "gui/icon_delete.svg", "Delete selected file or files");
+	m_addButton = makeGroupButton(parent, "addButton", "I_icon_add", "Import one or more files below the selected file");
+	m_replaceButton = makeGroupButton(parent, "replaceButton", "I_icon_repeat", "Replace selected file keeping its name");
+	m_exportButton = makeGroupButton(parent, "exportButton", "I_icon_file_export", "Extract selected file or files");
+	m_deleteButton = makeGroupButton(parent, "deleteButton", "I_icon_delete", "Delete selected file or files");
 
 	m_deleteButton->setBackgroundColor({ PG_DisaColor::destructiveFrgb,
 		PG_DisaColor::destructiveHoverFrgb, PG_DisaColor::destructivePressedFrgb });
@@ -471,13 +471,13 @@ void PG_DisaFileInspector::updateAction() {
 	//one case per type that has something to offer, and the only place this grows
 	switch (PG_DisaFileEntry::typeOf(location)) {
 	case PG_DisaFileInfo::OGG: {
-		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_play.svg", "Play the audio");
+		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "I_icon_play", "Play the audio");
 		button->fill(m_actionSlot);
 		PG_new<DisaPlayAudioAction>("playAudio", location, button);
 		return;
 	}
 	case PG_DisaFileInfo::COLA: {
-		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_folder.svg", "Decompress and replace");
+		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "I_icon_folder", "Decompress and replace");
 		button->fill(m_actionSlot);
 		PG_new<DisaCOLAAction>("decompress", location, button);
 		return;
@@ -488,7 +488,7 @@ void PG_DisaFileInspector::updateAction() {
 	case PG_DisaFileInfo::SCRIPT:
 	case PG_DisaFileInfo::TALK_SCRIPT:
 	case PG_DisaFileInfo::MPP: 
-		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "gui/icon_folder.svg", "Open container");
+		PG_GuiButton* button = makeGroupButton(m_actionSlot, "actionButton", "I_icon_folder", "Open container");
 		button->fill(m_actionSlot);
 		PG_new<DisaOpenFolderAction>("openFolder", location, button);
 		return;

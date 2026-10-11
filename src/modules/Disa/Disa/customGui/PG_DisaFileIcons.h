@@ -39,7 +39,7 @@
 */
 namespace PG_DisaFileIcon {
 	/// What a type with no icon of its own shows
-	inline constexpr std::string_view generic = "gui/disa/icon_file_generic.svg";
+	inline constexpr std::string_view generic = "I_disa_icon_file_generic";
 
 	std::string_view get(PG_DisaFileInfo::Type type);
 }

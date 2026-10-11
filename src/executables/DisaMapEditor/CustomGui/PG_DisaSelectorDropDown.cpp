@@ -70,7 +70,7 @@ void PG_DisaSelectorDropDown::init() {
 
 	if (m_arrow) {
 		anchor(m_display, PG_Anchor::Right, m_arrow, PG_Anchor::Left);
-		static_cast<PG_GuiImage*>(m_arrow)->setSource("gui/icon_target.svg");
+		static_cast<PG_GuiImage*>(m_arrow)->setSource("I_icon_target");
 	}
 	else anchor(m_display, PG_Anchor::Right, this, PG_Anchor::Right);
 }

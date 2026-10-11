@@ -129,34 +129,35 @@ void RootScene::focusImage() {
 }
 
 void RootScene::setupToolbar() {
-	auto createButton = [this](const std::string& name, const std::string& icon, const std::string& tooltip) {
+	auto createButton = [this](const std::string& name, const std::string& icon, const std::string& tooltip, const std::string& bgMat = "M_GuiRoundedRectangleAll5") {
 		auto button = PG_new<PG_GuiButton>(name, glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
 		button->setIcon(icon);
-		button->setBackground("M_GuiRoundedRectangleAll5");
+		button->setBackground(bgMat);
 		button->setTooltipText(tooltip);
 		return button;
 	};
-	auto createToggleButton = [this](const std::string& name, const std::string& icon, const std::string& tooltip) {
+	auto createToggleButton = [this](const std::string& name, const std::string& icon, const std::string& tooltip, const std::string& bgMat = "M_GuiRoundedRectangleAll5") {
 		auto button = PG_new<PG_GuiToggleButton>(name, glm::vec2(0.0f), glm::vec2(39.f, 30.f), m_toolbarRow);
 		button->setIcon(icon);
-		button->setBackground("M_GuiRoundedRectangleAll5");
+		button->setBackground(bgMat);
 		button->setTooltipText(tooltip);
 		return button;
 	};
 
-	auto openButton = createButton("openButton", "gui/icon_folder.svg", "Open file");
+	auto openButton = createButton("openButton", "I_icon_folder", "Open file");
 	connect(openButton, &PG_GuiButton::clicked, this, [this] {
 		open(PG_FileDialog::open(this, "tx2,txp,png"));
 	});
-
-	auto saveButton = createButton("saveButton", "gui/icon_save.svg", "Save file");
+	openButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
+	//==== SPACE ====
+	auto saveButton = createButton("saveButton", "I_icon_save", "Save file", "M_GuiRoundedRectangleLeft5");
 	connect(saveButton, &PG_GuiButton::clicked, this, [this] {
 		if (!m_model->isOpen() || !m_model->isTx2File()) return;
 		std::string error;
 		if (!m_model->save(m_model->getFile(), error)) showError("Save failed", error);
 	});
 
-	auto saveAsButton = createButton("saveAsButton", "gui/icon_saveAs.svg", "Save as TX2 or png");
+	auto saveAsButton = createButton("saveAsButton", "I_icon_saveAs", "Save as TX2 or png", "M_GuiRoundedRectangleRight5");
 	saveAsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 20.f);
 	connect(saveAsButton, &PG_GuiButton::clicked, this, [this] {
 		if (!m_model->isOpen()) return;
@@ -165,17 +166,17 @@ void RootScene::setupToolbar() {
 		std::string error;
 		if (!m_model->save(file, error)) showError("Save failed", error);
 	});
-
-	auto focusButton = createButton("focusButton", "gui/icon_target.svg", "Show the entire image");
+	//==== SPACE ====
+	auto focusButton = createButton("focusButton", "I_icon_fitSize", "Show the entire image", "M_GuiRoundedRectangleLeft5");
 	connect(focusButton, &PG_GuiButton::clicked, this, [this] {
 		m_keepFocused = true;
 		focusImage();
 	});
 
-	auto convertButton = createButton("convertButton", "gui/icon_repeat.svg", "Convert to");
+	auto convertButton = createButton("convertButton", "I_icon_repeat", "Convert to", "M_GuiRoundedRectangle");
 	connect(convertButton, &PG_GuiButton::clicked, this, &RootScene::openConvertDialog);
 
-	m_colorTableButton = createToggleButton("colorTableButton", "gui/icon_pick.svg", "Color table");
+	m_colorTableButton = createToggleButton("colorTableButton", "I_icon_colortable", "Color table", "M_GuiRoundedRectangleRight5");
 	connect(m_colorTableButton, &PG_GuiToggleButton::toggleChanged, this, [this](bool toggled) {
 		if (toggled) {
 			m_cell->addBottom(m_colorTablePanel, m_colorTableHeight);
@@ -186,11 +187,11 @@ void RootScene::setupToolbar() {
 		m_colorTablePanel->setParent(m_hiddenItems);
 	});
 
-	auto spacer = PG_new<PG_GuiItem>("toolbarSpacer", glm::vec2(0.f), glm::vec2(1.f, 30.f), m_toolbarRow);
-	spacer->setLayoutProperty(PG_GuiItem::LayoutProperty_Fill, true);
+	//==== SPACE ====
 
-	m_infoButton = createToggleButton("infoButton", "gui/icon_tag.svg", "Image info");
+	m_infoButton = createToggleButton("infoButton", "I_icon_tag", "Image info");
 	m_infoButton->setToggled(true);
+	m_infoButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::Right);
 	connect(m_infoButton, &PG_GuiToggleButton::toggleChanged, this, &RootScene::updateInfo);
 
 	const auto updateEnabled = [this, saveButton, saveAsButton, focusButton, convertButton] {

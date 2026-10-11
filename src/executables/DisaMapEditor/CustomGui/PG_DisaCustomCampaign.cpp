@@ -265,19 +265,19 @@ void PG_DisaCustomCampaignDungeon::init() {
 
 			auto* button = PG_new<PG_GuiButton>("Delete", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column);
 			button->setBackground("M_GuiRoundedRectangleTop5");
-			button->setIcon("gui/icon_delete.svg");
+			button->setIcon("I_icon_delete");
 			button->setTooltipText("Delete");
 
 			connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void remove()"); }, PG_ConnectionType_Event);
 
 			button = PG_new<PG_GuiButton>("Up", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column);
-			button->setIcon("gui/disa/icon_up.svg");
+			button->setIcon("I_disa_icon_up");
 			button->setTooltipText("Move Up");
 
 			connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void moveUp()"); });
 
 			button = PG_new<PG_GuiButton>("Down", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column);
-			button->setIcon("gui/disa/icon_down.svg");
+			button->setIcon("I_disa_icon_down");
 			button->setBackground("M_GuiRoundedRectangleBottom5");
 			button->setTooltipText("Move Down");
 
@@ -428,26 +428,26 @@ void PG_DisaCustomCampaignArea::init() {
 		anchor(column13, PG_Anchor::VerticalCenter, row1, PG_Anchor::VerticalCenter);
 
 		auto* button = PG_new<PG_GuiButton>("AddDungeon", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column13);
-		button->setIcon("gui/icon_add.svg");
+		button->setIcon("I_icon_add");
 		button->setBackground("M_GuiRoundedRectangleTop5");
 		button->setTooltipText("Add Dungeon");
 
 		connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void add()"); });
 
 		button = PG_new<PG_GuiButton>("Delete", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column13);
-		button->setIcon("gui/icon_delete.svg");
+		button->setIcon("I_icon_delete");
 		button->setTooltipText("Delete");
 
 		connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void remove()"); }, PG_ConnectionType_Event);
 
 		button = PG_new<PG_GuiButton>("Up", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column13);
-		button->setIcon("gui/disa/icon_up.svg");
+		button->setIcon("I_disa_icon_up");
 		button->setTooltipText("Move Up");
 
 		connect(button, &PG_GuiButton::clicked, this, [this] { callFunc("void moveUp()"); });
 
 		button = PG_new<PG_GuiButton>("Down", glm::vec2(0.0f), glm::vec2(39.f, 30.f), column13);
-		button->setIcon("gui/disa/icon_down.svg");
+		button->setIcon("I_disa_icon_down");
 		button->setBackground("M_GuiRoundedRectangleBottom5");
 		button->setTooltipText("Move Down");
 

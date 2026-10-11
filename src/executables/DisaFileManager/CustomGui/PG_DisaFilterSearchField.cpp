@@ -71,7 +71,7 @@ void PG_DisaFilterSearchField::init() {
 	m_filterButton->setBackground(m_buttonBackground);
 
 	m_filterIcon = PG_new<PG_GuiImage>("filterIcon", glm::vec2(0.f), glm::vec2(g_filterIconSize),
-		std::string("gui/icon_filter.svg"), m_filterButton);
+		std::string("I_icon_filter"), m_filterButton);
 	m_filterButton->setIcon(m_filterIcon);
 
 	m_searchField = PG_new<PG_DisaSearchField>("textField", glm::vec2(0.f), glm::vec2(100.f, g_cellSize.y), this);
@@ -144,7 +144,7 @@ void PG_DisaFilterSearchField::buildPopup(PG_GuiPopupInstance* instance) {
 		toggles.push_back(btn);
 	}
 
-	auto* clearButton = makeButton("filterClear", "gui/icon_delete.svg", "DEL");
+	auto* clearButton = makeButton("filterClear", "I_icon_delete", "DEL");
 	clearButton->setAutoToggle(false); //it acts, it does not latch
 	clearButton->setBackgroundColor({ PG_DisaColor::destructiveFrgb,
 		PG_DisaColor::destructiveHoverFrgb, PG_DisaColor::destructivePressedFrgb });
@@ -197,5 +197,5 @@ void PG_DisaFilterSearchField::setTypeSelected(PG_DisaFileInfo::Type type, bool 
 
 void PG_DisaFilterSearchField::updateFilterIcon() {
 	if (!m_filterIcon) return;
-	m_filterIcon->setSource(m_fileTypes.empty() ? "gui/icon_filter.svg" : "gui/icon_filter_warning.svg");
+	m_filterIcon->setSource(m_fileTypes.empty() ? "I_icon_filter" : "I_icon_filter_warning");
 }
