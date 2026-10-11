@@ -8,6 +8,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <span>
+#include <Util/PG_MathGeometry.h>
 
 #include <FunctionPatcher.h>
 #include "DisaRendering.h"
@@ -217,6 +219,28 @@ float DisaMapChunk::FUN_004a2af0_getHeight(float x, float z) const {
     }
     return interpolateTileHeight(localX, localZ, southWest, southEast, northWest);
 }
+
+//CUSTOM CODE START
+std::optional<float> DisaMapChunk::customIntersectRay(const glm::vec3& origin, const glm::vec3& direction) const {
+    if (!faces || staticFaceCount <= 0) return std::nullopt;
+
+    //the chunk matrix has no scale, so a distance in chunk space is the same distance in world space
+    const glm::mat4 toChunk = glm::inverse(computeChunkMatrix(*this));
+    const glm::vec3 localOrigin(toChunk * glm::vec4(origin, 1.f));
+    const glm::vec3 localDirection(toChunk * glm::vec4(direction, 0.f));
+
+    std::optional<float> nearest;
+    const auto keepNearest = [&nearest](std::optional<float> distance) {
+        if (distance && (!nearest || *distance < *nearest)) nearest = distance;
+    };
+    for (const DisaMapFace& face : std::span(faces, staticFaceCount)) {
+        const auto& v = face.vertices; //triangle strip
+        keepNearest(PG_MathGeometry::intersectionTriangle(localOrigin, localDirection, v[0].pos, v[1].pos, v[2].pos));
+        keepNearest(PG_MathGeometry::intersectionTriangle(localOrigin, localDirection, v[1].pos, v[3].pos, v[2].pos));
+    }
+    return nearest;
+}
+//CUSTOM CODE END
 
 void FUN_004a4660_BuildTileOverlays(DisaMapChunk& chunk) {
     //one white texel of the system texture, used by the plain colored overlays

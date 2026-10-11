@@ -19,6 +19,7 @@
 #include <Stream/PG_StreamInByteArray.h>
 #include <Util/PG_DataSerializer.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Util/PG_MathGeometry.h>
 
 static_assert(sizeof(DisaPartyCharacterInfo) == 0x6b8);
 static_assert(offsetof(PG_DisaPartyCharacter, charName) == 0x248);
@@ -614,6 +615,34 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
     const glm::vec3 viewDirection = glm::normalize(groundPoint - FP::getData<DisaCameraInfo>(0x00730980).eye);
 
     if (followTerrain) {
+        //CUSTOM CODE START
+        //intersects the drawn tile faces instead of sampling the height, falls back to the sampling when nothing is hit
+        static bool customSolver = true;
+        if (customSolver) {
+            const auto& isChunkInWorldGrid = FP::getData<std::array<uint8_t, DisaMapChunk::count>>(0x0065db48);
+            const glm::vec3 intoScene = -rayDirection;
+
+            std::optional<float> nearest;
+            for (int i = 0; i < DisaMapChunk::count; ++i) {
+                const DisaMapChunk* chunk = DisaMapChunk::get(i);
+                if (!chunk->isActive || !isChunkInWorldGrid[i]) continue;
+                if (auto distance = chunk->customIntersectRay(nearPoint, intoScene); distance && (!nearest || *distance < *nearest)) nearest = distance;
+            }
+
+            if (!nearest) {
+                nearest = PG_MathGeometry::intersectPlane(nearPoint, intoScene, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
+            }
+
+            if (nearest) {
+                const glm::vec3 hit = nearPoint + intoScene * *nearest;
+                *out = glm::vec3(hit.x, -hit.y, hit.z); //like the original, the height is returned with the sign of the drawn height flipped
+                OUT_DEBUG("Hit:" << *out);
+                return out;
+            }
+        }
+        //CUSTOM CODE END
+
+        //no wonder the mouse feels so bad, they just kinda gessing it...
         const glm::dvec3 step = glm::dvec3(viewDirection.x, -viewDirection.y, viewDirection.z) * 2.0;
         constexpr double tolerance = 0.6f;
         for (int i = 100; i > 0; --i) {
@@ -625,7 +654,7 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
             const float groundHeight = FUN_004d2be0_getGroundHeight(nullptr, 0, sampleX, sampleZ);
             if (groundHeight >= rayHeight - tolerance && groundHeight <= rayHeight + tolerance) {
                 *out = glm::vec3(sampleX, -rayHeight, sampleZ);
-                OUT_INFO("currAt:" << *out);
+                OUT_DEBUG("Hit:" << *out);
                 return out;
             }
         }
