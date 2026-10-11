@@ -676,3 +676,166 @@ __declspec(naked) void FUN_004d1070_screenToWorld_NoneStd(int screenY, float hei
         ret
     }
 }
+
+void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit* cursor, int unused, char useRecordedInput) {
+    if (cursor->moveFramesLeft != 0) {
+        cursor->velocityZ = 0.f;
+        cursor->velocityX = 0.f;
+        return;
+    }
+
+    //map bounds in tiles
+    const int minX = FP::getData<int>(0x00664770);
+    const int minZ = FP::getData<int>(0x00664774);
+    const int maxX = FP::getData<int>(0x00664768);
+    const int maxZ = FP::getData<int>(0x0066476c);
+    const uint32_t buttons = FP::getData<uint32_t>(0x00778d64);
+    const auto recordFastMove = []() {
+        uint8_t& recorded = FP::getData<uint8_t>(0x006d4aca);
+        recorded += (recorded != 0) * 10;
+    };
+    //moves the cursor to the target over the given frames
+    const auto glideTo = [cursor](float x, float y, float z, float frames) { FP::callThisFarA<void>(0x0046cab0, cursor, x, y, z, frames); };
+
+    const float cursorX = cursor->position.x;
+    const float cursorZ = cursor->position.z;
+    const int tileX = static_cast<int>(cursorX * double(1.f / 12.f));
+    const int tileZ = static_cast<int>(cursorZ * double(1.f / 12.f));
+    const int centerX = tileX * 12 + 6;
+    const int centerZ = tileZ * 12 + 6;
+
+    const int direction = FP::callFastFarA<int>(0x004d0db0, camera, tileZ, static_cast<int>(useRecordedInput));
+    const bool isStickLocked = (FP::getData<uint8_t>(0x006194d9) & 1) != 0;
+
+    const DisaSettings* settings = FP::getData<DisaSettings*>(0x005d7c40);
+    if (direction == -1 && !isStickLocked && settings->isMouseActive && !FP::callFarA<bool>(0x0050ff80) && !FP::callFarA<bool>(0x0050ffb0)
+        && FP::getData<bool>(0x00701cc6)) {
+
+        const int mouseX = FP::getData<int>(0x00701c80);
+        const int mouseY = FP::getData<int>(0x00701c84);
+        if (mouseX == 0 || mouseY == 0 || mouseX == 480 || mouseY == 272) return; //on the screen edge
+
+        float& lastMouseX = FP::getData<float>(0x00730ab0);
+        float& lastMouseY = FP::getData<float>(0x00730ab4);
+        if (lastMouseX == static_cast<float>(mouseX) && lastMouseY == static_cast<float>(mouseY)) return;
+
+        glm::vec3 target;
+        FUN_004d1070_screenToWorld(&target, mouseX, mouseY, cursor->position.y, true);
+        if (buttons & 0x4000) recordFastMove();
+
+        //CUSTOM CODE START
+        /* The snap below moves every tile edge 2.4 units up, which fit the early stopping sampler of FUN_004d1070. With
+         * the exact hits of the custom solver it sends the low edge of a tile to the previous tile. Snapping to the
+         * center of the hit tile first fixes that, the snap below keeps the center of any tile with index 0 or more. */
+        static bool customSnap = true;
+        if (customSnap) {
+            target.x = std::floor(target.x / 12.f) * 12.f + 6.f;
+            target.z = std::floor(target.z / 12.f) * 12.f + 6.f;
+        }
+        //CUSTOM CODE END
+
+        target.x = static_cast<float>(6 - 12 * static_cast<int>(target.x / -12.0 + 0.2));
+        target.z = static_cast<float>(6 - 12 * static_cast<int>(target.z / -12.0 + 0.2));
+        if (target.z <= static_cast<float>(minZ * 12)) target.z = static_cast<float>(minZ * 12 + 6);
+        if (target.x <= static_cast<float>(minX * 12)) target.x = static_cast<float>(minX * 12 + 6);
+        if (target.z > static_cast<float>(maxZ * 12)) target.z = static_cast<float>(maxZ * 12 + 6);
+        if (target.x > static_cast<float>(maxX * 12)) target.x = static_cast<float>(maxX * 12 + 6);
+
+        glideTo(target.x, target.y, target.z, 5.f);
+        lastMouseX = static_cast<float>(mouseX);
+        lastMouseY = static_cast<float>(mouseY);
+        return;
+    }
+
+    int frames = 10;
+    if (useRecordedInput == 1) {
+        int8_t& recorded = FP::getData<int8_t>(0x006d4acb);
+        if (recorded / 10 != 0) {
+            recorded = static_cast<int8_t>(recorded % 10);
+            frames = 5;
+        }
+    }
+    else if (buttons & 0x4000) {
+        recordFastMove();
+        frames = 5;
+    }
+
+    switch (direction) {
+        case 0:
+            if (tileZ <= minZ) return;
+            glideTo(static_cast<float>(centerX), 0.f, static_cast<float>(centerZ - 12), static_cast<float>(frames));
+            cursor->facing = 0;
+            return;
+        case 1:
+            if (tileX <= minX) return;
+            glideTo(static_cast<float>(centerX - 12), 0.f, static_cast<float>(centerZ), static_cast<float>(frames));
+            cursor->facing = 90;
+            return;
+        case 2:
+            if (tileZ >= maxZ) return;
+            glideTo(static_cast<float>(centerX), 0.f, static_cast<float>(centerZ + 12), static_cast<float>(frames));
+            cursor->facing = 180;
+            return;
+        case 3:
+            if (tileX >= maxX) return;
+            glideTo(static_cast<float>(centerX + 12), 0.f, static_cast<float>(centerZ), static_cast<float>(frames));
+            cursor->facing = -90;
+            return;
+        case -1:
+            break;
+        default:
+            return;
+    }
+
+    //analog stick
+    glm::vec2 stick(0.f);
+    if (!isStickLocked) {
+        stick = glm::vec2(FP::getData<int16_t>(0x00778d60), FP::getData<int16_t>(0x00778d62));
+        if (stick.x != 0.f || stick.y != 0.f) FP::getData<uint8_t>(0x0067726b) = 1;
+    }
+    const float stickLength = std::sqrt(static_cast<float>(double(stick.x) * stick.x + double(stick.y) * stick.y));
+    if (stickLength < 70.f) { //dead zone
+        cursor->velocityZ = 0.f;
+        cursor->velocityX = 0.f;
+    }
+    else {
+        const float yaw = useRecordedInput == 1 ? FP::getData<float>(0x006e57b8) : camera->field_0x30.y;
+        FUN_004e32a0_rotateXZ(static_cast<float>(yaw * double(57.29674f)), static_cast<float>(stick.x * double(0.01f)),
+            static_cast<float>(stick.y * double(0.01f)));
+        const float rotatedX = FP::getData<float>(0x006b791c);
+        const float rotatedZ = FP::getData<float>(0x006b7a60);
+        if (frames == 5) {
+            cursor->velocityX = static_cast<float>(rotatedX * 2.5);
+            cursor->velocityZ = static_cast<float>(-rotatedZ * 2.5);
+        }
+        else {
+            cursor->velocityX = rotatedX;
+            cursor->velocityZ = -rotatedZ;
+        }
+    }
+
+    float nextX = cursorX + cursor->velocityX;
+    float nextZ = cursorZ + cursor->velocityZ;
+    const float maxXEdge = static_cast<float>(maxX * 12 + 12);
+    const float maxZEdge = static_cast<float>(maxZ * 12 + 12);
+    if (nextX > maxXEdge) {
+        nextX = maxXEdge;
+        cursor->velocityX = 0.f;
+    }
+    if (nextZ > maxZEdge) {
+        nextZ = maxZEdge;
+        cursor->velocityZ = 0.f;
+    }
+    if (static_cast<float>(minX * 12) > nextX) cursor->velocityX = 0.f;
+    if (static_cast<float>(minZ * 12) > nextZ) cursor->velocityZ = 0.f;
+}
+
+__declspec(naked) void FUN_004d1500_updateMapCursor_NoneStd(int unused, char useRecordedInput) {
+    //camera and cursor stay in ECX and EDX, the stack arguments are pushed again for the fastcall to pop
+    __asm {
+        push [esp + 8]
+        push [esp + 8]
+        call FUN_004d1500_updateMapCursor
+        ret
+    }
+}

@@ -117,6 +117,10 @@ struct HockManager {
         for (unsigned int address : { 0x0045c24eu, 0x0045ddafu, 0x0045e9b4u, 0x00462106u, 0x0048814eu, 0x0048e1b4u, 0x0049e2e1u, 0x004d1685u, 0x004d1cf4u }) {
             replaceFunction("screenToWorld", "The world position under the mouse, moves the map cursor", address, FUN_004d1070_screenToWorld_NoneStd);
         }
+        for (unsigned int address : { 0x0044ef28u, 0x00457f64u, 0x00457fb4u, 0x00458684u, 0x00458baau, 0x00459da3u, 0x0045a2c9u, 0x0045cddau, 0x0045d05cu,
+            0x0045d1aeu, 0x0045da63u, 0x0045db9eu, 0x0045e60du, 0x0045f6a0u, 0x00460334u, 0x00461b17u, 0x0046232du, 0x0049e7ebu }) {
+            replaceFunction("updateMapCursor", "Moves the map cursor by key, stick or mouse", address, FUN_004d1500_updateMapCursor_NoneStd);
+        }
 
         {
             auto f = &DisaObjectModel::FUN_004e2180;
