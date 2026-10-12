@@ -5,7 +5,11 @@
 #include <Disa/PG_DisaMapViewNode.h>
 #include <Disa/PG_DisaAssetsModel.h>
 #include <Resources/PG_MaterialBinding.h>
+#include <Util/Math/PG_Compare.h>
+#include <algorithm>
 #include <memory>
+#include <optional>
+#include <span>
 
 template<int SW, int SE, int NW, int NE, int Size>
 inline void buildFace(const std::array<glm::vec3, Size>& corners,
@@ -128,6 +132,43 @@ inline void buildFace(const std::array<glm::vec3, Size>& corners, char geoColor,
 		iS + 1, iS + 3, iS + 2,
 		});
 }
+
+namespace {
+
+/// One tile of a path, a flat plane at flightHeight when the path can not walk on it
+struct PathTile {
+	glm::vec2 center{ 0.f };
+	std::optional<std::array<glm::vec3, 4>> top; /// corners in the order of PG_DisaMapTileModel::getTopData
+	float flightHeight = 0.f;
+
+	float heightAt(glm::vec2 position) const {
+		if (!top) return flightHeight;
+		const std::array<glm::vec3, 4>& corners = *top;
+		const float u = position.x - corners[0].x;
+		const float v = position.y - corners[0].z;
+		//split along the same diagonal as the rendered tile, from corner 1 to 2
+		if (u + v <= 1.f) return corners[0].y + (corners[1].y - corners[0].y) * u + (corners[2].y - corners[0].y) * v;
+		return corners[3].y + (corners[2].y - corners[3].y) * (1.f - u) + (corners[1].y - corners[3].y) * (1.f - v);
+	}
+};
+
+/// A cross section of the path ribbon
+struct PathKnot {
+	glm::vec2 position{ 0.f }; /// center line, x and z
+	glm::vec2 side{ 0.f }; /// from the center line to the left border
+	float height = 0.f;
+	float heightLeft = 0.f;
+	float heightRight = 0.f;
+
+	static PathKnot on(const PathTile& tile, glm::vec2 position, glm::vec2 side) {
+		return { position, side, tile.heightAt(position), tile.heightAt(position + side), tile.heightAt(position - side) };
+	}
+	glm::vec3 getCenter() const { return glm::vec3(position.x, height, position.y); }
+};
+
+glm::vec2 leftOf(glm::vec2 direction) { return glm::vec2(-direction.y, direction.x); }
+
+} //namespace
 
 bool PG_DisaTileViewNode::isPresent(glm::ivec2 pos, PG_DisaMapModel* model) {
 	if (!model) return false;
@@ -259,6 +300,181 @@ void PG_DisaTileViewNode::updateFloorColorGeometry(PG_DisaMapTileListModel* mode
 	);
 
 	modelNode->getModel().load(PG_UNIQUE_RES("M_TileColorPanels"), { { mat, PG_Geometry(PG_UNIQUE_RES("TileColorPanelsGeometry"), std::move(glGeo)) } });
+}
+
+void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode) {
+	if (!modelNode || !model) return;
+
+	if (path.size() < 2 || PG_Math::leOrNaN(pathWidth, 0.f)) {
+		modelNode->getModel().reset();
+		return;
+	}
+
+	constexpr float jumpHeight = 6.f / 12.f; //6 game height units, a higher step becomes a jump arc
+	constexpr float jumpClearance = 0.25f; //how far the arc passes over the higher edge
+	constexpr float levelTolerance = 0.5f / 12.f;
+	constexpr float groundOffset = 0.03f; //lifts the ribbon over the ground, so bent tiles do not clip it
+	constexpr int surfaceDivisions = 4; //per half tile, so the ribbon follows bent tiles
+	constexpr int jumpDivisions = 12;
+
+	const float halfWidth = std::min(pathWidth, 1.f) * 0.5f;
+	std::vector<glm::vec4> vertices;
+	std::vector<glm::vec2> uvs;
+	std::vector<unsigned int> indices;
+	float length = 0.f;
+
+	const auto addRun = [&](std::span<const glm::ivec2> run) {
+		std::vector<PathTile> tiles(run.size());
+		for (std::size_t i = 0; i < run.size(); ++i) {
+			tiles[i].center = glm::vec2(run[i]) + 0.5f;
+			auto location = model->getTileLocation(run[i]);
+			if (!location) continue;
+			auto* item = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
+			if (item->getMobility() == PG_DisaMapTileModel::Unlimited) tiles[i].top = item->getTop(item->getTranslation());
+		}
+		const auto edgeOf = [&tiles](std::size_t i) { return (tiles[i].center + tiles[i + 1].center) * 0.5f; }; //between i and i + 1
+
+		//before the first ground the path flies at the height it reaches that ground, without any ground at the floor
+		float flightHeight = 0.f;
+		auto ground = std::ranges::find_if(tiles, [](const PathTile& tile) { return tile.top.has_value(); });
+		if (ground != tiles.end() && ground != tiles.begin()) flightHeight = ground->heightAt(edgeOf(static_cast<std::size_t>(ground - tiles.begin()) - 1));
+		for (std::size_t i = 0; i < tiles.size(); ++i) {
+			if (!tiles[i].top) tiles[i].flightHeight = flightHeight;
+			else if (i + 1 < tiles.size()) flightHeight = tiles[i].heightAt(edgeOf(i));
+		}
+
+		struct Step {
+			glm::vec2 direction{ 0.f };
+			glm::vec2 edge{ 0.f };
+			float heightFrom = 0.f; /// top of the tile the step leaves, at the edge
+			float heightTo = 0.f;
+			bool isJump = false;
+		};
+		std::vector<Step> steps;
+		for (std::size_t i = 0; i + 1 < tiles.size(); ++i) {
+			const glm::vec2 edge = edgeOf(i);
+			const float heightFrom = tiles[i].heightAt(edge);
+			const float heightTo = tiles[i + 1].heightAt(edge);
+			steps.push_back({ tiles[i + 1].center - tiles[i].center, edge, heightFrom, heightTo, std::abs(heightFrom - heightTo) > jumpHeight });
+		}
+
+		//the ribbon starts and ends at a square around the tile center, so do a bend and both ends of a jump
+		const auto hasSquare = [&steps](std::size_t tile) {
+			if (tile == 0 || tile == steps.size()) return true;
+			return steps[tile - 1].isJump || steps[tile].isJump || steps[tile - 1].direction != steps[tile].direction;
+		};
+
+		PathKnot last;
+		std::optional<float> lastColor;
+		const auto pushPair = [&](const PathKnot& knot, float color) {
+			vertices.emplace_back(knot.position.x + knot.side.x, knot.heightLeft + groundOffset, knot.position.y + knot.side.y, color);
+			vertices.emplace_back(knot.position.x - knot.side.x, knot.heightRight + groundOffset, knot.position.y - knot.side.y, color);
+			uvs.emplace_back(length, 0.f);
+			uvs.emplace_back(length, 1.f);
+		};
+		const auto addKnot = [&](const PathKnot& knot, float color) {
+			if (lastColor != color) pushPair(last, color); //a color change gets its own vertices, so it stays sharp
+			length += glm::distance(last.getCenter(), knot.getCenter());
+			const auto i = static_cast<unsigned int>(vertices.size());
+			pushPair(knot, color);
+			indices.insert(indices.end(), { i - 2, i, i - 1, i - 1, i, i + 1 });
+			last = knot;
+			lastColor = color;
+		};
+		const auto addPiece = [&](const PathKnot& end, int divisions, float color, const auto& knotAt) {
+			const PathKnot start = last;
+			for (int division = 1; division < divisions; ++division) addKnot(knotAt(start, end, static_cast<float>(division) / divisions), color);
+			addKnot(end, color);
+		};
+		/* A fan around the center, which lies exactly on the top whichever diagonal splits the tile. The ribbon
+		 * ends at the entry side and starts again at the exit side. */
+		const auto addSquare = [&](std::size_t i) {
+			const PathTile& tile = tiles[i];
+			const glm::vec2 in = steps[i > 0 ? i - 1 : 0].direction;
+			const glm::vec2 out = steps[std::min(i, steps.size() - 1)].direction;
+			const float color = tile.top ? 0.f : 1.f;
+			const glm::vec3 center(tile.center.x, tile.heightAt(tile.center), tile.center.y);
+			const PathKnot entry = PathKnot::on(tile, tile.center - in * halfWidth, leftOf(in) * halfWidth);
+			const PathKnot exit = PathKnot::on(tile, tile.center + out * halfWidth, leftOf(out) * halfWidth);
+			const float lengthIn = length;
+			const float lengthCenter = lengthIn + glm::distance(entry.getCenter(), center);
+			length = lengthCenter + glm::distance(center, exit.getCenter());
+
+			const auto first = static_cast<unsigned int>(vertices.size());
+			vertices.emplace_back(center + glm::vec3(0.f, groundOffset, 0.f), color);
+			uvs.emplace_back(lengthCenter, 0.5f);
+			const bool isLeftTurn = glm::dot(out, leftOf(in)) > 0.f;
+			for (glm::vec2 corner : { glm::vec2(-1.f, -1.f), glm::vec2(-1.f, 1.f), glm::vec2(1.f, 1.f), glm::vec2(1.f, -1.f) }) {
+				const glm::vec2 position = tile.center + corner * halfWidth;
+				vertices.emplace_back(position.x, tile.heightAt(position) + groundOffset, position.y, color);
+				//-1 at the entry side, 1 at the exit side, a bend has two corners on both or neither
+				const float along = glm::dot(corner, in + out) * 0.5f;
+				const float acrossIn = glm::dot(corner, leftOf(in));
+				const float acrossOut = glm::dot(corner, leftOf(out));
+				const float across = isLeftTurn ? std::min(acrossIn, acrossOut) : std::max(acrossIn, acrossOut);
+				uvs.emplace_back(along < 0.f ? glm::mix(lengthCenter, lengthIn, -along) : glm::mix(lengthCenter, length, along), 0.5f - 0.5f * across);
+			}
+			for (unsigned int k = 0; k < 4; ++k) indices.insert(indices.end(), { first, first + 1 + k, first + 1 + (k + 1) % 4 });
+			last = exit;
+			lastColor.reset();
+		};
+		const auto addOnTile = [&](const PathTile& tile, const PathKnot& end, glm::vec2 side, bool isSlope) {
+			addPiece(end, isSlope || !tile.top ? 1 : surfaceDivisions, tile.top ? 0.f : 1.f, [&tile, side](const PathKnot& a, const PathKnot& b, float t) {
+				return PathKnot::on(tile, glm::mix(a.position, b.position, t), side);
+				});
+		};
+
+		addSquare(0);
+		for (std::size_t i = 0; i < steps.size(); ++i) {
+			const Step& step = steps[i];
+			const PathTile& from = tiles[i];
+			const PathTile& to = tiles[i + 1];
+			const glm::vec2 side = leftOf(step.direction) * halfWidth;
+			const bool hasEndSquare = hasSquare(i + 1);
+			const PathKnot end = PathKnot::on(to, hasEndSquare ? to.center - step.direction * halfWidth : to.center, side);
+
+			if (step.isJump) {
+				const float arcHeight = std::max(std::max(step.heightFrom, step.heightTo) + jumpClearance - (last.height + end.height) * 0.5f, jumpClearance);
+				addPiece(end, jumpDivisions, 1.f, [side, arcHeight](const PathKnot& a, const PathKnot& b, float t) {
+					const float arc = 4.f * arcHeight * t * (1.f - t); //parabola, arcHeight at the edge
+					return PathKnot{ glm::mix(a.position, b.position, t), side, glm::mix(a.height, b.height, t) + arc,
+						glm::mix(a.heightLeft, b.heightLeft, t) + arc, glm::mix(a.heightRight, b.heightRight, t) + arc };
+					});
+			}
+			else {
+				//the lower tile slopes straight from the edge of the higher one to its center or square
+				const bool isFromLower = step.heightFrom + levelTolerance < step.heightTo;
+				const bool isToLower = step.heightTo + levelTolerance < step.heightFrom;
+				addOnTile(from, PathKnot::on(isFromLower ? to : from, step.edge, side), side, isFromLower);
+				addOnTile(to, end, side, isToLower);
+			}
+			if (hasEndSquare) addSquare(i + 1);
+		}
+	};
+
+	//a step that is no neighbour ends a run, a step straight back ends it too but the next run starts on the same tile
+	std::size_t runStart = 0;
+	for (std::size_t i = 1; i <= path.size(); ++i) {
+		std::size_t nextStart = i;
+		if (i < path.size()) {
+			const glm::ivec2 step = path[i] - path[i - 1];
+			const bool isReversal = i - 1 > runStart && step == path[i - 2] - path[i - 1];
+			if (std::abs(step.x) + std::abs(step.y) == 1 && !isReversal) continue;
+			if (isReversal) nextStart = i - 1;
+		}
+		if (i - runStart >= 2) addRun(std::span(path).subspan(runStart, i - runStart));
+		runStart = nextStart;
+	}
+
+	if (indices.empty()) {
+		modelNode->clearModel();
+		return;
+	}
+
+	//a stand in until the path gets its own shader, it shows w = 0 red and w = 1 green
+	PG_Material mat("M_DisaTilePath");
+	PG_Mesh glGeo = PG_Mesh::basic(std::move(indices), std::move(vertices), std::move(uvs));
+	modelNode->getModel().load(PG_UNIQUE_RES("M_TilePath"), { { mat, PG_Geometry(PG_UNIQUE_RES("TilePathGeometry"), std::move(glGeo)) } });
 }
 
 void PG_DisaTileViewNode::updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode) {

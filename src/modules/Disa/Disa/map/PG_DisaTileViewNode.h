@@ -36,6 +36,22 @@ public:
 	* @param color Index into the geo panel shader colors, 0 is red
 	*/
 	static void updateFloorColorGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& tiles, char color, PG_ModelNode* modelNode);
+	/**
+	* @brief Lays a ribbon on the ground along the given tiles, to show the way a unit walks
+	* @details The ribbon runs from tile center to tile center and only bends at a center, by 90 degrees. Its
+	* begin, end and bends are squares of its width around the center, which lie on the tile top. A step to
+	* anything but a direct neighbour, or straight back, interrupts it, the next part starts at the following
+	* tile. Over a tile without ground or one that can not be walked on, it stays flat at the height it left
+	* the ground at. A small step slopes over the half of the lower tile, into its center or square. A high
+	* one becomes an arc between the squares of both tiles, so it starts and ends like a new path. The whole
+	* ribbon floats slightly above the ground.
+	*
+	* The position w is 0 where the unit walks and 1 where it flies or jumps. The uv x is the length of the
+	* path up to the vertex and keeps counting over interruptions, the uv y goes from 0 to 1 across the width.
+	* @param path At least two connected tiles, otherwise the model is reset
+	* @param pathWidth In tiles, clamped to 1
+	*/
+	static void updateFloorPathGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode);
 	static void updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode);
 private:
 	void updateGeometry();
