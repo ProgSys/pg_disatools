@@ -3,11 +3,15 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <ranges>
+#include <glm/gtc/constants.hpp>
 #include <Base/Events/PG_KeyEvent.h>
 #include <Base/Events/PG_MouseButtonEvent.h>
 #include <Base/Events/PG_MouseMotionEvent.h>
+#include <Base/Events/PG_TickEvent.h>
 #include <Scene/PG_Scene.h>
 #include <Scene/PG_ModelNode.h>
+#include <Scene/PG_TickComponent.h>
 #include <Scene/Gui/PG_GuiItem.h>
 #include <Disa/PG_DisaCamera.h>
 #include <Disa/PG_DisaMapModel.h>
@@ -20,7 +24,6 @@
 #include <Disa/map/PG_DisaActorEditSelectionNode.h>
 #include <Disa/map/controllers/PG_DisaEditorActorController.h>
 #include <Disa/combat/PG_DisaCombatCursorNode.h>
-#include <Disa/combat/PG_DisaMoveRange.h>
 
 PG_DisaCombatModule::~PG_DisaCombatModule() {
 	/* The scene may already be on its way out, so only what this module owns goes. The nodes are
@@ -78,10 +81,17 @@ void PG_DisaCombatModule::added(PG_Scene* scene) {
 	m_actorView = PG_new<PG_DisaActorsViewNode>("PG_DisaCombatActorsViewNode", root);
 	m_actorView->setModel(m_actors.get());
 	m_rangeNode = PG_new<PG_ModelNode>("N_MoveRange", root);
+	m_pathNode = PG_new<PG_ModelNode>("N_MovePath", root);
+	PG_new<PG_TickComponent>(PG_TickComponent::TickFunction([this](PG_ActorNode*, PG_TickEvent* tick) {
+		updateWalks(static_cast<float>(tick->getDeltaTime()));
+		}), "N_CombatWalks", root);
 
 	auto* cursor = PG_new<PG_DisaCombatCursorNode>("N_CombatCursor", root);
 	m_cursor = cursor;
-	connect(cursor, &PG_DisaCombatCursorNode::tileChanged, this, &PG_DisaCombatModule::updateCursorPointer);
+	connect(cursor, &PG_DisaCombatCursorNode::tileChanged, this, [this] {
+		updatePath();
+		updateCursorPointer();
+		});
 
 	//the battle starts on a player unit, without one where the editor camera looked
 	auto isPlayer = [](const PG_DisaActorModel* actor) {
@@ -91,6 +101,7 @@ void PG_DisaCombatModule::added(PG_Scene* scene) {
 	if (auto player = std::ranges::find_if(*m_actors.get(), isPlayer); player != m_actors->end()) lookAt = (*player)->getObjectTranslation();
 
 	m_running = true;
+	m_turn = 1;
 	moveCursorTo(glm::ivec2(std::floor(lookAt.x), std::floor(lookAt.z)));
 	camera->setOrbitPoint(cursor->getTranslation());
 	emit runningChanged(true);
@@ -113,8 +124,10 @@ void PG_DisaCombatModule::removed(PG_Scene* scene) {
 	m_root.reset();
 	m_actorView = nullptr;
 	m_rangeNode = nullptr;
+	m_pathNode = nullptr;
 	m_cursor.reset();
 
+	m_units.clear();
 	if (auto* actors = m_actors.get()) delete actors;
 	m_actors.reset();
 
@@ -130,11 +143,23 @@ void PG_DisaCombatModule::moveCursorTo(glm::ivec2 tile, float frames) {
 }
 
 PG_DisaActorModel* PG_DisaCombatModule::findUnit(glm::ivec2 tile) const {
-	if (!m_actors) return nullptr;
-	auto found = std::ranges::find_if(*m_actors.get(), [tile](const PG_DisaActorModel* actor) {
-		return dynamic_cast<const PG_DisaSpriteModel*>(actor) && actor->isVisible() && actor->getTilePosition() == tile;
-		});
-	return found != m_actors->end() ? *found : nullptr;
+	auto found = std::ranges::find_if(m_units, [tile](const auto& unit) { return unit.first->isVisible() && unit.second.tile == tile; });
+	return found != m_units.end() ? found->first : nullptr;
+}
+
+glm::ivec2 PG_DisaCombatModule::getUnitTile(const PG_DisaActorModel* unit) const {
+	auto findIt = m_units.find(const_cast<PG_DisaActorModel*>(unit));
+	return findIt != m_units.end() ? findIt->second.tile : unit->getTilePosition();
+}
+
+int PG_DisaCombatModule::getMovementLeft(const PG_DisaActorModel* unit) const {
+	auto findIt = m_units.find(const_cast<PG_DisaActorModel*>(unit));
+	return findIt != m_units.end() ? findIt->second.movementLeft : 0;
+}
+
+bool PG_DisaCombatModule::isMovable(const PG_DisaActorModel* unit) const {
+	auto* sprite = dynamic_cast<const PG_DisaSpriteModel*>(unit);
+	return sprite && sprite->getCharacterAlliance() == 0;
 }
 
 void PG_DisaCombatModule::selectAtCursor() {
@@ -144,35 +169,55 @@ void PG_DisaCombatModule::selectAtCursor() {
 
 void PG_DisaCombatModule::select(PG_DisaActorModel* unit) {
 	auto* sprite = dynamic_cast<PG_DisaSpriteModel*>(unit);
-	auto* map = getMapModel();
-	if (!sprite || !map || !m_root) return;
+	if (!sprite || !m_root || !m_units.contains(unit)) return;
 
 	m_selected = unit;
-	PG_DisaTileViewNode::updateFloorColorGeometry(map->getTiles(), PG_DisaMoveRange::find(*map, *m_actors.get(), *sprite), 0, m_rangeNode);
-
 	if (!m_selectedMarker) {
 		m_selectedMarker = PG_new<PG_DisaActorEditSelectionNode>("N_SelectedMarker", m_root.get());
 		m_selectedMarker->setSelected(true);
 	}
 	//a geo construct stands lower than a unit, like the edit mode marker
 	m_selectedMarker->setBaseHeight(sprite->getCharacterId() == 2800 ? 0.7f : 1.4f);
-	m_selectedMarker->setTranslation(unit->getObjectTranslation());
-	m_selectedMarker->updateModelMatrix();
-	m_selectedMarker->updateModelMatrixWorld();
-	m_selectedMarker->rotateTowardsCamera();
-
-	updateCursorPointer();
+	updateRange();
 	emit selectionChanged();
 }
 
 void PG_DisaCombatModule::clearSelection() {
 	if (!m_selected && !m_selectedMarker) return;
 	m_selected.reset();
-	if (auto* map = getMapModel(); map && m_rangeNode) PG_DisaTileViewNode::updateFloorColorGeometry(map->getTiles(), {}, 0, m_rangeNode);
+	m_range.reset();
+	if (auto* map = getMapModel()) {
+		if (m_rangeNode) PG_DisaTileViewNode::updateFloorColorGeometry(map->getTiles(), {}, 0, m_rangeNode);
+		if (m_pathNode) PG_DisaTileViewNode::updateFloorPathGeometry(map->getTiles(), {}, 0.f, m_pathNode);
+	}
 	delete m_selectedMarker;
 	m_selectedMarker = nullptr;
 	updateCursorPointer();
 	emit selectionChanged();
+}
+
+bool PG_DisaCombatModule::moveSelected(glm::ivec2 tile) {
+	auto* unit = m_selected.get();
+	auto stateIt = m_units.find(unit);
+	if (!unit || !isMovable(unit) || !m_range || stateIt == m_units.end() || tile == m_range->getStart()) return false;
+
+	const std::vector<glm::ivec2> path = m_range->buildPath(m_range->nearestDestination(tile));
+	if (path.size() < 2) return false;
+
+	UnitState& state = stateIt->second;
+	state.walk.insert(state.walk.end(), std::next(path.begin()), path.end());
+	state.movementLeft -= static_cast<int>(path.size()) - 1;
+	state.tile = path.back();
+	updateRange();
+	return true;
+}
+
+void PG_DisaCombatModule::nextTurn() {
+	++m_turn;
+	for (UnitState& state : m_units | std::views::values) state.movementLeft = state.stats.movement;
+	if (m_selected) updateRange();
+	emit turnChanged(m_turn);
+	
 }
 
 bool PG_DisaCombatModule::filterEvent(PG_Event* e) {
@@ -198,7 +243,7 @@ bool PG_DisaCombatModule::onMouseButton(PG_MouseButtonEvent* e) {
 		if (auto ray = rayOf(glm::vec2(e->getPosition()))) {
 			if (auto tile = pickTile(*ray)) moveCursorTo(*tile);
 		}
-		selectAtCursor();
+		confirmAtCursor();
 	}
 	else if (e->getButton() == PG_BUTTON_RIGHT) {
 		clearSelection();
@@ -214,12 +259,16 @@ bool PG_DisaCombatModule::onKey(PG_KeyEvent* e) {
 	case PG_Key_Right: move.y = 1.f; break;
 	case PG_Key_Left: move.y = -1.f; break;
 	case PG_Key_Return:
-		if (e->isDown() && !e->isRepeat()) selectAtCursor();
+		if (e->isDown() && !e->isRepeat()) confirmAtCursor();
 		e->accept();
 		return true;
 	case PG_Key_Backspace:
 	case PG_Key_Escape:
 		if (e->isDown()) clearSelection();
+		e->accept();
+		return true;
+	case PG_Key_T:
+		if (e->isDown() && !e->isRepeat()) nextTurn();
 		e->accept();
 		return true;
 	default: return false;
@@ -242,6 +291,17 @@ bool PG_DisaCombatModule::onKey(PG_KeyEvent* e) {
 	moveCursorTo(m_cursor->getTile() + step);
 	m_camera->setOrbitPoint(m_cursor->getTranslation(), 150.f);
 	return true;
+}
+
+void PG_DisaCombatModule::confirmAtCursor() {
+	if (!m_cursor) return;
+	const glm::ivec2 tile = m_cursor->getTile();
+	auto* unit = findUnit(tile);
+	if (unit && unit != m_selected.get()) {
+		select(unit);
+		return;
+	}
+	if (!moveSelected(tile) && unit) select(unit);
 }
 
 std::optional<glm::ivec2> PG_DisaCombatModule::pickTile(const PG_Ray& ray) const {
@@ -288,18 +348,105 @@ void PG_DisaCombatModule::copyActors() {
 	}
 	actors->set(std::move(copies));
 
+	m_units.clear();
 	for (std::size_t i = 0; i < originals.size(); ++i) {
 		PG_DisaActorModel* copy = actors->get(static_cast<unsigned int>(i));
 		copy->setObjectTranslation(originals[i]->getObjectTranslation());
 		copy->setRotation(originals[i]->getRotation());
 		copy->setVisible(originals[i]->isVisible());
+		copy->setGravity(0.f); //the walk puts the height itself, a jump would otherwise drop early
+
+		UnitState& state = m_units[copy];
+		state.tile = copy->getTilePosition();
+		state.stats = PG_DisaMoveRange::statsOf(*static_cast<PG_DisaSpriteModel*>(copy));
+		state.movementLeft = state.stats.movement;
 	}
 	actors->resetMapSlots();
+}
+
+glm::vec3 PG_DisaCombatModule::standPosition(glm::ivec2 tile) const {
+	glm::vec3 position = PG_DisaActorModel::tileCenter(tile);
+	position.y = PG_DisaCombatCursorNode::groundHeight(getMapModel(), tile);
+	return position;
+}
+
+void PG_DisaCombatModule::updateRange() {
+	auto* unit = dynamic_cast<PG_DisaSpriteModel*>(m_selected.get());
+	auto* map = getMapModel();
+	auto stateIt = m_units.find(unit);
+	if (!unit || !map || stateIt == m_units.end()) return;
+	const UnitState& state = stateIt->second;
+
+	std::vector<PG_DisaMoveRange::Occupant> occupants;
+	for (const auto& [actor, other] : m_units) {
+		if (actor == unit || !actor->isVisible()) continue;
+		occupants.push_back({ other.tile, static_cast<const PG_DisaSpriteModel*>(actor)->getCharacterAlliance() });
+	}
+	m_range.emplace(*map, state.tile, unit->getCharacterAlliance(), PG_DisaMoveRange::Stats{ state.movementLeft, state.stats.jumpPower }, occupants);
+	PG_DisaTileViewNode::updateFloorColorGeometry(map->getTiles(), m_range->getTiles(), 0, m_rangeNode);
+
+	//the marker shows where the unit stands for the rules, its sprite may still be walking there
+	m_selectedMarker->setTranslation(standPosition(state.tile));
+	m_selectedMarker->updateModelMatrix();
+	m_selectedMarker->updateModelMatrixWorld();
+	m_selectedMarker->rotateTowardsCamera();
+
+	updatePath();
+	updateCursorPointer();
+}
+
+void PG_DisaCombatModule::updatePath() {
+	auto* map = getMapModel();
+	if (!map || !m_pathNode) return;
+
+	std::vector<glm::ivec2> path;
+	if (m_range && m_cursor && isMovable(m_selected.get()) && m_cursor->getTile() != m_range->getStart()) {
+		path = m_range->buildPath(m_range->nearestDestination(m_cursor->getTile()));
+	}
+	PG_DisaTileViewNode::updateFloorPathGeometry(map->getTiles(), path, 0.15f, m_pathNode);
 }
 
 void PG_DisaCombatModule::updateCursorPointer() {
 	auto* cursor = m_cursor.get();
 	if (!cursor) return;
 	auto* selected = m_selected.get();
-	cursor->setPointerVisible(!selected || selected->getTilePosition() != cursor->getTile());
+	cursor->setPointerVisible(!selected || getUnitTile(selected) != cursor->getTile());
+}
+
+void PG_DisaCombatModule::updateWalks(float milliseconds) {
+	constexpr float framesPerTile = 15.f; //FUN_004475c0 moves a walking unit one tile in 15 frames
+	const float frames = milliseconds * 60.f / 1000.f;
+
+	for (auto& [actor, state] : m_units) {
+		if (state.walk.empty()) continue;
+		auto* sprite = static_cast<PG_DisaSpriteModel*>(actor);
+
+		float framesLeft = frames;
+		while (framesLeft > 0.f && !state.walk.empty()) {
+			const glm::vec3 target = standPosition(state.walk.front());
+			if (state.stepFrames == 0.f) {
+				state.stepStart = actor->getObjectTranslation();
+				//0 degree looks along +z, -90 along +x, see PG_DisaActorModel::getRotation
+				const glm::vec2 direction(target.x - state.stepStart.x, target.z - state.stepStart.z);
+				if (direction != glm::vec2(0.f)) actor->setRotation(glm::degrees(std::atan2(-direction.x, direction.y)));
+				sprite->setAnimationSet(PG_DisaSpriteModel::Walking);
+			}
+
+			const float used = std::min(framesLeft, framesPerTile - state.stepFrames);
+			state.stepFrames += used;
+			framesLeft -= used;
+
+			const float progress = state.stepFrames / framesPerTile;
+			glm::vec3 position = glm::mix(state.stepStart, target, progress);
+			//the game jumps a step of more than half a tile up or down
+			if (std::abs(target.y - state.stepStart.y) > 0.5f) position.y += 0.5f * std::sin(progress * glm::pi<float>());
+			actor->setObjectTranslation(position);
+
+			if (state.stepFrames >= framesPerTile) {
+				state.walk.pop_front();
+				state.stepFrames = 0.f;
+			}
+		}
+		if (state.walk.empty()) sprite->setAnimationSet(PG_DisaSpriteModel::IdleStanding);
+	}
 }

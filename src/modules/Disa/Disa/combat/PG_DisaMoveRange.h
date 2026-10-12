@@ -29,33 +29,71 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <span>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
+#include <Util/PG_iVec2Hasher.h>
 
 class PG_DisaMapModel;
-class PG_DisaActorListModel;
 class PG_DisaSpriteModel;
 
 /**
-* @brief The tiles a unit can walk to, by the rules of FUN_004d21f0
+* @brief The tiles a unit can walk to, by the rules of FUN_004d21f0, and the paths to them
 * @details A breadth first search over the four neighbours, every step costs one. A tile can be
 * entered when it exists, its mobility is 0 and it rises at most the jump power above the tile the
 * step comes from, dropping is always allowed. Units of another alliance block their tile, units of
 * the same alliance can be passed but not stood on. The game ignores the movement type here, so
 * floating and warping units get the same range as walkers.
 */
-struct PG_DisaMoveRange {
+class PG_DisaMoveRange {
+public:
 	struct Stats {
 		int movement = 0; /// steps
 		int jumpPower = 0; /// game height units, 12 make a tile
 	};
 
+	/// A unit standing on the map, which blocks or only occupies its tile
+	struct Occupant {
+		glm::ivec2 tile;
+		unsigned char alliance;
+	};
+
 	/// Movement and jump power from the character data, both 0 when the character is unknown
 	static Stats statsOf(const PG_DisaSpriteModel& unit);
 
+	PG_DisaMoveRange() = default;
 	/**
-	* @returns Every tile the game highlights: the reached ones, its own tile and the tiles of allies included
+	* @param occupants Every other unit, the moving one must not be part of it
 	*/
-	static std::vector<glm::ivec2> find(const PG_DisaMapModel& map, const PG_DisaActorListModel& actors, const PG_DisaSpriteModel& unit);
-	static std::vector<glm::ivec2> find(const PG_DisaMapModel& map, const PG_DisaActorListModel& actors, const PG_DisaSpriteModel& unit,
-		Stats stats);
+	PG_DisaMoveRange(const PG_DisaMapModel& map, glm::ivec2 start, unsigned char alliance, Stats stats, std::span<const Occupant> occupants);
+
+	glm::ivec2 getStart() const { return m_start; }
+	/// Every tile the game highlights: the reached ones, the start and the tiles of allies included
+	const std::vector<glm::ivec2>& getTiles() const { return m_tiles; }
+	/// Steps to the tile, -1 when it was not reached
+	int getDistance(glm::ivec2 tile) const;
+	/// Reached and free, the start does not count as a destination
+	bool isDestination(glm::ivec2 tile) const;
+	/**
+	* @brief The destination closest to the tile, the tile itself when it is one
+	* @returns The start when the unit can not go anywhere
+	*/
+	glm::ivec2 nearestDestination(glm::ivec2 tile) const;
+
+	/**
+	* @brief The way from the start to a reached tile, traced backwards like FUN_004d1e50
+	* @returns Start and target included, empty when the tile was not reached
+	*/
+	std::vector<glm::ivec2> buildPath(glm::ivec2 target) const;
+
+private:
+	int heightOf(glm::ivec2 tile) const;
+
+	glm::ivec2 m_start = glm::ivec2(0);
+	int m_jumpPower = 0;
+	std::vector<glm::ivec2> m_tiles;
+	std::unordered_map<glm::ivec2, int, PG_iVec2Hasher> m_distances;
+	std::unordered_map<glm::ivec2, int, PG_iVec2Hasher> m_heights; /// middle of the top in game units, negative is up
+	std::unordered_set<glm::ivec2, PG_iVec2Hasher> m_allies;
 };
