@@ -43,10 +43,12 @@ struct DisaMapUnit {
     glm::vec3 position;                 // 0x154
     uint8_t field0x160[0xc];            // 0x160
     glm::vec3 velocity;                 // 0x16c - cursor only, from the analog stick
-    uint8_t field0x178[0xc2];           // 0x178 - 0x178 to 0x18c hold the target and the step of FUN_0046cab0
+    glm::vec3 moveTarget;               // 0x178 - where FUN_0046cab0_translateTo moves the position to
+    glm::vec3 moveStep;                 // 0x184 - added to the position per frame while moveFramesLeft counts down
+    uint8_t field0x190[0xaa];           // 0x190
     int16_t facing;                     // 0x23a - degrees, set to 0, 90, 180 or -90 by the last cursor key
     uint8_t field0x23c[0x14];           // 0x23c
-    int16_t moveFramesLeft;             // 0x250 - frames until FUN_0046cab0 reaches its target
+    int16_t moveFramesLeft;             // 0x250 - frames until moveTarget is reached, 0 when not moving
     uint8_t field0x252[0x19];           // 0x252
     bool isActive;                      // 0x26b
     int8_t chunkIndex;                  // 0x26c - FUN_004d9cb0 compares it with the index of the rotating chunk
@@ -59,12 +61,23 @@ struct DisaMapUnit {
 
     static constexpr int count = 64;
 
+    /**
+    * @brief Starts a straight move to the target, or jumps there when frames is 0.
+    * Original function: FUN_0046cab0
+    * @details Sets moveTarget, and moveStep to the distance divided by frames. The move itself happens elsewhere,
+    * once per frame while moveFramesLeft counts down.
+    * @param frames Truncated to whole frames.
+    */
+    void __thiscall FUN_0046cab0_translateTo(float x, float y, float z, float frames);
+
     /// The units located at 0x00738710.
     static DisaMapUnit* get(int index);
 };
 static_assert(sizeof(DisaMapUnit) == 0x42c);
 static_assert(offsetof(DisaMapUnit, position) == 0x154);
 static_assert(offsetof(DisaMapUnit, velocity.z) == 0x174);
+static_assert(offsetof(DisaMapUnit, moveTarget) == 0x178);
+static_assert(offsetof(DisaMapUnit, moveStep) == 0x184);
 static_assert(offsetof(DisaMapUnit, facing) == 0x23a);
 static_assert(offsetof(DisaMapUnit, moveFramesLeft) == 0x250);
 static_assert(offsetof(DisaMapUnit, isActive) == 0x26b);

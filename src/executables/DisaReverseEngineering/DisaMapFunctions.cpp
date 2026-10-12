@@ -30,6 +30,27 @@ DisaMapUnit* DisaMapUnit::get(int index) {
     return &(&FP::getData<DisaMapUnit>(0x00738710))[index];
 }
 
+void DisaMapUnit::FUN_0046cab0_translateTo(float x, float y, float z, float frames) {
+    moveTarget = glm::vec3(x, y, z);
+    if (frames == 0.f) {
+        position = moveTarget;
+        moveStep = glm::vec3(0.f);
+        moveFramesLeft = 0;
+        return;
+    }
+    /* Closer to disassembly
+    const float inverseFrames = static_cast<float>(1.0 / frames);
+    moveStep = glm::vec3(
+        static_cast<float>((double(x) - position.x) * inverseFrames),
+        static_cast<float>((double(y) - position.y) * inverseFrames),
+        static_cast<float>((double(z) - position.z) * inverseFrames));
+    moveFramesLeft = static_cast<int16_t>(static_cast<int>(frames));
+    */
+    const float inverseFrames = 1.f / frames;
+    moveStep = (glm::vec3(x,y,z) - position) * inverseFrames;
+    moveFramesLeft = static_cast<int16_t>(frames);
+}
+
 void __fastcall FUN_004d7970_clearMap(bool isFullClear) {
     //rewinds the buffer the MPP files are loaded into
     FP::getData<int*>(0x0067325c) = FP::getData<int*>(0x00668f10);
@@ -710,8 +731,6 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
         uint8_t& recorded = FP::getData<uint8_t>(0x006d4aca);
         recorded += (recorded != 0) * 10;
     };
-    //moves the cursor to the target over the given frames
-    const auto glideTo = [cursor](float x, float y, float z, float frames) { FP::callThisFarA<void>(0x0046cab0, cursor, x, y, z, frames); };
 
     const float cursorX = cursor->position.x;
     const float cursorZ = cursor->position.z;
@@ -755,7 +774,7 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
         if (target.z > static_cast<float>(maxZ * 12)) target.z = static_cast<float>(maxZ * 12 + 6);
         if (target.x > static_cast<float>(maxX * 12)) target.x = static_cast<float>(maxX * 12 + 6);
 
-        glideTo(target.x, target.y, target.z, 5.f);
+        cursor->FUN_0046cab0_translateTo(target.x, target.y, target.z, 5.f);
         lastMouse = static_cast<glm::vec2>(mouse);
         return;
     }
@@ -776,22 +795,22 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
     switch (direction) {
         case 0:
             if (tileZ <= minZ) return;
-            glideTo(static_cast<float>(centerX), 0.f, static_cast<float>(centerZ - 12), static_cast<float>(frames));
+            cursor->FUN_0046cab0_translateTo(static_cast<float>(centerX), 0.f, static_cast<float>(centerZ - 12), static_cast<float>(frames));
             cursor->facing = 0;
             return;
         case 1:
             if (tileX <= minX) return;
-            glideTo(static_cast<float>(centerX - 12), 0.f, static_cast<float>(centerZ), static_cast<float>(frames));
+            cursor->FUN_0046cab0_translateTo(static_cast<float>(centerX - 12), 0.f, static_cast<float>(centerZ), static_cast<float>(frames));
             cursor->facing = 90;
             return;
         case 2:
             if (tileZ >= maxZ) return;
-            glideTo(static_cast<float>(centerX), 0.f, static_cast<float>(centerZ + 12), static_cast<float>(frames));
+            cursor->FUN_0046cab0_translateTo(static_cast<float>(centerX), 0.f, static_cast<float>(centerZ + 12), static_cast<float>(frames));
             cursor->facing = 180;
             return;
         case 3:
             if (tileX >= maxX) return;
-            glideTo(static_cast<float>(centerX + 12), 0.f, static_cast<float>(centerZ), static_cast<float>(frames));
+            cursor->FUN_0046cab0_translateTo(static_cast<float>(centerX + 12), 0.f, static_cast<float>(centerZ), static_cast<float>(frames));
             cursor->facing = -90;
             return;
         case -1:
