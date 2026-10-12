@@ -48,6 +48,7 @@ public:
 	*
 	* The position w is 0 where the unit walks and 1 where it flies or jumps. The uv x is the length of the
 	* path up to the vertex and keeps counting over interruptions, the uv y goes from 0 to 1 across the width.
+	* In a bend the inner corner has the length of the center, so the length sweeps around it like a miter.
 	* @param path At least two connected tiles, otherwise the model is reset
 	* @param pathWidth In tiles, clamped to 1
 	*/

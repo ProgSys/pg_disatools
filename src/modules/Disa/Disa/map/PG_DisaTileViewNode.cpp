@@ -159,6 +159,8 @@ struct PathKnot {
 	float height = 0.f;
 	float heightLeft = 0.f;
 	float heightRight = 0.f;
+	float lengthLeft = 0.f; /// added to the path length at the left border
+	float lengthRight = 0.f;
 
 	static PathKnot on(const PathTile& tile, glm::vec2 position, glm::vec2 side) {
 		return { position, side, tile.heightAt(position), tile.heightAt(position + side), tile.heightAt(position - side) };
@@ -363,14 +365,31 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 			if (tile == 0 || tile == steps.size()) return true;
 			return steps[tile - 1].isJump || steps[tile].isJump || steps[tile - 1].direction != steps[tile].direction;
 		};
+		/// the directions the path enters and leaves a tile
+		const auto directionsAt = [&steps](std::size_t tile) {
+			return std::pair(steps[tile > 0 ? tile - 1 : 0].direction, steps[std::min(tile, steps.size() - 1)].direction);
+		};
+		/* Where the ribbon meets the square of a tile. In a bend the inner corner belongs to the entry and the exit
+		 * side, so there the ribbon takes the length of the center, like the square does. */
+		const auto squareKnot = [&](std::size_t i, bool isExit) {
+			const PathTile& tile = tiles[i];
+			const auto [in, out] = directionsAt(i);
+			const glm::vec2 direction = isExit ? out : in;
+			PathKnot knot = PathKnot::on(tile, tile.center + direction * (isExit ? halfWidth : -halfWidth), leftOf(direction) * halfWidth);
+			if (in != out) {
+				const float toCenter = glm::distance(knot.getCenter(), glm::vec3(tile.center.x, tile.heightAt(tile.center), tile.center.y));
+				(glm::dot(out, leftOf(in)) > 0.f ? knot.lengthLeft : knot.lengthRight) = isExit ? -toCenter : toCenter;
+			}
+			return knot;
+		};
 
 		PathKnot last;
 		std::optional<float> lastColor;
 		const auto pushPair = [&](const PathKnot& knot, float color) {
 			vertices.emplace_back(knot.position.x + knot.side.x, knot.heightLeft + groundOffset, knot.position.y + knot.side.y, color);
 			vertices.emplace_back(knot.position.x - knot.side.x, knot.heightRight + groundOffset, knot.position.y - knot.side.y, color);
-			uvs.emplace_back(length, 0.f);
-			uvs.emplace_back(length, 1.f);
+			uvs.emplace_back(length + knot.lengthLeft, 0.f);
+			uvs.emplace_back(length + knot.lengthRight, 1.f);
 		};
 		const auto addKnot = [&](const PathKnot& knot, float color) {
 			if (lastColor != color) pushPair(last, color); //a color change gets its own vertices, so it stays sharp
@@ -390,12 +409,11 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 		 * ends at the entry side and starts again at the exit side. */
 		const auto addSquare = [&](std::size_t i) {
 			const PathTile& tile = tiles[i];
-			const glm::vec2 in = steps[i > 0 ? i - 1 : 0].direction;
-			const glm::vec2 out = steps[std::min(i, steps.size() - 1)].direction;
+			const auto [in, out] = directionsAt(i);
 			const float color = tile.top ? 0.f : 1.f;
 			const glm::vec3 center(tile.center.x, tile.heightAt(tile.center), tile.center.y);
-			const PathKnot entry = PathKnot::on(tile, tile.center - in * halfWidth, leftOf(in) * halfWidth);
-			const PathKnot exit = PathKnot::on(tile, tile.center + out * halfWidth, leftOf(out) * halfWidth);
+			const PathKnot entry = squareKnot(i, false);
+			const PathKnot exit = squareKnot(i, true);
 			const float lengthIn = length;
 			const float lengthCenter = lengthIn + glm::distance(entry.getCenter(), center);
 			length = lengthCenter + glm::distance(center, exit.getCenter());
@@ -418,8 +436,9 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 			last = exit;
 			lastColor.reset();
 		};
-		const auto addOnTile = [&](const PathTile& tile, const PathKnot& end, glm::vec2 side, bool isSlope) {
-			addPiece(end, isSlope || !tile.top ? 1 : surfaceDivisions, tile.top ? 0.f : 1.f, [&tile, side](const PathKnot& a, const PathKnot& b, float t) {
+		//between a square and the edge the top is a plane, so like a slope that half needs only one quad
+		const auto addOnTile = [&](const PathTile& tile, const PathKnot& end, glm::vec2 side, bool isSingleQuad) {
+			addPiece(end, isSingleQuad || !tile.top ? 1 : surfaceDivisions, tile.top ? 0.f : 1.f, [&tile, side](const PathKnot& a, const PathKnot& b, float t) {
 				return PathKnot::on(tile, glm::mix(a.position, b.position, t), side);
 				});
 		};
@@ -431,7 +450,7 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 			const PathTile& to = tiles[i + 1];
 			const glm::vec2 side = leftOf(step.direction) * halfWidth;
 			const bool hasEndSquare = hasSquare(i + 1);
-			const PathKnot end = PathKnot::on(to, hasEndSquare ? to.center - step.direction * halfWidth : to.center, side);
+			const PathKnot end = hasEndSquare ? squareKnot(i + 1, false) : PathKnot::on(to, to.center, side);
 
 			if (step.isJump) {
 				const float arcHeight = std::max(std::max(step.heightFrom, step.heightTo) + jumpClearance - (last.height + end.height) * 0.5f, jumpClearance);
@@ -445,8 +464,8 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 				//the lower tile slopes straight from the edge of the higher one to its center or square
 				const bool isFromLower = step.heightFrom + levelTolerance < step.heightTo;
 				const bool isToLower = step.heightTo + levelTolerance < step.heightFrom;
-				addOnTile(from, PathKnot::on(isFromLower ? to : from, step.edge, side), side, isFromLower);
-				addOnTile(to, end, side, isToLower);
+				addOnTile(from, PathKnot::on(isFromLower ? to : from, step.edge, side), side, isFromLower || hasSquare(i));
+				addOnTile(to, end, side, isToLower || hasEndSquare);
 			}
 			if (hasEndSquare) addSquare(i + 1);
 		}
