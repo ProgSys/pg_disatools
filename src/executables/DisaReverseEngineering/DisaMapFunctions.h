@@ -371,3 +371,40 @@ void FUN_004d1500_updateMapCursor_NoneStd(int unused, char useRecordedInput);
 * the stack arguments for the caller to pop.
 */
 void FUN_004d1070_screenToWorld_NoneStd(int screenY, float height, bool followTerrain);
+
+/**
+* @brief Floods the move range of a unit, breadth first over the 64 x 64 tile grid.
+* Original function: FUN_004d21f0, which leaves layer on the stack for the caller to pop.
+* @details Fills the distance map at 0x00666F10 with the steps to every tile the unit can pass, allies included, and the
+* stop map at 0x00664F10 with the steps to every tile it may end on. Allies stay 0xfd in the stop map, every other unit
+* and the blocked base panels 0xfe, tiles out of reach 0xff in both. A step needs a tile with mobility 0, no No Entry
+* geo effect and a climb of at most jumpPower, falls are free. The flood ends after 32 steps. With movement 99 and more
+* every free tile gets 0 instead.
+* @param flags 2 ignores allies, 4 counts every other unit on the end of its path instead of its position.
+* @param layer 0, or 1 for the second player in versus mode. -1 is layer 0.
+*/
+void __fastcall FUN_004d21f0_buildMoveRange(DisaMapUnit* unit, uint32_t flags, int8_t layer);
+
+/**
+* @brief Traces the path of a unit to a tile backwards through the distance map of FUN_004d21f0_buildMoveRange.
+* Original function: FUN_004d1e50, which leaves z and layer on the stack for the caller to pop.
+* @details The trace covers the whole distance and pathX[0] is the start tile. Each step back takes the first neighbor
+* in the order -z, +x, +z, -x that is one step closer and whose climb fits jumpPower. When the stop map marks the tile
+* at pathLength as taken, pathLength shrinks to the last free one. Warpers and units with movement 99 and more get the
+* one step path [target, target].
+* @param unit pathLength must hold the most steps the unit may take, it is clamped to the distance.
+* @return 0, or -1 when the tile is outside the grid, out of reach, or no free end is left.
+*/
+int __fastcall FUN_004d1e50_buildPath(DisaMapUnit* unit, int x, int z, int8_t layer);
+
+/**
+* @brief Call site replacement for FUN_004d21f0. Takes unit and flags in ECX and EDX like the original and leaves
+* layer for the caller to pop.
+*/
+void FUN_004d21f0_buildMoveRange_NoneStd(int8_t layer);
+
+/**
+* @brief Call site replacement for FUN_004d1e50. Takes unit and x in ECX and EDX like the original and leaves z and
+* layer for the caller to pop.
+*/
+void FUN_004d1e50_buildPath_NoneStd(int z, int8_t layer);

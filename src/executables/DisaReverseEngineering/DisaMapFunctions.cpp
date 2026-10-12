@@ -871,3 +871,241 @@ __declspec(naked) void FUN_004d1500_updateMapCursor_NoneStd(int unused, char use
         ret
     }
 }
+
+namespace {
+    constexpr int g_gridSize = 64;
+
+    /// [z][x] over the tiles of the world grid.
+    template<typename T>
+    using TileGrid = std::array<std::array<T, g_gridSize>, g_gridSize>;
+    using RangeMaps = std::array<TileGrid<uint8_t>, 2>;
+    using FloodQueue = std::array<std::array<int16_t, g_gridSize * g_gridSize>, 2>;
+
+    struct TileOffset {
+        int x;
+        int z;
+    };
+    /// Entries 1 to 4 of the tile offset table at 0x005335B0, the order decides between equal paths.
+    constexpr std::array<TileOffset, 4> g_neighborOffsets = { { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } } };
+
+    /// Per layer: 0xfd ally, 0xfe blocked, 0xff not reached, else the steps to a tile the unit may end on.
+    RangeMaps& getRangeStopMaps() { return FP::getData<RangeMaps>(0x00664f10); }
+    /// Per layer: the steps to every tile the unit can pass, allies included, 0xff not reached.
+    RangeMaps& getRangeDistanceMaps() { return FP::getData<RangeMaps>(0x00666f10); }
+    /// Top surface at the tile center, negative is up, built by FUN_004d2cf0.
+    const TileGrid<int16_t>& getTileHeights() { return FP::getData<TileGrid<int16_t>>(0x00671250); }
+    /// Tiles of the active chunks, nullptr for holes, built by FUN_004d50c0.
+    const TileGrid<const mpdfileTile*>& getWorldTiles() { return FP::getData<TileGrid<const mpdfileTile*>>(0x00673260); }
+    FloodQueue& getFloodQueueX() { return FP::getData<FloodQueue>(0x0066d250); }
+    FloodQueue& getFloodQueueZ() { return FP::getData<FloodQueue>(0x00669250); }
+    std::array<int32_t, 2>& getFloodQueueCounts() { return FP::getData<std::array<int32_t, 2>>(0x00673250); }
+
+    bool isInGrid(int x, int z) {
+        return x >= 0 && z >= 0 && x < g_gridSize && z < g_gridSize;
+    }
+
+    /// Like the original, which multiplies with the float 1 / 12 at double precision and truncates.
+    int toTile(float position) {
+        return static_cast<int>(position * double(1.f / 12.f));
+    }
+
+    /// Tile byte 0x7b, FUN_004d2960 sets it on geo panels whose color carries the No Entry effect.
+    bool isNoEntry(const mpdfileTile& tile) {
+        return tile.padding[1] != 0;
+    }
+
+    /**
+    * @brief True in versus mode with fog of war when the layer cannot see the tile.
+    * @details Covers FUN_00444990, which returns the fog value of a world position and 0 outside of versus fog.
+    */
+    bool isHiddenByFog(int8_t layer, int x, int z) {
+        const bool isVersusFog = FP::getData<uint8_t>(0x0065db3a) == 5 && FP::getData<uint8_t>(0x006e57b3) != 0;
+        if ((layer != 0 && layer != 1) || !isVersusFog || !isInGrid(x, z)) return false;
+        //[layer][x][z], unlike the range maps
+        const auto& fog = FP::getData<std::array<std::array<std::array<int8_t, g_gridSize>, g_gridSize>, 2>>(0x005d7cd0);
+        return fog[layer][x][z] == -1;
+    }
+
+    /**
+    * @brief Reaches the four neighbors of a tile with distance and queues the ones that got closer.
+    * Original function: FUN_004d20b0
+    */
+    void FUN_004d20b0_expandRangeTile(const DisaMapUnit& unit, int x, int z, int distance, int layer) {
+        auto& stopMap = getRangeStopMaps()[layer];
+        auto& distanceMap = getRangeDistanceMaps()[layer];
+        const auto& heights = getTileHeights();
+        const auto& tiles = getWorldTiles();
+        int32_t& queueCount = getFloodQueueCounts()[layer];
+
+        for (const TileOffset& offset : g_neighborOffsets) {
+            const int nextX = x + offset.x;
+            const int nextZ = z + offset.z;
+            if (!isInGrid(nextX, nextZ)) continue;
+            const mpdfileTile* tile = tiles[nextZ][nextX];
+            if (!tile || tile->mobility != 0 || isNoEntry(*tile)) continue;
+
+            uint8_t& stop = stopMap[nextZ][nextX];
+            if (distance >= distanceMap[nextZ][nextX] || stop == 0xfe) continue;
+            //only the climb is limited, a fall can be any height
+            if (heights[z][x] - heights[nextZ][nextX] > unit.jumpPower) continue;
+
+            distanceMap[nextZ][nextX] = static_cast<uint8_t>(distance);
+            if (stop != 0xfd) stop = static_cast<uint8_t>(distance);
+            getFloodQueueX()[layer][queueCount] = static_cast<int16_t>(nextX);
+            getFloodQueueZ()[layer][queueCount] = static_cast<int16_t>(nextZ);
+            ++queueCount;
+        }
+    }
+}
+
+void __fastcall FUN_004d21f0_buildMoveRange(DisaMapUnit* unit, uint32_t flags, int8_t layer) {
+    const int layerIndex = layer == -1 ? 0 : layer;
+    assert(layerIndex == 0 || layerIndex == 1);
+    auto& stopMap = getRangeStopMaps()[layerIndex];
+    auto& distanceMap = getRangeDistanceMaps()[layerIndex];
+    std::memset(stopMap.data(), 0xff, sizeof(stopMap));
+    std::memset(distanceMap.data(), 0xff, sizeof(distanceMap));
+
+    const bool isAtPathEnd = (flags & 4) != 0;
+    const bool isIgnoringAllies = (flags & 2) != 0;
+    for (const DisaMapUnit& other : std::ranges::subrange(DisaMapUnit::get(0), DisaMapUnit::get(DisaMapUnit::count))) {
+        //a held unit stands on its carrier, so a tower counts once
+        if (!other.isActive || &other == unit || other.heldByIndex >= 0) continue;
+        const int x = isAtPathEnd ? other.pathX[other.pathLength] : toTile(other.position.x);
+        const int z = isAtPathEnd ? other.pathZ[other.pathLength] : toTile(other.position.z);
+        if (!isInGrid(x, z) || isHiddenByFog(layer, x, z)) continue;
+
+        if (other.alliance != unit->alliance) stopMap[z][x] = 0xfe;
+        else stopMap[z][x] = isIgnoringAllies ? 0xff : 0xfd;
+    }
+
+    const auto blockTile = [&stopMap](float worldX, float worldZ) {
+        const int x = toTile(worldX);
+        const int z = toTile(worldZ);
+        if (isInGrid(x, z)) stopMap[z][x] = 0xfe;
+    };
+    const bool isVersus = FP::getData<uint8_t>(0x0065db3a) == 5;
+    const float basePanelX = FP::getData<float>(fTeleportPannelX);
+    const float basePanelZ = FP::getData<float>(fTeleportPannelZ);
+    const float secondBasePanelX = FP::getData<float>(0x006e57a0);
+    const float secondBasePanelZ = FP::getData<float>(0x006e57a4);
+    const bool blocksBasePanel = unit->alliance != 0 && FP::getData<uint8_t>(0x0065db43) != 0
+        && !isHiddenByFog(layer, toTile(basePanelX), toTile(basePanelZ));
+    const bool blocksSecondBasePanel = isVersus && unit->alliance != 1 && FP::getData<uint8_t>(0x006d4abe) != 0
+        && !isHiddenByFog(layer, toTile(secondBasePanelX), toTile(secondBasePanelZ));
+
+    if (unit->movement > 98) {
+        //item world gate
+        if (FP::getData<uint8_t>(0x0065db41) != 0) blockTile(FP::getData<float>(0x0065dae0), FP::getData<float>(0x0065dae4));
+        if (isVersus && blocksBasePanel) blockTile(basePanelX, basePanelZ);
+        if (blocksSecondBasePanel) blockTile(secondBasePanelX, secondBasePanelZ);
+
+        const auto& tiles = getWorldTiles();
+        for (int z = 0; z < g_gridSize; ++z) {
+            for (int x = 0; x < g_gridSize; ++x) {
+                const mpdfileTile* tile = tiles[z][x];
+                if (!tile || tile->mobility != 0 || isNoEntry(*tile)) continue;
+                if (stopMap[z][x] == 0xfd || stopMap[z][x] == 0xfe) continue;
+                stopMap[z][x] = 0;
+                distanceMap[z][x] = 0;
+            }
+        }
+        return;
+    }
+
+    if (blocksBasePanel) blockTile(basePanelX, basePanelZ);
+    if (blocksSecondBasePanel) blockTile(secondBasePanelX, secondBasePanelZ);
+
+    int32_t& queueCount = getFloodQueueCounts()[layerIndex];
+    queueCount = 0;
+    const int startX = toTile(unit->position.x);
+    const int startZ = toTile(unit->position.z);
+    if (!isInGrid(startX, startZ)) return;
+    distanceMap[startZ][startX] = 0;
+    stopMap[startZ][startX] = 0;
+    FUN_004d20b0_expandRangeTile(*unit, startX, startZ, 1, layerIndex);
+
+    constexpr int maxSteps = 32;
+    const auto& queueX = getFloodQueueX()[layerIndex];
+    const auto& queueZ = getFloodQueueZ()[layerIndex];
+    //every round expands what the round before queued
+    int roundBegin = 0;
+    for (int distance = 2; distance <= maxSteps; ++distance) {
+        const int roundEnd = queueCount;
+        if (roundEnd <= roundBegin) return;
+        for (int i = roundBegin; i < roundEnd; ++i) {
+            FUN_004d20b0_expandRangeTile(*unit, queueX[i], queueZ[i], distance, layerIndex);
+        }
+        roundBegin = roundEnd;
+    }
+}
+
+int __fastcall FUN_004d1e50_buildPath(DisaMapUnit* unit, int x, int z, int8_t layer) {
+    if (!isInGrid(x, z)) return -1;
+    assert(layer == 0 || layer == 1);
+    const auto& distanceMap = getRangeDistanceMaps()[layer];
+    const int distance = distanceMap[z][x];
+    if (distance > 63) return -1;
+
+    if (unit->movementType == 2 || unit->movement > 98) {
+        unit->pathLength = 1;
+        unit->pathX[0] = unit->pathX[1] = static_cast<int16_t>(x);
+        unit->pathZ[0] = unit->pathZ[1] = static_cast<int16_t>(z);
+        return 0;
+    }
+
+    if (distance < unit->pathLength) unit->pathLength = static_cast<int16_t>(distance);
+    if (unit->pathLength == 0) {
+        unit->pathX[0] = static_cast<int16_t>(toTile(unit->position.x));
+        unit->pathZ[0] = static_cast<int16_t>(toTile(unit->position.z));
+        return 0;
+    }
+
+    const auto& heights = getTileHeights();
+    unit->pathX[distance] = static_cast<int16_t>(x);
+    unit->pathZ[distance] = static_cast<int16_t>(z);
+    int currentX = x;
+    int currentZ = z;
+    for (int step = distance - 1; step >= 0; --step) {
+        const auto previous = std::ranges::find_if(g_neighborOffsets, [&](const TileOffset& offset) {
+            const int previousX = currentX + offset.x;
+            const int previousZ = currentZ + offset.z;
+            return isInGrid(previousX, previousZ) && distanceMap[previousZ][previousX] == step
+                && heights[previousZ][previousX] - heights[currentZ][currentX] <= unit->jumpPower;
+        });
+        if (previous == g_neighborOffsets.end()) return -1;
+        currentX += previous->x;
+        currentZ += previous->z;
+        unit->pathX[step] = static_cast<int16_t>(currentX);
+        unit->pathZ[step] = static_cast<int16_t>(currentZ);
+    }
+
+    //the path may lead through allies and beyond the reach of this turn, but must not end on a taken tile
+    const auto& stopMap = getRangeStopMaps()[layer];
+    const auto isTaken = [&stopMap, unit](int step) { return stopMap[unit->pathZ[step]][unit->pathX[step]] >= 0xfd; };
+    if (!isTaken(unit->pathLength)) return 0;
+    while (unit->pathLength > 1) {
+        --unit->pathLength;
+        if (!isTaken(unit->pathLength)) return 0;
+    }
+    return -1;
+}
+
+__declspec(naked) void FUN_004d21f0_buildMoveRange_NoneStd(int8_t layer) {
+    //unit and flags stay in ECX and EDX, layer is pushed again for the fastcall to pop
+    __asm {
+        push [esp + 4]
+        call FUN_004d21f0_buildMoveRange
+        ret
+    }
+}
+
+__declspec(naked) void FUN_004d1e50_buildPath_NoneStd(int z, int8_t layer) {
+    //unit and x stay in ECX and EDX, z and layer are pushed again for the fastcall to pop, the result stays in EAX
+    __asm {
+        push [esp + 8]
+        push [esp + 8]
+        call FUN_004d1e50_buildPath
+        ret
+    }
+}
