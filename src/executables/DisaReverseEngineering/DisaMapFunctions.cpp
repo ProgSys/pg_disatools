@@ -1,7 +1,9 @@
 #include "DisaMapFunctions.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <cstring>
 #include <ranges>
 
@@ -622,20 +624,34 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
             const auto& isChunkInWorldGrid = FP::getData<std::array<uint8_t, DisaMapChunk::count>>(0x0065db48);
             const glm::vec3 intoScene = -rayDirection;
 
-            std::optional<float> nearest;
+            std::optional<DisaMapChunk::CustomRayHit> nearestFace;
             for (int i = 0; i < DisaMapChunk::count; ++i) {
                 const DisaMapChunk* chunk = DisaMapChunk::get(i);
                 if (!chunk->isActive || !isChunkInWorldGrid[i]) continue;
-                if (auto distance = chunk->customIntersectRay(nearPoint, intoScene); distance && (!nearest || *distance < *nearest)) nearest = distance;
+                if (auto face = chunk->customIntersectRay(nearPoint, intoScene); face && (!nearestFace || face->distance < nearestFace->distance)) nearestFace = face;
             }
 
-            if (!nearest) {
-                nearest = PG_MathGeometry::intersectPlane(nearPoint, intoScene, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
-            }
+            std::optional<float> nearest;
+            if (nearestFace) nearest = nearestFace->distance;
+            else nearest = PG_MathGeometry::intersectPlane(nearPoint, intoScene, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
 
             if (nearest) {
                 const glm::vec3 hit = nearPoint + intoScene * *nearest;
                 *out = glm::vec3(hit.x, -hit.y, hit.z); //like the original, the height is returned with the sign of the drawn height flipped
+
+                /* A side face lies exactly on the edge between two tiles, so the cursor flips between them. The wall
+                 * belongs to the higher tile, so the hit is moved into it and onto its ground. */
+                if (nearestFace && std::abs(nearestFace->normal.y) < 0.5f) {
+                    constexpr float offset = 1.f;
+                    const glm::vec2 across = glm::normalize(glm::vec2(nearestFace->normal.x, nearestFace->normal.z)) * offset;
+                    const glm::vec2 sideA = glm::vec2(hit.x, hit.z) + across;
+                    const glm::vec2 sideB = glm::vec2(hit.x, hit.z) - across;
+                    const float heightA = FUN_004d2be0_getGroundHeight(nullptr, 0, sideA.x, sideA.y);
+                    const float heightB = FUN_004d2be0_getGroundHeight(nullptr, 0, sideB.x, sideB.y);
+                    //negative is up
+                    const glm::vec2 higher = glm::distance2(heightA, hit.y) < glm::distance2(heightB, hit.y) ? sideA : sideB;
+                    *out = glm::vec3(higher.x, -hit.y, higher.y);
+                }
                 OUT_DEBUG("Hit:" << *out);
                 return out;
             }
@@ -679,8 +695,8 @@ __declspec(naked) void FUN_004d1070_screenToWorld_NoneStd(int screenY, float hei
 
 void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit* cursor, int unused, char useRecordedInput) {
     if (cursor->moveFramesLeft != 0) {
-        cursor->velocityZ = 0.f;
-        cursor->velocityX = 0.f;
+        cursor->velocity.x = 0.f;
+        cursor->velocity.z = 0.f;
         return;
     }
 
@@ -711,16 +727,14 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
     if (direction == -1 && !isStickLocked && settings->isMouseActive && !FP::callFarA<bool>(0x0050ff80) && !FP::callFarA<bool>(0x0050ffb0)
         && FP::getData<bool>(0x00701cc6)) {
 
-        const int mouseX = FP::getData<int>(0x00701c80);
-        const int mouseY = FP::getData<int>(0x00701c84);
-        if (mouseX == 0 || mouseY == 0 || mouseX == 480 || mouseY == 272) return; //on the screen edge
+        const glm::ivec2 mouse = FP::getData<glm::ivec2>(0x00701c80);
+        if (mouse.x == 0 || mouse.y == 0 || mouse.x == 480 || mouse.y == 272) return; //on the screen edge
 
-        float& lastMouseX = FP::getData<float>(0x00730ab0);
-        float& lastMouseY = FP::getData<float>(0x00730ab4);
-        if (lastMouseX == static_cast<float>(mouseX) && lastMouseY == static_cast<float>(mouseY)) return;
+        glm::vec2& lastMouse = FP::getData<glm::vec2>(0x00730ab0);
+        if (lastMouse == static_cast<glm::vec2>(mouse)) return;
 
         glm::vec3 target;
-        FUN_004d1070_screenToWorld(&target, mouseX, mouseY, cursor->position.y, true);
+        FUN_004d1070_screenToWorld(&target, mouse.x, mouse.y, cursor->position.y, true);
         if (buttons & 0x4000) recordFastMove();
 
         //CUSTOM CODE START
@@ -742,8 +756,7 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
         if (target.x > static_cast<float>(maxX * 12)) target.x = static_cast<float>(maxX * 12 + 6);
 
         glideTo(target.x, target.y, target.z, 5.f);
-        lastMouseX = static_cast<float>(mouseX);
-        lastMouseY = static_cast<float>(mouseY);
+        lastMouse = static_cast<glm::vec2>(mouse);
         return;
     }
 
@@ -795,8 +808,8 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
     }
     const float stickLength = std::sqrt(static_cast<float>(double(stick.x) * stick.x + double(stick.y) * stick.y));
     if (stickLength < 70.f) { //dead zone
-        cursor->velocityZ = 0.f;
-        cursor->velocityX = 0.f;
+        cursor->velocity.x = 0.f;
+        cursor->velocity.z = 0.f;
     }
     else {
         const float yaw = useRecordedInput == 1 ? FP::getData<float>(0x006e57b8) : camera->field_0x30.y;
@@ -805,29 +818,29 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
         const float rotatedX = FP::getData<float>(0x006b791c);
         const float rotatedZ = FP::getData<float>(0x006b7a60);
         if (frames == 5) {
-            cursor->velocityX = static_cast<float>(rotatedX * 2.5);
-            cursor->velocityZ = static_cast<float>(-rotatedZ * 2.5);
+            cursor->velocity.x = static_cast<float>(rotatedX * 2.5);
+            cursor->velocity.z = static_cast<float>(-rotatedZ * 2.5);
         }
         else {
-            cursor->velocityX = rotatedX;
-            cursor->velocityZ = -rotatedZ;
+            cursor->velocity.x = rotatedX;
+            cursor->velocity.z = -rotatedZ;
         }
     }
 
-    float nextX = cursorX + cursor->velocityX;
-    float nextZ = cursorZ + cursor->velocityZ;
+    float nextX = cursorX + cursor->velocity.x;
+    float nextZ = cursorZ + cursor->velocity.z;
     const float maxXEdge = static_cast<float>(maxX * 12 + 12);
     const float maxZEdge = static_cast<float>(maxZ * 12 + 12);
     if (nextX > maxXEdge) {
         nextX = maxXEdge;
-        cursor->velocityX = 0.f;
+        cursor->velocity.x = 0.f;
     }
     if (nextZ > maxZEdge) {
         nextZ = maxZEdge;
-        cursor->velocityZ = 0.f;
+        cursor->velocity.z = 0.f;
     }
-    if (static_cast<float>(minX * 12) > nextX) cursor->velocityX = 0.f;
-    if (static_cast<float>(minZ * 12) > nextZ) cursor->velocityZ = 0.f;
+    if (static_cast<float>(minX * 12) > nextX) cursor->velocity.x = 0.f;
+    if (static_cast<float>(minZ * 12) > nextZ) cursor->velocity.z = 0.f;
 }
 
 __declspec(naked) void FUN_004d1500_updateMapCursor_NoneStd(int unused, char useRecordedInput) {

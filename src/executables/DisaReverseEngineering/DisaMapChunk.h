@@ -208,12 +208,16 @@ struct DisaMapChunk {
     float __thiscall FUN_004a2af0_getHeight(float x, float z) const;
 
     //CUSTOM CODE START
+    struct CustomRayHit {
+        float distance;   /// along the ray
+        glm::vec3 normal; /// world space, of the face that was hit, can point either way
+    };
     /**
-    * @brief Distance along a world space ray to the nearest static tile face, tops and sides as they are drawn.
+    * @brief Nearest static tile face along a world space ray, tops and sides as they are drawn.
     * @param direction Normalized.
     * @return nullopt when no face is hit in front of the origin.
     */
-    std::optional<float> customIntersectRay(const glm::vec3& origin, const glm::vec3& direction) const;
+    std::optional<CustomRayHit> customIntersectRay(const glm::vec3& origin, const glm::vec3& direction) const;
     //CUSTOM CODE END
 
     /// The two chunks located at 0x007091c0

@@ -42,9 +42,7 @@ struct DisaMapUnit {
     uint8_t field0x000[0x154];          // 0x000
     glm::vec3 position;                 // 0x154
     uint8_t field0x160[0xc];            // 0x160
-    float velocityX;                    // 0x16c - cursor only, from the analog stick
-    float field0x170;                   // 0x170
-    float velocityZ;                    // 0x174 - cursor only, from the analog stick
+    glm::vec3 velocity;                 // 0x16c - cursor only, from the analog stick
     uint8_t field0x178[0xc2];           // 0x178 - 0x178 to 0x18c hold the target and the step of FUN_0046cab0
     int16_t facing;                     // 0x23a - degrees, set to 0, 90, 180 or -90 by the last cursor key
     uint8_t field0x23c[0x14];           // 0x23c
@@ -66,7 +64,7 @@ struct DisaMapUnit {
 };
 static_assert(sizeof(DisaMapUnit) == 0x42c);
 static_assert(offsetof(DisaMapUnit, position) == 0x154);
-static_assert(offsetof(DisaMapUnit, velocityZ) == 0x174);
+static_assert(offsetof(DisaMapUnit, velocity.z) == 0x174);
 static_assert(offsetof(DisaMapUnit, facing) == 0x23a);
 static_assert(offsetof(DisaMapUnit, moveFramesLeft) == 0x250);
 static_assert(offsetof(DisaMapUnit, isActive) == 0x26b);
