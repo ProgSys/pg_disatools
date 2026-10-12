@@ -56,6 +56,9 @@ struct PG_DisaCharacterModel {
 	std::string titleNormelized; //without strage half utf8 stuff
 	unsigned short spriteId = 0; //also protrait it
 	unsigned short spriteColorOffset = 0;
+	unsigned short jumpPower = 0;
+	unsigned short movement = 0; /// tiles per turn
+	unsigned short movementType = 0; /// 0 walks and jumps, 1 floats over height steps, 2 warps
 
 	//must be buffered
 	PG_Texture portrait;

@@ -40,7 +40,7 @@
 #include "PG_DisaAnimationComponent.h"
 #include "PG_DisaCameraAnimationComponent.h"
 #include <Disa/map/PG_DisaActorListModel.h>
-#include <Scene/PG_DisaCamera.h> //the lifeline to it needs the whole type
+#include <Disa/PG_DisaCamera.h> //the lifeline to it needs the whole type
 
 class PG_DisaSpriteModel;
 class PG_DisaMapModel;

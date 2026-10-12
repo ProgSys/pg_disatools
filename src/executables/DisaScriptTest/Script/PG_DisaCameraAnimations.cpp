@@ -4,7 +4,7 @@
 #include <cmath>
 #include <memory>
 
-#include <Scene/PG_DisaCamera.h>
+#include <Disa/PG_DisaCamera.h>
 #include <Script/PG_DisaCameraAnimationComponent.h>
 #include <Script/PG_DisaContext.h>
 

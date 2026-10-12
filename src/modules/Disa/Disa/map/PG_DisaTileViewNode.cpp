@@ -134,7 +134,7 @@ bool PG_DisaTileViewNode::isPresent(glm::ivec2 pos, PG_DisaMapModel* model) {
 	return model->getTiles()->getTileLocation(pos);
 }
 
-void PG_DisaTileViewNode::updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMapModel* model, PG_ModelNode* modelNode) {
+void PG_DisaTileViewNode::updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMapModel* model, PG_ModelNode* modelNode, const std::string& material) {
 	if (!modelNode) return;
 	auto location = model->getTiles()->getTileLocation(pos);
 	PG_DisaTileTopGeometry geo;
@@ -153,8 +153,8 @@ void PG_DisaTileViewNode::updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMa
 	}
 
 	PG_Mesh glGeo = PG_Mesh::basic(std::move(geo.surfaces.front().indices), std::move(geo.surfaces.front().vertices), std::move(geo.surfaces.front().uv));
-	modelNode->getModel().load(PG_UNIQUE_RES("M_TileHover"), [glGeo = std::move(glGeo)]() -> std::vector<PG_Model::Surface> {
-		return { { PG_Material("M_DisaTileEditSelection"), PG_Geometry(PG_UNIQUE_RES("TileHoverGeometry"), std::move(glGeo)) } };
+	modelNode->getModel().load(PG_UNIQUE_RES("M_TileHover"), [glGeo = std::move(glGeo), material]() -> std::vector<PG_Model::Surface> {
+		return { { PG_Material(material), PG_Geometry(PG_UNIQUE_RES("TileHoverGeometry"), std::move(glGeo)) } };
 		});
 }
 
@@ -219,16 +219,20 @@ void PG_DisaTileViewNode::updateFloorGeoGeometry(PG_DisaMapTileListModel* model,
 }
 
 void PG_DisaTileViewNode::updateFloorEventGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& eventTiles, PG_ModelNode* modelNode) {
+	updateFloorColorGeometry(model, eventTiles, 3, modelNode);
+}
+
+void PG_DisaTileViewNode::updateFloorColorGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& tiles, char color, PG_ModelNode* modelNode) {
 	if (!modelNode || !model) return;
 
-	if (eventTiles.empty()) {
+	if (tiles.empty()) {
 		modelNode->getModel().reset();
 		return;
 	}
 
 	PG_DisaGeoPanelGeometry geo;
 
-	for (glm::ivec2 position : eventTiles) {
+	for (glm::ivec2 position : tiles) {
 		std::array<glm::vec3, 4> top;
 		auto tile = model->getTileLocation(position);
 		if (tile) {
@@ -238,7 +242,7 @@ void PG_DisaTileViewNode::updateFloorEventGeometry(PG_DisaMapTileListModel* mode
 		else {
 			top = PG_DisaMapTileModel::getTopCustom(glm::vec3(position.x, 0.f, position.y), { 0,0,0,0 }); //place at floor
 		}
-		buildFace<0, 1, 2, 3>(top, 3, geo); //Top
+		buildFace<0, 1, 2, 3>(top, color, geo); //Top
 	}
 
 	if (geo.surfaces.empty()) {
@@ -254,7 +258,7 @@ void PG_DisaTileViewNode::updateFloorEventGeometry(PG_DisaMapTileListModel* mode
 		}
 	);
 
-	modelNode->getModel().load(PG_UNIQUE_RES("M_TileEventPanels"), { { mat, PG_Geometry(PG_UNIQUE_RES("TileEventPanelsGeometry"), std::move(glGeo)) } });
+	modelNode->getModel().load(PG_UNIQUE_RES("M_TileColorPanels"), { { mat, PG_Geometry(PG_UNIQUE_RES("TileColorPanelsGeometry"), std::move(glGeo)) } });
 }
 
 void PG_DisaTileViewNode::updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode) {

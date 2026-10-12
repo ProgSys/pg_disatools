@@ -982,7 +982,7 @@ void RootScene::setupToolbarMapView() {
 
 	auto playTestButton = PG_new<PG_GuiButton>("PlayTestButton", glm::vec2(0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	playTestButton->setIcon("I_icon_play");
-	playTestButton->setBackground("M_GuiToolButtonEnd");
+	playTestButton->setBackground("M_GuiToolButton");
 	playTestButton->setTooltipText("Play test");
 	playTestButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
 	//playTestButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Flow, PG_Anchor::HorizontalCenter);
@@ -1029,6 +1029,24 @@ void RootScene::setupToolbarMapView() {
 			com->sendPlayTest();
 		}
 
+		});
+
+	auto simulateButton = PG_new<PG_GuiToggleButton>("SimulatePlayTestButton", glm::vec2(0.f), glm::vec2(39.f, 30.f), toolbarRow);
+	simulateButton->setIcon("I_icon_actor");
+	simulateButton->setBackground("M_GuiToolButtonEnd");
+	simulateButton->setTooltipText("Simulate play test");
+	simulateButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
+
+	connect(simulateButton, &PG_GuiToggleButton::toggleChanged, this, [this, simulateButton, editToggleButton](bool toggled) {
+		auto* mapNode = getGameScene(m_center);
+		if (!mapNode) return;
+		if (toggled) editToggleButton->setToggled(false);
+
+		for (PG_Object* child : toolbarRow->getChildren()) {
+			if (auto* button = dynamic_cast<PG_GuiMouseArea*>(child); button && button != simulateButton) button->setEnabled(!toggled);
+		}
+		mapNode->setCombatSimulation(toggled);
+		if (toggled && !mapNode->isCombatSimulation()) simulateButton->setToggled(false); //no map loaded yet
 		});
 
 	auto assetsButton = PG_new<PG_GuiToggleButton>("OpenJsonButton", glm::vec2(20.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);

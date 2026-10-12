@@ -27,10 +27,15 @@ public:
 	float getTopHeight() const;
 
 	static bool isPresent(glm::ivec2 pos, PG_DisaMapModel* model); /// returns true when tile is present at given position
-	static void updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMapModel* model, PG_ModelNode* modelNode);
+	static void updateFloorSelectionGeometry(glm::ivec2 pos, PG_DisaMapModel* model, PG_ModelNode* modelNode, const std::string& material = "M_DisaTileEditSelection");
 	static void updateFaceLineSelectionGeometry(glm::ivec2 pos, PG_DisaFaceHit::Face face, PG_DisaMapModel* model, PG_ModelNode* modelNode);
 	static void updateFloorGeoGeometry(PG_DisaMapTileListModel* model, PG_ModelNode* modelNode);
 	static void updateFloorEventGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& eventTiles, PG_ModelNode* modelNode);
+	/**
+	* @brief Covers the tops of the given tiles in one geo panel color, a position without a tile is covered at the floor
+	* @param color Index into the geo panel shader colors, 0 is red
+	*/
+	static void updateFloorColorGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& tiles, char color, PG_ModelNode* modelNode);
 	static void updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode);
 private:
 	void updateGeometry();

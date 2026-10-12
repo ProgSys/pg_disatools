@@ -1,6 +1,6 @@
 #include "PG_DisaCameraAnimationComponent.h"
 
-#include <Scene/PG_DisaCamera.h>
+#include <Disa/PG_DisaCamera.h>
 
 PG_DisaCamera* PG_DisaCameraAnimationComponent::getCamera() const {
 	return getParent<PG_DisaCamera>();

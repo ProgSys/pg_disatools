@@ -75,6 +75,15 @@ public:
 
 	void setEnableEditing(bool enable);
 
+	/// @see setCombatSimulation
+	bool isCombatSimulation() const;
+	/**
+	* @brief Plays the map like a battle of the game, on a copy of the actors
+	* @details Turns the editing off, the map and its actors are back as they were once it stops.
+	* @see PG_DisaCombatModule
+	*/
+	void setCombatSimulation(bool enable);
+
 	bool isHDMode() const;
 	void setHDMode(bool state);
 

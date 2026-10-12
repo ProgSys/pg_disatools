@@ -9,7 +9,7 @@
 #include <Disa/fileformats/PG_Script.h>
 #include <Disa/fileformats/PG_TalkScript.h>
 #include <Disa/PG_DisaMapScene.h>
-#include <Scene/PG_DisaCamera.h>
+#include <Disa/PG_DisaCamera.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
 

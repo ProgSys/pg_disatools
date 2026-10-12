@@ -17,6 +17,7 @@
 #include <Disa/map/controllers/PG_DisaEditorActorController.h>
 #include <Disa/map/controllers/PG_DisaEditorEventController.h>
 #include <Disa/map/PG_DisaEditorModule.h>
+#include <Disa/combat/PG_DisaCombatModule.h>
 
 
 #include <Renderer/PG_SceneRenderer.h>
@@ -256,6 +257,27 @@ void PG_DisaMapScene::setEnableEditing(bool enable) {
 	getModule<PG_DisaEditorModule>()->setMode(enable ? PG_DisaEditorModule::Mode_Terrain : PG_DisaEditorModule::Mode_View);
 }
 
+bool PG_DisaMapScene::isCombatSimulation() const {
+	auto* combat = getModule<PG_DisaCombatModule>();
+	return combat && combat->isRunning();
+}
+
+void PG_DisaMapScene::setCombatSimulation(bool enable) {
+	if (enable == isCombatSimulation()) return;
+
+	if (!enable) {
+		auto* combat = getModule<PG_DisaCombatModule>();
+		combat->stop();
+		delete combat;
+		return;
+	}
+
+	setEnableEditing(false);
+	auto* combat = installModule<PG_DisaCombatModule>("PG_DisaCombatModule");
+	combat->start(m_mapNode);
+	if (!combat->isRunning()) delete combat;
+}
+
 bool PG_DisaMapScene::isHDMode() const {
 	return m_mapNode->isHDMode();
 }
@@ -330,6 +352,7 @@ PG_DisaMapModel* PG_DisaMapScene::getMapModel() const {
 }
 
 void PG_DisaMapScene::setModel(const std::shared_ptr<PG_DisaMPDContainer>& container) {
+	setCombatSimulation(false);
 	m_mapNode->setModel(container);
 	if (!container) return;
 	if (const auto& start = container->getCameraStartTransformation(); start && getActiveCamera()) {
@@ -338,5 +361,6 @@ void PG_DisaMapScene::setModel(const std::shared_ptr<PG_DisaMPDContainer>& conta
 }
 
 void PG_DisaMapScene::setMapModel(PG_DisaMapModel* model) {
+	setCombatSimulation(false);
 	m_mapNode->setMapModel(model);
 }

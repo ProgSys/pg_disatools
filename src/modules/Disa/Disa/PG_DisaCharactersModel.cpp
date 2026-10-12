@@ -79,6 +79,9 @@ void PG_DisaCharactersModel::open(const PG_File& exePath, std::shared_ptr<PG_PSP
 	const int spriteColorOffsetIndex = tableDat.getHeaderIndex("Palette index");
 	const int characterIdIndex = tableDat.getHeaderIndex("Character ID");
 	const int spriteIdIndex = tableDat.getHeaderIndex("Sprite ID");
+	const int jumpPowerIndex = tableDat.getHeaderIndex("Jump power");
+	const int movementIndex = tableDat.getHeaderIndex("Movement");
+	const int movementTypeIndex = tableDat.getHeaderIndex("Movement Type");
 	if (nameIndex < 0  || spriteColorOffsetIndex < 0 || characterIdIndex < 0 || spriteIdIndex < 0) {
 		OUT_ERROR("Missing needed header data! (Needs: "<< "Name"  <<", " << "Palette index" << ", " << "Character ID" << ", " << "Sprite ID"<< ")");
 		clear();
@@ -158,6 +161,12 @@ void PG_DisaCharactersModel::open(const PG_File& exePath, std::shared_ptr<PG_PSP
 		//OUT_INFO(model.nameNormelized<< " : "<< PG_StringUtil::toHex(model.name));
 		model.spriteColorOffset = row.columns[spriteColorOffsetIndex].data.convert<decltype(model.spriteColorOffset)>();
 		model.spriteId = row.columns[spriteIdIndex].data.convert<decltype(model.spriteId)>();
+		if (jumpPowerIndex >= 0 && jumpPowerIndex < row.columns.size())
+			model.jumpPower = row.columns[jumpPowerIndex].data.convert<decltype(model.jumpPower)>();
+		if (movementIndex >= 0 && movementIndex < row.columns.size())
+			model.movement = row.columns[movementIndex].data.convert<decltype(model.movement)>();
+		if (movementTypeIndex >= 0 && movementTypeIndex < row.columns.size())
+			model.movementType = row.columns[movementTypeIndex].data.convert<decltype(model.movementType)>();
 		
 		models.push_back(std::move(model));
 	}
@@ -181,6 +190,9 @@ void PG_DisaCharactersModel::open(const PG_File& exePath, std::shared_ptr<PG_PSP
 
 			model.spriteColorOffset = c.charData.paletteIndex;
 			model.spriteId = c.charData.spriteId;
+			model.jumpPower = c.charData.jumpPower;
+			model.movement = c.charData.movement;
+			model.movementType = c.charData.movementType;
 
 			//replacements of originals and later mods with the same identifier take over the existing entry
 			if (auto findIt = std::ranges::find(models, model.id, &PG_DisaCharacterModel::id); findIt != models.end()) *findIt = std::move(model);

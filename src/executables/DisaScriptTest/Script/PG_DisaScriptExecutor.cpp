@@ -13,7 +13,7 @@
 #include <Disa/fileformats/PG_Script.h>
 #include <Disa/fileformats/PG_TalkScript.h>
 #include <Util/Debug/PG_DebugOut.h>
-#include <Scene/PG_DisaCamera.h>
+#include <Disa/PG_DisaCamera.h>
 #include <Script/PG_DisaActorAnimations.h>
 #include <Script/PG_DisaCameraAnimations.h>
 #include <Script/PG_DisaContext.h>
