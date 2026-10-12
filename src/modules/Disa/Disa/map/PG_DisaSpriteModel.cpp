@@ -244,6 +244,16 @@ mpdfileActor PG_DisaSpriteModel::getData() const {
 	return out;
 }
 
+PG_DisaActorModel* PG_DisaSpriteModel::clone() const {
+	auto* copy = PG_new<PG_DisaSpriteModel>(getName());
+	copyActorTo(*copy);
+	copy->m_data = m_data;
+	copy->m_mode = m_mode;
+	copy->m_animationSet = m_animationSet;
+	copy->m_animation = m_animation;
+	return copy;
+}
+
 PG_Variety PG_DisaSpriteModel::getData(Identity identity) const {
 	switch (identity) {
 	case Identity_Id: return m_data.id;

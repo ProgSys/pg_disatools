@@ -173,7 +173,6 @@ void PG_DisaGridTile::createGameScene() {
 	if (!m_gameScene) {
 		m_gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 		m_gameScene->setPreviewMode(true);
-		m_gameScene->setActorsVisible(false);
 		m_gameScene->setGeoPanelsVisible(false);
 
 		connect(m_gameScene, &PG_DisaMapViewNode::onDeleted, this, [this] {

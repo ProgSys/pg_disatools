@@ -17,7 +17,7 @@
 #include <Disa/map/controllers/PG_DisaEditorActorController.h>
 #include <Disa/map/controllers/PG_DisaEditorEventController.h>
 #include <Disa/map/PG_DisaEditorModule.h>
-#include <Disa/combat/PG_DisaCombatModule.h>
+#include <Disa/game/PG_DisaMainGameModule.h>
 
 
 #include <Renderer/PG_SceneRenderer.h>
@@ -206,6 +206,7 @@ bool PG_DisaMapScene::event(PG_Event* e) {
 void PG_DisaMapScene::setPreviewMode(bool isPreviewMode) {
 	if (m_previewMode == isPreviewMode) return;
 	m_previewMode = isPreviewMode;
+	m_mapNode->setActorViewEnabled(!m_previewMode); //a preview shows the map, not who stands on it
 	if (m_previewMode) {
 		connect(m_mapNode, &PG_DisaMapViewNode::loaded, this, [this] {
 			orbitCamera(0.f);
@@ -258,7 +259,7 @@ void PG_DisaMapScene::setEnableEditing(bool enable) {
 }
 
 bool PG_DisaMapScene::isCombatSimulation() const {
-	auto* combat = getModule<PG_DisaCombatModule>();
+	auto* combat = getModule<PG_DisaMainGameModule>();
 	return combat && combat->isRunning();
 }
 
@@ -266,13 +267,13 @@ void PG_DisaMapScene::setCombatSimulation(bool enable) {
 	if (enable == isCombatSimulation()) return;
 
 	if (!enable) {
-		delete removeModule<PG_DisaCombatModule>();
+		delete removeModule<PG_DisaMainGameModule>();
 		return;
 	}
 
 	setEnableEditing(false);
-	auto* combat = installModule<PG_DisaCombatModule>("PG_DisaCombatModule");
-	if (!combat->isRunning()) delete removeModule<PG_DisaCombatModule>(); //no map to simulate
+	auto* combat = installModule<PG_DisaMainGameModule>("PG_DisaMainGameModule");
+	if (!combat->isRunning()) delete removeModule<PG_DisaMainGameModule>(); //no map to simulate
 }
 
 bool PG_DisaMapScene::isHDMode() const {

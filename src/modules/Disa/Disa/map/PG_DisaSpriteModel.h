@@ -221,6 +221,7 @@ public:
 	void setData(const mpdfileActor& data) { m_data = data; updateFromData(); }
 	void setData(mpdfileActor&& data) { m_data = std::move(data); updateFromData(); }
 
+	PG_DisaActorModel* clone() const override;
 	PG_Variety getData(Identity identity) const override;
 	bool setData(const PG_Variety& value, Identity identity) override;
 private:

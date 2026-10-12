@@ -26,20 +26,6 @@ void PG_DisaMapViewNode::init() {
 
 	connect(this, &PG_DisaMapViewNode::isGeoVisibleChanged, this, &PG_DisaMapViewNode::createGeoPanels);
 
-	connect(this, &PG_DisaMapViewNode::isActorsVisibleChanged, this, [this] {
-		if (isActorsVisible()) {
-			if (!m_actorView) {
-				createActorView();
-				m_actorView->setModel(getMapModel()->getActors());
-			}
-			
-		}
-		else if(m_actorView) {
-			delete m_actorView;
-			m_actorView = nullptr;
-		}
-	});
-
 	m_matBuffer = { PG_Material("M_DisaTileEditSelection") };
 }
 
@@ -54,11 +40,13 @@ void PG_DisaMapViewNode::setMapModel(PG_DisaMapModel* model) {
 
 	if (auto* old = m_mapModel.get()) {
 		disconnect(old->getTiles(), nullptr, this, nullptr);
+		disconnect(old->getActors(), nullptr, this, nullptr);
 		disconnect(old, nullptr, this, nullptr);
 	}
 	m_mapModel = model;
 
 	if (model) {
+		connect(model->getActors(), &PG_DisaActorListModel::visibleChanged, this, [this] { emit isActorsVisibleChanged(); });
 		connect(model->getTiles(), &PG_ListModelBase::itemsChanged, this, [this](unsigned int startIndex, unsigned int endIndex, const PG_IdentitySet& identities) {
 			auto* selectionHandler = findFirstChild<PG_DisaMapSelectionHandlerNode>();
 			if (!selectionHandler) return;
@@ -185,10 +173,37 @@ void PG_DisaMapViewNode::setHDMode(bool state) {
 	}
 }
 
+bool PG_DisaMapViewNode::isActorsVisible() const {
+	auto* model = getMapModel();
+	return model && model->getActors()->isVisible();
+}
+
 void PG_DisaMapViewNode::setActorsVisible(bool value) {
-	if (m_isActorsVisible != value) {
-		m_isActorsVisible = value;
-		emit isActorsVisibleChanged();
+	if (auto* model = getMapModel()) model->getActors()->setVisible(value);
+}
+
+PG_DisaActorListModel* PG_DisaMapViewNode::getActorList() const {
+	if (auto* list = m_actorList.get()) return list;
+	auto* model = getMapModel();
+	return model ? model->getActors() : nullptr;
+}
+
+void PG_DisaMapViewNode::setActorList(PG_DisaActorListModel* actors) {
+	if (m_actorList.get() == actors) return;
+	m_actorList = actors;
+	if (!m_actorView) return;
+	if (auto* list = getActorList()) m_actorView->setModel(actors);
+}
+
+void PG_DisaMapViewNode::setActorViewEnabled(bool enabled) {
+	if (m_isActorViewEnabled == enabled) return;
+	m_isActorViewEnabled = enabled;
+	if (!enabled && m_actorView) {
+		delete m_actorView;
+		m_actorView = nullptr;
+	}
+	else if (enabled) {
+		reload();
 	}
 }
 
@@ -234,7 +249,7 @@ void PG_DisaMapViewNode::reload() {
 		m_objectsView->setItem(PG_FootlooseViewNode::getDefaultCreateFunc<PG_DisaObjectViewNode>());
 		m_objectsView->setItemUpdate(PG_FootlooseViewNode::getDefaultUpdateFunc<PG_DisaObjectViewNode>());
 	}
-	if (isActorsVisible() && !m_actorView) {
+	if (m_isActorViewEnabled && !m_actorView) {
 		createActorView();
 	}
 
@@ -245,29 +260,11 @@ void PG_DisaMapViewNode::reload() {
 		g_delayPool->setBudget({ std::chrono::microseconds{1000}, 0 });
 	}
 
-	const auto setDelayModel = [this](PG_FootlooseViewNode* parent, PG_ListModelBase* model) {
-		auto* dModel = dynamic_cast<PG_ListModelDelay*>(parent->getModel());
-		if (!dModel) {
-			dModel = PG_new<PG_ListModelDelay>(model);
-			dModel->setPool(g_delayPool);
-			parent->setModel(dModel);
-			connect(dModel, &PG_ListModelDelay::settled, this, [this] {
-				constexpr auto isNoPendingDelay = [](PG_ListModelBase* m) {
-					if (!m) return false;
-					auto* dm = dynamic_cast<PG_ListModelDelay*>(m);
-					return !dm || dm->getPendingCount() == 0;
-				};
-				if (isNoPendingDelay(m_tilesView->getModel()) && isNoPendingDelay(m_objectsView->getModel()) && 
-					(!m_actorView || isNoPendingDelay(m_actorView->getModel()))) {
-					contentChanged();
-				}
-			});
-		}
-		dModel->setModel(model);
-	};
-	setDelayModel(m_tilesView, model->getTiles());
-	setDelayModel(m_objectsView, model->getObjects());
-	if (m_actorView) setDelayModel(m_actorView, model->getActors());
+	setDelayedModel(m_tilesView, model->getTiles());
+	setDelayedModel(m_objectsView, model->getObjects());
+	if (m_actorView) {
+		m_actorView->setModel(getActorList());
+	}
 
 	if (auto geoPanelView = findFirstChild<PG_DisaGeoPanelViewNode>("PG_DisaGeoPanelViewNode")) {
 		geoPanelView->setModel(model->getTiles());
@@ -275,6 +272,27 @@ void PG_DisaMapViewNode::reload() {
 	else {
 		createGeoPanels();
 	}
+}
+
+void PG_DisaMapViewNode::setDelayedModel(PG_FootlooseViewNode* view, PG_ListModelBase* model) {
+	auto* delayModel = dynamic_cast<PG_ListModelDelay*>(view->getModel());
+	if (!delayModel) {
+		delayModel = PG_new<PG_ListModelDelay>(model);
+		delayModel->setPool(g_delayPool);
+		view->setModel(delayModel);
+		connect(delayModel, &PG_ListModelDelay::settled, this, [this] {
+			constexpr auto isNoPendingDelay = [](PG_ListModelBase* m) {
+				if (!m) return false;
+				auto* dm = dynamic_cast<PG_ListModelDelay*>(m);
+				return !dm || dm->getPendingCount() == 0;
+			};
+			if (isNoPendingDelay(m_tilesView->getModel()) && isNoPendingDelay(m_objectsView->getModel()) &&
+				(!m_actorView || isNoPendingDelay(m_actorView->getModel()))) {
+				contentChanged();
+			}
+		});
+	}
+	delayModel->setModel(model);
 }
 
 void PG_DisaMapViewNode::contentChanged() {

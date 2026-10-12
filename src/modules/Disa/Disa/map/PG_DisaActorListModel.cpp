@@ -96,6 +96,12 @@ void PG_DisaActorListModel::resetMapSlots() {
 	for (int row = 0; row < count; ++row) m_slots[row] = &getRef(row);
 }
 
+void PG_DisaActorListModel::setVisible(bool value) {
+	if (m_visible == value) return;
+	m_visible = value;
+	emit visibleChanged(m_visible);
+}
+
 void PG_DisaActorListModel::setupTeleporter() {
 	auto* map = findParent<PG_DisaMapModel>(5);
 	if (!map) return;

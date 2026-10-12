@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Scene/PG_FootlooseViewNode.h>
+#include <Disa/map/PG_DisaActorListModel.h> //the lifeline needs the whole type
 
 /**
 * @brief Draws everything standing on the map, whatever each of them is drawn as.

@@ -26,6 +26,14 @@ void PG_DisaGeometryModel::setScale(float value) {
 	notifyParent(this, { Identity_Scale });
 }
 
+PG_DisaActorModel* PG_DisaGeometryModel::clone() const {
+	auto* copy = PG_new<PG_DisaGeometryModel>(getName());
+	copyActorTo(*copy);
+	copy->m_resource = m_resource;
+	copy->m_scale = m_scale;
+	return copy;
+}
+
 PG_Variety PG_DisaGeometryModel::getData(Identity identity) const {
 	switch (identity) {
 	case Identity_Resource: return m_resource;

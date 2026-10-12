@@ -3,6 +3,7 @@
 #include <Scene/PG_ActorNode.h>
 #include <Resources/PG_Material.h>
 #include <Disa/PG_DisaMapModel.h>
+#include <Disa/map/PG_DisaActorListModel.h> //the lifeline needs the whole type
 
 
 class PG_FootlooseViewNode;
@@ -57,10 +58,21 @@ public:
 	bool isHDMode() const { return m_HDMode; }
 	void setHDMode(bool state);
 	/**
-	* @returns true then actors (monsters) be visible
+	* @returns true when the actors of the map are shown, the flag lives on its actor list
+	* @see PG_DisaActorListModel::isVisible
 	*/
-	bool isActorsVisible() const { return m_isActorsVisible; }
+	bool isActorsVisible() const;
 	void setActorsVisible(bool value);
+
+	/// The list the actor view shows, the one of the map unless another was swapped in
+	PG_DisaActorListModel* getActorList() const;
+	/**
+	* @brief Shows another actor list instead of the one of the map, like a copy to play on
+	* @param actors Null goes back to the list of the map
+	*/
+	void setActorList(PG_DisaActorListModel* actors);
+	/// Without the view no actor is drawn at all, which spares a preview the work
+	void setActorViewEnabled(bool enabled);
 	/**
 	* @returns true when geo colors should be displayed
 	*/
@@ -73,6 +85,8 @@ public:
 
 private:
 	void reload();
+	/// Gives the view the list through a delay, so a big map does not load in one frame
+	void setDelayedModel(PG_FootlooseViewNode* view, PG_ListModelBase* model);
 	void createActorView();
 	void createGeoPanels();
 	void contentChanged();
@@ -81,7 +95,8 @@ private:
 	PG_Lifeline_T<PG_DisaMapModel> m_mapModel;
 	EMode m_mode = Mode_View;
 	bool m_HDMode = false; //if true then HD textures are used
-	bool m_isActorsVisible = true; //if true then actors (monsters) be visible
+	bool m_isActorViewEnabled = true;
+	PG_Lifeline_T<PG_DisaActorListModel> m_actorList; /// swapped in instead of the list of the map
 	bool m_isGeoVisible = true; //if true then geo color tiles will be visible
 
 	PG_FootlooseViewNode* m_tilesView = nullptr;

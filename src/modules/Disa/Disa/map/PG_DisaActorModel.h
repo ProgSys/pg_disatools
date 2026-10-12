@@ -112,6 +112,12 @@ public:
 	*/
 	void remove();
 
+	/**
+	* @brief A copy of the actor that belongs to no list yet
+	* @details Placement, look and what a deriving model adds are copied, the children are not.
+	*/
+	virtual PG_DisaActorModel* clone() const;
+
 	/* Virtual because the list holds this base: without it a deriving model's identities would be
 	 * invisible to every view that reads through the list. */
 	virtual PG_Variety getData(Identity identity) const;
@@ -119,6 +125,8 @@ public:
 protected:
 	/// Drops the placement onto the model without telling anyone, for a load. @see setObjectTranslation
 	void resetPlacement(glm::ivec2 tile, float rotation, bool visible);
+	/// Puts what every actor shares onto the copy, for clone
+	void copyActorTo(PG_DisaActorModel& copy) const;
 
 	float calcHeight();
 	void updateHeight();

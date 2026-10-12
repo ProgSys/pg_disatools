@@ -596,7 +596,6 @@ PG_DisaMapScene* PG_DisaPreviewItem::getOrCreateGameScene() {
 	if (!m_gameScene) {
 		m_gameScene = PG_new<PG_DisaMapScene>("GameScene", sceneRenderer);
 		m_gameScene->setPreviewMode(true);
-		m_gameScene->setActorsVisible(false);
 		m_gameScene->setGeoPanelsVisible(false);
 
 		connect(m_gameScene, &PG_Object::onDeleted, this, [this] { m_gameScene = nullptr; });

@@ -1,4 +1,4 @@
-#include "PG_DisaCombatCursorNode.h"
+#include "PG_DisaCursorNode.h"
 
 #include <Base/Events/PG_TickEvent.h>
 #include <Scene/PG_ModelNode.h>
@@ -8,7 +8,7 @@
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Disa/map/PG_DisaActorEditSelectionNode.h>
 
-void PG_DisaCombatCursorNode::init() {
+void PG_DisaCursorNode::init() {
 	PG_ActorNode::init();
 
 	m_marker = PG_new<PG_ModelNode>("N_CursorMarker", this);
@@ -16,7 +16,7 @@ void PG_DisaCombatCursorNode::init() {
 	m_pointer->setHovered(true);
 }
 
-bool PG_DisaCombatCursorNode::event(PG_Event* e) {
+bool PG_DisaCursorNode::event(PG_Event* e) {
 	if (e->getType() == PG_Event_Tick && isMoving()) {
 		constexpr double millisecondsPerFrame = 1000.0 / 60.0;
 		const float frames = std::min(m_framesLeft, static_cast<float>(static_cast<PG_TickEvent*>(e)->getDeltaTime() / millisecondsPerFrame));
@@ -27,7 +27,7 @@ bool PG_DisaCombatCursorNode::event(PG_Event* e) {
 	return PG_ActorNode::event(e);
 }
 
-void PG_DisaCombatCursorNode::moveToTile(glm::ivec2 tile, float frames) {
+void PG_DisaCursorNode::moveToTile(glm::ivec2 tile, float frames) {
 	glm::vec3 target = PG_DisaActorModel::tileCenter(tile);
 	target.y = groundHeight(getMapModel(), tile);
 
@@ -40,7 +40,7 @@ void PG_DisaCombatCursorNode::moveToTile(glm::ivec2 tile, float frames) {
 	}
 }
 
-void PG_DisaCombatCursorNode::translateTo(const glm::vec3& target, float frames) {
+void PG_DisaCursorNode::translateTo(const glm::vec3& target, float frames) {
 	m_target = target;
 	if (frames <= 0.f) {
 		m_framesLeft = 0.f;
@@ -54,21 +54,21 @@ void PG_DisaCombatCursorNode::translateTo(const glm::vec3& target, float frames)
 	m_marker->setTranslation(glm::vec3(m_tile.x, 0.f, m_tile.y) - getTranslation());
 }
 
-void PG_DisaCombatCursorNode::setPointerVisible(bool visible) {
+void PG_DisaCursorNode::setPointerVisible(bool visible) {
 	m_pointer->setVisible(visible);
 }
 
-void PG_DisaCombatCursorNode::updateMarker() {
+void PG_DisaCursorNode::updateMarker() {
 	if (auto* map = getMapModel()) PG_DisaTileViewNode::updateFloorSelectionGeometry(m_tile, map, m_marker, "M_DisaCombatCursorTile");
 }
 
-float PG_DisaCombatCursorNode::groundHeight(PG_DisaMapModel* map, glm::ivec2 tile) {
+float PG_DisaCursorNode::groundHeight(PG_DisaMapModel* map, glm::ivec2 tile) {
 	if (!map) return 0.f;
 	if (auto location = map->getTiles()->getTileLocation(tile)) return location.getDataT<float>(PG_DisaMapTileModel::Identity_TopHeight);
 	return 0.f;
 }
 
-PG_DisaMapModel* PG_DisaCombatCursorNode::getMapModel() const {
+PG_DisaMapModel* PG_DisaCursorNode::getMapModel() const {
 	auto* view = findParent<PG_DisaMapViewNode>(4);
 	return view ? view->getMapModel() : nullptr;
 }

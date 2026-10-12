@@ -156,9 +156,24 @@ void PG_DisaActorModel::resetPlacement(glm::ivec2 tile, float rotation, bool vis
 	m_translation.y = m_height;
 }
 
+void PG_DisaActorModel::copyActorTo(PG_DisaActorModel& copy) const {
+	copy.m_height = m_height;
+	copy.m_rotation = m_rotation;
+	copy.m_translation = m_translation;
+	copy.m_colorMult = m_colorMult;
+	copy.m_gravity = m_gravity;
+	copy.m_visible = m_visible;
+}
+
 void PG_DisaActorModel::remove() {
 	auto list = getParent<PG_DisaActorListModel>();
 	if (list) list->remove(m_location);
+}
+
+PG_DisaActorModel* PG_DisaActorModel::clone() const {
+	auto* copy = PG_new<PG_DisaActorModel>(getName());
+	copyActorTo(*copy);
+	return copy;
 }
 
 PG_Variety PG_DisaActorModel::getData(Identity identity) const {

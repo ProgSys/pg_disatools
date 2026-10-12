@@ -39,8 +39,8 @@ class PG_DisaActorEditSelectionNode;
 * @details The node stands in the middle of the tile it points at, on top of its ground. Like the
 * game cursor it can glide to a new tile over a number of frames, see translateTo.
 */
-class PG_DisaCombatCursorNode : public PG_ActorNode {
-	PG_OBJECT(PG_DisaCombatCursorNode);
+class PG_DisaCursorNode : public PG_ActorNode {
+	PG_OBJECT(PG_DisaCursorNode);
 	PG_PARENT(PG_ActorNode);
 signals:
 	void tileChanged();

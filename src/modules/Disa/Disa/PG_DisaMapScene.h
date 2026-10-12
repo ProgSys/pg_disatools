@@ -80,7 +80,7 @@ public:
 	/**
 	* @brief Plays the map like a battle of the game, on a copy of the actors
 	* @details Turns the editing off, the map and its actors are back as they were once it stops.
-	* @see PG_DisaCombatModule
+	* @see PG_DisaMainGameModule
 	*/
 	void setCombatSimulation(bool enable);
 

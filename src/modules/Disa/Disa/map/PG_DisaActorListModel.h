@@ -21,8 +21,14 @@ class PG_DisaActorScriptViewModel;
 class PG_DisaActorListModel : public PG_ListModel<PG_DisaActorModel*> {
 	PG_OBJECT(PG_DisaActorListModel);
 	PG_PARENT(PG_ListModel<PG_DisaActorModel*>);
+signals:
+	void visibleChanged(bool value);
 public:
 	using PG_ListModel<PG_DisaActorModel*>::PG_ListModel;
+
+	/// Whether the view shows the actors at all, the slots keep working either way
+	bool isVisible() const { return m_visible; }
+	void setVisible(bool value);
 
 	static constexpr int firstMapSlot = 0;
 	static constexpr int lastMapSlot = 63;
@@ -106,6 +112,7 @@ private:
 	/* A lifeline rather than a pointer: an item removed anywhere else leaves the slot empty instead
 	 * of leaving it pointing at something that is gone. */
 	std::unordered_map<int, PG_DisaActorLifeline> m_slots;
+	bool m_visible = true;
 };
 
 

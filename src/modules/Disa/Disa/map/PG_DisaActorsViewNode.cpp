@@ -35,4 +35,15 @@ void PG_DisaActorsViewNode::init() {
 		if (auto* sprite = dynamic_cast<PG_DisaActorSpriteNode*>(item)) sprite->update(location, identities);
 		else if (auto* mesh = dynamic_cast<PG_DisaGeometryNode*>(item)) mesh->update(location, identities);
 		});
+
+	connect(this, &PG_DisaActorsViewNode::modelChanged, this, [this](PG_ListModelBase* /*oldModel*/, PG_ListModelBase* newModel) {
+		auto* actorModel = dynamic_cast<PG_DisaActorListModel*>(newModel);
+		if (!actorModel) {
+			setVisible(false);
+			return;
+		}
+		connect(actorModel, &PG_DisaActorListModel::visibleChanged, this, &PG_DisaActorsViewNode::setVisible);
+		setVisible(actorModel->isVisible());
+	});
 }
+

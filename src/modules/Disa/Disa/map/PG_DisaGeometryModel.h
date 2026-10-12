@@ -35,6 +35,7 @@ public:
 	float getScale() const { return m_scale; }
 	void setScale(float value);
 
+	PG_DisaActorModel* clone() const override;
 	PG_Variety getData(Identity identity) const override;
 	bool setData(const PG_Variety& value, Identity identity) override;
 private:
