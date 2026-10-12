@@ -75,12 +75,12 @@ void FUN_004d3060_clearMapUnits() {
 
     for (DisaMapUnit& unit : std::ranges::subrange(DisaMapUnit::get(0), DisaMapUnit::get(DisaMapUnit::count))) {
         unit.isActive = false;
-        //party members point into the party array and stay untouched
-        if (unit.isTemporaryCharacter && unit.character >= temporaryBegin && unit.character < temporaryEnd) {
+        //player units point into the party array and stay untouched
+        if (unit.alliance != 0 && unit.character >= temporaryBegin && unit.character < temporaryEnd) {
             unit.character->charName.fill(0);
             unit.character = nullptr;
         }
-        unit.field0x280 = 1;
+        unit.isDepthTested = 1;
     }
 }
 
@@ -588,7 +588,7 @@ void __fastcall FUN_004d6a30_finalizeDungeonLoad(DisaDungeon* dungeon) {
                 (float)((int)uVar9 * 0xc + 6), (short)uVar10 * 0x5a + -0x5a, uVar4, iVar3);
             sVar1 = 0;
             FP::getData<int>(0x0065db50) = 0;
-            (&FP::getData<float>(0x00738988))[iVar6 * 0x42c] = 1;
+            DisaMapUnit::get(iVar6)->modelPose = 1;
             uVar4 = extraout_EDX_05;
         LAB_004d6bc4:
             int i = 0;
