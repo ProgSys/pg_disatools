@@ -121,6 +121,14 @@ struct HockManager {
             0x0045d1aeu, 0x0045da63u, 0x0045db9eu, 0x0045e60du, 0x0045f6a0u, 0x00460334u, 0x00461b17u, 0x0046232du, 0x0049e7ebu }) {
             replaceFunction("updateMapCursor", "Moves the map cursor by key, stick or mouse", address, FUN_004d1500_updateMapCursor_NoneStd);
         }
+        /*
+        for (unsigned int address : { 0x0044cfccu, 0x0044d092u, 0x004509d6u, 0x00450a61u, 0x00450b25u, 0x004579a4u, 0x0045ca28u, 0x004d90efu }) {
+            replaceFunction("buildMoveRange", "Floods the move range of a unit", address, FUN_004d21f0_buildMoveRange_NoneStd);
+        }
+        for (unsigned int address : { 0x0044d0b0u, 0x00458244u, 0x0045d4f6u }) {
+            replaceFunction("buildPath", "Traces the path of a unit to a tile", address, FUN_004d1e50_buildPath_NoneStd);
+        }
+        */
 
         {
             auto f = &DisaObjectModel::FUN_004e2180;
