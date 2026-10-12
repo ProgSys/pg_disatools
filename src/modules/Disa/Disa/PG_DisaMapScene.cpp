@@ -266,16 +266,13 @@ void PG_DisaMapScene::setCombatSimulation(bool enable) {
 	if (enable == isCombatSimulation()) return;
 
 	if (!enable) {
-		auto* combat = getModule<PG_DisaCombatModule>();
-		combat->stop();
-		delete combat;
+		delete removeModule<PG_DisaCombatModule>();
 		return;
 	}
 
 	setEnableEditing(false);
 	auto* combat = installModule<PG_DisaCombatModule>("PG_DisaCombatModule");
-	combat->start(m_mapNode);
-	if (!combat->isRunning()) delete combat;
+	if (!combat->isRunning()) delete removeModule<PG_DisaCombatModule>(); //no map to simulate
 }
 
 bool PG_DisaMapScene::isHDMode() const {

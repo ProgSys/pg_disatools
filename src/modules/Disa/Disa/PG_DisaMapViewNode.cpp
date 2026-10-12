@@ -252,12 +252,16 @@ void PG_DisaMapViewNode::reload() {
 			dModel->setPool(g_delayPool);
 			parent->setModel(dModel);
 			connect(dModel, &PG_ListModelDelay::settled, this, [this] {
-				if ((m_tilesView->getModel() && ((PG_ListModelDelay*)m_tilesView->getModel())->getPendingCount() == 0) &&
-					(m_objectsView->getModel() && ((PG_ListModelDelay*)m_objectsView->getModel())->getPendingCount() == 0) &&
-					(!m_actorView || (m_actorView->getModel() && ((PG_ListModelDelay*)m_actorView->getModel())->getPendingCount() == 0))
-					)
+				constexpr auto isNoPendingDelay = [](PG_ListModelBase* m) {
+					if (!m) return false;
+					auto* dm = dynamic_cast<PG_ListModelDelay*>(m);
+					return !dm || dm->getPendingCount() == 0;
+				};
+				if (isNoPendingDelay(m_tilesView->getModel()) && isNoPendingDelay(m_objectsView->getModel()) && 
+					(!m_actorView || isNoPendingDelay(m_actorView->getModel()))) {
 					contentChanged();
-				});
+				}
+			});
 		}
 		dModel->setModel(model);
 	};

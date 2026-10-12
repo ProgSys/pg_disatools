@@ -52,8 +52,11 @@ class PG_DisaActorEditSelectionNode;
 * happens to them is gone when the simulation stops. The map itself stays untouched.
 *
 * The mouse moves the cursor the way the game does it, the arrow keys move it one tile relative to
-* the camera. A left click selects the unit under the cursor and shows its move range, a right click
-* clears the selection.
+* the camera. A left click or Enter selects the unit under the cursor and shows its move range, a
+* right click clears the selection.
+*
+* Installing the module on a PG_DisaMapScene with a loaded map starts the simulation, removing it
+* with PG_Scene::removeModule stops it again.
 */
 class PG_DisaCombatModule : public PG_SceneModule {
 	PG_OBJECT(PG_DisaCombatModule);
@@ -65,14 +68,15 @@ public:
 	using PG_SceneModule::PG_SceneModule;
 	~PG_DisaCombatModule() override;
 
+	/// False when the scene had no map to simulate
 	bool isRunning() const { return m_running; }
 	/**
 	* @brief Takes over the camera and the input of the scene
-	* @param mapView Needs a loaded map
+	* @details Needs a PG_DisaMapScene with a loaded map, otherwise nothing runs.
 	*/
-	void start(PG_DisaMapViewNode* mapView);
+	void added(PG_Scene* scene) override;
 	/// Gives the camera back, drops the actor copy and shows the original actors again
-	void stop();
+	void removed(PG_Scene* scene) override;
 
 	/// The copy of the actors the simulation works on, null while not running
 	PG_DisaActorListModel* getActors() const { return m_actors.get(); }

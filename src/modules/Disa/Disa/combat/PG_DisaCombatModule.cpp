@@ -28,9 +28,10 @@ PG_DisaCombatModule::~PG_DisaCombatModule() {
 	if (auto* actors = m_actors.get()) delete actors;
 }
 
-void PG_DisaCombatModule::start(PG_DisaMapViewNode* mapView) {
-	if (m_running || !mapView || !mapView->getMapModel() || !getScene()) return;
-	PG_Scene* scene = getScene();
+void PG_DisaCombatModule::added(PG_Scene* scene) {
+	auto* mapScene = dynamic_cast<PG_DisaMapScene*>(scene);
+	PG_DisaMapViewNode* mapView = mapScene ? mapScene->getMapNode() : nullptr;
+	if (m_running || !mapView || !mapView->getMapModel()) return;
 	PG_DisaMapModel* map = mapView->getMapModel();
 	m_mapView = mapView;
 
@@ -60,9 +61,9 @@ void PG_DisaCombatModule::start(PG_DisaMapViewNode* mapView) {
 		.cancelMouseKey = 0
 	});
 	m_camera = camera;
-	//the game starts a battle 750 units away at a 30 degree tilt, see PG_DisaScriptTestModel::resetGameCamera
 	//the game only looks along the diagonals, 45 degree plus quarter turns
 	orbit = 45.f + 90.f * std::round((orbit - 45.f) / 90.f);
+	//the game starts a battle 750 units away at a 30 degree tilt, see PG_DisaScriptTestModel::resetGameCamera
 	camera->setOrbitAngles(-30.f, orbit);
 	camera->setOrbitDistance(750.f / 12.f);
 	scene->setActiveCamera(camera);
@@ -95,14 +96,14 @@ void PG_DisaCombatModule::start(PG_DisaMapViewNode* mapView) {
 	emit runningChanged(true);
 }
 
-void PG_DisaCombatModule::stop() {
+void PG_DisaCombatModule::removed(PG_Scene* scene) {
 	if (!m_running) return;
 	m_running = false;
 	clearSelection();
 
 	if (auto* camera = m_camera.get()) {
 		camera->removeEventFilter(this);
-		if (auto* scene = getScene(); scene && scene->getActiveCamera() == camera) scene->setActiveCamera(m_previousCamera.get());
+		if (scene && scene->getActiveCamera() == camera) scene->setActiveCamera(m_previousCamera.get());
 		delete camera;
 	}
 	m_camera.reset();
@@ -208,10 +209,15 @@ bool PG_DisaCombatModule::onMouseButton(PG_MouseButtonEvent* e) {
 bool PG_DisaCombatModule::onKey(PG_KeyEvent* e) {
 	glm::vec2 move(0.f); //x right, y forward, relative to the camera
 	switch (e->getKey()) {
-	case PG_Key_Up: move.y = 1.f; break;
-	case PG_Key_Down: move.y = -1.f; break;
-	case PG_Key_Right: move.x = 1.f; break;
-	case PG_Key_Left: move.x = -1.f; break;
+	case PG_Key_Up: move.x = -1.f; break;
+	case PG_Key_Down: move.x = 1.f; break;
+	case PG_Key_Right: move.y = 1.f; break;
+	case PG_Key_Left: move.y = -1.f; break;
+	case PG_Key_Return:
+		if (e->isDown() && !e->isRepeat()) selectAtCursor();
+		e->accept();
+		return true;
+	case PG_Key_Backspace:
 	case PG_Key_Escape:
 		if (e->isDown()) clearSelection();
 		e->accept();
@@ -221,13 +227,17 @@ bool PG_DisaCombatModule::onKey(PG_KeyEvent* e) {
 	e->accept();
 	if (e->isUp() || !m_camera || !m_cursor) return true;
 
-	//the closest axis to the camera direction, like the game does it in FUN_004d0db0
 	const glm::vec3 forward = m_camera->getForwardOrbit();
 	const glm::vec2 forwardGround = glm::normalize(glm::vec2(forward.x, forward.z));
 	const glm::vec2 rightGround(-forwardGround.y, forwardGround.x);
 	const glm::vec2 direction = forwardGround * move.y + rightGround * move.x;
-	const glm::ivec2 step = std::abs(direction.x) > std::abs(direction.y)
-		? glm::ivec2(direction.x > 0.f ? 1 : -1, 0) : glm::ivec2(0, direction.y > 0.f ? 1 : -1);
+
+	/* The quarter of the direction picks the axis. The camera looks along a diagonal, right on the
+	 * border of two quarters, so like FUN_004d0db0, which adds 30 to the yaw before it divides by 90,
+	 * the borders are shifted to keep the four keys on four different axes. */
+	const float quarters = glm::degrees(std::atan2(direction.y, direction.x) + glm::radians(15.f)) / 90.f;
+	constexpr glm::ivec2 steps[] = { glm::ivec2(1, 0), glm::ivec2(0, 1), glm::ivec2(-1, 0), glm::ivec2(0, -1) };
+	const glm::ivec2 step = steps[static_cast<int>(std::floor(quarters + 0.5f)) & 3];
 
 	moveCursorTo(m_cursor->getTile() + step);
 	m_camera->setOrbitPoint(m_cursor->getTranslation(), 150.f);
