@@ -19,6 +19,8 @@
 * are named after the address of their first instruction (LAB_xxxxxxxx_name) and callees after their own address
 * (FUN_xxxxxxxx_name), so all of them can be found again in Ghidra, the disassembly and memory dumps.
 */
+static_assert(offsetof(PG_DisaPartyCharacter, currentHP) == 0x5c4);
+
 namespace {
 
     // ---- Globals ----
@@ -161,6 +163,88 @@ namespace {
         FP::callFastFarA<void>(fPlaySound, id, FP::getData<int>(0x00677274), 0, id, 0);
     }
 
+    /**
+    * @brief A bit of the game state, the bits the scripts check and set.
+    * Original function: FUN_0046de80
+    */
+    bool FUN_0046de80_isGameFlagSet(int bit) {
+        return ((&FP::getData<uint8_t>(0x00619330))[bit >> 3] & (1 << (bit & 7))) != 0;
+    }
+
+    /**
+    * @brief Clears a bit of the game state.
+    * Original function: FUN_0046dec0
+    */
+    void FUN_0046dec0_clearGameFlag(int bit) {
+        (&FP::getData<uint8_t>(0x00619330))[bit >> 3] &= ~(1 << (bit & 7));
+    }
+
+    /// Character byte 0x306, the turns the character still sleeps.
+    int8_t getSleepTurns(const DisaPartyCharacterInfo* character) {
+        return reinterpret_cast<const int8_t*>(character)[0x306];
+    }
+
+    /**
+    * @brief 0 can act, 1 asleep, 2 defeated. A unit without character can act.
+    * Original function: FUN_0046f640, Ghidra types it as bool.
+    */
+    int FUN_0046f640_getCondition(const DisaPartyCharacterInfo* character) {
+        if (!character) return 0;
+        if (static_cast<int32_t>(character->currentHP) < 1) return 2;
+        return getSleepTurns(character) > 0 ? 1 : 0;
+    }
+
+    /// True with the mouse in use and the game window focused, the check in front of every mouse helper.
+    bool isMouseUsable() {
+        const uint8_t* window = FP::getData<uint8_t*>(0x005d7c70);
+        return DAT_005d7c40_settings()->isMouseActive && window[0x305438] == 0 && window[0x30543a] != 0;
+    }
+
+    /**
+    * @brief The left button is held longer than 10 frames.
+    * Original function: FUN_0050ff80
+    */
+    bool FUN_0050ff80_isLeftMouseLongPress() {
+        return isMouseUsable() && FP::getData<uint8_t>(0x00778dca) != 0;
+    }
+
+    /**
+    * @brief The right button is held longer than 10 frames.
+    * Original function: FUN_0050ffb0
+    */
+    bool FUN_0050ffb0_isRightMouseLongPress() {
+        return isMouseUsable() && FP::getData<uint8_t>(0x00778dd4) != 0;
+    }
+
+    /**
+    * @brief The left button is down.
+    * Original function: FUN_0050f910
+    */
+    bool FUN_0050f910_isLeftMouseDown() {
+        return isMouseUsable() && (FP::getData<uint32_t>(0x00701c50) & 0x4000000) != 0;
+    }
+
+    /**
+    * @brief True when the versus turn timer ran out.
+    * Original function: FUN_00445590
+    */
+    bool FUN_00445590_isVersusTimeUp() {
+        if (DAT_0065db3a_gameMode() != 5 || FP::getData<int16_t>(0x006e57b0) == 0) return false;
+        return FP::getData<int32_t>(0x006d4ab8) == 0;
+    }
+
+    /// Pad button 0x8000 is held, DAT_0065db47 flips its meaning. Shifts Next and Previous Page to the camera.
+    bool isPadShiftReleased() {
+        return (FP::getData<uint32_t>(0x00778d64) & 0x8000) != static_cast<uint32_t>(FP::getData<int8_t>(0x0065db47) * 0x8000);
+    }
+
+    /// Stops the glide of the cursor, the states do it before they take over the cursor.
+    void stopCursor(DisaMapUnit& cursor) {
+        cursor.moveFramesLeft = 0;
+        cursor.velocity.z = 0.f;
+        cursor.velocity.x = 0.f;
+    }
+
     // ---- Game functions ----
 
     /// Original function: FUN_00444810, rebuilds the versus fog of war of the layer and the map overlay.
@@ -171,6 +255,55 @@ namespace {
     int FUN_00466970_updateBattleStart(int mode) { return FP::callStdFastFarA<int>(0x00466970, mode); }
     /// Original function: FUN_0044b480, the info windows of the hovered tile and unit.
     void FUN_0044b480_drawHoverInfo() { FP::callFarA<void>(0x0044b480); }
+    /// Original function: FUN_0043dba0, the key bound to the action was pressed, with its modifier key when it has one.
+    bool FUN_0043dba0_isActionPressed(int action) { return FP::callStdFarA<int>(0x0043dba0, action) != 0; }
+    /// Original function: FUN_0050f7c0, a left click that did not move the mouse.
+    bool FUN_0050f7c0_isLeftMouseClicked() { return FP::callStdFastFarA<bool>(fIsLeftMouseBtnClicked, false); }
+    /// Original function: FUN_0050f950, a right click or the mouse back button.
+    bool FUN_0050f950_isRightMouseClicked() { return FP::callStdFastFarA<bool>(fIsExitPressed, false); }
+    /// Original function: FUN_0050fe60, forgets the pending mouse clicks.
+    void FUN_0050fe60_clearMouseClicks() { FP::callFarA<void>(0x0050fe60); }
+    /// Original function: FUN_004d9dc0, rotates and zooms the camera by mouse drag, wheel and the page keys.
+    void FUN_004d9dc0_updateCameraControls(DisaCameraInfo& camera) { FP::callStdFastFarA<void>(0x004d9dc0, &camera); }
+    /// Original function: FUN_00449780, moves the cursor to the next unit of the layer that can still act.
+    void FUN_00449780_focusNextUnit(int hovered, int8_t layer) { FP::callStdFastFarA<int>(0x00449780, hovered, layer); }
+    /// Original function: FUN_00449af0, moves the cursor to the next player unit.
+    void FUN_00449af0_focusNextPlayerUnit(int hovered) { FP::callStdFastFarA<int>(0x00449af0, hovered); }
+    /// Original function: FUN_00449c70, moves the cursor to the Item World gate.
+    void FUN_00449c70_focusGate(int hovered) { FP::callStdFastFarA<int>(0x00449c70, hovered); }
+    /// Original function: FUN_00449db0, moves the cursor to the base panel.
+    void FUN_00449db0_focusBasePanel(int hovered) { FP::callStdFastFarA<int>(0x00449db0, hovered); }
+    /// Original function: FUN_004d0db0, the facing the pad asks for, -1 none. Recorded is the versus replay input.
+    int FUN_004d0db0_getPadFacing(DisaCameraInfo& camera, bool isRecorded) {
+        return FP::callFastFarA<int>(0x004d0db0, &camera, 0, int(isRecorded));
+    }
+    /// Original function: FUN_004d1c90, the facing from the unit to the mouse, -1 none. The first stack slot is unused.
+    int FUN_004d1c90_getMouseFacing(DisaCameraInfo& camera, DisaMapUnit& cursor, DisaMapUnit& unit, bool isRecorded) {
+        return FP::callFastFarA<int>(0x004d1c90, &camera, 0, 0, &cursor, &unit, int(isRecorded));
+    }
+    /// Original function: FUN_004cf1d0, turns the unit to a facing from 0 to 3, nothing for -1.
+    void FUN_004cf1d0_turnUnit(DisaMapUnit& unit, int facing) { FP::callStdFastFarA<void>(0x004cf1d0, &unit, facing); }
+    /// Original function: FUN_004485d0, undoes the last Defend, lift or move of the unit, 0 when there is nothing.
+    int FUN_004485d0_undoUnit(int index, int8_t layer) { return FP::callStdFastFarA<int>(0x004485d0, index, layer); }
+    /// Original function: FUN_004486e0, lists the party members that can leave the base panel into DAT_008896b8.
+    void FUN_004486e0_buildDeployList(int8_t layer) { FP::callStdFastFarA<void>(0x004486e0, layer); }
+    /// Original function: FUN_0046a650, the shortcut that ends the deployment and starts the battle. Sound is only passed on.
+    void FUN_0046a650_startBattle(int sound) { FP::callStdFastFarA<void>(0x0046a650, sound); }
+    /// Original function: FUN_0046a710, the End Turn shortcut.
+    void FUN_0046a710_endTurn() { FP::callFarA<void>(0x0046a710); }
+    /// Original function: FUN_004da8d0, counts the living units per alliance into DAT_006b757c. Bit 0 skips geo symbols.
+    void FUN_004da8d0_countUnits(uint32_t flags) { FP::callStdFastFarA<void>(0x004da8d0, flags); }
+    /// Original function: FUN_004d3450, places a party member in the first free unit, returns its index or -1.
+    int FUN_004d3450_spawnUnit(int slot, int16_t mode, float x, float y, float z, bool isFlag) {
+        return FP::callFastFarA<int>(0x004d3450, slot, int(mode), x, y, z, int(isFlag));
+    }
+    /**
+    * @brief Original function: FUN_004d21f0, floods the move range of a unit.
+    * The port FUN_004d21f0_buildMoveRange is not hooked in main.cpp yet, so this calls the original like the game does.
+    */
+    void FUN_004d21f0_buildMoveRangeOriginal(DisaMapUnit& unit, uint32_t flags, int8_t layer) {
+        FP::callFastFarA<void>(0x004d21f0, &unit, flags, int(layer));
+    }
 
     /**
     * @brief Original function: FUN_00477550, a message window shown for a number of frames.
@@ -305,6 +438,289 @@ namespace {
 
     // ---- States of layer 0 up to 200, the jump table at 0x0046642C ----
 
+    /**
+    * @brief The player turn ran out, counts the units, puts a waiting party member out of the base panel and hands
+    * over to the enemy phase (200) or to the end of the battle (0x2af9).
+    * Part of FUN_0045c0f0 at 0x0045CE5D, state 0 jumps here when FUN_00445590 returns true.
+    */
+    void LAB_0045ce5d_endPlayerPhase() {
+        for (const uint32_t address : { 0x00889588u, 0x0088953cu, 0x00889580u, 0x005d7c8cu, 0x00889904u, 0x00889584u }) {
+            FP::getData<int32_t>(address) = 0;
+        }
+        FUN_004da8d0_countUnits(1);
+        if (FP::getData<int16_t>(0x006b757c) == 0) { //no player unit left on the map
+            FUN_004486e0_buildDeployList(0);
+            if (FP::getData<int16_t>(0x008896b8) > 0) {
+                const float x = FP::getData<float>(fTeleportPannelX) + 6.f;
+                const float z = FP::getData<float>(fTeleportPannelZ) + 6.f;
+                const int height = static_cast<int>(FUN_004d2be0_getGroundHeight(nullptr, 0, x, z));
+                const int index = FUN_004d3450_spawnUnit(FP::getData<int16_t>(0x00889700), 0, x, float(height), z, false);
+                DisaMapUnit& unit = *DisaMapUnit::get(index);
+                unit.restPosition.y = unit.position.y;
+                unit.isFromBasePanel = true;
+                --FP::getData<int8_t>(0x0065db39); //party members left in the base panel
+                FUN_00444810_updateFog(0);
+            }
+        }
+        std::array<int32_t, 2>& states = DAT_00889618_battleStates();
+        const bool hasEnemies = FP::getData<int16_t>(0x006b7580) != 0 || FP::getData<int16_t>(0x006b7582) != 0;
+        if (FP::getData<uint8_t>(0x006b790f) == 0 && hasEnemies) states = { 200, 0x3ea };
+        else states = { 0x2af9, 11000 };
+        DAT_008896a0_battleStateDepths() = { 0, 0 };
+        FP::getData<uint8_t>(0x006d4ade) = 1;
+    }
+
+    /**
+    * @brief Turns the hovered player unit by pad or by a long press of the left button.
+    * @return True when the unit was turned, which stops the cursor update of the frame.
+    */
+    bool turnHoveredUnit(DisaMapUnit& unit, bool isNextPagePressed) {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        const bool isPadShiftHeld = (FP::getData<uint16_t>(0x00778d64) >> 15) != 0;
+        if (!isNextPagePressed && isPadShiftHeld) {
+            if (unit.alliance != 0) return false;
+            stopCursor(cursor);
+            FUN_004cf1d0_turnUnit(unit, FUN_004d0db0_getPadFacing(camera, false));
+            return true;
+        }
+        if (!FUN_0050ff80_isLeftMouseLongPress()) {
+            DAT_0067726a_isTurningUnit() = 0;
+            return false;
+        }
+        if (unit.alliance != 0) return false;
+        FUN_0050fe60_clearMouseClicks();
+        stopCursor(cursor);
+        FUN_004cf1d0_turnUnit(unit, FUN_004d1c90_getMouseFacing(camera, cursor, unit, false));
+        DAT_0067726a_isTurningUnit() = 1;
+        return true;
+    }
+
+    /**
+    * @brief Cancel on an own unit undoes its last action or move. On the base panel the move is forced to be
+    * undoable, so the unit goes back into the panel.
+    */
+    void undoHoveredUnit(DisaMapUnit& unit) {
+        if (unit.alliance != 0) {
+            FUN_0046aab0_playSound(4);
+            return;
+        }
+        const glm::ivec2 tile(toTile(unit.position.x), toTile(unit.position.z));
+        const glm::ivec2 basePanel(toTile(FP::getData<float>(fTeleportPannelX)), toTile(FP::getData<float>(fTeleportPannelZ)));
+        bool isUndone;
+        if (tile == basePanel && FP::getData<uint8_t>(0x0065db43) != 0) {
+            const uint8_t moveState = unit.moveState;
+            const bool isFromBasePanel = unit.isFromBasePanel;
+            unit.moveState = 1;
+            unit.isFromBasePanel = true;
+            isUndone = FUN_004485d0_undoUnit(DAT_008895ac_hoveredUnit(), 0) != 0;
+            if (!isUndone) {
+                unit.moveState = moveState;
+                unit.isFromBasePanel = isFromBasePanel;
+            }
+        }
+        else {
+            isUndone = FUN_004485d0_undoUnit(DAT_008895ac_hoveredUnit(), 0) != 0;
+        }
+        FUN_0046aab0_playSound(isUndone ? 7 : 4);
+        FUN_00444810_updateFog(0);
+        FUN_00444810_updateFog(1);
+        DAT_0067726b_isInputConsumed() = 1;
+    }
+
+    /**
+    * @brief Input on the hovered unit: turn, select, the equip shortcut and undo.
+    * @return True when the input took over the cursor this frame.
+    */
+    bool updateHoveredUnit(BattleFrame& frame, int hovered, bool isNextPagePressed) {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        DisaMapUnit& unit = *DisaMapUnit::get(hovered);
+        const auto isClickOnUnit = [&frame](bool isClicked) {
+            return isClicked && frame.cursorTile == frame.hoverCheckedTile && !FUN_0046de80_isGameFlagSet(0xd48);
+        };
+        bool isHandled = turnHoveredUnit(unit, isNextPagePressed);
+
+        //select, a held or defeated unit refuses
+        if (keys.isKeyPressed(DisaKeyStates::Select) || isClickOnUnit(FUN_0050f7c0_isLeftMouseClicked())) {
+            DAT_0067726b_isInputConsumed() = 1;
+            keys.clear();
+            isHandled = true;
+            stopCursor(cursor);
+            if (unit.heldByIndex < 0 && FUN_0046f640_getCondition(unit.character) != 2) {
+                FUN_0046aab0_playSound(1);
+                DAT_008895b0_selectedUnit() = DAT_008895ac_hoveredUnit();
+                if (unit.alliance == 0) {
+                    DAT_008895ec_menuCursor() = 0;
+                    FUN_00446d10_pushBattleState(0x0a, 0); //command menu
+                }
+                else {
+                    FUN_004d21f0_buildMoveRangeOriginal(*DisaMapUnit::get(DAT_008895ac_hoveredUnit()), 0, 0);
+                    FUN_00446d10_pushBattleState(0x16, 0); //inspect
+                }
+            }
+            else {
+                FUN_0046aab0_playSound(4);
+            }
+        }
+
+        //straight into the equip screen
+        if (FUN_0043dba0_isActionPressed(0x12) && unit.heldByIndex < 0 && FUN_0046f640_getCondition(unit.character) != 2) {
+            if (unit.alliance == 0) {
+                DAT_008895b0_selectedUnit() = hovered;
+                FUN_00446d10_pushBattleState(0x0a, 0);
+                FUN_0046aab0_playSound(1);
+                if (DAT_0065db3a_gameMode() != 5 && unit.actionState == 0 && getSleepTurns(unit.character) == 0) {
+                    FUN_00446d10_pushBattleState(0x12, 0);
+                }
+            }
+            else {
+                FUN_0046aab0_playSound(4);
+            }
+        }
+
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || isClickOnUnit(FUN_0050f950_isRightMouseClicked())) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            isHandled = true;
+            stopCursor(cursor);
+            undoHoveredUnit(unit);
+        }
+        return isHandled;
+    }
+
+    /**
+    * @brief State 0, the free cursor of the player turn: shortcuts, select, undo, deploy and the battle menu.
+    * Part of FUN_0045c0f0 at 0x0045C71C.
+    */
+    void LAB_0045c71c_updateFreeCursor(BattleFrame& frame) {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+
+        if (DAT_006b7578_busyCount() != 0 || cursor.moveFramesLeft != 0 || FUN_00444760_countProjectiles() != 0) {
+            FUN_0044b480_drawHoverInfo();
+            return;
+        }
+        if (FUN_00445590_isVersusTimeUp()) {
+            LAB_0045ce5d_endPlayerPhase();
+            FUN_0044b480_drawHoverInfo();
+            return;
+        }
+        FUN_004d9dc0_updateCameraControls(camera);
+        //both overwrite stack slots of the frame locals, lineHeight and targetCount are not used by state 0
+        const bool isRightLongPress = FUN_0050ffb0_isRightMouseLongPress();
+        const bool isNextPagePressed = keys.isKeyPressed(DisaKeyStates::NextPage);
+
+        //the cursor jumps, the frame ends without the hover info
+        if (isNextPagePressed && isPadShiftReleased()) {
+            keys.clear();
+            FUN_00449780_focusNextUnit(DAT_008895ac_hoveredUnit(), 0);
+            DAT_0067726b_isInputConsumed() = 1;
+            return;
+        }
+        if (FUN_0043dba0_isActionPressed(0x0f)) {
+            keys.clear();
+            FUN_00449af0_focusNextPlayerUnit(DAT_008895ac_hoveredUnit());
+            DAT_0067726b_isInputConsumed() = 1;
+            return;
+        }
+        if (FUN_0043dba0_isActionPressed(0x10)) {
+            keys.clear();
+            FUN_00449c70_focusGate(DAT_008895ac_hoveredUnit());
+            DAT_0067726b_isInputConsumed() = 1;
+            return;
+        }
+        if (FUN_0043dba0_isActionPressed(0x11)) {
+            keys.clear();
+            FUN_00449db0_focusBasePanel(DAT_008895ac_hoveredUnit());
+            DAT_0067726b_isInputConsumed() = 1;
+            return;
+        }
+        if (FUN_0043dba0_isActionPressed(0x13)) {
+            if (DAT_0065db3a_gameMode() == 4 || DAT_0065db3a_gameMode() == 5) {
+                FUN_0046aab0_playSound(4);
+            }
+            else {
+                FUN_0046aab0_playSound(1);
+                FUN_00446d10_pushBattleState(0x5a, 0);
+            }
+        }
+
+        const int hovered = DAT_008895ac_hoveredUnit();
+        bool isHandled = false;
+        if (hovered >= 0) {
+            isHandled = updateHoveredUnit(frame, hovered, isNextPagePressed);
+        }
+        else if (FUN_0043dba0_isActionPressed(0x11)) {
+            //never true, 0x11 already returned above
+            FUN_0046aab0_playSound(4);
+        }
+
+        //confirm on the base panel lists the party members that can come out
+        const glm::ivec2 tile(toTile(cursor.position.x), toTile(cursor.position.z));
+        const glm::ivec2 basePanel(toTile(FP::getData<float>(fTeleportPannelX)), toTile(FP::getData<float>(fTeleportPannelZ)));
+        const bool isOnBasePanel = tile == basePanel;
+        if (isOnBasePanel && FP::getData<uint8_t>(0x0065db43) != 0 && (keys.isKeyPressed(DisaKeyStates::Select)
+            || (FUN_0050f7c0_isLeftMouseClicked() && DAT_008895ac_hoveredUnit() == -1 && !FUN_0046de80_isGameFlagSet(0xd48)))) {
+            DAT_0067726b_isInputConsumed() = 1;
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            stopCursor(cursor);
+            isHandled = true;
+            FUN_004486e0_buildDeployList(0);
+            if (FP::getData<int16_t>(0x008896b8) > 0) {
+                FUN_0046aab0_playSound(1);
+                FUN_00446d10_pushBattleState(0x32, 0);
+            }
+            else {
+                FUN_0046aab0_playSound(4);
+            }
+        }
+
+        //FUN_0043dba0 leaves the action in ecx, FUN_0046a650 passes it on to the sound
+        if (FUN_0043dba0_isActionPressed(0x0d)) FUN_0046a650_startBattle(0x0d);
+        if (FUN_0043dba0_isActionPressed(0x0e)) FUN_0046a710_endTurn();
+
+        //the battle menu, a right click on the base panel does not open it
+        if (keys.isKeyPressed(DisaKeyStates::Menu) || (!isRightLongPress && FUN_0050f950_isRightMouseClicked() && !isOnBasePanel
+            && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            stopCursor(cursor);
+            FUN_0046aab0_playSound(3);
+            DAT_008895ec_menuCursor() = 0;
+            FUN_00446d10_pushBattleState(100, 0);
+        }
+        else if (!isHandled) {
+            FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
+        }
+
+        if (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0050f910_isLeftMouseDown() && !FUN_0046de80_isGameFlagSet(0xd48)) {
+            DAT_0067726b_isInputConsumed() = 1;
+        }
+        FUN_0044b480_drawHoverInfo();
+    }
+
+    /**
+    * @brief State 1, only the cursor moves. Versus mode waits here for the other player.
+    * Part of FUN_0045c0f0 at 0x0045CFE6.
+    */
+    void LAB_0045cfe6_updateCursorOnly() {
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        if (DAT_006b7578_busyCount() == 0 && cursor.moveFramesLeft == 0 && FUN_00444760_countProjectiles() == 0) {
+            DisaCameraInfo& camera = DAT_00730980_camera();
+            DisaKeyStates& keys = DAT_00778d98_keyStates();
+            FUN_004d9dc0_updateCameraControls(camera);
+            if (keys.isKeyPressed(DisaKeyStates::NextPage) && isPadShiftReleased()) {
+                keys.clear();
+                FUN_00449780_focusNextUnit(DAT_008895ac_hoveredUnit(), 0);
+            }
+            FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
+        }
+        FUN_0044b480_drawHoverInfo();
+    }
+
     /// State 0x0A, the command menu. Part of FUN_0045c0f0 at 0x0045D06E.
     void LAB_0045d06e_updateCommandMenu() {
         FP::callStdFastFarA<void>(0x004502d0, 0); //FUN_004502d0(layer)
@@ -435,6 +851,8 @@ namespace {
             return;
         }
         switch (state) {
+        case 0x00: LAB_0045c71c_updateFreeCursor(frame); break;
+        case 0x01: LAB_0045cfe6_updateCursorOnly(); break;
         case 0x0a: LAB_0045d06e_updateCommandMenu(); break;
         case 0x28: LAB_0045e546_updateBattleStart(); break;
         case 0x3c: LAB_0045e57d_updateSpecialList(); break;
