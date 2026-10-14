@@ -13,6 +13,8 @@
 #include <DisaFunctions.h>
 #include <DisaMapFunctions.h>
 #include <DisaCharacterFunctions.h>
+#include <DisaMapChunk.h>
+#include <Disa/fileformats/PG_MPD.h>
 
 /*
 * Port of FUN_0045c0f0. Globals keep their address in the name (DAT_xxxxxxxx_name), parts of the original function
@@ -20,6 +22,14 @@
 * (FUN_xxxxxxxx_name), so all of them can be found again in Ghidra, the disassembly and memory dumps.
 */
 static_assert(offsetof(PG_DisaPartyCharacter, currentHP) == 0x5c4);
+static_assert(offsetof(PG_DisaPartyCharacter, activeStats) == 0x5cc);
+static_assert(offsetof(PG_DisaPartyCharacter, jumpingPower) == 0x67b);
+static_assert(offsetof(PG_DisaPartyCharacter, movement) == 0x67d);
+static_assert(offsetof(PG_DisaPartyCharacter, unknownData6) == 0x684);
+static_assert(offsetof(PG_DisaPartyCharacter, field_0x68b) == 0x68a); //misnamed, it is at 0x68a
+static_assert(offsetof(PG_DisaPartyCharacter, field_0x6ac) == 0x6ac);
+static_assert(offsetof(mpdfileTile, geo_color) == 0x78);
+static_assert(offsetof(mpdfileTile, geo_mark) == 0x79);
 
 namespace {
 
@@ -306,12 +316,180 @@ namespace {
     }
 
     /**
+    * @brief Original function: FUN_004d1e50, traces the path of a unit to a tile, 0 on success.
+    * The port FUN_004d1e50_buildPath is not hooked in main.cpp yet, so this calls the original like the game does.
+    */
+    int FUN_004d1e50_buildPathOriginal(DisaMapUnit& unit, int x, int z, int8_t layer) {
+        return FP::callFastFarA<int>(0x004d1e50, &unit, x, z, int(layer));
+    }
+    /// Original function: FUN_004a1eb0, queues the blue tiles of the move range up to the given distance.
+    void FUN_004a1eb0_drawMoveRange(int movement) { FP::callStdFastFarA<void>(0x004a1eb0, movement); }
+    /// Original function: FUN_00447f00, the geo panel info of the cursor tile.
+    void FUN_00447f00_drawTileInfo() { FP::callFarA<void>(0x00447f00); }
+    /// Original function: FUN_0046a930, queues the name plate of a unit at height y.
+    void FUN_0046a930_drawNamePlate(int y, DisaMapUnit& unit, int mode) {
+        //ecx and the third stack slot are never read
+        FP::callFastFarA<void>(0x0046a930, 0, y, &unit, mode, 0);
+    }
+    /**
+    * @brief Original function: FUN_004b03c0, the status window of a character.
+    * Mode 10 is the full window, 0x68 the small one of a hovered unit. The first stack slot is never read.
+    */
+    void FUN_004b03c0_drawStatusWindow(int x, DisaPartyCharacterInfo* character, int mode) {
+        FP::callVariadicThisFarA<void>(0x004b03c0, x, 0, character, character, mode, -1);
+    }
+    /// Original function: FUN_0047f2d0, the equip screen of the character, not 0 once it closes.
+    int FUN_0047f2d0_updateEquipScreen(int8_t mode, DisaPartyCharacterInfo* character) {
+        return FP::callStdFastFarA<int>(0x0047f2d0, mode, character);
+    }
+    /// Original function: FUN_004da100, updates the status icons of the unit.
+    void FUN_004da100_updateStatusIcons(DisaMapUnit& unit) { FP::callStdFastFarA<int>(0x004da100, &unit); }
+    /// Original function: FUN_004d2960, marks the geo panels with the No Entry effect.
+    void FUN_004d2960_updateGeoPanels() { FP::callFarA<void>(0x004d2960); }
+    /// Original function: FUN_00447bf0, a unit of another alliance on the target tile, 0xff a base panel, -1 none.
+    int FUN_00447bf0_findBlocker(int index, bool isAtPosition) {
+        return FP::callStdFastFarA<int>(0x00447bf0, index, int(isAtPosition));
+    }
+    /// Original function: FUN_004475c0, moves the unit one step along its path, 1 once it arrived.
+    int FUN_004475c0_updateWalk(int index) { return FP::callStdFastFarA<int>(0x004475c0, index); }
+    /// Original function: FUN_004783d0, starts an effect sprite at the position of the transform.
+    void FUN_004783d0_spawnEffect(int sprite, int animation, DisaTransform* transform) {
+        FP::callFastFarA<void>(0x004783d0, sprite, animation, transform);
+    }
+    /// Original function: FUN_004e3440, converts a system string for the new text style.
+    void FUN_004e3440_convertString(void* destination, const void* source) {
+        FP::callStdFastFarA<void>(0x004e3440, destination, source);
+    }
+    /// Original function: FUN_004e42c0, converts a system string for the new text style, formats it on the way.
+    void FUN_004e42c0_convertString(void* destination, const void* source) {
+        FP::callCdeclFarA<void>(0x004e42c0, destination, source);
+    }
+    /// Original function: FUN_004dd950, writes a format string with a name into buffer, position receives where.
+    void FUN_004dd950_formatName(const void* format, void* buffer, const char* name, int* position, int style) {
+        FP::callFastFarA<void>(0x004dd950, format, 0, buffer, name, position, style);
+    }
+
+    /// Names that FUN_004dd950 placed into a message line, the message draws them in their own text style.
+    struct MessageNames {
+        const char* const* names = nullptr;
+        const int* positions = nullptr;
+        const int* styles = nullptr;
+        int count = 0;
+    };
+
+    /**
     * @brief Original function: FUN_00477550, a message window shown for a number of frames.
     * x and y -1 center it, color points to a palette entry like 0x005AD538.
     */
     void FUN_00477550_showMessage(int x, int y, int width, int lineCount, int frames, const void* color, const void* line1,
-        const void* line2 = nullptr) {
-        FP::callFastFarA<void>(0x00477550, x, y, width, lineCount, frames, color, line1, line2, 0, 0, 0, 0, 0, 0);
+        const void* line2 = nullptr, const MessageNames& names = {}) {
+        FP::callFastFarA<void>(0x00477550, x, y, width, lineCount, frames, color, line1, line2, names.names, names.positions, 0,
+            names.styles, names.count, 0);
+    }
+
+    /// The old text style, 0 or 1, takes the system strings as they are. The others convert them first.
+    bool isOldTextStyle() {
+        const uint32_t style = DAT_005d7c40_settings()->field_0x30;
+        return style == 1 || style == 0;
+    }
+
+    /// Shows a one line system string, converted for the new text style.
+    void showSystemMessage(int offset, int frames, const void* color) {
+        if (isOldTextStyle()) {
+            FUN_00477550_showMessage(-1, 0x3a, -1, 1, frames, color, getSystemString(offset));
+            return;
+        }
+        std::array<uint8_t, 0x400> line{};
+        FUN_004e42c0_convertString(line.data(), getSystemString(offset));
+        FUN_00477550_showMessage(-1, 0x3a, -1, 1, frames, color, line.data());
+    }
+
+    /**
+    * @brief The text style of the character's name.
+    * Original function: FUN_0046dda0
+    */
+    uint32_t FUN_0046dda0_getNameStyle(const DisaPartyCharacterInfo* character) {
+        return character->field_0x6b0 != 0 ? character->field_0x6ac : DAT_005d7c40_settings()->field_0x30;
+    }
+
+    /**
+    * @brief The tile of the world grid, nullptr outside or for a hole.
+    * Original function: FUN_004a51b0
+    */
+    const mpdfileTile* FUN_004a51b0_getWorldTile(int x, int z) {
+        if (x < 0 || z < 0 || x >= 64 || z >= 64) return nullptr;
+        return (&FP::getData<const mpdfileTile*>(0x00673260))[z * 64 + x];
+    }
+
+    /**
+    * @brief Stores whether the unit stands on a geo panel and its color.
+    * Original function: FUN_004d2ad0
+    */
+    void FUN_004d2ad0_updateGeoPanel(DisaMapUnit& unit) {
+        if (!unit.isActive) return;
+        const mpdfileTile* tile = FUN_004a51b0_getWorldTile(toTile(unit.position.x), toTile(unit.position.z));
+        if (tile && tile->geo_mark != 0) {
+            unit.isOnGeoPanel = 1;
+            unit.geoPanelColor = tile->geo_color + 1;
+            return;
+        }
+        //one int32 write in the original
+        unit.isOnGeoPanel = 0;
+        unit.geoPanelColor = 0;
+    }
+
+    /**
+    * @brief Refreshes the geo panels and the status icons of every unit.
+    * Original function: FUN_004da320
+    */
+    void FUN_004da320_refreshUnits() {
+        FUN_004d2960_updateGeoPanels();
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            FUN_004da100_updateStatusIcons(*DisaMapUnit::get(i));
+        }
+    }
+
+    /**
+    * @brief Starts the HP bar of the unit from the current HP towards newHp.
+    * Original function: FUN_0046b170_setHPBarTo
+    * @param frames 0 shows newHp at once.
+    */
+    void FUN_0046b170_setHpBarTo(DisaMapUnit& unit, int newHp, int frames) {
+        const DisaPartyCharacterInfo* character = unit.character;
+        unit.hpBarMax = static_cast<int32_t>(character->activeStats.hp);
+        unit.hpBarFrom = static_cast<int32_t>(character->currentHP);
+        unit.hpBarTo = newHp;
+        unit.hpBarFrame = 0;
+        unit.hpBarFrames = static_cast<int16_t>(frames);
+        unit.hpBarColor = unit.alliance;
+        if (frames == 0) {
+            unit.hpBarFrame = 1;
+            unit.hpBarFrames = 1;
+        }
+    }
+
+    /**
+    * @brief Moves the unit to the center of its tile and stops it.
+    * Original function: FUN_0046cf10_snapToTile, which truncates the negated tile so the center is found from below.
+    */
+    void FUN_0046cf10_snapToTile(DisaMapUnit& unit) {
+        constexpr double negativeTile = double(-1.f / 12.f);
+        unit.position.x = float(6 - static_cast<int>(unit.position.x * negativeTile) * 12);
+        const int z = static_cast<int>(unit.position.z * negativeTile);
+        unit.moveFramesLeft = 0;
+        unit.velocity.z = 0.f;
+        unit.velocity.x = 0.f;
+        unit.position.z = float(6 - z * 12);
+    }
+
+    /// The tile of the first base panel.
+    glm::ivec2 getBasePanelTile() {
+        return glm::ivec2(toTile(FP::getData<float>(fTeleportPannelX)), toTile(FP::getData<float>(fTeleportPannelZ)));
+    }
+
+    /// Glides the cursor back onto the unit, the states do it when they are cancelled.
+    void moveCursorTo(const DisaMapUnit& unit, float frames) {
+        DAT_00730ba0_cursor().FUN_0046cab0_translateTo(unit.position.x, unit.restPosition.y, unit.position.z, frames);
     }
 
     // ---- The frame ----
@@ -721,6 +899,277 @@ namespace {
         FUN_0044b480_drawHoverInfo();
     }
 
+    /**
+    * @brief State 0x12, the equip screen of the selected unit. Takes over the new weapon and stats when it closes.
+    * Part of FUN_0045c0f0 at 0x0045D07E.
+    */
+    void LAB_0045d07e_updateEquipScreen() {
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        //cl 1, the upper bytes of ecx still hold the -1 of the dispatch, the function only reads cl
+        if (FUN_0047f2d0_updateEquipScreen(1, unit.character) == 0) return;
+        DisaPartyCharacterInfo* character = unit.character;
+        unit.weaponType = static_cast<int8_t>(character->unknownData6[5]); //character byte 0x689
+        unit.weaponSprite = static_cast<int8_t>(character->field_0x68b);   //character byte 0x68a
+        unit.movement = character->movement;
+        unit.jumpPower = static_cast<int8_t>(character->jumpingPower);
+        FUN_0046b170_setHpBarTo(unit, character->currentHP, 0);
+        FUN_004da100_updateStatusIcons(unit);
+        FUN_00446d50_popBattleState(0);
+    }
+
+    /**
+    * @brief State 0x13, the status window of the selected unit.
+    * Part of FUN_0045c0f0 at 0x0045D125.
+    */
+    void LAB_0045d125_updateStatusScreen() {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            keys.clear();
+            FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(0);
+        }
+        const int selected = DAT_008895b0_selectedUnit();
+        if (selected >= 0) FUN_004b03c0_drawStatusWindow(0x20, DisaMapUnit::get(selected)->character, 10);
+    }
+
+    /// The small status window of the hovered unit, or the geo panel info of the tile without one.
+    void drawHoveredStatus() {
+        const int hovered = DAT_008895ac_hoveredUnit();
+        if (hovered >= 0) FUN_004b03c0_drawStatusWindow(0x20, DisaMapUnit::get(hovered)->character, 0x68);
+        else FUN_00447f00_drawTileInfo();
+    }
+
+    /**
+    * @brief Starts the move to the cursor tile. Distance 0 on another tile is the jump out of the base panel.
+    * @param distance Steps from the range map, 0xff not reachable.
+    */
+    void moveToCursor(DisaMapUnit& unit, glm::ivec2 target, int distance) {
+        unit.moveOriginFacing = unit.facing;
+        unit.moveOrigin = unit.position;
+        unit.pathLength = static_cast<int16_t>(distance);
+        if (distance != 0) {
+            FUN_0046aab0_playSound(1);
+            if (FUN_004d1e50_buildPathOriginal(unit, target.x, target.y, 0) != 0) return;
+            FP::getData<int32_t>(0x006772c4) = DAT_008895b0_selectedUnit() + 1; //the camera follows the unit
+            FUN_00446d10_pushBattleState(0x15, 0);
+            unit.showHpBar = 0;
+            unit.pathStep = 1;
+        }
+        else {
+            unit.position.x = float(target.x * 12 + 6);
+            unit.position.z = float(target.y * 12 + 6);
+            unit.position.y = FUN_004d2be0_getGroundHeight(nullptr, 0, unit.position.x, unit.position.z);
+            //versus fog, a hidden unit stands on the tile, the move fails and ends the turn of the unit
+            if (DAT_0065db3a_gameMode() == 5 && FP::getData<uint8_t>(0x006e57b3) != 0
+                && FUN_00447bf0_findBlocker(DAT_008895b0_selectedUnit(), true) != -1) {
+                FUN_0046aab0_playSound(4);
+                unit.position.x = unit.moveOrigin.x;
+                unit.position.z = unit.moveOrigin.z;
+                unit.position.y = unit.moveOrigin.y;
+                unit.moveState = 2;
+                unit.actionState = 2;
+                showSystemMessage(0x960, 0x5a, &FP::getData<uint8_t>(0x005ae3ec));
+                FUN_00446d10_pushBattleState(0, 0);
+                return;
+            }
+            FUN_0046aab0_playSound(1);
+            FUN_00446d10_pushBattleState(0x15, 0);
+        }
+        if (FP::getData<int32_t>(0x005d9cd8) == 0 && unit.moveState == 0) unit.moveState = 1;
+    }
+
+    /**
+    * @brief State 0x14, choose the tile to move the selected unit to.
+    * Part of FUN_0045c0f0 at 0x0045D193.
+    */
+    void LAB_0045d193_updateMoveTarget() {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        FUN_004d9dc0_updateCameraControls(camera);
+        FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
+
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        const int movement = unit.movement;
+        FUN_004a1eb0_drawMoveRange(movement);
+        const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
+        const glm::ivec2 target(toTile(cursor.position.x), toTile(cursor.position.z));
+        //a unit that acted cannot go back into the base panel
+        const bool isPanelBlocked = FP::getData<uint8_t>(0x0065db43) != 0 && target == getBasePanelTile() && unit.actionState != 0;
+        //no range check, the cursor never leaves the map
+        const int distance = (&FP::getData<uint8_t>(0x00664f10))[target.y * 64 + target.x];
+
+        if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            DAT_0067726b_isInputConsumed() = 1;
+            keys.clear();
+            stopCursor(cursor);
+            if (distance > movement || target == unitTile || isPanelBlocked) FUN_0046aab0_playSound(4);
+            else moveToCursor(unit, target, distance);
+        }
+
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            stopCursor(cursor);
+            FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(0);
+            moveCursorTo(unit, 15.f);
+        }
+        if (DAT_008895ac_hoveredUnit() >= 0) FUN_0046a930_drawNamePlate(0xa9, *DisaMapUnit::get(DAT_008895ac_hoveredUnit()), 0);
+        FUN_00447f00_drawTileInfo();
+    }
+
+    /// The unit stepped onto the Item World gate, shows the floor message and leaves the floor.
+    void enterGate(const DisaMapUnit& unit) {
+        //every 10th floor shows no message
+        if (FP::getData<uint16_t>(0x0065db2c) % 10 != 9) {
+            std::array<uint8_t, 0x100> line1{};
+            const char* name = unit.character->charName.data();
+            const int style = static_cast<int>(FUN_0046dda0_getNameStyle(unit.character));
+            int namePosition = 0;
+            const MessageNames names{ &name, &namePosition, &style, 1 };
+            const void* color = &FP::getData<uint8_t>(0x005ad538);
+            if (isOldTextStyle()) {
+                FUN_004dd950_formatName(getSystemString(0x8b8), line1.data(), name, &namePosition, style);
+                FUN_00477550_showMessage(-1, 0x3a, -1, 2, 0x96, color, line1.data(), getSystemString(0x8bc), names);
+            }
+            else {
+                std::array<uint8_t, 0x540> format{};
+                std::array<uint8_t, 0x400> line2{};
+                FUN_004e3440_convertString(format.data(), getSystemString(0x8b8));
+                FUN_004dd950_formatName(format.data(), line1.data(), name, &namePosition,
+                    static_cast<int>(FUN_0046dda0_getNameStyle(unit.character)));
+                FUN_004e42c0_convertString(line2.data(), getSystemString(0x8bc));
+                FUN_00477550_showMessage(-1, 0x3a, -1, 2, 0x96, color, line1.data(), line2.data(), names);
+            }
+        }
+        FUN_0046aab0_playSound(0x1f);
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = 0x3e9;
+    }
+
+    /**
+    * @brief State 0x15, the selected unit walks its path. Then the base panel takes it back, the gate ends the
+    * Item World floor and an exit tile ends the map.
+    * Part of FUN_0045c0f0 at 0x0045D602.
+    */
+    void LAB_0045d602_updateWalk() {
+        const int selected = DAT_008895b0_selectedUnit();
+        const int walkResult = FUN_004475c0_updateWalk(selected);
+        DisaMapUnit& unit = *DisaMapUnit::get(selected);
+
+        //versus fog, the unit ran into a hidden unit and stops on the last tile
+        if (DAT_0065db3a_gameMode() == 5 && FP::getData<uint8_t>(0x006e57b3) != 0 && unit.movement < 99
+            && FUN_00447bf0_findBlocker(selected, false) != -1) {
+            FUN_0046cf10_snapToTile(unit);
+            moveCursorTo(unit, 0.f);
+            unit.moveState = 2;
+            unit.actionState = 2;
+            unit.pathLength = 0;
+            unit.pathX[0] = static_cast<int16_t>(toTile(unit.position.x));
+            unit.pathZ[0] = static_cast<int16_t>(toTile(unit.position.z));
+            DisaTransform* transform = getEffectTransform();
+            transform->position.x = unit.position.x;
+            transform->position.y = float(double(unit.position.y) - 12.0);
+            transform->position.z = unit.position.z;
+            FUN_004783d0_spawnEffect(0x139d, 0x1389, transform);
+        }
+        else if (walkResult != 1) {
+            return;
+        }
+        if (unit.moveFramesLeft != 0) return;
+
+        unit.showHpBar = 1;
+        unit.pose = 0;
+        FUN_004d2ad0_updateGeoPanel(unit);
+        FUN_004da320_refreshUnits();
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = 0;
+        FP::getData<int32_t>(0x006772c4) = 0; //the camera follows the cursor again
+
+        const glm::ivec2 tile(toTile(unit.position.x), toTile(unit.position.z));
+        if (getBasePanelTile() == tile && FP::getData<uint8_t>(0x0065db43) != 0) {
+            //back into the base panel, the party member keeps its states for the next time it comes out
+            reinterpret_cast<uint8_t*>(unit.character)[0x69c] = unit.actionState;
+            reinterpret_cast<uint8_t*>(unit.character)[0x69d] = unit.moveState;
+            unit.isActive = false;
+            ++FP::getData<int8_t>(0x0065db39);
+        }
+        const glm::ivec2 gateTile(toTile(FP::getData<float>(0x0065dae0)), toTile(FP::getData<float>(0x0065dae4)));
+        if (unit.alliance == 0 && gateTile == tile && FP::getData<uint8_t>(0x0065db41) != 0) enterGate(unit);
+
+        //an exit tile of the first chunk ends the map
+        const auto& eventTiles = DisaMapChunk::get(0)->eventTiles;
+        for (const mpdfileChunkEventTile& eventTile : eventTiles) {
+            const bool isOnTile = static_cast<uint8_t>(eventTile.x) == tile.x && static_cast<uint8_t>(eventTile.z) == tile.y;
+            if (eventTile.index != 0 && isOnTile && unit.alliance == 0 && eventTile.index == 2) {
+                FUN_00446e20(eventTile.index, tile.y);
+            }
+        }
+        FUN_00444810_updateFog(0);
+    }
+
+    /**
+    * @brief State 0x16, looks at a unit the player does not control, with its move range.
+    * Part of FUN_0045c0f0 at 0x0045DA48.
+    */
+    void LAB_0045da48_updateInspect() {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        FUN_004d9dc0_updateCameraControls(camera);
+        FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
+
+        const DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        //geo symbols, characters 3200 to 3209 and models have no move range
+        if (unit.isGeoSymbol == 0 && unit.characterId / 10 != 320 && unit.modelType == 0) FUN_004a1eb0_drawMoveRange(unit.movement);
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            DAT_0067726b_isInputConsumed() = 1;
+            keys.clear();
+            stopCursor(cursor);
+            FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(0);
+            moveCursorTo(unit, 15.f);
+        }
+        drawHoveredStatus();
+    }
+
+    /**
+    * @brief State 0x17, watches the unit DAT_008895b4 with its move range until it moves, falls or Cancel.
+    * Part of FUN_0045c0f0 at 0x0045DB64.
+    */
+    void LAB_0045db64_updateWatchUnit() {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        const bool isIdle = DAT_006b7578_busyCount() == 0 && cursor.moveFramesLeft == 0 && FUN_00444760_countProjectiles() == 0;
+        if (isIdle) {
+            FUN_004d9dc0_updateCameraControls(camera);
+            FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
+        }
+
+        const DisaMapUnit& unit = *DisaMapUnit::get(FP::getData<int32_t>(0x008895b4));
+        const glm::vec2 watchedPosition = FP::getData<glm::vec2>(0x008895e4); //x and z
+        const bool isStill = unit.isActive && FUN_0046f640_getCondition(unit.character) != 2 && unit.heldByIndex < 0
+            && unit.position.x == watchedPosition.x && unit.position.z == watchedPosition.y;
+        if (!isStill) {
+            stopCursor(cursor);
+            FUN_00446d50_popBattleState(0);
+            moveCursorTo(unit, 15.f);
+        }
+        else {
+            if (unit.isGeoSymbol == 0 && unit.characterId / 10 != 320 && unit.modelType == 0) FUN_004a1eb0_drawMoveRange(unit.movement);
+            if (isIdle && keys.isKeyPressed(DisaKeyStates::Cancel)) {
+                keys.clear();
+                stopCursor(cursor);
+                FUN_0046aab0_playSound(7);
+                FUN_00446d50_popBattleState(0);
+                moveCursorTo(unit, 15.f);
+            }
+        }
+        drawHoveredStatus();
+    }
+
     /// State 0x0A, the command menu. Part of FUN_0045c0f0 at 0x0045D06E.
     void LAB_0045d06e_updateCommandMenu() {
         FP::callStdFastFarA<void>(0x004502d0, 0); //FUN_004502d0(layer)
@@ -853,6 +1302,12 @@ namespace {
         switch (state) {
         case 0x00: LAB_0045c71c_updateFreeCursor(frame); break;
         case 0x01: LAB_0045cfe6_updateCursorOnly(); break;
+        case 0x12: LAB_0045d07e_updateEquipScreen(); break;
+        case 0x13: LAB_0045d125_updateStatusScreen(); break;
+        case 0x14: LAB_0045d193_updateMoveTarget(); break;
+        case 0x15: LAB_0045d602_updateWalk(); break;
+        case 0x16: LAB_0045da48_updateInspect(); break;
+        case 0x17: LAB_0045db64_updateWatchUnit(); break;
         case 0x0a: LAB_0045d06e_updateCommandMenu(); break;
         case 0x28: LAB_0045e546_updateBattleStart(); break;
         case 0x3c: LAB_0045e57d_updateSpecialList(); break;
