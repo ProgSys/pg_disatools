@@ -49,6 +49,10 @@ static_assert(offsetof(PG_DisaPartyCharacter, field_0x6ac) == 0x6ac);
 static_assert(offsetof(mpdfileTile, geo_color) == 0x78);
 static_assert(offsetof(mpdfileTile, geo_mark) == 0x79);
 
+namespace Custom {
+    static bool isBlockConsumeInput = false;
+}
+
 namespace {
 
     // ---- Globals ----
@@ -1126,8 +1130,12 @@ namespace {
         }
         else {
             const int32_t followedUnit = FP::getData<int32_t>(0x006772c4); //0 the cursor, else the unit index + 1, -1 none
-            const bool isFollowing = DAT_0067726b_isInputConsumed() != 0 || (FP::getData<int32_t>(0x0071fd34) != 0 && state != 99)
-                || state == 200 || state == 0xaa || state == 0x96 || state == 0xa0;
+            bool isFollowing = DAT_0067726b_isInputConsumed() != 0;
+            //BEGIN custom code
+            isFollowing &= !Custom::isBlockConsumeInput;
+            Custom::isBlockConsumeInput = false;
+            //END custom code
+            isFollowing |= (FP::getData<int32_t>(0x0071fd34) != 0 && state != 99) || state == 200 || state == 0xaa || state == 0x96 || state == 0xa0;
             if (isFollowing) {
                 //the further the target, the slower, in tiles
                 const float distanceX = std::abs(float(cursor.position.x - camera.eyeOffsetTarget.x) / 12.f);
@@ -1694,7 +1702,15 @@ namespace {
             stopCursor(cursor);
             FUN_0046aab0_playSound(7);
             FUN_00446d50_popBattleState(0);
-            moveCursorTo(unit, 15.f);
+            //BEGIN custom code
+            //to not move cursor 
+            if (DisaCustomModificationsManager::get()->isImprovedMouseControl()) {
+                Custom::isBlockConsumeInput = true;
+            } else {
+                //END custom code
+                moveCursorTo(unit, 15.f); //original
+            }
+           
         }
         drawHoveredStatus();
     }
