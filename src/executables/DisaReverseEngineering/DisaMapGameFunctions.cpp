@@ -27,6 +27,9 @@ static_assert(offsetof(PG_DisaPartyCharacter, activeStats) == 0x5cc);
 static_assert(offsetof(PG_DisaPartyCharacter, activeStats.intelligence) == 0x5dc);
 static_assert(offsetof(PG_DisaPartyCharacter, skillId) == 0x4a4);
 static_assert(offsetof(PG_DisaPartyCharacter, characterId) == 0x664);
+static_assert(offsetof(PG_DisaPartyCharacter, level) == 0x660);
+static_assert(offsetof(PG_DisaPartyCharacter, skillLevel) == 0x564);
+static_assert(offsetof(mpdfileTile, mobility) == 0x77);
 static_assert(offsetof(PG_DisaPartyCharacter, jumpingPower) == 0x67b);
 static_assert(offsetof(PG_DisaPartyCharacter, movement) == 0x67d);
 static_assert(offsetof(PG_DisaPartyCharacter, unknownData6) == 0x684);
@@ -447,6 +450,114 @@ namespace {
         return nullptr;
     }
 
+    /**
+    * @brief Height of the tile surface, negative is up, 0 outside the grid.
+    * Original function: FUN_004d2e00
+    */
+    int FUN_004d2e00_getTileHeight(int x, int z) {
+        if (x > 63 || z > 63 || x < 0 || z < 0) return 0;
+        return (&FP::getData<int16_t>(0x00671250))[z * 64 + x];
+    }
+
+    /**
+    * @brief Steps of the move range of the layer to a tile, 0xff outside the grid or not reached.
+    * Original function: FUN_004495a0
+    */
+    int FUN_004495a0_getRangeDistance(int x, int z, int8_t layer) {
+        if (x < 0 || z < 0 || x >= 64 || z >= 64) return 0xff;
+        return (&FP::getData<uint8_t>(0x00666f10))[x + (layer * 64 + z) * 64];
+    }
+
+    /**
+    * @brief Rounds a height to the nearest whole number, halves away from zero.
+    * Original function: FUN_0046e7d0
+    */
+    int FUN_0046e7d0_roundHeight(float value) {
+        const int whole = static_cast<int>(value);
+        const float fraction = value - float(whole);
+        return whole + (fraction >= 0.5f ? 1 : 0) - (fraction <= -0.5f ? 1 : 0);
+    }
+
+    /**
+    * @brief The tile of an entry of a skill area, turned to the direction of the area and moved to the center.
+    * Original function: FUN_004446b0, a thiscall on the area table at 0x00664780, 3 bytes per entry: x, z and the kind.
+    * @return The kind of the tile: 1 hits units, 2 must be free, 3 hits units within the height window.
+    */
+    int FUN_004446b0_getAreaTile(int index, int direction, glm::ivec2 center, glm::ivec2& tile) {
+        const int8_t* entry = &FP::getData<int8_t>(0x00664780) + index * 3;
+        //another direction leaves the tile as it was before the center is added
+        switch (direction) {
+        case 0: tile = glm::ivec2(entry[0], entry[1]); break;
+        case 1: tile = glm::ivec2(entry[1], -entry[0]); break;
+        case 2: tile = glm::ivec2(-entry[0], -entry[1]); break;
+        case 3: tile = glm::ivec2(-entry[1], entry[0]); break;
+        default: break;
+        }
+        tile += center;
+        return entry[2];
+    }
+
+    /**
+    * @brief The middle mouse button went down.
+    * Original function: FUN_0050fad0
+    */
+    bool FUN_0050fad0_isMiddleMouseClicked() {
+        return isMouseUsable() && (FP::getData<uint32_t>(0x00701c58) & 0x40000000) != 0;
+    }
+
+    /// Original function: FUN_0050fe30, a left click inside the box.
+    bool FUN_0050fe30_isClickInBox(int left, int top, int right, int bottom) {
+        return FP::callFastFarA<bool>(0x0050fe30, left, top, right, bottom, 0);
+    }
+    /// Original function: FUN_004d0ee0, the facing the stick points to, -1 none. The stack slot is never read.
+    int FUN_004d0ee0_getStickFacing(DisaCameraInfo& camera) { return FP::callFastFarA<int>(0x004d0ee0, &camera, 0, 0); }
+    /// Original function: FUN_004a1be0, draws the area of the skill at the cursor tile.
+    void FUN_004a1be0_drawSkillArea(int area, int direction, glm::ivec2 center, int distance) {
+        FP::callFastFarA<void>(0x004a1be0, area, direction, center.x, center.y, distance);
+    }
+    /// Original function: FUN_00456930, the window with the reasons a skill cannot be used and the rotate button.
+    void FUN_00456930_drawSkillWarnings(int errorCount, int blocked, int outOfReach, int inReach, int heightTiles, int heightFree,
+        int isOutOfRange, int area, DisaMapUnit& unit) {
+        FP::callFastFarA<void>(0x00456930, errorCount, blocked, outOfReach, inReach, heightTiles, heightFree, isOutOfRange, area, &unit);
+    }
+    /// Original function: FUN_004572c0, the window with the reasons the summon cannot be placed.
+    void FUN_004572c0_drawSummonWarnings(int isOutOfRange, int blocked) {
+        FP::callStdFastFarA<void>(0x004572c0, isOutOfRange, blocked);
+    }
+    /// Original function: FUN_0046a9f0, the height window of the cursor tile at x.
+    void FUN_0046a9f0_drawTileHeight(int x) { FP::callStdFastFarA<void>(0x0046a9f0, x); }
+    /**
+    * @brief Original function: FUN_004d30e0, places a character as a unit of the alliance, returns its index or -1.
+    * The eighth argument is never read, the original passes whatever ecx held.
+    */
+    int FUN_004d30e0_spawnCharacter(int id, int alliance, int level, float x, float y, float z) {
+        return FP::callFastFarA<int>(0x004d30e0, id, alliance, level, x, y, z, 0, 0, 0);
+    }
+    /// Original function: FUN_00478d50, starts an effect at the transform.
+    void FUN_00478d50_spawnEffect(int sprite, int animation, DisaTransform* transform, float scale, int arg9) {
+        FP::callFastFarA<void>(0x00478d50, sprite, animation, transform, &DAT_00730980_camera(), 0, scale, 0, 0, arg9);
+    }
+    /// Original function: FUN_0046db50, the character used the skill, counts its experience.
+    void FUN_0046db50_useSkill(DisaPartyCharacterInfo* character, int skill) {
+        FP::callStdFastFarA<void>(0x0046db50, character, skill);
+    }
+    /// Original function: FUN_004db610, recomputes the stats of the character.
+    void FUN_004db610_updateStats(DisaPartyCharacterInfo* character, int alliance) {
+        FP::callStdFastFarA<void>(0x004db610, character, alliance);
+    }
+
+    /// Like the original, the bounds move the position 6 inside the min side, and also 6 outside the max side.
+    void clampToMap(float& x, float& z) {
+        const int minZ = FP::getData<int32_t>(0x00664774) * 12;
+        const int minX = FP::getData<int32_t>(0x00664770) * 12;
+        const int maxZ = FP::getData<int32_t>(0x0066476c) * 12;
+        const int maxX = FP::getData<int32_t>(0x00664768) * 12;
+        if (z <= float(minZ)) z = float(minZ + 6);
+        if (x <= float(minX)) x = float(minX + 6);
+        if (float(maxZ) < z) z = float(maxZ + 6);
+        if (float(maxX) < x) x = float(maxX + 6);
+    }
+
     /// Names that FUN_004dd950 placed into a message line, the message draws them in their own text style.
     struct MessageNames {
         const char* const* names = nullptr;
@@ -626,15 +737,7 @@ namespace {
                     dragAnchorZ = world.z;
                 }
                 glm::vec2 target(camera.eyeOffset.x + dragAnchorX - world.x, camera.eyeOffset.z + dragAnchorZ - world.z);
-                //every bound moves the target 6 inwards of the min side, also on the max side like the original
-                const int minZ = FP::getData<int32_t>(0x00664774) * 12;
-                const int minX = FP::getData<int32_t>(0x00664770) * 12;
-                const int maxZ = FP::getData<int32_t>(0x0066476c) * 12;
-                const int maxX = FP::getData<int32_t>(0x00664768) * 12;
-                if (target.y <= float(minZ)) target.y = float(minZ + 6);
-                if (target.x <= float(minX)) target.x = float(minX + 6);
-                if (float(maxZ) < target.y) target.y = float(maxZ + 6);
-                if (float(maxX) < target.x) target.x = float(maxX + 6);
+                clampToMap(target.x, target.y);
                 camera.move(glm::vec3(target.x, camera.eyeOffset.y, target.y), 10.f);
                 lastMouseX = mouse.x;
                 lastMouseY = mouse.y;
@@ -1427,6 +1530,512 @@ namespace {
         DAT_008896a0_battleStateDepths()[0] = 0;
     }
 
+    /// DAT_008895cc, the area shape of the chosen skill. From 9 on the area starts at the unit, which can still move.
+    int32_t& DAT_008895cc_skillArea() { return FP::getData<int32_t>(0x008895cc); }
+    /// DAT_008895c8, the direction of the skill area, 0 to 3.
+    int32_t& DAT_008895c8_skillDirection() { return FP::getData<int32_t>(0x008895c8); }
+
+    /// The skill areas the Menu key and the rotate button can turn.
+    bool isRotatableArea(int area) {
+        return area == 1 || area == 2 || area == 3 || area == 5 || area == 6;
+    }
+
+    /// Turns the skill area by one step with sound 9.
+    void rotateSkillArea() {
+        FUN_0046aab0_playSound(9);
+        int32_t& direction = DAT_008895c8_skillDirection();
+        ++direction;
+        if (direction > 3) direction = 0;
+    }
+
+    /// The height difference leaves the window of the skill, DAT_008895b8 down and DAT_008895bc up.
+    bool isOutsideSkillHeight(int heightDifference) {
+        if (heightDifference < 0) return std::abs(heightDifference) > FP::getData<int32_t>(0x008895b8);
+        return heightDifference > FP::getData<int32_t>(0x008895bc);
+    }
+
+    /// The tile of the second base panel, the one of player 2 in versus mode.
+    glm::ivec2 getSecondBasePanelTile() {
+        return glm::ivec2(toTile(FP::getData<float>(0x006e57a0)), toTile(FP::getData<float>(0x006e57a4)));
+    }
+
+    /// The tile of the Item World gate.
+    glm::ivec2 getGateTile() {
+        return glm::ivec2(toTile(FP::getData<float>(0x0065dae0)), toTile(FP::getData<float>(0x0065dae4)));
+    }
+
+    /// Counts how many reasons forbid a free tile of kind 2: the panels, the gate, fog, holes and No Entry.
+    int countFreeTileBlocks(glm::ivec2 tile, const mpdfileTile* worldTile) {
+        int blocked = 0;
+        if (FP::getData<uint8_t>(0x0065db43) != 0 && getBasePanelTile() == tile) ++blocked;
+        if (DAT_0065db3a_gameMode() == 5 && FP::getData<uint8_t>(0x006d4abe) != 0 && getSecondBasePanelTile() == tile) ++blocked;
+        if (FP::getData<uint8_t>(0x0065db41) != 0 && getGateTile() == tile) ++blocked;
+        if (FUN_00444990_getFog(0, float(tile.x * 12), float(tile.y * 12)) == 0xff) ++blocked;
+        if (!worldTile || worldTile->padding[1] + static_cast<int8_t>(worldTile->mobility) != 0) ++blocked;
+        return blocked;
+    }
+
+    /// Versus mode, skill 0x855 must not hit the base panel of player 2.
+    bool isOnSecondPanelBlocked(const DisaPartyCharacterInfo* character, int kind, glm::ivec2 tile) {
+        return DAT_0065db3a_gameMode() == 5 && character->skillId[FP::getData<int32_t>(0x008895c0)] == 0x855 && kind == 1
+            && FP::getData<uint8_t>(0x006d4abe) != 0 && getSecondBasePanelTile() == tile;
+    }
+
+    /// The unit can be hit by the skill, a unit only hits itself with skill types 4 and 5 (skill byte 0xa1).
+    bool isSkillTarget(int index, const DisaMapUnit& other, const uint8_t* skill) {
+        if (!other.isActive) return false;
+        if (DAT_008895b0_selectedUnit() == index && skill[0xa1] != 4 && skill[0xa1] != 5) return false;
+        return FUN_0046f640_getCondition(other.character) != 2 && other.heldByIndex < 0;
+    }
+
+    /// The checks of the skill area at the cursor, shown as warnings by FUN_00456930.
+    struct SkillAreaCheck {
+        int blocked = 0;        ///< [esp+0x14] free tiles of kind 2 that are not free
+        int outOfReach = 0;     ///< [esp+0x30] units the height difference keeps out
+        int inReach = 0;        ///< [esp+0x44] units the skill hits
+        int heightTiles = 0;    ///< [esp+0x60] tiles of kind 3 outside the height window
+        int heightFree = 0;     ///< [esp+0x64] tiles of kind 2 outside the height window
+    };
+
+    /// Checks every tile of the skill area at the cursor. Part of FUN_0045c0f0 at 0x0045F142.
+    SkillAreaCheck LAB_0045f142_checkSkillArea(const DisaMapUnit& unit, const uint8_t* skill, glm::ivec2 cursorTile) {
+        SkillAreaCheck check;
+        const int area = DAT_008895cc_skillArea();
+        const int start = (&FP::getData<int16_t>(0x00664d80))[area];
+        const int end = (&FP::getData<int16_t>(0x00664e40))[area];
+        if (start >= end) return check;
+        const int unitHeight = FUN_0046e7d0_roundHeight(unit.position.y);
+        for (int i = start; i < end; ++i) {
+            glm::ivec2 tile;
+            const int kind = FUN_004446b0_getAreaTile(i, DAT_008895c8_skillDirection(), cursorTile, tile);
+            const int heightDifference = FUN_004d2e00_getTileHeight(tile.x, tile.y) - unitHeight;
+            if (kind == 3 && isOutsideSkillHeight(heightDifference)) ++check.heightTiles;
+            const mpdfileTile* worldTile = FUN_004a51b0_getWorldTile(tile.x, tile.y);
+            if (kind == 2) {
+                check.blocked += countFreeTileBlocks(tile, worldTile);
+                if (isOutsideSkillHeight(heightDifference)) ++check.heightFree;
+            }
+            if (isOnSecondPanelBlocked(unit.character, kind, tile)) ++check.blocked;
+
+            for (int index = 0; index < DisaMapUnit::count; ++index) {
+                const DisaMapUnit& other = *DisaMapUnit::get(index);
+                if (!isSkillTarget(index, other, skill)) continue;
+                if (FUN_00444990_getFog(0, other.position.x, other.position.z) == 0xff) continue;
+                if (toTile(other.position.x) != tile.x || toTile(other.position.z) != tile.y) continue;
+                if (kind == 1 || kind == 3) {
+                    if (isOutsideSkillHeight(heightDifference)) ++check.outOfReach;
+                    else ++check.inReach;
+                }
+                if (kind == 2) ++check.blocked;
+            }
+        }
+        return check;
+    }
+
+    /**
+    * @brief Fills the queued action with the targets of the skill area and queues it, refuses without a visible target
+    * or with a blocked tile.
+    * Part of FUN_0045c0f0 at 0x0045F7A3.
+    * @return True when the skill was queued.
+    */
+    bool LAB_0045f7a3_queueSkill(DisaMapUnit& unit, const uint8_t* skill, glm::ivec2 cursorTile, int direction) {
+        DisaPartyCharacterInfo* character = unit.character;
+        const int area = DAT_008895cc_skillArea();
+        const uint16_t skillId = *reinterpret_cast<const uint16_t*>(skill);
+        uint8_t* action = DAT_005db920_getAction(DAT_005d9cd0_actionCount());
+        int targetCount = 0;
+        int blocked = 0;
+        bool isTargetVisible = false;
+        FUN_0046f510_clearAction(action);
+        *reinterpret_cast<int32_t*>(action + 0x154) = 1;
+        *reinterpret_cast<int16_t*>(action + 0x84) = static_cast<int16_t>(DAT_008895b0_selectedUnit());
+        *reinterpret_cast<uint16_t*>(action + 0x158) = character->skillId[FP::getData<int32_t>(0x008895c0)];
+        int16_t& actionFacing = *reinterpret_cast<int16_t*>(action + 0x166);
+        int cost;
+        if (area >= 9) {
+            //the unit turns to the area, another direction keeps the 0 of the cleared action
+            constexpr std::array<int16_t, 4> facings = { 0, 0x5a, 0xb4, -0x5a };
+            if (direction >= 0 && direction <= 3) actionFacing = facings[direction];
+            unit.facingTarget = actionFacing;
+            cost = FUN_00470850_getSkillCost(character, skillId, 1);
+        }
+        else {
+            actionFacing = 0;
+            cost = FUN_00470850_getSkillCost(character, skillId, area + 1);
+        }
+        *reinterpret_cast<int16_t*>(action + 0x176) = static_cast<int16_t>(cost);
+
+        int16_t& actionTargetCount = *reinterpret_cast<int16_t*>(action + 0x156);
+        int16_t* actionTargets = reinterpret_cast<int16_t*>(action + 0x94);
+        int16_t* actionTileTargets = reinterpret_cast<int16_t*>(action + 0xd4);
+        const int start = (&FP::getData<int16_t>(0x00664d80))[area];
+        for (int i = start; i < (&FP::getData<int16_t>(0x00664e40))[area]; ++i) {
+            glm::ivec2 tile;
+            const int kind = FUN_004446b0_getAreaTile(i, direction, cursorTile, tile);
+            const int heightDifference = FUN_004d2e00_getTileHeight(tile.x, tile.y) - FUN_0046e7d0_roundHeight(unit.position.y);
+            //the first tile is the center of the area
+            if (i == start) {
+                *reinterpret_cast<int16_t*>(action + 0x168) = static_cast<int16_t>(tile.x * 12 + 6);
+                *reinterpret_cast<int16_t*>(action + 0x16c) = static_cast<int16_t>(tile.y * 12 + 6);
+            }
+            if (kind == 3 && isOutsideSkillHeight(heightDifference)) ++blocked;
+            const mpdfileTile* worldTile = FUN_004a51b0_getWorldTile(tile.x, tile.y);
+            if (kind == 2) blocked += countFreeTileBlocks(tile, worldTile) + (isOutsideSkillHeight(heightDifference) ? 1 : 0);
+            if (isOnSecondPanelBlocked(character, kind, tile)) ++blocked;
+
+            for (int index = 0; index < DisaMapUnit::count; ++index) {
+                const DisaMapUnit& other = *DisaMapUnit::get(index);
+                if (!isSkillTarget(index, other, skill)) continue;
+                if (toTile(other.position.x) != tile.x || toTile(other.position.z) != tile.y) continue;
+                if ((kind == 1 || kind == 3) && !isOutsideSkillHeight(heightDifference)) {
+                    if (FUN_00444990_getFog(0, other.position.x, other.position.z) != 0xff) isTargetVisible = true;
+                    ++targetCount;
+                    actionTargets[actionTargetCount++] = static_cast<int16_t>(index);
+                    actionTileTargets[i - start] = static_cast<int16_t>(index);
+                }
+                if (kind == 2) ++blocked;
+            }
+        }
+        if (targetCount <= 0 || blocked != 0 || !isTargetVisible) return false;
+
+        FUN_0046aab0_playSound(1);
+        if (FP::getData<int32_t>(0x005d9cd8) == 0) unit.actionState = 1;
+        unit.aiFacing = static_cast<int16_t>(DAT_008895c8_skillDirection());
+        int32_t& actionCount = DAT_005d9cd0_actionCount();
+        ++actionCount;
+        unit.aiPlanArea = static_cast<uint8_t>(DAT_008895cc_skillArea());
+        //weapon skills 701 to 900 repeat with the extra attacks of the geo panel under the unit
+        const int extraAttacks = skillId >= 0x2bd && skillId < 0x385 ? (&FP::getData<uint8_t>(0x006640b8))[unit.geoPanelColor * 32] : 0;
+        for (int i = 0; i < extraAttacks; ++i) {
+            std::copy_n(action, 0x388, DAT_005db920_getAction(actionCount + i));
+        }
+        if (extraAttacks > 0) actionCount += extraAttacks;
+
+        //a walk of more than half a tile while aiming counts as the move
+        const float movedX = std::abs(float(unit.position.x - unit.moveOrigin.x));
+        const float movedZ = std::abs(float(unit.position.z - unit.moveOrigin.z));
+        if (static_cast<int>(double(movedX) + double(movedZ)) > 6) unit.moveState = 1;
+        unit.aiArea = static_cast<int16_t>(DAT_008895cc_skillArea());
+        unit.aiTargetX = static_cast<int16_t>(cursorTile.x);
+        unit.aiTargetZ = static_cast<int16_t>(cursorTile.y);
+        unit.aiTargetDirection = static_cast<int16_t>(DAT_008895c8_skillDirection());
+        unit.aiStandX = static_cast<int16_t>(toTile(unit.position.x));
+        unit.aiStandZ = static_cast<int16_t>(toTile(unit.position.z));
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = 0;
+        return true;
+    }
+
+    /// Moves the unit and the cursor back to DAT_008896a8 and DAT_008896ac, the tile the aiming started on.
+    void moveBackToSkillStart(DisaMapUnit& unit) {
+        const float x = float(FP::getData<int32_t>(0x008896a8));
+        const float z = float(FP::getData<int32_t>(0x008896ac));
+        const float y = FUN_004d2be0_getGroundHeight(nullptr, 0, x, z);
+        unit.FUN_0046cab0_translateTo(x, y, z, 5.f);
+        DAT_00730ba0_cursor().FUN_0046cab0_translateTo(x, y, z, 5.f);
+    }
+
+    /// Glides the unit and the cursor to a position on the ground.
+    void moveUnitAndCursor(DisaMapUnit& unit, float x, float z) {
+        const float y = FUN_004d2be0_getGroundHeight(nullptr, 0, x, z);
+        unit.FUN_0046cab0_translateTo(x, y, z, 5.f);
+        DAT_00730ba0_cursor().FUN_0046cab0_translateTo(x, y, z, 5.f);
+    }
+
+    /**
+    * @brief Turns the unit to the pad, stick or mouse, the area direction follows.
+    * Part of FUN_0045c0f0 at 0x0045E73A.
+    */
+    void LAB_0045e73a_turnSkillUser(DisaMapUnit& unit, bool isStandBlocked) {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        uint8_t& isAiming = FP::getData<uint8_t>(0x006b787b);
+        if (isAiming != 0) {
+            isAiming = 0;
+            FP::getData<uint8_t>(0x006d4ade) = 1;
+        }
+        if (isStandBlocked) moveBackToSkillStart(unit);
+        const bool isPad = (FP::getData<uint8_t>(0x00778d64) & 0xf0) != 0;
+        const glm::i16vec2 stick = FP::getData<glm::i16vec2>(0x00778d60);
+        const int facing = stick.x == 0 && stick.y == 0 ? FUN_004d1c90_getMouseFacing(camera, DAT_00730ba0_cursor(), unit, isPad)
+            : FUN_004d0ee0_getStickFacing(camera);
+        if (facing >= 0) DAT_008895c8_skillDirection() = (facing - 2) & 3;
+        switch (facing) {
+        case 0: unit.facingTarget = 180; break;
+        case 1: unit.facingTarget = -90; break;
+        case 2: unit.facingTarget = 0; break;
+        case 3: unit.facingTarget = 90; break;
+        default: break;
+        }
+    }
+
+    /**
+    * @brief Walks the unit inside its move range while it aims, tile by tile by key or freely by mouse.
+    * Part of FUN_0045c0f0 at 0x0045E8FA.
+    */
+    void LAB_0045e8fa_walkSkillUser(DisaMapUnit& unit, bool isStandBlocked) {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        FP::getData<uint8_t>(0x006b787b) = 1;
+        FUN_004a1eb0_drawMoveRange(unit.movement);
+        const glm::ivec2 tile(toTile(unit.position.x), toTile(unit.position.z));
+        const glm::ivec2 center = tile * 12 + 6;
+        int direction;
+        if ((FP::getData<uint8_t>(0x00778d64) & 0xf0) != 0) {
+            direction = FUN_004d1c90_getMouseFacing(camera, DAT_00730ba0_cursor(), unit, true);
+        }
+        else {
+            const glm::i16vec2 stick = FP::getData<glm::i16vec2>(0x00778d60);
+            direction = stick.x == 0 && stick.y == 0 ? -1 : FUN_004d0ee0_getStickFacing(camera);
+        }
+
+        const glm::ivec2 mouse = FP::getData<glm::ivec2>(0x00701c80);
+        glm::vec3 world;
+        FUN_004d1070_screenToWorld(&world, mouse.x, mouse.y, unit.position.y, true);
+        clampToMap(world.x, world.z);
+        if (!isStandBlocked) {
+            if (FUN_0050f910_isLeftMouseDown()) moveUnitAndCursor(unit, world.x, world.z);
+        }
+        else {
+            moveBackToSkillStart(unit);
+        }
+
+        //the first press steps at once, holding repeats after 20 frames every 5 frames
+        int32_t& repeat = FP::getData<int32_t>(0x005d7c88);
+        if (direction < 0) {
+            repeat = 0;
+            return;
+        }
+        ++repeat;
+        if (repeat >= 25) repeat = 20;
+        else if (repeat != 1 && repeat != 20) return;
+        constexpr std::array<glm::ivec2, 4> steps = { glm::ivec2(0, -1), glm::ivec2(-1, 0), glm::ivec2(0, 1), glm::ivec2(1, 0) };
+        if (direction > 3) return;
+        const glm::ivec2 step = steps[direction];
+        if (FUN_004495a0_getRangeDistance(tile.x + step.x, tile.y + step.y, 0) > unit.movement) return;
+        const glm::ivec2 target = center + step * 12;
+        moveUnitAndCursor(unit, float(target.x), float(target.y));
+    }
+
+    /**
+    * @brief Areas from 9 on start at the unit: it may walk while aiming (middle mouse toggles it, pad button 0x1000
+    * holds it) or else turn.
+    * Part of FUN_0045c0f0 at 0x0045E674.
+    * @return True when the unit stands on a tile it cannot use the skill from.
+    */
+    bool LAB_0045e674_updateSkillUser(DisaMapUnit& unit) {
+        const glm::ivec2 tile(toTile(unit.position.x), toTile(unit.position.z));
+        bool isStandBlocked = (&FP::getData<uint8_t>(0x00664f10))[tile.y * 64 + tile.x] >= 200;
+        const mpdfileTile* worldTile = FUN_004a51b0_getWorldTile(tile.x, tile.y);
+        //geo effect byte 0x22, a panel the unit cannot act from
+        if (worldTile && worldTile->geo_mark != 0 && (&FP::getData<uint8_t>(0x006640da))[worldTile->geo_color * 32] != 0) {
+            isStandBlocked = true;
+        }
+
+        uint8_t& isWalkToggled = FP::getData<uint8_t>(0x005d7c81);
+        const auto isWalkHeld = [&unit]() {
+            const bool isParalyzed = reinterpret_cast<const uint8_t*>(unit.character)[0x307] != 0;
+            return (FP::getData<uint32_t>(0x00778d64) & 0x1000) != 0 && unit.moveState == 0 && !isParalyzed;
+        };
+        bool isWalking;
+        if (isWalkToggled == 0) {
+            if (FUN_0050fad0_isMiddleMouseClicked()) {
+                isWalkToggled = 1;
+                isWalking = true;
+            }
+            else {
+                isWalking = isWalkHeld();
+            }
+        }
+        else if (FUN_0050fad0_isMiddleMouseClicked()) {
+            isWalkToggled = 0;
+            isWalking = isWalkHeld();
+        }
+        else {
+            isWalking = true;
+        }
+        //versus fog never walks
+        if (isWalking && (DAT_0065db3a_gameMode() != 5 || FP::getData<uint8_t>(0x006e57b3) == 0)) {
+            LAB_0045e8fa_walkSkillUser(unit, isStandBlocked);
+        }
+        else {
+            LAB_0045e73a_turnSkillUser(unit, isStandBlocked);
+        }
+        return isStandBlocked;
+    }
+
+    /**
+    * @brief Skill 0x386 summons character 0x8fc onto a free tile in range, then the summon plays in state 0x50.
+    * Part of FUN_0045c0f0 at 0x0045FED0.
+    */
+    void LAB_0045fed0_updateSummonTarget(DisaMapUnit& unit, const uint8_t* skill, glm::ivec2 cursorTile, bool isOutOfRange,
+        bool isStandBlocked) {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        const int heightDifference = static_cast<int>(double(float(FUN_004d2e00_getTileHeight(cursorTile.x, cursorTile.y)))
+            - double(unit.position.y));
+        const mpdfileTile* worldTile = FUN_004a51b0_getWorldTile(cursorTile.x, cursorTile.y);
+        //the base panel counts even when it is not active
+        int blocked = getBasePanelTile() == cursorTile ? 1 : 0;
+        if (!worldTile || worldTile->padding[1] + static_cast<int8_t>(worldTile->mobility) != 0) ++blocked;
+        if (isOutsideSkillHeight(heightDifference)) ++blocked;
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            const DisaMapUnit& other = *DisaMapUnit::get(i);
+            if (other.isActive && toTile(other.position.x) == cursorTile.x && toTile(other.position.z) == cursorTile.y) ++blocked;
+        }
+
+        if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            DAT_0067726b_isInputConsumed() = 1;
+            *reinterpret_cast<int32_t*>(FP::getData<uint8_t*>(0x005d7c70) + 0x30543c) = 0;
+            keys.clear();
+            FUN_0046cf10_snapToTile(DAT_00730ba0_cursor());
+            FUN_0046cf10_snapToTile(unit);
+            if (isOutOfRange || blocked != 0 || isStandBlocked) {
+                FUN_0046aab0_playSound(4);
+            }
+            else {
+                DisaPartyCharacterInfo* character = unit.character;
+                const int slot = FP::getData<int32_t>(0x008895c0);
+                const uint16_t skillId = *reinterpret_cast<const uint16_t*>(skill);
+                const float x = float(cursorTile.x * 12 + 6);
+                const float z = float(cursorTile.y * 12 + 6);
+                const int level = std::max(static_cast<int16_t>(character->level) / 2 + static_cast<int8_t>(character->skillLevel[slot]), 1);
+                const float y = FUN_004d2be0_getGroundHeight(nullptr, 0, x, z);
+                const int index = FUN_004d30e0_spawnCharacter(0x8fc, 2, level, x, y, z);
+                if (index < 0) {
+                    FUN_0046aab0_playSound(4);
+                }
+                else {
+                    DisaMapUnit& summon = *DisaMapUnit::get(index);
+                    summon.aiMode = 3;
+                    DisaTransform* transform = getEffectTransform();
+                    transform->position = glm::vec4(summon.position.x, float(double(summon.position.y) + 6.0), summon.position.z, 1.f);
+                    transform->rotation = glm::vec4(0.f, 0.f, 0.f, 1.f);
+                    transform->scale = glm::vec4(1.f);
+                    FUN_00478d50_spawnEffect(-1, 0x11, transform, 1.f, 1);
+                    FUN_0046aab0_playSound(0x19e);
+                    FUN_0046aab0_playSound(1);
+                    const int skillLevel = std::min<int>(static_cast<int8_t>(character->skillLevel[slot]), 10);
+                    FP::getData<int32_t>(0x00889538) = skillLevel;
+                    if (FP::getData<int32_t>(0x005d9cd8) == 0) unit.actionState = 2;
+                    character->currentSP -= FUN_00470850_getSkillCost(character, skillId, 1);
+                    FUN_0046db50_useSkill(character, skillId);
+                    FUN_004db610_updateStats(character, unit.alliance);
+                    FP::getData<int32_t>(0x00889534) = 0;
+                    FP::getData<int32_t>(0x00889530) = 999;
+                    FP::getData<int32_t>(0x008895a0) = 0;
+                    FP::getData<int32_t>(0x0088958c) = 0;
+                    DAT_008896a0_battleStateDepths()[0] = 0;
+                    FP::getData<int32_t>(0x008896b0) = skillLevel * 60 + 0x293;
+                    FP::getData<int32_t>(0x008896b4) = skillLevel * 60 + 0x293;
+                    DAT_00730ba0_cursor().animation = 10;
+                    DAT_00889618_battleState() = 0x50;
+                    FP::getData<int32_t>(0x006b756c) = 1;
+                }
+            }
+        }
+        FUN_004572c0_drawSummonWarnings(isOutOfRange, blocked);
+        FUN_0046a9f0_drawTileHeight(0x1a6);
+        FUN_00447f00_drawTileInfo();
+    }
+
+    /**
+    * @brief State 0x3E, choose the target tile of a skill. Shows the range, the area and why it cannot be used, and
+    * queues the skill on confirm.
+    * Part of FUN_0045c0f0 at 0x0045E59D.
+    */
+    void LAB_0045e59d_updateSkillTarget() {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        FUN_004d9dc0_updateCameraControls(camera);
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        const DisaPartyCharacterInfo* character = unit.character;
+        const uint8_t* skill = reinterpret_cast<const uint8_t*>(
+            FUN_0046f4a0_findSkill(static_cast<int16_t>(character->skillId[FP::getData<int32_t>(0x008895c0)])));
+        const uint16_t skillId = *reinterpret_cast<const uint16_t*>(skill); //like the original, no check for an unknown skill
+        bool isStandBlocked = false;
+        if (DAT_008895cc_skillArea() < 9) {
+            if (skillId == 0x386) FUN_004d1500_updateMapCursor(&camera, &cursor, DAT_008895cc_skillArea(), 0);
+            if (isRotatableArea(DAT_008895cc_skillArea()) && keys.isKeyPressed(DisaKeyStates::Menu)) rotateSkillArea();
+        }
+        else {
+            isStandBlocked = LAB_0045e674_updateSkillUser(unit);
+        }
+
+        //the range of the skill around the unit, then the area at the cursor
+        const glm::ivec2 cursorTile(toTile(cursor.position.x), toTile(cursor.position.z));
+        const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
+        if (DAT_008895ac_hoveredUnit() >= 0) FUN_0046a930_drawNamePlate(0xc1, *DisaMapUnit::get(DAT_008895ac_hoveredUnit()), 0);
+        const int range = FP::getData<int32_t>(0x008895c4);
+        for (int z = 0; z < 64; ++z) {
+            for (int x = 0; x < 64; ++x) {
+                if (std::abs(unitTile.x - x) + std::abs(unitTile.y - z) <= range) FUN_004a1c60_markTile(x, z, 1);
+            }
+        }
+        const int distance = std::abs(unitTile.y - cursorTile.y) + std::abs(unitTile.x - cursorTile.x);
+        const bool isOutOfRange = distance > range;
+        FUN_004a1be0_drawSkillArea(DAT_008895cc_skillArea(), DAT_008895c8_skillDirection(), cursorTile, distance);
+
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            FP::getData<uint8_t>(0x005d7c81) = 0;
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            FUN_0046cf10_snapToTile(cursor);
+            FUN_0046cf10_snapToTile(unit);
+            FUN_0046aab0_playSound(7);
+            if (unit.moveState == 0) {
+                unit.position.x = unit.moveOrigin.x;
+                unit.position.y = unit.moveOrigin.y;
+                unit.position.z = unit.moveOrigin.z;
+                cursor.FUN_0046cab0_translateTo(unit.position.x, unit.position.y, unit.position.z, 15.f);
+            }
+            FUN_00446d50_popBattleState(0);
+        }
+
+        if (skillId == 0x386) {
+            LAB_0045fed0_updateSummonTarget(unit, skill, cursorTile, isOutOfRange, isStandBlocked);
+            return;
+        }
+
+        const SkillAreaCheck check = LAB_0045f142_checkSkillArea(unit, skill, cursorTile);
+        const bool hasOnlyOutOfReach = check.outOfReach > 0 && check.inReach == 0;
+        const bool hasNoTarget = check.outOfReach == 0 && check.inReach == 0;
+        const int errorCount = (check.heightFree > 0) + (check.heightTiles > 0) + (check.blocked > 0) + hasNoTarget + isOutOfRange
+            + hasOnlyOutOfReach;
+        //one warning line each, the rotate button sits below them
+        const int warningLines = (check.blocked > 0) + (check.inReach == 0) + (check.heightTiles > 0) + (check.heightFree > 0)
+            + isOutOfRange;
+        const char* rotateText = reinterpret_cast<const char*>(getSystemString(0x14));
+        const int buttonTop = warningLines * 16 + 0x11;
+        const int buttonLeft = 0x1b5 - FUN_GetWidthOfString(const_cast<char*>(rotateText), 0, -1, nullptr, -1);
+        const int buttonWidth = FUN_GetWidthOfString(const_cast<char*>(rotateText), 0, -1, nullptr, -1) + 0xb;
+        if (DAT_008895cc_skillArea() < 9) {
+            const int buttonRight = buttonWidth + buttonLeft;
+            if (!FUN_0050fe30_isClickInBox(buttonLeft, buttonTop, buttonRight, buttonTop + 0x15)) {
+                FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
+            }
+            if (isRotatableArea(DAT_008895cc_skillArea()) && FUN_0050fe30_isClickInBox(buttonLeft, buttonTop, buttonRight, buttonTop + 0x15)
+                && !FUN_0046de80_isGameFlagSet(0xd48)) {
+                FUN_0050fe60_clearMouseClicks();
+                rotateSkillArea();
+            }
+        }
+        const int direction = DAT_008895c8_skillDirection();
+
+        //a click only confirms while the walk is not toggled on
+        if (keys.isKeyPressed(DisaKeyStates::Select)
+            || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48) && FP::getData<uint8_t>(0x005d7c81) == 0)) {
+            FP::getData<uint8_t>(0x005d7c81) = 0;
+            DAT_0067726b_isInputConsumed() = 1;
+            keys.clear();
+            FUN_0046cf10_snapToTile(cursor);
+            FUN_0046cf10_snapToTile(unit);
+            if (isOutOfRange || isStandBlocked || !LAB_0045f7a3_queueSkill(unit, skill, cursorTile, direction)) FUN_0046aab0_playSound(4);
+        }
+        FUN_00456930_drawSkillWarnings(errorCount, check.blocked, check.outOfReach, check.inReach, check.heightTiles, check.heightFree,
+            isOutOfRange, DAT_008895cc_skillArea(), unit);
+        FUN_0046a9f0_drawTileHeight(0x1a6);
+        FUN_00447f00_drawTileInfo();
+    }
+
     /// State 0x0A, the command menu. Part of FUN_0045c0f0 at 0x0045D06E.
     void LAB_0045d06e_updateCommandMenu() {
         FP::callStdFastFarA<void>(0x004502d0, 0); //FUN_004502d0(layer)
@@ -1566,6 +2175,7 @@ namespace {
         case 0x16: LAB_0045da48_updateInspect(); break;
         case 0x17: LAB_0045db64_updateWatchUnit(); break;
         case 0x1e: LAB_0045dcf9_updateAttackTarget(frame); break;
+        case 0x3e: LAB_0045e59d_updateSkillTarget(); break;
         case 0x0a: LAB_0045d06e_updateCommandMenu(); break;
         case 0x28: LAB_0045e546_updateBattleStart(); break;
         case 0x3c: LAB_0045e57d_updateSpecialList(); break;
