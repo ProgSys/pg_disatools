@@ -23,6 +23,10 @@
 #include <DisaScriptManager.h>
 #include <Disa/fileformats/PG_MPD.h>
 
+
+#include <Managers/DisaCustomModificationsManager.h>
+#include <Util/PG_MathGeometry.h>
+
 /*
 * Port of FUN_0045c0f0. Globals keep their address in the name (DAT_xxxxxxxx_name), parts of the original function
 * are named after the address of their first instruction (LAB_xxxxxxxx_name) and callees after their own address
@@ -603,6 +607,13 @@ namespace {
         if (float(maxX) < x) x = float(maxX + 6);
     }
 
+    void clampToMapCustom(float& x, float& z) {
+        const glm::vec2 max = FP::getData<glm::ivec2>(0x00664768) * 12 + 6;
+        const glm::vec2 min = FP::getData<glm::ivec2>(0x00664774) * 12 + 6;
+        x = glm::clamp(x, min.x, max.x);
+        z = glm::clamp(z, min.y, max.y);
+    }
+
     /// Names that FUN_004dd950 placed into a message line, the message draws them in their own text style.
     struct MessageNames {
         const char* const* names = nullptr;
@@ -1059,22 +1070,58 @@ namespace {
 
         float& dragAnchorX = FP::getData<float>(0x00701f54);
         float& dragAnchorZ = FP::getData<float>(0x00701f5c);
+       
         if (isMousePan) {
             const glm::ivec2 mouse = FP::getData<glm::ivec2>(0x00701c80);
             int32_t& lastMouseX = FP::getData<int32_t>(0x008be594);
             int32_t& lastMouseY = FP::getData<int32_t>(0x008be590);
+
             if (mouse.x != lastMouseX || mouse.y != lastMouseY) {
-                glm::vec3 world;
-                FUN_004d1070_screenToWorld(&world, mouse.x, mouse.y, camera.eyeOffset.y, false);
-                if (dragAnchorX == -1.f && dragAnchorZ == -1.f) {
-                    dragAnchorX = world.x;
-                    dragAnchorZ = world.z;
+                //BEGIN custom code
+                if (DisaCustomModificationsManager::get()->isImprovedMouseControl()) {
+                    glm::vec3 intersect;
+                    PG_Ray ray = camera.getRayFromCursor();
+                    static float dragAnchorY;
+                    if (dragAnchorX == -1.f && dragAnchorZ == -1.f) {
+                        if (auto intersectWorld = intersectWithWorld(ray)) {
+                            intersect = ray.getPointOnRay(intersectWorld.distance);
+                        }
+                        else {
+                            intersect = ray.getPointOnRay(
+                                PG_MathGeometry::intersectPlane(ray.orig, ray.dir, glm::vec3(0.f, camera.eyeOffset.y, 0.f), glm::vec3(0.f, 1.f, 0.f)).value_or(1000.f)
+                                );
+                        }
+                        dragAnchorX = intersect.x;
+                        dragAnchorY = intersect.y;
+                        dragAnchorZ = intersect.z;
+                    }
+                    else {
+                        intersect = ray.getPointOnRay(
+                            PG_MathGeometry::intersectPlane(ray.orig, ray.dir, glm::vec3(0.f, dragAnchorY, 0.f), glm::vec3(0.f, 1.f, 0.f)).value_or(1000.f)
+                        );
+                    }
+                
+                    glm::vec3 target(camera.eyeOffset.x + dragAnchorX - intersect.x, camera.eyeOffset.y, camera.eyeOffset.z + dragAnchorZ - intersect.z);
+                    clampToMapCustom(target.x, target.z);
+                    camera.move(target, 3.f);
+                    lastMouseX = mouse.x;
+                    lastMouseY = mouse.y;
                 }
-                glm::vec2 target(camera.eyeOffset.x + dragAnchorX - world.x, camera.eyeOffset.z + dragAnchorZ - world.z);
-                clampToMap(target.x, target.y);
-                camera.move(glm::vec3(target.x, camera.eyeOffset.y, target.y), 10.f);
-                lastMouseX = mouse.x;
-                lastMouseY = mouse.y;
+                else {
+                    //END custom code
+                    glm::vec3 world;
+                    FUN_004d1070_screenToWorld(&world, mouse.x, mouse.y, camera.eyeOffset.y, false);
+                    if (dragAnchorX == -1.f && dragAnchorZ == -1.f) {
+                        dragAnchorX = world.x;
+                        dragAnchorZ = world.z;
+                    }
+                    glm::vec2 target(camera.eyeOffset.x + dragAnchorX - world.x, camera.eyeOffset.z + dragAnchorZ - world.z);
+                    clampToMap(target.x, target.y);
+                    camera.move(glm::vec3(target.x, camera.eyeOffset.y, target.y), 10.f);
+                    lastMouseX = mouse.x;
+                    lastMouseY = mouse.y;
+                }
+                
             }
         }
         else {

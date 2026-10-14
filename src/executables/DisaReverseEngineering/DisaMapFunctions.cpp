@@ -638,22 +638,21 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
     const glm::vec3 viewDirection = glm::normalize(groundPoint - FP::getData<DisaCameraInfo>(0x00730980).eye);
 
     if (followTerrain) {
-        //CUSTOM CODE START
+        //BEGIN custom code
         //intersects the drawn tile faces instead of sampling the height, falls back to the sampling when nothing is hit
-        static bool customSolver = true;
-        if (customSolver) {
+        if (DisaCustomModificationsManager::get()->isImprovedMouseControl()) {
             const auto& isChunkInWorldGrid = FP::getData<std::array<uint8_t, DisaMapChunk::count>>(0x0065db48);
             const glm::vec3 intoScene = -rayDirection;
 
-            std::optional<DisaMapChunk::CustomRayHit> nearestFace;
+            PG_RayIntersection nearestFace;
             for (int i = 0; i < DisaMapChunk::count; ++i) {
                 const DisaMapChunk* chunk = DisaMapChunk::get(i);
                 if (!chunk->isActive || !isChunkInWorldGrid[i]) continue;
-                if (auto face = chunk->customIntersectRay(nearPoint, intoScene); face && (!nearestFace || face->distance < nearestFace->distance)) nearestFace = face;
+                if (auto face = chunk->customIntersectRay(nearPoint, intoScene); face && (!nearestFace || face.distance < nearestFace.distance)) nearestFace = face;
             }
 
             std::optional<float> nearest;
-            if (nearestFace) nearest = nearestFace->distance;
+            if (nearestFace) nearest = nearestFace.distance;
             else nearest = PG_MathGeometry::intersectPlane(nearPoint, intoScene, glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f));
 
             if (nearest) {
@@ -662,9 +661,9 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
 
                 /* A side face lies exactly on the edge between two tiles, so the cursor flips between them. The wall
                  * belongs to the higher tile, so the hit is moved into it and onto its ground. */
-                if (nearestFace && std::abs(nearestFace->normal.y) < 0.5f) {
+                if (nearestFace && std::abs(nearestFace.normal.y) < 0.5f) {
                     constexpr float offset = 1.f;
-                    const glm::vec2 across = glm::normalize(glm::vec2(nearestFace->normal.x, nearestFace->normal.z)) * offset;
+                    const glm::vec2 across = glm::normalize(glm::vec2(nearestFace.normal.x, nearestFace.normal.z)) * offset;
                     const glm::vec2 sideA = glm::vec2(hit.x, hit.z) + across;
                     const glm::vec2 sideB = glm::vec2(hit.x, hit.z) - across;
                     const float heightA = FUN_004d2be0_getGroundHeight(nullptr, 0, sideA.x, sideA.y);
@@ -673,11 +672,10 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
                     const glm::vec2 higher = glm::distance2(heightA, hit.y) < glm::distance2(heightB, hit.y) ? sideA : sideB;
                     *out = glm::vec3(higher.x, -hit.y, higher.y);
                 }
-                OUT_DEBUG("Hit:" << *out);
                 return out;
             }
         }
-        //CUSTOM CODE END
+        //END custom code
 
         //no wonder the mouse feels so bad, they just kinda gessing it...
         const glm::dvec3 step = glm::dvec3(viewDirection.x, -viewDirection.y, viewDirection.z) * 2.0;
@@ -691,7 +689,6 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
             const float groundHeight = FUN_004d2be0_getGroundHeight(nullptr, 0, sampleX, sampleZ);
             if (groundHeight >= rayHeight - tolerance && groundHeight <= rayHeight + tolerance) {
                 *out = glm::vec3(sampleX, -rayHeight, sampleZ);
-                OUT_DEBUG("Hit:" << *out);
                 return out;
             }
         }
@@ -701,6 +698,18 @@ glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, in
     const float steps = static_cast<float>(static_cast<int>(-height / double(viewDirection.y)));
     *out = glm::vec3(static_cast<float>(groundPoint.x - double(steps) * viewDirection.x), height, static_cast<float>(groundPoint.z - double(steps) * viewDirection.z));
     return out;
+}
+
+PG_RayIntersection intersectWithWorld(const PG_Ray& ray) {
+    PG_RayIntersection nearestFace;
+
+    const auto& isChunkInWorldGrid = FP::getData<std::array<uint8_t, DisaMapChunk::count>>(0x0065db48);
+    for (int i = 0; i < DisaMapChunk::count; ++i) {
+        const DisaMapChunk* chunk = DisaMapChunk::get(i);
+        if (!chunk->isActive || !isChunkInWorldGrid[i]) continue;
+        if (auto face = chunk->customIntersectRay(ray.orig, ray.dir); face && (!nearestFace || face.distance < nearestFace.distance)) nearestFace = face;
+    }
+    return nearestFace;
 }
 
 __declspec(naked) void FUN_004d1070_screenToWorld_NoneStd(int screenY, float height, bool followTerrain) {
@@ -756,16 +765,15 @@ void __fastcall FUN_004d1500_updateMapCursor(DisaCameraInfo* camera, DisaMapUnit
         FUN_004d1070_screenToWorld(&target, mouse.x, mouse.y, cursor->position.y, true);
         if (buttons & 0x4000) recordFastMove();
 
-        //CUSTOM CODE START
+        //BEGIN custom code
         /* The snap below moves every tile edge 2.4 units up, which fit the early stopping sampler of FUN_004d1070. With
          * the exact hits of the custom solver it sends the low edge of a tile to the previous tile. Snapping to the
          * center of the hit tile first fixes that, the snap below keeps the center of any tile with index 0 or more. */
-        static bool customSnap = true;
-        if (customSnap) {
+        if (DisaCustomModificationsManager::get()->isImprovedMouseControl()) {
             target.x = std::floor(target.x / 12.f) * 12.f + 6.f;
             target.z = std::floor(target.z / 12.f) * 12.f + 6.f;
         }
-        //CUSTOM CODE END
+        //END custom code
 
         target.x = static_cast<float>(6 - 12 * static_cast<int>(target.x / -12.0 + 0.2));
         target.z = static_cast<float>(6 - 12 * static_cast<int>(target.z / -12.0 + 0.2));

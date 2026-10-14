@@ -105,6 +105,31 @@ void DisaCameraInfo::processTick() {
     FP::callFastFarA<void>(0x004f8800, this);
 }
 
+PG_Ray DisaCameraInfo::getRay(glm::ivec2 cursor, glm::ivec2 windowSize) const {
+    cursor = glm::clamp(cursor, glm::ivec2(0), windowSize);
+    //FUN_00439ad0 scales the cursor with integers onto the 480x272 PSP screen, here it keeps the fraction
+    const glm::dvec2 screen = glm::dvec2(cursor) * glm::dvec2(480.0, 272.0) / glm::dvec2(glm::max(windowSize, glm::ivec2(1)));
+
+    //the game builds the screen matrix for the camera each frame, it maps the drawn space onto the PSP screen
+    const glm::dmat4 inverse = glm::inverse(glm::dmat4(FP::getData<glm::mat4>(0x00819200)));
+    const auto unproject = [&inverse, screen](double depth) {
+        const glm::dvec4 point = inverse * glm::dvec4(screen, depth, 1.0);
+        return glm::dvec3(point) / point.w;
+    };
+    const glm::dvec3 nearPoint = unproject(0.0);
+    return PG_Ray(glm::vec3(nearPoint), glm::vec3(glm::normalize(unproject(1.0) - nearPoint)));
+}
+
+PG_Ray DisaCameraInfo::getRayFromCursor() const {
+    POINT cursor;
+    GetCursorPos(&cursor);
+    auto h = FP::getData<HWND>(FP::getData<uint32_t>(0x005bae70) + 8); //FUN_00439ad0
+    ScreenToClient(h, &cursor);
+    RECT windowRect;
+    GetWindowRect(h, &windowRect);
+    return getRay({ cursor.x, cursor.y }, { windowRect.right - windowRect.left, windowRect.bottom - windowRect.top });
+}
+
 void FUN_LoadDungeonsCategories() {
     unsigned char* globalStateIt = &FP::getData<unsigned char>(0x00619330);
 

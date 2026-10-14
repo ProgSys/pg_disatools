@@ -221,8 +221,8 @@ float DisaMapChunk::FUN_004a2af0_getHeight(float x, float z) const {
 }
 
 //CUSTOM CODE START
-std::optional<DisaMapChunk::CustomRayHit> DisaMapChunk::customIntersectRay(const glm::vec3& origin, const glm::vec3& direction) const {
-    if (!faces || staticFaceCount <= 0) return std::nullopt;
+PG_RayIntersection DisaMapChunk::customIntersectRay(const glm::vec3& origin, const glm::vec3& direction) const {
+    if (!faces || staticFaceCount <= 0) return PG_RayIntersection::fail();
 
     //the chunk matrix has no scale, so a distance in chunk space is the same distance in world space
     const glm::mat4 toWorld = computeChunkMatrix(*this);
@@ -230,12 +230,12 @@ std::optional<DisaMapChunk::CustomRayHit> DisaMapChunk::customIntersectRay(const
     const glm::vec3 localOrigin(toChunk * glm::vec4(origin, 1.f));
     const glm::vec3 localDirection(toChunk * glm::vec4(direction, 0.f));
 
-    std::optional<CustomRayHit> nearest;
+    PG_RayIntersection nearest;
     const auto testTriangle = [&](const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) {
         const std::optional<float> distance = PG_MathGeometry::intersectionTriangle(localOrigin, localDirection, a, b, c);
-        if (!distance || (nearest && nearest->distance <= *distance)) return;
+        if (!distance || (nearest && nearest.distance <= *distance)) return;
         const glm::vec3 normal = glm::normalize(glm::mat3(toWorld) * glm::cross(b - a, c - a));
-        nearest = CustomRayHit{ *distance, normal };
+        nearest = PG_RayIntersection{ *distance, normal };
     };
     for (const DisaMapFace& face : std::span(faces, staticFaceCount)) {
         const auto& v = face.vertices; //triangle strip

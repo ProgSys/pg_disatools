@@ -343,6 +343,11 @@ float __fastcall FUN_004d2be0_getGroundHeight(int* chunkIndex, int unused, float
 * @return out
 */
 glm::vec3* __fastcall FUN_004d1070_screenToWorld(glm::vec3* out, int screenX, int screenY, float height, bool followTerrain);
+/**
+* @brief The world map intersection at given point
+* Custom function.
+*/
+PG_RayIntersection intersectWithWorld(const PG_Ray& ray);
 
 /**
 * @brief Moves the map cursor by key, analog stick or mouse, once per frame.

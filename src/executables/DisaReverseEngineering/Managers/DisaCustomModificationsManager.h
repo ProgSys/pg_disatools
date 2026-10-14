@@ -61,6 +61,8 @@ public:
 	void waitForModThread();
 	void wakeUp();
 
+	bool isImprovedMouseControl() const { return m_isImprovedMouseControl; }
+
 	static DisaCustomModificationsManager* get();
 private:
 	std::unordered_map<unsigned int, std::vector<char>> m_spriteData; //loaded sprite files
@@ -71,4 +73,5 @@ private:
 	std::mutex m_mtx;
 	std::condition_variable m_cv;
 	bool m_paused = true;
+	bool m_isImprovedMouseControl = bool(_DEBUG);
 };

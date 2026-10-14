@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <glm/glm.hpp>
+#include <Util/PG_Ray.h>
 #include <Util/Color/RGBA.h>
 #include <Disa/dataStructs/PG_DisaScriptManager.h>
 
@@ -276,6 +277,23 @@ struct DisaCameraInfo {
     * FUN_004f8800
     */
     void processTick();
+    /**
+    * @brief Will compute the a view ray at given cursor and window size
+    * Is custom function.
+    * @details Unlike FUN_004d1070 the cursor is not truncated to the 480x272 PSP screen and the unprojection runs in double.
+    * The ray is in the drawn space of the screen matrix at 0x00819200, so its y is the negated game height.
+    * @param cursor The cursor in client pixels, like GetCursorPos and ScreenToClient return it.
+    * @param windowSize The client size, GetClientRect without the window frame.
+    * @return The ray from the near plane into the scene, its direction is normalized.
+    */
+    PG_Ray getRay(glm::ivec2 cursor, glm::ivec2 windowSize) const;
+    /**
+    * @brief Will compute the a view ray at current cursor postion
+    * Is custom function.
+    * @details Will use windows functions to retrive it.
+    * @return The ray from the near plane into the scene, its direction is normalized.
+    */
+    PG_Ray getRayFromCursor() const;
 };
 
 
