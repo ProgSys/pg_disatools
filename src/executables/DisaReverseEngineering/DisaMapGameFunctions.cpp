@@ -16,6 +16,7 @@
 #include <DisaMapFunctions.h>
 #include <DisaCharacterFunctions.h>
 #include <DisaMapChunk.h>
+#include <DisaMath.h>
 #include <DisaRendering.h>
 #include <DisaScriptFunctions.h>
 #include <DisaScriptManager.h>
@@ -120,7 +121,7 @@ namespace {
         glm::vec3 position;        // 0x60
         uint8_t field0x6c[0x18];   // 0x6c
         float hitRadiusSquared;    // 0x84
-        uint8_t field0x88[0xc];    // 0x88
+        glm::vec3 target;          // 0x88 - the aim point, state 0x50 spreads it around the hovered unit
         int32_t power;             // 0x94 - type 10 deals it as it is
         int32_t field0x98;         // 0x98 - -1 on spawn
         int16_t isActive;          // 0x9c
@@ -751,8 +752,8 @@ namespace {
     int32_t& DAT_0067729c_scene() { return FP::getData<int32_t>(0x0067729c); }
     /// DAT_0065dae8 and DAT_0065daec, x and z of the base panel.
     glm::vec2& DAT_0065dae8_basePanel() { return FP::getData<glm::vec2>(fTeleportPannelX); }
-    /// DAT_008896b0, frames of the game over screen.
-    int32_t& DAT_008896b0_gameOverFrames() { return FP::getData<int32_t>(0x008896b0); }
+    /// DAT_008896b0, frames of the game over screen (state 600) and of the summon (state 0x50).
+    int32_t& DAT_008896b0_stateFrames() { return FP::getData<int32_t>(0x008896b0); }
     /// DAT_006b757c, the units per alliance that can still fight, counted again while the units are drawn.
     std::array<int16_t, 4>& DAT_006b757c_aliveCounts() { return FP::getData<std::array<int16_t, 4>>(0x006b757c); }
     /// DAT_0065db39, the units that can still leave the base panel.
@@ -979,10 +980,10 @@ namespace {
     void FUN_00476160_applyHit(DisaMapUnit* attacker, DisaMapUnit& target, DisaHit& hit, int param4, int param5) {
         FP::callFastFarA<void>(0x00476160, attacker, &target, &hit, param4, param5);
     }
-    /// Original function: FUN_00476d90, spawns a projectile in the first free slot of DAT_00730f10.
-    void FUN_00476d90_spawnProjectile(int owner, int type, int power, float x, float y, float z, float param7, float param8,
-        float param9, int direction) {
-        FP::callFastFarA<void>(0x00476d90, owner, type, power, x, y, z, param7, param8, param9, direction);
+    /// Original function: FUN_00476d90, spawns a projectile in the first free slot of DAT_00730f10, returns it or -1.
+    int FUN_00476d90_spawnProjectile(int owner, int type, int power, float x, float y, float z, float param7, float directionX,
+        float directionZ, int direction) {
+        return FP::callFastFarA<int>(0x00476d90, owner, type, power, x, y, z, param7, directionX, directionZ, direction);
     }
 
     /// Original function: FUN_004449f0, versus mode: true when the layer has no unit left on the map or the base panel.
@@ -1021,7 +1022,7 @@ namespace {
         /// [esp+0x2c] local_1264 and [esp+0x30] local_1260, the tile of the last unit the hover search looked at.
         glm::ivec2 hoverCheckedTile = { -1, -1 };
         bool isHandled = false;             ///< [esp+0x76] local_121a
-        bool isMenuOpened = false;          ///< [esp+0x7f] local_1211
+        bool isSummonFiring = false;        ///< [esp+0x7f] local_1211, never set, state 0x50 reads it
     };
 
     /**
@@ -3244,7 +3245,7 @@ namespace {
 
     /// State 600, the game over image fades in, then a key runs script 0x11. Part of FUN_0045c0f0 at 0x00464544.
     void LAB_00464544_updateGameOver() {
-        int32_t& frames = DAT_008896b0_gameOverFrames();
+        int32_t& frames = DAT_008896b0_stateFrames();
         const int doubled = frames * 2;
         const std::array<uint8_t, 4> color = { 0xff, 0xff, 0xff, doubled < 0x80 ? static_cast<uint8_t>(doubled * 2) : uint8_t(0xff) };
         //x, y, image, then the cutouts, as FUN_RenderCutout in Ghidra
@@ -3562,6 +3563,159 @@ namespace {
     }
 
 
+    /**
+    * @brief State 0x4B, the prompt to leave the Item World with an item: 0 leaves, 1 stays.
+    * Part of FUN_0045c0f0 at 0x0046196C.
+    */
+    void LAB_0046196c_updateLeavePrompt(const BattleFrame& frame) {
+        int32_t& choice = DAT_0088951c_listCursor();
+        int32_t& lastChoice = FP::getData<int32_t>(0x005d7c84);
+        lastChoice = frame.listCursorAtStart;
+        const int x = (0x1d5 - FUN_004f3930_getTextWidth(getSystemString(0x86c))) / 2;
+        const int width = FUN_004f3930_getTextWidth(getSystemString(0x86c)) + 0xb;
+        FUN_0050fb90_hoverList(x, 0x48, width, 0x10, 2, &choice, false);
+        FUN_004549c0_drawHint(0);
+
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        if (keys.isKeyPressed(DisaKeyStates::Up) || keys.isKeyPressed(DisaKeyStates::Down)) choice = choice == 0 ? 1 : 0;
+        if (lastChoice != choice) FUN_0046aab0_playSound(3);
+        //unlike the other states a right click cancels even with the tutorial flag
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || FUN_0050f950_isRightMouseClicked()) {
+            keys.clear();
+            FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(0);
+        }
+        if (!keys.isKeyPressed(DisaKeyStates::Select) && !FUN_0050fe30_isClickInBox(x, 0x48, x + width, 0x68) && !FUN_0050f790_isMouseTap()) {
+            return;
+        }
+        keys.clear();
+        if (choice == 1) {
+            FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(0);
+            return;
+        }
+        FUN_0046aab0_playSound(1);
+        FUN_004d4630_removeBagItem(0, FP::getData<int32_t>(0x008895c0));
+        //the levels of the floors so far go to the item, DAT_0065401a is the int16 at item + 0x7a
+        FP::getData<int16_t>(0x0065401a) += static_cast<int16_t>(DAT_006772bc_itemLevels());
+        FUN_0046f2c0_updateItemStats(DAT_00653fa0_floorItem());
+        LAB_00464b03_leaveFloors();
+    }
+
+    /// Original function: FUN_0046e4e0, atan2 in degrees, x87 rounded to float before and after the factor.
+    float FUN_0046e4e0_atan2Degrees(float y, float x) { return FP::callCdeclFarA<float>(0x0046e4e0, y, x); }
+    /// Original function: FUN_004fe820, queues a draw callback at a depth, returns its entry.
+    void* FUN_004fe820_queueDraw(uint32_t callback, int depth, int flags) {
+        const uint32_t address = reinterpret_cast<uint32_t>(&FP::getData<uint8_t>(callback));
+        return FP::callFastFarA<void*>(0x004fe820, address, depth, flags);
+    }
+
+    /// The summoned models of skill 0x386: active, player or neutral, a model, standing.
+    bool isSummonedModel(const DisaMapUnit& unit) {
+        return unit.isActive && (unit.alliance == 0 || unit.alliance == 2) && unit.modelType != 0 && unit.modelPose == 0;
+    }
+
+    /// Every summoned model shoots at its facing, the projectile flies to the hovered unit when there is one.
+    void fireSummons() {
+        int shots = 0;
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (!isSummonedModel(unit)) continue;
+            FUN_004e32a0_rotateXZ(unit.modelRotation.x, 0.f, 3.f);
+            const float directionX = FP::getData<float>(0x006b791c);
+            const float directionZ = FP::getData<float>(0x006b7a60);
+            const int index = FUN_00476d90_spawnProjectile(i, 2, static_cast<int32_t>(unit.character->activeStats.attack),
+                unit.position.x, float(double(unit.position.y) - 3.0), unit.position.z, 0.f, directionX, directionZ,
+                static_cast<int>(unit.modelRotation.y));
+            if (index < 0) continue;
+            ++shots;
+            unit.modelFrame = 0;
+            unit.isModelAnimating = 1;
+            int32_t& shotsLeft = FP::getData<int32_t>(0x00889530);
+            shotsLeft = std::max(shotsLeft - 1, 0);
+            DisaProjectile& projectile = DAT_00730f10_projectiles()[index];
+            const int hovered = DAT_008895ac_hoveredUnit();
+            if (hovered < 0 || hovered == i) continue;
+            //the aim point spreads up to 3 around the hovered unit
+            DisaMapUnit& target = *DisaMapUnit::get(hovered);
+            const auto spread = []() { return float(double(float(FUN_0046e1a0_random(0x3d) - 30)) / 10.0); };
+            projectile.target.x = target.position.x + spread();
+            projectile.target.y = float(double(target.position.y) + double(spread()) - 12.0);
+            projectile.target.z = target.position.z + spread();
+            DisaMapUnit& cursor = DAT_00730ba0_cursor();
+            cursor.currentAnimation = -1;
+            cursor.animation = 10;
+            ++projectile.field0xa8;
+            ++target.field0x279[0]; //the shots on their way to the target
+        }
+        if (shots > 0) FUN_004de090_playSound(0x6c, 0x5a, 16000, 0);
+    }
+
+    /// The summoned models turn towards the cursor once it is further than sqrt(72) away and aim up or down at it.
+    void aimSummons() {
+        const DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (!isSummonedModel(unit)) continue;
+            const float dx = cursor.position.x - unit.position.x;
+            const float dz = cursor.position.z - unit.position.z;
+            const double distanceSquared = double(dz) * dz + double(dx) * dx;
+            if (72.0 > distanceSquared) continue;
+            unit.modelYawTarget = FUN_0046e4e0_atan2Degrees(dx, dz);
+            const float distance = static_cast<float>(std::sqrt(double(float(distanceSquared))));
+            const float dy = float(double(cursor.restPosition.y) - 3.0 - double(unit.position.y));
+            const float pitch = float(double(FUN_0046e4e0_atan2Degrees(distance, dy)) - 90.0);
+            unit.modelPitchTarget = pitch;
+            if (-30.0 > double(pitch)) unit.modelPitchTarget = -30.f;
+            if (double(unit.modelPitchTarget) > 60.0) unit.modelPitchTarget = 60.f;
+        }
+    }
+
+    /**
+    * @brief State 0x50, the summoned models of skill 0x386 shoot on Select or the left button while the timer
+    * DAT_008896b0 runs, then the summon ends.
+    * Part of FUN_0045c0f0 at 0x00461AF0.
+    */
+    void LAB_00461af0_updateSummonShots(const BattleFrame& frame) {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        FUN_004d9dc0_updateCameraControls(camera);
+        if ((FP::getData<uint32_t>(0x00778d64) & 0x8000) == 0) FUN_004d1500_updateMapCursor(&camera, &DAT_00730ba0_cursor(), 0, 0);
+
+        int32_t& framesLeft = DAT_008896b0_stateFrames();
+        int32_t& lastShot = FP::getData<int32_t>(0x008896b4);
+        const int32_t frames = framesLeft;
+        //the mouse fires at most every 5 frames, the key every frame it is held
+        bool isFiring = frame.isSummonFiring;
+        if (lastShot - frames > 5 && (FUN_0050ff80_isLeftMouseLongPress() || FUN_0050f910_isLeftMouseDown())) {
+            lastShot = frames;
+            isFiring = true;
+        }
+        if (DAT_00778d98_keyStates().states[DisaKeyStates::Select] != 0 || isFiring) fireSummons();
+        aimSummons();
+
+        int32_t& shownFrames = FP::getData<int32_t>(0x008895a0);
+        shownFrames = std::min(shownFrames + 1, 0x1e);
+        if (frames <= 0x1e) shownFrames = frames;
+        FUN_004fe820_queueDraw(0x00457410, 1000, 0); //FUN_00457410 draws the timer
+        framesLeft = frames - 1;
+        if (framesLeft > 0) return;
+
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (unit.isActive && unit.alliance == 0 && unit.modelType != 0 && unit.modelPose == 0) {
+                FUN_0046b170_setHpBarTo(unit, static_cast<int32_t>(unit.character->currentHP), 0);
+            }
+        }
+        for (DisaProjectile& projectile : DAT_00730f10_projectiles()) {
+            if (projectile.isActive == 0) continue;
+            projectile.isActive = 0;
+            projectile.field0xa8 = 0;
+        }
+        DAT_00889618_battleState() = 0;
+        DAT_00730ba0_cursor().animation = 3;
+        DAT_008896a0_battleStateDepths()[0] = 0;
+    }
+
     /// Runs the state of layer 0. Part of FUN_0045c0f0 at 0x0045C6E6.
     void LAB_0045c6e6_updateBattleState(BattleFrame& frame) {
         const int32_t state = DAT_00889618_battleState();
@@ -3582,6 +3736,8 @@ namespace {
         case 0x3e: LAB_0045e59d_updateSkillTarget(); break;
         case 0x47: LAB_004602e6_updateItemTarget(); break;
         case 0x48: LAB_004607ea_updateSteal(frame); break;
+        case 0x4b: LAB_0046196c_updateLeavePrompt(frame); break;
+        case 0x50: LAB_00461af0_updateSummonShots(frame); break;
         case 0x0a: LAB_0045d06e_updateCommandMenu(); break;
         case 0x28: LAB_0045e546_updateBattleStart(); break;
         case 0x3c: LAB_0045e57d_updateSpecialList(); break;
@@ -3999,7 +4155,7 @@ namespace {
             if (state != 0) return;
             //talk script 0x5DD may replace the game over
             if (FUN_004bf7e0_runTalkScriptOriginal(0x5dd, 0, 0, 0) < 0) {
-                DAT_008896b0_gameOverFrames() = 0;
+                DAT_008896b0_stateFrames() = 0;
                 FUN_0046a830_playMusic(0x68);
                 FUN_00444740_setBattleState(600, 0);
             }
