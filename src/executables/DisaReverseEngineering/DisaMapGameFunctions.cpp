@@ -22,7 +22,11 @@
 * (FUN_xxxxxxxx_name), so all of them can be found again in Ghidra, the disassembly and memory dumps.
 */
 static_assert(offsetof(PG_DisaPartyCharacter, currentHP) == 0x5c4);
+static_assert(offsetof(PG_DisaPartyCharacter, currentSP) == 0x5c8);
 static_assert(offsetof(PG_DisaPartyCharacter, activeStats) == 0x5cc);
+static_assert(offsetof(PG_DisaPartyCharacter, activeStats.intelligence) == 0x5dc);
+static_assert(offsetof(PG_DisaPartyCharacter, skillId) == 0x4a4);
+static_assert(offsetof(PG_DisaPartyCharacter, characterId) == 0x664);
 static_assert(offsetof(PG_DisaPartyCharacter, jumpingPower) == 0x67b);
 static_assert(offsetof(PG_DisaPartyCharacter, movement) == 0x67d);
 static_assert(offsetof(PG_DisaPartyCharacter, unknownData6) == 0x684);
@@ -52,6 +56,23 @@ namespace {
     /// DAT_008895ec, the entry of the command menu.
     int32_t& DAT_008895ec_menuCursor() { return FP::getData<int32_t>(0x008895ec); }
 
+    /// DAT_0088951c, the row of the cursor in the visible part of a list.
+    int32_t& DAT_0088951c_listCursor() { return FP::getData<int32_t>(0x0088951c); }
+    /// DAT_00889520, the first visible row of a list.
+    int32_t& DAT_00889520_listScroll() { return FP::getData<int32_t>(0x00889520); }
+    /// DAT_00889a20, the number of attack targets the command menu found.
+    int16_t& DAT_00889a20_attackTargetCount() { return FP::getData<int16_t>(0x00889a20); }
+    /// DAT_008899a0, the unit indices of the attack targets, enemies first.
+    int16_t* DAT_008899a0_attackTargets() { return &FP::getData<int16_t>(0x008899a0); }
+    /// DAT_005d9cd0, the number of queued actions in DAT_005db920, run when the turn is executed.
+    int32_t& DAT_005d9cd0_actionCount() { return FP::getData<int32_t>(0x005d9cd0); }
+    /// DAT_005db920, the queued actions of 0x388 bytes.
+    uint8_t* DAT_005db920_getAction(int index) { return &FP::getData<uint8_t>(0x005db920) + index * 0x388; }
+    /// DAT_00701cd0, the marker over the chosen target, a sprite actor like the cursor.
+    DisaMapUnit& DAT_00701cd0_targetMarker() { return FP::getData<DisaMapUnit>(0x00701cd0); }
+    /// DAT_00701f3b, shows the target marker.
+    uint8_t& DAT_00701f3b_isTargetMarkerShown() { return FP::getData<uint8_t>(0x00701f3b); }
+
     /// DAT_0065db3a, 0 story, 1 Item World, 2 and 4 not traced, 3 bonus floors, 5 versus.
     uint8_t& DAT_0065db3a_gameMode() { return FP::getData<uint8_t>(0x0065db3a); }
     /// DAT_006b7578, nonzero while the AI or an event moves units, the states wait for it.
@@ -77,6 +98,11 @@ namespace {
     /// DAT_006e80f0 + 0x1740, scratch transform for effects.
     DisaTransform* getEffectTransform() {
         return reinterpret_cast<DisaTransform*>(FP::getData<uint8_t*>(0x006e80f0) + 0x1740);
+    }
+
+    /// DAT_006e80f0 + 0x1770, scratch character the forecasts are computed into.
+    DisaPartyCharacterInfo* getScratchCharacter() {
+        return reinterpret_cast<DisaPartyCharacterInfo*>(FP::getData<uint8_t*>(0x006e80f0) + 0x1770);
     }
 
     /// DAT_006e6f58, the system strings, offset is in bytes like in the original.
@@ -369,6 +395,58 @@ namespace {
         FP::callFastFarA<void>(0x004dd950, format, 0, buffer, name, position, style);
     }
 
+    /// Original function: FUN_0050fb90, the mouse over a row of a list moves the cursor of the list.
+    void FUN_0050fb90_hoverList(int x, int y, int width, int rowHeight, int rows, int32_t* cursor, bool flag) {
+        FP::callFastFarA<void>(0x0050fb90, x, y, width, rowHeight, rows, cursor, int(flag));
+    }
+    /// Original function: FUN_0050fc10, the mouse wheel and the scroll arrows of a list.
+    void FUN_0050fc10_scrollList(int x, int y, int width, int rowHeight, int rows, int32_t* cursor, int scroll, int count) {
+        FP::callFastFarA<void>(0x0050fc10, x, y, width, rowHeight, rows, cursor, scroll, count);
+    }
+    /// Original function: FUN_004d0d60, moves the cursor of a list by key and scrolls it, isPlayingSound plays sound 3.
+    void FUN_004d0d60_updateListCursor(int32_t* cursor, int32_t* scroll, int count, int rows, bool isPlayingSound) {
+        FP::callFastFarA<void>(0x004d0d60, cursor, scroll, count, rows, int(isPlayingSound));
+    }
+    /// Original function: FUN_00454660, draws the list of attack targets. The two middle stack slots are never read.
+    void FUN_00454660_drawTargetList(DisaMapUnit& unit, int count) {
+        FP::callVariadicThisFarA<void>(0x00454660, &unit, 0, 0, count);
+    }
+    /// Original function: FUN_004a1c60, marks a tile of the range overlay, mode 3 is the attack range.
+    void FUN_004a1c60_markTile(int x, int z, int mode) { FP::callFastFarA<void>(0x004a1c60, x, z, mode); }
+    /// Original function: FUN_00447d90, the damage forecast of the attack, written into the scratch character.
+    int FUN_00447d90_forecastAttack(DisaMapUnit& unit, DisaPartyCharacterInfo* scratch, int facing) {
+        return FP::callFastFarA<int>(0x00447d90, &unit, scratch, facing);
+    }
+    /// Original function: FUN_00454610, draws the forecast against an adjacent target.
+    void FUN_00454610_drawForecast(DisaMapUnit& unit, DisaMapUnit& target, DisaPartyCharacterInfo* scratch, int forecast) {
+        FP::callCdeclFarA<void>(0x00454610, &unit, &target, scratch, forecast);
+    }
+    /// Original function: FUN_004d2700, the facing that looks from the second position at the first one.
+    int FUN_004d2700_getFacing(int x, int z, int fromX, int fromZ) {
+        return FP::callFastFarA<int>(0x004d2700, x, z, fromX, fromZ);
+    }
+    /// Original function: FUN_0046e1a0, a random number below n.
+    int FUN_0046e1a0_random(int n) { return static_cast<int>(FP::callStdFastFarA<uint64_t>(0x0046e1a0, n)); }
+    /// Original function: FUN_0046f510, clears a queued action of DAT_005db920.
+    void FUN_0046f510_clearAction(uint8_t* action) { FP::callStdFastFarA<void>(0x0046f510, action); }
+    /// Original function: FUN_00470850, the SP cost of a skill for the character.
+    int FUN_00470850_getSkillCost(DisaPartyCharacterInfo* character, int skill, int mode) {
+        return FP::callFastFarA<int>(0x00470850, character, skill, mode);
+    }
+
+    /**
+    * @brief The data of a skill, entries of 0xac bytes in the table at DAT_0066402c, nullptr when unknown.
+    * Original function: FUN_0046f4a0
+    */
+    const uint16_t* FUN_0046f4a0_findSkill(uint32_t id) {
+        const uint16_t* table = FP::getData<const uint16_t*>(0x0066402c);
+        const int count = FP::getData<int32_t>(0x00664030);
+        for (int i = 0; i < count; ++i) {
+            if (table[i * 0x56] == id) return table + i * 0x56;
+        }
+        return nullptr;
+    }
+
     /// Names that FUN_004dd950 placed into a message line, the message draws them in their own text style.
     struct MessageNames {
         const char* const* names = nullptr;
@@ -497,7 +575,8 @@ namespace {
     /// Locals of FUN_0045c0f0 that live through the whole frame, the stack offsets are the ones after the prologue.
     struct BattleFrame {
         bool isLayerIdle = false;           ///< [esp+0x77] local_1219, FUN_00444c70(0) in versus mode
-        int lineHeight = 10;                ///< [esp+0x4c] local_1244, 10 or 13 with the new text style
+        int listTop = 10;                   ///< [esp+0x4c] local_1244, the y of the target list rows, 13 with the new text style
+        int listCursorAtStart = 0;          ///< esi, DAT_0088951c before the state ran
         int targetCount = 0;                ///< [esp+0x10] local_1280, DAT_00889a20 capped at 8
         glm::ivec2 cursorTile = { 0, 0 };   ///< [esp+0xc] local_1284 and [esp+0x38] local_1258
         /// [esp+0x2c] local_1264 and [esp+0x30] local_1260, the tile of the last unit the hover search looked at.
@@ -610,7 +689,8 @@ namespace {
         }
         fogRefresh = 0;
 
-        frame.lineHeight = FP::getData<uint8_t>(0x005d7c4e) != 0 || settings->field_0x22 != 0 ? 13 : 10;
+        frame.listTop = FP::getData<uint8_t>(0x005d7c4e) != 0 || settings->field_0x22 != 0 ? 13 : 10;
+        frame.listCursorAtStart = DAT_0088951c_listCursor();
         frame.targetCount = std::min<int>(FP::getData<int16_t>(0x00889a20), 8);
     }
 
@@ -786,7 +866,7 @@ namespace {
             return;
         }
         FUN_004d9dc0_updateCameraControls(camera);
-        //both overwrite stack slots of the frame locals, lineHeight and targetCount are not used by state 0
+        //both overwrite stack slots of the frame locals, listTop and targetCount are not used by state 0
         const bool isRightLongPress = FUN_0050ffb0_isRightMouseLongPress();
         const bool isNextPagePressed = keys.isKeyPressed(DisaKeyStates::NextPage);
 
@@ -1170,6 +1250,183 @@ namespace {
         drawHoveredStatus();
     }
 
+    /// Restores the color of the attack target, it pulsed red while chosen.
+    void resetTargetColor(DisaMapUnit& target) {
+        target.color.r = 0xff;
+        target.color.g = 0xff;
+        target.color.b = 0xff;
+    }
+
+    /**
+    * @brief Characters 1080 to 1089 sometimes add one of their skills 702 to 800 to the attack, when their INT wins
+    * against the one of the target.
+    */
+    void queueExtraSkill(DisaMapUnit& unit, const DisaMapUnit& target) {
+        DisaPartyCharacterInfo* character = unit.character;
+        const int attackRoll = (FUN_0046e1a0_random(0x1a) + 0x19) * static_cast<int>(character->activeStats.intelligence);
+        const int defendRoll = (FUN_0046e1a0_random(0x2e) + 5) * static_cast<int>(target.character->activeStats.intelligence);
+        if (attackRoll <= defendRoll) return;
+
+        //the highest skill whose last digit stays below a roll of 5, character byte 0x681 is the skill count
+        int skill = 0;
+        const auto skillCount = [character]() { return static_cast<int>(reinterpret_cast<const int8_t*>(character)[0x681]); };
+        for (int i = 0; i < skillCount(); ++i) {
+            const int id = static_cast<int16_t>(character->skillId[i]);
+            const int roll = FUN_0046e1a0_random(5);
+            if (static_cast<uint32_t>(id - 702) <= 98 && id > skill && id % 10 < roll) skill = id;
+        }
+        if (!FUN_0046f4a0_findSkill(skill)) return;
+        if (FUN_00470850_getSkillCost(character, skill, 1) > static_cast<int32_t>(character->currentSP)) return;
+
+        uint8_t* action = DAT_005db920_getAction(DAT_005d9cd0_actionCount());
+        FUN_0046f510_clearAction(action);
+        *reinterpret_cast<int32_t*>(action + 0x154) = 0x10001;
+        *reinterpret_cast<int16_t*>(action + 0x84) = static_cast<int16_t>(DAT_008895b0_selectedUnit());
+        *reinterpret_cast<int16_t*>(action + 0x94) = static_cast<int16_t>(DAT_008895ac_hoveredUnit());
+        *reinterpret_cast<int16_t*>(action + 0x158) = static_cast<int16_t>(skill);
+        *reinterpret_cast<int16_t*>(action + 0x176) = static_cast<int16_t>(FUN_00470850_getSkillCost(character, skill, 1));
+        unit.aiArea = 0;
+        unit.aiTargetX = static_cast<int16_t>(toTile(target.position.x));
+        unit.aiTargetZ = static_cast<int16_t>(toTile(target.position.z));
+        unit.aiTargetDirection = 0;
+        ++DAT_005d9cd0_actionCount();
+    }
+
+    /// Queues the attack of the selected unit on the chosen target, the geo panel under the unit can add attacks.
+    void queueAttack(DisaMapUnit& unit, const DisaMapUnit& target) {
+        const uint8_t* geoEffect = &FP::getData<uint8_t>(0x006640b8) + unit.geoPanelColor * 32;
+        const int attackCount = geoEffect[0] + 1;
+        int32_t& actionCount = DAT_005d9cd0_actionCount();
+        const int first = actionCount;
+        actionCount += attackCount;
+        for (int i = 0; i < attackCount; ++i) {
+            uint8_t* action = DAT_005db920_getAction(first + i);
+            FUN_0046f510_clearAction(action);
+            *reinterpret_cast<int32_t*>(action + 0x154) = 0x10001;
+            *reinterpret_cast<int16_t*>(action + 0x84) = static_cast<int16_t>(DAT_008895b0_selectedUnit());
+            *reinterpret_cast<int16_t*>(action + 0x94) = static_cast<int16_t>(DAT_008895ac_hoveredUnit());
+            *reinterpret_cast<int16_t*>(action + 0x158) = 0; //no skill
+            const int facing = FUN_004d2700_getFacing(static_cast<int>(target.position.x), static_cast<int>(target.position.z),
+                static_cast<int>(unit.position.x), static_cast<int>(unit.position.z));
+            *reinterpret_cast<int16_t*>(action + 0x166) = static_cast<int16_t>(facing);
+            unit.facingTarget = static_cast<int16_t>(facing);
+        }
+        if (geoEffect[2] == 0 && unit.character->characterId / 10 == 108) queueExtraSkill(unit, target);
+        //the original stores the tile twice when the skill was added
+        unit.aiStandX = static_cast<int16_t>(toTile(unit.position.x));
+        unit.aiStandZ = static_cast<int16_t>(toTile(unit.position.z));
+    }
+
+    /**
+    * @brief State 0x1E, choose the target of the attack from the list or with the mouse, then queue the attack.
+    * Part of FUN_0045c0f0 at 0x0045DCF9.
+    */
+    void LAB_0045dcf9_updateAttackTarget(BattleFrame& frame) {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        FUN_004d9dc0_updateCameraControls(DAT_00730980_camera());
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        int32_t& listCursor = DAT_0088951c_listCursor();
+        int32_t& listScroll = DAT_00889520_listScroll();
+        const int16_t* targets = DAT_008899a0_attackTargets();
+
+        if (!FUN_0046de80_isGameFlagSet(0xd48)) {
+            FUN_0050fb90_hoverList(0x14d, frame.listTop, 0x73, 0x10, frame.targetCount, &listCursor, false);
+            FUN_0050fc10_scrollList(0x14d, frame.listTop, 0x73, 0x10, frame.targetCount, &listCursor, listScroll,
+                DAT_00889a20_attackTargetCount());
+        }
+        //the mouse moved, the target under it is chosen
+        if (DAT_005d7c40_settings()->isMouseActive && FP::getData<uint8_t>(0x00701cc6) != 0) {
+            const glm::ivec2 mouse = FP::getData<glm::ivec2>(0x00701c80);
+            glm::vec3 world;
+            FUN_004d1070_screenToWorld(&world, mouse.x, mouse.y, unit.position.y, true);
+            for (int i = 0; i < DAT_00889a20_attackTargetCount(); ++i) {
+                const glm::vec3& position = DisaMapUnit::get(targets[i])->position;
+                if (double(position.x) - 6.0 <= world.x && world.x < double(position.x) + 6.0
+                    && double(position.z) - 6.0 <= world.z && world.z < double(position.z) + 6.0) {
+                    listCursor = i % 8;
+                    listScroll = i / 8;
+                    break;
+                }
+            }
+        }
+
+        bool isSoundPlayed = frame.isHandled;
+        if (frame.listCursorAtStart != listCursor) {
+            FUN_0046aab0_playSound(3);
+            isSoundPlayed = true;
+        }
+        if (DAT_00889a20_attackTargetCount() <= 0) {
+            listScroll = 0;
+            listCursor = 0;
+        }
+        else {
+            FUN_004d0d60_updateListCursor(&listCursor, &listScroll, DAT_00889a20_attackTargetCount(), 8, !isSoundPlayed);
+        }
+        FUN_00454660_drawTargetList(unit, DAT_00889a20_attackTargetCount());
+
+        const int targetIndex = targets[listScroll + listCursor];
+        DAT_008895ac_hoveredUnit() = targetIndex;
+        DisaMapUnit& target = *DisaMapUnit::get(targetIndex);
+        FUN_0046a930_drawNamePlate(0xa9, target, 0);
+
+        //the marker bobs over the target and the target pulses red
+        DisaMapUnit& marker = DAT_00701cd0_targetMarker();
+        DAT_00701f3b_isTargetMarkerShown() = 1;
+        marker.position.x = target.position.x;
+        const int pulse = std::abs(FP::getData<int32_t>(0x006b7918) - 30);
+        marker.position.y = float(double(target.restPosition.y) - double(pulse) / 5.0 - 2.0);
+        marker.position.z = target.position.z;
+        target.color.r = static_cast<int16_t>(pulse * 6 + 255);
+        target.color.g = static_cast<int16_t>(255 - pulse * 4);
+        target.color.b = target.color.g;
+
+        //the weapon range, characters 0xbd6 and 0xc76 only hit in straight lines
+        const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
+        for (int z = 0; z < 64; ++z) {
+            for (int x = 0; x < 64; ++x) {
+                const int weaponRange = unit.character->unknownData6[4]; //character byte 0x688
+                if (std::abs(unitTile.x - x) + std::abs(unitTile.y - z) > weaponRange) continue;
+                const uint16_t characterId = unit.character->characterId;
+                const bool isStraightOnly = characterId == 0xbd6 || characterId == 0xc76;
+                if (!isStraightOnly || x == unitTile.x || z == unitTile.y) FUN_004a1c60_markTile(x, z, 3);
+            }
+        }
+
+        DisaPartyCharacterInfo* scratch = getScratchCharacter();
+        const int forecast = FUN_00447d90_forecastAttack(unit, scratch, unit.facingTarget);
+        const glm::ivec2 targetTile(toTile(target.position.x), toTile(target.position.z));
+        if (std::abs(unitTile.y - targetTile.y) + std::abs(unitTile.x - targetTile.x) == 1 && forecast > 0) {
+            FUN_00454610_drawForecast(unit, target, scratch, forecast);
+        }
+
+        int32_t& mouseState = *reinterpret_cast<int32_t*>(FP::getData<uint8_t*>(0x005d7c70) + 0x30543c);
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            mouseState = 0;
+            keys.clear();
+            FUN_0046aab0_playSound(7);
+            stopCursor(cursor);
+            resetTargetColor(*DisaMapUnit::get(DAT_008895ac_hoveredUnit()));
+            DAT_00701f3b_isTargetMarkerShown() = 0;
+            FUN_00446d50_popBattleState(0);
+        }
+        const bool isSelected = keys.isKeyPressed(DisaKeyStates::Select)
+            || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48));
+        if (!isSelected) return;
+
+        mouseState = 0;
+        keys.clear();
+        FUN_0046aab0_playSound(1);
+        stopCursor(cursor);
+        DisaMapUnit& chosen = *DisaMapUnit::get(DAT_008895ac_hoveredUnit());
+        resetTargetColor(chosen);
+        if (FP::getData<int32_t>(0x005d9cd8) == 0) unit.actionState = 1;
+        queueAttack(unit, chosen);
+        DAT_00701f3b_isTargetMarkerShown() = 0;
+        DAT_00889618_battleState() = 0;
+        DAT_008896a0_battleStateDepths()[0] = 0;
+    }
+
     /// State 0x0A, the command menu. Part of FUN_0045c0f0 at 0x0045D06E.
     void LAB_0045d06e_updateCommandMenu() {
         FP::callStdFastFarA<void>(0x004502d0, 0); //FUN_004502d0(layer)
@@ -1308,6 +1565,7 @@ namespace {
         case 0x15: LAB_0045d602_updateWalk(); break;
         case 0x16: LAB_0045da48_updateInspect(); break;
         case 0x17: LAB_0045db64_updateWatchUnit(); break;
+        case 0x1e: LAB_0045dcf9_updateAttackTarget(frame); break;
         case 0x0a: LAB_0045d06e_updateCommandMenu(); break;
         case 0x28: LAB_0045e546_updateBattleStart(); break;
         case 0x3c: LAB_0045e57d_updateSpecialList(); break;
