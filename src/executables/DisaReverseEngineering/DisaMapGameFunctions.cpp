@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -1689,6 +1690,49 @@ namespace {
         target.color.b = 0xff;
     }
 
+    /// DAT_0088990c, the number of units the command menu found to lift.
+    int16_t& DAT_0088990c_liftTargetCount() { return FP::getData<int16_t>(0x0088990c); }
+    /// DAT_00889920, the unit indices of the lift targets, enemies first.
+    int16_t* DAT_00889920_liftTargets() { return &FP::getData<int16_t>(0x00889920); }
+
+    /// Original function: FUN_004563f0, draws the list of lift targets. ecx is only passed on to a sound.
+    void FUN_004563f0_drawLiftList() { FP::callStdFastFarA<void>(0x004563f0, 0); }
+    /// Original function: FUN_004cf290, marks the tiles of the throw line in front of the unit.
+    void FUN_004cf290_markThrowLine(DisaMapUnit& unit) { FP::callStdFastFarA<void>(0x004cf290, &unit); }
+
+    /**
+    * @brief The cursor of a target list follows the mouse onto the tile of a target, the lists of state 0x1E and 0x82.
+    * @details The original compares with the x87 at double width, so the ranges are taken as double.
+    */
+    void pickTargetByMouse(const DisaMapUnit& unit, const int16_t* targets, int count) {
+        if (!DAT_005d7c40_settings()->isMouseActive || FP::getData<uint8_t>(0x00701cc6) == 0) return;
+        const glm::ivec2 mouse = FP::getData<glm::ivec2>(0x00701c80);
+        glm::vec3 world;
+        FUN_004d1070_screenToWorld(&world, mouse.x, mouse.y, unit.position.y, true);
+        for (int i = 0; i < count; ++i) {
+            const glm::vec3& position = DisaMapUnit::get(targets[i])->position;
+            if (double(position.x) - 6.0 <= world.x && world.x < double(position.x) + 6.0
+                && double(position.z) - 6.0 <= world.z && world.z < double(position.z) + 6.0) {
+                DAT_0088951c_listCursor() = i % 8;
+                DAT_00889520_listScroll() = i / 8;
+                return;
+            }
+        }
+    }
+
+    /// The marker bobs over the chosen target and the target pulses red, state 0x1E and 0x82.
+    void showTargetMarker(DisaMapUnit& target) {
+        DisaMapUnit& marker = DAT_00701cd0_targetMarker();
+        marker.position.x = target.position.x;
+        const int pulse = std::abs(FP::getData<int32_t>(0x006b7918) - 30);
+        marker.position.y = float(double(target.restPosition.y) - double(pulse) / 5.0 - 2.0);
+        marker.position.z = target.position.z;
+        target.color.r = static_cast<int16_t>(pulse * 6 + 255);
+        target.color.g = static_cast<int16_t>(255 - pulse * 4);
+        target.color.b = target.color.g;
+    }
+
+
     /**
     * @brief Characters 1080 to 1089 sometimes add one of their skills 702 to 800 to the attack, when their INT wins
     * against the one of the target.
@@ -1768,20 +1812,7 @@ namespace {
                 DAT_00889a20_attackTargetCount());
         }
         //the mouse moved, the target under it is chosen
-        if (DAT_005d7c40_settings()->isMouseActive && FP::getData<uint8_t>(0x00701cc6) != 0) {
-            const glm::ivec2 mouse = FP::getData<glm::ivec2>(0x00701c80);
-            glm::vec3 world;
-            FUN_004d1070_screenToWorld(&world, mouse.x, mouse.y, unit.position.y, true);
-            for (int i = 0; i < DAT_00889a20_attackTargetCount(); ++i) {
-                const glm::vec3& position = DisaMapUnit::get(targets[i])->position;
-                if (double(position.x) - 6.0 <= world.x && world.x < double(position.x) + 6.0
-                    && double(position.z) - 6.0 <= world.z && world.z < double(position.z) + 6.0) {
-                    listCursor = i % 8;
-                    listScroll = i / 8;
-                    break;
-                }
-            }
-        }
+        pickTargetByMouse(unit, targets, DAT_00889a20_attackTargetCount());
 
         bool isSoundPlayed = frame.isHandled;
         if (frame.listCursorAtStart != listCursor) {
@@ -1802,16 +1833,8 @@ namespace {
         DisaMapUnit& target = *DisaMapUnit::get(targetIndex);
         FUN_0046a930_drawNamePlate(0xa9, target, 0);
 
-        //the marker bobs over the target and the target pulses red
-        DisaMapUnit& marker = DAT_00701cd0_targetMarker();
         DAT_00701f3b_isTargetMarkerShown() = 1;
-        marker.position.x = target.position.x;
-        const int pulse = std::abs(FP::getData<int32_t>(0x006b7918) - 30);
-        marker.position.y = float(double(target.restPosition.y) - double(pulse) / 5.0 - 2.0);
-        marker.position.z = target.position.z;
-        target.color.r = static_cast<int16_t>(pulse * 6 + 255);
-        target.color.g = static_cast<int16_t>(255 - pulse * 4);
-        target.color.b = target.color.g;
+        showTargetMarker(target);
 
         //the weapon range, characters 0xbd6 and 0xc76 only hit in straight lines
         const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
@@ -3716,6 +3739,553 @@ namespace {
         DAT_008896a0_battleStateDepths()[0] = 0;
     }
 
+    /// Lifts the hovered unit: the lifter turns to it, the unit goes on top and its old place is kept for the undo.
+    void liftTarget(DisaMapUnit& unit) {
+        DisaMapUnit& target = *DisaMapUnit::get(DAT_008895ac_hoveredUnit());
+        resetTargetColor(target);
+        //a model that was knocked over stands up again
+        if (target.modelType == 1 && target.modelPose != 0) {
+            target.modelPose = 0;
+            FP::getData<int32_t>(0x00889534) = 1;
+        }
+        FUN_004de090_playSound(0x2e, FP::getData<int32_t>(0x00677274), 30000, 0);
+        target.heldUnitOrigin = target.position;
+        target.heldUnitOriginFacing = target.facingTarget;
+        unit.actionState = 1;
+        unit.facingTarget = static_cast<int16_t>(FUN_004d2700_getFacing(static_cast<int>(target.position.x),
+            static_cast<int>(target.position.z), static_cast<int>(unit.position.x), static_cast<int>(unit.position.z)));
+        unit.pose = 8;
+        unit.heldUnitFacingOffset = static_cast<int16_t>(target.facingTarget - unit.facingTarget);
+        if (target.holdingIndex < 0) target.pose = 5;
+        target.heldByIndex = static_cast<int8_t>(DAT_008895b0_selectedUnit());
+        unit.holdingIndex = static_cast<int8_t>(DAT_008895ac_hoveredUnit());
+        unit.throwDistance = 1;
+        FUN_004d2960_updateGeoPanels();
+        target.position.x = unit.position.x;
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = 0;
+        const float lift = unit.spriteId == 1 ? 1.f : 0.f;
+        target.position.y = float(double(unit.position.y) - 14.0 + double(lift));
+        target.position.z = unit.position.z;
+        FUN_004da320_refreshUnits();
+        FUN_00444810_updateFog(0);
+        FUN_00444810_updateFog(1);
+    }
+
+    /**
+    * @brief State 0x82, choose the unit to lift from the list or with the mouse. A unit that already holds one only
+    * sees its throw line.
+    * Part of FUN_0045c0f0 at 0x00461FD5.
+    */
+    void LAB_00461fd5_updateLiftTarget(const BattleFrame& frame) {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        FUN_004d9dc0_updateCameraControls(camera);
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        const int rows = std::min<int>(DAT_0088990c_liftTargetCount(), 8);
+
+        if (unit.holdingIndex < 0) {
+            int32_t& listCursor = DAT_0088951c_listCursor();
+            int32_t& listScroll = DAT_00889520_listScroll();
+            if (!FUN_0046de80_isGameFlagSet(0xd48)) {
+                FUN_0050fb90_hoverList(0x14d, 0xc, 0x73, 0xe, rows, &listCursor, false);
+                FUN_0050fc10_scrollList(0x14d, 0xc, 0x73, 0xe, rows, &listCursor, listScroll, DAT_0088990c_liftTargetCount());
+            }
+            bool isSoundPlayed = frame.isHandled;
+            if (frame.listCursorAtStart != listCursor) {
+                FUN_0046aab0_playSound(3);
+                isSoundPlayed = true;
+            }
+            if (DAT_0088990c_liftTargetCount() <= 0) {
+                listScroll = 0;
+                listCursor = 0;
+            }
+            else {
+                FUN_004d0d60_updateListCursor(&listCursor, &listScroll, DAT_0088990c_liftTargetCount(), 8, !isSoundPlayed);
+            }
+            pickTargetByMouse(unit, DAT_00889920_liftTargets(), DAT_0088990c_liftTargetCount());
+            FUN_004563f0_drawLiftList();
+            DAT_00701f3b_isTargetMarkerShown() = 1;
+            const int targetIndex = DAT_00889920_liftTargets()[listScroll + listCursor];
+            DAT_008895ac_hoveredUnit() = targetIndex;
+            showTargetMarker(*DisaMapUnit::get(targetIndex));
+
+            const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
+            for (int z = 0; z < 64; ++z) {
+                for (int x = 0; x < 64; ++x) {
+                    if (std::abs(unitTile.x - x) + std::abs(unitTile.y - z) <= 1) FUN_004a1c60_markTile(x, z, 3);
+                }
+            }
+        }
+        else {
+            //the rows count is left in ecx as the unused argument
+            FUN_004d1500_updateMapCursor(&camera, &DAT_00730ba0_cursor(), rows, 0);
+            FUN_004cf290_markThrowLine(unit);
+            FUN_0046a930_drawNamePlate(0xc1, *DisaMapUnit::get(DAT_008895ac_hoveredUnit()), 0);
+        }
+
+        int32_t& mouseState = *reinterpret_cast<int32_t*>(FP::getData<uint8_t*>(0x005d7c70) + 0x30543c);
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            mouseState = 0;
+            keys.clear();
+            FUN_0046aab0_playSound(7);
+            DAT_00701f3b_isTargetMarkerShown() = 0;
+            //without a hovered unit the original also writes in front of the unit array
+            resetTargetColor(*DisaMapUnit::get(DAT_008895ac_hoveredUnit()));
+            FUN_00446d50_popBattleState(0);
+        }
+        if (!keys.isKeyPressed(DisaKeyStates::Select) && !(FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) return;
+        mouseState = 0;
+        keys.clear();
+        DAT_00701f3b_isTargetMarkerShown() = 0;
+        if (unit.holdingIndex < 0) liftTarget(unit);
+    }
+
+    /// Original function: FUN_00456100, the window of the throw.
+    void FUN_00456100_drawThrowWindow(DisaMapUnit& unit) { FP::callStdFastFarA<void>(0x00456100, &unit); }
+    /// Original function: FUN_00475c50, 1 when the held unit cannot be thrown onto the other one.
+    int FUN_00475c50_isStackRefused(DisaMapUnit& held, DisaMapUnit& other) {
+        return FP::callStdFastFarA<int>(0x00475c50, &held, &other);
+    }
+    /// Original function: FUN_004de990, ends the loop of the sprite animation so it plays out.
+    void FUN_004de990_endAnimationLoop(DisaMapUnit& unit) { FP::callStdFastFarA<int>(0x004de990, &unit.sprite); }
+    /// Original function: FUN_0046c9b0_jumpTo, the unit jumps to the position with an arc.
+    void FUN_0046c9b0_jumpTo(DisaMapUnit& unit, float x, float y, float z, float height, float frames) {
+        FP::callThisFarA<void>(0x0046c9b0, &unit, x, y, z, height, frames);
+    }
+
+    /**
+    * @brief The tile at a world position, nullptr outside or for a hole.
+    * Original function: FUN_004a51e0
+    */
+    const mpdfileTile* FUN_004a51e0_getWorldTileAt(float x, float z) {
+        return FUN_004a51b0_getWorldTile(toTile(x), toTile(z));
+    }
+
+    /// The held unit may be captured by throwing it into a base panel, the checks shared by both panels.
+    bool isCapturable(const DisaMapUnit& held) {
+        //character bytes 0x684 and 0x69e
+        const uint8_t* character = reinterpret_cast<const uint8_t*>(held.character);
+        const bool isFree = static_cast<int8_t>(character[0x684]) < 0 && character[0x69e] == 0 && held.holdingIndex < 0 && held.isGeoSymbol == 0;
+        return isFree && held.itemWorldTitle == 0 && held.itemWorldRank == 0 && held.modelType == 0;
+    }
+
+    /**
+    * @brief Aims the throw: the facing picks the direction, pushing it again throws further up to throwRange.
+    * Part of FUN_0045c0f0 at 0x004625AF to 0x004627D8.
+    */
+    void aimThrow(DisaMapUnit& unit) {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        uint8_t& isKeyAimed = FP::getData<uint8_t>(0x008be55c);
+        bool isPad = false;
+        if ((FP::getData<uint8_t>(0x00778d64) & 0xf0) != 0) {
+            isPad = true;
+            DAT_0067726b_isInputConsumed() = 1;
+            isKeyAimed = 1;
+            *reinterpret_cast<int32_t*>(FP::getData<uint8_t*>(0x005d7c70) + 0x30543c) = 0;
+        }
+        const glm::i16vec2 stick = FP::getData<glm::i16vec2>(0x00778d60);
+        const bool isStick = stick.x != 0 || stick.y != 0;
+        if (isStick) {
+            isPad = true;
+            DAT_0067726b_isInputConsumed() = 1;
+            isKeyAimed = 1;
+        }
+        int facing;
+        if (FP::getData<int32_t>(0x0071fd34) != 0) facing = FUN_004d0db0_getPadFacing(camera, false);
+        else if (isStick) facing = FUN_004d0ee0_getStickFacing(camera);
+        else facing = FUN_004d1c90_getMouseFacing(camera, DAT_00730ba0_cursor(), unit, isPad);
+
+        //once the camera reached the cursor the mouse takes over again
+        if (isKeyAimed != 0 && !isPad) {
+            const DisaMapUnit& cursor = DAT_00730ba0_cursor();
+            const float distanceX = std::abs(float(cursor.position.x - camera.eyeOffset.x));
+            const float distanceZ = std::abs(float(cursor.position.z - camera.eyeOffset.z));
+            if (1.f <= distanceX || 1.f <= distanceZ) DAT_0067726b_isInputConsumed() = 1;
+            else isKeyAimed = 0;
+        }
+
+        int32_t& repeat = FP::getData<int32_t>(0x005d7c88);
+        if (facing < 0) {
+            repeat = 0;
+            return;
+        }
+        ++repeat;
+        if (repeat >= 25) repeat = 20;
+        else if (repeat != 1 && repeat != 20) return;
+        //facing 0 to 3 looks at 180, -90, 0 and 90, the opposite one pulls the throw closer
+        constexpr std::array<int, 4> forwards = { 180, -90, 0, 90 };
+        constexpr std::array<int, 4> backwards = { 0, 90, 180, -90 };
+        //another facing compares with a stale stack value, it never matches a facing
+        const int forward = facing <= 3 ? forwards[facing] : INT32_MIN;
+        const int backward = facing <= 3 ? backwards[facing] : INT32_MIN;
+        if (unit.facingTarget == forward) {
+            if (isPad && unit.throwDistance < unit.throwRange) ++unit.throwDistance;
+            return;
+        }
+        if (unit.facingTarget == backward && isPad) {
+            --unit.throwDistance;
+            if (unit.throwDistance >= 1) return;
+            unit.throwDistance = 1;
+        }
+        FUN_004cf1d0_turnUnit(unit, facing);
+    }
+
+    /**
+    * @brief Checks the landing tile and every step of the throw line. -1 allows the throw, anything else refuses it.
+    * Part of FUN_0045c0f0 at 0x004628AB to 0x00462EF8.
+    * @details Like the original the refusal is a unit index or 0, so a stack onto unit 0 is refused as well.
+    */
+    int checkThrow(DisaMapUnit& unit, DisaMapUnit& held, glm::ivec2 cursorTile) {
+        //the unit on the landing tile, -1 a free tile or one the held unit can be stacked on
+        int landing = -1;
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& other = *DisaMapUnit::get(i);
+            if (!other.isActive || &other == &held || other.heldByIndex >= 0 || FUN_0046f640_getCondition(other.character) == 2) continue;
+            if (toTile(other.position.x) != cursorTile.x || toTile(other.position.z) != cursorTile.y) continue;
+            landing = i;
+            if (held.holdingIndex < 0 && FUN_00475c50_isStackRefused(held, other) == 0) landing = -1;
+            break;
+        }
+        const int16_t characterId = held.characterId;
+        //the exploding characters land anywhere outside of dungeons 1100 to 1199
+        if ((characterId / 10 == 221 || characterId == 0xc62) && FP::getData<DisaDungeon>(0x00653a98).id / 100 != 11) landing = -1;
+        if (characterId == 0xc81) landing = -1;
+        int check = landing;
+        if (characterId == 0xc80 && landing != -1 && DisaMapUnit::get(landing)->characterId != 0xc80
+            && DisaMapUnit::get(landing)->holdingIndex == -1) {
+            //the tile is compared with panel / 12, which is never a whole number, so this always allows the throw
+            const auto isOnPanel = [cursorTile](float x, float z) {
+                return float(cursorTile.x) == double(x) * double(1.f / 12.f) && float(cursorTile.y) == double(z) * double(1.f / 12.f);
+            };
+            const bool isOnSecondPanel = FP::getData<uint8_t>(0x006d4abe) != 0 && isOnPanel(FP::getData<float>(0x006e57a0), FP::getData<float>(0x006e57a4));
+            const bool isOnFirstPanel = FP::getData<uint8_t>(0x0065db43) != 0
+                && isOnPanel(FP::getData<float>(fTeleportPannelX), FP::getData<float>(fTeleportPannelZ));
+            if (!isOnSecondPanel && !isOnFirstPanel) check = -1;
+        }
+        //no tile, a hole
+        if (!FUN_004a51b0_getWorldTile(cursorTile.x, cursorTile.y)) check = 0;
+
+        const bool isVersus = DAT_0065db3a_gameMode() == 5;
+        const auto checkPanelCapture = [&held, characterId, &check](int8_t ownAlliance) {
+            if (held.alliance != ownAlliance && characterId != 0xc80 && characterId != 0xc82) check = 0;
+            if (!isCapturable(held)) check = 0;
+        };
+        if (FP::getData<uint8_t>(0x0065db43) != 0 && getBasePanelTile() == cursorTile) {
+            if (isVersus) {
+                checkPanelCapture(0);
+            }
+            else {
+                if (!isCapturable(held)) check = 0;
+                if (held.alliance == 2) check = 0;
+                if (DAT_0065db3a_gameMode() == 4 && held.alliance != 0) check = 0;
+                //the party has room for 128
+                const int partySize = FP::getData<int16_t>(0x0065db12) + FP::getData<int16_t>(0x0065db10);
+                if (partySize >= 0x80 && held.alliance != 0) check = 0;
+            }
+        }
+        if (isVersus && FP::getData<uint8_t>(0x006d4abe) != 0 && getSecondBasePanelTile() == cursorTile) checkPanelCapture(1);
+
+        //every step of the line, the last one is the landing tile
+        const int distance = unit.throwDistance;
+        if (distance < 1) return check;
+        const DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        const float lineX = cursor.position.x - unit.position.x;
+        const float lineZ = cursor.position.z - unit.position.z;
+        for (int step = 1; step <= distance; ++step) {
+            const int x = static_cast<int>(double(unit.position.x) + double(lineX) * double(float(step)) / double(distance));
+            const int z = static_cast<int>(double(unit.position.z) + double(lineZ) * double(float(step)) / double(distance));
+            const mpdfileTile* tile = FUN_004a51e0_getWorldTileAt(float(x), float(z));
+            if (!tile) continue;
+            if (tile->padding[1] != 0) check = 0; //No Entry
+            //the held unit flies 14 above the unit, the tile height is the average of its corners
+            const int cornerHeight = (tile->cornersTop[2] + tile->cornersTop[3] + tile->cornersTop[1] + tile->cornersTop[0]) / 4;
+            const float clearance = float(double(unit.restPosition.y) - 14.0 - double(float(cornerHeight)));
+            if (clearance > float((unit.throwRange + 1) * 3)) check = 0;
+            if (step != distance) continue;
+            if (tile->mobility != 0) check = 0;
+            if (FUN_00444990_getFog(0, float(x), float(z)) == 0xff) check = 0;
+        }
+        return check;
+    }
+
+    /// Throws the held unit onto the cursor tile, it jumps there in state 0x87.
+    void throwHeld(DisaMapUnit& unit, DisaMapUnit& held, glm::ivec2 cursorTile) {
+        FUN_0046aab0_playSound(1);
+        FUN_0046cf10_snapToTile(DAT_00730ba0_cursor());
+        if (FP::getData<int32_t>(0x005d9cd8) == 0) unit.actionState = 2;
+        FUN_004de990_endAnimationLoop(unit);
+        unit.poseFramesLeft = 0x2d;
+        const int landX = cursorTile.x * 12 + 6;
+        const float x = float(landX);
+        const float z = float(cursorTile.y * 12 + 6);
+        const float height = float((unit.throwRange + 2) * 3);
+        const float frames = float((unit.throwDistance + 3) * 5);
+        FUN_0046c9b0_jumpTo(held, x, FUN_004d2be0_getGroundHeight(nullptr, 0, x, z), z, height, frames);
+        held.moveOriginFacing = held.facing;
+        held.moveOrigin.x = float(landX);
+        held.moveOrigin.y = FUN_004d2be0_getGroundHeight(nullptr, 0, x, z);
+        held.moveOrigin.z = z;
+        held.isFromBasePanel = false;
+        if (held.holdingIndex >= 0) held.isLiftLocked = true;
+        FUN_0046aab0_playSound(0x2e);
+
+        FP::getData<int32_t>(0x00889604) = DAT_008895b0_selectedUnit();
+        int32_t& thrownUnit = FP::getData<int32_t>(0x00889600);
+        thrownUnit = unit.holdingIndex;
+        //-2 marks the throw until it landed
+        unit.holdingIndex = -2;
+        held.heldByIndex = -2;
+        FP::getData<int32_t>(0x006772c4) = thrownUnit + 1; //the camera follows the thrown unit
+        if (held.moveState == 1) held.moveState = 2;
+        FP::getData<int32_t>(0x0088960c) = unit.facing;
+        FP::getData<int32_t>(0x00889608) = 0;
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = 0x87;
+    }
+
+    /**
+    * @brief State 0x83, choose where to throw the held unit, into a base panel captures it.
+    * Part of FUN_0045c0f0 at 0x004625AF.
+    */
+    void LAB_004625af_updateThrowTarget() {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        FUN_00447f00_drawTileInfo();
+        FUN_004d9dc0_updateCameraControls(DAT_00730980_camera());
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        FUN_00456100_drawThrowWindow(unit);
+        aimThrow(unit);
+
+        FUN_004cf290_markThrowLine(unit);
+        FUN_004e32a0_rotateXZ(float(unit.facingTarget), 0.f, float(unit.throwDistance * 12));
+        const int landX = static_cast<int>(double(unit.position.x) - double(FP::getData<float>(0x006b791c)));
+        const int landZ = static_cast<int>(double(unit.position.z) + double(FP::getData<float>(0x006b7a60)));
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        const float y = FUN_004d2be0_getGroundHeight(nullptr, 0, float(landX), float(landZ));
+        cursor.FUN_0046cab0_translateTo(float(landX), y, float(landZ), 8.f);
+
+        //whole world units divided by 12, not toTile
+        const glm::ivec2 cursorTile(static_cast<int>(cursor.position.x) / 12, static_cast<int>(cursor.position.z) / 12);
+        DisaMapUnit& held = *DisaMapUnit::get(unit.holdingIndex);
+        const int check = checkThrow(unit, held, cursorTile);
+
+        if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            DAT_0067726b_isInputConsumed() = 1;
+            keys.clear();
+            if (check < 0) throwHeld(unit, held, cursorTile);
+            else FUN_0046aab0_playSound(4);
+        }
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            keys.clear();
+            FUN_0046aab0_playSound(7);
+            cursor.FUN_0046cab0_translateTo(unit.position.x, unit.position.y, unit.position.z, 5.f);
+            FUN_00446d50_popBattleState(0);
+        }
+    }
+
+    /// Original function: FUN_00476090, deals damage to the unit and shows the number, ecx is never read.
+    void FUN_00476090_dealDamage(DisaMapUnit& unit, int damage, int mode) {
+        FP::callFastFarA<void>(0x00476090, 0, &unit, damage, mode);
+    }
+    /// Original function: FUN_00475e30, merges the thrown unit into the one it landed on, returns the merged unit.
+    DisaMapUnit* FUN_00475e30_mergeUnits(DisaMapUnit& base, DisaMapUnit& thrown) {
+        return FP::callStdFastFarA<DisaMapUnit*>(0x00475e30, &base, &thrown);
+    }
+    /// Original function: FUN_00448800, character 0xc80 was thrown into the base panel of the layer.
+    void FUN_00448800_enterPanelObject(int8_t layer) { FP::callStdFastFarA<void>(0x00448800, layer, 0); }
+    /// Original function: FUN_00448500, undoes the Defend or lift of the unit before it leaves the map.
+    void FUN_00448500_undoAction(int index) { FP::callStdFastFarA<int>(0x00448500, index); }
+    /// Original function: FUN_004d3fa0, copies the character into the party, the new party index or -1 when it is full.
+    int FUN_004d3fa0_joinParty(DisaPartyCharacterInfo* character, int alliance) {
+        return FP::callStdFastFarA<int>(0x004d3fa0, character, alliance);
+    }
+
+    /// The thrown units keep -2 in heldByIndex and holdingIndex until the throw is over.
+    void clearThrowMarks() {
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (!unit.isActive) continue;
+            if (unit.heldByIndex == -2) unit.heldByIndex = -1;
+            if (unit.holdingIndex == -2) unit.holdingIndex = -1;
+        }
+    }
+
+    /// A unit of a temporary character, the map enemies at 0x005FE0B0, forgets its character.
+    void releaseTemporaryCharacter(DisaMapUnit& unit) {
+        const DisaPartyCharacterInfo* temporaryBegin = &FP::getData<DisaPartyCharacterInfo>(0x005fe0b0);
+        const DisaPartyCharacterInfo* temporaryEnd = temporaryBegin + 64;
+        if (unit.character < temporaryBegin || unit.character >= temporaryEnd) return;
+        unit.character->charName.fill(0);
+        unit.character = nullptr;
+    }
+
+    /**
+    * @brief The thrown unit and everything it held landed in the base panel of the layer: own units go back into the
+    * panel, others join the party, character 0xc82 counts and leaves.
+    * Part of FUN_0045c0f0 at 0x004632A8 (layer 0) and 0x0046351C (layer 1).
+    */
+    void enterBasePanel(DisaMapUnit& thrown, int8_t layer) {
+        int16_t& joinedIndex = FP::getData<int16_t>(0x0088a7e4);
+        joinedIndex = -1;
+        DisaMapUnit* unit = &thrown;
+        while (true) {
+            if (unit->characterId == 0xc80) {
+                FUN_00448800_enterPanelObject(layer);
+            }
+            else if (unit->characterId == 0xc82) {
+                int8_t& count = FP::getData<int8_t>(layer == 0 ? 0x006d4abc : 0x006d4abd);
+                count += count < 99 ? 1 : 0;
+                FUN_00477550_showMessage(-1, 0x3a, -1, 1, 0x5a, &FP::getData<uint8_t>(0x005ad538), getSystemString(layer == 0 ? 0x970 : 0x9b8));
+                unit->isActive = false;
+                releaseTemporaryCharacter(*unit);
+            }
+            else if (unit->alliance == layer) {
+                FUN_00448500_undoAction(FP::getData<int32_t>(0x00889600));
+                if (layer == 1) ++FP::getData<int8_t>(0x006d4ab6); //units of layer 1 in its panel
+                reinterpret_cast<uint8_t*>(unit->character)[0x69c] = unit->actionState;
+                reinterpret_cast<uint8_t*>(unit->character)[0x69d] = unit->moveState;
+                unit->isActive = false;
+                if (layer == 0) ++FP::getData<int8_t>(0x0065db39);
+            }
+            else {
+                joinedIndex = static_cast<int16_t>(FUN_004d3fa0_joinParty(unit->character, unit->alliance));
+                if (joinedIndex >= 0) unit->isVisible = false;
+                else unit->heldByIndex = -1;
+            }
+            if (unit->holdingIndex < 0) break;
+            unit = DisaMapUnit::get(unit->holdingIndex);
+        }
+        FP::getData<int32_t>(0x006772c4) = 0;
+        clearThrowMarks();
+        if (joinedIndex < 0) {
+            DAT_008896a0_battleStateDepths()[0] = 0;
+            thrown.poseFramesLeft = 10;
+            DAT_00889618_battleState() = 0;
+        }
+        else {
+            //a new party member, state 0x8C names it
+            std::array<int16_t, 4>& joinValues = FP::getData<std::array<int16_t, 4>>(0x0088a7d8);
+            joinValues.fill(0);
+            DAT_00889618_battleState() = 0x8c;
+            FP::getData<int16_t>(0x0088a7e8) = 0;
+            FP::getData<int16_t>(0x0088a7e0) = 0;
+            DAT_008896a0_battleStateDepths()[0] = 0;
+        }
+        FUN_004d2ad0_updateGeoPanel(thrown);
+        FUN_004da320_refreshUnits();
+        FUN_00444810_updateFog(0);
+        FUN_00444810_updateFog(1);
+    }
+
+    /// The exploding characters 2210 to 2219 and 3170, outside of dungeons 1100 to 1199.
+    bool isExploding(int16_t characterId) {
+        return (characterId / 10 == 221 || characterId == 0xc62) && FP::getData<DisaDungeon>(0x00653a98).id / 100 != 11;
+    }
+
+    /**
+    * @brief The thrown unit landed on another unit: geo symbols and 0xc80 take their HP as damage, others merge.
+    * Part of FUN_0045c0f0 at 0x004637C4.
+    */
+    void landOnUnit(DisaMapUnit& thrown, DisaMapUnit& base) {
+        int damaged = 0;
+        if (thrown.isGeoSymbol != 0) {
+            FUN_00476090_dealDamage(thrown, static_cast<int32_t>(thrown.character->currentHP), 1);
+            damaged = 1;
+        }
+        if (base.isGeoSymbol != 0) {
+            FUN_00476090_dealDamage(base, static_cast<int32_t>(base.character->currentHP), 1);
+            ++damaged;
+        }
+        if (thrown.characterId == 0xc80) {
+            FUN_00476090_dealDamage(base, static_cast<int32_t>(base.character->currentHP), 1);
+            ++damaged;
+        }
+        if (damaged == 0) {
+            DisaMapUnit& merged = *FUN_00475e30_mergeUnits(base, thrown);
+            DisaTransform* transform = getEffectTransform();
+            transform->position.x = merged.position.x;
+            transform->position.y = float(double(merged.position.y) - 6.0);
+            transform->position.z = merged.position.z;
+            FUN_004783d0_spawnEffect(1000, 0xb, transform);
+            FUN_0046aab0_playSound(0x17);
+            merged.pose = 9;
+            merged.poseFramesLeft = 0x3c;
+        }
+        FUN_004d2ad0_updateGeoPanel(thrown);
+        FUN_004da320_refreshUnits();
+    }
+
+    /**
+    * @brief State 0x87, waits until the thrown unit came down, then it lands in a base panel, on a unit, explodes or
+    * ends the Item World floor on the gate.
+    * Part of FUN_0045c0f0 at 0x0046316D.
+    */
+    void LAB_0046316d_updateThrowLanding() {
+        DisaMapUnit& thrown = *DisaMapUnit::get(FP::getData<int32_t>(0x00889600));
+        if (thrown.moveFramesLeft > 0 || 0.f > thrown.velocity.y) return;
+
+        thrown.gravity = std::bit_cast<float>(0x3e26e979u); //0.163
+        FP::getData<uint32_t>(0x00730a8c) = 0xf0008; //camera + 0x10c
+        DisaTransform* transform = getEffectTransform();
+        FP::getData<int32_t>(0x006772a0) = 200; //read by the effect
+        //the 1 for y is the constant the dispatch left on the FPU stack
+        transform->position = glm::vec4(thrown.position.x, thrown.restPosition.y - 1.f, thrown.position.z, 1.f);
+        transform->rotation = glm::vec4(0.f, 0.f, 0.f, 1.f);
+        transform->scale = glm::vec4(0.5f, 0.5f, 0.5f, 1.f);
+        FUN_00478d50_spawnEffect(-1, 0x1b, transform, 1.f, 1);
+        FUN_0046aab0_playSound(0x22);
+
+        const glm::ivec2 tile(toTile(thrown.position.x), toTile(thrown.position.z));
+        if (getBasePanelTile() == tile && FP::getData<uint8_t>(0x0065db43) != 0) {
+            enterBasePanel(thrown, 0);
+            return;
+        }
+        if (DAT_0065db3a_gameMode() == 5 && FP::getData<uint8_t>(0x006d4abe) != 0 && getSecondBasePanelTile() == tile) {
+            enterBasePanel(thrown, 1);
+            return;
+        }
+
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& base = *DisaMapUnit::get(i);
+            if (!base.isActive || &base == &thrown || base.heldByIndex >= 0) continue;
+            //an exploding unit does not land on others, it explodes below
+            if (isExploding(thrown.characterId)) continue;
+            if (FUN_0046f640_getCondition(base.character) == 2) continue;
+            if (toTile(base.position.x) != tile.x || toTile(base.position.z) != tile.y) continue;
+            landOnUnit(thrown, base);
+            break;
+        }
+
+        //here the original reads the id of the character, above the one of the unit
+        const int16_t characterId = static_cast<int16_t>(thrown.character->characterId);
+        if (isExploding(characterId)) {
+            ++FP::getData<int16_t>(0x0065db1e);
+            FP::getData<int32_t>(0x0088952c) = 0x5a;
+            const float y = float(double(FUN_004d2be0_getGroundHeight(nullptr, 0, thrown.position.x, thrown.position.z)) - 3.0);
+            const int power = static_cast<int32_t>(thrown.character->currentHP) / 2 + 1;
+            FUN_00476d90_spawnProjectile(-1, 10, power, thrown.position.x, y, thrown.position.z, 0.f, 0.f, 0.f, 0);
+            FUN_00476090_dealDamage(thrown, static_cast<int32_t>(thrown.character->currentHP), 1);
+            thrown.pose = 5;
+            thrown.poseFramesLeft = 10;
+        }
+        else if (thrown.alliance == 0 && getGateTile() == tile && FP::getData<uint8_t>(0x0065db41) != 0) {
+            enterGate(thrown);
+            FUN_004d2ad0_updateGeoPanel(thrown);
+            FUN_004da320_refreshUnits();
+            return;
+        }
+
+        FUN_00444810_updateFog(0);
+        FUN_00444810_updateFog(1);
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        thrown.poseFramesLeft = 10;
+        DAT_00889618_battleState() = 0;
+        FP::getData<int32_t>(0x006772c4) = 0;
+        clearThrowMarks();
+        FUN_004d2ad0_updateGeoPanel(thrown);
+        FUN_004da320_refreshUnits();
+    }
+
     /// Runs the state of layer 0. Part of FUN_0045c0f0 at 0x0045C6E6.
     void LAB_0045c6e6_updateBattleState(BattleFrame& frame) {
         const int32_t state = DAT_00889618_battleState();
@@ -3738,6 +4308,9 @@ namespace {
         case 0x48: LAB_004607ea_updateSteal(frame); break;
         case 0x4b: LAB_0046196c_updateLeavePrompt(frame); break;
         case 0x50: LAB_00461af0_updateSummonShots(frame); break;
+        case 0x82: LAB_00461fd5_updateLiftTarget(frame); break;
+        case 0x83: LAB_004625af_updateThrowTarget(); break;
+        case 0x87: LAB_0046316d_updateThrowLanding(); break;
         case 0x0a: LAB_0045d06e_updateCommandMenu(); break;
         case 0x28: LAB_0045e546_updateBattleStart(); break;
         case 0x3c: LAB_0045e57d_updateSpecialList(); break;
