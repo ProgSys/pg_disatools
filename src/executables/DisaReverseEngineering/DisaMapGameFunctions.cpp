@@ -233,7 +233,8 @@ namespace {
         //the original compares moveFramesLeft with the busy count, which is 0 by then
         const auto isMoving = [&]() { return isBusy || cursor.moveFramesLeft != 0 || FUN_00444760_countProjectiles() != 0; };
         if ((state == 0 || state == 1 || state == 0x17) && isMoving()) return false;
-        constexpr std::array<int32_t, 13> busyStates = { 0x15, 0x28, 0x87, 200, 0x96, 0xa0, 0x3e9, 0x4b0, 0x4b1, 0x4b2, 11000, 0x2af9, 0x3ea };
+        constexpr std::array<int32_t, 13> busyStates = {
+            0x15, 0x28, 0x87, 200, 0x96, 0xa0, 0x3e9, 0x4b0, 0x4b1, 0x4b2, 11000, 0x2af9, 0x3ea };
         return std::ranges::find(busyStates, state) == busyStates.end();
     }
 
@@ -348,13 +349,13 @@ namespace {
     /// Original function: FUN_004d9dc0, rotates and zooms the camera by mouse drag, wheel and the page keys.
     void FUN_004d9dc0_updateCameraControls(DisaCameraInfo& camera) { FP::callStdFastFarA<void>(0x004d9dc0, &camera); }
     /// Original function: FUN_00449780, moves the cursor to the next unit of the layer that can still act.
-    void FUN_00449780_focusNextUnit(int hovered, int8_t layer) { FP::callStdFastFarA<int>(0x00449780, hovered, layer); }
+    void FUN_00449780_focusNextUnit(int hovered, int8_t layer) { FP::callStdFastFarA<void>(0x00449780, hovered, layer); }
     /// Original function: FUN_00449af0, moves the cursor to the next player unit.
-    void FUN_00449af0_focusNextPlayerUnit(int hovered) { FP::callStdFastFarA<int>(0x00449af0, hovered); }
+    void FUN_00449af0_focusNextPlayerUnit(int hovered) { FP::callStdFastFarA<void>(0x00449af0, hovered); }
     /// Original function: FUN_00449c70, moves the cursor to the Item World gate.
-    void FUN_00449c70_focusGate(int hovered) { FP::callStdFastFarA<int>(0x00449c70, hovered); }
+    void FUN_00449c70_focusGate(int hovered) { FP::callStdFastFarA<void>(0x00449c70, hovered); }
     /// Original function: FUN_00449db0, moves the cursor to the base panel.
-    void FUN_00449db0_focusBasePanel(int hovered) { FP::callStdFastFarA<int>(0x00449db0, hovered); }
+    void FUN_00449db0_focusBasePanel(int hovered) { FP::callStdFastFarA<void>(0x00449db0, hovered); }
     /// Original function: FUN_004d0db0, the facing the pad asks for, -1 none. Recorded is the versus replay input.
     int FUN_004d0db0_getPadFacing(DisaCameraInfo& camera, bool isRecorded) {
         return FP::callFastFarA<int>(0x004d0db0, &camera, 0, int(isRecorded));
@@ -415,7 +416,7 @@ namespace {
         return FP::callStdFastFarA<int>(0x0047f2d0, mode, character);
     }
     /// Original function: FUN_004da100, updates the status icons of the unit.
-    void FUN_004da100_updateStatusIcons(DisaMapUnit& unit) { FP::callStdFastFarA<int>(0x004da100, &unit); }
+    void FUN_004da100_updateStatusIcons(DisaMapUnit& unit) { FP::callStdFastFarA<void>(0x004da100, &unit); }
     /// Original function: FUN_004d2960, marks the geo panels with the No Entry effect.
     void FUN_004d2960_updateGeoPanels() { FP::callFarA<void>(0x004d2960); }
     /// Original function: FUN_00447bf0, a unit of another alliance on the target tile, 0xff a base panel, -1 none.
@@ -561,7 +562,8 @@ namespace {
     /// Original function: FUN_00456930, the window with the reasons a skill cannot be used and the rotate button.
     void FUN_00456930_drawSkillWarnings(int errorCount, int blocked, int outOfReach, int inReach, int heightTiles, int heightFree,
         int isOutOfRange, int area, DisaMapUnit& unit) {
-        FP::callFastFarA<void>(0x00456930, errorCount, blocked, outOfReach, inReach, heightTiles, heightFree, isOutOfRange, area, &unit);
+        FP::callFastFarA<void>(0x00456930, errorCount, blocked, outOfReach, inReach, heightTiles, heightFree, isOutOfRange, area,
+            &unit);
     }
     /// Original function: FUN_004572c0, the window with the reasons the summon cannot be placed.
     void FUN_004572c0_drawSummonWarnings(int isOutOfRange, int blocked) {
@@ -895,7 +897,7 @@ namespace {
 
     /// Original function: FUN_00446090, plays the queued geo panel changes, nonzero once done.
     int FUN_00446090_updateGeoChain() { return FP::callFarA<int>(0x00446090); }
-    /// Original function: FUN_0044c2a0, the AI turn. 11000 passes 1, 0x2AF9 passes 0.
+    /// Original function: FUN_0044c2a0, the AI turn. 11000 passes 0, 0x2AF9 passes 1.
     void FUN_0044c2a0_updateAiTurn(int8_t mode) { FP::callStdFastFarA<void>(0x0044c2a0, mode); }
 
     /// Original function: FUN_00478ab0, starts a sprite effect at the transform. Only the sprite is traced.
@@ -933,7 +935,7 @@ namespace {
 
     /// Original function: FUN_0046c830, animates a sprite actor.
     void FUN_0046c830_updateActor(DisaMapUnit& actor, DisaCameraInfo& camera) {
-        FP::callStdFastFarA<int>(0x0046c830, &actor, 0, &camera, 0);
+        FP::callStdFastFarA<void>(0x0046c830, &actor, 0, &camera, 0);
     }
     /**
     * @brief Original function: FUN_0046a810, draws a sprite actor through FUN_0046cf80.
@@ -947,7 +949,7 @@ namespace {
         FP::callStdFastFarA<void>(0x0046a7e0, &actor, &camera);
     }
     /// Original function: FUN_004d2e40, aims the model of a unit with modelType at aimTargetIndex.
-    void FUN_004d2e40_aimModel(DisaMapUnit& unit) { FP::callStdFastFarA<int>(0x004d2e40, &unit); }
+    void FUN_004d2e40_aimModel(DisaMapUnit& unit) { FP::callStdFastFarA<void>(0x004d2e40, &unit); }
     /// Original function: FUN_0046c660, counts removeFramesLeft down, true when the unit was removed at 0.
     bool FUN_0046c660_updateRemoval(DisaMapUnit& unit, DisaCameraInfo& camera) {
         return FP::callStdFastFarA<int>(0x0046c660, &unit, 0, &camera, 0) != 0;
@@ -968,7 +970,7 @@ namespace {
     void FUN_004e0140_submitUnitQueue() { FP::callFarA<void>(0x004e0140); }
     /// Original function: FUN_0046d7a0, draws a unit placed by script SetActorRawPos at a whole number position.
     void FUN_0046d7a0_drawRawActor(DisaMapUnit& unit, int x, int y, int z, const void* color) {
-        FP::callStdFastFarA<int>(0x0046d7a0, &unit, 0, x, y, z, color);
+        FP::callStdFastFarA<void>(0x0046d7a0, &unit, 0, x, y, z, color);
     }
     /// Original function: FUN_004c12d0, the script actors at 0x0071FE80.
     void FUN_004c12d0_updateScriptActors() { FP::callFarA<void>(0x004c12d0); }
@@ -1029,6 +1031,8 @@ namespace {
     /**
     * @brief Pans the camera, finds the hovered unit and prepares the locals of the frame.
     * Part of FUN_0045c0f0, from 0x0045C0F0 to the dispatch at 0x0045C6E6.
+    * @details The camera moves through DisaCameraInfo::move, the port of FUN_004f8350. Unlike the original it snaps
+    * axes whose step is below 0.0001 to the target and moves at once for a NaN speed.
     */
     void LAB_0045c0f0_updateCameraAndHover(BattleFrame& frame) {
         int32_t& state = DAT_00889618_battleState();
@@ -1085,7 +1089,8 @@ namespace {
                 if (frames == 0) frames = 1;
                 if (state != 500 && followedUnit >= 0) {
                     const float speed = float(frames * 5);
-                    if (followedUnit == 0) camera.move(glm::vec3(cursor.position.x, cursor.restPosition.y, cursor.position.z), speed);
+                    const glm::vec3 cursorTarget(cursor.position.x, cursor.restPosition.y, cursor.position.z);
+                    if (followedUnit == 0) camera.move(cursorTarget, speed);
                     else camera.move(DisaMapUnit::get(followedUnit - 1)->position, speed);
                 }
             }
@@ -1671,7 +1676,8 @@ namespace {
             moveCursorTo(unit, 15.f);
         }
         else {
-            if (unit.isGeoSymbol == 0 && unit.characterId / 10 != 320 && unit.modelType == 0) FUN_004a1eb0_drawMoveRange(unit.movement);
+            const bool hasMoveRange = unit.isGeoSymbol == 0 && unit.characterId / 10 != 320 && unit.modelType == 0;
+            if (hasMoveRange) FUN_004a1eb0_drawMoveRange(unit.movement);
             if (isIdle && keys.isKeyPressed(DisaKeyStates::Cancel)) {
                 keys.clear();
                 stopCursor(cursor);
@@ -1787,7 +1793,7 @@ namespace {
             *reinterpret_cast<int16_t*>(action + 0x166) = static_cast<int16_t>(facing);
             unit.facingTarget = static_cast<int16_t>(facing);
         }
-        if (geoEffect[2] == 0 && unit.character->characterId / 10 == 108) queueExtraSkill(unit, target);
+        if (geoEffect[2] == 0 && static_cast<int16_t>(unit.character->characterId) / 10 == 108) queueExtraSkill(unit, target);
         //the original stores the tile twice when the skill was added
         unit.aiStandX = static_cast<int16_t>(toTile(unit.position.x));
         unit.aiStandZ = static_cast<int16_t>(toTile(unit.position.z));
@@ -1958,7 +1964,7 @@ namespace {
         if (start >= end) return check;
         const int unitHeight = FUN_0046e7d0_roundHeight(unit.position.y);
         for (int i = start; i < end; ++i) {
-            glm::ivec2 tile;
+            glm::ivec2 tile{};
             const int kind = FUN_004446b0_getAreaTile(i, DAT_008895c8_skillDirection(), cursorTile, tile);
             const int heightDifference = FUN_004d2e00_getTileHeight(tile.x, tile.y) - unitHeight;
             if (kind == 3 && isOutsideSkillHeight(heightDifference)) ++check.heightTiles;
@@ -2022,7 +2028,7 @@ namespace {
         int16_t* actionTileTargets = reinterpret_cast<int16_t*>(action + 0xd4);
         const int start = (&FP::getData<int16_t>(0x00664d80))[area];
         for (int i = start; i < (&FP::getData<int16_t>(0x00664e40))[area]; ++i) {
-            glm::ivec2 tile;
+            glm::ivec2 tile{};
             const int kind = FUN_004446b0_getAreaTile(i, direction, cursorTile, tile);
             const int heightDifference = FUN_004d2e00_getTileHeight(tile.x, tile.y) - FUN_0046e7d0_roundHeight(unit.position.y);
             //the first tile is the center of the area
@@ -2057,7 +2063,8 @@ namespace {
         ++actionCount;
         unit.aiPlanArea = static_cast<uint8_t>(DAT_008895cc_skillArea());
         //weapon skills 701 to 900 repeat with the extra attacks of the geo panel under the unit
-        const int extraAttacks = skillId >= 0x2bd && skillId < 0x385 ? (&FP::getData<uint8_t>(0x006640b8))[unit.geoPanelColor * 32] : 0;
+        const bool isWeaponSkill = skillId >= 0x2bd && skillId < 0x385;
+        const int extraAttacks = isWeaponSkill ? (&FP::getData<uint8_t>(0x006640b8))[unit.geoPanelColor * 32] : 0;
         for (int i = 0; i < extraAttacks; ++i) {
             std::copy_n(action, 0x388, DAT_005db920_getAction(actionCount + i));
         }
@@ -2143,12 +2150,8 @@ namespace {
         glm::vec3 world;
         FUN_004d1070_screenToWorld(&world, mouse.x, mouse.y, unit.position.y, true);
         clampToMap(world.x, world.z);
-        if (!isStandBlocked) {
-            if (FUN_0050f910_isLeftMouseDown()) moveUnitAndCursor(unit, world.x, world.z);
-        }
-        else {
-            moveBackToSkillStart(unit);
-        }
+        if (isStandBlocked) moveBackToSkillStart(unit);
+        else if (FUN_0050f910_isLeftMouseDown()) moveUnitAndCursor(unit, world.x, world.z);
 
         //the first press steps at once, holding repeats after 20 frames every 5 frames
         int32_t& repeat = FP::getData<int32_t>(0x005d7c88);
@@ -2248,7 +2251,8 @@ namespace {
                 const uint16_t skillId = *reinterpret_cast<const uint16_t*>(skill);
                 const float x = float(cursorTile.x * 12 + 6);
                 const float z = float(cursorTile.y * 12 + 6);
-                const int level = std::max(static_cast<int16_t>(character->level) / 2 + static_cast<int8_t>(character->skillLevel[slot]), 1);
+                const int skillLevel = static_cast<int8_t>(character->skillLevel[slot]);
+                const int level = std::max(static_cast<int16_t>(character->level) / 2 + skillLevel, 1);
                 const float y = FUN_004d2be0_getGroundHeight(nullptr, 0, x, z);
                 const int index = FUN_004d30e0_spawnCharacter(0x8fc, 2, level, x, y, z);
                 if (index < 0) {
@@ -2258,14 +2262,15 @@ namespace {
                     DisaMapUnit& summon = *DisaMapUnit::get(index);
                     summon.aiMode = 3;
                     DisaTransform* transform = getEffectTransform();
-                    transform->position = glm::vec4(summon.position.x, float(double(summon.position.y) + 6.0), summon.position.z, 1.f);
+                    const float effectY = float(double(summon.position.y) + 6.0);
+                    transform->position = glm::vec4(summon.position.x, effectY, summon.position.z, 1.f);
                     transform->rotation = glm::vec4(0.f, 0.f, 0.f, 1.f);
                     transform->scale = glm::vec4(1.f);
                     FUN_00478d50_spawnEffect(-1, 0x11, transform, 1.f, 1);
                     FUN_0046aab0_playSound(0x19e);
                     FUN_0046aab0_playSound(1);
-                    const int skillLevel = std::min<int>(static_cast<int8_t>(character->skillLevel[slot]), 10);
-                    FP::getData<int32_t>(0x00889538) = skillLevel;
+                    const int cappedLevel = std::min(skillLevel, 10);
+                    FP::getData<int32_t>(0x00889538) = cappedLevel;
                     if (FP::getData<int32_t>(0x005d9cd8) == 0) unit.actionState = 2;
                     character->currentSP -= FUN_00470850_getSkillCost(character, skillId, 1);
                     FUN_0046db50_useSkill(character, skillId);
@@ -2275,8 +2280,8 @@ namespace {
                     FP::getData<int32_t>(0x008895a0) = 0;
                     FP::getData<int32_t>(0x0088958c) = 0;
                     DAT_008896a0_battleStateDepths()[0] = 0;
-                    FP::getData<int32_t>(0x008896b0) = skillLevel * 60 + 0x293;
-                    FP::getData<int32_t>(0x008896b4) = skillLevel * 60 + 0x293;
+                    FP::getData<int32_t>(0x008896b0) = cappedLevel * 60 + 0x293;
+                    FP::getData<int32_t>(0x008896b4) = cappedLevel * 60 + 0x293;
                     DAT_00730ba0_cursor().animation = 10;
                     DAT_00889618_battleState() = 0x50;
                     FP::getData<int32_t>(0x006b756c) = 1;
@@ -2363,8 +2368,10 @@ namespace {
             if (!FUN_0050fe30_isClickInBox(buttonLeft, buttonTop, buttonRight, buttonTop + 0x15)) {
                 FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
             }
-            if (isRotatableArea(DAT_008895cc_skillArea()) && FUN_0050fe30_isClickInBox(buttonLeft, buttonTop, buttonRight, buttonTop + 0x15)
-                && !FUN_0046de80_isGameFlagSet(0xd48)) {
+            const auto isButtonClicked = [=]() {
+                return FUN_0050fe30_isClickInBox(buttonLeft, buttonTop, buttonRight, buttonTop + 0x15);
+            };
+            if (isRotatableArea(DAT_008895cc_skillArea()) && isButtonClicked() && !FUN_0046de80_isGameFlagSet(0xd48)) {
                 FUN_0050fe60_clearMouseClicks();
                 rotateSkillArea();
             }
@@ -2379,10 +2386,11 @@ namespace {
             keys.clear();
             FUN_0046cf10_snapToTile(cursor);
             FUN_0046cf10_snapToTile(unit);
-            if (isOutOfRange || isStandBlocked || !LAB_0045f7a3_queueSkill(unit, skill, cursorTile, direction)) FUN_0046aab0_playSound(4);
+            const bool isQueued = !isOutOfRange && !isStandBlocked && LAB_0045f7a3_queueSkill(unit, skill, cursorTile, direction);
+            if (!isQueued) FUN_0046aab0_playSound(4);
         }
-        FUN_00456930_drawSkillWarnings(errorCount, check.blocked, check.outOfReach, check.inReach, check.heightTiles, check.heightFree,
-            isOutOfRange, DAT_008895cc_skillArea(), unit);
+        FUN_00456930_drawSkillWarnings(errorCount, check.blocked, check.outOfReach, check.inReach, check.heightTiles,
+            check.heightFree, isOutOfRange, DAT_008895cc_skillArea(), unit);
         FUN_0046a9f0_drawTileHeight(0x1a6);
         FUN_00447f00_drawTileInfo();
     }
@@ -2398,12 +2406,12 @@ namespace {
     }
     /// Original function: FUN_004d4270, turns the item into another one, like an empty bottle.
     void FUN_004d4270_changeItem(PG_DisaEquippedItem& item, int id, int value) {
-        FP::callFastFarA<int>(0x004d4270, &item, id, value, 0);
+        FP::callFastFarA<void>(0x004d4270, &item, id, value, 0);
     }
     /// Original function: FUN_00504600, updates the stats of a changed item.
     void FUN_00504600_updateItem(PG_DisaEquippedItem& item) { FP::callStdFastFarA<void>(0x00504600, &item); }
     /// Original function: FUN_004d4630, removes the item from the bag.
-    void FUN_004d4630_removeBagItem(int bag, int slot) { FP::callStdFastFarA<int>(0x004d4630, bag, slot); }
+    void FUN_004d4630_removeBagItem(int bag, int slot) { FP::callStdFastFarA<void>(0x004d4630, bag, slot); }
     /// Original function: FUN_00456610, the window of the item hand over or the steal, rows and the cursor of the list.
     void FUN_00456610_drawItemTransfer(DisaMapUnit& unit, DisaMapUnit& target, PG_DisaEquippedItem& item, int rows, int cursor) {
         FP::callFastFarA<void>(0x00456610, &unit, &target, &item, rows, cursor);
@@ -2643,7 +2651,8 @@ namespace {
         else {
             std::array<uint8_t, 0x40> convertedName{};
             FUN_004e3440_convertString(convertedName.data(), statName);
-            FUN_004e42c0_format(line2Format.data(), getSystemString(0x8f0), &FP::getData<char>(0x005328c8), convertedName.data(), amount);
+            FUN_004e42c0_format(line2Format.data(), getSystemString(0x8f0), &FP::getData<char>(0x005328c8), convertedName.data(),
+                amount);
         }
         //the original indexes a zeroed array with the text style
         FUN_004dd950_formatName(line2Format.data(), line2.data(), thief->charName.data(), &line2NamePosition,
@@ -2745,7 +2754,8 @@ namespace {
             if (unit.moveState == 1) unit.moveState = 2;
         }
         DisaTransform* transform = getEffectTransform();
-        const uint32_t chance = FUN_004495e0_getStealChance(unit, target, DAT_0088951c_listCursor(), static_cast<int32_t>(tool.stats.hit));
+        const int32_t bonus = static_cast<int32_t>(tool.stats.hit);
+        const uint32_t chance = FUN_004495e0_getStealChance(unit, target, DAT_0088951c_listCursor(), bonus);
         if (chance <= static_cast<uint32_t>(FUN_0046e1a0_random(100))) {
             //missed
             transform->position = glm::vec4(target.position, 1.f);
@@ -2840,7 +2850,7 @@ namespace {
         //edi still holds the hovered unit of the prelude
         DisaMapUnit& target = *DisaMapUnit::get(DAT_008895ac_hoveredUnit());
         //characters 1170 to 1179 and 2200 to 2209 also steal by the steal type
-        const int thiefClass = unit.character->characterId / 10;
+        const int thiefClass = static_cast<int16_t>(unit.character->characterId) / 10;
         const int rows = (thiefClass == 117 || thiefClass == 220) && target.field0x3f6 != 0 ? 5 : 4;
 
         int32_t& listCursor = DAT_0088951c_listCursor();
@@ -2865,8 +2875,11 @@ namespace {
             FUN_0046aab0_playSound(7);
             FUN_00446d50_popBattleState(0);
         }
-        const bool isClicked = FUN_0050fe30_isClickInBox(0x20, 10, 0xd6, rows * 16 + 10) || FUN_0050f790_isMouseTap();
-        if (keys.isKeyPressed(DisaKeyStates::Select) || (isClicked && !FUN_0046de80_isGameFlagSet(0xd48))) {
+        //the click helpers record the press position, so they only run without Select like in the original
+        const auto isClicked = [rows]() {
+            return FUN_0050fe30_isClickInBox(0x20, 10, 0xd6, rows * 16 + 10) || FUN_0050f790_isMouseTap();
+        };
+        if (keys.isKeyPressed(DisaKeyStates::Select) || (isClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
             FUN_0050fe60_clearMouseClicks();
             keys.clear();
             const int slot = listCursor;
@@ -3270,10 +3283,11 @@ namespace {
     void LAB_00464544_updateGameOver() {
         int32_t& frames = DAT_008896b0_stateFrames();
         const int doubled = frames * 2;
-        const std::array<uint8_t, 4> color = { 0xff, 0xff, 0xff, doubled < 0x80 ? static_cast<uint8_t>(doubled * 2) : uint8_t(0xff) };
+        const uint8_t alpha = doubled < 0x80 ? static_cast<uint8_t>(doubled * 2) : uint8_t(0xff);
+        const std::array<uint8_t, 4> color = { 0xff, 0xff, 0xff, alpha };
         //x, y, image, then the cutouts, as FUN_RenderCutout in Ghidra
-        FP::callFastFarA<void>(fRenderCutout, &FP::getData<uint8_t>(0x0074c0e0), color.data(), 134.f, 121.f, 0xd903, 0xd4, 0x1e, 0, 0x3c,
-            0xd4, 0x1e);
+        FP::callFastFarA<void>(fRenderCutout, &FP::getData<uint8_t>(0x0074c0e0), color.data(), 134.f, 121.f, 0xd903, 0xd4, 0x1e, 0,
+            0x3c, 0xd4, 0x1e);
         frames += frames < 0x78 ? 1 : 0;
         if (frames < 0x78) return;
 
@@ -3302,10 +3316,9 @@ namespace {
         DisaKeyStates& keys = DAT_00778d98_keyStates();
         if (keys.isKeyPressed(DisaKeyStates::Up) || keys.isKeyPressed(DisaKeyStates::Down)) choice = choice == 0 ? 1 : 0;
         if (lastChoice != choice) FUN_0046aab0_playSound(3);
-        if (!keys.isKeyPressed(DisaKeyStates::Select) && !FUN_0050fe30_isClickInBox(x, 0x48, x + width, 0x68)
-            && !FUN_0050f790_isMouseTap()) {
-            return;
-        }
+        const bool isConfirmed = keys.isKeyPressed(DisaKeyStates::Select) || FUN_0050fe30_isClickInBox(x, 0x48, x + width, 0x68)
+            || FUN_0050f790_isMouseTap();
+        if (!isConfirmed) return;
         keys.clear();
         if (choice == 1) {
             FUN_0046aab0_playSound(7);
@@ -3521,9 +3534,9 @@ namespace {
         else if (step == 0xb) FUN_0044c2a0_updateAiTurn(mode);
     }
 
-    /// State 11000. Part of FUN_0045c0f0 at 0x00464E05.
+    /// State 0x2AF9. Part of FUN_0045c0f0 at 0x00464E05.
     void LAB_00464e05_updateAiTurn() { updateAiTurnStates(1); }
-    /// State 0x2AF9. Part of FUN_0045c0f0 at 0x00464E7F.
+    /// State 11000. Part of FUN_0045c0f0 at 0x00464E7F.
     void LAB_00464e7f_updateAiTurn() { updateAiTurnStates(0); }
 
     /**
@@ -3578,8 +3591,8 @@ namespace {
         case 9000: LAB_00464d21_waitForScript(); break;
         case 0x4b2: LAB_00464d3a_updateDraw(); break;
         case 0x2712: LAB_00464d81_startLayer1Turn(); break;
-        case 11000: LAB_00464e05_updateAiTurn(); break;
-        case 0x2af9: LAB_00464e7f_updateAiTurn(); break;
+        case 11000: LAB_00464e7f_updateAiTurn(); break;
+        case 0x2af9: LAB_00464e05_updateAiTurn(); break;
         case 0x271a: LAB_00464ea1_returnToBasePanel(); break;
         default: break; //0x3EA and the rest wait
         }
@@ -3608,9 +3621,9 @@ namespace {
             FUN_0046aab0_playSound(7);
             FUN_00446d50_popBattleState(0);
         }
-        if (!keys.isKeyPressed(DisaKeyStates::Select) && !FUN_0050fe30_isClickInBox(x, 0x48, x + width, 0x68) && !FUN_0050f790_isMouseTap()) {
-            return;
-        }
+        const bool isConfirmed = keys.isKeyPressed(DisaKeyStates::Select) || FUN_0050fe30_isClickInBox(x, 0x48, x + width, 0x68)
+            || FUN_0050f790_isMouseTap();
+        if (!isConfirmed) return;
         keys.clear();
         if (choice == 1) {
             FUN_0046aab0_playSound(7);
@@ -3683,13 +3696,13 @@ namespace {
             const float dx = cursor.position.x - unit.position.x;
             const float dz = cursor.position.z - unit.position.z;
             const double distanceSquared = double(dz) * dz + double(dx) * dx;
-            if (72.0 > distanceSquared) continue;
+            if (distanceSquared < 72.0) continue;
             unit.modelYawTarget = FUN_0046e4e0_atan2Degrees(dx, dz);
             const float distance = static_cast<float>(std::sqrt(double(float(distanceSquared))));
             const float dy = float(double(cursor.restPosition.y) - 3.0 - double(unit.position.y));
             const float pitch = float(double(FUN_0046e4e0_atan2Degrees(distance, dy)) - 90.0);
             unit.modelPitchTarget = pitch;
-            if (-30.0 > double(pitch)) unit.modelPitchTarget = -30.f;
+            if (double(pitch) < -30.0) unit.modelPitchTarget = -30.f;
             if (double(unit.modelPitchTarget) > 60.0) unit.modelPitchTarget = 60.f;
         }
     }
@@ -3818,8 +3831,8 @@ namespace {
             }
         }
         else {
-            //the rows count is left in ecx as the unused argument
-            FUN_004d1500_updateMapCursor(&camera, &DAT_00730ba0_cursor(), rows, 0);
+            //ecx still holds the 8 the rows were capped with, the argument is unused
+            FUN_004d1500_updateMapCursor(&camera, &DAT_00730ba0_cursor(), 8, 0);
             FUN_004cf290_markThrowLine(unit);
             FUN_0046a930_drawNamePlate(0xc1, *DisaMapUnit::get(DAT_008895ac_hoveredUnit()), 0);
         }
@@ -3834,7 +3847,9 @@ namespace {
             resetTargetColor(*DisaMapUnit::get(DAT_008895ac_hoveredUnit()));
             FUN_00446d50_popBattleState(0);
         }
-        if (!keys.isKeyPressed(DisaKeyStates::Select) && !(FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) return;
+        const bool isSelected = keys.isKeyPressed(DisaKeyStates::Select)
+            || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48));
+        if (!isSelected) return;
         mouseState = 0;
         keys.clear();
         DAT_00701f3b_isTargetMarkerShown() = 0;
@@ -3848,7 +3863,7 @@ namespace {
         return FP::callStdFastFarA<int>(0x00475c50, &held, &other);
     }
     /// Original function: FUN_004de990, ends the loop of the sprite animation so it plays out.
-    void FUN_004de990_endAnimationLoop(DisaMapUnit& unit) { FP::callStdFastFarA<int>(0x004de990, &unit.sprite); }
+    void FUN_004de990_endAnimationLoop(DisaMapUnit& unit) { FP::callStdFastFarA<void>(0x004de990, &unit.sprite); }
     /// Original function: FUN_0046c9b0_jumpTo, the unit jumps to the position with an arc.
     void FUN_0046c9b0_jumpTo(DisaMapUnit& unit, float x, float y, float z, float height, float frames) {
         FP::callThisFarA<void>(0x0046c9b0, &unit, x, y, z, height, frames);
@@ -3866,7 +3881,8 @@ namespace {
     bool isCapturable(const DisaMapUnit& held) {
         //character bytes 0x684 and 0x69e
         const uint8_t* character = reinterpret_cast<const uint8_t*>(held.character);
-        const bool isFree = static_cast<int8_t>(character[0x684]) < 0 && character[0x69e] == 0 && held.holdingIndex < 0 && held.isGeoSymbol == 0;
+        const bool isFree = static_cast<int8_t>(character[0x684]) < 0 && character[0x69e] == 0 && held.holdingIndex < 0
+            && held.isGeoSymbol == 0;
         return isFree && held.itemWorldTitle == 0 && held.itemWorldRank == 0 && held.modelType == 0;
     }
 
@@ -3934,14 +3950,15 @@ namespace {
     /**
     * @brief Checks the landing tile and every step of the throw line. -1 allows the throw, anything else refuses it.
     * Part of FUN_0045c0f0 at 0x004628AB to 0x00462EF8.
-    * @details Like the original the refusal is a unit index or 0, so a stack onto unit 0 is refused as well.
+    * @details Like the original a refusal is the index of the unit on the tile or 0 for the other reasons.
     */
     int checkThrow(DisaMapUnit& unit, DisaMapUnit& held, glm::ivec2 cursorTile) {
         //the unit on the landing tile, -1 a free tile or one the held unit can be stacked on
         int landing = -1;
         for (int i = 0; i < DisaMapUnit::count; ++i) {
             DisaMapUnit& other = *DisaMapUnit::get(i);
-            if (!other.isActive || &other == &held || other.heldByIndex >= 0 || FUN_0046f640_getCondition(other.character) == 2) continue;
+            if (!other.isActive || &other == &held || other.heldByIndex >= 0) continue;
+            if (FUN_0046f640_getCondition(other.character) == 2) continue;
             if (toTile(other.position.x) != cursorTile.x || toTile(other.position.z) != cursorTile.y) continue;
             landing = i;
             if (held.holdingIndex < 0 && FUN_00475c50_isStackRefused(held, other) == 0) landing = -1;
@@ -3956,9 +3973,11 @@ namespace {
             && DisaMapUnit::get(landing)->holdingIndex == -1) {
             //the tile is compared with panel / 12, which is never a whole number, so this always allows the throw
             const auto isOnPanel = [cursorTile](float x, float z) {
-                return float(cursorTile.x) == double(x) * double(1.f / 12.f) && float(cursorTile.y) == double(z) * double(1.f / 12.f);
+                constexpr double tileFactor = double(1.f / 12.f);
+                return float(cursorTile.x) == double(x) * tileFactor && float(cursorTile.y) == double(z) * tileFactor;
             };
-            const bool isOnSecondPanel = FP::getData<uint8_t>(0x006d4abe) != 0 && isOnPanel(FP::getData<float>(0x006e57a0), FP::getData<float>(0x006e57a4));
+            const bool isOnSecondPanel = FP::getData<uint8_t>(0x006d4abe) != 0
+                && isOnPanel(FP::getData<float>(0x006e57a0), FP::getData<float>(0x006e57a4));
             const bool isOnFirstPanel = FP::getData<uint8_t>(0x0065db43) != 0
                 && isOnPanel(FP::getData<float>(fTeleportPannelX), FP::getData<float>(fTeleportPannelZ));
             if (!isOnSecondPanel && !isOnFirstPanel) check = -1;
@@ -4094,7 +4113,7 @@ namespace {
     /// Original function: FUN_00448800, character 0xc80 was thrown into the base panel of the layer.
     void FUN_00448800_enterPanelObject(int8_t layer) { FP::callStdFastFarA<void>(0x00448800, layer, 0); }
     /// Original function: FUN_00448500, undoes the Defend or lift of the unit before it leaves the map.
-    void FUN_00448500_undoAction(int index) { FP::callStdFastFarA<int>(0x00448500, index); }
+    void FUN_00448500_undoAction(int index) { FP::callStdFastFarA<void>(0x00448500, index); }
     /// Original function: FUN_004d3fa0, copies the character into the party, the new party index or -1 when it is full.
     int FUN_004d3fa0_joinParty(DisaPartyCharacterInfo* character, int alliance) {
         return FP::callStdFastFarA<int>(0x004d3fa0, character, alliance);
@@ -4135,7 +4154,8 @@ namespace {
             else if (unit->characterId == 0xc82) {
                 int8_t& count = FP::getData<int8_t>(layer == 0 ? 0x006d4abc : 0x006d4abd);
                 count += count < 99 ? 1 : 0;
-                FUN_00477550_showMessage(-1, 0x3a, -1, 1, 0x5a, &FP::getData<uint8_t>(0x005ad538), getSystemString(layer == 0 ? 0x970 : 0x9b8));
+                const uint8_t* message = getSystemString(layer == 0 ? 0x970 : 0x9b8);
+                FUN_00477550_showMessage(-1, 0x3a, -1, 1, 0x5a, &FP::getData<uint8_t>(0x005ad538), message);
                 unit->isActive = false;
                 releaseTemporaryCharacter(*unit);
             }
@@ -4222,7 +4242,7 @@ namespace {
     */
     void LAB_0046316d_updateThrowLanding() {
         DisaMapUnit& thrown = *DisaMapUnit::get(FP::getData<int32_t>(0x00889600));
-        if (thrown.moveFramesLeft > 0 || 0.f > thrown.velocity.y) return;
+        if (thrown.moveFramesLeft > 0 || thrown.velocity.y < 0.f) return;
 
         thrown.gravity = std::bit_cast<float>(0x3e26e979u); //0.163
         FP::getData<uint32_t>(0x00730a8c) = 0xf0008; //camera + 0x10c
@@ -4615,7 +4635,8 @@ namespace {
         int32_t damage = projectile.power;
         if (projectile.type != 10) {
             //unsigned like the original
-            const uint32_t blocked = static_cast<uint32_t>(FUN_0046e1a0_random(0x1f) + 30) * unit.character->activeStats.defence / 100u;
+            const uint32_t roll = static_cast<uint32_t>(FUN_0046e1a0_random(0x1f) + 30);
+            const uint32_t blocked = roll * unit.character->activeStats.defence / 100u;
             damage = std::max(static_cast<int32_t>(static_cast<uint32_t>(projectile.power) - blocked) / 5, 1);
         }
         if (unit.characterId == 0xc80) hit.damage = 0;

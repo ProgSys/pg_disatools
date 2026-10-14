@@ -14,6 +14,7 @@
 #include <DisaRendering.h>
 #include <DisaMapChunk.h>
 #include <DisaMapFunctions.h>
+#include <DisaMapGameFunctions.h>
 #include <Windows.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
@@ -129,6 +130,8 @@ struct HockManager {
             replaceFunction("buildPath", "Traces the path of a unit to a tile", address, FUN_004d1e50_buildPath_NoneStd);
         }
         */
+        //the whole frame, the call sites above inside FUN_0045c0f0 are then no longer reached
+        replaceFunction("battleMap", "One frame of the battle map: input, states and drawing", 0x0048C610, FUN_0045c0f0_updateBattleMap);
 
         {
             auto f = &DisaObjectModel::FUN_004e2180;
