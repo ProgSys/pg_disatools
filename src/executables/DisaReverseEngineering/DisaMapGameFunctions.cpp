@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <ranges>
 #include <span>
 
@@ -14,6 +16,9 @@
 #include <DisaMapFunctions.h>
 #include <DisaCharacterFunctions.h>
 #include <DisaMapChunk.h>
+#include <DisaRendering.h>
+#include <DisaScriptFunctions.h>
+#include <DisaScriptManager.h>
 #include <Disa/fileformats/PG_MPD.h>
 
 /*
@@ -76,7 +81,7 @@ namespace {
     /// DAT_00701f3b, shows the target marker.
     uint8_t& DAT_00701f3b_isTargetMarkerShown() { return FP::getData<uint8_t>(0x00701f3b); }
 
-    /// DAT_0065db3a, 0 story, 1 Item World, 2 and 4 not traced, 3 bonus floors, 5 versus.
+    /// DAT_0065db3a, 0 and 2 leave to the castle, 1 a dungeon that gets harder, 3 Item World, 4 leaves to scene 0x33, 5 versus.
     uint8_t& DAT_0065db3a_gameMode() { return FP::getData<uint8_t>(0x0065db3a); }
     /// DAT_006b7578, nonzero while the AI or an event moves units, the states wait for it.
     int32_t& DAT_006b7578_busyCount() { return FP::getData<int32_t>(0x006b7578); }
@@ -97,6 +102,46 @@ namespace {
     * Only the sprite actor part is valid, it ends before DisaMapUnit::character.
     */
     DisaMapUnit& DAT_00730ba0_cursor() { return FP::getData<DisaMapUnit>(0x00730ba0); }
+    /**
+    * @brief DAT_00778a10, the map cursor of layer 1 in versus mode.
+    * Only the sprite actor part is valid.
+    */
+    DisaMapUnit& DAT_00778a10_cursorB() { return FP::getData<DisaMapUnit>(0x00778a10); }
+    /// DAT_006d4ab2, versus mode: the layer whose turn it is.
+    uint8_t& DAT_006d4ab2_turnLayer() { return FP::getData<uint8_t>(0x006d4ab2); }
+
+    /**
+    * @brief A flying projectile or explosion. FUN_00476d90 spawns it, FUN_0046ac00 draws it.
+    * The first 0x60 bytes are a sprite actor (sprite 1000).
+    * Size: 0xf0
+    */
+    struct DisaProjectile {
+        uint8_t field0x00[0x60];   // 0x00
+        glm::vec3 position;        // 0x60
+        uint8_t field0x6c[0x18];   // 0x6c
+        float hitRadiusSquared;    // 0x84
+        uint8_t field0x88[0xc];    // 0x88
+        int32_t power;             // 0x94 - type 10 deals it as it is
+        int32_t field0x98;         // 0x98 - -1 on spawn
+        int16_t isActive;          // 0x9c
+        uint8_t field0x9e[2];      // 0x9e
+        int16_t owner;             // 0xa0 - unit index, or 200 + alliance, which spares that alliance
+        int16_t direction;         // 0xa2
+        int16_t type;              // 0xa4 - 10 explosion, 2 bursts on a hit
+        int16_t delay;             // 0xa6 - frames before it can hit
+        int16_t field0xa8;         // 0xa8 - cleared on a hit
+        int16_t lifetime;          // 0xaa - frames, 0 flies until it leaves the map
+        uint8_t field0xac[0x44];   // 0xac
+    };
+    static_assert(sizeof(DisaProjectile) == 0xf0);
+    static_assert(offsetof(DisaProjectile, isActive) == 0x9c);
+    static_assert(offsetof(DisaProjectile, lifetime) == 0xaa);
+
+    /// DAT_00730f10, the 128 projectiles.
+    std::span<DisaProjectile, 128> DAT_00730f10_projectiles() {
+        return std::span<DisaProjectile, 128>(&FP::getData<DisaProjectile>(0x00730f10), 128);
+    }
+
 
     /// DAT_006e80f0 + 0x1740, scratch transform for effects.
     DisaTransform* getEffectTransform() {
@@ -155,15 +200,11 @@ namespace {
     /**
     * @brief Counts the flying projectiles, the states wait until none are left.
     * Original function: FUN_00444760
-    * @details 128 entries of 0xf0 bytes from 0x00730F10, the int16 at 0x9c is the active flag.
     */
     int FUN_00444760_countProjectiles() {
-        const uint8_t* projectiles = &FP::getData<uint8_t>(0x00730f10);
-        int count = 0;
-        for (int i = 0; i < 128; ++i) {
-            count += *reinterpret_cast<const int16_t*>(projectiles + i * 0xf0 + 0x9c) != 0;
-        }
-        return count;
+        return static_cast<int>(std::ranges::count_if(DAT_00730f10_projectiles(), [](const DisaProjectile& projectile) {
+            return projectile.isActive != 0;
+        }));
     }
 
     /**
@@ -184,7 +225,7 @@ namespace {
     * Original function: FUN_00444c70
     */
     bool FUN_00444c70_isLayerIdle(int8_t layer) {
-        const DisaMapUnit& cursor = layer == 1 ? FP::getData<DisaMapUnit>(0x00778a10) : DAT_00730ba0_cursor();
+        const DisaMapUnit& cursor = layer == 1 ? DAT_00778a10_cursorB() : DAT_00730ba0_cursor();
         const int32_t state = DAT_00889618_battleStates()[layer];
         const bool isBusy = DAT_006b7578_busyCount() != 0;
         //the original compares moveFramesLeft with the busy count, which is 0 by then
@@ -561,7 +602,8 @@ namespace {
     /// Names that FUN_004dd950 placed into a message line, the message draws them in their own text style.
     struct MessageNames {
         const char* const* names = nullptr;
-        const int* positions = nullptr;
+        const int* positions = nullptr; ///< where FUN_004dd950 put the name
+        const int* lines = nullptr;     ///< the y of the line of each name, nullptr for the first line
         const int* styles = nullptr;
         int count = 0;
     };
@@ -572,8 +614,8 @@ namespace {
     */
     void FUN_00477550_showMessage(int x, int y, int width, int lineCount, int frames, const void* color, const void* line1,
         const void* line2 = nullptr, const MessageNames& names = {}) {
-        FP::callFastFarA<void>(0x00477550, x, y, width, lineCount, frames, color, line1, line2, names.names, names.positions, 0,
-            names.styles, names.count, 0);
+        FP::callFastFarA<void>(0x00477550, x, y, width, lineCount, frames, color, line1, line2, names.names, names.positions,
+            names.lines, names.styles, names.count, 0);
     }
 
     /// The old text style, 0 or 1, takes the system strings as they are. The others convert them first.
@@ -680,6 +722,292 @@ namespace {
     void moveCursorTo(const DisaMapUnit& unit, float frames) {
         DAT_00730ba0_cursor().FUN_0046cab0_translateTo(unit.position.x, unit.restPosition.y, unit.position.z, frames);
     }
+
+    // ---- Globals of the states above 300 and the drawing ----
+
+    /// DAT_008895d4, frame counter of the result screens 1000 and 0x4B0 to 0x4B2 and of the item level up, -1 until they start.
+    int32_t& DAT_008895d4_resultTimer() { return FP::getData<int32_t>(0x008895d4); }
+    /// DAT_00889904, the step of the states 11000 and 0x2AF9: 0 battle start, 10 geo panel chain, 11 AI turn.
+    int32_t& DAT_00889904_aiStep() { return FP::getData<int32_t>(0x00889904); }
+    /// DAT_006645f4, the queued geo panel changes, FUN_00446090 plays them.
+    int32_t& DAT_006645f4_geoChainCount() { return FP::getData<int32_t>(0x006645f4); }
+    /// DAT_006645fc, the queued geo panel change FUN_00446090 plays next.
+    int32_t& DAT_006645fc_geoChainIndex() { return FP::getData<int32_t>(0x006645fc); }
+    /// DAT_00889584, bonus gauge points not added yet, state 0xA0 adds them.
+    int32_t& DAT_00889584_bonusPointsPending() { return FP::getData<int32_t>(0x00889584); }
+    /// DAT_006772bc, levels DAT_00653fa0 gains in the level up, one per floor.
+    int32_t& DAT_006772bc_itemLevels() { return FP::getData<int32_t>(0x006772bc); }
+    /// DAT_00889594, frames per level of the item level up, 30 to 90, 10 once skipped.
+    int32_t& DAT_00889594_framesPerLevel() { return FP::getData<int32_t>(0x00889594); }
+    /// DAT_00889590, 1 after the last floor, 0 when the player left at the prompt of every tenth floor.
+    int32_t& DAT_00889590_isLastFloorCleared() { return FP::getData<int32_t>(0x00889590); }
+    /// DAT_00653fa0, the item the floors belong to, it gains the levels.
+    PG_DisaEquippedItem& DAT_00653fa0_floorItem() { return FP::getData<PG_DisaEquippedItem>(0x00653fa0); }
+    /// DAT_00677278, the music volume of the settings.
+    int32_t& DAT_00677278_musicVolume() { return FP::getData<int32_t>(0x00677278); }
+    /// DAT_00677298, the music of the map.
+    int32_t& DAT_00677298_mapMusic() { return FP::getData<int32_t>(0x00677298); }
+    /// DAT_0067729c, the scene of the game loop, the battle map is 0xb.
+    int32_t& DAT_0067729c_scene() { return FP::getData<int32_t>(0x0067729c); }
+    /// DAT_0065dae8 and DAT_0065daec, x and z of the base panel.
+    glm::vec2& DAT_0065dae8_basePanel() { return FP::getData<glm::vec2>(fTeleportPannelX); }
+    /// DAT_008896b0, frames of the game over screen.
+    int32_t& DAT_008896b0_gameOverFrames() { return FP::getData<int32_t>(0x008896b0); }
+    /// DAT_006b757c, the units per alliance that can still fight, counted again while the units are drawn.
+    std::array<int16_t, 4>& DAT_006b757c_aliveCounts() { return FP::getData<std::array<int16_t, 4>>(0x006b757c); }
+    /// DAT_0065db39, the units that can still leave the base panel.
+    int8_t& DAT_0065db39_basePanelCount() { return FP::getData<int8_t>(0x0065db39); }
+    /// DAT_00889610, frames left of the unit fade.
+    int32_t& DAT_00889610_fadeFrames() { return FP::getData<int32_t>(0x00889610); }
+    /// DAT_00889614, the fade of the units with DisaMapUnit::field0x277: 0 none, 1 out, 2 in.
+    int32_t& DAT_00889614_fadeMode() { return FP::getData<int32_t>(0x00889614); }
+
+    /// A hit FUN_00476160 applies, cleared by FUN_0046f510. The same 0x388 bytes as an entry of DAT_005db920.
+    struct DisaHit {
+        uint32_t field0x0;         // 0x0
+        int32_t damage;            // 0x4
+        uint8_t field0x8[0x380];   // 0x8
+    };
+    static_assert(sizeof(DisaHit) == 0x388);
+
+    /// A reward of the bonus gauge, entries of 0x98 bytes at DAT_00889a30.
+    struct DisaBonusReward {
+        PG_DisaEquippedItem item;  // 0x00 - type 0
+        int32_t type;              // 0x90 - 0 item, 1 HL, 2 experience for the player units on the map
+        int32_t amount;            // 0x94
+    };
+    static_assert(sizeof(PG_DisaEquippedItem) == 0x90);
+    static_assert(offsetof(PG_DisaEquippedItem, baseStats) == 0x68);
+    static_assert(offsetof(PG_DisaEquippedItem, maxResidents) == 0x81);
+    static_assert(sizeof(DisaBonusReward) == 0x98);
+
+    /// Character byte 0x309, the turns the character is depraved and gains no experience.
+    uint8_t getDepraveTurns(const DisaPartyCharacterInfo* character) {
+        return reinterpret_cast<const uint8_t*>(character)[0x309];
+    }
+
+    // ---- Game functions of the states above 300 and the drawing ----
+
+    /**
+    * @brief Sets a bit of the game state.
+    * Original function: FUN_0046dea0
+    */
+    void FUN_0046dea0_setGameFlag(int bit) {
+        (&FP::getData<uint8_t>(0x00619330))[bit >> 3] |= 1 << (bit & 7);
+    }
+
+    /**
+    * @brief Versus mode: restarts the turn timer with the time limit of the rules (DAT_006e57b0 seconds) plus frames.
+    * Original function: FUN_004452d0
+    */
+    void FUN_004452d0_startVersusTimer(int frames) {
+        if (DAT_0065db3a_gameMode() != 5) return;
+        const uint16_t seconds = FP::getData<uint16_t>(0x006e57b0);
+        if (seconds == 0) return;
+        FP::getData<int32_t>(0x006d4ab8) = frames + seconds * 60;
+    }
+
+    /**
+    * @brief Versus mode: true when the five rule bytes of the layer at 0x006D4AC0 contain rule.
+    * Original function: FUN_00444e10, false while DAT_006e57a8 is 0 and for layers other than 0 and 1.
+    */
+    bool FUN_00444e10_hasVersusRule(int8_t rule, int8_t layer) {
+        if (DAT_0065db3a_gameMode() != 5 || FP::getData<uint8_t>(0x006e57a8) == 0) return false;
+        if (layer != 0 && layer != 1) return false;
+        const std::span<const int8_t, 5> rules(&FP::getData<int8_t>(0x006d4ac0) + layer * 5, 5);
+        return std::ranges::find(rules, rule) != rules.end();
+    }
+
+    /**
+    * @brief The length of a string of two byte characters, without the terminating 0x0000.
+    * Original function: FUN_004e3790
+    */
+    int FUN_004e3790_getStringLength(const uint8_t* text) {
+        int length = 0;
+        while (text[length * 2 + 1] != 0 || text[length * 2] != 0) ++length;
+        return length;
+    }
+
+
+    /**
+    * @brief The item data of an item id, entries of 0xb8 bytes in the table at DAT_00664048, nullptr when unknown.
+    * Original function: FUN_0046eff0
+    * @details The base stats are 8 int16 at 0xa4, the id is the int16 at 0xb4.
+    */
+    const uint8_t* FUN_0046eff0_findItemData(int id) {
+        const int count = FP::getData<int32_t>(0x0066404c);
+        const uint8_t* table = FP::getData<const uint8_t*>(0x00664048);
+        for (int i = 0; i < count; ++i) {
+            if (*reinterpret_cast<const int16_t*>(table + i * 0xb8 + 0xb4) == id) return table + i * 0xb8;
+        }
+        return nullptr;
+    }
+
+    /// Original function: FUN_00477200, shows a banner, like the turn banners (4 and 10) or the results (5, 6, 7 and 9).
+    void FUN_00477200_showBanner(int banner, int param) { FP::callStdFastFarA<void>(0x00477200, banner, param); }
+    /// Original function: FUN_0046aad0, fades the music to a volume.
+    void FUN_0046aad0_fadeMusic(int volume) { FP::callStdFastFarA<void>(0x0046aad0, volume); }
+    /// Original function: FUN_0046a830, plays a music, 0 stops it.
+    void FUN_0046a830_playMusic(int music) { FP::callStdFastFarA<void>(0x0046a830, music); }
+    /// Original function: FUN_004de090, plays a sound. The fourth argument is never read, FUN_0046aab0 passes the id.
+    void FUN_004de090_playSound(int id, int volume, int param3, int param5) {
+        FP::callFastFarA<void>(fPlaySound, id, volume, param3, 0, param5);
+    }
+    /// Original function: FUN_004bd930. The call sites 0x00463F88, 0x0046470F and 0x00464B43 are not hooked.
+    int FUN_004bd930_runScriptOriginal(int scriptId) { return FP::callStdFastFarA<int>(0x004bd930, scriptId, 0); }
+    /// Original function: FUN_004bf7e0. The call site 0x0046602D is not hooked.
+    int FUN_004bf7e0_runTalkScriptOriginal(int scriptId, int dungeonId, int flag, int param4) {
+        return FP::callThisFarA<int>(0x004bf7e0, &DisaScriptManager::get(), scriptId, dungeonId, flag, param4);
+    }
+
+    /**
+    * @brief The width of a string in pixels.
+    * Original function: FUN_004f3930. The call sites 0x0046462B and 0x00464656 are hooked with FUN_GetWidthOfString,
+    * which translates the string first, like this does.
+    */
+    int FUN_004f3930_getTextWidth(const uint8_t* text) {
+        char* translated = reinterpret_cast<char*>(const_cast<uint8_t*>(text));
+        translateReplace(translated);
+        return FP::callFastFarA<int>(fGetWidthOfString, translated, 0, -1, static_cast<int*>(nullptr), -1);
+    }
+    /// Original function: FUN_004e37b0, the length of a converted string in characters.
+    uint32_t FUN_004e37b0_getTextLength(const void* text) { return FP::callStdFastFarA<uint32_t>(0x004e37b0, text); }
+
+    /// Original function: FUN_004549c0, draws a key hint, 1 for the prompt of every tenth floor, 2 for the level up.
+    void FUN_004549c0_drawHint(int hint) { FP::callStdFastFarA<void>(0x004549c0, hint); }
+
+    /// Original function: FUN_00454e40, draws the level up window of the item.
+    void FUN_00454e40_drawItemLevelUp(PG_DisaEquippedItem& item) { FP::callStdFastFarA<void>(0x00454e40, &item); }
+    /// Original function: FUN_0046f2c0, recalculates the stats of the item.
+    void FUN_0046f2c0_updateItemStats(PG_DisaEquippedItem& item) { FP::callStdFastFarA<void>(0x0046f2c0, &item); }
+    /// Original function: FUN_004d4520, puts a copy of the item into storage 0 bag, 1 warehouse. Returns the slot or -1.
+    int FUN_004d4520_addItem(int storage, const PG_DisaEquippedItem* item) {
+        return FP::callStdFastFarA<int>(0x004d4520, storage, item);
+    }
+    /// Original function: FUN_00454160, queues the bonus gauge window with the color, the reached reward and the HL.
+    void FUN_00454160_drawBonusGauge(const uint8_t* color, int reward, int64_t hl) {
+        FP::callFastFarA<void>(0x00454160, color, reward, static_cast<uint32_t>(hl), static_cast<uint32_t>(hl >> 32));
+    }
+    /// Original function: FUN_0046a8f0, queues FUN_004a7140 at depth 1000 with x, y and an image id.
+    void FUN_0046a8f0_queueImage(int x, int y, int image) { FP::callFastFarA<void>(0x0046a8f0, x, y, image); }
+
+    /// Original function: FUN_00446090, plays the queued geo panel changes, nonzero once done.
+    int FUN_00446090_updateGeoChain() { return FP::callFarA<int>(0x00446090); }
+    /// Original function: FUN_0044c2a0, the AI turn. 11000 passes 1, 0x2AF9 passes 0.
+    void FUN_0044c2a0_updateAiTurn(int8_t mode) { FP::callStdFastFarA<void>(0x0044c2a0, mode); }
+
+    /// Original function: FUN_00478ab0, starts a sprite effect at the transform. Only the sprite is traced.
+    void FUN_00478ab0_spawnSpriteEffect(int param1, int sprite, int param3, int param4, float param5, DisaTransform* transform,
+        DisaCameraInfo& camera, int param8) {
+        FP::callFastFarA<void>(0x00478ab0, param1, sprite, param3, param4, param5, transform, &camera, param8);
+    }
+
+    /// Original function: FUN_004da020, turns the camera while DAT_006772cc counts down.
+    void FUN_004da020_updateCameraSpin(DisaCameraInfo& camera) { FP::callStdFastFarA<void>(0x004da020, &camera); }
+    /// Original function: FUN_004fd180, versus mode, gets the idle flag of layer 0 from the start of the frame.
+    void FUN_004fd180_updateVersusInput(bool isLayerIdle) { FP::callStdFastFarA<void>(0x004fd180, int8_t(isLayerIdle)); }
+    /// Original function: FUN_004576c0, the battle input of layer 1 in versus mode.
+    void FUN_004576c0_updateLayer1() { FP::callFarA<void>(0x004576c0); }
+    /// Original function: FUN_00445300, counts the versus turn timer down outside of the busy states.
+    void FUN_00445300_tickVersusTimer() { FP::callFarA<void>(0x00445300); }
+    /// Original function: FUN_004d9cb0, turns the map chunk with the index and the units on it, -1 none.
+    void FUN_004d9cb0_updateChunkRotation(int chunk) { FP::callStdFastFarA<void>(0x004d9cb0, chunk); }
+    /// Original function: FUN_004cfa80, draws the map background.
+    void FUN_004cfa80_drawBackground() { FP::callFarA<void>(0x004cfa80); }
+    /// Original function: FUN_004cfd50, draws the map background of a type, DAT_006b7564.
+    void FUN_004cfd50_drawBackground(int type) { FP::callStdFastFarA<void>(0x004cfd50, type); }
+    /**
+    * @brief Original function: FUN_0050e5d0, draws an image of the 0x88 byte table at DAT_00749550.
+    * The two stack slots after height are never read.
+    */
+    void FUN_0050e5d0_drawImage(const uint8_t* image, int x, int y, int depth, int width, int height, int imageWidth,
+        int imageHeight) {
+        FP::callFastFarA<void>(fRenderImg, image, 0, x, y, depth, width, height, 0, 0, imageWidth, imageHeight);
+    }
+    /// Original function: FUN_004a2050, marks the tile of a map cursor.
+    void FUN_004a2050_markCursorTile(int x, int z, int mode) { FP::callFastFarA<void>(0x004a2050, x, z, mode); }
+    /// Original function: FUN_004a2280, submits the tile marks of the frame (DAT_0088c638).
+    void FUN_004a2280_submitTileMarks() { FP::callFarA<void>(0x004a2280); }
+
+    /// Original function: FUN_0046c830, animates a sprite actor.
+    void FUN_0046c830_updateActor(DisaMapUnit& actor, DisaCameraInfo& camera) {
+        FP::callStdFastFarA<int>(0x0046c830, &actor, 0, &camera, 0);
+    }
+    /**
+    * @brief Original function: FUN_0046a810, draws a sprite actor through FUN_0046cf80.
+    * Cursors pass depthOffset 0x96 and the cursor style of the settings, units in the fog pass isFogged 1.
+    */
+    void FUN_0046a810_drawActor(DisaMapUnit& actor, DisaCameraInfo& camera, int depthOffset, int isFogged, int style) {
+        FP::callStdFastFarA<void>(0x0046a810, &actor, 0, &camera, depthOffset, isFogged, style);
+    }
+    /// Original function: FUN_0046a7e0, queues FUN_0046dd20 at depth 40000 for units with drawMode 2. The pushed slot is unused.
+    void FUN_0046a7e0_queueActorDraw(DisaMapUnit& actor, DisaCameraInfo& camera) {
+        FP::callStdFastFarA<void>(0x0046a7e0, &actor, &camera);
+    }
+    /// Original function: FUN_004d2e40, aims the model of a unit with modelType at aimTargetIndex.
+    void FUN_004d2e40_aimModel(DisaMapUnit& unit) { FP::callStdFastFarA<int>(0x004d2e40, &unit); }
+    /// Original function: FUN_0046c660, counts removeFramesLeft down, true when the unit was removed at 0.
+    bool FUN_0046c660_updateRemoval(DisaMapUnit& unit, DisaCameraInfo& camera) {
+        return FP::callStdFastFarA<int>(0x0046c660, &unit, 0, &camera, 0) != 0;
+    }
+    /// Original function: FUN_0046bf40, draws the HP bar.
+    void FUN_0046bf40_drawHpBar(DisaMapUnit& unit, DisaCameraInfo& camera) {
+        FP::callStdFastFarA<void>(0x0046bf40, &unit, 0, &camera);
+    }
+    /// Original function: FUN_0046bd20, draws the status icons.
+    void FUN_0046bd20_drawStatusIcons(DisaMapUnit& unit, DisaPartyCharacterInfo* character, DisaCameraInfo& camera) {
+        FP::callStdFastFarA<void>(0x0046bd20, &unit, 0, character, &camera);
+    }
+    /// Original function: FUN_0046c4c0, draws the marker of a unit that moved and acted.
+    void FUN_0046c4c0_drawDoneMarker(DisaMapUnit& unit, DisaCameraInfo& camera) {
+        FP::callStdFastFarA<void>(0x0046c4c0, &unit, 0, &camera);
+    }
+    /// Original function: FUN_004e0140, submits what the units queued since DAT_006b7910.
+    void FUN_004e0140_submitUnitQueue() { FP::callFarA<void>(0x004e0140); }
+    /// Original function: FUN_0046d7a0, draws a unit placed by script SetActorRawPos at a whole number position.
+    void FUN_0046d7a0_drawRawActor(DisaMapUnit& unit, int x, int y, int z, const void* color) {
+        FP::callStdFastFarA<int>(0x0046d7a0, &unit, 0, x, y, z, color);
+    }
+    /// Original function: FUN_004c12d0, the script actors at 0x0071FE80.
+    void FUN_004c12d0_updateScriptActors() { FP::callFarA<void>(0x004c12d0); }
+
+    /// Original function: FUN_0046ac00, draws a projectile. The second stack slot is never read.
+    void FUN_0046ac00_drawProjectile(DisaProjectile& projectile, DisaCameraInfo& camera) {
+        FP::callStdFastFarA<void>(0x0046ac00, &projectile, 0, &camera, 0);
+    }
+    /// Original function: FUN_00476160, applies the hit to the target, attacker can be nullptr.
+    void FUN_00476160_applyHit(DisaMapUnit* attacker, DisaMapUnit& target, DisaHit& hit, int param4, int param5) {
+        FP::callFastFarA<void>(0x00476160, attacker, &target, &hit, param4, param5);
+    }
+    /// Original function: FUN_00476d90, spawns a projectile in the first free slot of DAT_00730f10.
+    void FUN_00476d90_spawnProjectile(int owner, int type, int power, float x, float y, float z, float param7, float param8,
+        float param9, int direction) {
+        FP::callFastFarA<void>(0x00476d90, owner, type, power, x, y, z, param7, param8, param9, direction);
+    }
+
+    /// Original function: FUN_004449f0, versus mode: true when the layer has no unit left on the map or the base panel.
+    bool FUN_004449f0_isLayerDefeated(int8_t layer) { return FP::callStdFastFarA<bool>(0x004449f0, layer); }
+    /// Original function: FUN_00444a80, ends a versus battle, 0 and 1 are the defeated layer, 2 both.
+    void FUN_00444a80_endVersusBattle(int8_t defeated) { FP::callStdFastFarA<void>(0x00444a80, defeated); }
+
+    /// Copies the render flags of the scope and returns the copy. Original function: FUN_0043cec0
+    DisaRenderFlags& FUN_0043cec0_pushRenderFlags() {
+        int32_t& depth = FP::getData<int32_t>(0x005bb030);
+        DisaRenderFlags* flags = &FP::getData<DisaRenderFlags>(0x005bb038);
+        flags[depth + 1] = flags[depth];
+        return flags[++depth];
+    }
+    /// Drops the render flags of FUN_0043cec0_pushRenderFlags.
+    void popRenderFlags() { --FP::getData<int32_t>(0x005bb030); }
+
+    /// Original function: FUN_004e13a0, draws a GEO model at an animation frame.
+    void FUN_004e13a0_renderGeoModel(DisaGeoModel& model, float frame, DisaCameraInfo& camera, DisaTransform* transform,
+        float param9) {
+        FP::callStdFastFarA<void>(fRender3DObject, &model, 0, frame, &camera, transform, 0, 0, 0.f, 0, param9);
+    }
+    /// Original function: FUN_00453bc0, draws the text at DAT_008896c0.
+    void FUN_00453bc0_drawInfoText() { FP::callFarA<void>(0x00453bc0); }
+
 
     // ---- The frame ----
 
@@ -1210,7 +1538,7 @@ namespace {
             const char* name = unit.character->charName.data();
             const int style = static_cast<int>(FUN_0046dda0_getNameStyle(unit.character));
             int namePosition = 0;
-            const MessageNames names{ &name, &namePosition, &style, 1 };
+            const MessageNames names{ &name, &namePosition, nullptr, &style, 1 };
             const void* color = &FP::getData<uint8_t>(0x005ad538);
             if (isOldTextStyle()) {
                 FUN_004dd950_formatName(getSystemString(0x8b8), line1.data(), name, &namePosition, style);
@@ -2003,10 +2331,9 @@ namespace {
         //one warning line each, the rotate button sits below them
         const int warningLines = (check.blocked > 0) + (check.inReach == 0) + (check.heightTiles > 0) + (check.heightFree > 0)
             + isOutOfRange;
-        const char* rotateText = reinterpret_cast<const char*>(getSystemString(0x14));
         const int buttonTop = warningLines * 16 + 0x11;
-        const int buttonLeft = 0x1b5 - FUN_GetWidthOfString(const_cast<char*>(rotateText), 0, -1, nullptr, -1);
-        const int buttonWidth = FUN_GetWidthOfString(const_cast<char*>(rotateText), 0, -1, nullptr, -1) + 0xb;
+        const int buttonLeft = 0x1b5 - FUN_004f3930_getTextWidth(getSystemString(0x14));
+        const int buttonWidth = FUN_004f3930_getTextWidth(getSystemString(0x14)) + 0xb;
         if (DAT_008895cc_skillArea() < 9) {
             const int buttonRight = buttonWidth + buttonLeft;
             if (!FUN_0050fe30_isClickInBox(buttonLeft, buttonTop, buttonRight, buttonTop + 0x15)) {
@@ -2034,6 +2361,500 @@ namespace {
             isOutOfRange, DAT_008895cc_skillArea(), unit);
         FUN_0046a9f0_drawTileHeight(0x1a6);
         FUN_00447f00_drawTileInfo();
+    }
+
+    /// DAT_006541e0, the item bag of the party, 0x90 bytes per item like the equipment.
+    PG_DisaEquippedItem& DAT_006541e0_getBagItem(int slot) { return (&FP::getData<PG_DisaEquippedItem>(0x006541e0))[slot]; }
+
+    /// Original function: FUN_004b3d40, the help line at the bottom of the screen.
+    void FUN_004b3d40_drawHelp(const void* text, int arg) { FP::callStdFastFarA<void>(0x004b3d40, text, arg); }
+    /// Original function: FUN_004d0850, the rising number at the transform, mode 1 heals.
+    void FUN_004d0850_showNumber(int mode, int value, DisaTransform* transform) {
+        FP::callFastFarA<void>(0x004d0850, mode, value, transform, &DAT_00730980_camera());
+    }
+    /// Original function: FUN_004d4270, turns the item into another one, like an empty bottle.
+    void FUN_004d4270_changeItem(PG_DisaEquippedItem& item, int id, int value) {
+        FP::callFastFarA<int>(0x004d4270, &item, id, value, 0);
+    }
+    /// Original function: FUN_00504600, updates the stats of a changed item.
+    void FUN_00504600_updateItem(PG_DisaEquippedItem& item) { FP::callStdFastFarA<void>(0x00504600, &item); }
+    /// Original function: FUN_004d4630, removes the item from the bag.
+    void FUN_004d4630_removeBagItem(int bag, int slot) { FP::callStdFastFarA<int>(0x004d4630, bag, slot); }
+    /// Original function: FUN_00456610, the window of the item hand over or the steal, rows and the cursor of the list.
+    void FUN_00456610_drawItemTransfer(DisaMapUnit& unit, DisaMapUnit& target, PG_DisaEquippedItem& item, int rows, int cursor) {
+        FP::callFastFarA<void>(0x00456610, &unit, &target, &item, rows, cursor);
+    }
+
+    /// Sets the transform to a position without rotation and with scale 1.
+    void setEffectTransform(DisaTransform* transform, float x, float y, float z) {
+        transform->position = glm::vec4(x, y, z, 1.f);
+        transform->rotation = glm::vec4(0.f, 0.f, 0.f, 1.f);
+        transform->scale = glm::vec4(1.f);
+    }
+
+    /// Uses a consumable item (type 0x14) on the hovered unit: heals, shows the numbers and the effect.
+    void useItem(DisaMapUnit& unit, PG_DisaEquippedItem& item) {
+        if (FP::getData<int32_t>(0x005d9cd8) == 0) {
+            unit.actionState = 2;
+            if (unit.moveState == 1) unit.moveState = 2;
+        }
+        DisaMapUnit& target = *DisaMapUnit::get(DAT_008895ac_hoveredUnit());
+        DisaPartyCharacterInfo* character = target.character;
+        const uint32_t oldHp = character->currentHP;
+        character->currentHP = item.stats.hp + oldHp;
+        character->currentSP += item.stats.sp;
+        if (static_cast<int32_t>(character->currentHP) > static_cast<int32_t>(character->activeStats.hp)) {
+            character->currentHP = character->activeStats.hp;
+        }
+        if (static_cast<int32_t>(character->currentSP) > static_cast<int32_t>(character->activeStats.sp)) {
+            character->currentSP = character->activeStats.sp;
+        }
+        DisaTransform* transform = getEffectTransform();
+        if (static_cast<int32_t>(item.stats.hp) > 0) {
+            transform->position = glm::vec4(target.position.x, float(double(target.position.y) - 5.0), target.position.z, 1.f);
+            FUN_004d0850_showNumber(1, static_cast<int32_t>(item.stats.hp), transform);
+        }
+        if (static_cast<int32_t>(item.stats.sp) > 0) {
+            transform->position = glm::vec4(target.position, 1.f);
+            FUN_004d0850_showNumber(1, static_cast<int32_t>(item.stats.sp), transform);
+        }
+        //the bar runs from the new HP to the old one
+        FUN_0046b170_setHpBarTo(target, static_cast<int32_t>(oldHp), 0x3c);
+        setEffectTransform(transform, target.position.x, target.position.y - 1.f, target.position.z);
+        FUN_00478d50_spawnEffect(-1, 0x74, transform, 1.f, 1);
+        FUN_0046aab0_playSound(0x34);
+
+        const int value = item.unknownFlag2;
+        switch (static_cast<int16_t>(item.id)) {
+        case 0x7d2: //the bottle stays as an empty one
+            FUN_004d4270_changeItem(item, 0x7d1, value + 1000);
+            FUN_00504600_updateItem(item);
+            break;
+        case 0x7dc:
+            FUN_004d4270_changeItem(item, 0x7db, value + 1000);
+            FUN_00504600_updateItem(item);
+            break;
+        case 0x7f8:
+        case 0x803:
+            //cures poison, sleep, paralyze, forget and deprave
+            for (int status = 1; status < 6; ++status) {
+                reinterpret_cast<uint8_t*>(target.character)[0x304 + status] = 0;
+            }
+            FUN_004d4630_removeBagItem(0, FP::getData<int32_t>(0x008895c0));
+            break;
+        default:
+            FUN_004d4630_removeBagItem(0, FP::getData<int32_t>(0x008895c0));
+            break;
+        }
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = 0;
+    }
+
+    /**
+    * @brief State 0x47, choose the unit to use a bag item on. Type 0x14 heals right away, type 0x15 is handed over
+    * in state 0x48.
+    * Part of FUN_0045c0f0 at 0x004602E6.
+    */
+    void LAB_004602e6_updateItemTarget() {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        if (DAT_008895ac_hoveredUnit() >= 0) FUN_0046a930_drawNamePlate(0xa9, *DisaMapUnit::get(DAT_008895ac_hoveredUnit()), 0);
+        FUN_004b3d40_drawHelp(getSystemString(0x258), 0);
+        FUN_004d9dc0_updateCameraControls(camera);
+        FUN_004d1500_updateMapCursor(&camera, &cursor, 0, 0);
+
+        PG_DisaEquippedItem& item = DAT_006541e0_getBagItem(FP::getData<int32_t>(0x008895c0));
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        const glm::ivec2 cursorTile(toTile(cursor.position.x), toTile(cursor.position.z));
+        const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
+        const int range = FP::getData<int32_t>(0x008895c4);
+        for (int z = 0; z < 64; ++z) {
+            for (int x = 0; x < 64; ++x) {
+                if (std::abs(unitTile.x - x) + std::abs(unitTile.y - z) <= range) FUN_004a1c60_markTile(x, z, 1);
+            }
+        }
+        const int distance = std::abs(unitTile.y - cursorTile.y) + std::abs(unitTile.x - cursorTile.x);
+
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(0);
+            moveCursorTo(unit, 15.f);
+        }
+        if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            DAT_0067726b_isInputConsumed() = 1;
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            FUN_0046cf10_snapToTile(cursor);
+            if (item.unknownFlag3 == 0x14) {
+                if (DAT_008895ac_hoveredUnit() < 0 || distance > range) FUN_0046aab0_playSound(4);
+                else useItem(unit, item);
+            }
+            if (item.unknownFlag3 == 0x15) {
+                const int hovered = DAT_008895ac_hoveredUnit();
+                if (hovered < 0 || distance > range || hovered == DAT_008895b0_selectedUnit()) {
+                    FUN_0046aab0_playSound(4);
+                }
+                else {
+                    DAT_0088951c_listCursor() = 0;
+                    FUN_00446d10_pushBattleState(0x48, 0);
+                    FUN_0046aab0_playSound(1);
+                }
+            }
+        }
+        if (item.unknownFlag3 != 0x15) {
+            FUN_00447f00_drawTileInfo();
+            return;
+        }
+        if (DAT_008895ac_hoveredUnit() >= 0) {
+            FUN_00456610_drawItemTransfer(unit, *DisaMapUnit::get(DAT_008895ac_hoveredUnit()), item, 4, -1);
+        }
+    }
+
+    /// The sprintf of the game, imported at 0x0052814C.
+    template<typename... Args>
+    void sprintfGame(void* buffer, const void* format, Args... args) {
+        using Sprintf = int(__cdecl*)(char*, const char*, ...);
+        FP::getData<Sprintf>(0x0052814c)(static_cast<char*>(buffer), static_cast<const char*>(format), args...);
+    }
+
+    /// Original function: FUN_004e42c0, sprintf for the new text style, the format is converted first.
+    template<typename... Args>
+    void FUN_004e42c0_format(void* buffer, const void* format, Args... args) {
+        FP::callCdeclFarA<void>(0x004e42c0, buffer, format, args...);
+    }
+
+
+    /**
+    * @brief A mouse flag of this frame, 0x2000000 of DAT_00701c58, FUN_0050f7c0 takes it as a click too.
+    * Original function: FUN_0050f790, without the isMouseActive check of the others.
+    */
+    bool FUN_0050f790_isMouseTap() {
+        const uint8_t* window = FP::getData<uint8_t*>(0x005d7c70);
+        return window[0x305438] == 0 && window[0x30543a] != 0 && (FP::getData<uint32_t>(0x00701c58) & 0x2000000) != 0;
+    }
+
+    /// Original function: FUN_004495e0, the chance in percent to steal from the slot, 4 is the steal type row.
+    uint32_t FUN_004495e0_getStealChance(DisaMapUnit& unit, DisaMapUnit& target, int slot, int bonus) {
+        return FP::callFastFarA<uint32_t>(0x004495e0, &unit, &target, slot, bonus);
+    }
+    /// Original function: FUN_00477b20, the message that an item was received. The first four stack slots are unused.
+    void FUN_00477b20_showItemMessage(const void* text, PG_DisaEquippedItem& item) {
+        FP::callCdeclFarA<void>(0x00477b20, 0, 0, 0, 0, text, &item);
+    }
+    /// Original function: FUN_0046d9c0, the experience a character is worth.
+    int64_t FUN_0046d9c0_getExperienceWorth(DisaPartyCharacterInfo* character) {
+        return FP::callStdFastFarA<int64_t>(0x0046d9c0, character);
+    }
+    /// Original function: FUN_0046da60, the HL a character is worth.
+    int64_t FUN_0046da60_getMoneyWorth(DisaPartyCharacterInfo* character) {
+        return FP::callStdFastFarA<int64_t>(0x0046da60, character);
+    }
+    /// Original function: FUN_0046e670, the decimal digits of a number, 1 for negative ones.
+    int FUN_0046e670_countDigits(int64_t value) { return FP::callCdeclFarA<int>(0x0046e670, value); }
+    /// Original function: FUN_004b3e60, a help line made of texts in their own styles. The last two stack slots are unused.
+    void FUN_004b3e60_drawHelpLine(const void* const* texts, const uint32_t* styles, const int* positions) {
+        FP::callFastFarA<void>(0x004b3e60, texts, styles, positions, 0, 0);
+    }
+
+    /**
+    * @brief DAT_008be560, the names of the steal types: the eight stats, two empty ones, experience and HL.
+    * Filled on first use like the original, bit 0 of DAT_008ca424 marks it.
+    */
+    std::array<const void*, 12>& DAT_008be560_getStealNames() {
+        std::array<const void*, 12>& names = FP::getData<std::array<const void*, 12>>(0x008be560);
+        uint32_t& isFilled = FP::getData<uint32_t>(0x008ca424);
+        if ((isFilled & 1) == 0) {
+            isFilled |= 1;
+            names[8] = &FP::getData<uint8_t>(0x00528c0a);
+            names[9] = &FP::getData<uint8_t>(0x00528c0b);
+            for (int i = 0; i < 8; ++i) names[i] = getSystemString(0x8c0 + i * 4);
+            names[10] = getSystemString(0x8e0);
+            names[11] = getSystemString(0x8e4);
+        }
+        return names;
+    }
+
+    /// The steal type entry of the target, 0x24 bytes at *0x006192B8, 1 based by DisaMapUnit::field0x3f6.
+    const uint8_t* getStealEntry(const DisaMapUnit& target) {
+        return FP::getData<const uint8_t*>(0x006192b8) + target.field0x3f6 * 0x24 - 0x24;
+    }
+
+    /// Width of the two line steal message with the new text style, the longest line in characters.
+    int getStealMessageWidth(const uint8_t* line1Format, const uint8_t* line2, int64_t amount) {
+        const int digits = FUN_0046e670_countDigits(amount);
+        return std::max(FUN_004e3790_getStringLength(line1Format), FUN_004e3790_getStringLength(line2) + digits / 2) * 13 + 11;
+    }
+
+    /**
+    * @brief Steals stat type of the target, between level / 3 + 2 of the weaker one and the cap of the thief.
+    * Part of FUN_0045c0f0 at 0x00460BD6.
+    */
+    void LAB_00460bd6_stealStat(DisaMapUnit& unit, DisaMapUnit& target, int type, const uint8_t* line1Format, const uint8_t* line1,
+        int line1NamePosition) {
+        DisaPartyCharacterInfo* thief = unit.character;
+        DisaPartyCharacterInfo* victim = target.character;
+        int amount = std::min(static_cast<int16_t>(victim->level) / 3 + 2, static_cast<int16_t>(thief->level) / 3 + 2);
+        amount += static_cast<int>(static_cast<uint32_t>(FUN_0046e1a0_random(0x1f)) / 10);
+        //character bytes 0x658 to 0x65f
+        amount = std::min(amount, reinterpret_cast<const uint8_t*>(thief)[0x658 + type] + 5);
+        int32_t& victimStat = reinterpret_cast<int32_t*>(&victim->stats)[type];
+        victimStat -= amount;
+        if (victimStat < 1) victimStat = 1;
+        reinterpret_cast<int32_t*>(&thief->stats)[type] += amount;
+        FUN_004db610_updateStats(thief, unit.alliance);
+
+        //line 2 keeps a %s for the name of the thief, FUN_004dd950 fills it in
+        std::array<uint8_t, 0x100> line2{};
+        std::array<uint8_t, 0x80> line2Format{};
+        int line2NamePosition = 0;
+        const void* statName = DAT_008be560_getStealNames()[type];
+        const bool isOld = isOldTextStyle();
+        int width = -1;
+        if (isOld) {
+            sprintfGame(line2Format.data(), getSystemString(0x8f0), &FP::getData<char>(0x005328c4), statName, amount);
+        }
+        else {
+            std::array<uint8_t, 0x40> convertedName{};
+            FUN_004e3440_convertString(convertedName.data(), statName);
+            FUN_004e42c0_format(line2Format.data(), getSystemString(0x8f0), &FP::getData<char>(0x005328c8), convertedName.data(), amount);
+        }
+        //the original indexes a zeroed array with the text style
+        FUN_004dd950_formatName(line2Format.data(), line2.data(), thief->charName.data(), &line2NamePosition,
+            static_cast<int>(FUN_0046dda0_getNameStyle(thief)));
+        if (!isOld) width = getStealMessageWidth(line1Format, line2Format.data(), amount);
+        const std::array<const char*, 2> names = { victim->charName.data(), thief->charName.data() };
+        const std::array<int, 2> positions = { line1NamePosition, line2NamePosition };
+        const std::array<int, 2> lines = { 0, 0x10 };
+        const std::array<int, 2> styles = { static_cast<int>(FUN_0046dda0_getNameStyle(victim)),
+            static_cast<int>(FUN_0046dda0_getNameStyle(thief)) };
+        FUN_00477550_showMessage(-1, 0x3a, width, 2, 0x78, &FP::getData<uint8_t>(0x005ad538), line1, line2.data(),
+            { names.data(), positions.data(), lines.data(), styles.data(), 2 });
+    }
+
+    /// The one name message of the experience and HL steal.
+    void showStealAmountMessage(DisaMapUnit& target, int format, int64_t amount, const uint8_t* line1Format, const uint8_t* line1,
+        int line1NamePosition) {
+        std::array<uint8_t, 0x80> line2{};
+        int width = -1;
+        if (isOldTextStyle()) {
+            sprintfGame(line2.data(), getSystemString(format), amount);
+        }
+        else {
+            FUN_004e42c0_format(line2.data(), getSystemString(format), amount);
+            width = getStealMessageWidth(line1Format, line2.data(), amount);
+        }
+        const char* name = target.character->charName.data();
+        const int line = 0;
+        const int style = static_cast<int>(FUN_0046dda0_getNameStyle(target.character));
+        FUN_00477550_showMessage(-1, 0x3a, width, 2, 0x78, &FP::getData<uint8_t>(0x005ad538), line1, line2.data(),
+            { &name, &line1NamePosition, &line, &style, 1 });
+    }
+
+    /**
+    * @brief Steals half the experience the target is worth, the thief may level up.
+    * Part of FUN_0045c0f0 at 0x00460FC4.
+    */
+    void LAB_00460fc4_stealExperience(DisaMapUnit& unit, DisaMapUnit& target, const uint8_t* line1Format, const uint8_t* line1,
+        int line1NamePosition) {
+        const int64_t experience = FUN_0046d9c0_getExperienceWorth(target.character) / 2;
+        DisaPartyCharacterInfo* thief = unit.character;
+        //the experience of the next level, scale of the character data times the table at 0x005E9B28
+        const uint8_t* characterData = FP::getData<const uint8_t*>(0x005d9cdc) + static_cast<int16_t>(thief->charDatIndex) * 0xd8;
+        const int64_t scale = *reinterpret_cast<const int16_t*>(characterData + 0x72);
+        const int64_t levelExperience = (&FP::getData<int64_t>(0x005e9b28))[static_cast<int16_t>(thief->level)];
+        const int64_t needed = scale * levelExperience - static_cast<int64_t>(thief->experience);
+        if (experience >= needed) {
+            DisaTransform* transform = getEffectTransform();
+            transform->position.x = unit.position.x;
+            transform->position.y = float(double(unit.position.y) - 6.0);
+            transform->position.z = unit.position.z;
+            FUN_004783d0_spawnEffect(1000, 0xb, transform);
+            unit.pose = 9;
+            unit.poseFramesLeft = 0x3c;
+            FUN_0046b170_setHpBarTo(unit, static_cast<int32_t>(thief->currentHP), 0);
+            FUN_0046aab0_playSound(0x17);
+        }
+        thief->experience += experience;
+        FUN_004db610_updateStats(thief, unit.alliance);
+        showStealAmountMessage(target, 0x85c, experience, line1Format, line1, line1NamePosition);
+    }
+
+    /**
+    * @brief Steals half the HL the target is worth into the HL of the party, capped at 9999999999999.
+    * Part of FUN_0045c0f0 at 0x00461228.
+    */
+    void LAB_00461228_stealMoney(DisaMapUnit& target, const uint8_t* line1Format, const uint8_t* line1, int line1NamePosition) {
+        const int64_t money = FUN_0046da60_getMoneyWorth(target.character) / 2;
+        int64_t& partyMoney = FP::getData<int64_t>(0x00619570);
+        partyMoney += money;
+        if (partyMoney > 9999999999999) partyMoney = 9999999999999;
+        showStealAmountMessage(target, 0x8f4, money, line1Format, line1, line1NamePosition);
+    }
+
+    /// Steals by the steal type of the target (row 4), its name and the steal type make the first line.
+    void stealByType(DisaMapUnit& unit, DisaMapUnit& target) {
+        const uint8_t* entry = getStealEntry(target);
+        target.field0x3f6 = 0;
+        const int type = entry[0x1d];
+        std::array<uint8_t, 0x100> line1{};
+        std::array<uint8_t, 0x100> line1Format{};
+        int line1NamePosition = 0;
+        if (isOldTextStyle()) sprintfGame(line1Format.data(), getSystemString(0x8ec), &FP::getData<char>(0x005328b8), entry);
+        else FUN_004e42c0_format(line1Format.data(), getSystemString(0x8ec), &FP::getData<char>(0x005328bc), entry);
+        FUN_004dd950_formatName(line1Format.data(), line1.data(), target.character->charName.data(), &line1NamePosition,
+            static_cast<int>(FUN_0046dda0_getNameStyle(target.character)));
+        if (type <= 7) LAB_00460bd6_stealStat(unit, target, type, line1Format.data(), line1.data(), line1NamePosition);
+        else if (type == 10) LAB_00460fc4_stealExperience(unit, target, line1Format.data(), line1.data(), line1NamePosition);
+        else if (type == 11) LAB_00461228_stealMoney(target, line1Format.data(), line1.data(), line1NamePosition);
+    }
+
+    /**
+    * @brief Rolls the steal, takes the equipment of slot 0 to 3 or steals by type for row 4.
+    * Part of FUN_0045c0f0 at 0x00460A6D.
+    */
+    void LAB_00460a6d_steal(DisaMapUnit& unit, DisaMapUnit& target, PG_DisaEquippedItem& tool) {
+        if (FP::getData<int32_t>(0x005d9cd8) == 0) {
+            unit.actionState = 2;
+            if (unit.moveState == 1) unit.moveState = 2;
+        }
+        DisaTransform* transform = getEffectTransform();
+        const uint32_t chance = FUN_004495e0_getStealChance(unit, target, DAT_0088951c_listCursor(), static_cast<int32_t>(tool.stats.hit));
+        if (chance <= static_cast<uint32_t>(FUN_0046e1a0_random(100))) {
+            //missed
+            transform->position = glm::vec4(target.position, 1.f);
+            FUN_004d0850_showNumber(2, 0, transform);
+            FUN_0046aab0_playSound(0xc);
+            DAT_008896a0_battleStateDepths()[0] = 0;
+            DAT_00889618_battleState() = 0;
+            return;
+        }
+        FUN_004d4630_removeBagItem(0, FP::getData<int32_t>(0x008895c0));
+        const int slot = DAT_0088951c_listCursor();
+        if (slot >= 0 && slot <= 3) {
+            PG_DisaEquippedItem& equipment = (&target.character->weapon)[slot];
+            if (FUN_004d4520_addItem(0, &equipment) >= 0) {
+                FUN_00477b20_showItemMessage(getSystemString(0x8e8), equipment);
+                equipment.id = 0;
+            }
+        }
+        else if (slot == 4) {
+            stealByType(unit, target);
+        }
+        //the target lost equipment or stats
+        DisaPartyCharacterInfo* victim = target.character;
+        FUN_004db610_updateStats(victim, target.alliance);
+        target.weaponType = static_cast<int8_t>(victim->unknownData6[5]);
+        target.weaponSprite = static_cast<int8_t>(victim->field_0x68b);
+        target.movement = victim->movement;
+        target.jumpPower = static_cast<int8_t>(victim->jumpingPower);
+        setEffectTransform(transform, target.position.x, target.position.y + 1.f, target.position.z);
+        FUN_00478d50_spawnEffect(-1, 0x91, transform, 1.f, 1);
+        FUN_0046aab0_playSound(6);
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = 0;
+    }
+
+    /// The help line of an equipment slot, nothing to steal or the name of the item.
+    void drawStealSlotHelp(DisaMapUnit& target, int slot) {
+        std::array<uint8_t, 0x100> help{};
+        std::array<uint8_t, 0x100> format{};
+        const uint16_t id = (&target.character->weapon)[slot].id;
+        const bool isOld = isOldTextStyle();
+        if (id == 0) {
+            if (isOld) sprintfGame(format.data(), getSystemString(0x8f8));
+            else FUN_004e42c0_format(format.data(), getSystemString(0x8f8));
+            FUN_004b3d40_drawHelp(format.data(), isOld ? 0 : 1);
+            return;
+        }
+        const void* itemData = FUN_0046eff0_findItemData(static_cast<int16_t>(id));
+        if (isOld) sprintfGame(format.data(), getSystemString(0x8fc), &FP::getData<char>(0x005328d0), itemData);
+        else FUN_004e42c0_format(format.data(), getSystemString(0x8fc), &FP::getData<char>(0x005328d4), itemData);
+        int namePosition = 0;
+        FUN_004dd950_formatName(format.data(), help.data(), target.character->charName.data(), &namePosition,
+            static_cast<int>(FUN_0046dda0_getNameStyle(target.character)));
+        const std::array<const void*, 2> texts = { help.data(), target.character->charName.data() };
+        const std::array<uint32_t, 2> styles = { DAT_005d7c40_settings()->field_0x30, FUN_0046dda0_getNameStyle(target.character) };
+        const std::array<int, 2> positions = { 0, namePosition };
+        FUN_004b3e60_drawHelpLine(texts.data(), styles.data(), positions.data());
+    }
+
+    /// The help line of row 4, the steal type of the target.
+    void drawStealTypeHelp(DisaMapUnit& target) {
+        const uint8_t* entry = getStealEntry(target);
+        const void* statName = DAT_008be560_getStealNames()[entry[0x1d]];
+        std::array<uint8_t, 0x100> help{};
+        std::array<uint8_t, 0x100> format{};
+        if (isOldTextStyle()) {
+            sprintfGame(format.data(), getSystemString(0x900), &FP::getData<char>(0x005328dc), entry, statName);
+        }
+        else {
+            std::array<uint8_t, 0x40> convertedName{};
+            FUN_004e3440_convertString(convertedName.data(), statName);
+            FUN_004e42c0_format(format.data(), getSystemString(0x900), &FP::getData<char>(0x005328e0), entry, convertedName.data());
+        }
+        int namePosition = 0;
+        FUN_004dd950_formatName(format.data(), help.data(), target.character->charName.data(), &namePosition,
+            static_cast<int>(FUN_0046dda0_getNameStyle(target.character)));
+        const std::array<const void*, 2> texts = { help.data(), target.character->charName.data() };
+        const std::array<uint32_t, 2> styles = { DAT_005d7c40_settings()->field_0x30, FUN_0046dda0_getNameStyle(target.character) };
+        const std::array<int, 2> positions = { 0, namePosition };
+        FUN_004b3e60_drawHelpLine(texts.data(), styles.data(), positions.data());
+    }
+
+    /**
+    * @brief State 0x48, Steal Hand: choose the equipment slot or the steal type of the target, then roll.
+    * Part of FUN_0045c0f0 at 0x004607EA.
+    */
+    void LAB_004607ea_updateSteal(BattleFrame& frame) {
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        DAT_008be560_getStealNames();
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        PG_DisaEquippedItem& tool = DAT_006541e0_getBagItem(FP::getData<int32_t>(0x008895c0));
+        //edi still holds the hovered unit of the prelude
+        DisaMapUnit& target = *DisaMapUnit::get(DAT_008895ac_hoveredUnit());
+        //characters 1170 to 1179 and 2200 to 2209 also steal by the steal type
+        const int thiefClass = unit.character->characterId / 10;
+        const int rows = (thiefClass == 117 || thiefClass == 220) && target.field0x3f6 != 0 ? 5 : 4;
+
+        int32_t& listCursor = DAT_0088951c_listCursor();
+        if (!FUN_0046de80_isGameFlagSet(0xd48)) {
+            FUN_0050fb90_hoverList(0x20, 10, 0xb6, 0x10, rows, &listCursor, false);
+            if (frame.listCursorAtStart != listCursor) FUN_0046aab0_playSound(3);
+        }
+        //held, not just pressed
+        if (keys.states[DisaKeyStates::Up] != 0) {
+            --listCursor;
+            FUN_0046aab0_playSound(3);
+        }
+        if (keys.states[DisaKeyStates::Down] != 0) {
+            ++listCursor;
+            FUN_0046aab0_playSound(3);
+        }
+        if (listCursor < 0) listCursor = rows - 1;
+        if (listCursor > rows - 1) listCursor = 0;
+
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            keys.clear();
+            FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(0);
+        }
+        const bool isClicked = FUN_0050fe30_isClickInBox(0x20, 10, 0xd6, rows * 16 + 10) || FUN_0050f790_isMouseTap();
+        if (keys.isKeyPressed(DisaKeyStates::Select) || (isClicked && !FUN_0046de80_isGameFlagSet(0xd48))) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            const int slot = listCursor;
+            if (slot < 4 && (&target.character->weapon)[slot].id == 0) FUN_0046aab0_playSound(4);
+            else LAB_00460a6d_steal(unit, target, tool);
+        }
+
+        FUN_0046a930_drawNamePlate(0xa9, target, 0);
+        const int slot = listCursor;
+        if (slot >= 0 && slot <= 3) drawStealSlotHelp(target, slot);
+        else if (slot == 4) drawStealTypeHelp(target);
+        FUN_00456610_drawItemTransfer(unit, target, tool, rows, listCursor);
     }
 
     /// State 0x0A, the command menu. Part of FUN_0045c0f0 at 0x0045D06E.
@@ -2080,9 +2901,9 @@ namespace {
         DAT_008896a0_battleStateDepths()[0] = 0;
     }
 
-    /// State 0x96, the start of the enemy phase. Part of FUN_0045c0f0 at 0x00463C8E.
-    void LAB_00463c8e_updateEnemyPhaseStart() {
-        if (FP::callFarA<int>(0x00446090) == 0) return;
+    /// State 0x96, plays the queued geo panel changes. Part of FUN_0045c0f0 at 0x00463C8E.
+    void LAB_00463c8e_updateGeoChain() {
+        if (FUN_00446090_updateGeoChain() == 0) return;
         DAT_00889618_battleStates() = { 0xa0, 0xa0 };
         DAT_008896a0_battleStateDepths() = { 0, 0 };
     }
@@ -2092,7 +2913,7 @@ namespace {
         if (FP::callFarA<int>(0x004455c0) != 0) {
             DAT_008896a0_battleStateDepths()[0] = 0;
             //versus mode continues with the second player
-            DAT_00889618_battleState() = FP::getData<uint8_t>(0x006d4ab2) != 0 ? 1 : 0;
+            DAT_00889618_battleState() = DAT_006d4ab2_turnLayer() != 0 ? 1 : 0;
         }
         FUN_0044b480_drawHoverInfo();
     }
@@ -2135,7 +2956,7 @@ namespace {
             FUN_00446d50_popBattleState(0); //jumps to 0x0045D119 in state 0x12
         }
         else if (result == 2) {
-            FP::callStdFastFarA<void>(0x00444a80, 2); //FUN_00444a80
+            FUN_00444a80_endVersusBattle(2);
             FUN_00477550_showMessage(-1, 0x3a, -1, 1, 0x5a, &FP::getData<uint8_t>(0x005ad538), getSystemString(0x358));
         }
     }
@@ -2153,10 +2974,593 @@ namespace {
         }
     }
 
+    // ---- States above 300 ----
+
+    /// The jump target LAB_0046502b, every state that changes the state empties the stack of layer 0.
+    void LAB_0046502b_clearStateStack() { DAT_008896a0_battleStateDepths()[0] = 0; }
+
+    /// The idle units of the alliance cheer, all alliances for nullopt. Characters 2210 to 2219 keep their pose frames.
+    void setVictoryPoses(std::optional<int8_t> alliance) {
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (!unit.isActive || unit.holdingIndex >= 0 || unit.heldByIndex >= 0) continue;
+            if (alliance && unit.alliance != *alliance) continue;
+            unit.pose = 9;
+            if (static_cast<int16_t>(unit.character->characterId) / 10 != 221) unit.poseFramesLeft = 0x3c;
+        }
+    }
+
+    /// Shared by state 0x3F2 and game mode 3, runs the script of the next floor. Part of FUN_0045c0f0 at 0x0046470A.
+    void LAB_0046470a_nextFloor() {
+        FUN_004bd930_runScriptOriginal(0xd);
+        DAT_00889618_battleState() = 0x3ea;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /// Game mode 3: counts the floor and the levels of DAT_00653fa0. Part of FUN_0045c0f0 at 0x00463EA9.
+    void LAB_00463ea9_endFloor() {
+        uint32_t& levels = reinterpret_cast<uint32_t&>(DAT_006772bc_itemLevels());
+        const uint32_t newLevels = ++levels;
+        uint16_t& floor = FP::getData<uint16_t>(0x0065db2c);
+        ++floor;
+        uint32_t& levelsRecord = FP::getData<uint32_t>(0x0065e10c);
+        if (newLevels > levelsRecord) levelsRecord = std::min<uint32_t>(newLevels, 100);
+        //DAT_0065401c, the int16 at item + 0x7c
+        if (int(floor) > FP::getData<int16_t>(0x0065401c)) {
+            DAT_00889590_isLastFloorCleared() = 1;
+            DAT_00889618_battleState() = 0x44c;
+            LAB_0046502b_clearStateStack();
+            return;
+        }
+        if (floor % 10 != 0) {
+            LAB_0046470a_nextFloor();
+            return;
+        }
+        DAT_0088951c_listCursor() = 0;
+        DAT_00889618_battleState() = 0x3f2;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /**
+    * @brief Game mode 1: raises the difficulty of the dungeon, stores it and runs its closing talk script.
+    * Part of FUN_0045c0f0 at 0x00463F2B.
+    */
+    void LAB_00463f2b_endDungeon() {
+        DisaDungeon& dungeon = FP::getData<DisaDungeon>(0x00653a98);
+        dungeon.difficulty += dungeon.difficulty < 9999 ? 1 : 0;
+        (&FP::getData<DisaDungeon>(aDungeonEntries))[FP::getData<int16_t>(0x0065db1a)] = dungeon;
+        if (DisaScriptManager::get().FUN_004bf7e0_RunTalkScript(0, dungeon.id, 2, 0) < 0) FUN_004bd930_runScriptOriginal(0xe);
+        DAT_00889618_battleState() = 0x3ea;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /**
+    * @brief Game modes 0 and 2: the last active unit with sprite 1 goes back into the base panel and the cursor takes its
+    * place, the cursor goes to the base panel without one. Then the loop leaves the map (scene 0x16).
+    * Part of FUN_0045c0f0 at 0x00463F9C.
+    */
+    void LAB_00463f9c_leaveMap() {
+        int last = -1;
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            const DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (unit.isActive && unit.spriteId == 1) last = i;
+        }
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        if (last >= 0) {
+            DisaMapUnit& unit = *DisaMapUnit::get(last);
+            unit.isActive = false;
+            cursor.position.x = unit.position.x;
+            cursor.position.z = unit.position.z;
+        }
+        else {
+            const glm::vec2 panel = DAT_0065dae8_basePanel();
+            cursor.position.x = float(double(panel.x) + 6.0);
+            cursor.position.z = float(6.0 + double(panel.y));
+        }
+        const int32_t music = DAT_00677298_mapMusic();
+        ++DAT_0065db39_basePanelCount();
+        DAT_0067729c_scene() = 0x16;
+        FUN_0046a830_playMusic(music);
+    }
+
+    /// Game mode 5, versus: sets game flag 0xE10. Part of FUN_0045c0f0 at 0x0046403A.
+    void LAB_0046403a_endVersus() {
+        FUN_0046dea0_setGameFlag(0xe10);
+        DAT_00889618_battleState() = 0x3ea;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /// Game mode 4, also the victory of state 1000 in this mode. Part of FUN_0045c0f0 at 0x0046411B.
+    void LAB_0046411b_leaveToScene33() {
+        DAT_0067729c_scene() = 0x33;
+    }
+
+    /// State 0x3E9, the map is over, the game mode decides what follows. Part of FUN_0045c0f0 at 0x00463E69.
+    void LAB_00463e69_endMap() {
+        if (DAT_006b7578_busyCount() != 0) return;
+        if (DAT_0065db3a_gameMode() != 5) {
+            FUN_0046dec0_clearGameFlag(0xcef);
+            FUN_0046dec0_clearGameFlag(0xcf0);
+        }
+        switch (static_cast<int8_t>(DAT_0065db3a_gameMode())) {
+        case 0:
+        case 2: LAB_00463f9c_leaveMap(); break;
+        case 1: LAB_00463f2b_endDungeon(); break;
+        case 3: LAB_00463ea9_endFloor(); break;
+        case 4: LAB_0046411b_leaveToScene33(); break;
+        case 5: LAB_0046403a_endVersus(); break;
+        default: break;
+        }
+    }
+
+    /// The result states end with this once their timer started. Part of FUN_0045c0f0 at 0x00464816.
+    void LAB_00464816_endResult() {
+        FUN_0046aad0_fadeMusic(DAT_00677278_musicVolume());
+        DAT_00889618_battleState() = 0x3e9;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /// Starts a result: the banner, the victory sound and the poses of the winners, nullopt for every alliance.
+    void startResult(int banner, std::optional<int8_t> winners) {
+        FUN_00477200_showBanner(banner, 0);
+        FUN_0046dec0_clearGameFlag(0xce4);
+        FUN_0046aab0_playSound(0x48);
+        setVictoryPoses(winners);
+    }
+
+    /// The first frame of state 1000. Part of FUN_0045c0f0 at 0x0046406F.
+    void LAB_0046406f_startVictory() {
+        startResult(5, std::nullopt);
+        //without bonus points the gauge starts counted down
+        DAT_008895d4_resultTimer() = FP::getData<int32_t>(0x008895dc) == 0 ? 300 : 0;
+    }
+
+    /// Shows how many reward items found no room. Part of FUN_0045c0f0 at 0x00464417.
+    void LAB_00464417_showLostItems(int lostItems) {
+        const uint8_t* color = &FP::getData<uint8_t>(0x005ae3ec);
+        if (isOldTextStyle()) {
+            //the original buffer is 0x80 bytes
+            std::array<char, 0x200> line2{};
+            sprintfGame(line2.data(), getSystemString(0x904), lostItems);
+            FUN_00477550_showMessage(-1, 0x3a, -1, 2, 0xb4, color, getSystemString(0x860), line2.data());
+            return;
+        }
+        std::array<uint8_t, 0x400> line2{};
+        std::array<uint8_t, 0x400> line1{};
+        FUN_004e42c0_format(line2.data(), getSystemString(0x904), lostItems);
+        FUN_004e3440_convertString(line1.data(), getSystemString(0x860));
+        const int width = static_cast<int>(FUN_004e37b0_getTextLength(line1.data()) * 13) / 2 + 0xb;
+        FUN_00477550_showMessage(-1, 0x3a, width, 2, 0xb4, color, line1.data(), line2.data());
+    }
+
+    /**
+    * @brief Hands out the rewards the bonus gauge reached and the HL of the battle, then the map ends.
+    * Part of FUN_0045c0f0 at 0x00464312.
+    */
+    void LAB_00464312_giveRewards() {
+        FUN_0046aad0_fadeMusic(DAT_00677278_musicVolume());
+        int lostItems = 0;
+        const int32_t count = FP::getData<int32_t>(0x008895e0) + 1;
+        DisaBonusReward* rewards = &FP::getData<DisaBonusReward>(0x00889a30);
+        int64_t& hl = FP::getData<int64_t>(0x00619570);
+        for (int i = 0; i < count; ++i) {
+            DisaBonusReward& reward = rewards[i];
+            if (reward.type == 0) {
+                if (FUN_004d4520_addItem(0, &reward.item) < 0 && FUN_004d4520_addItem(1, &reward.item) < 0) ++lostItems;
+            }
+            else if (reward.type == 1) {
+                hl += reward.amount;
+            }
+            else if (reward.type == 2) {
+                for (int u = 0; u < DisaMapUnit::count; ++u) {
+                    const DisaMapUnit& unit = *DisaMapUnit::get(u);
+                    if (!unit.isActive || unit.alliance != 0 || getDepraveTurns(unit.character) != 0) continue;
+                    unit.character->experience += static_cast<uint64_t>(static_cast<int64_t>(reward.amount));
+                }
+            }
+        }
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            const DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (unit.isActive && unit.alliance == 0) FUN_004db610_updateStats(unit.character, 0);
+        }
+        if (lostItems > 0) LAB_00464417_showLostItems(lostItems);
+        //the HL of the battle, DAT_00619580
+        hl += FP::getData<int64_t>(0x00619580);
+        constexpr int64_t maxHl = 9999999999999;
+        if (hl > maxHl) hl = maxHl;
+        DAT_00889618_battleState() = 0x3e9;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /**
+    * @brief The bonus gauge counts down over 300 frames and shows the reached reward, a key skips to the end.
+    * Part of FUN_0045c0f0 at 0x0046412A.
+    * @details DAT_008895dc holds the points and DAT_008895e0 the rank of the gauge at the end of the battle,
+    * DAT_008895d8 the best reward shown so far.
+    */
+    void LAB_0046412a_countBonusGauge() {
+        int32_t& timer = DAT_008895d4_resultTimer();
+        int32_t frames = timer;
+        if (frames != 300) timer = ++frames;
+
+        uint8_t alpha;
+        if (frames > 300) {
+            const int fadeOut = (0x14b - frames) * 2;
+            if (fadeOut < 0) alpha = 0;
+            else alpha = fadeOut < 0x80 ? static_cast<uint8_t>(fadeOut * 2) : 0xff;
+        }
+        else {
+            alpha = static_cast<uint8_t>(std::min(frames * 3, 0x40) * 2);
+        }
+        const std::array<uint8_t, 4> color = { 0x38, 0x18, 0x0c, alpha };
+        const int64_t shownHl = int64_t(std::min(frames, 300)) * FP::getData<int64_t>(0x00619580) / 300;
+        if (frames % 5 == 0 && frames < 300) {
+            FUN_004de090_playSound(0x1a, 0x46, 0, 0);
+            frames = timer;
+        }
+        const uint32_t remaining = static_cast<uint32_t>(300 - std::min(frames, 300)) * FP::getData<uint32_t>(0x008895dc);
+        const int32_t points = static_cast<int32_t>(remaining) / 300;
+        const int32_t rank = points / 100;
+        FP::getData<int16_t>(0x0065db26) = static_cast<int16_t>(rank);
+        FP::getData<int16_t>(0x0065db24) = static_cast<int16_t>(points - rank * 100);
+        const int32_t shownRank = frames >= 300 ? -1 : int32_t(static_cast<uint16_t>(rank));
+        const int32_t reward = FP::getData<int32_t>(0x008895e0) - shownRank;
+        int32_t& bestReward = FP::getData<int32_t>(0x008895d8);
+        if (reward > bestReward) {
+            bestReward = reward;
+            FUN_0046aab0_playSound(6);
+            frames = timer;
+        }
+        FUN_00454160_drawBonusGauge(color.data(), reward, shownHl);
+        FUN_0046a8f0_queueImage(0xaa, 0x58, 0xd06b);
+
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        const bool isSkipped = keys.isKeyPressed(DisaKeyStates::Select) || keys.isKeyPressed(DisaKeyStates::Cancel)
+            || FUN_0050f7c0_isLeftMouseClicked() || FUN_0050f950_isRightMouseClicked();
+        if (isSkipped && frames <= 300) {
+            FUN_0046aab0_playSound(1);
+            timer = frames == 300 ? 0x12d : 300;
+            return;
+        }
+        if (frames < 0x14a) return;
+        LAB_00464312_giveRewards();
+    }
+
+    /// State 1000, the victory: the banner and the poses, then the bonus gauge. Part of FUN_0045c0f0 at 0x00464053.
+    void LAB_00464053_updateVictory() {
+        if (DAT_006b7578_busyCount() != 0) return;
+        if (DAT_008895d4_resultTimer() == -1) {
+            LAB_0046406f_startVictory();
+            return;
+        }
+        if (DAT_0065db3a_gameMode() == 4) {
+            FUN_0046dec0_clearGameFlag(0xcef);
+            FUN_0046dec0_clearGameFlag(0xcf0);
+            LAB_0046411b_leaveToScene33();
+            return;
+        }
+        LAB_0046412a_countBonusGauge();
+    }
+
+    /// State 600, the game over image fades in, then a key runs script 0x11. Part of FUN_0045c0f0 at 0x00464544.
+    void LAB_00464544_updateGameOver() {
+        int32_t& frames = DAT_008896b0_gameOverFrames();
+        const int doubled = frames * 2;
+        const std::array<uint8_t, 4> color = { 0xff, 0xff, 0xff, doubled < 0x80 ? static_cast<uint8_t>(doubled * 2) : uint8_t(0xff) };
+        //x, y, image, then the cutouts, as FUN_RenderCutout in Ghidra
+        FP::callFastFarA<void>(fRenderCutout, &FP::getData<uint8_t>(0x0074c0e0), color.data(), 134.f, 121.f, 0xd903, 0xd4, 0x1e, 0, 0x3c,
+            0xd4, 0x1e);
+        frames += frames < 0x78 ? 1 : 0;
+        if (frames < 0x78) return;
+
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        const bool isConfirmed = keys.isKeyPressed(DisaKeyStates::Select) || keys.isKeyPressed(DisaKeyStates::Cancel)
+            || FUN_0050f7c0_isLeftMouseClicked() || FUN_0050f950_isRightMouseClicked();
+        if (!isConfirmed) return;
+        keys.clear();
+        FUN_0046aab0_playSound(7);
+        FUN_004bd930_RunScript(0x11, nullptr);
+    }
+
+    /**
+    * @brief State 0x3F2, every tenth floor asks whether to go on (1) or to leave (0).
+    * Part of FUN_0045c0f0 at 0x00464612.
+    */
+    void LAB_00464612_updateFloorPrompt(const BattleFrame& frame) {
+        int32_t& choice = DAT_0088951c_listCursor();
+        int32_t& lastChoice = FP::getData<int32_t>(0x005d7c84);
+        lastChoice = frame.listCursorAtStart;
+        const int x = (0x1d5 - FUN_004f3930_getTextWidth(getSystemString(0x86c))) / 2;
+        const int width = FUN_004f3930_getTextWidth(getSystemString(0x86c)) + 0xb;
+        FUN_0050fb90_hoverList(x, 0x48, width, 0x10, 2, &choice, false);
+        FUN_004549c0_drawHint(1);
+
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        if (keys.isKeyPressed(DisaKeyStates::Up) || keys.isKeyPressed(DisaKeyStates::Down)) choice = choice == 0 ? 1 : 0;
+        if (lastChoice != choice) FUN_0046aab0_playSound(3);
+        if (!keys.isKeyPressed(DisaKeyStates::Select) && !FUN_0050fe30_isClickInBox(x, 0x48, x + width, 0x68)
+            && !FUN_0050f790_isMouseTap()) {
+            return;
+        }
+        keys.clear();
+        if (choice == 1) {
+            FUN_0046aab0_playSound(7);
+            LAB_0046470a_nextFloor();
+            return;
+        }
+        FUN_0046aab0_playSound(1);
+        DAT_00889590_isLastFloorCleared() = 0;
+        DAT_00889618_battleState() = 0x44c;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /// State 0x4B0, versus: layer 0 won. Part of FUN_0045c0f0 at 0x00464768.
+    void LAB_00464768_updateLayer0Won() {
+        if (DAT_006b7578_busyCount() != 0) return;
+        if (DAT_008895d4_resultTimer() != -1) {
+            LAB_00464816_endResult();
+            return;
+        }
+        startResult(6, int8_t(0));
+        DAT_008895d4_resultTimer() = 0;
+    }
+
+    /// State 0x4B1, versus: layer 1 won. Part of FUN_0045c0f0 at 0x00464BE4.
+    void LAB_00464be4_updateLayer1Won() {
+        if (DAT_006b7578_busyCount() != 0) return;
+        if (DAT_008895d4_resultTimer() != -1) {
+            LAB_00464816_endResult();
+            return;
+        }
+        startResult(9, int8_t(1));
+        DAT_008895d4_resultTimer() = 0;
+    }
+
+    /// State 0x4B2, versus: a draw, nobody cheers. Part of FUN_0045c0f0 at 0x00464D3A.
+    void LAB_00464d3a_updateDraw() {
+        if (DAT_006b7578_busyCount() != 0) return;
+        if (DAT_008895d4_resultTimer() != -1) {
+            LAB_00464816_endResult();
+            return;
+        }
+        FUN_00477200_showBanner(7, 0);
+        FUN_0046dec0_clearGameFlag(0xce4);
+        FUN_0046aab0_playSound(0x48);
+        DAT_008895d4_resultTimer() = 0;
+    }
+
+    /// Leaves the floors: stores the item, runs script 0x10 and the map music again. Part of FUN_0045c0f0 at 0x00464B03.
+    void LAB_00464b03_leaveFloors() {
+        PG_DisaEquippedItem& item = DAT_00653fa0_floorItem();
+        FUN_0046f2c0_updateItemStats(item);
+        if (FUN_004d4520_addItem(0, &item) < 0 && FUN_004d4520_addItem(1, &item) < 0) {
+            FP::getData<PG_DisaEquippedItem>(0x00661b58) = item; //bag and warehouse are full
+        }
+        FUN_004bd930_runScriptOriginal(0x10);
+        FUN_0046a830_playMusic(DAT_00677298_mapMusic());
+        DAT_00889618_battleState() = 0x3ea;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /**
+    * @brief The last level: the stats grow by the base stats of the item data and the residents of each stat, and the
+    * item gets more resident slots. Part of FUN_0045c0f0 at 0x0046489F.
+    * @details DAT_006772a4, DAT_006772a8 and DAT_006772ac weigh 1, 2 and 3. Each stat keeps the hundredths of its gain
+    * in the byte at item + 0x86 + stat.
+    */
+    void LAB_0046489f_growItemStats(PG_DisaEquippedItem& item) {
+        const int32_t weightOne = FP::getData<int32_t>(0x006772a4);
+        const int32_t weightTwo = FP::getData<int32_t>(0x006772a8);
+        const int32_t weightThree = FP::getData<int32_t>(0x006772ac);
+        const int32_t multiplier = weightOne + weightThree * 3 + weightTwo * 2;
+        const uint8_t residentSlots = static_cast<uint8_t>(item.maxResidents + static_cast<uint8_t>(weightTwo + weightThree));
+        item.maxResidents = residentSlots > 0x10 ? 0x10 : residentSlots;
+
+        const uint8_t* itemData = FUN_0046eff0_findItemData(static_cast<int16_t>(item.id));
+        if (!itemData || multiplier <= 0) return;
+        int16_t* stats = reinterpret_cast<int16_t*>(&item.baseStats);
+        uint8_t* remainders = reinterpret_cast<uint8_t*>(&item) + 0x86;
+        const int16_t* dataStats = reinterpret_cast<const int16_t*>(itemData + 0xa4);
+        for (int stat = 0; stat < 8; ++stat) {
+            int residents = 0;
+            for (int i = 0; i < item.maxResidents; ++i) {
+                if (item.residentSlots[i].jobIdentifier == stat + 1) ++residents;
+            }
+            const uint32_t base = static_cast<uint32_t>(std::abs(int(dataStats[stat])) + residents * 30);
+            const int32_t gain = static_cast<int32_t>(remainders[stat] + base * static_cast<uint32_t>(multiplier) * 10u);
+            const int32_t whole = gain / 100;
+            remainders[stat] = static_cast<uint8_t>(static_cast<uint32_t>(gain) - static_cast<uint32_t>(whole) * 100u);
+            stats[stat] = static_cast<int16_t>(std::clamp(stats[stat] + whole, -32000, 32000));
+        }
+    }
+
+    /// No levels left: waits, then a key leaves the floors. Part of FUN_0045c0f0 at 0x00464AAB.
+    void LAB_00464aab_finishItemLevelUp() {
+        int32_t& timer = DAT_008895d4_resultTimer();
+        if (timer > 0) {
+            --timer;
+            return;
+        }
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        if (!keys.isKeyPressed(DisaKeyStates::Select) && !FUN_0050f7c0_isLeftMouseClicked()) {
+            FUN_004549c0_drawHint(2);
+            return;
+        }
+        FUN_0050fe60_clearMouseClicks();
+        keys.clear();
+        FUN_0046aab0_playSound(1);
+        FUN_0046aad0_fadeMusic(DAT_00677278_musicVolume());
+        LAB_00464b03_leaveFloors();
+    }
+
+    /**
+    * @brief State 0x44D, the item gains one level every framesPerLevel frames, a key speeds it up to 10.
+    * Part of FUN_0045c0f0 at 0x00464830.
+    */
+    void LAB_00464830_updateItemLevelUp() {
+        PG_DisaEquippedItem& item = DAT_00653fa0_floorItem();
+        FUN_00454e40_drawItemLevelUp(item);
+        int32_t& levels = DAT_006772bc_itemLevels();
+        const int32_t levelsLeft = levels;
+        if (levelsLeft <= 0) {
+            LAB_00464aab_finishItemLevelUp();
+            return;
+        }
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        int32_t& framesPerLevel = DAT_00889594_framesPerLevel();
+        if (keys.isKeyPressed(DisaKeyStates::Select) || FUN_0050f7c0_isLeftMouseClicked()) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            framesPerLevel = 10;
+        }
+        const int32_t frames = framesPerLevel;
+        int32_t& timer = DAT_008895d4_resultTimer();
+        if (--timer > 0) return;
+        timer = frames;
+        levels = levelsLeft - 1;
+        if (levels == 0) LAB_0046489f_growItemStats(item);
+        ++item.level;
+        FUN_0046f2c0_updateItemStats(item);
+        if (frames >= 0x1e) {
+            const uint8_t* color = &FP::getData<uint8_t>(0x005ae3e0);
+            if (isOldTextStyle()) {
+                FUN_00477550_showMessage(0x149, 0xc, -1, 1, frames - 4, color, getSystemString(0x908));
+            }
+            else {
+                std::array<uint8_t, 0x400> line{};
+                FUN_004e42c0_convertString(line.data(), getSystemString(0x908));
+                FUN_00477550_showMessage(0x149, 0xc, -1, 1, frames - 4, color, line.data());
+            }
+        }
+        FUN_0046aab0_playSound(0x17);
+    }
+
+    /// State 0x44C, starts the level up of the item. Part of FUN_0045c0f0 at 0x00464B62.
+    void LAB_00464b62_startItemLevelUp() {
+        FUN_0046f2c0_updateItemStats(DAT_00653fa0_floorItem());
+        FUN_0046aad0_fadeMusic(0x28);
+        FUN_0046aab0_playSound(0x19);
+        const int32_t levels = DAT_006772bc_itemLevels();
+        //300 frames for all levels, 30 to 90 per level
+        const int32_t frames = 300 / std::max(levels, 1);
+        DAT_00889594_framesPerLevel() = frames < 0x1e ? 0x1e : std::min(frames, 0x5a);
+        FP::getData<int32_t>(0x00889598) = levels;
+        FP::getData<int32_t>(0x0088959c) = FP::getData<int32_t>(0x006b7574);
+        DAT_008895d4_resultTimer() = 0x5a;
+        DAT_00889618_battleState() = 0x44d;
+        LAB_0046502b_clearStateStack();
+    }
+
+    /// States 0x2711 and 0x2712, a turn of the layer starts with its banner once the script ended.
+    void startTurn(int32_t state, uint8_t layer) {
+        if (DisaScriptManager::get().isActive != 0) return;
+        const uint8_t mode = DAT_0065db3a_gameMode();
+        FUN_00477200_showBanner(mode == 2 || mode == 4 || mode == 5 ? 10 : 4, 0x1e);
+        DAT_008896a0_battleStateDepths()[0] = 0;
+        DAT_00889618_battleState() = state;
+        FUN_004452d0_startVersusTimer(0x96);
+        DAT_006d4ab2_turnLayer() = layer;
+    }
+
+    /// State 0x2711, the turn of layer 0. Part of FUN_0045c0f0 at 0x00464CC1.
+    void LAB_00464cc1_startLayer0Turn() { startTurn(0, 0); }
+    /// State 0x2712, the turn of layer 1. Part of FUN_0045c0f0 at 0x00464D81.
+    void LAB_00464d81_startLayer1Turn() { startTurn(1, 1); }
+
+    /// State 9000, waits for the script, then returns to the pushed state. Part of FUN_0045c0f0 at 0x00464D21.
+    void LAB_00464d21_waitForScript() {
+        if (DisaScriptManager::get().isActive == 0) FUN_00446d50_popBattleState(0);
+    }
+
+    /// AI step 0, the battle start, then the queued geo panel changes. Part of FUN_0045c0f0 at 0x00464E43.
+    void LAB_00464e43_startAiTurn() {
+        if (FUN_00466970_updateBattleStart(0) != 1) return;
+        if (DAT_006645f4_geoChainCount() <= 0) {
+            DAT_00889904_aiStep() = 0xb;
+            return;
+        }
+        DAT_006645fc_geoChainIndex() = 0;
+        FP::getData<int32_t>(0x006645f8) = 0; //step of the geo panel chain
+        DAT_00889904_aiStep() = 10;
+    }
+
+    /// AI step 10, the geo panel changes. Part of FUN_0045c0f0 at 0x00464E27.
+    void LAB_00464e27_updateGeoChain() {
+        if (FUN_00446090_updateGeoChain() != 0) DAT_00889904_aiStep() = 0xb;
+    }
+
+    /// States 11000 and 0x2AF9, the battle start, the geo panel changes, then the AI turn.
+    void updateAiTurnStates(int8_t mode) {
+        const int32_t step = DAT_00889904_aiStep();
+        if (step == 0) LAB_00464e43_startAiTurn();
+        else if (step == 10) LAB_00464e27_updateGeoChain();
+        else if (step == 0xb) FUN_0044c2a0_updateAiTurn(mode);
+    }
+
+    /// State 11000. Part of FUN_0045c0f0 at 0x00464E05.
+    void LAB_00464e05_updateAiTurn() { updateAiTurnStates(1); }
+    /// State 0x2AF9. Part of FUN_0045c0f0 at 0x00464E7F.
+    void LAB_00464e7f_updateAiTurn() { updateAiTurnStates(0); }
+
+    /**
+    * @brief State 0x271A: an effect at unit DAT_0088930c, then the cursor and the camera glide to the base panel and
+    * the turn of layer 0 starts again. Part of FUN_0045c0f0 at 0x00464EA1.
+    */
+    void LAB_00464ea1_returnToBasePanel() {
+        int32_t& frames = FP::getData<int32_t>(0x008895a0);
+        ++frames;
+        if (frames == 0x14) {
+            const DisaMapUnit& unit = *DisaMapUnit::get(FP::getData<int32_t>(0x0088930c));
+            DisaTransform* transform = getEffectTransform();
+            FP::getData<int32_t>(0x006772a0) = 5000; //read by the effect
+            transform->position.x = unit.position.x;
+            transform->position.y = float(double(unit.position.y) - 16.0);
+            transform->position.z = unit.position.z;
+            transform->position.w = 1.f;
+            //rotation.w and scale.w are not written
+            transform->rotation.z = 0.f;
+            transform->rotation.y = 0.f;
+            transform->rotation.x = 0.f;
+            transform->scale.z = 1.f;
+            transform->scale.y = 1.f;
+            transform->scale.x = 1.f;
+            FUN_00478ab0_spawnSpriteEffect(-1, 1000, 0xd, 0x5a, 100.f, transform, DAT_00730980_camera(), 0);
+        }
+        if (frames == 0x5a) {
+            const glm::vec2 panel = DAT_0065dae8_basePanel();
+            const float x = float(static_cast<int>(double(panel.x) + 6.0));
+            const float z = float(static_cast<int>(double(panel.y) + 6.0));
+            const float y = FUN_004d2be0_getGroundHeight(nullptr, 0, x, z);
+            DAT_00730ba0_cursor().FUN_0046cab0_translateTo(x, y, z, 20.f);
+            DAT_00730980_camera().move(glm::vec3(x, y, z), 20.f);
+        }
+        if (frames < 0x6e) return;
+        DAT_00889618_battleState() = 0x2711;
+        LAB_0046502b_clearStateStack();
+    }
+
     /// The states above 300. Part of FUN_0045c0f0 at 0x00463E1F.
     void LAB_00463e1f_updateHighState(BattleFrame& frame) {
-        //TODO port
+        switch (DAT_00889618_battleState()) {
+        case 0x3e9: LAB_00463e69_endMap(); break;
+        case 1000: LAB_00464053_updateVictory(); break;
+        case 600: LAB_00464544_updateGameOver(); break;
+        case 0x3f2: LAB_00464612_updateFloorPrompt(frame); break;
+        case 0x4b0: LAB_00464768_updateLayer0Won(); break;
+        case 0x44d: LAB_00464830_updateItemLevelUp(); break;
+        case 0x44c: LAB_00464b62_startItemLevelUp(); break;
+        case 0x4b1: LAB_00464be4_updateLayer1Won(); break;
+        case 0x2711: LAB_00464cc1_startLayer0Turn(); break;
+        case 9000: LAB_00464d21_waitForScript(); break;
+        case 0x4b2: LAB_00464d3a_updateDraw(); break;
+        case 0x2712: LAB_00464d81_startLayer1Turn(); break;
+        case 11000: LAB_00464e05_updateAiTurn(); break;
+        case 0x2af9: LAB_00464e7f_updateAiTurn(); break;
+        case 0x271a: LAB_00464ea1_returnToBasePanel(); break;
+        default: break; //0x3EA and the rest wait
+        }
     }
+
 
     /// Runs the state of layer 0. Part of FUN_0045c0f0 at 0x0045C6E6.
     void LAB_0045c6e6_updateBattleState(BattleFrame& frame) {
@@ -2176,6 +3580,8 @@ namespace {
         case 0x17: LAB_0045db64_updateWatchUnit(); break;
         case 0x1e: LAB_0045dcf9_updateAttackTarget(frame); break;
         case 0x3e: LAB_0045e59d_updateSkillTarget(); break;
+        case 0x47: LAB_004602e6_updateItemTarget(); break;
+        case 0x48: LAB_004607ea_updateSteal(frame); break;
         case 0x0a: LAB_0045d06e_updateCommandMenu(); break;
         case 0x28: LAB_0045e546_updateBattleStart(); break;
         case 0x3c: LAB_0045e57d_updateSpecialList(); break;
@@ -2184,7 +3590,7 @@ namespace {
         case 0x4c: LAB_00461ad0_updateVersusItemList(); break;
         case 0x4d: LAB_00461ae0_updateState4d(); break;
         case 0x8c: LAB_00463c6e_updateState8c(); break;
-        case 0x96: LAB_00463c8e_updateEnemyPhaseStart(); break;
+        case 0x96: LAB_00463c8e_updateGeoChain(); break;
         case 0xa0: LAB_00463cc2_updateTurnChange(); break;
         case 0x5a: LAB_00463d00_updateState5a(); break;
         case 0x65: LAB_00463d0e_updateState65(); break;
@@ -2198,12 +3604,495 @@ namespace {
         }
     }
 
+    // ---- The drawing, from LAB_00465035 to the end ----
+
+    /// Versus mode: the replay input, the battle of layer 1 and the turn timer. Part of FUN_0045c0f0 at 0x0046503F.
+    void LAB_0046503f_updateVersusLayer(const BattleFrame& frame) {
+        if (DAT_0065db3a_gameMode() != 5) return;
+        FUN_004fd180_updateVersusInput(frame.isLayerIdle);
+        FUN_004576c0_updateLayer1();
+        const uint8_t layer = DAT_006d4ab2_turnLayer();
+        if (layer == 0 || layer == 1) FUN_00445300_tickVersusTimer();
+    }
+
     /**
-    * @brief Draws the map, the cursors, the units and the projectiles.
-    * Part of FUN_0045c0f0, from LAB_00465035 to the end.
+    * @brief Once layer 0 waits for input, or layer 1 on its turn: plays the queued geo panel changes (state 0x96) or adds
+    * the pending bonus points (state 0xA0). Part of FUN_0045c0f0 at 0x00465068.
+    */
+    void LAB_00465068_startPendingStates() {
+        if (DAT_006b7578_busyCount() != 0) return;
+        std::array<int32_t, 2>& states = DAT_00889618_battleStates();
+        if (states[0] != 0 && (DAT_006d4ab2_turnLayer() != 1 || states[1] != 0)) return;
+        if (DAT_006645f4_geoChainCount() > 0) {
+            DAT_006645fc_geoChainIndex() = 0;
+            states = { 0x96, 0x3ea };
+        }
+        else if (DAT_00889584_bonusPointsPending() >= 1) {
+            states = { 0xa0, 0xa0 };
+        }
+        else {
+            return;
+        }
+        DAT_008896a0_battleStateDepths() = { 0, 0 };
+    }
+
+    static_assert(offsetof(DisaCameraInfo, field_0xf8) == 0xf8);
+
+    /**
+    * @brief The chunk rotation, the background, the fullscreen image and the map chunks with their event tiles.
+    * Part of FUN_0045c0f0 at 0x004650E6.
+    */
+    void LAB_004650e6_drawMap() {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        FUN_004d9cb0_updateChunkRotation(FP::getData<int32_t>(0x008895a4));
+        DisaRenderFlags& flags = FUN_0043cec0_pushRenderFlags();
+        flags.castsShadow = 0;
+        flags.isFullyLit = 0;
+        const int32_t background = FP::getData<int32_t>(0x006b7564);
+        if (background == 0) FUN_004cfa80_drawBackground();
+        else FUN_004cfd50_drawBackground(background);
+        popRenderFlags();
+
+        const int32_t image = FP::getData<int32_t>(0x0067728c); //a fullscreen image, -1 none
+        if (image >= 0) {
+            const uint8_t* entry = &FP::getData<uint8_t>(0x00749550) + image * 0x88;
+            const int16_t imageWidth = *reinterpret_cast<const int16_t*>(entry + 0x4e);
+            const int16_t imageHeight = *reinterpret_cast<const int16_t*>(entry + 0x50);
+            FUN_0050e5d0_drawImage(entry, 0, static_cast<int>(camera.field_0xf8), 0xbaa1, 0x1e0, 0x110, imageWidth, imageHeight);
+        }
+
+        const int8_t* chunkStates = &FP::getData<int8_t>(0x0065db48); //2 and up are part of the world grid
+        for (int i = 0; i < DisaMapChunk::count; ++i) {
+            DisaMapChunk* chunk = DisaMapChunk::get(i);
+            if (!chunk->isActive || chunkStates[i] < 2) continue;
+            for (const mpdfileChunkEventTile& tile : chunk->eventTiles) {
+                if (tile.index != 0) FUN_004a1c60_markTile(static_cast<uint8_t>(tile.x), static_cast<uint8_t>(tile.z), 2);
+            }
+            FUN_004a4c60_SubmitMapChunk(chunk, 0, &camera);
+        }
+    }
+
+    /// The y a map cursor floats at, it bobs with the 60 frame counter DAT_006b7918.
+    float getCursorFloatY(float groundY) {
+        const float bob = float(std::abs(FP::getData<int32_t>(0x006b7918) - 30));
+        return float(double(groundY) - double(bob) / 5.0 - 2.0);
+    }
+
+    /// Puts the map cursor of the layer on the ground, in state 0x50 it hangs 5 above the ground.
+    void placeCursor(DisaMapUnit& cursor, int layer) {
+        FUN_0046c830_updateActor(cursor, DAT_00730980_camera());
+        int chunkIndex = -1;
+        const float groundY = FUN_004d2be0_getGroundHeight(&chunkIndex, 0, cursor.position.x, cursor.position.z);
+        if (chunkIndex >= 0) {
+            cursor.restPosition.y = groundY;
+            cursor.chunkIndex = static_cast<int8_t>(chunkIndex);
+        }
+        if (DAT_00889618_battleStates()[layer] == 0x50) cursor.position.y = float(double(cursor.restPosition.y) - 5.0);
+        else cursor.position.y = getCursorFloatY(groundY);
+    }
+
+    /// Bit 0 of DAT_00664f04 hides the cursors.
+    bool areCursorsHidden() { return (FP::getData<uint32_t>(0x00664f04) & 1) != 0; }
+
+    /// Both map cursors and the marks of their tiles. Part of FUN_0045c0f0 at 0x004651FF.
+    void LAB_004651ff_drawCursors() {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        if (DAT_0065db3a_gameMode() == 5) {
+            DisaMapUnit& cursorB = DAT_00778a10_cursorB();
+            placeCursor(cursorB, 1);
+            if (!areCursorsHidden() && FUN_00444990_getFog(0, cursorB.position.x, cursorB.position.z) != 0xff) {
+                FUN_0046a810_drawActor(cursorB, camera, 0x96, 0, 0);
+                if (DAT_00889618_battleStates()[1] != 0x50) {
+                    FUN_004a2050_markCursorTile(toTile(cursorB.position.x), toTile(cursorB.position.z), 0);
+                }
+            }
+        }
+        DisaMapUnit& cursor = DAT_00730ba0_cursor();
+        placeCursor(cursor, 0);
+        if (areCursorsHidden()) return;
+        FUN_0046a810_drawActor(cursor, camera, 0x96, 0, DAT_005d7c40_settings()->field_0x21);
+        if (DAT_00889618_battleState() != 0x50) FUN_004a2050_markCursorTile(toTile(cursor.position.x), toTile(cursor.position.z), 0);
+    }
+
+    /// Draws a unit with FUN_0046a810, DAT_005d9cd4 carries settings byte 0x2b into the draw.
+    void drawUnitSprite(DisaMapUnit& unit, int isFogged) {
+        uint32_t& drawSetting = FP::getData<uint32_t>(0x005d9cd4);
+        const DisaSettings* settings = DAT_005d7c40_settings();
+        drawSetting = FP::getData<uint8_t*>(0x005d7c70) != nullptr && settings->field_0x2b != 0 ? settings->field_0x2b : 0;
+        FUN_0046a810_drawActor(unit, DAT_00730980_camera(), 0, isFogged, 0);
+        drawSetting = 0;
+    }
+
+    /// A unit that blinked out drops the unit it held and leaves GEO effect 1. Part of FUN_0045c0f0 at 0x0046550F.
+    void LAB_0046550f_removeUnit(DisaMapUnit& unit, uint32_t& fogRefresh) {
+        if (unit.alliance == 0) fogRefresh |= 1;
+        else if (unit.alliance == 1) fogRefresh |= 2;
+        if (unit.holdingIndex >= 0) {
+            DisaMapUnit::get(unit.holdingIndex)->heldByIndex = -1;
+            DisaMapUnit::get(unit.holdingIndex)->poseFramesLeft = 5;
+            unit.holdingIndex = -1;
+        }
+        DisaTransform* transform = getEffectTransform();
+        transform->position = glm::vec4(unit.position, 1.f);
+        transform->rotation = glm::vec4(0.f, 0.f, 0.f, 1.f);
+        transform->scale = glm::vec4(1.f);
+        FUN_00478d50_spawnEffect(-1, 1, transform, 1.f, 1);
+        FUN_004da320_refreshUnits();
+    }
+
+    /**
+    * @brief Updates, counts and draws one unit that is not placed by script. The body of the loop at 0x00465462.
+    * @param unitAlpha The alpha of the unit fade, kept from the last fading unit when DAT_00889614 is 0.
+    * @param fogRefresh Gets bit 0 or 1 when a unit of alliance 0 or 1 was removed.
+    */
+    void drawUnit(int index, int& unitAlpha, uint32_t& fogRefresh) {
+        DisaMapUnit& unit = *DisaMapUnit::get(index);
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        if (unit.modelType != 0 && DAT_00889618_battleState() != 0x50) FUN_004d2e40_aimModel(unit);
+        //indexed by alliance without a range check, like the original
+        DAT_006b757c_aliveCounts().data()[unit.alliance] += FUN_0046f640_getCondition(unit.character) != 2 ? 1 : 0;
+
+        int chunkIndex = -1;
+        const float groundY = FUN_004d2be0_getGroundHeight(&chunkIndex, 0, unit.position.x, unit.position.z);
+        if (chunkIndex >= 0) {
+            unit.restPosition.y = groundY;
+            unit.chunkIndex = static_cast<int8_t>(chunkIndex);
+        }
+        if (FUN_0046c660_updateRemoval(unit, camera)) LAB_0046550f_removeUnit(unit, fogRefresh);
+        if (unit.heldByIndex >= 0) {
+            const DisaMapUnit& holder = *DisaMapUnit::get(unit.heldByIndex);
+            unit.position.x = holder.position.x;
+            const float lift = holder.spriteId == 1 ? 1.f : 0.f;
+            unit.position.y = float(double(holder.position.y) - 14.0 + double(lift));
+            unit.position.z = holder.position.z;
+        }
+        if (unit.field0x277 != 0) {
+            const int32_t fadeMode = DAT_00889614_fadeMode();
+            if (fadeMode == 1) unitAlpha = DAT_00889610_fadeFrames() * 6;
+            else if (fadeMode == 2) unitAlpha = (20 - DAT_00889610_fadeFrames()) * 6;
+            unit.color.w = static_cast<int16_t>(unitAlpha - (unitAlpha > 0xff ? 1 : 0));
+        }
+
+        //DAT_005d7c90, per unit, nonzero shows it through the fog
+        const bool isSeen = unit.alliance == 0 || FUN_00444990_getFog(0, unit.position.x, unit.position.z) != 0xff
+            || (&FP::getData<uint8_t>(0x005d7c90))[index] != 0;
+        if (!isSeen) {
+            if (unit.drawMode != 2) drawUnitSprite(unit, 1);
+            return;
+        }
+        if (unit.drawMode == 2) FUN_0046a7e0_queueActorDraw(unit, camera);
+        else drawUnitSprite(unit, 0);
+        if (unit.isGeoSymbol == 0 && unit.characterId / 10 != 320) FUN_0046bf40_drawHpBar(unit, camera);
+        if (!unit.isVisible || DAT_00889614_fadeMode() != 0) return;
+        FUN_0046bd20_drawStatusIcons(unit, unit.character, camera);
+        if (unit.alliance == 0) FUN_0046c4c0_drawDoneMarker(unit, camera);
+    }
+
+    /**
+    * @brief Updates and draws the units, counts the ones that can still fight and rebuilds the fog after a removal.
+    * Part of FUN_0045c0f0 at 0x00465434.
+    */
+    void LAB_00465434_drawUnits(int& unitAlpha) {
+        FUN_004a2280_submitTileMarks();
+        DAT_006b757c_aliveCounts() = { 0, 0, 0, 0 };
+        FP::getData<int32_t>(0x006b7910) = FP::getData<int32_t>(0x008ad894);
+        uint32_t fogRefresh = 0;
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            const DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (unit.isActive && !unit.isRawPositioned) drawUnit(i, unitAlpha, fogRefresh);
+        }
+        FUN_004e0140_submitUnitQueue();
+        if (fogRefresh == 0) return;
+        FUN_00444810_updateFog(0);
+        FUN_00444810_updateFog(1);
+    }
+
+    /// Counts the unit fade down, the end of a fade in shows the units fully again. Part of FUN_0045c0f0 at 0x0046580F.
+    void LAB_0046580f_updateUnitFade() {
+        int32_t& frames = DAT_00889610_fadeFrames();
+        if (frames <= 0 || --frames != 0 || DAT_00889614_fadeMode() != 2) return;
+        DAT_00889614_fadeMode() = 0;
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (!unit.isActive || unit.field0x277 == 0) continue;
+            unit.field0x277 = 0;
+            unit.color.w = 0xff;
+        }
+    }
+
+    /// The units placed by script SetActorRawPos. Part of FUN_0045c0f0 at 0x00465861.
+    void LAB_00465861_drawRawUnits() {
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (!unit.isActive || !unit.isRawPositioned) continue;
+            if (unit.drawMode == 2) {
+                FUN_0046a7e0_queueActorDraw(unit, camera);
+                continue;
+            }
+            FUN_0046d7a0_drawRawActor(unit, static_cast<int>(unit.position.x), static_cast<int>(unit.position.y),
+                static_cast<int>(unit.position.z), &FP::getData<uint8_t>(0x005ad534));
+        }
+    }
+
+    /// The script actors and the target marker. Part of FUN_0045c0f0 at 0x004658C9.
+    void LAB_004658c9_drawTargetMarker() {
+        FUN_004c12d0_updateScriptActors();
+        if (DAT_00701f3b_isTargetMarkerShown() == 0) return;
+        DisaMapUnit& marker = DAT_00701cd0_targetMarker();
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        FUN_0046c830_updateActor(marker, camera);
+        if (FUN_00444990_getFog(0, marker.position.x, marker.position.z) == 0xff) return;
+        FUN_0046a810_drawActor(marker, camera, 0x96, 0, DAT_005d7c40_settings()->field_0x21);
+    }
+
+    /**
+    * @brief Type 2 projectiles burst on the unit: GEO effect 0x24 at a random offset and size and sound 0x131.
+    * Part of FUN_0045c0f0 at 0x00465D8F.
+    * @details Only position.xyz, rotation and scale are written, position.w keeps the 1 of the damage number.
+    */
+    void LAB_00465d8f_spawnBurst(const DisaMapUnit& unit) {
+        DisaTransform* transform = getEffectTransform();
+        const auto randomOffset = []() { return float(double(float(FUN_0046e1a0_random(0x3d) - 30)) / 10.0); };
+        transform->position.x = float(double(randomOffset()) + double(unit.position.x));
+        transform->position.y = float(double(randomOffset()) + double(unit.position.y) - 5.0);
+        transform->position.z = float(double(randomOffset()) + double(unit.position.z));
+        transform->rotation.z = 0.f;
+        transform->rotation.y = 0.f;
+        transform->rotation.x = 0.f;
+        //the sum is converted as unsigned
+        const float size = float(double(float(double(static_cast<uint32_t>(FUN_0046e1a0_random(0x29) + 0x50)))) / 100.0);
+        FP::getData<int32_t>(0x006772a0) = 0x8ae; //read by the effect
+        transform->scale.z = size;
+        transform->scale.y = size;
+        transform->scale.x = size;
+        transform->scale.w = 1.f;
+        transform->rotation.w = 1.f;
+        FUN_00478d50_spawnEffect(-1, 0x24, transform, 1.f, 1);
+        FUN_004de090_playSound(0x131, 0x46, 25000, 0);
+        FP::getData<int32_t>(0x00730a8c) = 0x80003; //camera + 0x10c
+    }
+
+    /**
+    * @brief One hit of a projectile: the damage, the explosion of characters 2210 to 2219 and 3170, the damage number and
+    * the burst of type 2. Part of FUN_0045c0f0 at 0x00465B01.
+    * @param hit Like the stack local of the original, fields FUN_0046f510 leaves alone keep the last hit of the frame.
+    */
+    void LAB_00465b01_hitUnit(DisaProjectile& projectile, int index, DisaHit& hit) {
+        DisaMapUnit& unit = *DisaMapUnit::get(index);
+        DisaCameraInfo& camera = DAT_00730980_camera();
+        DisaTransform* transform = getEffectTransform();
+        FUN_0046f510_clearAction(reinterpret_cast<uint8_t*>(&hit));
+        int32_t damage = projectile.power;
+        if (projectile.type != 10) {
+            //unsigned like the original
+            const uint32_t blocked = static_cast<uint32_t>(FUN_0046e1a0_random(0x1f) + 30) * unit.character->activeStats.defence / 100u;
+            damage = std::max(static_cast<int32_t>(static_cast<uint32_t>(projectile.power) - blocked) / 5, 1);
+        }
+        if (unit.characterId == 0xc80) hit.damage = 0;
+        else hit.damage = FUN_00444e10_hasVersusRule(2, unit.alliance) ? 0 : damage;
+        const int16_t owner = projectile.owner;
+        //owners 64 to 99 point past the units like in the original
+        DisaMapUnit* attacker = owner >= 0 && owner < 100 ? DisaMapUnit::get(0) + owner : nullptr;
+        FUN_00476160_applyHit(attacker, unit, hit, 0, 0);
+
+        const int16_t characterId = static_cast<int16_t>(unit.character->characterId);
+        const bool isExploding = characterId / 10 == 221 || static_cast<uint16_t>(characterId) == 0xc62;
+        if (isExploding && FP::getData<DisaDungeon>(0x00653a98).id / 100 != 11) {
+            ++FP::getData<int16_t>(0x0065db1e);
+            FP::getData<int32_t>(0x0088952c) = 0x5a;
+            const int32_t power = static_cast<int32_t>(unit.character->currentHP) / 2 + 1;
+            FUN_00476d90_spawnProjectile(index, 10, power, unit.position.x, float(double(unit.position.y) - 3.0), unit.position.z,
+                0.f, 0.f, 0.f, 0);
+            FUN_0046f510_clearAction(reinterpret_cast<uint8_t*>(&hit));
+            hit.damage = static_cast<int32_t>(unit.character->currentHP);
+            FUN_00476160_applyHit(nullptr, unit, hit, 0, 1);
+            unit.pose = 5;
+            unit.poseFramesLeft = 10;
+            transform->position = glm::vec4(unit.position.x, unit.restPosition.y, unit.position.z, 1.f);
+            FUN_004d0850_showNumber(0, hit.damage, transform);
+        }
+        transform->position = glm::vec4(unit.position.x, float(double(unit.position.y) - 1.0), unit.position.z, 1.f);
+        FUN_004d0850_showNumber(0, hit.damage, transform);
+        ++FP::getData<int32_t>(0x0088958c);
+        int8_t& hitCounter = reinterpret_cast<int8_t&>(unit.field0x279[0]);
+        hitCounter -= hitCounter > 0 ? 1 : 0;
+        if (projectile.type == 2 && unit.poseFramesLeft == 0) LAB_00465d8f_spawnBurst(unit);
+    }
+
+    /**
+    * @brief Tests the projectile against every unit in reach and hits them. Part of FUN_0045c0f0 at 0x004659F8.
+    * @details A unit index as owner spares that unit, 200 + alliance spares the alliance except characters 2210 to 2219
+    * and 3170. The distance is measured from 5 above the unit.
+    */
+    void LAB_004659f8_hitUnits(DisaProjectile& projectile, DisaHit& hit) {
+        int hitCount = 0;
+        for (int i = 0; i < DisaMapUnit::count; ++i) {
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            if (!unit.isActive || !unit.isVisible || unit.heldByIndex >= 0) continue;
+            if (FUN_0046f640_getCondition(unit.character) == 2) continue;
+            const int16_t owner = projectile.owner;
+            if (owner >= 200) {
+                const int16_t characterId = static_cast<int16_t>(unit.character->characterId);
+                if (characterId / 10 != 221 && characterId != 0xc62 && unit.alliance == owner - 200) continue;
+            }
+            if (i == owner) continue;
+            //the x87 code keeps the sum in double, the differences are stored as float
+            const float dx = unit.position.x - projectile.position.x;
+            const float dy = float(double(unit.position.y) - 5.0 - double(projectile.position.y));
+            const float dz = unit.position.z - projectile.position.z;
+            const float distanceSquared = float(double(dy) * dy + double(dx) * dx + double(dz) * dz);
+            if (distanceSquared > projectile.hitRadiusSquared) continue;
+            LAB_00465b01_hitUnit(projectile, i, hit);
+            ++hitCount;
+            if (unit.poseFramesLeft == 0) {
+                unit.pose = 5;
+                unit.poseFramesLeft = 6;
+            }
+        }
+        if (hitCount <= 0) return;
+        projectile.isActive = 0;
+        projectile.field0xa8 = 0;
+    }
+
+    /**
+    * @brief Removes the projectiles below the ground, outside of the map or out of time, lets the others hit and draws
+    * them. Part of FUN_0045c0f0 at 0x0046592C.
+    */
+    void LAB_0046592c_updateProjectiles() {
+        DisaHit hit{};
+        for (DisaProjectile& projectile : DAT_00730f10_projectiles()) {
+            if (projectile.isActive == 0) continue;
+            const float x = projectile.position.x;
+            const float z = projectile.position.z;
+            const float groundY = float(FUN_004d2e00_getTileHeight(toTile(x), toTile(z)));
+            //y grows downwards
+            const bool isOutside = projectile.position.y > groundY || x < -12.f || z < -12.f || x > 780.f || z > 780.f;
+            if (isOutside || (projectile.lifetime > 0 && --projectile.lifetime <= 0)) {
+                projectile.isActive = 0;
+                continue;
+            }
+            if (projectile.delay > 0) --projectile.delay;
+            else LAB_004659f8_hitUnits(projectile, hit);
+            if (FUN_00444990_getFog(0, projectile.position.x, projectile.position.z) == 0xff) continue;
+            FUN_0046ac00_drawProjectile(projectile, DAT_00730980_camera());
+        }
+    }
+
+    /**
+    * @brief Ends the battle. In versus mode once a layer has no units left, otherwise the game over when the player has
+    * none, or the victory (FUN_00446e20) when the enemies have none. Part of FUN_0045c0f0 at 0x00465F8D.
+    */
+    void LAB_00465f8d_checkBattleEnd() {
+        const int32_t state = DAT_00889618_battleState();
+        if (DAT_0065db3a_gameMode() == 5) {
+            if (state != 0 && state != 1 && state != 0x17) return;
+            if (FUN_00444760_countProjectiles() != 0) return;
+            const bool isLayer0Defeated = FUN_004449f0_isLayerDefeated(0);
+            const bool isLayer1Defeated = FUN_004449f0_isLayerDefeated(1);
+            if (isLayer0Defeated) FUN_00444a80_endVersusBattle(isLayer1Defeated ? 2 : 0);
+            else if (isLayer1Defeated) FUN_00444a80_endVersusBattle(1);
+            return;
+        }
+        const std::array<int16_t, 4>& alive = DAT_006b757c_aliveCounts();
+        if (alive[0] + DAT_0065db39_basePanelCount() == 0) {
+            if (state != 0) return;
+            //talk script 0x5DD may replace the game over
+            if (FUN_004bf7e0_runTalkScriptOriginal(0x5dd, 0, 0, 0) < 0) {
+                DAT_008896b0_gameOverFrames() = 0;
+                FUN_0046a830_playMusic(0x68);
+                FUN_00444740_setBattleState(600, 0);
+            }
+            else {
+                FUN_00444740_setBattleState(0x3ea, 0);
+            }
+            return;
+        }
+        constexpr std::array<int32_t, 5> busyStates = { 200, 0x28, 0x96, 0xa0, 0x50 };
+        if (state >= 500 || std::ranges::find(busyStates, state) != busyStates.end()) return;
+        //DAT_0065db3f, the alliance to defeat: 0 alliance 1, 1 alliance 3
+        const uint8_t targetAlliance = FP::getData<uint8_t>(0x0065db3f);
+        if ((alive[1] == 0 && targetAlliance == 0) || (alive[3] == 0 && targetAlliance == 1)) FUN_00446e20(0, 0);
+    }
+
+    /**
+    * @brief Draws a looping GEO model standing on the ground, the base panels and the Item World gate.
+    * @details Like the original only position, rotation.xyz and scale.xyz of the transform are written.
+    */
+    void drawGroundModel(DisaGeoModel& model, glm::vec2 position, int16_t frame, float param9) {
+        DisaTransform* transform = getEffectTransform();
+        transform->position.x = position.x;
+        transform->position.y = FUN_004d2be0_getGroundHeight(nullptr, 0, position.x, position.y);
+        transform->position.z = position.y;
+        transform->position.w = 1.f;
+        transform->rotation.z = 0.f;
+        transform->rotation.y = 0.f;
+        transform->rotation.x = 0.f;
+        transform->scale.z = 1.f;
+        transform->scale.y = 1.f;
+        transform->scale.x = 1.f;
+        FUN_0043cec0_pushRenderFlags().useLighting = 0;
+        FUN_004e13a0_renderGeoModel(model, float(frame), DAT_00730980_camera(), transform, param9);
+        popRenderFlags();
+    }
+
+    /// The next animation frame of a looping GEO model.
+    void nextModelFrame(int16_t& frame, const DisaGeoModel& model) {
+        ++frame;
+        if (frame >= model.animationFrameMax) frame = 0;
+    }
+
+    /// The base panels and the Item World gate. Part of FUN_0045c0f0 at 0x004660B7.
+    void LAB_004660b7_drawPanels() {
+        if (FP::getData<uint8_t>(0x0065db43) != 0) { //the base panel is on the map
+            DisaGeoModel& model = FP::getData<DisaGeoModel>(0x00730ab8);
+            int16_t& frame = FP::getData<int16_t>(0x0065db0a);
+            drawGroundModel(model, DAT_0065dae8_basePanel(), frame, 10.f);
+            nextModelFrame(frame, model);
+        }
+        if (DAT_0065db3a_gameMode() == 5 && FP::getData<uint8_t>(0x006d4abe) != 0) { //the base panel of layer 1
+            DisaGeoModel& model = FP::getData<DisaGeoModel>(0x00730e28);
+            int16_t& frame = FP::getData<int16_t>(0x006d4ab0);
+            const glm::vec2 panel = FP::getData<glm::vec2>(0x006e57a0);
+            if (FUN_00444990_getFog(0, panel.x, panel.y) != 0xff) drawGroundModel(model, panel, frame, 10.f);
+            nextModelFrame(frame, model);
+        }
+        if (FP::getData<uint8_t>(0x0065db41) != 0 && FP::getData<uint8_t>(0x0065db40) == 0) { //the Item World gate
+            DisaGeoModel& model = FP::getData<DisaGeoModel>(0x00749210);
+            int16_t& frame = FP::getData<int16_t>(0x0065db08);
+            const glm::vec2 gate = FP::getData<glm::vec2>(0x0065dae0);
+            if (FUN_00444990_getFog(0, gate.x, gate.y) != 0xff) drawGroundModel(model, gate, frame, 100.f);
+            nextModelFrame(frame, model);
+        }
+    }
+
+    /// The text at DAT_008896c0 is shown while nothing moves. Part of FUN_0045c0f0 at 0x004663DA.
+    void LAB_004663da_drawInfoText() {
+        const uint8_t* text = &FP::getData<uint8_t>(0x008896c0);
+        const bool hasText = isOldTextStyle() ? text[0] != 0 : FUN_004e3790_getStringLength(text) != 0;
+        if (hasText && DAT_006b7578_busyCount() == 0) FUN_00453bc0_drawInfoText();
+    }
+
+    /**
+    * @brief Draws the map, the cursors, the units and the projectiles, and ends the battle once a side is defeated.
+    * Part of FUN_0045c0f0, from LAB_00465035 to the end. The stack cookie check at the end is dropped.
     */
     void LAB_00465035_drawBattleMap(BattleFrame& frame) {
-        //TODO port
+        FUN_004da020_updateCameraSpin(DAT_00730980_camera());
+        LAB_0046503f_updateVersusLayer(frame);
+        LAB_00465068_startPendingStates();
+        LAB_004650e6_drawMap();
+        //the original keeps the fade alpha in [esp+8], which the chunk loop leaves at the chunk count
+        int unitAlpha = DisaMapChunk::count;
+        LAB_004651ff_drawCursors();
+        LAB_00465434_drawUnits(unitAlpha);
+        LAB_0046580f_updateUnitFade();
+        LAB_00465861_drawRawUnits();
+        LAB_004658c9_drawTargetMarker();
+        LAB_0046592c_updateProjectiles();
+        LAB_00465f8d_checkBattleEnd();
+        LAB_004660b7_drawPanels();
+        LAB_004663da_drawInfoText();
     }
 }
 

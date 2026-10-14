@@ -422,6 +422,9 @@ void __fastcall FUN_0050c210_toUtf8(char* str, char* outStr, size_t* outLength);
 
 int __fastcall FUN_GetWidthOfString(char* str, int param_2, int param_3, int* param_4, int param_5);
 
+/// Replaces the string with its translation when the translation manager has one, FUN_GetWidthOfString does it first.
+void __fastcall translateReplace(char*& jis_string);
+
 //======== FUNCTIONS ========
 
 /**
