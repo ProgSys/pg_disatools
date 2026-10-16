@@ -28,6 +28,7 @@
 
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <cstddef>
 #include <optional>
@@ -214,6 +215,14 @@ struct DisaMapChunk {
     * @return nullopt when no face is hit in front of the origin.
     */
     PG_RayIntersection customIntersectRay(const glm::vec3& origin, const glm::vec3& direction) const;
+    /**
+    * @brief The top corners of the chunk tile that covers a tile of the world, in world space, negative y is up.
+    * @details Finds the tile like FUN_004a2af0_getHeight, from the middle of the world tile, and puts its corners through
+    * the chunk matrix like the drawn faces. The order is the one of mpdfileTile::cornersTop: south west, south east,
+    * north west, north east of the chunk, which a turned chunk puts at other corners of the world tile.
+    * @return nullopt outside the 40 x 40 grid and where no visible tile is.
+    */
+    std::optional<std::array<glm::vec3, 4>> getTopCorners(glm::ivec2 tile) const;
     //CUSTOM CODE END
 
     /// The two chunks located at 0x007091c0

@@ -244,6 +244,33 @@ PG_RayIntersection DisaMapChunk::customIntersectRay(const glm::vec3& origin, con
     }
     return nearest;
 }
+
+std::optional<std::array<glm::vec3, 4>> DisaMapChunk::getTopCorners(glm::ivec2 tile) const {
+    constexpr float tileSize = 12.f;
+    //the drawn faces are in chunk space minus the pivot, which the chunk matrix puts into the world
+    const glm::mat4 toWorld = computeChunkMatrix(*this);
+    const glm::vec3 center(float(tile.x) * tileSize + tileSize * 0.5f, 0.f, float(tile.y) * tileSize + tileSize * 0.5f);
+    const glm::vec3 local = glm::vec3(glm::inverse(toWorld) * glm::vec4(center, 1.f)) + glm::vec3(pivot.x, 0.f, pivot.z);
+
+    const int tileX = static_cast<int>(std::floor(local.x / tileSize));
+    const int tileZ = static_cast<int>(std::floor(local.z / tileSize));
+    if (tileX < 0 || tileZ < 0 || tileX >= 40 || tileZ >= 40) return std::nullopt;
+
+    const int tileIndex = tileGrid[tileX][tileZ] - 1;
+    if (tileIndex < 0) return std::nullopt;
+    const mpdfileTile& chunkTile = tiles[tileIndex];
+    if (!chunkTile.visible) return std::nullopt;
+
+    const float x0 = static_cast<float>(chunkTile.x * 12);
+    const float x1 = static_cast<float>(chunkTile.x * 12 + 12);
+    const float z0 = static_cast<float>(chunkTile.z * 12);
+    const float z1 = static_cast<float>(chunkTile.z * 12 + 12);
+    const auto toWorldCorner = [&](float x, int corner, float z) {
+        const glm::vec3 chunkCorner(x - pivot.x, static_cast<float>(chunkTile.cornersTop[corner]), z - pivot.z);
+        return glm::vec3(toWorld * glm::vec4(chunkCorner, 1.f));
+    };
+    return std::array<glm::vec3, 4>{ toWorldCorner(x0, 0, z0), toWorldCorner(x1, 1, z0), toWorldCorner(x0, 2, z1), toWorldCorner(x1, 3, z1) };
+}
 //CUSTOM CODE END
 
 void FUN_004a4660_BuildTileOverlays(DisaMapChunk& chunk) {
