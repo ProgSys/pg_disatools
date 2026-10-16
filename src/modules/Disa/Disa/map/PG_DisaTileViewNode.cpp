@@ -305,7 +305,19 @@ void PG_DisaTileViewNode::updateFloorColorGeometry(PG_DisaMapTileListModel* mode
 }
 
 void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode) {
-	if (!modelNode || !model) return;
+	if (!model) return;
+	const auto topOf = [model](glm::ivec2 tile) -> std::optional<std::array<glm::vec3, 4>> {
+		auto location = model->getTileLocation(tile);
+		if (!location) return std::nullopt;
+		auto* item = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
+		if (item->getMobility() != PG_DisaMapTileModel::Unlimited) return std::nullopt;
+		return item->getTop(item->getTranslation());
+	};
+	updateFloorPathGeometry(topOf, path, pathWidth, modelNode);
+}
+
+void PG_DisaTileViewNode::updateFloorPathGeometry(const FloorTopFunction& topOf, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode) {
+	if (!modelNode || !topOf) return;
 
 	if (path.size() < 2 || PG_Math::leOrNaN(pathWidth, 0.f)) {
 		modelNode->getModel().reset();
@@ -315,7 +327,7 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 	constexpr float jumpHeight = 6.f / 12.f; //6 game height units, a higher step becomes a jump arc
 	constexpr float jumpClearance = 0.25f; //how far the arc passes over the higher edge
 	constexpr float levelTolerance = 0.5f / 12.f;
-	constexpr float groundOffset = 0.03f; //lifts the ribbon over the ground, so bent tiles do not clip it
+	constexpr float groundOffset = 0.06f; //lifts the ribbon over the ground, so bent tiles do not clip it
 	constexpr int surfaceDivisions = 4; //per half tile, so the ribbon follows bent tiles
 	constexpr int jumpDivisions = 12;
 
@@ -329,10 +341,7 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 		std::vector<PathTile> tiles(run.size());
 		for (std::size_t i = 0; i < run.size(); ++i) {
 			tiles[i].center = glm::vec2(run[i]) + 0.5f;
-			auto location = model->getTileLocation(run[i]);
-			if (!location) continue;
-			auto* item = location.getDataT<PG_DisaMapTileModel*>(PG_Identity_Item);
-			if (item->getMobility() == PG_DisaMapTileModel::Unlimited) tiles[i].top = item->getTop(item->getTranslation());
+			tiles[i].top = topOf(run[i]);
 		}
 		const auto edgeOf = [&tiles](std::size_t i) { return (tiles[i].center + tiles[i + 1].center) * 0.5f; }; //between i and i + 1
 

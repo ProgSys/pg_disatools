@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+#include <optional>
 #include <Scene/PG_ModelNode.h>
 #include <Scene/Model/PG_ListModelLocation.h>
 #include <Scene/Model/PG_ListModelIdentity.h>
@@ -53,6 +55,13 @@ public:
 	* @param pathWidth In tiles, clamped to 1
 	*/
 	static void updateFloorPathGeometry(PG_DisaMapTileListModel* model, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode);
+	/**
+	* @brief The top of a tile in tile units, corners in the order of PG_DisaMapTileModel::getTop
+	* @returns Nothing where the tile has no ground that can be walked on
+	*/
+	using FloorTopFunction = std::function<std::optional<std::array<glm::vec3, 4>>(glm::ivec2)>;
+	/// Like the one above, for ground that is not a PG_DisaMapTileListModel, like the map of the running game
+	static void updateFloorPathGeometry(const FloorTopFunction& topOf, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode);
 	static void updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode);
 private:
 	void updateGeometry();

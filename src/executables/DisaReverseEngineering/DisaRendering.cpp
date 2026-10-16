@@ -347,7 +347,7 @@ void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int visi
             glEnable(GL_TEXTURE_2D);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-            g_pass.runCurrentAndClearAll();
+            g_pass.runAndClearAll(); //a material without depth writes queues its draw in another bucket than the current one
             continue;
         }
         //END custom code
