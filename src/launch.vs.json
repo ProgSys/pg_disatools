@@ -1,0 +1,15 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "dll",
+      "name": "Disgaea PC (j.dll)",
+      "project": "CMakeLists.txt",
+      "projectTarget": "DisaReverseEngineering.dll (bin\\DisaReverseEngineering.dll)",
+      "exe": "D:/Steam/SteamApps/common/Disgaea PC/dis1_st.exe",
+      "currentDir": "D:/Steam/SteamApps/common/Disgaea PC",
+      "args": []
+    }
+  ]
+}

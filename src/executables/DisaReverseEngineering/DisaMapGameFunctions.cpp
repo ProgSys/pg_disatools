@@ -60,9 +60,6 @@ static_assert(offsetof(PG_DisaPartyCharacter, field_0x6ac) == 0x6ac);
 static_assert(offsetof(mpdfileTile, geo_color) == 0x78);
 static_assert(offsetof(mpdfileTile, geo_mark) == 0x79);
 
-namespace Custom {
-    static bool isBlockConsumeInput = false;
-}
 
 namespace {
 
@@ -1049,6 +1046,7 @@ namespace {
     * updated and drawn, so the original walk of FUN_004475c0 animates it, jumps, floats and warps included.
     */
     namespace ImprovedMouse {
+        static bool isBlockConsumeInput = false;
 
         bool isEnabled() { return DisaCustomModificationsManager::get()->isImprovedMouseControl(); }
 
@@ -1402,8 +1400,8 @@ namespace {
             const int32_t followedUnit = FP::getData<int32_t>(0x006772c4); //0 the cursor, else the unit index + 1, -1 none
             bool isFollowing = DAT_0067726b_isInputConsumed() != 0;
             //BEGIN custom code
-            isFollowing &= !Custom::isBlockConsumeInput;
-            Custom::isBlockConsumeInput = false;
+            isFollowing &= !ImprovedMouse::isBlockConsumeInput;
+            ImprovedMouse::isBlockConsumeInput = false;
             //END custom code
             isFollowing |= (FP::getData<int32_t>(0x0071fd34) != 0 && state != 99) || state == 200 || state == 0xaa || state == 0x96 || state == 0xa0;
             if (isFollowing) {
@@ -1880,7 +1878,6 @@ namespace {
                     FUN_0046aab0_playSound(4);
                 }
             }
-            return;
         } else {
         //END custom code
             if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
@@ -1903,7 +1900,14 @@ namespace {
             stopCursor(cursor);
             FUN_0046aab0_playSound(7);
             FUN_00446d50_popBattleState(0);
-            moveCursorTo(unit, 15.f);
+            //BEGIN custom code
+            if (ImprovedMouse::isEnabled()) {
+                ImprovedMouse::isBlockConsumeInput = true; //the cursor stays where the mouse is
+            }
+            else {
+                //END custom code
+                moveCursorTo(unit, 15.f);
+            }
         }
         if (DAT_008895ac_hoveredUnit() >= 0) FUN_0046a930_drawNamePlate(0xa9, *DisaMapUnit::get(DAT_008895ac_hoveredUnit()), 0);
         FUN_00447f00_drawTileInfo();
@@ -2022,7 +2026,7 @@ namespace {
             //BEGIN custom code
             //to not move cursor 
             if (ImprovedMouse::isEnabled()) {
-                Custom::isBlockConsumeInput = true;
+                ImprovedMouse::isBlockConsumeInput = true;
             } else {
                 //END custom code
                 moveCursorTo(unit, 15.f); //original
