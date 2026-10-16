@@ -82,6 +82,20 @@ public:
 		return created;
 	}
 
+	template<typename T, typename F>
+	T* getNode(NodeId id, EGroup group, F creator) {
+		static_assert(std::is_base_of_v<PG_ActorNode, T>, "T must derive from PG_ActorNode!");
+		m_usedIds.insert(id);
+		PG_ActorNode*& node = m_nodes[id];
+		if (auto* typed = dynamic_cast<T*>(node)) return typed;
+
+		if (node) node->deleteLater();
+		auto* created = PG_new<T>("DisaCustomNode", getGroup(group));
+		creator(created);
+		node = created;
+		return created;
+	}
+
 	/**
 	* @brief Queues the node in the game's render queue for this frame.
 	* Original function: FUN_00425df0
