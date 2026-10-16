@@ -25,6 +25,17 @@
 
 
 #include <Managers/DisaCustomModificationsManager.h>
+//BEGIN custom code
+#include <cstring>
+#include <limits>
+#include <unordered_map>
+#include <vector>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/constants.hpp>
+#include <Scene/PG_ModelNode.h>
+#include <Disa/map/PG_DisaTileViewNode.h>
+#include <Managers/DisaCustomRenderManager.h>
+//END custom code
 #include <Util/PG_MathGeometry.h>
 
 /*
@@ -1028,6 +1039,277 @@ namespace {
     void FUN_00453bc0_drawInfoText() { FP::callFarA<void>(0x00453bc0); }
 
 
+    //BEGIN custom code
+    // ---- Improved mouse control, inspired by PG_DisaMainGameModule ----
+
+    /**
+    * @brief Selecting a player unit goes straight into its move, and the move takes effect at once.
+    * @details The unit stands on its destination for every rule right away and the command menu opens there, while
+    * a copy of its motion fields walks the path for the eye. That copy is swapped into the unit while the unit is
+    * updated and drawn, so the original walk of FUN_004475c0 animates it, jumps, floats and warps included.
+    */
+    namespace ImprovedMouse {
+
+        bool isEnabled() { return DisaCustomModificationsManager::get()->isImprovedMouseControl(); }
+
+        /// The bytes of DisaMapUnit that make up where a unit is seen and how it moves, [begin, end)
+        constexpr std::array<std::pair<std::size_t, std::size_t>, 9> g_walkFields = { {
+            { offsetof(DisaMapUnit, sprite), offsetof(DisaMapUnit, sprite) + sizeof(DisaSpriteAnimation) },
+            { offsetof(DisaMapUnit, position), offsetof(DisaMapUnit, moveOrigin) },
+            { offsetof(DisaMapUnit, gravity), offsetof(DisaMapUnit, statusIcons) },
+            { offsetof(DisaMapUnit, jumpDrop), offsetof(DisaMapUnit, hpBarColor) },
+            { offsetof(DisaMapUnit, animation), offsetof(DisaMapUnit, moveOriginFacing) },
+            { offsetof(DisaMapUnit, moveFramesLeft), offsetof(DisaMapUnit, field0x252) },
+            { offsetof(DisaMapUnit, jumpRiseFramesLeft), offsetof(DisaMapUnit, statusIconAnimation) },
+            { offsetof(DisaMapUnit, chunkIndex), offsetof(DisaMapUnit, weaponType) },
+            { offsetof(DisaMapUnit, pathLength), offsetof(DisaMapUnit, movement) },
+        } };
+
+        /// The unit as it is seen while it walks, only g_walkFields are used
+        struct VisualWalk {
+            std::array<uint8_t, sizeof(DisaMapUnit)> unit{};
+
+            /// Trades the walk fields with the unit, a second call puts everything back
+            void swap(DisaMapUnit& target) {
+                auto* bytes = reinterpret_cast<uint8_t*>(&target);
+                for (const auto& [begin, end] : g_walkFields) std::swap_ranges(bytes + begin, bytes + end, unit.data() + begin);
+            }
+        };
+
+        /// By unit index, the units whose sprite still walks to where they already stand
+        std::unordered_map<int, VisualWalk>& getWalks() {
+            static std::unordered_map<int, VisualWalk> walks;
+            return walks;
+        }
+
+        /// The range maps FUN_004d21f0 fills, layer 0, [z][x]
+        using RangeMap = std::array<std::array<uint8_t, 64>, 64>;
+        const RangeMap& getStopMap() { return FP::getData<RangeMap>(0x00664f10); }
+        const RangeMap& getDistanceMap() { return FP::getData<RangeMap>(0x00666f10); }
+        /// Middle of the top of every tile in game units, negative is up, [z][x]
+        const std::array<std::array<int16_t, 64>, 64>& getTileHeights() {
+            return FP::getData<std::array<std::array<int16_t, 64>, 64>>(0x00671250);
+        }
+        bool isInGrid(glm::ivec2 tile) { return tile.x >= 0 && tile.y >= 0 && tile.x < 64 && tile.y < 64; }
+
+        /// Only a player unit that neither moved nor acted gets its move first, every other one the command menu
+        bool canStartMove(const DisaMapUnit& unit) {
+            return unit.alliance == 0 && unit.moveState == 0 && unit.actionState == 0 && unit.movement > 0
+                && unit.heldByIndex < 0 && unit.holdingIndex < 0 && getSleepTurns(unit.character) == 0
+                && DAT_0065db3a_gameMode() != 5;
+        }
+
+        /// A warping unit leaves no path behind, FUN_004d1e50 gives it a single step
+        bool isTeleporting(const DisaMapUnit& unit) { return unit.movementType == 2 || unit.movement > 98; }
+
+        /// A tile the move of state 0x14 accepts, the test of LAB_0045d193_updateMoveTarget
+        bool isDestination(const DisaMapUnit& unit, glm::ivec2 tile) {
+            if (!isInGrid(tile)) return false;
+            const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
+            const bool isPanelBlocked = FP::getData<uint8_t>(0x0065db43) != 0 && tile == getBasePanelTile() && unit.actionState != 0;
+            return tile != unitTile && getStopMap()[tile.y][tile.x] <= unit.movement && !isPanelBlocked;
+        }
+
+        /// The destination closest to the tile, the tile itself when it is one
+        std::optional<glm::ivec2> nearestDestination(const DisaMapUnit& unit, glm::ivec2 tile) {
+            std::optional<glm::ivec2> nearest;
+            int nearestSquared = std::numeric_limits<int>::max();
+            int nearestDistance = std::numeric_limits<int>::max();
+            for (int z = 0; z < 64; ++z) {
+                for (int x = 0; x < 64; ++x) {
+                    const glm::ivec2 candidate(x, z);
+                    if (!isDestination(unit, candidate)) continue;
+                    const glm::ivec2 delta = candidate - tile;
+                    const int squared = delta.x * delta.x + delta.y * delta.y;
+                    const int distance = getStopMap()[z][x];
+                    if (squared < nearestSquared || (squared == nearestSquared && distance < nearestDistance)) {
+                        nearest = candidate;
+                        nearestSquared = squared;
+                        nearestDistance = distance;
+                    }
+                }
+            }
+            return nearest;
+        }
+
+        /// The path FUN_004d1e50 would build, start and target included, without touching the unit
+        std::vector<glm::ivec2> tracePath(const DisaMapUnit& unit, glm::ivec2 target) {
+            const int distance = getDistanceMap()[target.y][target.x];
+            if (distance > 63) return {};
+            constexpr std::array<glm::ivec2, 4> neighbors = { glm::ivec2(0, -1), glm::ivec2(1, 0), glm::ivec2(0, 1), glm::ivec2(-1, 0) };
+            const auto& heights = getTileHeights();
+
+            std::vector<glm::ivec2> path(static_cast<std::size_t>(distance) + 1);
+            path[distance] = target;
+            for (int step = distance - 1; step >= 0; --step) {
+                const glm::ivec2 current = path[step + 1];
+                const auto previous = std::ranges::find_if(neighbors, [&](glm::ivec2 offset) {
+                    const glm::ivec2 tile = current + offset;
+                    return isInGrid(tile) && getDistanceMap()[tile.y][tile.x] == step
+                        && heights[tile.y][tile.x] - heights[current.y][current.x] <= unit.jumpPower;
+                    });
+                if (previous == neighbors.end()) return {};
+                path[step] = current + *previous;
+            }
+            return path;
+        }
+
+        /**
+        * @brief The path space: tile units with y up and z negated. A half turn around x puts it into the game, where y
+        * points down. It also puts the diagonal the path builder splits a tile along onto the one the game draws.
+        */
+        glm::ivec2 toPathSpace(glm::ivec2 tile) { return glm::ivec2(tile.x, -tile.y - 1); }
+        /// The half turn that puts the path space into the game, @see toPathSpace
+        glm::quat getPathSpaceRotation() { return glm::angleAxis(glm::pi<float>(), glm::vec3(1.f, 0.f, 0.f)); }
+
+        /**
+        * @brief The top of a tile of the path space, in the corner order of PG_DisaMapTileModel::getTop.
+        * @details Taken from the highest chunk tile that covers it, the one FUN_004d2be0 stands a unit on.
+        * @param tile In path space, @see toPathSpace
+        */
+        std::optional<std::array<glm::vec3, 4>> getTileTop(glm::ivec2 tile) {
+            const glm::ivec2 gameTile(tile.x, -tile.y - 1);
+            const mpdfileTile* worldTile = FUN_004a51b0_getWorldTile(gameTile.x, gameTile.y);
+            if (!worldTile || worldTile->mobility != 0) return std::nullopt;
+
+            const auto& isChunkInWorldGrid = FP::getData<std::array<uint8_t, DisaMapChunk::count>>(0x0065db48);
+            std::optional<std::array<glm::vec3, 4>> corners;
+            float highest = std::numeric_limits<float>::max(); //negative is up
+            for (int i = 0; i < DisaMapChunk::count; ++i) {
+                const DisaMapChunk* chunk = DisaMapChunk::get(i);
+                if (!chunk->isActive || !isChunkInWorldGrid[i]) continue;
+                const std::optional<std::array<glm::vec3, 4>> chunkCorners = chunk->getTopCorners(gameTile);
+                if (!chunkCorners) continue;
+                const float height = ((*chunkCorners)[0].y + (*chunkCorners)[1].y + (*chunkCorners)[2].y + (*chunkCorners)[3].y) * 0.25f;
+                if (height < highest) {
+                    highest = height;
+                    corners = chunkCorners;
+                }
+            }
+            if (!corners) return std::nullopt;
+
+            //into path space, sorted by where each corner lies, a turned chunk has them at other corners of the tile
+            std::array<glm::vec3, 4> top{};
+            for (const glm::vec3& corner : *corners) {
+                const glm::vec3 pathCorner(corner.x / 12.f, -corner.y / 12.f, -corner.z / 12.f);
+                const int u = std::clamp(static_cast<int>(std::lround(pathCorner.x)) - tile.x, 0, 1);
+                const int v = std::clamp(static_cast<int>(std::lround(pathCorner.z)) - tile.y, 0, 1);
+                top[u + v * 2] = pathCorner;
+            }
+            return top;
+        }
+
+        /// The path to draw this frame, set while the states run and drawn with the units
+        std::vector<glm::ivec2>& getPendingPath() {
+            static std::vector<glm::ivec2> path;
+            return path;
+        }
+
+        /// Asks for the way the unit would walk to the destination closest to the cursor to be drawn this frame
+        void requestPath(const DisaMapUnit& unit, glm::ivec2 cursorTile) {
+            getPendingPath().clear();
+            if (isTeleporting(unit)) return;
+            if (const std::optional<glm::ivec2> target = nearestDestination(unit, cursorTile)) getPendingPath() = tracePath(unit, *target);
+        }
+
+        /**
+        * @brief Draws the path requested this frame.
+        * @details Called next to FUN_004a2280_submitTileMarks, so it is queued while the game queues the world, with
+        * its projection and render flags.
+        */
+        void submitPath() {
+            std::vector<glm::ivec2> path = std::move(getPendingPath());
+            getPendingPath().clear();
+            for (glm::ivec2& tile : path) tile = toPathSpace(tile);
+            DisaCustomRenderManager* renderManager = DisaCustomRenderManager::get();
+            if (path.size() < 2 || !renderManager->isEnabled()) return;
+
+            static const auto nodeId = DisaCustomRenderManager::makeNodeId("ImprovedMouseMovePath");
+            auto* node = renderManager->getNode<PG_ModelNode>(nodeId, DisaCustomRenderManager::EGroup::World);
+            static std::vector<glm::ivec2> lastPath;
+            if (path != lastPath || !node->getModel().isValid()) {
+                OUT_DEBUG("path:");
+                PG_DisaTileViewNode::updateFloorPathGeometry(&getTileTop, path, 0.15f, node);
+                lastPath = std::move(path);
+            }
+            //path space into game units
+            node->setTransformation(glm::vec3(0.f), getPathSpaceRotation(), glm::vec3(12.f));
+            //the event loop only runs at the start of the next frame, so the matrices are updated right away
+            node->updateModelMatrix();
+            node->updateModelMatrixWorld();
+            renderManager->submit(40001.f, node, -1, true, false, 0.f, 0, 0, false);
+        }
+
+        /// Whether the original walk has to run, because the destination does something when the unit arrives
+        bool needsOriginalWalk(glm::ivec2 target) {
+            if (FP::getData<uint8_t>(0x0065db43) != 0 && target == getBasePanelTile()) return true;
+            const glm::ivec2 gateTile(toTile(FP::getData<float>(0x0065dae0)), toTile(FP::getData<float>(0x0065dae4)));
+            if (FP::getData<uint8_t>(0x0065db41) != 0 && target == gateTile) return true;
+            for (const mpdfileChunkEventTile& eventTile : DisaMapChunk::get(0)->eventTiles) {
+                const bool isOnTile = static_cast<uint8_t>(eventTile.x) == target.x && static_cast<uint8_t>(eventTile.z) == target.y;
+                if (isOnTile && eventTile.index == 2) return true;
+            }
+            return false;
+        }
+
+        /**
+        * @brief Puts the unit on the target at once and lets a copy of it walk the path.
+        * @details Sets up the undo like moveToCursor, then does what LAB_0045d602_updateWalk does once the walk ended.
+        * @returns False when no path was found, nothing changed then
+        */
+        bool moveAtOnce(DisaMapUnit& unit, int index, glm::ivec2 target) {
+            const int16_t pathLength = unit.pathLength;
+            unit.pathLength = getStopMap()[target.y][target.x];
+            if (FUN_004d1e50_buildPathOriginal(unit, target.x, target.y, 0) != 0) {
+                unit.pathLength = pathLength;
+                return false;
+            }
+            unit.moveOriginFacing = unit.facing;
+            unit.moveOrigin = unit.position;
+            unit.pathStep = 1;
+
+            VisualWalk walk;
+            std::memcpy(walk.unit.data(), &unit, sizeof(DisaMapUnit));
+            reinterpret_cast<DisaMapUnit*>(walk.unit.data())->showHpBar = 0;
+            getWalks()[index] = walk;
+
+            //place unit at end
+            unit.position.x = float(target.x * 12 + 6);
+            unit.position.z = float(target.y * 12 + 6);
+            unit.position.y = FUN_004d2be0_getGroundHeight(nullptr, 0, unit.position.x, unit.position.z);
+            unit.restPosition.y = unit.position.y;
+            unit.velocity = glm::vec3(0.f);
+            unit.moveFramesLeft = 0;
+            unit.pose = 0;
+            if (FP::getData<int32_t>(0x005d9cd8) == 0 && unit.moveState == 0) unit.moveState = 1;
+
+            FUN_0046aab0_playSound(1);
+            FUN_004d2ad0_updateGeoPanel(unit);
+            FUN_004da320_refreshUnits();
+            FUN_00444810_updateFog(0);
+            return true;
+        }
+
+        /// Leaves state 0x14 for the command menu of the selected unit
+        void openCommandMenu() {
+            FUN_00446d50_popBattleState(0);
+            if (DAT_00889618_battleState() == 0x0a) return; //came from the menu, it is still there
+            DAT_008895ec_menuCursor() = 0;
+            FUN_00446d10_pushBattleState(0x0a, 0);
+        }
+
+        /// The active unit on the tile that is not held, -1 none
+        int findUnitAt(glm::ivec2 tile) {
+            for (int i = 0; i < DisaMapUnit::count; ++i) {
+                const DisaMapUnit& unit = *DisaMapUnit::get(i);
+                if (unit.isActive && unit.heldByIndex < 0 && glm::ivec2(toTile(unit.position.x), toTile(unit.position.z)) == tile) return i;
+            }
+            return -1;
+        }
+
+    } //namespace ImprovedMouse
+    //END custom code
+
     // ---- The frame ----
 
     /// Locals of FUN_0045c0f0 that live through the whole frame, the stack offsets are the ones after the prologue.
@@ -1082,7 +1364,7 @@ namespace {
 
             if (mouse.x != lastMouseX || mouse.y != lastMouseY) {
                 //BEGIN custom code
-                if (DisaCustomModificationsManager::get()->isImprovedMouseControl()) {
+                if (ImprovedMouse::isEnabled()) {
                     glm::vec3 intersect;
                     PG_Ray ray = camera.getRayFromCursor();
                     static float dragAnchorY;
@@ -1273,6 +1555,9 @@ namespace {
         else {
             isUndone = FUN_004485d0_undoUnit(DAT_008895ac_hoveredUnit(), 0) != 0;
         }
+        //BEGIN custom code
+        if (isUndone) ImprovedMouse::getWalks().erase(DAT_008895ac_hoveredUnit()); //the sprite is back at the origin too
+        //END custom code
         FUN_0046aab0_playSound(isUndone ? 7 : 4);
         FUN_00444810_updateFog(0);
         FUN_00444810_updateFog(1);
@@ -1301,6 +1586,14 @@ namespace {
             if (unit.heldByIndex < 0 && FUN_0046f640_getCondition(unit.character) != 2) {
                 FUN_0046aab0_playSound(1);
                 DAT_008895b0_selectedUnit() = DAT_008895ac_hoveredUnit();
+                //BEGIN custom code
+                if (ImprovedMouse::isEnabled() && ImprovedMouse::canStartMove(unit)) {
+                    //what Move of the command menu does, the menu opens once the unit moved
+                    FUN_004d21f0_buildMoveRangeOriginal(unit, 0, 0);
+                    FUN_00446d10_pushBattleState(0x14, 0);
+                }
+                else
+                //END custom code
                 if (unit.alliance == 0) {
                     DAT_008895ec_menuCursor() = 0;
                     FUN_00446d10_pushBattleState(0x0a, 0); //command menu
@@ -1567,17 +1860,53 @@ namespace {
         FUN_004a1eb0_drawMoveRange(movement);
         const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
         const glm::ivec2 target(toTile(cursor.position.x), toTile(cursor.position.z));
-        //a unit that acted cannot go back into the base panel
-        const bool isPanelBlocked = FP::getData<uint8_t>(0x0065db43) != 0 && target == getBasePanelTile() && unit.actionState != 0;
-        //no range check, the cursor never leaves the map
-        const int distance = (&FP::getData<uint8_t>(0x00664f10))[target.y * 64 + target.x];
 
-        if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
-            DAT_0067726b_isInputConsumed() = 1;
-            keys.clear();
-            stopCursor(cursor);
-            if (distance > movement || target == unitTile || isPanelBlocked) FUN_0046aab0_playSound(4);
-            else moveToCursor(unit, target, distance);
+        //BEGIN custom code
+        if (ImprovedMouse::isEnabled()) {
+            ImprovedMouse::requestPath(unit, target);
+            if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+                DAT_0067726b_isInputConsumed() = 1;
+                keys.clear();
+                stopCursor(cursor);
+                
+
+                if (auto unitIndex = ImprovedMouse::findUnitAt(target); unitIndex >= 0) {
+                    if (unitIndex == DAT_008895b0_selectedUnit()) {//on itself?
+                        FUN_0046aab0_playSound(1);
+                        ImprovedMouse::openCommandMenu();
+                    }
+                    else {
+                        FUN_0046aab0_playSound(4);
+                    }
+                }
+                else if (!ImprovedMouse::isDestination(unit, target)) {
+                    FUN_0046aab0_playSound(4);
+                }
+                else if (ImprovedMouse::needsOriginalWalk(target)) {
+                    moveToCursor(unit, target, (&FP::getData<uint8_t>(0x00664f10))[target.y * 64 + target.x]);
+                }
+                else if (ImprovedMouse::moveAtOnce(unit, DAT_008895b0_selectedUnit(), target)) {
+                    ImprovedMouse::openCommandMenu();
+                }
+                else {
+                    FUN_0046aab0_playSound(4);
+                }
+            }
+            return;
+        } else {
+        //END custom code
+            if (keys.isKeyPressed(DisaKeyStates::Select) || (FUN_0050f7c0_isLeftMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
+                //a unit that acted cannot go back into the base panel
+                const bool isPanelBlocked = FP::getData<uint8_t>(0x0065db43) != 0 && target == getBasePanelTile() && unit.actionState != 0;
+                //no range check, the cursor never leaves the map
+                const int distance = (&FP::getData<uint8_t>(0x00664f10))[target.y * 64 + target.x];
+
+                DAT_0067726b_isInputConsumed() = 1;
+                keys.clear();
+                stopCursor(cursor);
+                if (distance > movement || target == unitTile || isPanelBlocked) FUN_0046aab0_playSound(4);
+                else moveToCursor(unit, target, distance);
+            }
         }
 
         if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48))) {
@@ -1704,7 +2033,7 @@ namespace {
             FUN_00446d50_popBattleState(0);
             //BEGIN custom code
             //to not move cursor 
-            if (DisaCustomModificationsManager::get()->isImprovedMouseControl()) {
+            if (ImprovedMouse::isEnabled()) {
                 Custom::isBlockConsumeInput = true;
             } else {
                 //END custom code
@@ -3041,7 +3370,20 @@ namespace {
 
     /// State 0x32, the base panel deployment list. Part of FUN_0045c0f0 at 0x00463D49.
     void LAB_00463d49_updateDeployList() {
+        //BEGIN custom code
+        const int32_t stateBefore = DAT_00889618_battleState();
+        //END custom code
         FP::callStdFastFarA<void>(0x00452990, 0); //FUN_00452990(layer)
+        //BEGIN custom code
+        //a unit that just came out of the base panel goes into its move like a selected one
+        if (ImprovedMouse::isEnabled() && stateBefore == 0x32 && DAT_00889618_battleState() == 0x0a) {
+            DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+            if (ImprovedMouse::canStartMove(unit)) {
+                FUN_004d21f0_buildMoveRangeOriginal(unit, 0, 0);
+                DAT_00889618_battleState() = 0x14;
+            }
+        }
+        //END custom code
     }
 
     /// State 0x64, the battle menu. Part of FUN_0045c0f0 at 0x00463D59.
@@ -4552,13 +4894,7 @@ namespace {
         FUN_004da320_refreshUnits();
     }
 
-    /**
-    * @brief Updates, counts and draws one unit that is not placed by script. The body of the loop at 0x00465462.
-    * @param unitAlpha The alpha of the unit fade, kept from the last fading unit when DAT_00889614 is 0.
-    * @param fogRefresh Gets bit 0 or 1 when a unit of alliance 0 or 1 was removed.
-    */
-    void drawUnit(int index, int& unitAlpha, uint32_t& fogRefresh) {
-        DisaMapUnit& unit = *DisaMapUnit::get(index);
+    void drawUnit(DisaMapUnit& unit, int& unitAlpha, uint32_t& fogRefresh) {
         DisaCameraInfo& camera = DAT_00730980_camera();
         if (unit.modelType != 0 && DAT_00889618_battleState() != 0x50) FUN_004d2e40_aimModel(unit);
         //indexed by alliance without a range check, like the original
@@ -4587,7 +4923,7 @@ namespace {
 
         //DAT_005d7c90, per unit, nonzero shows it through the fog
         const bool isSeen = unit.alliance == 0 || FUN_00444990_getFog(0, unit.position.x, unit.position.z) != 0xff
-            || (&FP::getData<uint8_t>(0x005d7c90))[index] != 0;
+            || (&FP::getData<uint8_t>(0x005d7c90))[unit.index] != 0;
         if (!isSeen) {
             if (unit.drawMode != 2) drawUnitSprite(unit, 1);
             return;
@@ -4601,16 +4937,57 @@ namespace {
     }
 
     /**
+    * @brief Updates, counts and draws one unit that is not placed by script. The body of the loop at 0x00465462.
+    * @param unitAlpha The alpha of the unit fade, kept from the last fading unit when DAT_00889614 is 0.
+    * @param fogRefresh Gets bit 0 or 1 when a unit of alliance 0 or 1 was removed.
+    */
+    void drawUnit(int index, int& unitAlpha, uint32_t& fogRefresh) {
+        DisaMapUnit& unit = *DisaMapUnit::get(index);
+        assert(unit.index == index);
+        drawUnit(unit, unitAlpha, fogRefresh);
+    }
+
+    /**
     * @brief Updates and draws the units, counts the ones that can still fight and rebuilds the fog after a removal.
     * Part of FUN_0045c0f0 at 0x00465434.
     */
     void LAB_00465434_drawUnits(int& unitAlpha) {
         FUN_004a2280_submitTileMarks();
+        //BEGIN custom code
+        ImprovedMouse::submitPath();
+        //END custom code
         DAT_006b757c_aliveCounts() = { 0, 0, 0, 0 };
         FP::getData<int32_t>(0x006b7910) = FP::getData<int32_t>(0x008ad894);
         uint32_t fogRefresh = 0;
         for (int i = 0; i < DisaMapUnit::count; ++i) {
-            const DisaMapUnit& unit = *DisaMapUnit::get(i);
+            DisaMapUnit& unit = *DisaMapUnit::get(i);
+            //BEGIN custom code
+            const bool isReplaced = [&] ->bool {
+                auto& walks = ImprovedMouse::getWalks();
+                auto findIt = walks.find(unit.index);
+                if (findIt == walks.end()) return false;
+
+                if (!unit.isActive || unit.isRawPositioned) {
+                    walks.erase(findIt);
+                    return false;
+                }
+
+                //the unit already stands at the end, its sprite walks there with the fields of the walk
+                findIt->second.swap(unit);
+                const bool isArrived = FUN_004475c0_updateWalk(unit.index) == 1 && unit.moveFramesLeft == 0;
+                drawUnit(unit.index, unitAlpha, fogRefresh);
+                const int16_t facing = unit.facing;
+                findIt->second.swap(unit);
+                if (isArrived) {
+                    unit.facing = facing;
+                    unit.facingTarget = facing;
+                    walks.erase(findIt);
+                }
+                return true;
+            }();
+            if (isReplaced) continue;
+            //END custom code
+
             if (unit.isActive && !unit.isRawPositioned) drawUnit(i, unitAlpha, fogRefresh);
         }
         FUN_004e0140_submitUnitQueue();
