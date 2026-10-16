@@ -1110,28 +1110,6 @@ namespace {
             return tile != unitTile && getStopMap()[tile.y][tile.x] <= unit.movement && !isPanelBlocked;
         }
 
-        /// The destination closest to the tile, the tile itself when it is one
-        std::optional<glm::ivec2> nearestDestination(const DisaMapUnit& unit, glm::ivec2 tile) {
-            std::optional<glm::ivec2> nearest;
-            int nearestSquared = std::numeric_limits<int>::max();
-            int nearestDistance = std::numeric_limits<int>::max();
-            for (int z = 0; z < 64; ++z) {
-                for (int x = 0; x < 64; ++x) {
-                    const glm::ivec2 candidate(x, z);
-                    if (!isDestination(unit, candidate)) continue;
-                    const glm::ivec2 delta = candidate - tile;
-                    const int squared = delta.x * delta.x + delta.y * delta.y;
-                    const int distance = getStopMap()[z][x];
-                    if (squared < nearestSquared || (squared == nearestSquared && distance < nearestDistance)) {
-                        nearest = candidate;
-                        nearestSquared = squared;
-                        nearestDistance = distance;
-                    }
-                }
-            }
-            return nearest;
-        }
-
         /// The path FUN_004d1e50 would build, start and target included, without touching the unit
         std::vector<glm::ivec2> tracePath(const DisaMapUnit& unit, glm::ivec2 target) {
             const int distance = getDistanceMap()[target.y][target.x];
@@ -1205,11 +1183,12 @@ namespace {
             return path;
         }
 
-        /// Asks for the way the unit would walk to the destination closest to the cursor to be drawn this frame
+        /// Asks for the way the unit would walk to the cursor to be drawn this frame
         void requestPath(const DisaMapUnit& unit, glm::ivec2 cursorTile) {
             getPendingPath().clear();
             if (isTeleporting(unit)) return;
-            if (const std::optional<glm::ivec2> target = nearestDestination(unit, cursorTile)) getPendingPath() = tracePath(unit, *target);
+            //nothing on the unit itself, outside the range or on a taken tile, the click would do nothing there either
+            if (isDestination(unit, cursorTile)) getPendingPath() = tracePath(unit, cursorTile);
         }
 
         /**
@@ -1350,9 +1329,18 @@ namespace {
         const DisaSettings* settings = DAT_005d7c40_settings();
         const uint8_t* window = FP::getData<uint8_t*>(0x005d7c70);
         constexpr std::array<int32_t, 7> mouseStates = { 0, 0x3e, 0x1e, 0x82, 0x83, 0x14, 0x16 };
-        const bool isMousePan = settings->isMouseActive && window[0x305438] == 0 && window[0x30543a] != 0
+        bool isMousePan = settings->isMouseActive && window[0x305438] == 0 && window[0x30543a] != 0
             && FP::getData<uint8_t>(0x00778dca) != 0 && FP::getData<int32_t>(0x0071fd34) == 0 && DAT_0067726a_isTurningUnit() == 0
             && std::ranges::find(mouseStates, state) != mouseStates.end();
+        //BEGIN custom code
+        //the held middle button pans too, 0x40000000 is its bit in the held buttons like FUN_0050fad0 reads its click
+        if (ImprovedMouse::isEnabled() && !isMousePan) {
+            const bool isMiddleHeld = (FP::getData<uint32_t>(0x00701c50) & 0x40000000) != 0;
+            isMousePan = settings->isMouseActive && window[0x305438] == 0 && window[0x30543a] != 0 && isMiddleHeld
+                && FP::getData<int32_t>(0x0071fd34) == 0 && DAT_0067726a_isTurningUnit() == 0
+                && std::ranges::find(mouseStates, state) != mouseStates.end();
+        }
+        //END custom code
 
         float& dragAnchorX = FP::getData<float>(0x00701f54);
         float& dragAnchorZ = FP::getData<float>(0x00701f5c);
