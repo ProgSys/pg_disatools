@@ -1294,10 +1294,8 @@ namespace {
             return -1;
         }
 
-    } //namespace ImprovedMouse
-    //END custom code
 
-    //BEGIN custom code
+
     // ---- Radial command menu ----
 
     /**
@@ -1306,7 +1304,7 @@ namespace {
     * pushes the state of it, so the rules stay the ones of the game. Info shows the original menu instead. The menu is
     * built once from script/disa/battleRadialMenuStyle.json and kept, after that it is only opened and closed.
     */
-    namespace RadialCommandMenu {
+    namespace CommandMenu {
 
         /// The entry of FUN_004502d0 a button stands for, by the name of the button
         std::optional<int> getMenuEntry(std::string_view name) {
@@ -1432,7 +1430,9 @@ namespace {
             state.isShowingOriginal = false;
         }
 
-    } //namespace RadialCommandMenu
+    } //namespace CommandMenu
+
+   } //namespace ImprovedMouse
     //END custom code
 
 
@@ -3427,12 +3427,273 @@ namespace {
         FUN_00456610_drawItemTransfer(unit, target, tool, rows, listCursor);
     }
 
+    // ---- The command menu, FUN_004502d0 ----
+
+    /// Original function: FUN_004da350, the number of specials the unit can use, passed on to the menu drawing.
+    int FUN_004da350_countSpecials(DisaMapUnit& unit) { return FP::callFastFarA<int>(0x004da350, &unit, 0); }
+    /// Original function: FUN_004d50c0, refreshes the grids of the range search, the height grid among them.
+    void FUN_004d50c0_refreshRangeGrids() { FP::callFarA<void>(0x004d50c0); }
+    /// Original function: FUN_004500b0, moves DAT_008895ec to the entry of the command menu under the mouse.
+    void FUN_004500b0_hoverCommandMenu() { FP::callFarA<void>(0x004500b0); }
+    /// Original function: FUN_0050f590, the mouse is inside the box.
+    bool FUN_0050f590_isMouseInBox(int left, int top, int right, int bottom) {
+        return FP::callFastFarA<bool>(0x0050f590, left, top, right, bottom, 0);
+    }
+    /// Original function: FUN_0044f1a0, draws the command menu and the status of the unit.
+    void FUN_0044f1a0_drawCommandMenu(DisaMapUnit& unit, int specialCount, bool isOnBasePanel) {
+        FP::callFastFarA<void>(0x0044f1a0, &unit, specialCount, static_cast<int>(isOnBasePanel));
+    }
+
+    /// DAT_005d7cd0, versus mode: the fog of both layers, [layer][x][z], -1 hidden.
+    int8_t getVersusFog(int8_t layer, glm::ivec2 tile) {
+        return (&FP::getData<int8_t>(0x005d7cd0))[(layer * 0x40 + static_cast<int8_t>(tile.x)) * 0x40 + static_cast<int8_t>(tile.y)];
+    }
+
+    /// The character bytes 0x305 to 0x309 count the turns of a status: poison, sleep, paralyze, forget and deprave.
+    uint8_t getStatusTurns(const DisaPartyCharacterInfo* character, int status) {
+        return reinterpret_cast<const uint8_t*>(character)[0x305 + status];
+    }
+    bool isAsleep(const DisaPartyCharacterInfo* character) { return getStatusTurns(character, 1) != 0; }
+    bool isParalyzed(const DisaPartyCharacterInfo* character) { return getStatusTurns(character, 2) != 0; }
+    bool isForgetting(const DisaPartyCharacterInfo* character) { return getStatusTurns(character, 3) != 0; }
+
+    /// The rise from the ground of the unit to the ground of the other in game units, truncated. Positive goes down.
+    int getGroundDifference(const DisaMapUnit& other, const DisaMapUnit& unit) {
+        const double otherGround = FUN_004d2be0_getGroundHeight(nullptr, 0, other.position.x, other.position.z);
+        const double unitGround = FUN_004d2be0_getGroundHeight(nullptr, 0, unit.position.x, unit.position.z);
+        return static_cast<int>(otherGround - unitGround);
+    }
+
+    /**
+    * @brief The units the unit can attack, other alliances first, into DAT_008899a0 and DAT_00889a20.
+    * @details In reach of the weapon, counted in steps, and within the height window of the weapon range in the tables
+    * at 0x00533678 (lowest) and 0x00533788 (highest). Characters 3030 and 3190 only reach along a line.
+    */
+    void findAttackTargets(DisaMapUnit& unit, glm::ivec2 unitTile, int8_t layer) {
+        const int range = reinterpret_cast<const uint8_t*>(unit.character)[0x688];
+        const int8_t lowest = (&FP::getData<int8_t>(0x00533678))[range];
+        const int8_t highest = (&FP::getData<int8_t>(0x00533788))[range];
+        const bool isLineOnly = unit.character->characterId == 0xbd6 || unit.character->characterId == 0xc76;
+        const bool isVersusFog = (layer == 0 || layer == 1) && DAT_0065db3a_gameMode() == 5 && FP::getData<uint8_t>(0x006e57b3) != 0;
+
+        int16_t& count = DAT_00889a20_attackTargetCount();
+        count = 0;
+        for (const bool isSameAlliance : { false, true }) {
+            for (int i = 0; i < DisaMapUnit::count; ++i) {
+                const DisaMapUnit& other = *DisaMapUnit::get(i);
+                if (!other.isActive || &other == &unit || other.heldByIndex >= 0) continue;
+                const glm::ivec2 otherTile(toTile(other.position.x), toTile(other.position.z));
+                if (isVersusFog && getVersusFog(layer, otherTile) == -1) continue;
+
+                const int difference = getGroundDifference(other, unit);
+                if (difference > highest || difference < lowest) continue;
+                const glm::ivec2 distance = glm::abs(unitTile - otherTile);
+                if (distance.x + distance.y > range) continue;
+                if (isLineOnly && unitTile.x != otherTile.x && unitTile.y != otherTile.y) continue;
+                if ((other.alliance == unit.alliance) != isSameAlliance) continue;
+                DAT_008899a0_attackTargets()[count++] = static_cast<int16_t>(i);
+            }
+        }
+    }
+
+    /**
+    * @brief The units next to or under the unit it can lift, other alliances first, into DAT_00889920 and DAT_0088990c.
+    * @details Alive, not held, no 3D model of type 2 or 3, not standing on a geo panel that forbids it or on the Item
+    * World gate, and not the target of a queued action. The height window is 8 per throw range up and 5 down.
+    */
+    void findLiftTargets(DisaMapUnit& unit, glm::ivec2 unitTile) {
+        const glm::ivec2 gateTile(toTile(FP::getData<float>(0x0065dae0)), toTile(FP::getData<float>(0x0065dae4)));
+        const bool isGateActive = FP::getData<uint8_t>(0x0065db41) != 0;
+        const auto isActionTarget = [](int index) {
+            for (int action = 0; action < DAT_005d9cd0_actionCount(); ++action) {
+                if (*reinterpret_cast<const int16_t*>(DAT_005db920_getAction(action) + 0x84) == index) return true;
+            }
+            return false;
+        };
+
+        int16_t& count = DAT_0088990c_liftTargetCount();
+        count = 0;
+        for (const bool isSameAlliance : { false, true }) {
+            for (int i = 0; i < DisaMapUnit::count; ++i) {
+                const DisaMapUnit& other = *DisaMapUnit::get(i);
+                const bool isAlive = !other.character || other.character->currentHP > 0;
+                if (!other.isActive || !isAlive || &other == &unit || other.heldByIndex >= 0 || other.modelType >= 2) continue;
+                if ((&FP::getData<uint8_t>(0x006640c0))[other.geoPanelColor * 0x20] != 0) continue;
+                const glm::ivec2 otherTile(toTile(other.position.x), toTile(other.position.z));
+                if (isGateActive && otherTile == gateTile) continue;
+
+                const int difference = getGroundDifference(other, unit);
+                if (difference < unit.throwRange * -8 || unit.throwRange * 5 < difference || isActionTarget(i)) continue;
+                const glm::ivec2 distance = glm::abs(unitTile - otherTile);
+                if (distance.x + distance.y >= 2) continue;
+                if ((other.alliance == unit.alliance) != isSameAlliance) continue;
+                DAT_00889920_liftTargets()[count++] = static_cast<int16_t>(i);
+            }
+        }
+    }
+
+    /**
+    * @brief Runs the entry DAT_008895ec of the command menu once it is chosen.
+    * @returns False when the unit may not do it, the caller plays the refusal.
+    */
+    bool runCommandMenuEntry(DisaMapUnit& unit, int specialCount, bool isOnBasePanel, int8_t layer) {
+        DisaPartyCharacterInfo* character = unit.character;
+        const auto playConfirm = [layer]() { if (layer != 1) FUN_0046aab0_playSound(1); };
+        const bool isFree = unit.holdingIndex < 0 && !isAsleep(character);
+
+        switch (DAT_008895ec_menuCursor()) {
+        case 0: //Move
+            if (unit.moveState != 0 || unit.actionState == 1 || !isFree || isParalyzed(character)) return false;
+            playConfirm();
+            unit.moveOrigin = unit.position;
+            unit.moveOriginFacing = unit.facingTarget;
+            FUN_004d50c0_refreshRangeGrids();
+            FUN_004d21f0_buildMoveRangeOriginal(unit, 0, layer);
+            FUN_00446d10_pushBattleState(0x14, layer);
+            return true;
+        case 1: //Attack
+            if (unit.actionState != 0 || DAT_00889a20_attackTargetCount() <= 0 || !isFree) return false;
+            DAT_00889520_listScroll() = 0;
+            DAT_0088951c_listCursor() = 0;
+            playConfirm();
+            FUN_004d21f0_buildMoveRangeOriginal(unit, 0, layer);
+            FUN_00446d10_pushBattleState(0x1e, layer);
+            FP::getData<int32_t>(0x00889584) = 0;
+            FP::getData<int32_t>(0x00889588) = 0;
+            return true;
+        case 2: { //Special, a geo panel can forbid it
+            const bool isGeoBlocked = (&FP::getData<uint8_t>(0x006640ba))[unit.geoPanelColor * 0x20] != 0;
+            if (unit.actionState != 0 || specialCount <= 0 || !isFree || isGeoBlocked || isForgetting(character)) return false;
+            playConfirm();
+            FP::getData<int32_t>(0x00889528) = 0;
+            FP::getData<int32_t>(0x00889524) = 0;
+            FUN_004d21f0_buildMoveRangeOriginal(unit, 0, layer);
+            //the unit's own tile counts as reached, so a special can target it
+            const glm::ivec2 tile(toTile(unit.position.x), toTile(unit.position.z));
+            (&FP::getData<uint8_t>(0x00664f10))[(layer * 0x40 + tile.y) * 0x40 + tile.x] = 0;
+            FP::getData<int32_t>(0x008896a8) = static_cast<int32_t>(unit.position.x);
+            FP::getData<int32_t>(0x008896ac) = static_cast<int32_t>(unit.position.z);
+            FUN_00446d10_pushBattleState(0x3c, layer);
+            return true;
+        }
+        case 3: //Lift, or Throw while holding a unit
+            //bit 4 of DAT_006194d9 and the first weapon mastery base stat both turn lifting off
+            if ((FP::getData<uint8_t>(0x006194d9) & 4) != 0 || isOnBasePanel || character->weaponMasteryBaseStats[0] == 0) return false;
+            if (unit.holdingIndex < 0) {
+                if (DAT_0088990c_liftTargetCount() <= 0 || unit.actionState != 0 || isAsleep(character)
+                    || FUN_00444e10_hasVersusRule(0x0f, unit.alliance == 0)) return false;
+                DAT_00889520_listScroll() = 0;
+                DAT_0088951c_listCursor() = 0;
+                playConfirm();
+                FUN_00446d10_pushBattleState(0x82, layer);
+                return true;
+            }
+            if (isAsleep(character)) return false;
+            playConfirm();
+            (layer == 1 ? DAT_00778a10_cursorB() : DAT_00730ba0_cursor()).FUN_0046cab0_translateTo(unit.position.x, unit.position.y, unit.position.z, 10.f);
+            FUN_00446d10_pushBattleState(0x83, layer);
+            return true;
+        case 4: //Defend, ends the turn of the unit
+            if (unit.actionState != 0 || !isFree) return false;
+            playConfirm();
+            unit.counterCount += 2;
+            unit.actionState = 1;
+            unit.isDefending = true;
+            DAT_008896a0_battleStateDepths()[layer] = 0;
+            DAT_00889618_battleStates()[layer] = 0;
+            return true;
+        case 5: { //Item, versus mode has a list of its own
+            const bool isVersus = DAT_0065db3a_gameMode() == 5;
+            if (!isFree || (isVersus && FP::getData<uint8_t>(0x006e57a8) == 0)) return false;
+            playConfirm();
+            FP::getData<int32_t>(0x00889528) = 0;
+            FP::getData<int32_t>(0x00889524) = 0;
+            FP::getData<int32_t>(0x008895a8) = 0;
+            FUN_00446d10_pushBattleState(isVersus ? 0x4c : 0x46, layer);
+            return true;
+        }
+        case 6: //Equip
+            if (DAT_0065db3a_gameMode() == 5 || unit.actionState != 0 || isAsleep(character)) return false;
+            playConfirm();
+            FUN_00446d10_pushBattleState(0x12, layer);
+            return true;
+        case 7: //Status
+            playConfirm();
+            FUN_00446d10_pushBattleState(0x13, layer);
+            return true;
+        default:
+            return true; //nothing to refuse
+        }
+    }
+
+    /**
+    * @brief State 0x0A, the command menu of the selected unit: Move, Attack, Special, Lift, Defend, Item, Equip and Status.
+    * Original function: FUN_004502d0, __fastcall with the layer in ecx.
+    * @details Finds the attack and lift targets first, so the entries can tell whether there is something to act on.
+    * Up and down move through the 8 entries and wrap, Cancel goes back, Select or a click on the menu runs the entry.
+    * Layer 1 is the second player of versus mode, it plays no sounds and draws no menu.
+    */
+    void FUN_004502d0_updateCommandMenu(int8_t layer) {
+        DisaMapUnit& unit = *DisaMapUnit::get(DAT_008895b0_selectedUnit());
+        const int specialCount = FUN_004da350_countSpecials(unit);
+        const glm::ivec2 unitTile(toTile(unit.position.x), toTile(unit.position.z));
+
+        //the base panel of the layer, from there a unit can not lift
+        bool isOnBasePanel = false;
+        if (layer == 1) {
+            const glm::vec2 panel = FP::getData<glm::vec2>(0x006e57a0);
+            isOnBasePanel = FP::getData<uint8_t>(0x006d4abe) != 0 && glm::ivec2(toTile(panel.x), toTile(panel.y)) == unitTile;
+        }
+        else {
+            isOnBasePanel = FP::getData<uint8_t>(0x0065db43) != 0 && getBasePanelTile() == unitTile;
+        }
+
+        findAttackTargets(unit, unitTile, layer);
+        findLiftTargets(unit, unitTile);
+
+        const bool isScripted = (FP::getData<uint8_t>(0x006194d9) & 1) != 0;
+        if (!isScripted) FUN_004500b0_hoverCommandMenu();
+
+        DisaKeyStates& keys = DAT_00778d98_keyStates();
+        int32_t& menuCursor = DAT_008895ec_menuCursor();
+        const int32_t menuCursorBefore = menuCursor;
+        if (keys.states[DisaKeyStates::Up] != 0) --menuCursor;
+        if (keys.states[DisaKeyStates::Down] != 0) ++menuCursor;
+        if (menuCursor < 0) menuCursor = 7;
+        else if (menuCursor > 7) menuCursor = 0;
+        //the original passes the entry before as fourth argument, FUN_0046aab0_playSound passes the id instead
+        if (menuCursorBefore != menuCursor) FUN_0046aab0_playSound(3);
+
+        //Cancel does not end the frame, the cleared keys and clicks just leave nothing to choose
+        if (keys.isKeyPressed(DisaKeyStates::Cancel) || (FUN_0050f950_isRightMouseClicked() && !isScripted)) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            if (layer != 1) FUN_0046aab0_playSound(7);
+            FUN_00446d50_popBattleState(layer);
+        }
+
+        const bool isMenuClicked = (FUN_0050f590_isMouseInBox(0x167, 0xc, 0x1c0, 0x94) && FUN_0050f7c0_isLeftMouseClicked()) || FUN_0050f790_isMouseTap();
+        if (keys.isKeyPressed(DisaKeyStates::Select) || (isMenuClicked && !isScripted)) {
+            FUN_0050fe60_clearMouseClicks();
+            keys.clear();
+            if (!runCommandMenuEntry(unit, specialCount, isOnBasePanel, layer)) {
+                if (layer == 1) {
+                    keys.clear();
+                    return;
+                }
+                FUN_0046aab0_playSound(4);
+            }
+        }
+
+        if (layer != 1) FUN_0044f1a0_drawCommandMenu(unit, specialCount, isOnBasePanel);
+    }
+
     /// State 0x0A, the command menu. Part of FUN_0045c0f0 at 0x0045D06E.
     void LAB_0045d06e_updateCommandMenu() {
         //BEGIN custom code
-        if (ImprovedMouse::isEnabled() && RadialCommandMenu::update()) return;
+        if (ImprovedMouse::isEnabled() && ImprovedMouse::CommandMenu::update()) return;
         //END custom code
-        FP::callStdFastFarA<void>(0x004502d0, 0); //FUN_004502d0(layer)
+        FUN_004502d0_updateCommandMenu(0);
     }
 
     /// State 0x28, the battle start. Part of FUN_0045c0f0 at 0x0045E546.
@@ -5435,7 +5696,7 @@ void FUN_0045c0f0_updateBattleMap() {
     LAB_0045c0f0_updateCameraAndHover(frame);
     LAB_0045c6e6_updateBattleState(frame);
     //BEGIN custom code
-    RadialCommandMenu::afterBattleState();
+    ImprovedMouse::CommandMenu::afterBattleState();
     //END custom code
     LAB_00465035_drawBattleMap(frame);
 }
