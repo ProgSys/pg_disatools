@@ -2,6 +2,8 @@
 #include <Managers/DisaCustomCampaignManager.h>
 #include <Managers/DisaCustomModificationsManager.h>
 #include <Managers/DisaCustomRenderManager.h>
+#include <PGManagers/DisaCustomApplication.h>
+#include <PGManagers/DisaCustomWindow.h>
 #include <Scene/PG_ModelNode.h>
 #include <Managers/DisaCustomTranslationManager.h>
 #include <DisaCharacterFunctions.h>
@@ -121,13 +123,8 @@ PG_Ray DisaCameraInfo::getRay(glm::ivec2 cursor, glm::ivec2 windowSize) const {
 }
 
 PG_Ray DisaCameraInfo::getRayFromCursor() const {
-    POINT cursor;
-    GetCursorPos(&cursor);
-    auto h = FP::getData<HWND>(FP::getData<uint32_t>(0x005bae70) + 8); //FUN_00439ad0
-    ScreenToClient(h, &cursor);
-    RECT windowRect;
-    GetWindowRect(h, &windowRect);
-    return getRay({ cursor.x, cursor.y }, { windowRect.right - windowRect.left, windowRect.bottom - windowRect.top });
+    const auto* app = DisaCustomApplication::get();
+    return getRay(app->getMousePosition(), app->getWindow()->getSize());
 }
 
 void FUN_LoadDungeonsCategories() {
@@ -1666,6 +1663,7 @@ void __cdecl FUN_00424ae0_FrameBegin() {
     }
 
     DisaCustomRenderManager::get()->onFrameBegin();
+    DisaCustomApplication::get()->processFrame();
     FP::callFarA(0x00424ae0); //ages the palette slots of every texture, still has to happen
 }
 

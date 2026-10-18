@@ -15,13 +15,13 @@
 #include <Resources/PG_Texture.h>
 #include <Scene/PG_ActorNode.h>
 
-class PG_Scene;
 
 /**
 * @brief Draws pg_engine content into the game.
-* @details The content lives as nodes in a PG_Scene of its own, so they animate and bind their
-* materials like in any pg_engine scene. The game's render queue still decides when and in which pass a
-* node is drawn: submit queues it there, and FUN_00426770 draws it when the queue reaches it.
+* @details The content lives as nodes in the scene of DisaCustomApplication, so they animate and bind their
+* materials like in any pg_engine scene. For world and screen nodes the game's render queue still decides when
+* and in which pass a node is drawn: submit queues it there, and FUN_00426770 draws it when the queue reaches it.
+* Gui nodes are not submitted, DisaCustomSceneRenderer draws them at the end of the UI pass.
 *
 * A node is asked for by an id. It is kept while its id is used, and deleted once the id was used in
 * neither the current frame nor the last.
@@ -34,6 +34,9 @@ public:
 	enum class EGroup {
 		World,  /// perspective, seen through the game camera
 		Screen, /// 2D, in screen space
+		/** 2D gui items in client pixels, children of DisaCustomApplication::getGuiRoot. They are not submitted,
+		 * DisaCustomSceneRenderer draws every visible one at the end of the UI pass. */
+		Gui,
 	};
 
 	bool isEnabled() const{ return m_enabled; }
@@ -41,7 +44,7 @@ public:
 
 	void init();
 	/**
-	* @brief Start of a frame. Deletes the nodes nobody uses any more, ticks the scene and runs the event loop.
+	* @brief Start of a frame. Deletes the nodes nobody uses any more. DisaCustomApplication::processFrame runs the engine afterwards.
 	* Hooked to FUN_00424AE0, which the game calls once at the top of its loop.
 	*/
 	void onFrameBegin();
@@ -74,7 +77,10 @@ public:
 		static_assert(std::is_base_of_v<PG_ActorNode, T>, "T must derive from PG_ActorNode!");
 		m_usedIds.insert(id);
 		PG_ActorNode*& node = m_nodes[id];
-		if (auto* typed = dynamic_cast<T*>(node)) return typed;
+		if (auto* typed = dynamic_cast<T*>(node)) {
+			if (!typed->isVisible()) typed->setVisible(true); //hidden by releaseUnusedNodes when it skipped a frame
+			return typed;
+		}
 
 		if (node) node->deleteLater();
 		auto* created = PG_new<T>("DisaCustomNode", getGroup(group));
@@ -87,7 +93,10 @@ public:
 		static_assert(std::is_base_of_v<PG_ActorNode, T>, "T must derive from PG_ActorNode!");
 		m_usedIds.insert(id);
 		PG_ActorNode*& node = m_nodes[id];
-		if (auto* typed = dynamic_cast<T*>(node)) return typed;
+		if (auto* typed = dynamic_cast<T*>(node)) {
+			if (!typed->isVisible()) typed->setVisible(true); //hidden by releaseUnusedNodes when it skipped a frame
+			return typed;
+		}
 
 		if (node) node->deleteLater();
 		auto* created = PG_new<T>("DisaCustomNode", getGroup(group));
@@ -122,8 +131,8 @@ private:
 	/// Set on every id of createUniqueNodeId and never on one of makeNodeId, so the two can't collide
 	static constexpr NodeId g_uniqueIdBit = NodeId(1) << 63;
 
-	PG_ActorNode* getGroup(EGroup group) const { return group == EGroup::World ? m_worldGroup : m_screenGroup; }
-	/// Deletes the nodes whose id was used in neither this frame nor the last
+	PG_ActorNode* getGroup(EGroup group) const;
+	/// Deletes the nodes whose id was used in neither this frame nor the last, hides the ones only used in the last
 	void releaseUnusedNodes();
 
 	bool m_isInit = false;
@@ -138,10 +147,9 @@ private:
 	PG_Model m_imageScreenModel;
 	std::vector<PG_Any> m_cachedResources;
 
-	/// Lives until the game ends, like this singleton
-	PG_Scene* m_scene = nullptr;
 	PG_ActorNode* m_worldGroup = nullptr;
 	PG_ActorNode* m_screenGroup = nullptr;
+	PG_ActorNode* m_guiGroup = nullptr; /// DisaCustomApplication::getGuiRoot
 
 	std::unordered_map<NodeId, PG_ActorNode*> m_nodes;
 	std::unordered_set<NodeId> m_usedIds;     /// this frame

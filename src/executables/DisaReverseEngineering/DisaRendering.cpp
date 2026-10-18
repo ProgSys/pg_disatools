@@ -12,7 +12,9 @@
 #include <FunctionPatcher.h>
 #include <Renderer/Command/PG_AddCommands.h>
 #include <Scene/PG_ModelNode.h>
-#include <Managers/DisaCustomRenderManager.h> 
+#include <Managers/DisaCustomRenderManager.h>
+#include <PGManagers/DisaCustomApplication.h>
+#include <PGManagers/DisaCustomSceneRenderer.h>
 
 
 constexpr uint16_t g_customModelMarker = 9001;
@@ -466,7 +468,14 @@ void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int visi
     }
     //reset back to normal
     if (isInCustomState) glPopAttrib();
-    
+
+    //BEGIN custom code
+    //the pg gui is drawn over everything else, at the end of the UI pass
+    if (pass == RenderPass_Default && visibleBitMask == 0x3a) {
+        if (auto* app = DisaCustomApplication::get(); app && customDisaRenderManger->isEnabled()) app->getRenderer()->renderStored();
+    }
+    //END custom code
+
     projectionManager->isEnabled = false;
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();

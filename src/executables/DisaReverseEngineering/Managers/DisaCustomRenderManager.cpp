@@ -1,12 +1,11 @@
 #include "DisaCustomRenderManager.h"
 
 #include <GL/glew.h>
-#include <Base/PG_EventLoop.h>
-#include <Base/Events/PG_TickEvent.h>
+#include <PGManagers/DisaCustomApplication.h>
+#include <Scene/Gui/PG_GuiItem.h>
 #include <Scene/PG_Scene.h>
 #include <Resources/PG_Material.h>
-#include <Resources/PG_ResourceManager.h>
-#include <Managers/DisaCustomBaseModManager.h>
+
 #include <DisaRendering.h>
 
 void DisaCustomRenderManager::resetDisaOpenGLStates() {
@@ -65,19 +64,11 @@ void DisaCustomRenderManager::resetDisaOpenGLStates() {
     glPixelTransferi(GL_MAP_STENCIL, 0);
 }
 
-
 void DisaCustomRenderManager::init() {
     if (m_isInit) return;
     m_isInit = true;
-    GLenum err = glewInit();
-    if (err != GLEW_OK) {
-        OUT_ERROR("glewInit failed, something is seriously wrong: " << glewGetErrorString(err));
-        exit(1);
-        return;
-    }
-    PG_EventLoop::start();
-    PG_ResourceManager::create(DisaCustomBaseModManager::get()->exePath().getPath() + "/resources");
-    PG_Context::create();
+    //starts the engine: glew, event loop, resource manager and context
+    auto* app = DisaCustomApplication::create();
     m_cachedResources.push_back(PG_Any::from(PG_Material("M_DisaFontTest")));
 #ifdef _DEBUG
     m_errorTexure.load("nsfw/face.png");
@@ -88,11 +79,18 @@ void DisaCustomRenderManager::init() {
     m_fullImageScreenModel.load("T_DisaFullScreenImg", { { PG_Material("M_DisaFullScreenImg"), PG_Geometry::sfqUVyFlipped()  } });
     m_imageScreenModel.load("T_DisaScreenImg", { { PG_Material("M_DisaScreenImg"), PG_Geometry::sfq()  } });
 
-    m_scene = PG_new<PG_Scene>("DisaCustomScene");
-    m_scene->init();
     //both stay visible, a hidden actor stops the ticks of everything below it
-    m_worldGroup = PG_new<PG_ActorNode>("DisaWorldGroup", m_scene->getRoot());
-    m_screenGroup = PG_new<PG_ActorNode>("DisaScreenGroup", m_scene->getRoot());
+    m_worldGroup = PG_new<PG_ActorNode>("DisaWorldGroup", app->getScene()->getRoot());
+    m_screenGroup = PG_new<PG_ActorNode>("DisaScreenGroup", app->getScene()->getRoot());
+    m_guiGroup = app->getGuiRoot();
+}
+
+PG_ActorNode* DisaCustomRenderManager::getGroup(EGroup group) const {
+    switch (group) {
+    case EGroup::World: return m_worldGroup;
+    case EGroup::Gui: return m_guiGroup;
+    default: return m_screenGroup;
+    }
 }
 
 void DisaCustomRenderManager::onFrameBegin() {
@@ -105,14 +103,6 @@ void DisaCustomRenderManager::onFrameBegin() {
     m_frameNodes.clear();
     m_frameKeyUses.clear();
     releaseUnusedNodes();
-
-    //the scene animates on ticks, which are in milliseconds while the delta timer counts seconds
-    PG_EventLoop::postEvent(PG_new<PG_TickEvent>(m_deltaTimer.getDeltaTime() * 1000.0), m_scene);
-    PG_EventLoop::doRun();
-    {
-        PG_Context::runCreate();
-        PG_Context::destroyGarbage();
-    }
 }
 
 void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int height) {
@@ -124,8 +114,6 @@ void DisaCustomRenderManager::glViewportReplace(int x, int y, int width, int hei
 void DisaCustomRenderManager::glDrawArraysReplace(unsigned int mode, int first, int count) {
     glDrawArrays(mode, first, count);
 }
-
-
 
 DisaCustomRenderManager::NodeId DisaCustomRenderManager::makeNodeId(std::string_view key) {
     return PG_Hash::fnv1a(key) & ~g_uniqueIdBit;
@@ -155,7 +143,12 @@ PG_ActorNode* DisaCustomRenderManager::getFrameNode(int index) const {
 void DisaCustomRenderManager::releaseUnusedNodes() {
     std::erase_if(m_nodes, [this](const auto& pair) {
         const auto& [id, node] = pair;
-        if (m_usedIds.contains(id) || m_usedIdsLast.contains(id)) return false;
+        if (m_usedIds.contains(id)) return false;
+        if (m_usedIdsLast.contains(id)) {
+            //kept one more frame for a draw in flight, but no longer drawn by the gui or clicked
+            if (node) node->setVisible(false);
+            return false;
+        }
         if (node) node->deleteLater();
         return true;
     });

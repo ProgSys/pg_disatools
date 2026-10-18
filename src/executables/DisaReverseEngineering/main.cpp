@@ -5,6 +5,7 @@
 #include <Managers/DisaCustomModificationsManager.h>
 #include <Managers/DisaCustomScriptManager.h>
 #include <Managers/DisaCustomTranslationManager.h>
+#include <PGManagers/DisaCustomApplication.h>
 #include <DisaFunctions.h>
 #include <DisaTalkScriptFunctions.h>
 #include <DisaScriptFunctions.h>
@@ -566,6 +567,15 @@ struct CommandTerminal {
         else if (msg == "resh" || msg == "reloadShader") {
             PG_Shader::reloadAll();
          }
+        else if (msg == "li" || msg == "logInput") {
+            if (auto* app = DisaCustomApplication::get()) {
+                app->setInputLogging(!app->isInputLogging());
+                std::cout << "Log input: " << app->isInputLogging() << std::endl;
+            }
+            else {
+                std::cout << "Error: The game loop hasn't started yet!" << std::endl;
+            }
+        }
         else if (msg == "help") {
             std::cout << "* hook:name (h:name) - Inject custom code. Optional second argument is a target name." << std::endl;
             std::cout << "* unhook:name (u:name) - Remove injected custom code. Optional second argument is a target name." << std::endl;
@@ -581,6 +591,7 @@ struct CommandTerminal {
             std::cout << "* translationBase (tb) - Will create a basic translation csv file. Note, this dosn't contain all strings!" << std::endl;
             std::cout << "* translationRecord (tr) - Will toggle translation string recording. Strings visible on screen will be written to csv file." << std::endl;
             std::cout << "* reloadShader (resh) - Will reload all custom shaders." << std::endl;
+            std::cout << "* logInput (li) - Will toggle printing every input event the pg gui receives." << std::endl;
             std::cout << "* exit (e) - Close injection thread" << std::endl;
         }
         else {
@@ -623,30 +634,24 @@ struct CommandTerminal {
 
 CommandTerminal commandTerminal;
 UINT g_playTestMessage;
-WNDPROC g_originalWndProc = 0;
 
-// Window procedure to handle messages
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-    if (uMsg == g_playTestMessage) {
+/// Native message handler of the game window, @see DisaCustomApplication::addNativeMessageHandler
+static bool handleWindowMessage(unsigned int message, std::uintptr_t wParam, std::intptr_t) {
+    if (message == g_playTestMessage) {
         commandTerminal.sendMsg("p");
-        return 0;
+        return true;
     }
 
-    if (uMsg == WM_KEYDOWN && wParam == VK_F2) {
+    if (message == WM_KEYDOWN && wParam == VK_F2) {
         commandTerminal.toggleConsole();
     }
-    if (uMsg == WM_KEYDOWN && wParam == VK_F3) {
+    if (message == WM_KEYDOWN && wParam == VK_F3) {
         DisaCustomTranslationManager::get()->setEnabled(!DisaCustomTranslationManager::get()->isEnabled());
     }
-    if (uMsg == WM_KEYDOWN && wParam == VK_F5) {
+    if (message == WM_KEYDOWN && wParam == VK_F5) {
         commandTerminal.toggleReloadShaders();
     }
-
-    if (g_originalWndProc) {
-        return CallWindowProc(g_originalWndProc, hwnd, uMsg, wParam, lParam);
-    }
-
-    return DefWindowProc(hwnd, uMsg, wParam, lParam);
+    return false;
 }
 
 static DisaCustomBaseModManager g_baseManger;
@@ -675,15 +680,8 @@ DWORD WINAPI startMain() {
     if (g_playTestMessage == 0) {
         std::cout << "Failed to register message!" << std::endl;
     }
-    else {
-        HWND hwnd = FindWindow(NULL, TEXT("DISGAEA"));
-        if (hwnd == NULL) {
-            std::cerr << "Error: FindWindow failed with error code " << GetLastError() << "!" << std::endl;
-        }
-        else {
-            g_originalWndProc = (WNDPROC)SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)WindowProc);
-        }
-    }
+    //DisaCustomApplication installs the window proc on the first frame and runs the handler from there
+    DisaCustomApplication::addNativeMessageHandler(&handleWindowMessage);
 
     PG_EventLoop::start();
     

@@ -290,7 +290,7 @@ struct DisaCameraInfo {
     /**
     * @brief Will compute the a view ray at current cursor postion
     * Is custom function.
-    * @details Will use windows functions to retrive it.
+    * @details Cursor and client size come from DisaCustomApplication, so it needs the first frame to have run.
     * @return The ray from the near plane into the scene, its direction is normalized.
     */
     PG_Ray getRayFromCursor() const;
