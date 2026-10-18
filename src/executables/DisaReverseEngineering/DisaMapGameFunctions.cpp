@@ -35,6 +35,16 @@
 #include <Scene/PG_ModelNode.h>
 #include <Disa/map/PG_DisaTileViewNode.h>
 #include <Managers/DisaCustomRenderManager.h>
+#include <Scene/Gui/PG_GuiButton.h>
+#include <Scene/Gui/PG_GuiRadialMenu.h>
+#include <Util/Debug/PG_DebugOut.h>
+#include <Util/PG_File.h>
+#include <Resources/PG_ResourceManager.h>
+#include <PGManagers/DisaCustomApplication.h>
+#include <PGManagers/DisaCustomWindow.h>
+#include <PGManagers/DisaRadialMenuStyle.h>
+#include <string_view>
+#include <utility>
 //END custom code
 #include <Util/PG_MathGeometry.h>
 
@@ -1286,6 +1296,145 @@ namespace {
 
     } //namespace ImprovedMouse
     //END custom code
+
+    //BEGIN custom code
+    // ---- Radial command menu ----
+
+    /**
+    * @brief The command menu of a player unit as a PG_GuiRadialMenu, while the improved mouse control is on.
+    * @details A button runs its entry of the original menu FUN_004502d0, which checks whether the unit may do it and
+    * pushes the state of it, so the rules stay the ones of the game. Info shows the original menu instead. The menu is
+    * built once from script/disa/battleRadialMenuStyle.json and kept, after that it is only opened and closed.
+    */
+    namespace RadialCommandMenu {
+
+        /// The entry of FUN_004502d0 a button stands for, by the name of the button
+        std::optional<int> getMenuEntry(std::string_view name) {
+            constexpr std::array<std::pair<std::string_view, int>, 5> entries = { {
+                { "attack", 1 }, { "special", 2 }, { "lift", 3 }, { "defend", 4 }, { "item", 5 },
+            } };
+            const auto findIt = std::ranges::find(entries, name, &std::pair<std::string_view, int>::first);
+            if (findIt == entries.end()) return std::nullopt;
+            return findIt->second;
+        }
+
+        struct State {
+            PG_Lifeline_T<PG_GuiRadialMenu> menu;
+            bool isLoadFailed = false;
+            std::string confirmed; /// the name of the button confirmed since the menu was last updated
+            bool isCancelled = false; /// closed without a button
+            bool isShowingOriginal = false; /// Info was chosen, the original menu runs until the state changes
+        };
+        State& getState() {
+            static State state;
+            return state;
+        }
+
+        /// The menu, built on the first call. nullptr when the style can't be read or the gui doesn't run yet.
+        PG_GuiRadialMenu* getMenu() {
+            State& state = getState();
+            if (PG_GuiRadialMenu* menu = state.menu.get()) return menu;
+            DisaCustomApplication* app = DisaCustomApplication::get();
+            if (state.isLoadFailed || !app) return nullptr;
+
+
+            const std::string path = PG_File(PG_ResourceManager::resourceLocation() + "/script/disa/battleRadialMenuStyle.json").getPath();
+            const std::optional<DisaRadialMenuStyle> style = DisaRadialMenuStyle::load(path);
+            if (!style) {
+                state.isLoadFailed = true;
+                return nullptr;
+            }
+            PG_GuiRadialMenu* menu = style->create("battleCommandMenu", app->getGuiRoot());
+            PG_GuiItem::anchor(menu, PG_Anchor::HorizontalCenter, DisaCustomApplication::get()->getGuiRoot(), PG_Anchor::HorizontalCenter);
+            PG_GuiItem::anchor(menu, PG_Anchor::VerticalCenter, DisaCustomApplication::get()->getGuiRoot(), PG_Anchor::VerticalCenter);
+
+            PG_Object::connect(menu, &PG_GuiRadialMenu::confirmed, menu, [](PG_GuiRadialMenuButton* button) {
+                if (button) getState().confirmed = button->getName();
+            });
+            PG_Object::connect(menu, &PG_GuiRadialMenu::cancel, menu, [](bool isOpen) {
+                 getState().isCancelled = true;
+            });
+            state.menu = menu;
+            return menu;
+        }
+
+        /// Opens the menu around the unit, kept inside the window
+        void open(PG_GuiRadialMenu* menu, const DisaMapUnit& unit) {
+            menu->open();
+        }
+
+        /// Closes the menu without it counting as a cancel
+        void close() {
+            State& state = getState();
+            PG_GuiRadialMenu* menu = state.menu.get();
+            if (!menu || !menu->isOpen()) return;
+            menu->close();
+        }
+
+        /// Runs the original menu as if its entry was chosen with Select, it does the rest
+        void runEntry(int entry) {
+            FUN_0050fe60_clearMouseClicks();
+            DisaKeyStates& keys = DAT_00778d98_keyStates();
+            keys.clear();
+            keys.states[DisaKeyStates::Select] = 2; //pressed
+            DAT_008895ec_menuCursor() = entry;
+            FP::callStdFastFarA<void>(0x004502d0, 0); //FUN_004502d0(layer)
+        }
+
+        /**
+        * @brief State 0x0A with the radial menu: opens it, runs the chosen entry or cancels.
+        * @returns False when the original menu has to run instead, after Info or without a menu.
+        */
+        bool update() {
+            State& state = getState();
+            if (state.isShowingOriginal) return false;
+            PG_GuiRadialMenu* menu = getMenu();
+            if (!menu) return false;
+
+            if (!state.confirmed.empty()) {
+                const std::string name = std::exchange(state.confirmed, std::string());
+                if (name == "info") {
+                    FUN_0046aab0_playSound(1);
+                    state.isShowingOriginal = true;
+                }
+                else if (const std::optional<int> entry = getMenuEntry(name)) {
+                    //a refused entry leaves the state as it is, the menu then opens again
+                    runEntry(*entry);
+                }
+                return true;
+            }
+
+            DisaKeyStates& keys = DAT_00778d98_keyStates();
+            const bool isCancelPressed = keys.isKeyPressed(DisaKeyStates::Cancel)
+                || (FUN_0050f950_isRightMouseClicked() && !FUN_0046de80_isGameFlagSet(0xd48));
+            if (state.isCancelled || isCancelPressed) {
+                //what Cancel does in the original menu
+                state.isCancelled = false;
+                close();
+                FUN_0050fe60_clearMouseClicks();
+                keys.clear();
+                FUN_0046aab0_playSound(7);
+                FUN_00446d50_popBattleState(0);
+                return true;
+            }
+
+            if (!menu->isOpen()) open(menu, *DisaMapUnit::get(DAT_008895b0_selectedUnit()));
+            return true;
+        }
+
+        /// After the states ran: a game that left the command menu takes the menu down, and Info is over
+        void afterBattleState() {
+            if (DAT_00889618_battleState() == 0x0a) return;
+            State& state = getState();
+            close();
+            state.confirmed.clear();
+            state.isCancelled = false;
+            state.isShowingOriginal = false;
+        }
+
+    } //namespace RadialCommandMenu
+    //END custom code
+
 
     // ---- The frame ----
 
@@ -3280,6 +3429,9 @@ namespace {
 
     /// State 0x0A, the command menu. Part of FUN_0045c0f0 at 0x0045D06E.
     void LAB_0045d06e_updateCommandMenu() {
+        //BEGIN custom code
+        if (ImprovedMouse::isEnabled() && RadialCommandMenu::update()) return;
+        //END custom code
         FP::callStdFastFarA<void>(0x004502d0, 0); //FUN_004502d0(layer)
     }
 
@@ -5282,5 +5434,8 @@ void FUN_0045c0f0_updateBattleMap() {
     BattleFrame frame;
     LAB_0045c0f0_updateCameraAndHover(frame);
     LAB_0045c6e6_updateBattleState(frame);
+    //BEGIN custom code
+    RadialCommandMenu::afterBattleState();
+    //END custom code
     LAB_00465035_drawBattleMap(frame);
 }
