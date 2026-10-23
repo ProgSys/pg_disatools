@@ -70,6 +70,32 @@ void PG_DisaCustomModificationsModel::loadModifications(const PG_File& exePath) 
 				OUT_ERROR("'mod.json' has no 'id' inside zip '" << zipFile << "'!");
 				continue;
 			}
+
+			std::string strVersion;
+			readFromJson(info.json, "min_supported_version", strVersion);
+			if (!strVersion.empty()) {
+				auto range = PG_StringUtil::splitView(strVersion, '.');
+				if (range.size() != 3) {
+					OUT_ERROR("'mod.json' has invalid 'version' inside zip '" << zipFile << "'!");
+					continue;
+				}
+				std::array<int, 3> version{ 1,0,0 };
+				auto it = version.begin();
+				for (const auto& s : range) {
+					const int v = PG_StringUtil::toIntView(s);
+					if (*it < v) {
+						OUT_ERROR("The minimal supported version of '" << zipFile << "' is bigger then of the tools! The mod is not loaded!");
+						break;
+					}
+					else if (*it != v) { //major version is bigger
+						it = version.end();
+						break;
+					}
+					++it;
+				}
+				if (it != version.end()) continue;
+			}
+
 		}
 		catch (const std::exception& ex) {
 			OUT_ERROR("Failed to parse 'mod.json' inside zip '" << zipFile << "'! Reason: " << ex.what());
