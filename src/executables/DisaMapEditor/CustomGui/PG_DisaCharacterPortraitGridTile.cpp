@@ -14,7 +14,7 @@ void PG_DisaCharacterPortraitGridTile::init() {
 	PG_GuiItem::init();
 	m_image = PG_new<PG_GuiImage>("PG_GuiImageCropped", this);
 	m_image->fill(this);
-	m_image->setCropSize(glm::vec2(160.f));
+	m_image->setCutoutSize(glm::vec2(160.f));
 
 	m_text = PG_new<PG_GuiText>("PG_GuiText", glm::vec2(0.f, -10.f), glm::vec2(110.f, 30.f), "Name", this);
 	anchor(m_text, PG_Anchor::Bottom, this, PG_Anchor::Bottom);

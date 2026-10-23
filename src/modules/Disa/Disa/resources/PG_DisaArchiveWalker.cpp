@@ -45,7 +45,6 @@ std::optional<std::vector<char>> PG_DisaArchiveWalker::read(std::string_view pat
 	}
 
 	std::lock_guard g(m_mutex);
-	m_lastRead = std::chrono::steady_clock::now();
 
 	if (segments.empty()) {
 		auto reader = m_opener(root);
@@ -77,20 +76,6 @@ void PG_DisaArchiveWalker::clear() {
 		std::lock_guard g(m_mutex);
 		archives.swap(m_archives);
 	}
-}
-
-void PG_DisaArchiveWalker::releaseIdle(std::chrono::steady_clock::duration timeout) {
-	std::map<std::string, std::shared_ptr<PG_DisaFileContainer>> archives;
-	{
-		std::lock_guard g(m_mutex);
-		if (std::chrono::steady_clock::now() - m_lastRead < timeout) return;
-		archives.swap(m_archives);
-	}
-}
-
-bool PG_DisaArchiveWalker::isHoldingArchives() const {
-	std::lock_guard g(m_mutex);
-	return !m_archives.empty();
 }
 
 std::shared_ptr<PG_DisaFileContainer> PG_DisaArchiveWalker::openArchive(const std::string& key, std::shared_ptr<PG::STREAM::In> reader,

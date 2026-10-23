@@ -104,13 +104,19 @@ void PG_DisaMapEditorMainModel::openExe() {
 				fileEntry.getInfo().setDecompressedSize(0);
 				auto container = fileEntry.open<PG_DisaChangedDataContainer>(std::move(out.getData()));
 				PSPFS->set(fileEntry.getLocation(), fileEntry);
-				PSPFS->save();
+				{
+					//the game source lets go of SUBDATA.DAT until it is written
+					PG_ResourceSource::ModificationGuard guard;
+					if (gameSource) guard = gameSource->guardModification();
+					PSPFS->save();
+				}
 				PSPFS->PG_DisaFileContainer::open(PSPFS->getFile());
 			}
 			float progress = 0.0F;
 			PG_DisaMapEditorMainModel* mainModel;
 			std::shared_ptr<PG_OLA> startDat;
 			std::shared_ptr<PG_PSPFS> PSPFS;
+			PG_DisaGameResourceSource* gameSource = nullptr;
 		};
 
 
@@ -124,6 +130,7 @@ void PG_DisaMapEditorMainModel::openExe() {
 		decompressClass->mainModel = this;
 		decompressClass->startDat = std::move(startDat);
 		decompressClass->PSPFS = m_PSPFS;
+		decompressClass->gameSource = m_gameResourceScope.get();
 		decompressThread->create();
 		decompressThread->giveToThread(decompressClass->startDat.get());
 		decompressThread->giveToThread(decompressClass);

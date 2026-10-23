@@ -27,7 +27,6 @@
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamOutByteFile.h>
 #include <Stream/PG_StreamInOutByteFile.h>
-#include <Disa/resources/PG_DisaGameResourceSource.h>
 
 
 bool PG_PSPFS::open(std::shared_ptr<PG::STREAM::In> reader, const std::function<void(PG_DisaFileEntry&)>& visitor) {
@@ -247,8 +246,6 @@ bool PG_PSPFS::save() {
         }
     }
 
-    //a game source reading this file waits until it is written
-    auto guard = PG_DisaGameResourceSource::guardFile(getFile());
     //modefy
     std::vector<char> data;
     for (auto& change : changes) {

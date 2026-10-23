@@ -48,14 +48,16 @@ void PG_DisaItemDropDown::updatePreviewElement(PG_GuiItem* element, const PG_Var
 
 	if (var.is<glm::vec4>()) {
 		auto value = var.get<glm::vec4>();
-		icon->setCrop({ { glm::vec2(value.x, value.y), glm::vec2(value.z, value.w) } });
+		icon->setCutoutOffset(glm::vec2(value.x, value.y));
+		icon->setCutoutSize(glm::vec2(value.z, value.w));
 		icon->setVisible(true);
 		return;
 	}
 	
 	if (var.is<glm::vec2>()) {
 		auto value = var.get<glm::vec2>();
-		icon->setCrop({ { glm::vec2(value.x, value.y), icon->getSize() }});
+		icon->setCutoutOffset(glm::vec2(value.x, value.y));
+		icon->setCutoutSize(icon->getSize());
 		icon->setVisible(true);
 		return;
 	}

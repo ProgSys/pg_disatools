@@ -27,7 +27,6 @@
  */
 #pragma once
 
-#include <chrono>
 #include <functional>
 #include <map>
 #include <memory>
@@ -78,10 +77,6 @@ public:
 
 	/// Forgets every opened archive and lets go of the root streams, the next read opens them again.
 	void clear();
-	/// Like clear, but only when nothing was read for longer than timeout.
-	void releaseIdle(std::chrono::steady_clock::duration timeout);
-	/// Whether any archive is kept right now.
-	bool isHoldingArchives() const;
 
 private:
 	/**
@@ -97,5 +92,4 @@ private:
 	mutable std::mutex m_mutex;
 	/// lowercased path of the archive -> the archive, like "subdata.dat/start.dat"
 	mutable std::map<std::string, std::shared_ptr<PG_DisaFileContainer>> m_archives;
-	mutable std::chrono::steady_clock::time_point m_lastRead;
 };

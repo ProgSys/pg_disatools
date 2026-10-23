@@ -1475,7 +1475,7 @@ static inline void createForActorEdit(PG_GuiColumn* column, PG_SelectionWrapper*
 
 	{
 		PG_GuiImage* img = PG_new<PG_GuiImage>("face", frame);
-		img->setCropSize(glm::vec2(160.f));
+		img->setCutoutSize(glm::vec2(160.f));
 		PG_GuiItem::anchor(img, PG_Anchor::Top, frame, PG_Anchor::Top);
 		PG_GuiItem::anchor(img, PG_Anchor::Left, frame, PG_Anchor::Left);
 		img->setPosition(glm::vec2(15.f));

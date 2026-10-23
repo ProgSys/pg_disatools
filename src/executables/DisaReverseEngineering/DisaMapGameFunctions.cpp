@@ -1581,7 +1581,7 @@ namespace {
 
             findAttackTargets(unit, state.unitTile, 0);
             findLiftTargets(unit, state.unitTile);
-
+            menu->setPropertyValue("weaponType", unit.weaponType);
             menu->open();
             for (auto* btn : menu->getButtons()) {
                 if (btn->getName() == "info") continue;
