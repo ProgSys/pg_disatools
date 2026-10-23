@@ -67,9 +67,7 @@ bool readTX2Header(PG::STREAM::In* instream, PG_TX2::tx2header& header) {
 			if (header.type == PG_TX2::Type::COLORTABLE_BGRA16 || header.type == PG_TX2::Type::COLORTABLE_BGRA256)
 				//flip R and B channel
 				for (glm::rgba& color : colortable) {
-					const char r = color.r;
-					color.r = color.b;
-					color.b = r;
+					std::swap(color.r, color.b);
 				}
 		}
 	}
@@ -212,7 +210,7 @@ bool decompressTX2(PG::STREAM::In* instream, PG_RGBAImage& imageOut) {
 	}
 
 	PG_TX2::tx2header header;
-	if (readTX2Header(instream, header))
+	if (readTX2Header(instream, header) == FAILURE)
 		return true;
 
 
@@ -220,7 +218,6 @@ bool decompressTX2(PG::STREAM::In* instream, PG_RGBAImage& imageOut) {
 }
 
 bool decompressTX2(const PG_TX2& img, PG_RGBAImage& imageOut) {
-
 	PG::STREAM::InByteArray reader(img.data.data(), img.data.size());
 	const bool s = decompressTX2((PG::STREAM::In*) & reader, img.header, imageOut);
 	return s;
@@ -738,5 +735,4 @@ void PG_TX2::clear(PG_TX2::Type type) {
 	header.width = 0;
 	header.type = type;
 }
-
 

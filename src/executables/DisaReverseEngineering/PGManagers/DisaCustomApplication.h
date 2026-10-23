@@ -30,6 +30,8 @@
 
 #include <Base/PG_Application.h>
 #include <Util/PG_DeltaTimer.h>
+#include <Resources/PG_ResourceSourceScope.h>
+#include <Disa/resources/PG_DisaGameResourceSource.h>
 #include <glm/glm.hpp>
 #include <array>
 #include <atomic>
@@ -142,6 +144,7 @@ private:
 	void routeEvent(PG_Event* e, PG_Object* target);
 
 	HWND__* m_nativeWindow = nullptr;
+	PG_ResourceSourceScope<PG_DisaGameResourceSource> m_gameResourceScope; /// the game folder under "disa"
 
 	DisaCustomWindow* m_window = nullptr;
 	DisaCustomSceneRenderer* m_renderer = nullptr;

@@ -30,9 +30,9 @@
 
 #include <Scene/Model/PG_ListModel.h>
 #include <Disa/resources/PG_DisaSprite.h>
+#include <string_view>
 #include <Resources/PG_Texture.h>
 
-class PG_OLA;
 /**
 * @brief Loads disa items (weapons/armor/consumables) from MITEM.DAT
 * Also the icon texture to dispay there icon
@@ -43,7 +43,14 @@ public:
 	using PG_Object::PG_Object;
 
 	void init();
-	void open(std::shared_ptr<PG_OLA> startDat);
+	/// The icon atlas of the game, served by the registered game source.
+	static constexpr std::string_view iconsAtlasPath = "disa::SUBDATA.DAT/START.DAT/ITEM.TX2";
+
+	/**
+	* @brief Loads the icon atlas through iconsAtlasPath.
+	* @details Call it once the game source is registered.
+	*/
+	void open();
 
 	const PG_Texture& getIconsTexture() const { return m_iconsTexture; };
 	static PG_DisaUiTextursModel* get();

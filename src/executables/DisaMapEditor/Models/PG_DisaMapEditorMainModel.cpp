@@ -15,6 +15,7 @@
 #include <Disa/fileformats/PG_GEO.h>
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Disa/resources/PG_DisaModel.h>
+#include <Disa/resources/PG_DisaGameResourceSource.h>
 #include <Disa/models/PG_CustomCampaignsModel.h>
 #include <ranges>
 #include <PG_DisaDefines.h>
@@ -66,6 +67,8 @@ void PG_DisaMapEditorMainModel::openExe() {
 	PG_File subdataFile(dir + "/SUBDATA.DAT");
 	OUT_INFO("Reading subdata: " << subdataFile);
 	if (!subdataFile.exists()) return;
+
+	m_gameResourceScope = registerDisaGameSource(PG_Dir(dir));
 
 	if (m_PSPFS) {
 		m_PSPFS->clear();
@@ -135,6 +138,7 @@ void PG_DisaMapEditorMainModel::openExe() {
 			m_charactersModel->open(file, m_PSPFS, startDat);
 			m_itemsModel->open(startDat);
 			m_geoEffectsModel->open(startDat);
+			m_uiTextursModel->open();
 			cachDisaGeometry(startDat.get(), "BASE.KM2", "R_DisaTeleporterBase");
 
 			//main Data.dat
@@ -157,7 +161,7 @@ void PG_DisaMapEditorMainModel::openExe() {
 	m_itemsModel->open(startDat);
 	m_magicsModel->open(startDat);
 	m_geoEffectsModel->open(startDat);
-	m_uiTextursModel->open(startDat);
+	m_uiTextursModel->open();
 	cachDisaGeometry(startDat.get(), "BASE.KM2", "R_DisaTeleporterBase");
 
 	//main Data.dat

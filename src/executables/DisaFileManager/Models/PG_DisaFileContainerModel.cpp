@@ -3,6 +3,7 @@
 #include <Scene/Model/PG_ListSelectionWrapperModel.h>
 #include <Scene/Model/PG_ListModelFilter.h>
 #include <Disa/fileformats/PG_DisaFileContainer.h>
+#include <Disa/fileformats/PG_DisaFileContainerFactory.h>
 #include <Models/PG_DisaFileFilterModel.h>
 #include <Models/PG_DisaFileManagerMainModel.h>
 #include <Disa/fileformats/PG_DisaFileTests.h>
@@ -110,18 +111,6 @@ void PG_DisaFileContainerModel::setContainer(PG_DisaFileContainer* fileContainer
 	m_filterModel->setModel(m_fileContainer);
 }
 
-static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(PG_DisaFileInfo::Type type) {
-	switch (type) {
-	case PG_DisaFileInfo::PSPFS_V1: return std::shared_ptr<PG_PSPFS>(PG_new<PG_PSPFS>("PG_PSPFS"));
-	case PG_DisaFileInfo::OLA: return std::shared_ptr<PG_OLA>(PG_new<PG_OLA>("PG_OLA"));
-	case PG_DisaFileInfo::SOLA: return std::shared_ptr<PG_SOLA>(PG_new<PG_SOLA>("PG_SOLA"));
-	case PG_DisaFileInfo::KM3: return std::shared_ptr<PG_KM3>(PG_new<PG_KM3>("PG_KM3"));
-	case PG_DisaFileInfo::SCRIPT: return std::shared_ptr<PG_Script>(PG_new<PG_Script>("PG_Script"));
-	case PG_DisaFileInfo::TALK_SCRIPT: return std::shared_ptr<PG_TalkScript>(PG_new<PG_TalkScript>("PG_TalkScript"));
-	}
-	return {};
-}
-
 struct Ownership: public PG_Object {
 	std::shared_ptr<PG_DisaFileContainer> container;
 };
@@ -165,13 +154,8 @@ void PG_DisaFileContainerModel::closeUi() {
 	});
 }
 
-static inline std::shared_ptr<PG_DisaFileContainer> createFileContainer(const std::shared_ptr<PG::STREAM::In>& reader) {
-	if (!reader) return {};
-	return createFileContainer(PG_DisaFileInfo::typeFromFileFormat(reader.get()));
-}
-
 PG_DisaFileContainerModel* PG_DisaFileContainerModel::tryOpen(const PG_File& file, std::shared_ptr<PG::STREAM::In> reader) {
-	auto container = createFileContainer(reader);
+	auto container = PG_Disa::createFileContainer(reader.get());
 	if (!container) return nullptr;
 	container->setFile(file);
 	container->open(reader);
@@ -224,7 +208,7 @@ void PG_DisaFileContainerModel::openEntry(PG_DisaFileEntry& fileEntry) {
 	//check if filecontaner is allready present
 	std::shared_ptr<PG_DisaFileContainer> container = fileEntry.getContainer<PG_DisaFileContainer>();
 	if (!container) {
-		container = createFileContainer(fileEntry.getInfo().getType());
+		container = PG_Disa::createFileContainer(fileEntry.getInfo().getType());
 		if (!container) return;
 		fileEntry.setContainer(container);
 		if (!container->open(fileEntry.createReader())) return;

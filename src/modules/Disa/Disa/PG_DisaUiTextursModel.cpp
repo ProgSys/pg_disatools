@@ -1,6 +1,4 @@
 #include "PG_DisaUiTextursModel.h"
-#include <Disa/fileformats/PG_OLA.h>
-#include <Disa/fileformats/PG_TX2.h>
 
 static PG_DisaUiTextursModel* g_global = nullptr;
 
@@ -30,21 +28,8 @@ glm::vec4 PG_DisaUiTextursModel::getIconLocation(unsigned short iconIndex, unsig
 }
 
 
-void PG_DisaUiTextursModel::open(std::shared_ptr<PG_OLA> startDat) {
-	auto entry = startDat->find(PG_File("ITEM.TX2"), false);
-
-	PG_TX2 tx2;
-	auto reader = entry.createReader();
-	if (tx2.open(reader.get())) {
-		m_iconsTexture.load("DisaIconsAtlas", [tex = std::move(tx2)]() -> PG_Texture::ImageFormats {
-			PG_RGBAImage out;
-			decompressTX2(tex, out);
-			return out;
-			});
-	}
-	else {
-		m_iconsTexture.reset();
-	}
+void PG_DisaUiTextursModel::open() {
+	m_iconsTexture.load(std::string(iconsAtlasPath));
 }
 
 PG_DisaUiTextursModel* PG_DisaUiTextursModel::get() {

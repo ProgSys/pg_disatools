@@ -7,22 +7,6 @@
 
 #include <Stream/PG_StreamInOutByteVector.h>
 
-struct TextureLoader {
-
-	PG_Texture::ImageFormats operator()() const {
-		PG_RGBAImage image;
-		if (!decompressTX2(tx2, image)) {
-			return image;
-		}
-		else {
-			OUT_ERROR("Failed to decompress 'tx2'!");
-		}
-		return image;
-	}
-
-	PG_TX2 tx2;
-};
-
 struct TextureLoader2 {
 
 	PG_Texture::ImageFormats operator()() const {

@@ -39,7 +39,7 @@ struct PG_DisaModInfo {
 	/**
 	* @brief The namespace a mod declares: "namespace" (or the older misspelled "namesspace"),
 	* else the name of its zip, lowercased.
-	* @returns Empty when that is no valid namespace.
+	* @returns Empty when that is no valid namespace, or the reserved "disa" of the game files.
 	*/
 	static std::string resolveNameSpace(const nlohmann::json& j, const PG_File& zipFile);
 	/// @see resolveNameSpace, for a namespace that was already read. Empty falls back to the name of the zip.

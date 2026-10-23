@@ -19,6 +19,8 @@
 #include <Base/Events/PG_ControllerMotionEvent.h>
 #include <Resources/PG_Context.h>
 #include <Resources/PG_ResourceManager.h>
+#include <Disa/resources/PG_DisaResourceLoaders.h>
+#include <Disa/resources/PG_DisaGameResourceSource.h>
 #include <Scene/PG_Scene.h>
 #include <Scene/Gui/PG_GuiMain.h>
 #include <Scene/Gui/PG_GuiItem.h>
@@ -94,6 +96,8 @@ DisaCustomApplication* DisaCustomApplication::create() {
 	HWND nativeWindow = FP::getData<HWND>(FP::getData<uint32_t>(0x005bae70) + 8);
 	g_customApplication = new DisaCustomApplication(nativeWindow); //PG_Application starts the event loop
 	PG_ResourceManager::create(DisaCustomBaseModManager::get()->exePath().getPath() + "/resources");
+	registerDisaResourceLoaders();
+	g_customApplication->m_gameResourceScope = registerDisaGameSource(PG_Dir(DisaCustomBaseModManager::get()->exePath().getPath()));
 	PG_Context::create();
 	g_customApplication->createTree();
 

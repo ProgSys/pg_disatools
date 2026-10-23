@@ -37,6 +37,7 @@
 #include <Disa/fileformats/PG_DisaMPDPack.h>
 #include <Disa/fileformats/PG_TX2.h>
 #include <Disa/resources/PG_DisaSprite.h>
+#include <Disa/resources/PG_DisaGameResourceSource.h>
 #include <ranges>
 
 
@@ -450,13 +451,17 @@ bool PG_DisaFileContainer::save() {
 	doneSaving();
 
 
-	if (!getFile().remove()) {
-		OUT_ERROR("Failed to remove old file: " << getFile() << "!");
-		saveFile.remove();
-		return FAILURE;
-	}
-	if (!saveFile.move(getFile())) {
-		return FAILURE;
+	{
+		//a game source reading this file lets go of it until it is replaced
+		auto guard = PG_DisaGameResourceSource::guardFile(getFile());
+		if (!getFile().remove()) {
+			OUT_ERROR("Failed to remove old file: " << getFile() << "!");
+			saveFile.remove();
+			return FAILURE;
+		}
+		if (!saveFile.move(getFile())) {
+			return FAILURE;
+		}
 	}
 	if (!refresh()) {
 		OUT_ERROR("Failed to refresh loaded data from file: " << getFile() << "!");

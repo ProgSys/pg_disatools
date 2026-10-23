@@ -4,6 +4,8 @@
 #include <Disa/fileformats/PG_JsonUtil.h>
 #include <Resources/PG_ResourceManager.h>
 #include <Resources/PG_ResourceName.h>
+#include <Disa/resources/PG_DisaGameResourceSource.h>
+#include <Util/Debug/PG_DebugOut.h>
 #include <Scene/Gui/Validator/PG_GuiTextValidators.h>
 #include <Util/PG_StringUtil.h>
 
@@ -35,5 +37,9 @@ std::string PG_DisaModInfo::resolveNameSpace(std::string declared, const PG_File
 	std::string nameSpace = declared.empty() ? zipFile.getName() : std::move(declared);
 	nameSpace = PG_StringUtil::toLowerCopy(nameSpace);
 	if (nameSpace.empty() || !PG_SimpleWordValidator()(nameSpace)) return {};
+	if (nameSpace == PG_DisaGameResourceSource::nameSpace) {
+		OUT_ERROR("The namespace \"" << nameSpace << "\" of \"" << zipFile << "\" is reserved for the game files!");
+		return {};
+	}
 	return nameSpace;
 }

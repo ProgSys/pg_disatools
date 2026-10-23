@@ -1,7 +1,6 @@
 #include "PG_OverviewListModel.h"
 #include <Util/PG_Dir.h>
 #include <PG_DisaMapListModel.h>
-#include <Disa/fileformats/PG_TX2.h>
 #include <Models/PG_UiStateCustomCampaignsModel.h>
 #include <Models/PG_DisaMapEditorMainModel.h>
 #include <Models/PG_DisaDataDatModel.h>
@@ -50,19 +49,9 @@ void PG_OverviewListModel::addDisa(std::vector<PG_OverviewListModelItem>& items,
 	auto titleEntry = disaModel->find(PG_File("TITLEBG.TX2"));
 	if (!titleEntry) return;
 
+	//served by the game source the main model registered for this folder
 	PG_Texture preview;
-	{
-		PG_TX2 tx2;
-		auto reader = titleEntry.createReader();
-		if (tx2.open(reader.get())) {
-			preview.load("DisaGridTilePreview", [tex = std::move(tx2)]() -> PG_Texture::ImageFormats {
-				PG_RGBAImage out;
-				decompressTX2(tex, out);
-				return out;
-			});
-
-		}
-	}
+	preview.load("disa::DATA.DAT/TITLEBG.TX2");
 
 	PG_OverviewListModelItem item{
 			[]()->std::string { return "Disa"; },

@@ -6,6 +6,8 @@
 #include <Disa/utils/PG_DisaConfig.h>
 #include <Disa/models/PG_DisaMainModel.h>
 #include <Models/PG_UiStateBaseModel.h>
+#include <Resources/PG_ResourceSourceScope.h>
+#include <Disa/resources/PG_DisaGameResourceSource.h>
 
 class PG_DisaMapListModel;
 class PG_DisaCharactersModel;
@@ -60,6 +62,7 @@ public:
 private:
 	void setGridModel(PG_ListModelBase* model);
 
+	PG_ResourceSourceScope<PG_DisaGameResourceSource> m_gameResourceScope; /// the game folder under "disa"
 	std::shared_ptr<PG_PSPFS> m_PSPFS; //subdata
 	PG_DisaCharactersModel* m_charactersModel = nullptr;
 	PG_DisaItemsModel* m_itemsModel = nullptr;
