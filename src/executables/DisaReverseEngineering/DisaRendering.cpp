@@ -300,7 +300,7 @@ void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int visi
     g_pass.renderData.size = glm::ivec2(512);
     g_pass.renderData.cameraPos = memoryRenderManager->m_cameraCenter ? *memoryRenderManager->m_cameraCenter : glm::vec3(0.0F);
     g_pass.renderData.deltaTime = customDisaRenderManger->getDeltaTimer().getDeltaTime();
-    g_pass.renderData.ticks = customDisaRenderManger->getDeltaTimer().getTotalTime();
+    g_pass.renderData.ticks = customDisaRenderManger->getDeltaTimer().getTotalTime() * 1000.0; //$time is in ms, like PG_Application::ticks
     g_job.errorTexture = customDisaRenderManger->getErrorTexture();
     g_job.loadTexture = customDisaRenderManger->getLoadTexture();
 
