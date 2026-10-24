@@ -382,8 +382,9 @@ namespace {
         const auto* characters = FP::getData<const DisaDataCharacterInfo*>(0x005d9cdc);
         const auto range = std::ranges::subrange(characters, characters + std::max(FP::getData<int32_t>(0x00663ff8), 0));
         if (auto findIt = std::ranges::find(range, characterId, &DisaDataCharacterInfo::characterId); findIt != range.end()) return findIt;
+        return nullptr;  //BEGIN-END custom code 
         //BUG kept from the original: table[-1], can be unmapped once DisaDataRemap moved the table into a std::vector
-        return reinterpret_cast<const DisaDataCharacterInfo*>(reinterpret_cast<uintptr_t>(characters) - sizeof(DisaDataCharacterInfo));
+        //return reinterpret_cast<const DisaDataCharacterInfo*>(reinterpret_cast<uintptr_t>(characters) - sizeof(DisaDataCharacterInfo));
     }
 
     /// Unbounded like the original, a long source runs over the end of target.
@@ -411,6 +412,7 @@ void __fastcall FUN_004cd1b0_refreshNameTexts(uint32_t textStyle) {
 
     for (DisaPartyCharacterInfo& unit : std::span(DisaPartyCharacterInfo::begin(), 128)) {
         const DisaDataCharacterInfo* character = DAT_005d9cdc_findCharacterOrBefore(unit.characterId);
+        if (!character) continue; //BEGIN-END custom code 
         if (unit.hasCustomName == 0 && unit.nameTextGroup == -1 && unit.nameTextIndex == -1) {
             copyNameText(unit.charName.data(), character->name.data(), isOldTextStyle);
         }
@@ -419,6 +421,7 @@ void __fastcall FUN_004cd1b0_refreshNameTexts(uint32_t textStyle) {
 
     for (DisaPartyCharacterInfo& unit : std::span(&FP::getData<DisaPartyCharacterInfo>(0x0065e468), 3)) {
         const DisaDataCharacterInfo* character = DAT_005d9cdc_findCharacterOrBefore(unit.characterId);
+        if (!character) continue; //BEGIN-END custom code 
         const bool isBankName = unit.nameTextGroup != -1 || unit.nameTextIndex != -1;
         const char* name = isBankName ? DAT_00664068_getBankText(unit.nameTextGroup, unit.nameTextIndex) : character->name.data();
         copyNameText(unit.charName.data(), name, isOldTextStyle);
