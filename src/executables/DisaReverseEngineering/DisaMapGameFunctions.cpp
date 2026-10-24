@@ -630,8 +630,9 @@ namespace {
     }
 
     void clampToMapCustom(float& x, float& z) {
+        //max x and z at 0x00664768, min x and z at 0x00664770, see clampToMap
         const glm::vec2 max = FP::getData<glm::ivec2>(0x00664768) * 12 + 6;
-        const glm::vec2 min = FP::getData<glm::ivec2>(0x00664774) * 12 + 6;
+        const glm::vec2 min = FP::getData<glm::ivec2>(0x00664770) * 12 + 6;
         x = glm::clamp(x, min.x, max.x);
         z = glm::clamp(z, min.y, max.y);
     }
