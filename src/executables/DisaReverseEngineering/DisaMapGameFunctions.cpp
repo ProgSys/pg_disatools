@@ -66,7 +66,7 @@ static_assert(offsetof(PG_DisaPartyCharacter, jumpingPower) == 0x67b);
 static_assert(offsetof(PG_DisaPartyCharacter, movement) == 0x67d);
 static_assert(offsetof(PG_DisaPartyCharacter, unknownData6) == 0x684);
 static_assert(offsetof(PG_DisaPartyCharacter, field_0x68b) == 0x68a); //misnamed, it is at 0x68a
-static_assert(offsetof(PG_DisaPartyCharacter, field_0x6ac) == 0x6ac);
+static_assert(offsetof(PG_DisaPartyCharacter, nameTextStyle) == 0x6ac);
 static_assert(offsetof(mpdfileTile, geo_color) == 0x78);
 static_assert(offsetof(mpdfileTile, geo_mark) == 0x79);
 
@@ -677,7 +677,7 @@ namespace {
     * Original function: FUN_0046dda0
     */
     uint32_t FUN_0046dda0_getNameStyle(const DisaPartyCharacterInfo* character) {
-        return character->field_0x6b0 != 0 ? character->field_0x6ac : DAT_005d7c40_settings()->field_0x30;
+        return character->hasCustomName != 0 ? character->nameTextStyle : DAT_005d7c40_settings()->field_0x30;
     }
 
     /**

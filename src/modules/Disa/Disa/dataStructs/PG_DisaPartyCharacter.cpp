@@ -173,12 +173,10 @@ nlohmann::json PG_DisaPartyCharacter::toJson() const {
     j["field_0x69c"] = field_0x69c;
     j["field_0x6a0"] = field_0x6a0;
 
-    for (auto& v : field_0x6a4) {
-        j[std::string("unknownValue") + std::to_string((std::size_t)&v - baseOffset)] = v;
-    }
-
-    j["field_0x6ac"] = field_0x6ac;
-    j["field_0x6b0"] = field_0x6b0;
+    j["nameTextGroup"] = nameTextGroup;
+    j["nameTextIndex"] = nameTextIndex;
+    j["nameTextStyle"] = nameTextStyle;
+    j["hasCustomName"] = hasCustomName;
     j["field_0x6b4"] = field_0x6b4;
     j["field_0x6b6"] = field_0x6b6;
 

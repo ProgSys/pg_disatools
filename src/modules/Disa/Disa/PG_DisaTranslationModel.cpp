@@ -1,6 +1,8 @@
 #include "PG_DisaTranslationModel.h"
 #include <Util/PG_MD5.h>
 #include <Util/PG_StringUtil.h>
+#include <Resources/PG_ResourceManager.h>
+#include <Resources/PG_ResourceSource.h>
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Disa/utils/PG_DisaModInfo.h>
 #include <Disa/utils/PG_DisaModLoadInfo.h>
@@ -131,13 +133,19 @@ void PG_DisaTranslationModel::loadTranslation(PG_DisaModInfo* modInfo, const PG_
 	if (auto findIt = j.find("font"); findIt != j.end()) {
 		std::string fontPath;
 		findIt->get_to(fontPath);
-		auto handle = modInfo->open("fonts/" + fontPath);
+		//"::" in front, or a font the mod doesn't carry, is one of the fonts resource folder, like "Disa/DisaFont-Regular.ttf"
+		const bool isGlobal = fontPath.starts_with("::");
+		if (isGlobal) fontPath.erase(0, 2);
+		auto handle = isGlobal ? PG_ResourceHandle() : modInfo->open("fonts/" + fontPath);
 		std::vector<char> fontData = handle ? handle.readAll() : std::vector<char>();
-		if (fontData.empty()) {
-			OUT_ERROR("Failed to find font: 'fonts/" << fontPath << "'!");
+		if (!fontData.empty()) {
+			m_font.load(fontPath, std::move(fontData));
+		} else if (PG_ResourceManager::requestOpenInFolder(PG_ResourceFolder_Fonts, fontPath)) {
+			m_font.load(fontPath);
+		} else {
+			OUT_ERROR("Failed to find font: 'fonts/" << fontPath << "' in the mod or the resources!");
 			return;
 		}
-		m_font.load(fontPath, std::move(fontData));
 		m_font.requestCharsUtf8(specialChars);
 	}
 }

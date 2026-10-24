@@ -135,9 +135,10 @@ struct PG_DisaPartyCharacter { //1720 unsigned char
     unsigned short field_0x69a;
     unsigned int field_0x69c;
     unsigned int field_0x6a0;
-    std::array<unsigned short, 4> field_0x6a4;
-    unsigned int field_0x6ac; //string type (the game seems to store what kind of string is in name and title)
-    unsigned int field_0x6b0; //use string type? 
+    int32_t nameTextGroup; //0x6a4 text bank group of charName, -1 when the name is not from the text bank
+    int32_t nameTextIndex; //0x6a8 text bank index of charName, -1 when the name is not from the text bank
+    unsigned int nameTextStyle; //0x6ac the text style (DisaSettings::field_0x30) charName and charTitle are written in
+    unsigned int hasCustomName; //0x6b0 1 when the player named the unit, then nameTextStyle is used and FUN_004cd1b0 keeps the name
     unsigned short field_0x6b4;
     unsigned short field_0x6b6;
 

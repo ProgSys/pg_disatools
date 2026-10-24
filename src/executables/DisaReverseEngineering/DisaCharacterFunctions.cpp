@@ -3,6 +3,9 @@
 #include <sstream>
 #include <iomanip>
 #include <ranges>
+#include <span>
+#include <cstring>
+#include <cstddef>
 #include "FunctionPatcher.h"
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
@@ -362,6 +365,71 @@ unsigned int __fastcall FUN_004e37b0_shiftJisLen(unsigned short* str) {
         ++str;
     }
     return len;
+}
+
+namespace {
+    /// DAT_00664070 holds per group a table of 16 bit offsets into DAT_00664068. FUN_00489b60 loads both per text style.
+    const char* DAT_00664068_getBankText(int group, int index) {
+        const uint16_t* offsets = (&FP::getData<const uint16_t*>(0x00664070))[group];
+        return FP::getData<const char*>(0x00664068) + offsets[index];
+    }
+
+    /**
+    * @brief Finds the character in DAT_005d9cdc the way FUN_004cd1b0 does, the first entry with the id.
+    * Returns the entry before the table when the id is unknown, the original reads it without a check.
+    */
+    const DisaDataCharacterInfo* DAT_005d9cdc_findCharacterOrBefore(unsigned short characterId) {
+        const auto* characters = FP::getData<const DisaDataCharacterInfo*>(0x005d9cdc);
+        const auto range = std::ranges::subrange(characters, characters + std::max(FP::getData<int32_t>(0x00663ff8), 0));
+        if (auto findIt = std::ranges::find(range, characterId, &DisaDataCharacterInfo::characterId); findIt != range.end()) return findIt;
+        //BUG kept from the original: table[-1], can be unmapped once DisaDataRemap moved the table into a std::vector
+        return reinterpret_cast<const DisaDataCharacterInfo*>(reinterpret_cast<uintptr_t>(characters) - sizeof(DisaDataCharacterInfo));
+    }
+
+    /// Unbounded like the original, a long source runs over the end of target.
+    void copyNameText(char* target, const char* source, bool isOldTextStyle) {
+        if (isOldTextStyle) std::strcpy(target, source);
+        else FUN_004e3530_shiftJisCpy(target, const_cast<char*>(source));
+    }
+}
+
+void __fastcall FUN_004cd1b0_refreshNameTexts(uint32_t textStyle) {
+    static_assert(offsetof(PG_DisaPartyCharacter, charName) == 0x248);
+    static_assert(offsetof(PG_DisaPartyCharacter, charTitle) == 0x269);
+    static_assert(offsetof(PG_DisaPartyCharacter, characterId) == 0x664);
+    static_assert(offsetof(PG_DisaPartyCharacter, nameTextGroup) == 0x6a4);
+    static_assert(offsetof(PG_DisaPartyCharacter, nameTextIndex) == 0x6a8);
+    static_assert(offsetof(PG_DisaPartyCharacter, hasCustomName) == 0x6b0);
+    static_assert(offsetof(PG_DisaDataCharacter, title) == 0x21);
+    static_assert(offsetof(PG_DisaDataCharacter, characterId) == 0x56);
+    static_assert(offsetof(DisaSenatorEntry, nameTextGroup) == 0x08);
+    static_assert(offsetof(DisaSenatorEntry, name) == 0x0d);
+    static_assert(offsetof(DisaSenatorEntry, nameTextStyle) == 0x1f);
+
+    const uint32_t currentStyle = FP::getData<DisaSettings*>(0x005d7c40)->field_0x30;
+    const bool isOldTextStyle = currentStyle == 0 || currentStyle == 1;
+
+    for (DisaPartyCharacterInfo& unit : std::span(DisaPartyCharacterInfo::begin(), 128)) {
+        const DisaDataCharacterInfo* character = DAT_005d9cdc_findCharacterOrBefore(unit.characterId);
+        if (unit.hasCustomName == 0 && unit.nameTextGroup == -1 && unit.nameTextIndex == -1) {
+            copyNameText(unit.charName.data(), character->name.data(), isOldTextStyle);
+        }
+        copyNameText(unit.charTitle.data(), character->title.data(), isOldTextStyle);
+    }
+
+    for (DisaPartyCharacterInfo& unit : std::span(&FP::getData<DisaPartyCharacterInfo>(0x0065e468), 3)) {
+        const DisaDataCharacterInfo* character = DAT_005d9cdc_findCharacterOrBefore(unit.characterId);
+        const bool isBankName = unit.nameTextGroup != -1 || unit.nameTextIndex != -1;
+        const char* name = isBankName ? DAT_00664068_getBankText(unit.nameTextGroup, unit.nameTextIndex) : character->name.data();
+        copyNameText(unit.charName.data(), name, isOldTextStyle);
+        copyNameText(unit.charTitle.data(), character->title.data(), isOldTextStyle);
+    }
+
+    //in order, a long name can run into the group and index of the next senator
+    for (DisaSenatorEntry& senator : FP::getData<std::array<DisaSenatorEntry, 0x200>>(0x0064fa98)) {
+        copyNameText(senator.name.data(), DAT_00664068_getBankText(senator.nameTextGroup, senator.nameTextIndex), isOldTextStyle);
+        senator.nameTextStyle = static_cast<uint8_t>(textStyle);
+    }
 }
 
 struct DisaAssemblyInfo {
@@ -798,7 +866,7 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
             FP::getData<unsigned int>(0x0088add8) = 0;
             FP::getData<unsigned int>(0x0088ada4) = 10;
 
-            int strType = assemblyParentUnit->field_0x6b0 == 0 ? settings->field_0x30 : assemblyParentUnit->field_0x6ac;
+            int strType = assemblyParentUnit->hasCustomName == 0 ? settings->field_0x30 : assemblyParentUnit->nameTextStyle;
 
             if (*(char*)(FP::getData<unsigned int>(0x0088c624) + 2) == '8') {
                 //code block used for debugging?
@@ -817,7 +885,7 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
                     FP::getData<unsigned int>(0x0088adb8) = FUN_004e37b0_shiftJisLen(&FP::getData<unsigned short>(0x0088b500)) / 2;
                 }
 
-                creationCharacter.field_0x6ac = strType;
+                creationCharacter.nameTextStyle = strType;
                 creationCharacter.field_0x691 = assemblyParentUnit->field_0x691;
                 creationCharacter.mentorIndex = assemblyParentUnit->mentorIndex;
                 creationCharacter.field_0x69a = assemblyParentUnit->field_0x69a;
@@ -832,7 +900,7 @@ void FUN_0048dfd0_ProccessAssemblyMenu() {
                 else {
                     FUN_004e3530_shiftJisCpy(&FP::getData<char>(0x0088b540), creationCharacter.charName.data());
                 }
-                creationCharacter.field_0x6ac = settings->field_0x30;
+                creationCharacter.nameTextStyle = settings->field_0x30;
                 creationCharacter.mentorIndex = (int8_t)FP::getData<unsigned int>(0x0088ae18);
                 //next function will be FUN_0048ebb0
             }

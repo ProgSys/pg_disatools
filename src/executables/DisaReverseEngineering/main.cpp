@@ -212,6 +212,7 @@ struct HockManager {
         replaceFunction("save", "Create new save file", 0x0043f6a7, FUN_00442260_Save);
         replaceFunction("loadSave", "Load save file", 0x00442495, FUN_0043e600_decompressSave_NoneStd); //Is run to decompress a save file, usualy after load
         replaceFunction("loadSave", "Load save file", 0x0043f8a9, FUN_004422c0_LoadSave);
+        replaceFunction("refreshNameTexts", "Writes the stored names again in the current text style after a save is loaded", 0x004cb5b3, FUN_004cd1b0_refreshNameTexts);
 
         {
             auto f = &DisaScriptManager::FUN_004bf7e0_RunTalkScript; //find talk Dat

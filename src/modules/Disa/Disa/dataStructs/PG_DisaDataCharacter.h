@@ -21,7 +21,7 @@ struct PG_DisaDataCharacter { //size 216
     PG_DisaStartingStats stats; // 0x4c - 0x53
     unsigned short immunity; //0x54
 
-    unsigned short characterId; //0x55
+    unsigned short characterId; //0x56
     unsigned short spriteId; //0x57
     unsigned short unknownValue0x58; //0x58
     unsigned short unknownValue0x60; //0x60
