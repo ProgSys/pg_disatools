@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <optional>
+#include <Resources/PG_Material.h>
 #include <Scene/PG_ModelNode.h>
 #include <Scene/Model/PG_ListModelLocation.h>
 #include <Scene/Model/PG_ListModelIdentity.h>
@@ -62,10 +63,11 @@ public:
 	using FloorTopFunction = std::function<std::optional<std::array<glm::vec3, 4>>(glm::ivec2)>;
 	/**
 	* @brief Like the one above, for ground that is not a PG_DisaMapTileListModel, like the map of the running game
-	* @param material Gets the uv and the walk or fly flag in the position w described above
+	* @param material Gets the uv and the walk or fly flag in the position w described above. A loaded one is shared, a
+	* name loads it again every time the path changes.
 	*/
 	static void updateFloorPathGeometry(const FloorTopFunction& topOf, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode,
-		const std::string& material = "M_DisaTilePath");
+		const PG_Material& material = PG_Material("M_DisaTilePath"));
 	static void updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode);
 private:
 	void updateGeometry();

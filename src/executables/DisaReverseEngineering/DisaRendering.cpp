@@ -11,6 +11,7 @@
 
 #include <FunctionPatcher.h>
 #include <Renderer/Command/PG_AddCommands.h>
+#include <Renderer/Command/PG_GLCommands.h>
 #include <Scene/PG_ModelNode.h>
 #include <Managers/DisaCustomRenderManager.h>
 #include <PGManagers/DisaCustomApplication.h>
@@ -349,6 +350,8 @@ void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int visi
             glEnable(GL_TEXTURE_2D);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            //like PG_SceneRenderer, the depth writes stop after the generic bucket, the next object sets its own mask again
+            if (!g_pass.isEmpty(PG_RenderCommand::NoDepthWrite)) addCommand(g_pass, PG_RenderCommand::Generic, &c_DisableDepthMask);
             g_pass.runAndClearAll(); //a material without depth writes queues its draw in another bucket than the current one
             continue;
         }

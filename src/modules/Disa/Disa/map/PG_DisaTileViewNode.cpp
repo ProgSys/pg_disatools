@@ -317,7 +317,7 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(PG_DisaMapTileListModel* model
 }
 
 void PG_DisaTileViewNode::updateFloorPathGeometry(const FloorTopFunction& topOf, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode,
-	const std::string& material) {
+	const PG_Material& material) {
 	if (!modelNode || !topOf) return;
 
 	if (path.size() < 2 || PG_Math::leOrNaN(pathWidth, 0.f)) {
@@ -500,10 +500,8 @@ void PG_DisaTileViewNode::updateFloorPathGeometry(const FloorTopFunction& topOf,
 		return;
 	}
 
-	//a stand in until the path gets its own shader, it shows w = 0 red and w = 1 green
-	PG_Material mat(material);
 	PG_Mesh glGeo = PG_Mesh::basic(std::move(indices), std::move(vertices), std::move(uvs));
-	modelNode->getModel().load(PG_UNIQUE_RES("M_TilePath"), { { mat, PG_Geometry(PG_UNIQUE_RES("TilePathGeometry"), std::move(glGeo)) } });
+	modelNode->getModel().load(PG_UNIQUE_RES("M_TilePath"), { { material, PG_Geometry(PG_UNIQUE_RES("TilePathGeometry"), std::move(glGeo)) } });
 }
 
 void PG_DisaTileViewNode::updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode) {

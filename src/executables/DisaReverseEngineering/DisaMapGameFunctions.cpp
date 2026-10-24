@@ -1297,6 +1297,12 @@ namespace {
             return top;
         }
 
+        /// The material of the path, loaded on the first call and kept, so a new path doesn't load it again
+        const PG_Material& getPathMaterial() {
+            static const PG_Material material(DisaCustomModificationsManager::get()->getBetterControls()->pathMaterial);
+            return material;
+        }
+
         /// The path to draw this frame, set while the states run and drawn with the units
         std::vector<glm::ivec2>& getPendingPath() {
             static std::vector<glm::ivec2> path;
@@ -1327,8 +1333,7 @@ namespace {
             auto* node = renderManager->getNode<PG_ModelNode>(nodeId, DisaCustomRenderManager::EGroup::World);
             static std::vector<glm::ivec2> lastPath;
             if (path != lastPath || !node->getModel().isValid()) {
-                const std::string& material = DisaCustomModificationsManager::get()->getBetterControls()->pathMaterial;
-                PG_DisaTileViewNode::updateFloorPathGeometry(&getTileTop, path, 0.15f, node, material);
+                PG_DisaTileViewNode::updateFloorPathGeometry(&getTileTop, path, 0.15f, node, getPathMaterial());
                 lastPath = std::move(path);
             }
             //path space into game units
@@ -1336,7 +1341,8 @@ namespace {
             //the event loop only runs at the start of the next frame, so the matrices are updated right away
             node->updateModelMatrix();
             node->updateModelMatrixWorld();
-            renderManager->submit(40001.f, node, -1, true, false, 0.f, 0, 0, false);
+            //after the tile marks, FUN_004f1070 submits translucent faces at 45000
+            renderManager->submit(45001.f, node, -1, true, false, 0.f, 0, 0, false);
         }
 
         /// Whether the original walk has to run, because the destination does something when the unit arrives
