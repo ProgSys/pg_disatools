@@ -1341,8 +1341,9 @@ namespace {
             //the event loop only runs at the start of the next frame, so the matrices are updated right away
             node->updateModelMatrix();
             node->updateModelMatrixWorld();
-            //after the tile marks, FUN_004f1070 submits translucent faces at 45000
-            renderManager->submit(45001.f, node, -1, true, false, 0.f, 0, 0, false);
+            /* After the tile marks, FUN_004f1070 submits translucent faces at 45000. It pulls them over the ground with
+             * a polygon offset of 100, without it the path z fights with the ground once the camera zooms out. */
+            renderManager->submit(45001.f, node, -1, true, false, 100.f, 0, 0, false);
         }
 
         /// Whether the original walk has to run, because the destination does something when the unit arrives

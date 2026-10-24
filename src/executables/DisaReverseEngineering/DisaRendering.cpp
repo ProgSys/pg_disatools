@@ -213,11 +213,14 @@ static PG_CommandRendererJob g_job;
 static PG_CommandRenderPass g_pass;
 
 //BEGIN custom code
-/// Whether everything the node draws with is loaded, a draw before that would show nothing or the error texture
+/**
+* Whether everything the node draws with is loaded, a draw before that would show nothing or the error texture.
+* A model that is reloaded still has its old meshes and keeps drawing them until the new ones replace them.
+*/
 static inline bool isCustomNodeReady(PG_ActorNode* node) {
     if (auto* model = dynamic_cast<PG_ModelNode*>(node)) {
         const PG_Model& data = model->getModel();
-        return data.isLoaded() && data.getMaterial(0).getShader().isLoaded();
+        return data.getMeshSize() > 0 && data.getMaterial(0).getShader().isLoaded();
     }
     return true;
 }
@@ -340,6 +343,9 @@ void _stdcall FUN_00426770_RenderObjects(EDisaRenderPass pass, unsigned int visi
                 PG_Context::runCreate();
                 isInCustomState = true;
             }
+            //the offset of the game, glPopAttrib restores the previous one when the custom state ends
+            glEnable(GL_POLYGON_OFFSET_FILL);
+            glPolygonOffset(0.f, glm::isnan(object->polygonOffset) ? 0.f : object->polygonOffset * FP::getData<float>(0x005ac924));
 
             addCustomNode(node, g_job, g_pass);
 
