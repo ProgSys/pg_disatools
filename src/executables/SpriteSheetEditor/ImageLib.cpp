@@ -219,27 +219,38 @@ void Histogramm::mergeClusters(std::unordered_map<QRgb, QRgb>& replaceMap) {
 }
 
 void Histogramm::mapToClosestColor(QMap<QRgb, int>& mapping, const QVector<QColor>& targetColors) const{
+	// Alpha decides how visible a pixel is, so match alpha first and let RGB only pick between
+	// entries with a similar alpha. A plain RGBA distance lets a perfect RGB match on a fully
+	// transparent entry win, e.g. (0, 0, 0, 244) would map to (0, 0, 0, 0) instead of (239, 239, 239, 240).
+	constexpr int alphaTolerance = 8;
 	for(const HistogrammRow& row: histo){
 		int findIndex = -1;
-		double findDisstance = std::numeric_limits<double>::max();
-		//const LAB histoRowTarget(row.color);
-		//qDebug()<<__LINE__<<"=== Find similar to: ("<<qRed(row.color.rgba())<<", "<<qGreen(row.color.rgba())<<", "<<qBlue(row.color.rgba())<<", "<<qAlpha(row.color.rgba())<<") at "<<i <<" ===" ;
+		int minAlphaDistance = std::numeric_limits<int>::max();
+		//qDebug()<<__LINE__<<"=== Find similar to: ("<<qRed(row.color)<<", "<<qGreen(row.color)<<", "<<qBlue(row.color)<<", "<<qAlpha(row.color)<<") ===" ;
 		for(int j = 0; j < targetColors.size(); j++){
-			const QColor& targetColor = targetColors[j];
-			if((qAlpha(row.color) == 0 && qAlpha(targetColor.rgba()) == 0) ||
-					(row.color == targetColor.rgba())){
+			const QRgb targetColor = targetColors[j].rgba();
+			if((qAlpha(row.color) == 0 && qAlpha(targetColor) == 0) || (row.color == targetColor)) {
 				findIndex = j;
-				//qDebug()<<__LINE__<<"FOUND to: ("<<qRed(targetColor.rgba())<<", "<<qGreen(targetColor.rgba())<<", "<<qBlue(targetColor.rgba())<<", "<<qAlpha(targetColor.rgba())<<") at "<<j<<" from "<<targetColors.size()  ;
+				//qDebug()<<__LINE__<<"FOUND to: ("<<qRed(targetColor)<<", "<<qGreen(targetColor)<<", "<<qBlue(targetColor)<<", "<<qAlpha(targetColor)<<") at "<<j<<" from "<<targetColors.size()  ;
 				break;
 			}
-			const double tempDistance = euclideanDis( targetColor.rgba(),row.color);//CIEDE2000::CIEDE2000(LAB(targetColor), histoRowTarget);
-			//qDebug()<<__LINE__<<"Campare to: ("<<qRed(targetColor.rgba())<<", "<<qGreen(targetColor.rgba())<<", "<<qBlue(targetColor.rgba())<<", "<<qAlpha(targetColor.rgba())<<") at "<<j<<" from "<<targetColors.size()<<" val: "<<tempDistance  ;
-			if(tempDistance < findDisstance){
-				findDisstance = tempDistance;
-				findIndex = j;
+			minAlphaDistance = std::min(minAlphaDistance, std::abs(qAlpha(targetColor) - qAlpha(row.color)));
+		}
+
+		if(findIndex < 0){
+			double findDisstance = std::numeric_limits<double>::max();
+			for(int j = 0; j < targetColors.size(); j++){
+				const QRgb targetColor = targetColors[j].rgba();
+				if(std::abs(qAlpha(targetColor) - qAlpha(row.color)) > minAlphaDistance + alphaTolerance) continue;
+				const double tempDistance = euclideanDis(targetColor, row.color);//CIEDE2000::CIEDE2000(LAB(targetColor), histoRowTarget);
+				//qDebug()<<__LINE__<<"Campare to: ("<<qRed(targetColor)<<", "<<qGreen(targetColor)<<", "<<qBlue(targetColor)<<", "<<qAlpha(targetColor)<<") at "<<j<<" from "<<targetColors.size()<<" val: "<<tempDistance  ;
+				if(tempDistance < findDisstance){
+					findDisstance = tempDistance;
+					findIndex = j;
+				}
 			}
 		}
-		//qDebug()<<__LINE__<<"Map ("<<qRed(row.color.rgba())<<", "<<qGreen(row.color.rgba())<<", "<<qBlue(row.color.rgba())<<", "<<qAlpha(row.color.rgba())<<") to "<<findIndex ;
+		//qDebug()<<__LINE__<<"Map ("<<qRed(row.color)<<", "<<qGreen(row.color)<<", "<<qBlue(row.color)<<", "<<qAlpha(row.color)<<") to "<< findIndex ;
 		mapping[row.color] = findIndex;
 	}
 }

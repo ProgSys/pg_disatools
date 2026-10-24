@@ -2675,7 +2675,7 @@ inline bool compareColorTables(int colortableID, int colortableSize, const QColo
 inline QColorTable extractColorTable(int offset, int colortableSize, const QColorTable& colorTable) {
 	QColorTable out;
 	out.reserve(colortableSize);
-	for (unsigned int i = offset; i < offset + colortableSize; i++)
+	for (unsigned int i = offset; i < offset + colortableSize && i < colorTable.size(); i++)
 		out.push_back(colorTable[i]);
 	return out;
 }
@@ -2823,7 +2823,7 @@ bool SpriteData::importSpriteAsColor(Cutout& cut, QImage& newColorCutout) {
 
 	//image colortables
 	QColorTable imageTable = buildColorTable(newColorCutout);
-	QColorTable currentTable = extractColorTable(cut.getDefaultColorTable(), colortableSize, getColorTable());
+	QColorTable currentTable = extractColorTable(cut.getDefaultColorTable() * 16, colortableSize, getColorTable());
 
 	if (imageTable.size() > currentTable.size()) {
 		QMessageBox::StandardButton reply = QMessageBox::critical(nullptr, "Error",
