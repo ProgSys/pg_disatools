@@ -69,7 +69,6 @@ void DisaCustomRenderManager::init() {
     m_isInit = true;
     //starts the engine: glew, event loop, resource manager and context
     auto* app = DisaCustomApplication::create();
-    m_cachedResources.push_back(PG_Any::from(PG_Material("M_DisaFontTest")));
 #ifdef _DEBUG
     m_errorTexure.load("nsfw/face.png");
 #else

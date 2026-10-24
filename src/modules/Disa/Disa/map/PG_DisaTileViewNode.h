@@ -60,8 +60,12 @@ public:
 	* @returns Nothing where the tile has no ground that can be walked on
 	*/
 	using FloorTopFunction = std::function<std::optional<std::array<glm::vec3, 4>>(glm::ivec2)>;
-	/// Like the one above, for ground that is not a PG_DisaMapTileListModel, like the map of the running game
-	static void updateFloorPathGeometry(const FloorTopFunction& topOf, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode);
+	/**
+	* @brief Like the one above, for ground that is not a PG_DisaMapTileListModel, like the map of the running game
+	* @param material Gets the uv and the walk or fly flag in the position w described above
+	*/
+	static void updateFloorPathGeometry(const FloorTopFunction& topOf, const std::vector<glm::ivec2>& path, float pathWidth, PG_ModelNode* modelNode,
+		const std::string& material = "M_DisaTilePath");
 	static void updateFloorShadowGeometry(const std::array<glm::vec3, 4>& points, PG_ModelNode* modelNode);
 private:
 	void updateGeometry();

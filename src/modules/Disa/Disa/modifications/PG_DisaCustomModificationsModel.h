@@ -33,6 +33,8 @@
 #include <Util/PG_File.h>
 #include <list>
 #include <memory>
+#include <optional>
+#include <string>
 
 class PG_DisaModSpritesModel;
 class PG_DisaModFacesModel;
@@ -55,6 +57,18 @@ public:
 	};
 
 	/**
+	* @brief The "betterControls" block of a mod.json, the improved mouse control of battles is on while a loaded mod has one.
+	* @details The blocks are layers: every mod with one overrides only the keys it sets, a mod higher in the load order
+	* over the ones below it, the rest keep the defaults. Names without a namespace are taken from the mod that sets
+	* them, so "M_X" of a mod "pg_mod" is "pg_mod::M_X". A name that starts with "::" is a global one.
+	*/
+	struct BetterControls {
+		bool isRadialMenu = true; /// "radialMenu", the radial command menu instead of the original one
+		std::string radialMenuStyle; /// "radialMenuStyle", the style json in the mod, empty for the built in style
+		std::string pathMaterial = "M_DisaTilePath"; /// "pathMaterial", draws the path of a move
+	};
+
+	/**
 	* @param scriptsModel Not owned, receives the "scripts" and "talkScripts" blocks. Must not be null.
 	* @param translationModel Not owned, receives the "translation" block. May be null.
 	*/
@@ -69,6 +83,8 @@ public:
 	void loadModifications(const PG_File& exePath);
 
 	const std::list<PG_DisaModInfo>& getModifications() const { return m_modifications; }
+	/// The settings of the improved mouse control, nullopt while no mod turns it on
+	const std::optional<BetterControls>& getBetterControls() const { return m_betterControls; }
 
 	PG_DisaModSpritesModel* getSpritesModel() const { return m_spritesModel.get(); }
 	PG_DisaModFacesModel* getFacesModel() const { return m_facesModel.get(); }
@@ -82,6 +98,7 @@ public:
 
 private:
 	std::list<PG_DisaModInfo> m_modifications; //a list, the entries of the sub-models point into it
+	std::optional<BetterControls> m_betterControls;
 
 	std::unique_ptr<PG_DisaModSpritesModel> m_spritesModel;
 	std::unique_ptr<PG_DisaModFacesModel> m_facesModel;

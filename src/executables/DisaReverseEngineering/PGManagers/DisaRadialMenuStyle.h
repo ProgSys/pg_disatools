@@ -32,6 +32,7 @@
 #include <glm/glm.hpp>
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 class PG_GuiButton;
@@ -103,6 +104,8 @@ struct DisaRadialMenuStyle {
 	std::optional<float> outerRadius;
 	std::optional<float> gap; /// pixels
 	std::optional<PG_GuiRadialMenu::EJointStyle> jointStyle;
+	/// Window height in pixels the sizes are meant for, the menu is scaled by the window height over it
+	std::optional<float> referenceHeight;
 	HoverText hoverText;
 	Look buttonLook;
 	Content deadZoneContent;
@@ -114,6 +117,16 @@ struct DisaRadialMenuStyle {
 	* @returns std::nullopt when the file can't be read or holds no valid JSON, the error is logged.
 	*/
 	static std::optional<DisaRadialMenuStyle> load(const std::string& path);
+	/**
+	* @brief Reads a style file through the resource manager, like "mod::scripts/style.json" out of a mod.
+	* @returns std::nullopt when nobody carries the file or it holds no valid JSON, the error is logged.
+	*/
+	static std::optional<DisaRadialMenuStyle> loadResource(const std::string& name);
+	/**
+	* @brief A plain style made of the materials of the engine, one slot for each button and its label as text.
+	* @param buttons The name of each button and its label, clockwise from the top.
+	*/
+	static DisaRadialMenuStyle createDefault(const std::vector<std::pair<std::string, std::string>>& buttons);
 
 	/**
 	* @brief A closed menu with everything of the style, slot count and angle offset are fixed on creation.

@@ -1327,7 +1327,8 @@ namespace {
             auto* node = renderManager->getNode<PG_ModelNode>(nodeId, DisaCustomRenderManager::EGroup::World);
             static std::vector<glm::ivec2> lastPath;
             if (path != lastPath || !node->getModel().isValid()) {
-                PG_DisaTileViewNode::updateFloorPathGeometry(&getTileTop, path, 0.15f, node);
+                const std::string& material = DisaCustomModificationsManager::get()->getBetterControls()->pathMaterial;
+                PG_DisaTileViewNode::updateFloorPathGeometry(&getTileTop, path, 0.15f, node, material);
                 lastPath = std::move(path);
             }
             //path space into game units
@@ -1351,6 +1352,24 @@ namespace {
         }
 
         /**
+        * @brief The facing FUN_004475c0 turns the unit to on the last step of its path.
+        * @details Every step aims at the middle of its tile from where it starts, with atan2 of the step in x and z, and
+        * only a step longer than 6 turns the unit. A warping unit, movement type 2 of its character, never turns.
+        * Call it before the unit leaves its start, the first step starts there.
+        * @returns nullopt when the facing stays as it is
+        */
+        std::optional<int16_t> getArrivalFacing(const DisaMapUnit& unit) {
+            const int last = unit.pathLength;
+            if (last <= 0 || reinterpret_cast<const uint8_t*>(unit.character)[0x687] == 2) return std::nullopt;
+            const auto tileCenter = [&unit](int step) { return glm::vec2(float(unit.pathX[step] * 12 + 6), float(unit.pathZ[step] * 12 + 6)); };
+            const glm::vec2 from = last == 1 ? glm::vec2(unit.position.x, unit.position.z) : tileCenter(last - 1);
+            const glm::vec2 step = tileCenter(last) - from;
+            if (std::abs(step.x) + std::abs(step.y) <= 6.f) return std::nullopt;
+            const float degrees = static_cast<float>(std::atan2(double(step.x), double(step.y)) * 57.29674);
+            return static_cast<int16_t>(static_cast<int>(degrees));
+        }
+
+        /**
         * @brief Puts the unit on the target at once and lets a copy of it walk the path.
         * @details Sets up the undo like moveToCursor, then does what LAB_0045d602_updateWalk does once the walk ended.
         * @returns False when no path was found, nothing changed then
@@ -1365,6 +1384,7 @@ namespace {
             unit.moveOriginFacing = unit.facing;
             unit.moveOrigin = unit.position;
             unit.pathStep = 1;
+            const std::optional<int16_t> arrivalFacing = getArrivalFacing(unit);
 
             VisualWalk walk;
             std::memcpy(walk.unit.data(), &unit, sizeof(DisaMapUnit));
@@ -1379,6 +1399,12 @@ namespace {
             unit.velocity = glm::vec3(0.f);
             unit.moveFramesLeft = 0;
             unit.pose = 0;
+            //already turned the way the walk ends, so a command given before the sprite arrives turns it from there
+            if (arrivalFacing) {
+                unit.facing = *arrivalFacing;
+                unit.facingTarget = *arrivalFacing;
+                unit.turnFramesLeft = 0;
+            }
             if (FP::getData<int32_t>(0x005d9cd8) == 0 && unit.moveState == 0) unit.moveState = 1;
 
             FUN_0046aab0_playSound(1);
@@ -1529,7 +1555,6 @@ namespace {
 
         struct State {
             PG_Lifeline_T<PG_GuiRadialMenu> menu;
-            bool isLoadFailed = false;
             std::string confirmed; /// the name of the button confirmed since the menu was last updated
             bool isCancelled = false; /// closed without a button
             bool isShowingOriginal = false; /// Info was chosen, the original menu runs until the state changes
@@ -1537,27 +1562,31 @@ namespace {
             glm::ivec2 unitTile = glm::ivec2(0);
             bool isOnBasePanel = false;
             int countSpecials = 0;
+            float referenceHeight = 720.f; /// window height the style is meant for, @see DisaRadialMenuStyle::referenceHeight
         };
         State& getState() {
             static State state;
             return state;
         }
 
-        /// The menu, built on the first call. nullptr when the style can't be read or the gui doesn't run yet.
+        /// The menu, built on the first call. nullptr while the gui doesn't run yet.
         PG_GuiRadialMenu* getMenu() {
             State& state = getState();
             if (PG_GuiRadialMenu* menu = state.menu.get()) return menu;
             DisaCustomApplication* app = DisaCustomApplication::get();
-            if (state.isLoadFailed || !app) return nullptr;
+            if (!app) return nullptr;
 
 
-            const std::string path = PG_File(PG_ResourceManager::resourceLocation() + "/script/disa/battleRadialMenuStyle.json").getPath();
-            const std::optional<DisaRadialMenuStyle> style = DisaRadialMenuStyle::load(path);
+            //the style of the mod, the built in one without or when it can't be read
+            const std::string& styleName = DisaCustomModificationsManager::get()->getBetterControls()->radialMenuStyle;
+            std::optional<DisaRadialMenuStyle> style;
+            if (!styleName.empty()) style = DisaRadialMenuStyle::loadResource(styleName);
             if (!style) {
-                state.isLoadFailed = true;
-                return nullptr;
+                style = DisaRadialMenuStyle::createDefault({ { "special", "Special" }, { "lift", "Lift" }, { "defend", "Defend" },
+                    { "item", "Item" }, { "info", "Info" }, { "attack", "Attack" } });
             }
             PG_GuiRadialMenu* menu = style->create("battleCommandMenu", app->getGuiRoot());
+            if (style->referenceHeight && *style->referenceHeight > 0.f) state.referenceHeight = *style->referenceHeight;
             PG_GuiItem::anchor(menu, PG_Anchor::HorizontalCenter, DisaCustomApplication::get()->getGuiRoot(), PG_Anchor::HorizontalCenter);
             PG_GuiItem::anchor(menu, PG_Anchor::VerticalCenter, DisaCustomApplication::get()->getGuiRoot(), PG_Anchor::VerticalCenter);
 
@@ -1571,6 +1600,12 @@ namespace {
             return menu;
         }
 
+        /// Scales the menu with the window height, the center anchors keep it in the middle
+        void updateScale(PG_GuiRadialMenu* menu) {
+            const float scale = float(DisaCustomApplication::get()->getWindow()->getSize().y) / getState().referenceHeight;
+            if (menu->getScale() != glm::vec3(scale, scale, 1.f)) menu->setScale(glm::vec3(scale, scale, 1.f));
+        }
+
         /// Opens the menu around the unit, kept inside the window
         void open(PG_GuiRadialMenu* menu, DisaMapUnit& unit) {
             State& state = getState();
@@ -1582,6 +1617,7 @@ namespace {
             findAttackTargets(unit, state.unitTile, 0);
             findLiftTargets(unit, state.unitTile);
             menu->setPropertyValue("weaponType", unit.weaponType);
+            updateScale(menu);
             menu->open();
             for (auto* btn : menu->getButtons()) {
                 if (btn->getName() == "info") continue;
@@ -1625,7 +1661,7 @@ namespace {
         */
         bool update() {
             State& state = getState();
-            if (state.isShowingOriginal) return false;
+            if (state.isShowingOriginal || !DisaCustomModificationsManager::get()->getBetterControls()->isRadialMenu) return false;
             PG_GuiRadialMenu* menu = getMenu();
             if (!menu) return false;
 
@@ -1660,6 +1696,7 @@ namespace {
             }
 
             if (!menu->isOpen()) open(menu, *DisaMapUnit::get(DAT_008895b0_selectedUnit()));
+            else updateScale(menu); //the window may be resized while it is open
             return true;
         }
 
@@ -5506,17 +5543,12 @@ namespace {
                     return false;
                 }
 
-                //the unit already stands at the end, its sprite walks there with the fields of the walk
+                //the unit already stands at the end, its sprite walks there with the fields of the walk, which only show it
                 findIt->second.swap(unit);
                 const bool isArrived = FUN_004475c0_updateWalk(unit.index) == 1 && unit.moveFramesLeft == 0;
                 drawUnit(unit.index, unitAlpha, fogRefresh);
-                const int16_t facing = unit.facing;
                 findIt->second.swap(unit);
-                if (isArrived) {
-                    unit.facing = facing;
-                    unit.facingTarget = facing;
-                    walks.erase(findIt);
-                }
+                if (isArrived) walks.erase(findIt);
                 return true;
             }();
             if (isReplaced) continue;

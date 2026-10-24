@@ -5,6 +5,7 @@
 #include <Scene/Gui/PG_GuiText.h>
 #include <Util/Color/ColorConverters.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Resources/PG_ResourceManager.h>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <utility>
@@ -156,15 +157,10 @@ namespace {
 	}
 }
 
-std::optional<DisaRadialMenuStyle> DisaRadialMenuStyle::load(const std::string& path) {
-	std::ifstream file(path);
-	if (!file) {
-		OUT_ERROR("Radial menu style: can't read " << path);
-		return std::nullopt;
-	}
-	const Json root = Json::parse(file, nullptr, false, true);
+/// The style of a parsed file, source names it in the log
+static std::optional<DisaRadialMenuStyle> readStyle(const Json& root, const std::string& source) {
 	if (root.is_discarded() || !root.is_object()) {
-		OUT_ERROR("Radial menu style: " << path << " holds no valid JSON object");
+		OUT_ERROR("Radial menu style: " << source << " holds no valid JSON object");
 		return std::nullopt;
 	}
 
@@ -178,6 +174,7 @@ std::optional<DisaRadialMenuStyle> DisaRadialMenuStyle::load(const std::string& 
 		else if (key == "outerRadius") read(value, keyPath, style.outerRadius);
 		else if (key == "gap") read(value, keyPath, style.gap);
 		else if (key == "jointStyle") readJointStyle(value, keyPath, style.jointStyle);
+		else if (key == "referenceHeight") read(value, keyPath, style.referenceHeight);
 		else if (key == "hoverText") readHoverText(value, keyPath, style.hoverText);
 		else if (key == "button") {
 			readObject(value, keyPath, [&style](const std::string& lookKey, const Json& entry, const std::string& lookPath) {
@@ -194,6 +191,51 @@ std::optional<DisaRadialMenuStyle> DisaRadialMenuStyle::load(const std::string& 
 		return true;
 	});
 	if (buttons) readButtons(*buttons, "buttons", style);
+	return style;
+}
+
+std::optional<DisaRadialMenuStyle> DisaRadialMenuStyle::load(const std::string& path) {
+	std::ifstream file(path);
+	if (!file) {
+		OUT_ERROR("Radial menu style: can't read " << path);
+		return std::nullopt;
+	}
+	return readStyle(Json::parse(file, nullptr, false, true), path);
+}
+
+std::optional<DisaRadialMenuStyle> DisaRadialMenuStyle::loadResource(const std::string& name) {
+	PG_ResourceHandle handle = PG_ResourceManager::requestOpen(name);
+	if (!handle) {
+		OUT_ERROR("Radial menu style: can't find " << name);
+		return std::nullopt;
+	}
+	const std::vector<char> data = handle.readAll();
+	return readStyle(Json::parse(data.begin(), data.end(), nullptr, false, true), name);
+}
+
+DisaRadialMenuStyle DisaRadialMenuStyle::createDefault(const std::vector<std::pair<std::string, std::string>>& buttons) {
+	DisaRadialMenuStyle style;
+	style.slotCount = static_cast<unsigned int>(buttons.size());
+	style.angleOffset = 90.f + 180.f / float(buttons.size()); //the first button starts at the top
+	style.innerRadius = 60.f;
+	style.outerRadius = 150.f;
+	style.gap = 4.f;
+	style.jointStyle = PG_GuiRadialMenu::Rough;
+	style.referenceHeight = 720.f;
+	style.buttonLook.background = "M_GuiRectangle";
+	style.buttonLook.backgroundColors = PG_Gui::ColorSet{ .color = glm::vec3(0.24f), .hover = glm::vec3(0.31f),
+		.pressed = glm::vec3(0.2f), .disabled = glm::vec3(0.12f) };
+	style.buttonLook.fontSize = 22.f;
+	style.buttonLook.textColor = glm::vec3(1.f);
+	style.buttonLook.textMaterial = "M_GuiTextSDFArc";
+	for (unsigned int slot = 0; slot < buttons.size(); ++slot) {
+		Button& button = style.buttons.emplace_back();
+		button.name = buttons[slot].first;
+		button.firstSlot = button.lastSlot = slot;
+		button.content.text = buttons[slot].second;
+		button.menuText = buttons[slot].second;
+		button.look = style.buttonLook;
+	}
 	return style;
 }
 

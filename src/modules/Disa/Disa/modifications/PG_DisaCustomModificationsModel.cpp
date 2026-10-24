@@ -11,6 +11,7 @@
 #include <Disa/PG_DisaScriptsModel.h>
 #include <Disa/PG_DisaTranslationModel.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Resources/PG_ResourceName.h>
 
 using namespace PG_JsonUtil;
 
@@ -39,7 +40,39 @@ static void readModHeader(PG_DisaModInfo& mod, const PG_DisaModLoadInfo& loadInf
 	mod.zipFile = loadInfo.file;
 }
 
+/// A name of the mod, "::" in front makes it a global one and one with a namespace stays as it is
+static std::string resolveModName(const std::string& name, const std::string& nameSpace) {
+	if (name.starts_with("::")) return name.substr(2);
+	if (name.find("::") != std::string::npos) return name;
+	return PG_ResourceName::join(nameSpace, name);
+}
+
+/**
+* @brief Lays the "betterControls" block of the mod over the settings, a key it leaves out keeps what is there.
+* @details The first block turns the settings on with their defaults.
+* @returns False when the mod has no block
+*/
+static bool applyBetterControls(const PG_DisaModInfo& mod, const nlohmann::json& j, std::optional<PG_DisaCustomModificationsModel::BetterControls>& settings) {
+	const auto block = j.find("betterControls");
+	if (block == j.end()) return false;
+	if (!settings) settings.emplace();
+	if (!block->is_object()) {
+		OUT_WARNING("Mod '" << mod.name << "': \"betterControls\" is no object, it changes nothing");
+		return true;
+	}
+
+	readFromJson(*block, "radialMenu", settings->isRadialMenu);
+	std::string name;
+	readFromJson(*block, "radialMenuStyle", name);
+	if (!name.empty()) settings->radialMenuStyle = resolveModName(name, mod.namespaceMod);
+	name.clear();
+	readFromJson(*block, "pathMaterial", name);
+	if (!name.empty()) settings->pathMaterial = resolveModName(name, mod.namespaceMod);
+	return true;
+}
+
 void PG_DisaCustomModificationsModel::loadModifications(const PG_File& exePath) {
+	m_betterControls.reset();
 	m_spritesModel->clear();
 	m_facesModel->clear();
 	m_magicModel->clear();
@@ -144,6 +177,10 @@ void PG_DisaCustomModificationsModel::loadModifications(const PG_File& exePath) 
 
 		//the sub-models point at the mod from here on, so a failure below keeps it in the list
 		try {
+			//loaded bottom first, so every mod lays its keys over the ones of the mods below it
+			if (applyBetterControls(*mod, loadInfo.json, m_betterControls)) {
+				OUT_INFO("Better controls changed by mod '" << mod->name << "', radial menu " << (m_betterControls->isRadialMenu ? "on" : "off"));
+			}
 			m_magicModel->load(mod, loadInfo);
 			m_spritesModel->load(mod, loadInfo);
 			m_facesModel->load(mod, loadInfo);

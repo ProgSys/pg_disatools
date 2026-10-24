@@ -61,7 +61,8 @@ public:
 	void waitForModThread();
 	void wakeUp();
 
-	bool isImprovedMouseControl() const { return m_isImprovedMouseControl; }
+	/// A loaded mod turns it on, @see PG_DisaCustomModificationsModel::getBetterControls
+	bool isImprovedMouseControl() const { return getBetterControls().has_value(); }
 
 	static DisaCustomModificationsManager* get();
 private:
@@ -73,5 +74,4 @@ private:
 	std::mutex m_mtx;
 	std::condition_variable m_cv;
 	bool m_paused = true;
-	bool m_isImprovedMouseControl = bool(_DEBUG);
 };
