@@ -1,0 +1,635 @@
+ ===  21.03.2016 - v0.3.5 ===
+ * Added support to compress TGA (BGRA8888) or PNM (P3/P6 RBG888 No alpha) into TX2. (Not fully tested)
+ * Renamed the Netpbm format to PNM
+
+ ===  23.03.2016 - v0.3.7 ===
+ * uncompressed START.DAT is now supported!
+ * the currently unknown variables in PSPFS_V1 files are now copyed on save
+ 
+ ===  24.03.2016 - v0.3.8 (hotfix) ===
+ * other .DAT files now use there own .csv filetable, if one has bean found in the resources folder
+ * swapped Red and Blue color channels for color table 16 and 256 .TX2
+
+ ===  26.03.2016 - v0.4 ===
+ * Added support for decompressing IMY files
+ * Fixed char overflow in S3 compression
+ * Added right click menu list entries
+	- You can replace a entry
+	- If it is a OGG or TX2 you can play/open it in your default app
+	- If it is a IMY compressed package you can decompress it
+ * Changed entries now have a '*' next to there names
+ * Progress bars now actually shows the progress, instead of just spinning
+ * Added new file icons (IMY and IMY pack)
+ * The console window doesn't show up anymore
+
+ ===  26.03.2016 - v0.4 (hotfix) ===
+ * Fixed in some cases the save button would not light up
+
+ ===  28.03.2016 - v0.4.1 ===
+ * Fixed wrong repackaging (resulting in game crash) when replacing a compressed IMY pack with a decompressed pack
+ * You can now open and save sprite sheet packages (like ANM00.DAT inside the decompressed START.DAT) 
+   (note you currently only can replace existing sprite sheets, you can't add new sprite sheets)
+
+ ===  06.04.2016 - v0.4.3 ===
+ * Added basic sprite sheet viewer (v0.0.1)
+	- Allows to view the keyframes
+	- Allows to export the sprite sheet as PNG or TGA
+	- No editing yet
+ * You can (right click menu) open a sprite sheet directly from the file manager
+
+ ===  07.04.2016 - v0.4.4 ===
+ * Hopefully fixed a crash on opening files
+ * Sprite sheet viewer (v0.1.0)
+	- It now plays the animations and not the cutouts
+	- There are now basic play controls
+	- There are now some view options
+	
+===  08.04.2016 - v0.4.5 ===
+  * Disa PC File Manager v0.4.5 alpha:
+	- You now can properly delete and insert sprite sheets into a 'sprite offset list archive'
+  * Sprite Sheet Viewer v0.1.1 alpha:
+	- Correct position and rotation is applied to the animations  
+
+===  09.04.2016 - v0.4.6 ===
+  * Disa PC File Manager v0.4.6 alpha:
+	- Some clean up
+  * Sprite Sheet Viewer v0.1.2 alpha:
+	- You now can properly view and export sprite sheets with 256 colors
+
+===  27.05.2016 - v0.4.7 ===
+  * Disa PC File Manager v0.4.7 alpha:
+	- Nothing really
+  * Sprite Sheet Viewer v0.1.4 alpha:
+	- Added a very fancy timeline
+
+===  17.08.2016 - v0.4.8 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- Added Info on how to decompress files
+	- You can now decompress multiple files at the same time!
+  * Sprite Sheet Viewer v0.1.4 alpha:
+	- nothing
+
+===  19.08.2016 - v0.4.9 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Viewer v0.1.6 alpha:
+	- Timeline now shows each layer
+	- You can zoom in the timeline
+	- A lot of internal changes in preparation of sprite modification functionality
+	
+===  20.08.2016 - v0.5.0 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Viewer v0.1.7 alpha:
+	- Added basic transformation editing, but you still can't save anything :P
+	- You now can resize a keyframe via click & drop
+
+===  24.08.2016 - v0.5.1 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.0 alpha:
+	- Renamed 'Sprite Sheet Viewer' to 'Sprite Sheet Editor' as it now can export a SH file, 
+		but this function is not fully tested yet, so make a backup!
+	- Added a seperate track for markers, what the values of the marker do I'm not sure
+	- You can split and insert a keyframe 
+	- There is now a sprite sheet view, where you can view and edit the cutouts position and size
+	- curretly you can't add a new cutout or change the sprite sheet ID's
+
+===  25.08.2016 - v0.5.2 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- START.DAT filenames have bean updated, thanks to Krisan Thyme for his findings
+  * Sprite Sheet Editor v0.2.1 alpha:
+	- you now can modify the layers (move, add and delete)
+	- you can turn off visibility for layers
+	- you now can add and delete the cutouts (untested)
+	- added a mouse position indicator in the sprite sheet view
+
+===  25.08.2016 - v0.5.3 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.2 alpha:
+	- fixed a crash when creating a new sprite
+	- you now can export a sprite as a ID image or color Image
+	- you can inport a ID image or color Image into a sprite
+	- you can create an new empty sprite sheet
+
+===  26.08.2016 - v0.5.4 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.3 alpha:
+	- fixed import/export of the colortable
+	- you now can add a new animation
+	
+===  1.09.2016 - v0.5.5 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.4 alpha:
+	- You can add a keyframe with the right click menu of the layer
+	- You now can select the color table size when creating a sprite sheet
+	- You can now change the settings of a sprite sheet
+	- In the sprite sheet settings you can also delete the sprite sheet (except the first one)
+	- Added my own file format, if you want to open/save a .SH file, use import/export SH
+	- Fixed some bugs when importing a color sprite
+
+===  2.09.2016 - v0.5.6 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- Added a color table view (View > Color table view)
+	- Fixed a crash when setting a color table offset
+	- Hidden layers are now saved and loaded correctly
+	- Hidden layers will not get exported in into a SH file
+	- Added option to keep the keyframes docked when resized via click & drop
+	
+===  5.09.2016 - v0.5.7 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.1 alpha:
+	- a new tool to edit some .DAT files
+	- currently can only open and save DUNGEON.DAT, this file defines the teleport ladies menu
+	
+===  5.09.2016 - v0.5.8 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.2 alpha:
+	- 'HOSPITAL.DAT' and 'CHAR_E.DAT' are now supported
+	- you now can create new entrys 
+	- you now can delete entrys
+	- you now can export the file as a .csv (separated with commas)
+	
+===  6.09.2016 - v0.5.9 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.3 alpha:
+	- The file formats are now not hardcoded, you can easily edit them or add new formats, they are located at 'resources/dataFiles'
+
+===  8.09.2016 - v0.6.0 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.5 alpha:
+	- nothing
+  * Data Editor v0.0.5 alpha:
+	- Change the view to QTableView
+	- On edit the text is keept inside the edit box
+	- Wrote my own custom Shift Jis encoder/decoder
+        - Definition file:
+	  * you now need to set the 'headerFormat'  
+          * you now can set the color of the colums with 'SetColumnColor(column, r,g,b, [r2,g2,b2, [min, max]])'
+          * added support for unicode strings, 'unicode(bytes, [number of them])'
+          * you now can specify the column as a index, example: "$1" or "$1-42"(from 1 to 42)
+	  * Added .DEF files for CHAR_C.DEF, CHAR_K.DEF, CHARHELP.DEF, HABIT.DEF, MAGIC.DEF and MUSICSHOP.DEF
+
+===  9.09.2016 - v0.6.1 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.6 alpha:
+	- added support for sprite mirror (horizontall/verticall)
+	- added support for sprite blend render mode
+  * Data Editor v0.0.5 alpha:
+	- nothing
+	
+===  15.09.2016 - v0.6.2 ===
+  * Disa PC File Manager v0.4.8 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.7 alpha:
+	- added mouse navigation and zoom to the GL sprite view
+	- you can reset the camera via "View > Reset camera"
+	- fixed the position marker being at the wrong place when scrolling horizontally
+        - fixed error in importing color sprites if the amount of colors is the same as the number of supported colors
+        - inside the color table view, you now can add and remove a set (16) colors
+  * Data Editor v0.0.5 alpha:
+	- nothing
+	
+===  16.09.2016 - v0.6.3 ===
+   - Icons now are read from the resource file
+  * Disa PC File Manager v0.4.9 alpha:
+	- maybe fixed a crash on save, needs more testing
+	- moved file icons into a different folder
+  * Sprite Sheet Editor v0.2.7 alpha:
+	- included files that i forgot to include
+  * Data Editor v0.0.5 alpha:
+	- nothing
+
+===  17.09.2016 - v0.6.4 ===
+  * Disa PC File Manager v0.5.0 alpha:
+	- fixed crash on open
+	- fixed crash opening file info dialog
+  * Sprite Sheet Editor v0.2.7 alpha:
+	- nothing
+  * Data Editor v0.0.6 alpha:
+	- added support to open files from File Manager
+
+
+===  25.09.2016 - v0.6.5 ===
+  * Disa PC File Manager v0.5.1 alpha:
+	- added better support for FACE.DAT
+  * Sprite Sheet Editor v0.2.8 alpha:
+	- now all color tables are displayed and can be edited
+	- added new icons
+	- moved color table export/import to color table view
+  * Data Editor v0.0.6 alpha:
+	- nothing
+
+===  26.09.2016 - v0.6.6 ===
+  * Disa PC File Manager v0.5.1 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.2.9 alpha:
+	- fixed crash, the color table power was read wrong
+  * Data Editor v0.0.6 alpha:
+	- nothing
+
+===  28.09.2016 - v0.6.7 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- fixed ANM insert and replace
+  * Sprite Sheet Editor v0.3.0 alpha:
+	- markers now can be edited and are displayed correctly
+  * Data Editor v0.0.6 alpha:
+	- nothing
+
+===  29.09.2016 - v0.6.8 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- fixed TX2 wrong offset
+  * Sprite Sheet Editor v0.3.1 alpha:
+	- added more ways to add a sprite
+  * Data Editor v0.0.6 alpha:
+	- nothing
+	
+===  1.10.2016 - v0.6.9 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.1 alpha:
+	- nothing
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.1 alpha:
+	- tool has bean released!
+	- gui tool allows you to open, view, convert and export TX2 images
+	
+===  4.10.2016 - v0.7.0 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.2 alpha:
+	- you now can import a entire sprite sheet
+	- there is now a menu item for keyframes which alows you to replace and replace fit a sprite
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.1 alpha:
+	- nothing
+	
+===  6.10.2016 - v0.7.1 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.2 alpha:
+	- QML: replace fit now takes in account also the previous scale
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- fixed wrong color table reading of COLORTABLE_256 TX2 images
+	
+===  7.10.2016 - v0.7.2 ===
+  * Disa PC File Manager v0.5.2 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.3 alpha:
+	- added basic click & drop support to move (top left corner) and resize (bottom right corner) of a sprite in sprite sheet view
+	- a selected sprite now gets deselected when you click the background
+	- a keyframe gets a light blue background if it's sprite is selected in sprite sheet view
+	- the resize question options on sprite import changed to Yes and No instead of Yes and Cancel
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- nothing
+	
+===  13.10.2016 - v0.7.3 ===
+  * Disa PC File Manager v0.5.3 alpha:
+	- added some very basic file support for Disgaea 2 files
+  * Sprite Sheet Editor v0.3.4 alpha:
+	- fixed crash on import color sheet and color table being too small
+	- out of bound color tables indexes are now displayed as pink
+	- improved performance for adding/removing color table sets
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- nothing
+
+===  30.10.2016 - v0.7.4 ===
+  * Disa PC File Manager v0.5.4 alpha:
+	- added support for DSARC FL (*.pbd) files
+  * Sprite Sheet Editor v0.3.4 alpha:
+	- nothing
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- nothing
+
+===  27.11.2016 - v0.7.5 ===
+  * Disa PC File Manager v0.5.4 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.5 alpha:
+	- You now can rename an animation (right click the combo box or "Tools > Rename animation")
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- nothing
+
+===  30.11.2016 - v0.7.6 ===
+  * Disa PC File Manager v0.5.4 alpha:
+	- nothing
+  * Sprite Sheet Editor v0.3.6 alpha:
+	- Fixed sprite sheet resize displaying wrongly
+	- Added option to also resize all sprites on sprite sheet resize
+	- Fixed sprite sheet view spooky ghost selection
+  * Data Editor v0.0.6 alpha:
+	- nothing
+  * TX2 Editor v0.0.2 alpha:
+	- nothing
+	
+===  27.06.2017 - v0.7.7 ===
+  * Sprite Sheet Editor v0.3.7 alpha:
+	- a error massage is now displayed if a qml file failed to load or compile
+  
+===  01.07.2017 - v0.7.8 ===
+  * Sprite Sheet Editor v0.3.8 alpha:
+	- If the 3D view is focused, then you can now use the arrow keys to move the offset of a selected keyframe
+	- Additionally you can use button modifiers:
+		- if Control is helt, then the anchor is moved
+		- if Alt is helt, then the anchor is moved relative to the position
+		- if Shift is helt, then you can rotate the keyframe with left and right
+	- You now can 'Crop' a cutout in it's context menu 
+	
+===  01.07.2017 - v0.7.9 ===
+  * Sprite Sheet Editor v0.3.9 alpha:
+	- Fixed several crashes regarding the 'Crop' function
+	- Added a function to auto find cutouts on a sprite sheet
+		- To use it, just right click on a empty space in a sprite sheet and then select 'Auto find cutouts'
+
+===  24.12.2017 - v0.8.0 ===
+  * Sprite Sheet Editor v0.4.0 alpha:
+	- Import of color sprite sheets or cutouts has been imporved
+		- number of colors can now be automatically reduced
+		- the colors of the given image can now be automatically reassigned to the closest color in the color table
+		
+===  05.04.2019 - v0.8.1 ===
+  * General:
+	- All tools are now 64bit
+	- Updated Qt to 5.12.2
+  * Disa PC File Manager v0.5.6 alpha:
+	- Fixed bug in openning and saving DATA.DAT
+	- Fixed bug in decompressing IMY
+	- Added search field
+  * TX2 Editor v0.0.3 alpha:
+	- You now can convert to FONT (BGRA8888 16 Colors)
+	
+===  04.12.2019 - v0.8.2 ===
+  * Disa PC File Manager v0.5.7 alpha:
+	- Added utility to modify memory allocation (Thx to Kelebek1) 
+	
+===  12.01.2020 - v0.8.3 ===
+  * General:
+	- Updated Qt to 5.12.6
+  * Sprite Sheet Editor v0.4.1 alpha:
+	- Weapons now can be properly edited
+		- External sprite sheets are now included in the sprite sheet list 
+		- External sprite sheets have a open button to open a sprite sheet as preview (.sh or .pgs)
+		- Additional external sprite sheets can be added, but only one for each external ID
+	- Added a toggle to isolate a selected sprite
+	- Added a dropdown for sprite selection
+	- Fixed crash exporting 1001_FILE.SH
+	- Added new icons
+	- Added tooltips
+	
+===  13.01.2020 - v0.8.4 ===
+  * Sprite Sheet Editor v0.4.2 alpha:
+	- Added ability to copy and paste color sets in color table view to clipboard
+  * Disa PC File Manager v0.5.8 alpha:
+	- Sprite sheets now have a image preview
+	
+===  18.01.2020 - v0.8.5 ===
+  * Sprite Sheet Editor v0.4.3 alpha:
+	- A hovered color in color table view will now also highlight that color in sprite view
+	- You can now use your mouse wheel to modify the values inside text fields
+	- Added basic undo (CTRL-Z). Note: it is basic.
+	
+===  1.05.2020 - v0.8.6 ===
+  * Disa Map Viewer v0.0.2 alpha:
+	- The maps and are now displayed semi correct
+	- To open a map you need to extract .MPD and the corresponding .MPP
+	- You can open .GEO files
+	- You can export a map as GLTF (you then import it in Blender)
+		- Map textures are not exported correctly as they use multiple overlapping channels
+		
+===  2.05.2020 - v0.8.7 ===
+  * Sprite Sheet Editor v0.4.4 alpha:
+	- You now can scale external sprite sheets
+		- You need to define the original sprite size as it is not stored 
+		- If "Resize Sprites" is checked then all sprites will also be scaled including animations
+	- Fixed some initializing bugs with "Sprite sheet settings" dialog
+	- New feature: If you scale via Drag and Drop, you can now hold Shift to scale proportionally
+
+===  9.05.2020 - v0.8.8 ===
+  * Sprite Sheet Editor v0.4.5 alpha:
+	- Reworked "sprite sheet view" navigation
+		- It now uses a Flickable instead of an ScrollArea
+		- You can move the view via holding right mouse button, like in 3D view
+		- You can zoom via mouse wheel, like in 3D view. Also zoom has far bigger range
+		- Made resize handle easier to select (it will also become bigger on zoom in)
+		- Selected cutouts now have interaction priority 
+		- Improved undo on resize
+	- Fixed rendering bug when adding or removing sprite sheets
+  * Disa Map Viewer v0.0.3 alpha:
+	- Improved model interpretation
+
+===  10.05.2020 - v0.8.9 ===
+  * Disa Map Viewer v0.0.4 alpha:
+	- Added basic animation support
+	- Added billboard support
+        - Background is now dark
+		
+===  28.05.2020 - v0.9.0 ===
+  * Disa Map Viewer v0.0.6 alpha:
+	- Animations are now almost the same as in game
+	- Added animated texture support
+		- Note: Texture scroll speed and direction is defined inside map files, so if you just open a model the animation will be wrong
+	- You can now open DATA.DAT to view all maps inside
+	- Added interpretation for models that are marked hidden
+		- You can display hidden models via a toggle button
+  * Sprite Sheet Editor v0.4.6 alpha
+	- Fixed crash when sprite id is set too high
+	- Fixed crash when opening an .SH where a cutout has an invalid sheet index
+
+===  11.06.2020 - v0.9.1 ===
+  * Disa PC File Manager v0.5.9 alpha:
+	- Fixed a case where the save button would not enable
+	- Added the ability to export a metafest file
+		- It contains meta information of each file like file size and md5 checksum 
+  * Disa Map Viewer v0.0.7 alpha:
+	- Improved performance
+	- Scrollbar stays active when mouse is moved outside window
+
+===  11.07.2020 - v0.9.2 ===
+  * Disa PC File Manager v0.6.0 alpha:
+	- Fixed .OGG play option not displaying in context menu
+	- Fixed file name display in file info box
+
+===  01.08.2020 - v0.9.3 ===
+  * Disa Map Viewer v0.0.8 alpha:
+	- Fixed map chunk parsing. No tiles should be missing.
+	- Added Geo Panels interpretation
+		- You can enable Geo Panels with a toggle button
+        - Improved performance
+		
+===  27.12.2020 - v0.9.4 ===
+  * General:
+	- Updated Qt to 5.15.1
+  * Disa PC File Manager v0.6.1 alpha:
+	- Added file support for PS_FS_V1
+  * Disa Map Viewer v0.0.9 alpha:
+	- You can now display actor positions (like enemies)
+	
+===  30.07.2023 - v0.9.5 ===
+  * Disa PC File Manager v0.6.2 alpha:
+	- Better support for NEW .MPP files
+  * TX2 Editor v0.0.4 alpha:
+	- Added basic support for DXT4 textures
+  * Disa Map Viewer v0.1.0 alpha
+	- Added a toggle button to switch to the HD version of a map when a DATA.DAT file is open
+	- Added a search field 
+	- Several improvements to the .gltf exporter
+	
+===  06.08.2023 - v0.9.6 ===
+  * Disa Map Viewer v0.1.1 alpha
+	- Fixed loading of some tiles
+		- Noticeable in Laharls castle
+	- Fixed loading of some models that had too many nodes
+	
+===  13.08.2023 - v0.9.7 ===
+  * Disa Map Viewer v0.1.2 alpha
+	- You now can export/import a Json file of a map when DATA.DAT is opened
+		- You can modify the human readable Json and import it back
+		- You can directly save the modifications (dont forget to make a backup!)
+	- Fixed interpretation of tile UV values. It now should look the same as in game.
+	
+===  03.11.2023 - v0.9.8 ===
+  * Sprite Sheet Editor v0.4.7 alpha
+	- When adding a color set the other sets are moved to the right and the cutout color offset ID is incremented as needed.
+		- Added a plus btn to simply add a color set to the end
+		
+===  17.11.2024 - v1.0.0 ===
+  * (NEW) Data Map Editor v0.2.9 alpha
+	- Allows you not to just edit maps but also create completely new maps and shareable campaigns!
+	- It is possible to create custom intro and exit dialog/scripts 
+  * Sprite Sheet Editor v0.4.9 alpha
+	- Added simple pixel brush tool 
+		- Left click to paint color
+		- Control-Left click to paint with second color
+		- Alt-Left click to pick color form canvas
+		- Alt-Control-Left click to pick second color form canvas
+		- Control-Z Undo
+	- Improved sheet navigation, middle mouse btn can now be used for panning
+	- Improved timeline timer to be consistent. Its speed no longer depens on the fps.
+  * Data Editor v0.0.8 alpha:
+    - Fields now can be split into a sub range of bits. (final size must always be divisible by 8) Example: "uint(3b); uint(13b);", short split into two numbers
+
+===  07.12.2024 - v1.0.1 ===
+ * Data Map Editor v0.3.0 alpha
+	- When a geo symbol is set, alliance is automatically set to "Enemy, third party"
+ 	- (DisaReverseEngineering) The entire function stack now should be used
+	- (DisaReverseEngineering) When an invalid function is detected the game will crash, but before that a message box will be displayed
+	
+===  24.03.2025 - v1.0.2 ===
+ * Data Map Editor v0.3.1 alpha
+	- Improved error handling when creating a new campaign (issues/30)
+	
+===  28.04.2025 - v1.0.3 prerelease ===
+ * Data Map Editor v0.3.2 alpha
+	- Added handling for loading custom characters
+ * Sprite Sheet Editor v0.5.1 alpha
+	- Fixed frame selection when a new layer is added
+ * DisaReverseEngineering
+	- Can now load character information from zip files located at "mod/CustomCharacters"
+	- Custom characters can be recruited in the dark assembly 
+	- If custom characters are present in player party then meta data will be added to the save file for remapping
+	- Added new terminal commands
+		- "printParty" will print player party into terminal or export it as json
+		- "addCharacter" will add new character to party from given identifier
+		- "printMagic" will print loaded magic/skills
+		
+===  30.09.2025 - v1.0.5  ===
+ * Disa Map Editor v0.3.5 alpha
+	- Hopefully fixed an issue that could cause zip corruption when saving
+	- Added an "Add" button in the Asset Manager to add new assets
+    - Terrain editing:
+	   - Added the ability to modify bottom corners of a tile in the Inspector
+       - Added the ability to hide individual tile faces in the Inspector
+    - Material editing:
+	   - Added option to clear a texture slot
+	   - Added a new function to plane-project selected faces based on the first selected face
+    - General performance optimizations
+ * Sprite Sheet Editor v0.5.2 alpha
+    - Improved performance when reducing the number of colors in a sprite sheet. It should be now much faster, even with millions of colors
+	- Added support for exporting and importing cutout outlines, with each outline color-coded by its ID
+    - Added an "Auto3x (HD)" option for upscaling sprite sheets to HD format (may only be compatible with modded game version)
+	- Markers now show more accurate and detailed option settings
+ * Disa PC File Manager v0.6.5 alpha:
+    - Added support for opening script archives
+	
+===  12.10.2025 - v1.0.6  ===
+ * Disa Map Editor v0.3.6 alpha
+ 	- Fixed z Scale not working correctly in inspector
+	- Added duplicate button for selected object in inspector
+ * Disa Mod Manager v0.3.6 alpha
+    - Added check if "Microsoft Visual C++ Redistributable" for x86 (32bit) are installed
+	- Improved installed version check
+ * DisaReverseEngineering v4.5.0
+	- Fixed level setting when adding character via terminal
+	- Properly implemented the ability to add new magic/skills
+    - Added new command to print all loaded characters
+
+===  12.10.2025 - v1.0.7  ===
+ * Disa Map Editor v0.3.7 alpha
+	- Fixed the ability to throw units into oblivion
+	- Fixed the ability to select stuff with right click
+ * DisaReverseEngineering v4.6.0
+	- You can now set the mentor with the AddCharacter (ac) command
+	- Fixed derived units not copying skills
+	
+===  14.10.2025 - v1.0.8  ===
+ * Disa Map Editor v0.3.8 alpha
+	- Fixed some gizmos not visible in object mode
+ * DisaReverseEngineering v4.6.1
+	- Updated recruitment, see "Adding-Custom-Characters" Wiki for more info!
+	    - Changed "isRecruitable" to "recruitmentType", allowing for more precise settings.
+	    - Changed "unknownValue0x83" to "manaCostScale", allowing to scale the mana cost of a unit in dark assembly
+		
+===  25.10.2026 - v1.2.0  ===
+ - The most of the project now swiched to a custom engine and no longer uses Qt
+ * Disa Map Editor v0.5.0 beta
+	- Added support pg_engine custom geometry models
+	- Added experimental game perspective test mode 
+	- Various bug fixes and improvements
+ * DisaReverseEngineering v4.4.7 beta
+	- Game now renders at native resolution
+	- Fixed crash during load when unknown characters is present in save file
+	- Reversed most of combat state machine to add better controls mod support
+	- pg_engine is now fully injected into the games renderer. It can now render custom models, ui, etc.
+	- Improved translation and custom font support
+	- Various bug fixes and improvements
+ * DisaModManager v0.3.7 beta
+    - Installer now installs a config that points to the "resources" folder
+ * DisaFileManager v0.7.0 beta
+    - Now uses pg_engine
+	- Better preview support
+	- You can now "step" into a folder. No longer needed to be extracted to be opned.
+	- Faster read and write
+ * DisaDataEditor v0.1.0 beta
+    - Now uses pg_engine
+ * DisaTx2Editor v0.1.0 beta
+    - Now uses pg_engine
+	- Imporved navigation
+	- Imporved performace in color reduction algorithm
+	- Improved color picker and color table
