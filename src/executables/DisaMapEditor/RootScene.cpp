@@ -1032,9 +1032,10 @@ void RootScene::setupToolbarMapView() {
 		});
 
 	auto simulateButton = PG_new<PG_GuiToggleButton>("SimulatePlayTestButton", glm::vec2(0.f), glm::vec2(39.f, 30.f), toolbarRow);
-	simulateButton->setIcon("I_icon_actor");
+	simulateButton->setIcon("I_disa_icon_lab");
 	simulateButton->setBackground("M_GuiToolButtonEnd");
-	simulateButton->setTooltipText("Simulate play test");
+	//simulateButton->setTooltipText("Simulate play test");
+	simulateButton->setTooltipText("Simulate perspective");
 	simulateButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);
 
 	connect(simulateButton, &PG_GuiToggleButton::toggleChanged, this, [this, simulateButton, editToggleButton](bool toggled) {
