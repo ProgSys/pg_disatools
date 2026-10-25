@@ -10,6 +10,7 @@
 #include <Disa/models/PG_DisaModLoadOrderListModel.h>
 #include <Disa/PG_DisaScriptsModel.h>
 #include <Disa/PG_DisaTranslationModel.h>
+#include <Disa/PG_DisaVersion.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Resources/PG_ResourceName.h>
 
@@ -112,21 +113,14 @@ void PG_DisaCustomModificationsModel::loadModifications(const PG_File& exePath) 
 					OUT_ERROR("'mod.json' has invalid 'version' inside zip '" << zipFile << "'!");
 					continue;
 				}
-				std::array<int, 3> version{ 1,0,0 };
-				auto it = version.begin();
-				for (const auto& s : range) {
-					const int v = PG_StringUtil::toIntView(s);
-					if (*it < v) {
-						OUT_ERROR("The minimal supported version of '" << zipFile << "' is bigger then of the tools! The mod is not loaded!");
-						break;
-					}
-					else if (*it != v) { //major version is bigger
-						it = version.end();
-						break;
-					}
-					++it;
+				//the tweak of the j.dll version is left out, a bugfix build doesn't change what mods can rely on
+				constexpr std::array<int, 3> toolsVersion{ DISA_MOD_VERSION_MAJOR, DISA_MOD_VERSION_MINOR, DISA_MOD_VERSION_PATCH };
+				std::array<int, 3> minVersion{};
+				std::ranges::transform(range, minVersion.begin(), PG_StringUtil::toIntView);
+				if (minVersion > toolsVersion) {
+					OUT_ERROR("The minimal supported version of '" << zipFile << "' is bigger then of the tools! The mod is not loaded!");
+					continue;
 				}
-				if (it != version.end()) continue;
 			}
 
 		}

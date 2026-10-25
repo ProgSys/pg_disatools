@@ -140,7 +140,7 @@ void RootScene::setupToolbar() {
 
 	auto mapsButton = PG_new<PG_GuiToggleButton>("MapModsButton", glm::vec2(3.f, 0.f), glm::vec2(39.f, 30.f), toolbarRow);
 	mapsButton->setToggled(false);
-	mapsButton->setIcon("I_disa_icon_disaTerrain");
+	mapsButton->setIcon("I_disa_icon_campaign");
 	mapsButton->setBackground("M_GuiToolButtonEnd");
 	mapsButton->setTooltipText("Campaigns");
 	mapsButton->setLayoutProperty(PG_GuiItem::LayoutProperty_Spacing, 1.f);

@@ -24,9 +24,11 @@
 
 cmake_minimum_required(VERSION 4.0)
 
-set(PROJECT_GLOBAL_NUMBER 0.6.0 CACHE PATH "Project version number.")
+set(CMAKE_MODULE_PATH "F:/ProgSys/pg_engine_v2/src/cmake" CACHE PATH "Project specific path. Set manually if it was not found.")
+include(${CMAKE_MODULE_PATH}/macros/pg_app_version.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/Versions.cmake)
+
 project(PG_Engine VERSION ${PROJECT_GLOBAL_NUMBER} DESCRIPTION "ProgSys rendering engine."  LANGUAGES CXX)
 
-set(CMAKE_MODULE_PATH "F:/ProgSys/pg_engine_v2/src/cmake" CACHE PATH "Project specific path. Set manually if it was not found.")
 set(CMAKE_BINARY_DIR "../build/winVS" CACHE PATH "Project specific path. Set manually if it was not found.")
 include(${CMAKE_MODULE_PATH}/generators/PG_Project.cmake)

@@ -32,3 +32,4 @@ resources/script/exportlayers
 src/externals/msdfgen
 resources/script/talkPoses.pgr
 resources/script/talkStory.txt
+src/executables/**/RC[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]

@@ -12,8 +12,7 @@
 
 #include <RootScene.h>
 #include <Renderer/PG_SceneRenderer.h>
-
-#define APP_NAME "Disa File Manager v0.7.0"
+#include <PG_AppVersion.h>
 
 int main(int argc, char* args[]) {
 	PG_SDLApplication app;

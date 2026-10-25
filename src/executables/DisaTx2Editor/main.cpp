@@ -4,9 +4,9 @@
 
 #include <RootScene.h>
 
-#include <cstring>
+#include <PG_AppVersion.h>
 
-#define APP_NAME "Disa TX2 Editor"
+#include <cstring>
 
 /// The first argument that isn't an option is the file to open on start
 static std::string findFileArgument(int argc, char* args[]) {

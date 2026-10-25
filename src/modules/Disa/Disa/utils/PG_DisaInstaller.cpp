@@ -8,6 +8,7 @@
 #include <Util/PG_Dir.h>
 #include <Stream/PG_StreamInByteFile.h>
 
+#include <Disa/PG_DisaVersion.h>
 #include <Disa/customGui/PG_PupUpDialog.h>
 #include <Disa/fileformats/PG_Exe.h>
 #include <Disa/fileformats/PG_ZIP.h>
@@ -65,7 +66,7 @@ void PG_DisaInstaller::runInstall(std::string currentVersion, PG_File exePath) {
 	PG_StringUtil::trim(version);
 	if (version.empty() || !isVersionStringValid(version)) {
 		OUT_ERROR("Failed to find valid install version! Using fallback!");
-		version = DISA_ISNTALL_APP_VERSION;
+		version = DISA_MOD_VERSION;
 	}
 
 
@@ -146,7 +147,7 @@ void PG_DisaInstaller::runFreshInstall() {
 		);
 
 		okPopup->open();
-		emit done(DISA_ISNTALL_APP_VERSION, inputFile);
+		emit done(DISA_MOD_VERSION, inputFile);
 		});
 
 	installPopup->open();
