@@ -23,7 +23,7 @@
  ]]
 set(UI_FILES spritesheeteditor.ui compileErrorBox.ui createNewAnimation.ui createNewSpriteSheet.ui resizeDialog.ui)
 set(RESOURCE_FILES "${PROJECT_ICONS_PATH}/sprite_sheet_editor_icon.res") #windres aminoVisIcon.rc -O coff -o aminoVisIcon.res
-set(VERSION_NUMBER 0.1.7)
+set(VERSION_NUMBER 0.5.3)
 set(EXECUTABLE_TITLE ${TITLE_SpriteSheetEditor})
 include(${CMAKE_MODULE_PATH}/generators/QtExecutable.cmake)
 target_compile_definitions(${ProjectId} PRIVATE TITLE_SpriteSheetEditor="${TITLE_SpriteSheetEditor}" )
