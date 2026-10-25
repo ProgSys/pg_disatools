@@ -55,7 +55,7 @@ You can download the latest version of the tools here:
 This gui application allows you to extract and insert files into Disgaea PC .DAT and .MPP files.
 Note that the position of most files in .DAT are hardcoded, deleting files could break the file order and so the archive itself.
 
-![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/File_Manager_v0.5.8.png)
+![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/DisaFileManager_v0.7.0.png)
 
 #### Disa Map Editor
 
@@ -92,14 +92,15 @@ Base supported files:
 * HABIT - Contains job titles and their attributes.
 * CHARHELP - Contains descriptions of all characters.
 
-![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/Data_Editor_v0.0.6_alpha_preview.png)
+![gui image](https://raw.githubusercontent.com/ProgSys/pg_disatools/master/preview/DisaDataEditor_v0.1.0.png)
 
 
 #### TX2 Editor
 
 This tool allows you to open, view, convert and export TX2 images.
 
-![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/TX2%20Editor%20v0.0.1%20alpha_preview.png)
+![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/DisaTx2Editor_v0.1.0.png)
+
 ### Pre release versions:
 * [Version v1.0.9 alpha](https://www.dropbox.com/scl/fi/uipzx2w36hg75eqaj5bfs/Disgaea-Tools-v1.0.9-alpha-prerelese.zip?rlkey=yyy0wuqfz3lmsyex039sx7amv&dl=0)
 
