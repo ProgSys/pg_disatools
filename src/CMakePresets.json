@@ -28,13 +28,24 @@
         {
             "binaryDir": "${sourceDir}/../build/x64-Release",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+                "CMAKE_BUILD_TYPE": "Release"
             },
             "description": "Use this preset for Release mode in Visual Studio.",
             "displayName": "Release",
             "hidden": true,
             "inherits": "default",
             "name": "release_preset"
+        },
+        {
+            "binaryDir": "${sourceDir}/../build/x64-RelWithDebInfo",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+            },
+            "description": "Use this preset to debug an optimized build in Visual Studio. Links incrementally and keeps unused code, so the binaries are much larger than Release.",
+            "displayName": "Release with debug info",
+            "hidden": true,
+            "inherits": "default",
+            "name": "relwithdebinfo_preset"
         },
         {
             "architecture": {
