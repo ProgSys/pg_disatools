@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.0.8 alpha](https://www.dropbox.com/scl/fi/wynb5gtmqyb397iw515yj/Disgaea-Tools-v1.0.8-alpha.zip?rlkey=lpsdggr08lq8dncotyld6jf9h&dl=0)**
+* **[Version v1.2.0 beta](https://www.dropbox.com/scl/fi/mjoxbsaqxn1jhi3lymdx0/Disgaea-Tools-v1.2.0-beta.zip?rlkey=w6sl2isg6esjblgwlduws1tfb&dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
@@ -101,9 +101,6 @@ This tool allows you to open, view, convert and export TX2 images.
 
 ![gui image](https://github.com/ProgSys/pg_disatools/blob/master/preview/DisaTx2Editor_v0.1.0.png)
 
-### Pre release versions:
-* [Version v1.0.9 alpha](https://www.dropbox.com/scl/fi/uipzx2w36hg75eqaj5bfs/Disgaea-Tools-v1.0.9-alpha-prerelese.zip?rlkey=yyy0wuqfz3lmsyex039sx7amv&dl=0)
-
 ### Older versions:
 * [Version v0.3.0 alpha](https://www.dropbox.com/s/yraau190k8xia0i/Disgaea%20Tools%20v0.3%20alpha.zip?dl=0)
 * [Version v0.4.0 alpha](https://www.dropbox.com/s/8epdstlt7e2v0w1/Disgaea%20Tools%20v0.4%20alpha.zip?dl=0)
@@ -127,6 +124,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v1.0.5 alpha](https://www.dropbox.com/scl/fi/zg0t1gk6lk7rc58wjsrfo/Disgaea-Tools-v1.0.5-alpha.zip?rlkey=towf71mk682dg4zxq6xsou6bz&dl=0)
 * [Version v1.0.6 alpha](https://www.dropbox.com/scl/fi/feh0yqdqg4vrs5p885nej/Disgaea-Tools-v1.0.6-alpha.zip?rlkey=l1e4aghzwi78sasgbblxxdnbp&dl=0)
 * [Version v1.0.7 alpha](https://www.dropbox.com/scl/fi/9ta6s49vpelchnfml4f1k/Disgaea-Tools-v1.0.7-alpha.zip?rlkey=xt93bageykcldlbiclp2efphu&dl=0)
+* [Version v1.0.8 alpha](https://www.dropbox.com/scl/fi/wynb5gtmqyb397iw515yj/Disgaea-Tools-v1.0.8-alpha.zip?rlkey=lpsdggr08lq8dncotyld6jf9h&dl=0)
 ---
 
 # Disclaimer && License
