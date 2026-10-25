@@ -19,13 +19,6 @@
 DisaCustomBaseModManager::DisaCustomBaseModManager():
     PG_DisaMainBaseModel(), m_scriptsModel(new DisaCustomScriptManager()), m_translationModel(new DisaCustomTranslationManager()){}
 
-static inline std::string getExecutablePath() {
-    char path[MAX_PATH];
-    // Get the handle of the executable that loaded this DLL (pass NULL)
-    GetModuleFileName(NULL, path, MAX_PATH);
-    return std::string(path);
-}
-
 PG_File DisaCustomBaseModManager::getExePath() const {
 #ifdef _DEBUG
     const char* dirPath = "D:/Steam/SteamApps/common/Disgaea PC/";
@@ -33,7 +26,7 @@ PG_File DisaCustomBaseModManager::getExePath() const {
 #else
     static PG_File filePath;
     if (filePath.isEmpty()) {
-        filePath = PG_File(getExecutablePath()).getDir();
+        filePath = PG_File::getExecutable().getDir();
         if (filePath.isEmpty() || filePath.getPath().size() < 4 || filePath.getPath().size() > 3400) exit(1);
         if (filePath.getPath().back() != '\\') filePath.getPath().push_back('\\');
         OUT_INFO("Found path: " << filePath);

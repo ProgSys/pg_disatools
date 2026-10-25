@@ -95,7 +95,7 @@ DisaCustomApplication* DisaCustomApplication::create() {
 
 	HWND nativeWindow = FP::getData<HWND>(FP::getData<uint32_t>(0x005bae70) + 8);
 	g_customApplication = new DisaCustomApplication(nativeWindow); //PG_Application starts the event loop
-	PG_ResourceManager::create(DisaCustomBaseModManager::get()->exePath().getPath() + "/resources");
+	PG_ResourceManager::create(); //the installed config.ini points it to the tools resources
 	registerDisaResourceLoaders();
 	g_customApplication->m_gameResourceScope = registerDisaGameSource(PG_Dir(DisaCustomBaseModManager::get()->exePath().getPath()));
 	PG_Context::create();

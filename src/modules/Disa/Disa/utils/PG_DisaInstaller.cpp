@@ -13,6 +13,8 @@
 #include <Disa/fileformats/PG_Exe.h>
 #include <Disa/fileformats/PG_ZIP.h>
 #include <Script/CScript/PG_CScript.h>
+#include <Script/PG_ConfigFile.h>
+#include <Util/PG_Exception.h>
 #include <Windows.h>
 
 static inline bool isVCppRedistInstalled() {
@@ -315,6 +317,37 @@ std::string PG_DisaInstaller::execInstall(PG_File exePath, bool doUnzip) {
 			OUT_ERROR("Failed to unzip \"" << zipFile << "\"!");
 			installScript.forceStop();
 			return;
+		}
+		});
+
+	//points the game's PG_Application to the tools resource folder, other values in an existing config are kept
+	installScript.getContext().add("addconfig", [&isPerformUnzip, &installScript, &error, &exePath]() {
+		if (!isPerformUnzip) return;
+
+		std::string resources = PG_ResourceManager::resourceLocation().getAbsolute().getDir();
+		PG_StringUtil::replaceAll(resources, "\\", "/"); //the config reads "\n" and "\t" as escapes
+		PG_ConfigFile config;
+		try {
+			config.open(exePath.getDir() + "/config.ini");
+		}
+		catch (...) {
+			//a missing one is created by the save below, but an unreadable one is not overwritten
+			if (config.getFile().exists()) {
+				error = "Failed to read \"" + config.getFile().getPath() + "\"!";
+				installScript.forceStop();
+				return;
+			}
+		}
+
+		if (!config.setValueChange<std::string>("resources", resources)) return;
+		OUT_INFO("Writing resource path \"" << resources << "\" into \"" << config.getFile() << "\"");
+		try {
+			config.save();
+		}
+		catch (const PG_Exception& ex) {
+			OUT_ERROR(ex.what());
+			error = "Failed to write \"" + config.getFile().getPath() + "\"!";
+			installScript.forceStop();
 		}
 		});
 

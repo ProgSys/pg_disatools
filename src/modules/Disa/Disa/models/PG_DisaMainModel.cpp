@@ -22,10 +22,7 @@ PG_DisaMainBaseModel::PG_DisaMainBaseModel() {
 	g_baseMainModel = this;
 }
 
-void PG_DisaMainModel::init() {
-	m_config.open();
-	
-}
+void PG_DisaMainModel::init() {}
 
 PG_DisaMainBaseModel* PG_DisaMainBaseModel::get() {
 	return g_baseMainModel;

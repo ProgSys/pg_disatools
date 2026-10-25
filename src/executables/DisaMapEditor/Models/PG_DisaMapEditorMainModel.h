@@ -70,7 +70,6 @@ private:
 	PG_DisaGeoEffectsModel* m_geoEffectsModel = nullptr;
 	PG_DisaUiTextursModel* m_uiTextursModel = nullptr;
 
-	PG_DisaConfig m_config;
 	PG_ListModelBase* m_gridModel = nullptr; //buffer pointer set by pushStateStack
 	std::vector<std::shared_ptr<PG_UiStateBaseModel>> m_modelStack;
 };

@@ -2,6 +2,7 @@
 #include "DisaCustomBaseModManager.h"
 #include <DisaCharacterFunctions.h>
 #include <Util/PG_MD5.h>
+#include <Util/PG_StringUtil.h>
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Disa/PG_DisaTalkCompiler.h>
 #include <DisaScriptManager.h>

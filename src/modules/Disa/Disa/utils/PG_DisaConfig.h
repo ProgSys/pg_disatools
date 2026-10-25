@@ -27,14 +27,21 @@
  */
 #pragma once
 
+#include <memory>
 #include <string>
-#include <Script/PG_ConfigFile.h>
+#include <Util/PG_File.h>
 
+class PG_ConfigFile;
 
-struct PG_DisaConfig: public PG_ConfigFile {
-	using PG_ConfigFile::PG_ConfigFile;
-
-	void open();
+/**
+* @brief The Disa values inside the application config. @see PG_Application::getConfig
+* @details Without a config file one is started beside the executable, which the first change then creates.
+* Must be constructed after the application.
+*/
+class PG_DisaConfig {
+public:
+	PG_DisaConfig();
+	~PG_DisaConfig();
 
 	bool isFancySplashScreen() const;
 	std::string getFancySplashScreenText() const;
@@ -44,5 +51,7 @@ struct PG_DisaConfig: public PG_ConfigFile {
 
 	void setExePath(const std::string& version, const PG_File& path);
 
-	
+private:
+	PG_ConfigFile* m_config = nullptr; /// the application's, or m_ownConfig when it has none
+	std::unique_ptr<PG_ConfigFile> m_ownConfig;
 };

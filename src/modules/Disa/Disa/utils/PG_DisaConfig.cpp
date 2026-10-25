@@ -27,40 +27,50 @@
  */
 
 #include "PG_DisaConfig.h"
+#include <Base/PG_Application.h>
+#include <Script/PG_ConfigFile.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_Exception.h>
 
-void PG_DisaConfig::open() {
+PG_DisaConfig::PG_DisaConfig() {
+	m_config = PG_Application::config();
+	if (m_config) return;
+
+	m_ownConfig = std::make_unique<PG_ConfigFile>();
 	try {
-		PG_ConfigFile::open("config.ini");
+		m_ownConfig->open(PG_File::getExecutable().getDir() + "/config.ini");
 	}
-	catch (const PG_Exception& ext) {
-		OUT_ERROR(ext.what());
-	}
-	catch (...) {
-		OUT_ERROR("Failed to read or find \"config.ini\"!");
-	}
+	catch (...) {} //expected, there is no file yet, but the path is kept for the save
+	m_config = m_ownConfig.get();
 }
 
+PG_DisaConfig::~PG_DisaConfig() = default;
 
 bool PG_DisaConfig::isFancySplashScreen() const {
-	return getValue<bool>("fancySplashScreen", false);
+	return m_config->getValue<bool>("fancySplashScreen", false);
 }
 std::string PG_DisaConfig::getFancySplashScreenText() const {
-	return getValue<std::string>("fancySplashScreenText", std::string("I forgot what to say~"));
+	return m_config->getValue<std::string>("fancySplashScreenText", std::string("I forgot what to say~"));
 }
 std::string PG_DisaConfig::getSplashScreenText() const {
-	return getValue<std::string>("fancySplashScreenText", std::string("Failed to read \"splashScreenText\" in config.ini!"));
+	return m_config->getValue<std::string>("splashScreenText", std::string("Failed to read \"splashScreenText\" in config.ini!"));
 }
 std::string PG_DisaConfig::getDisaExePath() const {
-	return getValue<std::string>("disaExe", std::string());
+	return m_config->getValue<std::string>("disaExe", std::string());
 }
 std::string PG_DisaConfig::getDisaExeVersion() const {
-	return getValue<std::string>("disaExeVersion", std::string());
+	return m_config->getValue<std::string>("disaExeVersion", std::string());
 }
 
 void PG_DisaConfig::setExePath(const std::string& version, const PG_File& path) {
-	bool change = setValueChange<std::string>("disaExeVersion", version);
-	change |= setValueChange<std::string>("disaExe", path);
-	if (change) save();
+	bool change = m_config->setValueChange<std::string>("disaExeVersion", version);
+	change |= m_config->setValueChange<std::string>("disaExe", path);
+	if (!change) return;
+
+	try {
+		m_config->save();
+	}
+	catch (const PG_Exception& ex) {
+		OUT_ERROR("Failed to save \"" << m_config->getFile() << "\": " << ex.what());
+	}
 }

@@ -8,6 +8,7 @@
 #include <Stream/PG_StreamInByteFile.h>
 #include <Stream/PG_StreamInByteArray.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Util/PG_StringUtil.h>
 
 using namespace PG_JsonUtil;
 

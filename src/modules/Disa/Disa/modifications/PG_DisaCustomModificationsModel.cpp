@@ -12,6 +12,7 @@
 #include <Disa/PG_DisaTranslationModel.h>
 #include <Disa/PG_DisaVersion.h>
 #include <Util/Debug/PG_DebugOut.h>
+#include <Util/PG_StringUtil.h>
 #include <Resources/PG_ResourceName.h>
 
 using namespace PG_JsonUtil;
