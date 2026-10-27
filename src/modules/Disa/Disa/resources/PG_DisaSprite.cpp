@@ -157,7 +157,7 @@ public:
 		float i = 0.f;
 		const bool mirrorX = mods.contains("mirrorX");
 		for (auto it = cutouts.begin() + findKeyIt->layers.start_cutout; it != cutouts.begin() + (findKeyIt->layers.start_cutout + findKeyIt->layers.number_of_cutouts); ++it) {
-			if (it->external_sheet > 0) continue;
+			if (it->external_sheet > 0 || it->sheet >= textures.size()) continue;
 			spriteMat.set("colortableStart", it->colortable * 16);
 
 			glm::mat4 mat = modelMatrix;
