@@ -21,6 +21,7 @@
 #include <DisaRendering.h>
 #include <DisaScriptFunctions.h>
 #include <DisaScriptManager.h>
+#include <DisaSoundFunctions.h>
 #include <Disa/fileformats/PG_MPD.h>
 
 
@@ -885,8 +886,6 @@ namespace {
     void FUN_00477200_showBanner(int banner, int param) { FP::callStdFastFarA<void>(0x00477200, banner, param); }
     /// Original function: FUN_0046aad0, fades the music to a volume.
     void FUN_0046aad0_fadeMusic(int volume) { FP::callStdFastFarA<void>(0x0046aad0, volume); }
-    /// Original function: FUN_0046a830, plays a music, 0 stops it.
-    void FUN_0046a830_playMusic(int music) { FP::callStdFastFarA<void>(0x0046a830, music); }
     /// Original function: FUN_004de090, plays a sound. The fourth argument is never read, FUN_0046aab0 passes the id.
     void FUN_004de090_playSound(int id, int volume, int param3, int param5) {
         FP::callFastFarA<void>(fPlaySound, id, volume, param3, 0, param5);

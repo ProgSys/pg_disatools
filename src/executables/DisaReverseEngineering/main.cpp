@@ -16,6 +16,7 @@
 #include <DisaMapChunk.h>
 #include <DisaMapFunctions.h>
 #include <DisaMapGameFunctions.h>
+#include <DisaSoundFunctions.h>
 #include <Windows.h>
 #include <Util/Debug/PG_DebugOut.h>
 #include <Util/PG_StringUtil.h>
@@ -133,6 +134,11 @@ struct HockManager {
         */
         //the whole frame, the call sites above inside FUN_0045c0f0 are then no longer reached
         replaceFunction("battleMap", "One frame of the battle map: input, states and drawing", 0x0048C610, FUN_0045c0f0_updateBattleMap);
+
+        //0x00464030, 0x00464b4e and 0x00466045 sit in FUN_0045c0f0, which is replaced above, the rest in FUN_0049e1a0
+        for (unsigned int address : { 0x00464030u, 0x00464b4eu, 0x00466045u, 0x0049efe1u, 0x0049f05du }) {
+            replaceFunction("playMusic", "Plays a music by id, 0 and 100 stop it", address, FUN_0046a830_playMusic);
+        }
 
         {
             auto f = &DisaObjectModel::FUN_004e2180;

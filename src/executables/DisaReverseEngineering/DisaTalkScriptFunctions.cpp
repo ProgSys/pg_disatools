@@ -2,6 +2,7 @@
 #include "FunctionPatcher.h"
 #include "DisaScriptFunctions.h"
 #include "DisaScriptManager.h"
+#include "DisaSoundFunctions.h"
 #include <Managers/DisaCustomBaseModManager.h>
 #include <iostream>
 #include <Util/Debug/PG_DebugOut.h>
@@ -51,7 +52,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
     if (waitUserImputMode == 1) { //confirm
         if (((disaTScriptManager->data2[0x306c] == 2) || ((uVar4 & 0xd) != 0)) ||
             (uVar9 = FP::callFastFarA<int>(0x0050f7c0, '\0'), (char)uVar9 != '\0')) {
-            FP::callFastFarA(0x00510ad0, (int*)0x1);
+            FUN_00510ad0_stopStream(1);
             disaTScriptManager->voiceId = 0;
             *(undefined2*)(disaTScriptManager->data2 + 0x30d0) = 0;
             disaTScriptManager->dialogStringLength = 0;
@@ -73,7 +74,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
             (uVar9 = FP::callFastFarA<int>(0x0050f7c0, '\0'), (char)uVar9 == '\0')) {
             return;
         }
-        FP::callFastFarA(0x00510ad0, (int*)0x1);
+        FUN_00510ad0_stopStream(1);
         disaTScriptManager->voiceId = 0;
         disaTScriptManager->speechBubbleAnimationSpeed = -1;
         disaTScriptManager->speechBubbleAnimationFrame = 0xf;
@@ -199,7 +200,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
             DisaSettings* settings = (DisaSettings*)(FP::getData<unsigned int>(0x005d7c40));
 
             if (disaTScriptManager->field5_0x5a == 0) {
-                FP::callFastFarA(0x00510ad0, (int*)0x1);
+                FUN_00510ad0_stopStream(1);
                 disaTScriptManager->voiceId = 0;
                 disaTScriptManager->speechBubbleAnimationSpeed = -1;
                 disaTScriptManager->speechBubbleAnimationFrame = 0xf;
@@ -215,7 +216,7 @@ void __fastcall FUN_004bfa60_TalkScriptExec(DisaScriptManager* disaTScriptManage
                 }
             }
             else {
-                FP::callFastFarA(0x00510ad0, (int*)0x1);
+                FUN_00510ad0_stopStream(1);
                 disaTScriptManager->voiceId = 0;
                 *(undefined2*)(disaTScriptManager->data2 + 0x30d0) = 0;
                 disaTScriptManager->dialogStringLength = 0;
