@@ -77,6 +77,7 @@ void DisaCustomRenderManager::init() {
     m_loadTexture.load("gui/disa/disaMissingno.png");
     m_fullImageScreenModel.load("T_DisaFullScreenImg", { { PG_Material("M_DisaFullScreenImg"), PG_Geometry::sfqUVyFlipped()  } });
     m_imageScreenModel.load("T_DisaScreenImg", { { PG_Material("M_DisaScreenImg"), PG_Geometry::sfq()  } });
+    m_progressBarModel.load("T_DisaProgressBar", { { PG_Material("M_DisaProgressBar"), PG_Geometry::sfq()  } });
 
     //both stay visible, a hidden actor stops the ticks of everything below it
     m_worldGroup = PG_new<PG_ActorNode>("DisaWorldGroup", app->getScene()->getRoot());

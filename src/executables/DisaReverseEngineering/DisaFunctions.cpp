@@ -21,6 +21,7 @@
 #include <Disa/fileformats/PG_ShiftJisEncoder.h>
 #include <Stream/PG_StreamInByteArray.h>
 #include <ranges>
+#include <algorithm>
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/constants.hpp> 
 #include <glm/gtc/matrix_transform.hpp>
@@ -874,9 +875,48 @@ namespace {
         const uint64_t topBit = value < twoPow63 ? 0x8000000000000000ull : 0ull;
         return static_cast<uint64_t>(static_cast<int64_t>(value)) + topBit;
     }
+
+    /// The bar as one rectangle with M_DisaProgressBar instead of the three cutouts of the game.
+    void renderBarNewCustom(int x, int y, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap) {
+        //the bright ends of the old UI team gradients (0x005ae3f0), the texture rows of DAT_0074ce28 follow the same order
+        constexpr std::array<glm::vec4, 5> fillColors{ {
+            { 40.f / 255.f, 236.f / 255.f, 88.f / 255.f, 1.f },
+            { 240.f / 255.f, 96.f / 255.f, 170.f / 255.f, 1.f },
+            { 1.f, 236.f / 255.f, 0.f, 1.f },
+            { 1.f, 60.f / 255.f, 16.f / 255.f, 1.f },
+            { 122.f / 255.f, 1.f, 16.f / 255.f, 1.f },
+        } };
+        constexpr glm::vec4 backgroundColor(0.1f, 0.08f, 0.05f, 0.8f);
+
+        const glm::vec4& fillColor = fillColors[std::clamp(colorRow, 0, static_cast<int>(fillColors.size()) - 1)];
+        //a bar without end cap is stacked on another one, a background would hide the bar below
+        const glm::vec4 background = drawEndCap ? backgroundColor : glm::vec4(0.f);
+
+        auto* renderManager = DisaCustomRenderManager::get();
+        auto* node = renderManager->getNode<PG_ModelNode>(renderManager->makeFrameNodeId("progressBar"), DisaCustomRenderManager::EGroup::Screen);
+        if (node->getModel() != renderManager->getProgressBarModel()) node->setModel(renderManager->getProgressBarModel());
+        //the same area as the fill of the game, a full bar is width - 4 pixels long and 4 high
+        node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f))));
+        node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(width - 4, 4.f, 1.f))));
+        node->setPropertyValue("disaBarProgress", PG_Any::from(static_cast<float>(static_cast<double>(value) / static_cast<double>(max))));
+        node->setPropertyValue("disaBarFillColor", PG_Any::from(fillColor));
+        node->setPropertyValue("disaBarBackgroundColor", PG_Any::from(background));
+        //FUN_RenderCutout submits at 49999 too, its depth argument only becomes the vertex z
+        renderManager->submit(49999.0f, node, -1, false, false, 0, 0, '\0', false);
+    }
 }
 
+/// When false, FUN_004a6af0_drawBarNew draws the cutouts of the game.
+
 void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap) {
+    static bool g_renderBarNewCustom = true;
+    //BEGIN Custom Code
+    if (g_renderBarNewCustom) {
+        renderBarNewCustom(x, y, width, value, max, colorRow, drawEndCap);
+        return;
+    }
+    //END Custom Code
+    
     //both operands are rounded to float, the quotient is not, x87 keeps it at double precision until the truncation
     const float scaled = static_cast<float>(static_cast<int64_t>(width - 4) * value);
     const uint64_t fill = FUN_004a6af0_toUint64(static_cast<double>(scaled) / static_cast<double>(static_cast<float>(max)));
