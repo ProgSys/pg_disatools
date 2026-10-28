@@ -905,9 +905,10 @@ namespace {
     /**
     * The bar as one rectangle with the material of the mods' "gui" -> "bar" block instead of the three cutouts of the
     * game. The built in M_DisaProgressBar rebuilds the cutouts from one row of NEW_GUI09 and recolours them.
+    * @param depth The depth of FUN_004a6af0, like 0xc7a7. Becomes the z of the rectangle.
     * @param callSite The call of FUN_004a6af0 in the game, it picks the old UI colour.
     */
-    void renderBarNewCustom(const PG_DisaCustomModificationsModel::GuiBar& settings, int x, int y, int width, int64_t value, int64_t max, int colorRow,
+    void renderBarNewCustom(const PG_DisaCustomModificationsModel::GuiBar& settings, int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow,
         bool drawEndCap, unsigned int callSite) {
         //the mods are loaded once at start, so the material never changes
         static const PG_Model model("T_DisaProgressBar", PG_Material(settings.material), PG_Geometry::sfq());
@@ -926,13 +927,14 @@ namespace {
         if (node->getModel() != model) node->setModel(model);
         //the fill area of the game, a full bar is width - 4 pixels long and 4 high, yScale grows it around its centre
         const float height = 4.f * settings.yScale;
-        node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y + 2.f - height * 0.5f, 0.f))));
+        //the depth goes into z like in FUN_RenderCutout, the game layers its 2D pieces by the vertex z, not by the queue
+        node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y + 2.f - height * 0.5f, static_cast<float>(depth)))));
         node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(width - 4, height, 1.f))));
         node->setPropertyValue("disaBarProgress", PG_Any::from(static_cast<float>(static_cast<double>(value) / static_cast<double>(max))));
         node->setPropertyValue("disaBarFillColorNew", PG_Any::from(fillColorNew));
         node->setPropertyValue("disaBarFillColorOld", PG_Any::from(fillColorOld));
         node->setPropertyValue("disaBarEndCap", PG_Any::from(drawEndCap ? 1.f : 0.f));
-        //FUN_RenderCutout submits at 49999 too, its depth argument only becomes the vertex z
+        //FUN_RenderCutout submits every cutout at 49999 as well
         renderManager->submit(49999.0f, node, -1, false, false, 0, 0, '\0', false);
     }
 }
@@ -940,7 +942,7 @@ namespace {
 void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap, unsigned int callSite) {
     //BEGIN Custom Code
     if (const auto& guiBar = DisaCustomModificationsManager::get()->getGuiBar()) {
-        renderBarNewCustom(*guiBar, x, y, width, value, max, colorRow, drawEndCap, callSite);
+        renderBarNewCustom(*guiBar, x, y, depth, width, value, max, colorRow, drawEndCap, callSite);
         return;
     }
     //END Custom Code
