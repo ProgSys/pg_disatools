@@ -876,21 +876,18 @@ namespace {
         return static_cast<uint64_t>(static_cast<int64_t>(value)) + topBit;
     }
 
-    /// The bar as one rectangle with M_DisaProgressBar instead of the three cutouts of the game.
+    /**
+    * The bar as one rectangle with M_DisaProgressBar instead of the three cutouts of the game. The shader rebuilds
+    * the cutouts from one row of NEW_GUI09 in grey and multiplies them with the fill colour, grey 0.5 gives the fill colour.
+    */
     void renderBarNewCustom(int x, int y, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap) {
-        //the bright ends of the old UI team gradients (0x005ae3f0), the texture rows of DAT_0074ce28 follow the same order
-        constexpr std::array<glm::vec4, 5> fillColors{ {
-            { 40.f / 255.f, 236.f / 255.f, 88.f / 255.f, 1.f },
-            { 240.f / 255.f, 96.f / 255.f, 170.f / 255.f, 1.f },
-            { 1.f, 236.f / 255.f, 0.f, 1.f },
-            { 1.f, 60.f / 255.f, 16.f / 255.f, 1.f },
-            { 122.f / 255.f, 1.f, 16.f / 255.f, 1.f },
+        //the colour rows of NEW_GUI09: turquoise (fitted to the original), red and yellow (estimates)
+        constexpr std::array<glm::vec4, 3> fillColors{ {
+            { 0.1f, 0.66f, 0.55f, 1.f },
+            { 0.74f, 0.38f, 0.41f, 1.f },
+            { 0.76f, 0.68f, 0.33f, 1.f },
         } };
-        constexpr glm::vec4 backgroundColor(0.1f, 0.08f, 0.05f, 0.8f);
-
         const glm::vec4& fillColor = fillColors[std::clamp(colorRow, 0, static_cast<int>(fillColors.size()) - 1)];
-        //a bar without end cap is stacked on another one, a background would hide the bar below
-        const glm::vec4 background = drawEndCap ? backgroundColor : glm::vec4(0.f);
 
         auto* renderManager = DisaCustomRenderManager::get();
         auto* node = renderManager->getNode<PG_ModelNode>(renderManager->makeFrameNodeId("progressBar"), DisaCustomRenderManager::EGroup::Screen);
@@ -900,7 +897,7 @@ namespace {
         node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(width - 4, 4.f, 1.f))));
         node->setPropertyValue("disaBarProgress", PG_Any::from(static_cast<float>(static_cast<double>(value) / static_cast<double>(max))));
         node->setPropertyValue("disaBarFillColor", PG_Any::from(fillColor));
-        node->setPropertyValue("disaBarBackgroundColor", PG_Any::from(background));
+        node->setPropertyValue("disaBarEndCap", PG_Any::from(drawEndCap ? 1.f : 0.f));
         //FUN_RenderCutout submits at 49999 too, its depth argument only becomes the vertex z
         renderManager->submit(49999.0f, node, -1, false, false, 0, 0, '\0', false);
     }
