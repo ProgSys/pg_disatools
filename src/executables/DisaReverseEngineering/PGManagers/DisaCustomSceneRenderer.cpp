@@ -104,7 +104,6 @@ void DisaCustomSceneRenderer::renderStored() {
 		}
 		m_job->render();
 		m_job.reset();
-		emit rendered();
 	}
 
 	glPopAttrib();

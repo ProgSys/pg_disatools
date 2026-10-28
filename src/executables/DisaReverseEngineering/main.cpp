@@ -191,6 +191,12 @@ struct HockManager {
         replaceFunction("renderPortrait", "Renders the face (Portrait) of a character", 0x004a94a3, FUN_004b5490_NoneStd); //render portrait
         replaceFunction("renderPortrait", "Renders the face (Portrait) of a character", 0x004aac77, FUN_004b5490_NoneStd); //render portrait
 
+        //every call of FUN_004a6af0, see reverse/ProgressBars.md for the screen of each
+        for (unsigned int address : { 0x0047aee1u, 0x0048d446u, 0x00493e66u, 0x00493e8fu, 0x004a8432u, 0x004a84d7u, 0x004a9542u, 0x004a95cfu, 0x004ac282u,
+            0x004af6deu, 0x004afea8u, 0x004c2367u }) {
+            replaceFunction("drawBarNew", "The fill of a progress bar in the new UI style", address, FUN_004a6af0_drawBarNew_NoneStd);
+        }
+
         
         for (auto address : g_RenderTextNewFuncs) {
             replaceFunction("renderTextNew", "Renders new text", address, FUN_RederTextNew); 

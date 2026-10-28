@@ -857,6 +857,62 @@ int __declspec(naked) __fastcall FUN_GetWidthOfString(char* str, int param_2, in
     }
 }
 
+namespace {
+    /// DAT_0074ce28, the image of the new UI bar fill. One 4x8 texel row per colour, starting at v 0x71.
+    float* DAT_0074ce28_barNewImage() { return &FP::getData<float>(0x0074ce28); }
+    /// DAT_005ad534, white, so the cutouts keep the colour of the texture.
+    glm::rgba* DAT_005ad534_white() { return &FP::getData<glm::rgba>(0x005ad534); }
+
+    /**
+    * The x87 to unsigned 64 bit conversion at 0x004a6b2f, built around _ftol2 (0x00523fc6), which truncates.
+    * Values from 2^63 on are shifted down and get the top bit back.
+    */
+    uint64_t FUN_004a6af0_toUint64(double value) {
+        constexpr double twoPow63 = 9223372036854775808.0;
+        if (value < twoPow63) return static_cast<uint64_t>(static_cast<int64_t>(value));
+        value -= twoPow63;
+        const uint64_t topBit = value < twoPow63 ? 0x8000000000000000ull : 0ull;
+        return static_cast<uint64_t>(static_cast<int64_t>(value)) + topBit;
+    }
+}
+
+void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap) {
+    //both operands are rounded to float, the quotient is not, x87 keeps it at double precision until the truncation
+    const float scaled = static_cast<float>(static_cast<int64_t>(width - 4) * value);
+    const uint64_t fill = FUN_004a6af0_toUint64(static_cast<double>(scaled) / static_cast<double>(static_cast<float>(max)));
+
+    //the texture is twice the screen size, a 4x8 texel piece becomes 2x4 pixels
+    const int texV = colorRow * 8 + 0x71;
+    const auto renderCutout = [&](float posX, int pieceWidth, int texU, int texWidth) {
+        FP::callFastFarA(fRenderCutout, DAT_0074ce28_barNewImage(), DAT_005ad534_white(), posX, static_cast<float>(y), depth, pieceWidth, 4, texU, texV, texWidth, 8);
+    };
+
+    renderCutout(static_cast<float>(x), 2, 0, 4);
+    if (fill < 4) {
+        if (drawEndCap) renderCutout(static_cast<float>(x + 2), 2, 9, 4);
+        return;
+    }
+    //a negative fill lands here as well, FUN_RenderCutout mirrors the negative middle width
+    renderCutout(static_cast<float>(x + 2), static_cast<int>(fill) - 4, 5, 3);
+    if (drawEndCap) renderCutout(static_cast<float>(static_cast<int64_t>(x) + static_cast<int64_t>(fill) - 2), 2, 9, 4);
+}
+
+__declspec(naked) void FUN_004a6af0_drawBarNew_NoneStd() {
+    //copies the 8 stack dwords (depth, width, value, max, colorRow, drawEndCap), ecx and edx stay x and y
+    __asm {
+        push [esp + 32]
+        push [esp + 32]
+        push [esp + 32]
+        push [esp + 32]
+        push [esp + 32]
+        push [esp + 32]
+        push [esp + 32]
+        push [esp + 32]
+        call FUN_004a6af0_drawBarNew
+        ret
+    }
+}
+
 void FUN_00471240_RenderDungeonScreeen(void) {
 
     int** ppiVar3;

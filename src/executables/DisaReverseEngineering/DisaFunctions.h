@@ -443,6 +443,21 @@ int __fastcall FUN_GetWidthOfString(char* str, int param_2, int param_3, int* pa
 /// Replaces the string with its translation when the translation manager has one, FUN_GetWidthOfString does it first.
 void __fastcall translateReplace(char*& jis_string);
 
+/**
+* @brief The fill of a progress bar in the new UI style (HP, SP, weapon mastery, skill EXP, rank, aptitude).
+* Drawn as a left cap, a stretched middle and a right cap from DAT_0074ce28, filled up to (width - 4) * value / max.
+* The track behind it is FUN_004a6cf0 or part of the background. See reverse/ProgressBars.md.
+* @param depth Render priority, like 0xc7a7.
+* @param width The full width of the bar, the same as given to the track.
+* @param max Must not be 0, the callers test it.
+* @param colorRow The row in DAT_0074ce28, 2 is the yellow of the progress bars, HP and SP pass the team.
+* @param drawEndCap False for a bar that is stacked on top of another one.
+*/
+void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap);
+
+/// The game's call sites remove the 32 pushed bytes themselves, this forwards to FUN_004a6af0_drawBarNew without doing it twice.
+void FUN_004a6af0_drawBarNew_NoneStd();
+
 //======== FUNCTIONS ========
 
 /**
