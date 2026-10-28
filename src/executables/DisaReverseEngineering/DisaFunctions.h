@@ -453,10 +453,14 @@ void __fastcall translateReplace(char*& jis_string);
 * @param max Must not be 0, the callers test it.
 * @param colorRow The row in DAT_0074ce28, 2 is the yellow of the progress bars, HP and SP pass the team.
 * @param drawEndCap False for a bar that is stacked on top of another one.
+* @param callSite Not part of the original, the address of the game's call. It picks the old UI colour, 0 for none.
 */
-void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap);
+void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap, unsigned int callSite = 0);
 
-/// The game's call sites remove the 32 pushed bytes themselves, this forwards to FUN_004a6af0_drawBarNew without doing it twice.
+/**
+* @brief The game's call sites remove the 32 pushed bytes themselves, this forwards to FUN_004a6af0_drawBarNew without doing it twice.
+* It also passes the call site, taken from the return address.
+*/
 void FUN_004a6af0_drawBarNew_NoneStd();
 
 //======== FUNCTIONS ========

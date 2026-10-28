@@ -22,6 +22,7 @@
 #include <Stream/PG_StreamInByteArray.h>
 #include <ranges>
 #include <algorithm>
+#include <optional>
 #include <glm/gtc/epsilon.hpp>
 #include <glm/gtc/constants.hpp> 
 #include <glm/gtc/matrix_transform.hpp>
@@ -877,17 +878,44 @@ namespace {
     }
 
     /**
+    * The colour the old UI style uses for the bar drawn from that call of FUN_004a6af0, see the call sites in
+    * reverse/ProgressBars.md. The team gradients (0x005ae3f0) give their bright end.
+    * @returns Nothing for a call site that is not one of the game's.
+    */
+    std::optional<glm::vec4> FUN_004a6af0_oldFillColor(unsigned int callSite, int colorRow) {
+        unsigned int colorAddress;
+        switch (callSite) {
+            case 0x0047aee1: colorAddress = 0x005ae430; break; //party list HP
+            case 0x004ac282: colorAddress = 0x005ae3e4; break; //weapon mastery
+            case 0x004af6de: //skill EXP, the second layout has no old style, it gets the one of the first
+            case 0x004afea8: colorAddress = 0x005ad534; break;
+            case 0x004c2367: colorAddress = 0x005ae428; break; //rank
+            case 0x0048d446: //class aptitude
+            case 0x00493e8f: colorAddress = 0x005ae448; break; //creation aptitude bonus
+            case 0x00493e66: colorAddress = 0x005ae43c; break; //creation aptitude base
+            case 0x004a8432: //battle unit panel HP and SP
+            case 0x004a84d7:
+            case 0x004a9542: //character panel HP and SP
+            case 0x004a95cf: colorAddress = 0x005ae3f0 + std::clamp(colorRow, 0, 6) * 8 + 4; break;
+            default: return std::nullopt;
+        }
+        return glm::vec4(FP::getData<glm::rgba>(colorAddress)) / 255.f;
+    }
+
+    /**
     * The bar as one rectangle with M_DisaProgressBar instead of the three cutouts of the game. The shader rebuilds
     * the cutouts from one row of NEW_GUI09 in grey and multiplies them with the fill colour, grey 0.5 gives the fill colour.
+    * @param callSite The call of FUN_004a6af0 in the game, it picks the old UI colour.
     */
-    void renderBarNewCustom(int x, int y, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap) {
+    void renderBarNewCustom(int x, int y, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap, unsigned int callSite) {
         //the colour rows of NEW_GUI09: turquoise (fitted to the original), red and yellow (estimates)
         constexpr std::array<glm::vec4, 3> fillColors{ {
             { 0.1f, 0.66f, 0.55f, 1.f },
             { 0.74f, 0.38f, 0.41f, 1.f },
             { 0.76f, 0.68f, 0.33f, 1.f },
         } };
-        const glm::vec4& fillColor = fillColors[std::clamp(colorRow, 0, static_cast<int>(fillColors.size()) - 1)];
+        const glm::vec4& fillColorNew = fillColors[std::clamp(colorRow, 0, static_cast<int>(fillColors.size()) - 1)];
+        const glm::vec4 fillColorOld = FUN_004a6af0_oldFillColor(callSite, colorRow).value_or(fillColorNew);
 
         auto* renderManager = DisaCustomRenderManager::get();
         auto* node = renderManager->getNode<PG_ModelNode>(renderManager->makeFrameNodeId("progressBar"), DisaCustomRenderManager::EGroup::Screen);
@@ -896,7 +924,8 @@ namespace {
         node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f))));
         node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(width - 4, 4.f, 1.f))));
         node->setPropertyValue("disaBarProgress", PG_Any::from(static_cast<float>(static_cast<double>(value) / static_cast<double>(max))));
-        node->setPropertyValue("disaBarFillColor", PG_Any::from(fillColor));
+        node->setPropertyValue("disaBarFillColorNew", PG_Any::from(fillColorNew));
+        node->setPropertyValue("disaBarFillColorOld", PG_Any::from(fillColorOld));
         node->setPropertyValue("disaBarEndCap", PG_Any::from(drawEndCap ? 1.f : 0.f));
         //FUN_RenderCutout submits at 49999 too, its depth argument only becomes the vertex z
         renderManager->submit(49999.0f, node, -1, false, false, 0, 0, '\0', false);
@@ -905,11 +934,11 @@ namespace {
 
 /// When false, FUN_004a6af0_drawBarNew draws the cutouts of the game.
 
-void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap) {
+void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap, unsigned int callSite) {
     static bool g_renderBarNewCustom = true;
     //BEGIN Custom Code
     if (g_renderBarNewCustom) {
-        renderBarNewCustom(x, y, width, value, max, colorRow, drawEndCap);
+        renderBarNewCustom(x, y, width, value, max, colorRow, drawEndCap, callSite);
         return;
     }
     //END Custom Code
@@ -934,17 +963,30 @@ void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int6
     if (drawEndCap) renderCutout(static_cast<float>(static_cast<int64_t>(x) + static_cast<int64_t>(fill) - 2), 2, 9, 4);
 }
 
+/// The game's address of the call instruction in front of a return address, the call is 5 bytes long.
+static unsigned int __stdcall FUN_004a6af0_toCallSite(unsigned int returnAddress) {
+    return returnAddress - 5 - FP::get()->getBaseAdress() + FP::usedBase;
+}
+
 __declspec(naked) void FUN_004a6af0_drawBarNew_NoneStd() {
-    //copies the 8 stack dwords (depth, width, value, max, colorRow, drawEndCap), ecx and edx stay x and y
+    /* Pushes the call site as last argument, then copies the 8 stack dwords (depth, width, value, max, colorRow,
+     * drawEndCap) in front of it. ecx and edx stay x and y, the stdcall helper keeps them as well. */
     __asm {
-        push [esp + 32]
-        push [esp + 32]
-        push [esp + 32]
-        push [esp + 32]
-        push [esp + 32]
-        push [esp + 32]
-        push [esp + 32]
-        push [esp + 32]
+        push ecx
+        push edx
+        push [esp + 8]
+        call FUN_004a6af0_toCallSite
+        pop edx
+        pop ecx
+        push eax
+        push [esp + 36]
+        push [esp + 36]
+        push [esp + 36]
+        push [esp + 36]
+        push [esp + 36]
+        push [esp + 36]
+        push [esp + 36]
+        push [esp + 36]
         call FUN_004a6af0_drawBarNew
         ret
     }
