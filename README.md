@@ -8,17 +8,10 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.2.0 beta](https://www.dropbox.com/scl/fi/mjoxbsaqxn1jhi3lymdx0/Disgaea-Tools-v1.2.0-beta.zip?rlkey=w6sl2isg6esjblgwlduws1tfb&dl=0)**
+* **[Version v1.2.1 beta](https://www.dropbox.com/scl/fi/rzfp0ov9psbf18y1xnm2z/Disgaea-Tools-v1.2.1-beta.zip?rlkey=zxmof1a9b54kr077vuaa533ea&dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
-===  14.10.2025 - v1.0.8  ===
- * Disa Map Editor v0.3.8 alpha
-	- Fixed some gizmos not visible in object mode
- * DisaReverseEngineering v4.6.1
-	- Updated recruitment, see "Adding-Custom-Characters" Wiki for more info!
-	    - Changed "isRecruitable" to "recruitmentType", allowing for more precise settings.
-		- Changed "unknownValue0x83" to "manaCostScale", allowing to scale the mana cost of a unit in dark assembly
 ===  25.10.2026 - v1.2.0  ===
  - The most of the project now swiched to a custom engine and no longer uses Qt
  * Disa Map Editor v0.5.0 beta
@@ -46,6 +39,13 @@ You can download the latest version of the tools here:
 	- Imporved navigation
 	- Imporved performace in color reduction algorithm
 	- Improved color picker and color table
+===  28.10.2026 - v1.2.1  ===
+ * DisaReverseEngineering v4.4.8 beta
+    - The (progress/hp/exp) bars can now be styled
+ * DisaFileManager v0.7.1 beta
+    - Fixed a crash when reasin invalid .sh file
+ * pg_engine
+    - Apps now sleep when there is now events to process
 ```
 
 ## Content
@@ -125,6 +125,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v1.0.6 alpha](https://www.dropbox.com/scl/fi/feh0yqdqg4vrs5p885nej/Disgaea-Tools-v1.0.6-alpha.zip?rlkey=l1e4aghzwi78sasgbblxxdnbp&dl=0)
 * [Version v1.0.7 alpha](https://www.dropbox.com/scl/fi/9ta6s49vpelchnfml4f1k/Disgaea-Tools-v1.0.7-alpha.zip?rlkey=xt93bageykcldlbiclp2efphu&dl=0)
 * [Version v1.0.8 alpha](https://www.dropbox.com/scl/fi/wynb5gtmqyb397iw515yj/Disgaea-Tools-v1.0.8-alpha.zip?rlkey=lpsdggr08lq8dncotyld6jf9h&dl=0)
+* [Version v1.2.0 beta](https://www.dropbox.com/scl/fi/mjoxbsaqxn1jhi3lymdx0/Disgaea-Tools-v1.2.0-beta.zip?rlkey=w6sl2isg6esjblgwlduws1tfb&dl=0)
 ---
 
 # Disclaimer && License

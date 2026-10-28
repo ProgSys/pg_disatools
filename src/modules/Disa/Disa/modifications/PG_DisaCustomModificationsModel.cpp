@@ -90,6 +90,7 @@ static bool applyGuiBar(const PG_DisaModInfo& mod, const nlohmann::json& j, std:
 	settings->material = resolveModName(material, mod.namespaceMod);
 	readFromJson(*block, "yScale", settings->yScale);
 	return true;
+}
 
 void PG_DisaCustomModificationsModel::loadModifications(const PG_File& exePath) {
 	m_betterControls.reset();
