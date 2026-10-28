@@ -447,7 +447,7 @@ void __fastcall translateReplace(char*& jis_string);
 * @brief The fill of a progress bar in the new UI style (HP, SP, weapon mastery, skill EXP, rank, aptitude).
 * Drawn as a left cap, a stretched middle and a right cap from DAT_0074ce28, filled up to (width - 4) * value / max.
 * The track behind it is FUN_004a6cf0 or part of the background. See reverse/ProgressBars.md.
-* While g_renderBarNewCustom is set (default) it submits one M_DisaProgressBar rectangle instead.
+* While a mod has a "gui" -> "bar" block (PG_DisaCustomModificationsModel::GuiBar) it submits one rectangle with its material instead.
 * @param depth Render priority, like 0xc7a7.
 * @param width The full width of the bar, the same as given to the track.
 * @param max Must not be 0, the callers test it.

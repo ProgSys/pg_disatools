@@ -903,11 +903,15 @@ namespace {
     }
 
     /**
-    * The bar as one rectangle with M_DisaProgressBar instead of the three cutouts of the game. The shader rebuilds
-    * the cutouts from one row of NEW_GUI09 in grey and multiplies them with the fill colour, grey 0.5 gives the fill colour.
+    * The bar as one rectangle with the material of the mods' "gui" -> "bar" block instead of the three cutouts of the
+    * game. The built in M_DisaProgressBar rebuilds the cutouts from one row of NEW_GUI09 and recolours them.
     * @param callSite The call of FUN_004a6af0 in the game, it picks the old UI colour.
     */
-    void renderBarNewCustom(int x, int y, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap, unsigned int callSite) {
+    void renderBarNewCustom(const PG_DisaCustomModificationsModel::GuiBar& settings, int x, int y, int width, int64_t value, int64_t max, int colorRow,
+        bool drawEndCap, unsigned int callSite) {
+        //the mods are loaded once at start, so the material never changes
+        static const PG_Model model("T_DisaProgressBar", PG_Material(settings.material), PG_Geometry::sfq());
+
         //the colour rows of NEW_GUI09: turquoise (fitted to the original), red and yellow (estimates)
         constexpr std::array<glm::vec4, 3> fillColors{ {
             { 0.1f, 0.66f, 0.55f, 1.f },
@@ -919,10 +923,11 @@ namespace {
 
         auto* renderManager = DisaCustomRenderManager::get();
         auto* node = renderManager->getNode<PG_ModelNode>(renderManager->makeFrameNodeId("progressBar"), DisaCustomRenderManager::EGroup::Screen);
-        if (node->getModel() != renderManager->getProgressBarModel()) node->setModel(renderManager->getProgressBarModel());
-        //the same area as the fill of the game, a full bar is width - 4 pixels long and 4 high
-        node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y, 0.f))));
-        node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(width - 4, 4.f, 1.f))));
+        if (node->getModel() != model) node->setModel(model);
+        //the fill area of the game, a full bar is width - 4 pixels long and 4 high, yScale grows it around its centre
+        const float height = 4.f * settings.yScale;
+        node->setPropertyValue("disaGuiTransProjection", PG_Any::from(glm::translate(glm::mat4(1.f), glm::vec3(x, y + 2.f - height * 0.5f, 0.f))));
+        node->setPropertyValue("disaGuiScaleProjection", PG_Any::from(glm::scale(glm::mat4(1.f), glm::vec3(width - 4, height, 1.f))));
         node->setPropertyValue("disaBarProgress", PG_Any::from(static_cast<float>(static_cast<double>(value) / static_cast<double>(max))));
         node->setPropertyValue("disaBarFillColorNew", PG_Any::from(fillColorNew));
         node->setPropertyValue("disaBarFillColorOld", PG_Any::from(fillColorOld));
@@ -932,13 +937,10 @@ namespace {
     }
 }
 
-/// When false, FUN_004a6af0_drawBarNew draws the cutouts of the game.
-
 void __fastcall FUN_004a6af0_drawBarNew(int x, int y, int depth, int width, int64_t value, int64_t max, int colorRow, bool drawEndCap, unsigned int callSite) {
-    static bool g_renderBarNewCustom = true;
     //BEGIN Custom Code
-    if (g_renderBarNewCustom) {
-        renderBarNewCustom(x, y, width, value, max, colorRow, drawEndCap, callSite);
+    if (const auto& guiBar = DisaCustomModificationsManager::get()->getGuiBar()) {
+        renderBarNewCustom(*guiBar, x, y, width, value, max, colorRow, drawEndCap, callSite);
         return;
     }
     //END Custom Code

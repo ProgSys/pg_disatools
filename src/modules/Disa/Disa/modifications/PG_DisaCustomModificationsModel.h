@@ -69,6 +69,16 @@ public:
 	};
 
 	/**
+	* @brief The "bar" block inside the "gui" block of a mod.json. While a loaded mod has one, the progress bars of the
+	* new UI style (FUN_004a6af0) are drawn as one rectangle with this material instead of the game's cutouts.
+	* @details Layered and named like BetterControls, but a block without "material" fails the whole mod.
+	*/
+	struct GuiBar {
+		std::string material = "M_DisaProgressBar"; /// "material", mandatory, gets the bar properties like disaBarProgress
+		float yScale = 1.f; /// "yScale", the height of the rectangle around the bar's centre, 1 is the 4 pixels of the game
+	};
+
+	/**
 	* @param scriptsModel Not owned, receives the "scripts" and "talkScripts" blocks. Must not be null.
 	* @param translationModel Not owned, receives the "translation" block. May be null.
 	*/
@@ -85,6 +95,8 @@ public:
 	const std::list<PG_DisaModInfo>& getModifications() const { return m_modifications; }
 	/// The settings of the improved mouse control, nullopt while no mod turns it on
 	const std::optional<BetterControls>& getBetterControls() const { return m_betterControls; }
+	/// The settings of the custom progress bars, nullopt while no mod turns them on
+	const std::optional<GuiBar>& getGuiBar() const { return m_guiBar; }
 
 	PG_DisaModSpritesModel* getSpritesModel() const { return m_spritesModel.get(); }
 	PG_DisaModFacesModel* getFacesModel() const { return m_facesModel.get(); }
@@ -99,6 +111,7 @@ public:
 private:
 	std::list<PG_DisaModInfo> m_modifications; //a list, the entries of the sub-models point into it
 	std::optional<BetterControls> m_betterControls;
+	std::optional<GuiBar> m_guiBar;
 
 	std::unique_ptr<PG_DisaModSpritesModel> m_spritesModel;
 	std::unique_ptr<PG_DisaModFacesModel> m_facesModel;

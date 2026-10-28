@@ -73,8 +73,27 @@ static bool applyBetterControls(const PG_DisaModInfo& mod, const nlohmann::json&
 	return true;
 }
 
+/**
+* @brief Lays the "bar" block inside the "gui" block of the mod over the settings, like applyBetterControls.
+* @details checkGuiBar has accepted the block before.
+* @returns False when the mod has no bar block
+*/
+static bool applyGuiBar(const PG_DisaModInfo& mod, const nlohmann::json& j, std::optional<PG_DisaCustomModificationsModel::GuiBar>& settings) {
+	const auto gui = j.find("gui");
+	if (gui == j.end() || !gui->is_object()) return false;
+	const auto block = gui->find("bar");
+	if (block == gui->end()) return false;
+	auto material = block->at("material").get<std::string>();
+	if (material.empty() || material.size() > 9000) return false;
+	if (!settings) settings.emplace();
+
+	settings->material = resolveModName(material, mod.namespaceMod);
+	readFromJson(*block, "yScale", settings->yScale);
+	return true;
+
 void PG_DisaCustomModificationsModel::loadModifications(const PG_File& exePath) {
 	m_betterControls.reset();
+	m_guiBar.reset();
 	m_spritesModel->clear();
 	m_facesModel->clear();
 	m_magicModel->clear();
@@ -175,6 +194,9 @@ void PG_DisaCustomModificationsModel::loadModifications(const PG_File& exePath) 
 			//loaded bottom first, so every mod lays its keys over the ones of the mods below it
 			if (applyBetterControls(*mod, loadInfo.json, m_betterControls)) {
 				OUT_INFO("Better controls changed by mod '" << mod->name << "', radial menu " << (m_betterControls->isRadialMenu ? "on" : "off"));
+			}
+			if (applyGuiBar(*mod, loadInfo.json, m_guiBar)) {
+				OUT_INFO("Progress bars changed by mod '" << mod->name << "', material '" << m_guiBar->material << "'");
 			}
 			m_magicModel->load(mod, loadInfo);
 			m_spritesModel->load(mod, loadInfo);

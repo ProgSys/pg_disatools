@@ -119,8 +119,6 @@ public:
 	const PG_Texture& getLoadTexture() const { return m_loadTexture; }
 	const PG_Model& getFullImageScreenModel() const { return m_fullImageScreenModel; }
 	const PG_Model& getImageScreenModel() const { return m_imageScreenModel; }
-	/// One screen rectangle with M_DisaProgressBar, the fill is drawn by the shader
-	const PG_Model& getProgressBarModel() const { return m_progressBarModel; }
 
 	const PG_DeltaTimer& getDeltaTimer() const { return m_deltaTimer; }
 	/**
@@ -147,7 +145,6 @@ private:
 	PG_Texture m_loadTexture;
 	PG_Model m_fullImageScreenModel;
 	PG_Model m_imageScreenModel;
-	PG_Model m_progressBarModel;
 	std::vector<PG_Any> m_cachedResources;
 
 	PG_ActorNode* m_worldGroup = nullptr;
