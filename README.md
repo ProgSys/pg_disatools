@@ -8,7 +8,7 @@ You can download the latest version of the tools here:
 
 
 # Newest version
-* **[Version v1.2.1 beta](https://www.dropbox.com/scl/fi/rzfp0ov9psbf18y1xnm2z/Disgaea-Tools-v1.2.1-beta.zip?rlkey=zxmof1a9b54kr077vuaa533ea&dl=0)**
+* **[Version v1.2.2 beta](https://www.dropbox.com/scl/fi/dyk7jbepsl24m3xmvt4pe/Disgaea-Tools-v1.2.2-beta.zip?rlkey=dhbdasr9yvgu76ks3v0vzv8j4&dl=0)**
 
 [Last change log](https://github.com/ProgSys/pg_disatools/blob/master/changelog.txt):
 ```
@@ -46,6 +46,10 @@ You can download the latest version of the tools here:
     - Fixed a crash when reasin invalid .sh file
  * pg_engine
     - Apps now sleep when there is now events to process
+===  09.11.2026 - v1.2.2  ===
+ * pg_engine
+    - Executables should now launch with dedicated GPU instead of the integrated one
+    - An error will be displayed if Open GL version is below 4.5
 ```
 
 ## Content
@@ -126,6 +130,7 @@ This tool allows you to open, view, convert and export TX2 images.
 * [Version v1.0.7 alpha](https://www.dropbox.com/scl/fi/9ta6s49vpelchnfml4f1k/Disgaea-Tools-v1.0.7-alpha.zip?rlkey=xt93bageykcldlbiclp2efphu&dl=0)
 * [Version v1.0.8 alpha](https://www.dropbox.com/scl/fi/wynb5gtmqyb397iw515yj/Disgaea-Tools-v1.0.8-alpha.zip?rlkey=lpsdggr08lq8dncotyld6jf9h&dl=0)
 * [Version v1.2.0 beta](https://www.dropbox.com/scl/fi/mjoxbsaqxn1jhi3lymdx0/Disgaea-Tools-v1.2.0-beta.zip?rlkey=w6sl2isg6esjblgwlduws1tfb&dl=0)
+* [Version v1.2.1 beta](https://www.dropbox.com/scl/fi/rzfp0ov9psbf18y1xnm2z/Disgaea-Tools-v1.2.1-beta.zip?rlkey=zxmof1a9b54kr077vuaa533ea&dl=0)
 ---
 
 # Disclaimer && License

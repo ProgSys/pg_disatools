@@ -633,3 +633,8 @@
 	- Imporved navigation
 	- Imporved performace in color reduction algorithm
 	- Improved color picker and color table
+	
+===  09.11.2026 - v1.2.2  ===
+ * pg_engine
+    - Executables should now launch with dedicated GPU instead of the integrated one
+    - An error will be displayed if Open GL version is below 4.5
