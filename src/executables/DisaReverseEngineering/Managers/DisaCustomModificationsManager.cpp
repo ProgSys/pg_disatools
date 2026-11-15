@@ -178,30 +178,15 @@ void DisaCustomModificationsManager::addCharacterToParty(const PG_DisaIdentifier
 		OUT_INFO("Adding character \"" << newCharData->getName() << "\" with identifier \"" << identifier.getIdentifier() << "\" at level " << level << " and no mentor.");
 	}
 
-	auto& newChar = DisaPartyCharacterInfo::addNewEntry();
+	//0x004dafc0 clears the whole record (memset at 0x004db007) and fills it from the character data,
+	//so there is nothing to set up before, only the values below need to be changed afterwards
+	DisaPartyCharacterInfo* newCharPtr = DisaPartyCharacterInfo::addNewEntry(displayInfo.characterId, level);
+	if (!newCharPtr) {
+		OUT_ERROR("Failed to add character \"" << identifier.getIdentifier() << "\"! The party is full.");
+		return;
+	}
+	auto& newChar = *newCharPtr;
 
-	//TODO all of this may do nothing as 0x004dafc0 resets everything :p
-	newChar.charName = newCharData->name;
-	newChar.charTitle = newCharData->title;
-	newChar.level = 1;
-	if(level != 1) newChar.experience = FP::getData<std::array<unsigned long long, 9999>>(0x005e9b28)[level] * newCharData->experienceScale;
-	newChar.characterId = displayInfo.characterId;
-	newChar.spriteId = displayInfo.spriteId;
-	newChar.charDatIndex = displayInfo.charDataIndex;
-
-	newChar.counterBase = newCharData->counter;
-	newChar.counter = newCharData->counter;
-	newChar.jumpingPowerBase = newCharData->jumpPower;
-	newChar.jumpingPower = newCharData->jumpPower;
-	newChar.movementBase = newCharData->movement;
-	newChar.movement = newCharData->movement;
-	
-
-	newChar.stats = newCharData->baseStats;
-	newChar.weaponMasteryBaseStats = newCharData->weaponMasteryBaseStats;
-	std::copy(newCharData->skillIds.begin(), newCharData->skillIds.end(), newChar.skillId.begin());
-	
-	FP::callFastFarA(0x004dafc0, &newChar, newChar.characterId, level, 0, 0); //peform level up
 	//level up function changes the face ID and other values
 	if (PG_DisaIdentifier::isCustomId(displayInfo.faceId)) {
 		newChar.setCustomPortraitId(displayInfo.faceId);
