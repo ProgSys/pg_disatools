@@ -153,13 +153,9 @@ std::string DisaPartyCharacterInfo::playerPartyToJson() {
     return j.dump(4);
 }
 
-DisaPartyCharacterInfo& DisaPartyCharacterInfo::addNewEntry() {
-    unsigned short& unitsOwnedSize = FP::getData<unsigned short>(aUnitsOwned);
-    DisaPartyCharacterInfo* ret = (&FP::getData<DisaPartyCharacterInfo>(0x0061a45c - 0x171 * 4) + unitsOwnedSize);
-    ++unitsOwnedSize;
-    memset((char*)ret, 0, sizeof(DisaPartyCharacterInfo));
-    ret->mentorIndex = -1;
-    return *ret;
+DisaPartyCharacterInfo* DisaPartyCharacterInfo::addNewEntry(unsigned short characterId, unsigned short level) {
+    //ECX = character id, EDX = level, returns the new record or nullptr
+    return FP::callFastFarA<DisaPartyCharacterInfo*>(0x004d3f10, static_cast<int>(characterId), static_cast<int>(level));
 }
 
 unsigned int DisaPartyCharacterInfo::getSize() {

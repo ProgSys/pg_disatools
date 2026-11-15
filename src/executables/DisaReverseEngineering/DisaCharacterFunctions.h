@@ -18,7 +18,14 @@ struct DisaPartyCharacterInfo : public PG_DisaPartyCharacter { //1720 unsigned c
     static std::string playerPartyToString();
     static std::string playerPartyToJson();
 
-    static DisaPartyCharacterInfo& addNewEntry();
+    /**
+    * @brief Creates a new unit at the end of the player party.
+    * Original function: FUN_004d3f10, the game calls it itself when a unit joins (FUN_00489420, script FUN_004b6420).
+    * It calls 0x004dafc0, writes the party index of the unit to 0x691 and increases aUnitsOwned.
+    * @return nullptr when the party is full. The array has 128 records and the stored units (0x0065db12)
+    * are kept at its end, so it is full once aUnitsOwned + stored units reaches 128.
+    */
+    static DisaPartyCharacterInfo* addNewEntry(unsigned short characterId, unsigned short level);
     static unsigned int getSize();
     static DisaPartyCharacterInfo& getEntry(unsigned int index);
 
